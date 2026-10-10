@@ -343,8 +343,9 @@ function ManageProductVariants() {
                         {productData.product.optionGroups.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 <Trans>
-                                    No option groups defined yet. Add option groups to create different
-                                    variants of your product (e.g., Size, Color, Material)
+                                    No option groups defined yet. Add option groups when variants differ by a
+                                    shared property (e.g., Size, Color, Material). Without them, add variants
+                                    one at a time below.
                                 </Trans>
                             </p>
                         ) : (
@@ -497,14 +498,17 @@ function ManageProductVariants() {
                         </Table>
                     </div>
 
-                    {productData.product.optionGroups.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            <AddProductVariantDialog
-                                productId={id}
-                                onSuccess={() => {
-                                    refetch();
-                                }}
-                            />
+                    <div className="flex items-center gap-2">
+                        <AddProductVariantDialog
+                            // The dialog loads its own copy of the product. Remounting it when
+                            // the option groups change makes it load them again.
+                            key={productData.product.optionGroups.map(group => group.id).join(',')}
+                            productId={id}
+                            onSuccess={() => {
+                                refetch();
+                            }}
+                        />
+                        {productData.product.optionGroups.length > 0 && (
                             <GenerateMissingVariantsDialog
                                 productId={id}
                                 productName={productData.product.name}
@@ -514,8 +518,8 @@ function ManageProductVariants() {
                                 }))}
                                 onSuccess={() => refetch()}
                             />
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </PageBlock>
             </PageLayout>
             <ForceRemoveOptionGroupDialog

@@ -358,6 +358,10 @@ msgid "Successfully created role"
 msgstr "Rol creado exitosamente"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "Aún no hay grupos de opciones definidos. Agregue grupos de opciones cuando las variantes difieran por una propiedad compartida (ej. Tamaño, Color, Material). Sin ellos, agregue las variantes una por una a continuación."
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
 msgstr "¿Está seguro de que desea eliminar esta variante?"
 
@@ -7088,10 +7092,6 @@ msgstr "Más opciones de formato"
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} artículo(s) reembolsado(s)"
-
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
-msgstr "Aún no hay grupos de opciones definidos. Agregue grupos de opciones para crear diferentes variantes de su producto (ej. Tamaño, Color, Material)"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"

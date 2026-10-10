@@ -338,6 +338,10 @@ msgid "Successfully created role"
 msgstr "Rol yaratildi"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "Hali optsiya guruhi belgilanmagan. Variantlar umumiy xususiyat bilan farq qilganda optsiya guruhlarini qo'shing (masalan, O'lcham, Rang, Material). Ularsiz, variantlarni pastda birma-bir qo'shing."
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ushbu variant o'chirilsinmi?"
 
@@ -6884,10 +6888,6 @@ msgstr "Qo'shimcha formatlash imkoniyatlari"
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} ta mahsulot uchun pul qaytarildi"
-
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
-msgstr "Hali optsiya guruhi belgilanmagan. Mahsulotingizning turli variantlarini yaratish uchun optsiya guruhlarini qo'shing (masalan, O'lcham, Rang, Material)"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"
