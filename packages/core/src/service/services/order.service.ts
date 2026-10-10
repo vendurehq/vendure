@@ -1064,9 +1064,9 @@ export class OrderService implements OnApplicationBootstrap {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const surcharge = await this.connection.getEntityOrThrow(ctx, Surcharge, surchargeId);
         if (order.surcharges.find(s => idsAreEqual(s.id, surcharge.id))) {
+            await this.connection.getRepository(ctx, Surcharge).remove(surcharge);
             order.surcharges = order.surcharges.filter(s => !idsAreEqual(s.id, surchargeId));
             const updatedOrder = await this.applyPriceAdjustments(ctx, order);
-            await this.connection.getRepository(ctx, Surcharge).remove(surcharge);
             return updatedOrder;
         } else {
             return order;
@@ -2441,6 +2441,11 @@ export class OrderService implements OnApplicationBootstrap {
                 updatedOrderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
             }
         }
+
+        // Reload surcharges so totals reflect the DB, not a stale load-time snapshot.
+        order.surcharges = await this.connection.getRepository(ctx, Surcharge).find({
+            where: { order: { id: order.id } },
+        });
 
         // Get the shipping line IDs before doing the order calculation
         // step, which can in some cases change the applied shipping lines.
