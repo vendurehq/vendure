@@ -291,7 +291,7 @@ describe('console link command line login', () => {
         const output = run.messages.join('\n');
         expect(output).toContain('Using Acme.');
         expect(output).toContain('vendure console link --organization <Account identifier>');
-        expect(output).toContain('to Acme.');
+        expect(output).toContain('Linked Storefront to Acme.');
     });
 
     it('lists the Customer Accounts and --organization when no one can choose between them', async () => {

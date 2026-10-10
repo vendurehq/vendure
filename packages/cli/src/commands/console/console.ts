@@ -415,10 +415,14 @@ async function link(
 
     const login = await signIn(endpoints, options.organization, dependencies, signal);
     const stored = readAuthStatus(login.auth).organization;
-    const organization =
-        stored && options.organization?.trim()
-            ? stored
-            : await scopeLogin(login, stored, endpoints, dependencies, signal);
+    const organization = await resolveAccount(
+        login,
+        stored,
+        options.organization,
+        endpoints,
+        dependencies,
+        signal,
+    );
     const accountName = describeOrganization(organization);
     const project = await chooseProject(
         await listProjects(endpoints, login, accountName, dependencies, signal),
@@ -570,13 +574,17 @@ function matchesOrganization(organization: StoredOrganization | null | undefined
  * With one account the login uses it. A non-interactive run keeps the scoped
  * account and says which one it used.
  */
-async function scopeLogin(
+async function resolveAccount(
     login: ConsoleLogin,
     current: StoredOrganization | null | undefined,
+    requested: string | undefined,
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<StoredOrganization> {
+    if (current && requested?.trim()) {
+        return current;
+    }
     try {
         const organizations = await listOrganizations(login.auth);
         if (current && organizations.length > 1 && dependencies.isNonInteractive()) {
@@ -621,11 +629,9 @@ async function chooseOrganization(
         return organizations[0];
     }
     // The scoped account comes first, so Enter keeps it.
-    const ordered = [...organizations].sort(
-        (a, b) =>
-            Number(b.workosOrganizationId === current?.workosOrganizationId) -
-            Number(a.workosOrganizationId === current?.workosOrganizationId),
-    );
+    const isCurrent = (organization: AuthOrganization) =>
+        organization.workosOrganizationId === current?.workosOrganizationId;
+    const ordered = [...organizations.filter(isCurrent), ...organizations.filter(o => !isCurrent(o))];
     const choices = ordered.map(organization => ({
         value: organization.customerAccountId,
         label: `${organization.name} (${organization.customerAccountId})`,
