@@ -52,6 +52,7 @@ import { flattenJobFilter, getPrefix } from './utils';
  */
 export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
     private redisConnection: Redis | Cluster;
+    private ownsRedisConnection = false;
     private connectionOptions: ConnectionOptions;
     private queue: Queue;
     /**
@@ -88,6 +89,7 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
             options.connection ??
             ({ host: 'localhost', port: 6379, maxRetriesPerRequest: null } as RedisOptions);
 
+        this.ownsRedisConnection = !(this.connectionOptions instanceof EventEmitter);
         this.redisConnection =
             this.connectionOptions instanceof EventEmitter
                 ? this.connectionOptions
@@ -166,6 +168,10 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
             this.queue.close(),
             this.jobListIndexService?.close(),
             ...workerClosePromises,
+        ]);
+        await Promise.allSettled([
+            this.cancellationSub?.quit(),
+            this.ownsRedisConnection ? this.redisConnection.quit() : undefined,
         ]);
     }
 
