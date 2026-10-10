@@ -24,6 +24,7 @@ import { PasswordValidationStrategy } from './auth/password-validation-strategy'
 import { VerificationTokenStrategy } from './auth/verification-token-strategy';
 import { CollectionFilter } from './catalog/collection-filter';
 import { ProductVariantPriceCalculationStrategy } from './catalog/product-variant-price-calculation-strategy';
+import { ProductVariantPriceLoadingStrategy } from './catalog/product-variant-price-loading-strategy';
 import { ProductVariantPriceSelectionStrategy } from './catalog/product-variant-price-selection-strategy';
 import { ProductVariantPriceUpdateStrategy } from './catalog/product-variant-price-update-strategy';
 import { StockDisplayStrategy } from './catalog/stock-display-strategy';
@@ -929,6 +930,18 @@ export interface CatalogOptions {
      * @default DefaultTaxCalculationStrategy
      */
     productVariantPriceCalculationStrategy?: ProductVariantPriceCalculationStrategy;
+    /**
+     * @description
+     * Defines how the price rows of a ProductVariant are loaded before one of them is selected.
+     * The default keeps `ProductVariant.productVariantPrices` an eager relation, so every variant
+     * comes with the prices of all its Channels. {@link ActiveChannelProductVariantPriceLoadingStrategy}
+     * loads only the active Channel's rows, which keeps the cost of a request independent of the
+     * number of Channels.
+     *
+     * @default DefaultProductVariantPriceLoadingStrategy
+     * @since 3.8.0
+     */
+    productVariantPriceLoadingStrategy?: ProductVariantPriceLoadingStrategy;
     /**
      * @description
      * Defines the strategy which determines what happens to a ProductVariant's prices

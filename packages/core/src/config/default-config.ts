@@ -26,6 +26,7 @@ import { DefaultVerificationTokenStrategy } from './auth/default-verification-to
 import { NativeAuthenticationStrategy } from './auth/native-authentication-strategy';
 import { defaultCollectionFilters } from './catalog/default-collection-filters';
 import { DefaultProductVariantPriceCalculationStrategy } from './catalog/default-product-variant-price-calculation-strategy';
+import { DefaultProductVariantPriceLoadingStrategy } from './catalog/default-product-variant-price-loading-strategy';
 import { DefaultProductVariantPriceSelectionStrategy } from './catalog/default-product-variant-price-selection-strategy';
 import { DefaultProductVariantPriceUpdateStrategy } from './catalog/default-product-variant-price-update-strategy';
 import { DefaultStockDisplayStrategy } from './catalog/default-stock-display-strategy';
@@ -141,6 +142,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         collectionFilters: defaultCollectionFilters,
         productVariantPriceSelectionStrategy: new DefaultProductVariantPriceSelectionStrategy(),
         productVariantPriceCalculationStrategy: new DefaultProductVariantPriceCalculationStrategy(),
+        productVariantPriceLoadingStrategy: new DefaultProductVariantPriceLoadingStrategy(),
         productVariantPriceUpdateStrategy: new DefaultProductVariantPriceUpdateStrategy({
             syncPricesAcrossChannels: false,
         }),
