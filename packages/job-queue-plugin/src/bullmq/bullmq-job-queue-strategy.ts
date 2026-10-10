@@ -67,8 +67,8 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
     private cancellationSub: Redis;
     private cancellationSubscribed = false;
     private readonly cancelRunningJob$ = new Subject<string>();
-    private readonly CANCEL_JOB_CHANNEL = 'cancel-job';
-    private readonly CANCELLED_JOB_LIST_NAME = 'vendure:cancelled-jobs';
+    private cancelJobChannel: string;
+    private cancelledJobListName: string;
 
     async init(injector: Injector): Promise<void> {
         const options = injector.get<BullMQPluginOptions>(BULLMQ_PLUGIN_OPTIONS);
@@ -84,6 +84,9 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
                 removeOnFail: options.workerOptions?.removeOnFail ?? { age: 60 * 60 * 24 * 30, count: 5000 },
             },
         };
+        const prefix = getPrefix(this.options);
+        this.cancelJobChannel = `${prefix}:cancel-job`;
+        this.cancelledJobListName = `${prefix}:vendure:cancelled-jobs`;
         this.connectionOptions =
             options.connection ??
             ({ host: 'localhost', port: 6379, maxRetriesPerRequest: null } as RedisOptions);
@@ -147,7 +150,7 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
                     throw e;
                 } finally {
                     if (job.id) {
-                        await this.redisConnection.srem(this.CANCELLED_JOB_LIST_NAME, job.id?.toString());
+                        await this.redisConnection.srem(this.cancelledJobListName, job.id?.toString());
                     }
                     completed$.next();
                     completed$.complete();
@@ -355,13 +358,13 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
         if (!this.cancellationSubscribed) {
             this.cancellationSubscribed = true;
-            await this.cancellationSub.subscribe(this.CANCEL_JOB_CHANNEL);
+            await this.cancellationSub.subscribe(this.cancelJobChannel);
             this.cancellationSub.on('message', this.subscribeToCancellationEvents);
         }
     }
 
     private readonly subscribeToCancellationEvents = (channel: string, jobId: string) => {
-        if (channel === this.CANCEL_JOB_CHANNEL && jobId) {
+        if (channel === this.cancelJobChannel && jobId) {
             this.cancelRunningJob$.next(jobId);
         }
     };
@@ -415,8 +418,8 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
         // Not yet possible natively in BullMQ, see
         // https://github.com/taskforcesh/bullmq/issues/632
         // So we have our own custom method of marking a job as cancelled.
-        await this.redisConnection.publish(this.CANCEL_JOB_CHANNEL, jobId);
-        await this.redisConnection.sadd(this.CANCELLED_JOB_LIST_NAME, jobId.toString());
+        await this.redisConnection.publish(this.cancelJobChannel, jobId);
+        await this.redisConnection.sadd(this.cancelledJobListName, jobId.toString());
     }
 
     private async createVendureJob(bullJob: Bull.Job): Promise<Job> {
@@ -453,7 +456,7 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
                 return JobState.RETRYING;
             case 'active': {
                 const isCancelled =
-                    jobId && (await this.redisConnection.sismember(this.CANCELLED_JOB_LIST_NAME, jobId));
+                    jobId && (await this.redisConnection.sismember(this.cancelledJobListName, jobId));
                 return isCancelled ? JobState.CANCELLED : JobState.RUNNING;
             }
             case 'unknown':
