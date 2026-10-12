@@ -7,3 +7,5 @@ WORKDIR /usr/src/app
 RUN {{pmCiInstall}}
 COPY . .
 RUN {{pmRunScript "build"}}
+# Set after the install and build steps, which need the dev dependencies.
+ENV NODE_ENV=production

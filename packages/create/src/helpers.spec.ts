@@ -568,6 +568,39 @@ describe('registerTemplateHelpers + Dockerfile template', () => {
         expect(out).toContain('RUN pnpm install --frozen-lockfile');
         expect(out).toContain('RUN pnpm run build');
     });
+
+    // The install and build steps need dev dependencies, so NODE_ENV=production must come after them.
+    it.each(['npm', 'bun'] as const)('sets NODE_ENV=production after the %s build step', pm => {
+        const lines = renderDockerfile(pm).split('\n');
+        const envLine = lines.indexOf('ENV NODE_ENV=production');
+        const buildLine = lines.findIndex(line => line.startsWith('RUN') && line.endsWith('run build'));
+        const installLine = lines.indexOf(`RUN ${getPackageManagerInfo(pm).ciInstall}`);
+        expect(installLine).toBeGreaterThan(-1);
+        expect(envLine).toBeGreaterThan(-1);
+        expect(buildLine).toBeGreaterThan(installLine);
+        expect(envLine).toBeGreaterThan(buildLine);
+    });
+});
+
+// The scaffolded .env sets APP_ENV=dev, which enables the EmailPlugin dev mailbox and other
+// dev-only settings, so it must not be committed or copied into the Docker image.
+describe('ignore templates', () => {
+    function readTemplateLines(fileName: string): string[] {
+        return fs.readFileSync(path.join(__dirname, '../templates', fileName), 'utf-8').split('\n');
+    }
+
+    it('keeps .env out of git', () => {
+        expect(readTemplateLines('gitignore.template')).toEqual(
+            expect.arrayContaining(['.env', '.env.*', '!.env.example']),
+        );
+        expect(readTemplateLines('monorepo/root-gitignore.template')).toContain('.env');
+    });
+
+    it('keeps .env and local build output out of the Docker build context', () => {
+        expect(readTemplateLines('dockerignore.template')).toEqual(
+            expect.arrayContaining(['.env', '.env.*', 'node_modules', 'dist']),
+        );
+    });
 });
 
 // #4932 — the compose file must pin its own project name so containers/volumes never
