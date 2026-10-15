@@ -1,7 +1,21 @@
+import { Permission } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
-import { UserChannelPermissions } from '../../service/helpers/utils/get-user-channels-permissions';
+
+/**
+ * @description
+ * The permissions of a user on a specific Channel.
+ *
+ * @docsCategory auth
+ * @docsPage SessionCacheStrategy
+ */
+export interface UserChannelPermissions {
+    id: ID;
+    token: string;
+    code: string;
+    permissions: Permission[];
+}
 
 /**
  * @description
@@ -16,6 +30,15 @@ export type CachedSessionUser = {
     identifier: string;
     verified: boolean;
     channelPermissions: UserChannelPermissions[];
+    /**
+     * @description
+     * Permissions the user holds on every Channel, including Channels created after this
+     * session was cached. Populated for SuperAdmin users, whose effective permissions are
+     * derived at check time rather than fanned out per Channel.
+     *
+     * @since 4.0.0
+     */
+    globalPermissions?: Permission[];
 };
 
 /**

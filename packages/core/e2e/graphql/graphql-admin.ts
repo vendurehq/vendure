@@ -1,5 +1,5 @@
-import { initGraphQLTada } from 'gql.tada';
 import type { introspection } from './graphql-env-admin.d.ts';
+import { initGraphQLTada } from 'gql.tada';
 
 export const graphql = initGraphQLTada<{
     disableMasking: true;
@@ -11,5 +11,5 @@ export const graphql = initGraphQLTada<{
     };
 }>();
 
-export { readFragment } from 'gql.tada';
 export type { FragmentOf, ResultOf, VariablesOf } from 'gql.tada';
+export { readFragment } from 'gql.tada';

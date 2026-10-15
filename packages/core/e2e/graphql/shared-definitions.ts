@@ -866,6 +866,24 @@ export const updateChannelDocument = graphql(
     [channelFragment],
 );
 
+export const deleteChannelDocument = graphql(`
+    mutation DeleteChannel($id: ID!) {
+        deleteChannel(id: $id) {
+            message
+            result
+        }
+    }
+`);
+
+export const deleteChannelsDocument = graphql(`
+    mutation DeleteChannels($ids: [ID!]!) {
+        deleteChannels(ids: $ids) {
+            message
+            result
+        }
+    }
+`);
+
 export const getCustomerHistoryDocument = graphql(`
     query GetCustomerHistory($id: ID!, $options: HistoryEntryListOptions) {
         customer(id: $id) {
@@ -2290,6 +2308,36 @@ export const deleteCustomerAddressDocument = graphql(`
     mutation DeleteCustomerAddress($id: ID!) {
         deleteCustomerAddress(id: $id) {
             success
+        }
+    }
+`);
+
+export const assignRolesToUserDocument = graphql(`
+    mutation AssignRolesToUser($input: AssignRolesToUserInput!) {
+        assignRolesToUser(input: $input) {
+            id
+            roleAssignments {
+                roleId
+                channelId
+                role {
+                    code
+                }
+            }
+        }
+    }
+`);
+
+export const removeRolesFromUserDocument = graphql(`
+    mutation RemoveRolesFromUser($input: RemoveRolesFromUserInput!) {
+        removeRolesFromUser(input: $input) {
+            id
+            roleAssignments {
+                roleId
+                channelId
+                role {
+                    code
+                }
+            }
         }
     }
 `);

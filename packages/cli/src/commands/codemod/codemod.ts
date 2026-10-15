@@ -18,6 +18,14 @@ const CODEMODS: Record<string, { description: string; run: (targetPath?: string)
             await dashboardUiMigration(targetPath);
         },
     },
+    'role-assignments': {
+        description: 'Migrate User.roles and Role.channels to v4 role assignments',
+        run: async (targetPath?: string) => {
+            const { roleAssignmentsMigration } =
+                await import('./role-assignments/role-assignments-migration');
+            await roleAssignmentsMigration(targetPath);
+        },
+    },
 };
 
 export async function codemodCommand(transform?: string, targetPath?: string) {
@@ -47,7 +55,12 @@ export async function codemodCommand(transform?: string, targetPath?: string) {
 
     // Interactive mode: let the user pick a codemod.
     // Path is not supported in interactive mode — run from the project directory.
-    if (abortIfNonInteractive('vendure codemod', ['vendure codemod dashboard-base-ui'])) {
+    if (
+        abortIfNonInteractive('vendure codemod', [
+            'vendure codemod dashboard-base-ui',
+            'vendure codemod role-assignments',
+        ])
+    ) {
         return;
     }
 

@@ -202,6 +202,7 @@
         "cross-spawn": "^7.0.6",
         "dotenv": "^16.4.5",
         "fs-extra": "^11.2.0",
+        "graphql": "^16.11.0",
         "picocolors": "^1.0.0",
         "strip-json-comments": "^5.0.3",
         "ts-morph": "^21.0.1",

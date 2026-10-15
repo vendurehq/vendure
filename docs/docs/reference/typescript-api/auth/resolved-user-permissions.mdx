@@ -1,0 +1,33 @@
+---
+title: "ResolvedUserPermissions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/role-permission-resolver/role-permission-resolver.ts" sourceLine="34" packageName="@vendure/core" since="4.0.0" />
+
+The effective permissions of a User, as resolved by the [RolePermissionResolver](/reference/typescript-api/auth/role-permission-resolver#rolepermissionresolver).
+
+```ts title="Signature"
+interface ResolvedUserPermissions {
+    channels: UserChannelPermissions[];
+    globalPermissions: Permission[];
+}
+```
+
+<div className="members-wrapper">
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/session-cache-strategy#userchannelpermissions'>UserChannelPermissions</a>[]`}   />
+
+The per-channel permissions derived from the User's explicit [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment)s
+and, for customer Users, from the Customer's channel memberships.
+### globalPermissions
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]`}   />
+
+Permissions the User holds on _every_ Channel, including Channels created after the
+permissions were resolved. Populated for SuperAdmin users, whose effective permissions
+are derived at check time rather than stored per Channel.
+
+
+</div>

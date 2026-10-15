@@ -64,6 +64,7 @@ export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
     new CrudPermissionDefinition('PaymentMethod'),
     new CrudPermissionDefinition('Product'),
     new CrudPermissionDefinition('Promotion'),
+    new CrudPermissionDefinition('Role'),
     new CrudPermissionDefinition('ShippingMethod'),
     new CrudPermissionDefinition('Tag'),
     new CrudPermissionDefinition('TaxCategory'),

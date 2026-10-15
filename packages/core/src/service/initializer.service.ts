@@ -5,6 +5,7 @@ import { TransactionalConnection } from '../connection/transactional-connection'
 import { Administrator } from '../entity/administrator/administrator.entity';
 import { EventBus } from '../event-bus';
 import { InitializerEvent } from '../event-bus/events/initializer-event';
+import { ensureRoleAssignmentDataMigrated } from '../migration-utils/v4_0_role_assignments';
 
 import { AdministratorService } from './services/administrator.service';
 import { ChannelService } from './services/channel.service';
@@ -41,6 +42,7 @@ export class InitializerService {
 
     async onModuleInit() {
         await this.awaitDbSchemaGeneration();
+        await this.ensureRoleAssignmentDataMigrated();
         // IMPORTANT - why manually invoke these init methods rather than just relying on
         // Nest's "onModuleInit" lifecycle hook within each individual service class?
         // The reason is that the order of invocation matters. By explicitly invoking the
@@ -57,6 +59,26 @@ export class InitializerService {
         await this.taxRateService.initTaxRates();
         await this.stockLocationService.initStockLocations();
         await this.eventBus.publish(new InitializerEvent());
+    }
+
+    /**
+     * Refuses to start on a database whose pre-v4 role grants have not been migrated: the
+     * role_assignment table would be empty and every Administrator except the configured
+     * superadmin would be locked out. With synchronize enabled there is no migration to run
+     * the data migration from, so it runs here instead.
+     */
+    private async ensureRoleAssignmentDataMigrated() {
+        const queryRunner = this.connection.rawConnection.createQueryRunner();
+        try {
+            const migrated = await ensureRoleAssignmentDataMigrated(queryRunner, {
+                synchronize: !!this.connection.rawConnection.options.synchronize,
+            });
+            if (migrated) {
+                Logger.info('Migrated the pre-v4 role grants to role assignments (synchronize is enabled)');
+            }
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     /**

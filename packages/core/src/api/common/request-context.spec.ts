@@ -158,6 +158,34 @@ describe('RequestContext', () => {
             ]);
             expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(true);
         });
+
+        it('returns true via globalPermissions with no permissions on the channel', () => {
+            const ctx = createRequestContextWithPermissions([], true, [Permission.ReadProduct]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(true);
+        });
+
+        it('returns false when neither channel nor global permissions match', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadOrder], true, [
+                Permission.ReadCustomer,
+            ]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(false);
+        });
+
+        it('checks the given channel instead of the active channel', () => {
+            const ctx = createRequestContextWithPermissions([], true, undefined, [Permission.ReadProduct]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(false);
+            expect(ctx.userHasPermissions([Permission.ReadProduct], OTHER_CHANNEL_ID)).toBe(true);
+        });
+
+        it('returns false when user has no permissions on the given channel', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadProduct]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct], OTHER_CHANNEL_ID)).toBe(false);
+        });
+
+        it('applies globalPermissions on the given channel', () => {
+            const ctx = createRequestContextWithPermissions([], true, [Permission.SuperAdmin]);
+            expect(ctx.userHasPermissions([Permission.SuperAdmin], OTHER_CHANNEL_ID)).toBe(true);
+        });
     });
 
     describe('userHasAllPermissions', () => {
@@ -195,6 +223,45 @@ describe('RequestContext', () => {
                 Permission.UpdateProduct,
             ]);
             expect(ctx.userHasAllPermissions([Permission.ReadProduct])).toBe(true);
+        });
+
+        it('returns true when permissions are split across channel and global', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadProduct], true, [
+                Permission.UpdateProduct,
+            ]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(true);
+        });
+
+        it('returns true via globalPermissions alone with no permissions on the channel', () => {
+            const ctx = createRequestContextWithPermissions([], true, [
+                Permission.ReadProduct,
+                Permission.UpdateProduct,
+            ]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(true);
+        });
+
+        it('returns false when globalPermissions are missing a required permission', () => {
+            const ctx = createRequestContextWithPermissions([], true, [Permission.ReadProduct]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(false);
+        });
+
+        it('checks the given channel instead of the active channel', () => {
+            const ctx = createRequestContextWithPermissions([], true, undefined, [
+                Permission.ReadProduct,
+                Permission.UpdateProduct,
+            ]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(false);
+            expect(
+                ctx.userHasAllPermissions(
+                    [Permission.ReadProduct, Permission.UpdateProduct],
+                    OTHER_CHANNEL_ID,
+                ),
+            ).toBe(true);
+        });
+
+        it('returns false when user has no permissions on the given channel', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadProduct]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct], OTHER_CHANNEL_ID)).toBe(false);
         });
     });
 
@@ -242,7 +309,14 @@ describe('RequestContext', () => {
         });
     }
 
-    function createRequestContextWithPermissions(permissions: Permission[], withSession = true) {
+    const OTHER_CHANNEL_ID = '995860';
+
+    function createRequestContextWithPermissions(
+        permissions: Permission[],
+        withSession = true,
+        globalPermissions?: Permission[],
+        permissionsOnOtherChannel?: Permission[],
+    ) {
         const zone = new Zone({
             id: '62626',
             name: 'Europe',
@@ -270,7 +344,18 @@ describe('RequestContext', () => {
                       verified: true,
                       channelPermissions: [
                           { id: channel.id, token: channel.token, code: channel.code, permissions },
+                          ...(permissionsOnOtherChannel
+                              ? [
+                                    {
+                                        id: OTHER_CHANNEL_ID,
+                                        token: 'other-channel-token',
+                                        code: 'other-channel',
+                                        permissions: permissionsOnOtherChannel,
+                                    },
+                                ]
+                              : []),
                       ],
+                      ...(globalPermissions ? { globalPermissions } : {}),
                   },
               }
             : undefined;

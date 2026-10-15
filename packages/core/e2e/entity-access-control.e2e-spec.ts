@@ -257,7 +257,6 @@ describe('EntityAccessControlStrategy', () => {
             // Create a role with read permissions for catalog
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
-                    channelIds: ['T_1'],
                     code: 'restricted-role',
                     description: 'A restricted role for testing entity access control',
                     permissions: [Permission.ReadCatalog, Permission.ReadProduct],
@@ -435,7 +434,6 @@ describe('EntityAccessControlStrategy', () => {
             // Create a role with NO catalog permissions
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
-                    channelIds: ['T_1'],
                     code: 'no-catalog-role',
                     description: 'A role with no catalog permissions',
                     permissions: [],

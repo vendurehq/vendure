@@ -2,13 +2,13 @@
 title: "ChannelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="54" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="57" packageName="@vendure/core" />
 
 Contains methods relating to [Channel](/reference/typescript-api/entities/channel#channel) entities.
 
 ```ts title="Signature"
 class ChannelService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder)
+    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, roleAssignmentService: RoleAssignmentService)
     assignToCurrentChannel(entity: T, ctx: RequestContext) => Promise<T>;
     assignToChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T>;
     removeFromChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T | undefined>;
@@ -84,12 +84,21 @@ Returns the default Channel.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateChannelInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><UpdateChannelResult, <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />
 
-
+Updates a Channel. Throws a ForbiddenError if the active user does not hold the
+`UpdateChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+with no session skips the check.
 ### delete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
 
+Deletes a Channel. Throws a ForbiddenError if the active user does not hold the
+`DeleteChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+with no session skips the check.
 
+The RoleAssignments on the Channel are removed through
+`RoleAssignmentService.removeAllAssignmentsOnChannel` before the Channel row goes,
+so that a [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) is published and the affected Users' cached
+sessions are evicted.
 ### isChannelAware
 
 <MemberInfo kind="method" type={`(entity: <a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a>) => entity is <a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a> &#38; <a href='/reference/typescript-api/entities/interfaces#channelaware'>ChannelAware</a>`}   />

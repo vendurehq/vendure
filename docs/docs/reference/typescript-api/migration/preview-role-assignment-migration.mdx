@@ -1,0 +1,154 @@
+---
+title: "PreviewRoleAssignmentMigration"
+generated: true
+---
+## previewRoleAssignmentMigration
+
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="124" packageName="@vendure/core" since="4.0.0" />
+
+Reports, without writing anything, how the v4 role-assignment migration will change
+effective permissions for the Users of this database. Run it after upgrading the Vendure
+packages to v4 and **before** running the migration, while the database still has its
+pre-v4 shape. It is safe to run against a production database.
+
+Only intended behavior changes are reported; whether the migration copies the data
+correctly is verified by [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) itself.
+
+```ts
+import { formatRoleAssignmentMigrationPreview, previewRoleAssignmentMigration } from '@vendure/core';
+
+const queryRunner = dataSource.createQueryRunner();
+const preview = await previewRoleAssignmentMigration(queryRunner);
+console.log(formatRoleAssignmentMigrationPreview(preview));
+await queryRunner.release();
+```
+
+```ts title="Signature"
+function previewRoleAssignmentMigration(queryRunner: QueryRunner): Promise<RoleAssignmentMigrationPreview>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+
+## RoleAssignmentMigrationPreview
+
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="15" packageName="@vendure/core" since="4.0.0" />
+
+The intended behavior changes [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) will cause for a given
+database, as reported by [previewRoleAssignmentMigration](/reference/typescript-api/migration/preview-role-assignment-migration#previewroleassignmentmigration).
+
+```ts title="Signature"
+interface RoleAssignmentMigrationPreview {
+    migration: {
+        /**
+         * @description
+         * The number of Users who will hold at least one `role_assignment` row.
+         */
+        userCount: number;
+        assignmentCount: number;
+    };
+    administrators: {
+        userCount: number;
+        superAdminCount: number;
+        /**
+         * @description
+         * The number of `role_assignment` rows the migration will write for these Users.
+         */
+        assignmentCount: number;
+    };
+    customersWithRoles: {
+        userCount: number;
+        /**
+         * @description
+         * The number of `role_assignment` rows the migration will write for these Customers.
+         */
+        assignmentCount: number;
+        roles: Array<{ roleId: string; roleCode: string; holderCount: number }>;
+    };
+    customersLosingAccess: number;
+    customerChannelChanges: Array<{
+        channelId: string;
+        channelCode: string;
+        customersLosingAccess: number;
+        customersGainingAccess: number;
+    }>;
+    customerRoleDroppedPermissions: string[];
+    rolesWithoutChannels: Array<{ roleId: string; roleCode: string; holderCount: number }>;
+}
+```
+
+<div className="members-wrapper">
+
+### migration
+
+<MemberInfo kind="property" type={`{         /**          * @description          * The number of Users who will hold at least one \`role_assignment\` row.          */         userCount: number;         assignmentCount: number;     }`}   />
+
+What [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) will write in total: the sum of
+`administrators` and `customersWithRoles`. The migration logs the same numbers when it
+finishes.
+### administrators
+
+<MemberInfo kind="property" type={`{         userCount: number;         superAdminCount: number;         /**          * @description          * The number of \`role_assignment\` rows the migration will write for these Users.          */         assignmentCount: number;     }`}   />
+
+Users holding at least one Role other than the Customer role (Administrators and API
+keys), except the Customers counted in `customersWithRoles`. Their permissions do not
+change: every grant is copied, which [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) verifies before
+it changes anything.
+### customersWithRoles
+
+<MemberInfo kind="property" type={`{         userCount: number;         /**          * @description          * The number of \`role_assignment\` rows the migration will write for these Customers.          */         assignmentCount: number;         roles: Array<{ roleId: string; roleCode: string; holderCount: number }>;     }`}   />
+
+Customers who are not Administrators but hold a Role other than the Customer role, for
+example to unlock B2B features. Their grants are copied like an Administrator's and keep
+working, but `assignRolesToUser` and `removeRolesFromUser` accept only Administrators
+and API keys, so these grants cannot be changed through the Admin API after migrating.
+### customersLosingAccess
+
+<MemberInfo kind="property" type={`number`}   />
+
+The number of distinct Customers who lose access to at least one Channel.
+### customerChannelChanges
+
+<MemberInfo kind="property" type={`Array<{         channelId: string;         channelCode: string;         customersLosingAccess: number;         customersGainingAccess: number;     }>`}   />
+
+Per Channel, how many Customers lose or gain access. Pre-v4, every holder of the
+Customer role held its permissions on every Channel the role was assigned to,
+regardless of membership. In v4, Customers hold `Authenticated` on their member
+Channels only. A User who keeps access to the Channel through another Role, or as a
+SuperAdmin, is not counted.
+
+The loss is permanent only where the configured [CustomerChannelAssignmentStrategy](/reference/typescript-api/auth/customer-channel-assignment-strategy#customerchannelassignmentstrategy)declines to assign the Customer. With the default strategy a signed-in Customer becomes
+a member of the Channel on their next request there.
+### customerRoleDroppedPermissions
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+Permissions the legacy Customer role carried beyond `Authenticated`. v4 removes the
+Customer role, so Customers lose these on every Channel.
+### rolesWithoutChannels
+
+<MemberInfo kind="property" type={`Array<{ roleId: string; roleCode: string; holderCount: number }>`}   />
+
+Roles which are held by Users but assigned to no Channel. They granted nothing
+pre-v4 and produce no assignment rows, so their holders lose nothing, but the
+holdings disappear.
+
+
+</div>
+## formatRoleAssignmentMigrationPreview
+
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="355" packageName="@vendure/core" since="4.0.0" />
+
+Renders a [RoleAssignmentMigrationPreview](/reference/typescript-api/migration/preview-role-assignment-migration#roleassignmentmigrationpreview) as a human-readable report.
+
+```ts title="Signature"
+function formatRoleAssignmentMigrationPreview(preview: RoleAssignmentMigrationPreview): string
+```
+Parameters
+
+### preview
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/migration/preview-role-assignment-migration#roleassignmentmigrationpreview'>RoleAssignmentMigrationPreview</a>`} />
+

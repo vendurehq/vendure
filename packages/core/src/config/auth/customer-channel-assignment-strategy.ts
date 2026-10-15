@@ -9,9 +9,16 @@ import { Customer } from '../../entity/customer/customer.entity';
  * Determines if an authenticated Customer should be automatically assigned to the current Channel.
  * Use this to keep customer bases strictly separated in multi-channel or B2B setups.
  *
- * NOTE: This controls channel membership, not API access. Returning `false`
- * won't block the request, it just stops the customer from bein assigned to this channel.
- * (This is skipped on the default channel and during registration/checkout).
+ * A Customer's permissions are derived from Channel membership, so declining the assignment
+ * means the Customer holds no `Authenticated` permission on that Channel and no membership is
+ * recorded. Operations gated on `Permission.Authenticated` (the `me` query and any custom
+ * operation using that permission) fail with a `ForbiddenError`. Operations gated on
+ * `Permission.Owner`, which includes `activeCustomer`, `activeOrder`, `addItemToOrder` and the
+ * checkout mutations, need only a session and still run, but they treat the session as a guest
+ * on that Channel: the Customer record is resolved per Channel, so `activeCustomer` returns
+ * `null` and an Order started there has no Customer until one is set at checkout. Public
+ * operations are unaffected. The strategy is never consulted on the default Channel, under
+ * `disableAuth`, or during registration and checkout account creation.
  *
  * @example
  * ```ts
@@ -38,8 +45,9 @@ import { Customer } from '../../entity/customer/customer.entity';
 export interface CustomerChannelAssignmentStrategy extends InjectableStrategy {
     /**
      * @description
-     * Return `true` to assign the Customer to the current Channel,
-     * or `false` to let them use it for this session without assigning.
+     * Return `true` to assign the Customer to the current Channel, or `false` to leave the
+     * Customer without membership and without `Authenticated` on it (see the interface
+     * description).
      *
      * Triggered when an authenticated Customer's request targets a different
      * Channel than the one currently active on their session. This doesn't run on the default Channel

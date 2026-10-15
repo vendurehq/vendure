@@ -1,0 +1,45 @@
+---
+title: "RemoveLegacyRoleData"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="243" packageName="@vendure/core" since="4.0.0" />
+
+Drops the `_v3_user_roles_role` and `_v3_role_channels_channel` tables which
+[migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) archives the pre-v4 role grants to, and deletes the
+legacy Customer role, which v4 does not use. Call it from a later migration once you no
+longer need the archive for auditing. Tables and roles which do not exist are skipped,
+so it is safe to re-run. It throws while `user_roles_role` or `role_channels_channel`
+still exists under its original name, that is, before [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) has
+archived the legacy tables. It also throws while `role_assignment` holds rows of the
+Customer role, which can still be granted until this helper runs: deleting the role would
+remove those rows without a `RoleAssignmentEvent` or a session eviction. Remove them
+with `removeRolesFromUser` first. Nothing is changed when it throws.
+
+The archive has no foreign keys, so hard-deleting a User does not remove its rows from
+the archive. If you erase personal data on request (e.g. under the GDPR), drop the
+archive once your audit period ends, and include it in your erasure process until then.
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { removeLegacyRoleData } from '@vendure/core';
+
+export class RemoveLegacyRoleData1234567890 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        await removeLegacyRoleData(queryRunner);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // The archive cannot be restored
+    }
+}
+```
+
+```ts title="Signature"
+function removeLegacyRoleData(queryRunner: QueryRunner): Promise<void>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+

@@ -17,7 +17,7 @@ export class AdministratorEntityResolver {
         }
         const { user } = await this.connection.getEntityOrThrow(ctx, Administrator, administrator.id, {
             relations: {
-                user: { roles: true },
+                user: true,
             },
         });
         return user;

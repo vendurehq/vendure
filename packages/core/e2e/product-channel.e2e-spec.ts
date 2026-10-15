@@ -1,3 +1,4 @@
+import type { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import type { ErrorResultGuard } from '@vendure/testing';
 import { createErrorResultGuard, createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
@@ -5,7 +6,6 @@ import { fail } from 'assert';
 import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { FragmentOf, ResultOf } from './graphql/graphql-admin';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -82,7 +82,6 @@ describe('ChannelAware Products and ProductVariants', () => {
             input: {
                 description: 'second channel admin',
                 code: 'second-channel-admin',
-                channelIds: ['T_2'],
                 permissions: [
                     Permission.ReadCatalog,
                     Permission.ReadSettings,
@@ -100,7 +99,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                 lastName: 'Two',
                 emailAddress: 'admin2@test.com',
                 password: 'test',
-                roleIds: [secondChannelAdminRole.id],
+                roleAssignments: [{ roleId: secondChannelAdminRole.id, channelId: 'T_2' }],
             },
         });
     }, TEST_SETUP_TIMEOUT_MS);
