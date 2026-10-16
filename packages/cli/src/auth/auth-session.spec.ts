@@ -734,3 +734,70 @@ describe('logout', () => {
         expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
     });
 });
+
+describe('separate config directories', () => {
+    let otherDir: string;
+    let other: AuthOptions;
+    let otherStored: StoredAuth;
+    let otherBefore: string;
+
+    const authFile = (dir: string) => path.join(dir, 'auth.json');
+
+    beforeEach(() => {
+        otherDir = mkdtempSync(path.join(tmpdir(), 'vendure-auth-other-'));
+        other = { env: { VENDURE_CLI_CONFIG_DIR: otherDir }, now: () => NOW };
+        otherStored = storedAuth({ accessToken: accessToken(3600, { sid: 'b' }), refreshToken: 'refresh_b' });
+        writeStoredAuth(otherStored, other);
+        otherBefore = fs.readFileSync(authFile(otherDir), 'utf-8');
+    });
+
+    afterEach(() => {
+        fs.removeSync(otherDir);
+    });
+
+    async function expectOtherLoginIntact() {
+        await expect(getAccessToken(other)).resolves.toBe(otherStored.accessToken);
+        expect(fs.readFileSync(authFile(otherDir), 'utf-8')).toBe(otherBefore);
+        expect(fs.readdirSync(otherDir)).toEqual(['auth.json']);
+    }
+
+    it('keeps the other login when one logs out', async () => {
+        const stored = storedAuth();
+        writeStoredAuth(stored, options);
+        const workos = fakeWorkos([{ status: 204, body: null }]);
+
+        await logout({ ...options, fetch: workos.fetch });
+
+        expect(workos.requests).toHaveLength(1);
+        expect(workos.requests[0].authorization).toBe(`Bearer ${stored.accessToken}`);
+
+        expect(fs.existsSync(authFile(configDir))).toBe(false);
+        await expectOtherLoginIntact();
+    });
+
+    it('keeps the other login when WorkOS refuses one refresh token', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
+
+        await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toBeInstanceOf(
+            SessionRejectedError,
+        );
+
+        expect(workos.requests[0].body.refresh_token).toBe('refresh_1');
+        expect(fs.existsSync(authFile(configDir))).toBe(false);
+        await expectOtherLoginIntact();
+    });
+
+    it('renews a login in one directory and writes only that directory', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10) }), options);
+        const renewed = accessToken(300);
+        const workos = fakeWorkos([authentication(renewed, 'refresh_2', 'org_1')]);
+
+        await expect(getAccessToken({ ...options, fetch: workos.fetch })).resolves.toBe(renewed);
+
+        expect(readStoredAuth(options)).toMatchObject({ accessToken: renewed, refreshToken: 'refresh_2' });
+        expect(workos.requests[0].body.refresh_token).toBe('refresh_1');
+        await expectOtherLoginIntact();
+    });
+});
