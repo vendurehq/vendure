@@ -308,7 +308,7 @@ export function useGeneratedForm<
                 );
                 // Drop translation rows the form seeded for languages the user never filled,
                 // so we don't persist empty translations that break language fallback (#4885).
-                processed = stripUntouchedTranslations(processed, updateFields, dirtyFields);
+                processed = stripUntouchedTranslations(processed, updateFields, dirtyFields, !entity);
                 if (!entity) {
                     processed = stripNullNullableFields(processed, updateFields);
                 }

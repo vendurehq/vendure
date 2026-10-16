@@ -338,6 +338,68 @@ test.describe('Translation fallback placeholders', () => {
         });
     });
 
+    // #5408 — a stale tab must not revert a translation saved elsewhere. The page loads a product
+    // with `en` and `de` rows, then the `de` name changes behind the page's back (as if saved from
+    // another tab). Editing only the `en` name and saving must leave the newer `de` name alone.
+    test('editing one language does not revert another language saved elsewhere', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const suffix = Date.now();
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        { languageCode: 'en', name: `EN ${suffix}`, slug: `en-${suffix}`, description: '' },
+                        {
+                            languageCode: 'de',
+                            name: `Stale DE ${suffix}`,
+                            slug: `de-${suffix}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id;
+
+        try {
+            const dp = detailPage(page);
+            await dp.gotoExisting(productId);
+            await expect(dp.formItem('Product name').getByRole('textbox')).toHaveValue(`EN ${suffix}`, {
+                timeout: 10_000,
+            });
+            await page.waitForLoadState('networkidle');
+
+            // Another tab saves a new German name.
+            await client.gql(
+                `mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`,
+                {
+                    input: {
+                        id: productId,
+                        translations: [{ languageCode: 'de', name: `Fresh DE ${suffix}` }],
+                    },
+                },
+            );
+
+            // The stale page edits only the English name and saves.
+            await dp.fillInput('Product name', `Edited EN ${suffix}`);
+            await dp.clickUpdate();
+            await dp.expectSuccessToast();
+
+            const { product } = await client.gql(
+                `query ($id: ID!) { product(id: $id) { translations { languageCode name } } }`,
+                { id: productId },
+            );
+            const nameFor = (code: string) =>
+                product.translations.find((t: any) => t.languageCode === code)?.name;
+            expect(nameFor('en')).toBe(`Edited EN ${suffix}`);
+            expect(nameFor('de')).toBe(`Fresh DE ${suffix}`);
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        }
+    });
+
     // A create page with `setValuesForCreate`, reached from an edit page while the page stays mounted,
     // must compare the form against the create defaults, not the edited product. Otherwise the
     // product's `de` row makes the empty `de` row count as changed, and the create fails with
