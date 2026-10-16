@@ -16,10 +16,25 @@ import {
     DEFAULT_LOCK_HOLD_FRACTION,
     DEFAULT_MAX_LOCK_HOLD_MS,
     DEFAULT_SCHEDULER_PLUGIN_OPTIONS,
+    LOCK_REFRESH_FRACTION,
+    MAX_LOCK_REFRESH_MS,
+    TIMED_OUT_WARNING_INTERVAL_MS,
 } from './constants';
 import { ScheduledTaskRecord } from './scheduled-task-record.entity';
 import { StaleTaskService } from './stale-task.service';
 import { DefaultSchedulerPluginOptions } from './types';
+
+interface RunningTask {
+    task: ScheduledTask;
+    /** The `lockedAt` value this run currently holds in the database. */
+    lockedAt: Date;
+    startedAt: number;
+    /** Set when the run times out, then used to rate-limit "still running" warnings. */
+    lastTimeoutWarningAt?: number;
+    refreshTimer: NodeJS.Timeout;
+    /** Serializes lock refreshes, so a release can wait for the last one. */
+    refresh: Promise<void>;
+}
 
 /**
  * @description
@@ -36,7 +51,7 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
     private intervalRef: NodeJS.Timeout | undefined;
     private readonly tasks: Map<string, { task: ScheduledTask; isRegistered: boolean }> = new Map();
     private pluginOptions: DefaultSchedulerPluginOptions;
-    private runningTasks: ScheduledTask[] = [];
+    private runningTasks: RunningTask[] = [];
     private staleTaskService: StaleTaskService;
 
     init(injector: Injector) {
@@ -61,11 +76,10 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
         if (this.intervalRef) {
             clearInterval(this.intervalRef);
         }
-        for (const task of this.runningTasks) {
-            await this.connection.rawConnection
-                .getRepository(ScheduledTaskRecord)
-                .update({ taskId: task.id }, { lockedAt: null });
-            Logger.info(`Released lock for task "${task.id}"`);
+        for (const running of [...this.runningTasks]) {
+            if (await this.releaseLock(running)) {
+                Logger.info(`Released lock for task "${running.task.id}"`);
+            }
         }
     }
 
@@ -90,54 +104,142 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
         await this.ensureTaskIsRegistered(task);
         await this.staleTaskService.cleanStaleLocksForTask(task);
 
-        const lockAcquired = await this.tryAcquireLock(task, {
+        const refreshMs = this.computeLockRefreshMs(task);
+        const lockedAt = await this.tryAcquireLock(task, {
             skipHoldCheck: options.skipHoldCheck,
         });
-        if (!lockAcquired) {
+        if (!lockedAt) {
             return;
         }
 
         Logger.verbose(`Executing scheduled task "${task.id}"`);
-        let timeoutTimer: NodeJS.Timeout | undefined;
+        // The lock is refreshed for the whole execution so that StaleTaskService does not
+        // treat a long run as stale. A crashed worker stops refreshing, so its lock is still reclaimed.
+        const running: RunningTask = {
+            task,
+            lockedAt,
+            startedAt: Date.now(),
+            refresh: Promise.resolve(),
+            refreshTimer: setInterval(() => {
+                running.refresh = running.refresh.then(() => this.refreshLock(running));
+            }, refreshMs),
+        };
+        this.runningTasks.push(running);
+        let execution: Promise<any> | undefined;
+        let timedOut = false;
         try {
-            this.runningTasks.push(task);
             const timeout = task.options.timeout ?? (this.pluginOptions.defaultTimeout as number);
             const timeoutMs = typeof timeout === 'number' ? timeout : ms(timeout as StringValue);
 
+            let timeoutTimer: NodeJS.Timeout | undefined;
             const timeoutPromise = new Promise((_, reject) => {
                 timeoutTimer = setTimeout(() => {
+                    timedOut = true;
+                    running.lastTimeoutWarningAt = Date.now();
                     Logger.warn(`Scheduled task ${task.id} timed out after ${timeoutMs}ms`);
                     reject(new Error('Task timed out'));
                 }, timeoutMs);
             });
 
-            const result = await Promise.race([task.execute(this.injector), timeoutPromise]);
+            let result: any;
+            try {
+                execution = task.execute(this.injector);
+                result = await Promise.race([execution, timeoutPromise]);
+            } finally {
+                clearTimeout(timeoutTimer);
+            }
 
-            await this.connection.rawConnection.getRepository(ScheduledTaskRecord).update(
-                { taskId: task.id },
-                {
-                    lastExecutedAt: new Date(),
-                    lockedAt: null,
-                    lastResult: result ?? '',
-                },
-            );
+            await this.connection.rawConnection
+                .getRepository(ScheduledTaskRecord)
+                .update({ taskId: task.id }, { lastExecutedAt: new Date(), lastResult: result ?? '' });
             Logger.verbose(`Scheduled task "${task.id}" completed successfully`);
         } catch (error) {
             Logger.error(`Scheduled task "${task.id}" failed with error: ${inspect(error)}`);
-            await this.connection.rawConnection.getRepository(ScheduledTaskRecord).update(
-                { taskId: task.id },
-                {
-                    lastExecutedAt: new Date(),
-                    lockedAt: null,
-                    lastResult: { error: errorLabel(error) } as any,
-                },
-            );
+            await this.connection.rawConnection
+                .getRepository(ScheduledTaskRecord)
+                .update(
+                    { taskId: task.id },
+                    { lastExecutedAt: new Date(), lastResult: { error: errorLabel(error) } as any },
+                );
         } finally {
-            if (timeoutTimer) {
-                clearTimeout(timeoutTimer);
+            if (timedOut && execution) {
+                // execute() cannot be cancelled, so the lock is held until it settles.
+                // Its eventual result is not recorded: lastResult keeps the timeout error.
+                void execution
+                    .then(undefined, error =>
+                        Logger.error(
+                            `Timed-out scheduled task "${task.id}" failed with error: ${inspect(error)}`,
+                        ),
+                    )
+                    .then(() => this.releaseLock(running));
+            } else {
+                await this.releaseLock(running);
             }
-            this.runningTasks = this.runningTasks.filter(t => t !== task);
         }
+    }
+
+    private async refreshLock(running: RunningTask): Promise<void> {
+        const { task } = running;
+        const now = new Date();
+        try {
+            const result = await this.connection.rawConnection
+                .getRepository(ScheduledTaskRecord)
+                .update({ taskId: task.id, lockedAt: running.lockedAt }, { lockedAt: now });
+            if (!result.affected) {
+                // Later refreshes cannot match either, and the release becomes a no-op.
+                clearInterval(running.refreshTimer);
+                Logger.warn(
+                    `Scheduled task "${task.id}" lost its lock while still running, so another run may start`,
+                );
+                return;
+            }
+            running.lockedAt = now;
+        } catch (error) {
+            Logger.error(`Failed to refresh lock for task "${task.id}": ${inspect(error)}`);
+            return;
+        }
+        const { lastTimeoutWarningAt } = running;
+        if (
+            lastTimeoutWarningAt !== undefined &&
+            now.getTime() - lastTimeoutWarningAt >= TIMED_OUT_WARNING_INTERVAL_MS
+        ) {
+            running.lastTimeoutWarningAt = now.getTime();
+            Logger.warn(
+                `Scheduled task "${task.id}" timed out but is still running after ` +
+                    `${now.getTime() - running.startedAt}ms, so it keeps its lock`,
+            );
+        }
+    }
+
+    /**
+     * Releases the lock only if it still holds the value this run set, so a late
+     * release cannot clear a lock acquired by another run. Returns whether a lock was released.
+     */
+    private async releaseLock(running: RunningTask): Promise<boolean> {
+        clearInterval(running.refreshTimer);
+        this.runningTasks = this.runningTasks.filter(r => r !== running);
+        try {
+            await running.refresh;
+            const result = await this.connection.rawConnection
+                .getRepository(ScheduledTaskRecord)
+                .update({ taskId: running.task.id, lockedAt: running.lockedAt }, { lockedAt: null });
+            return !!result.affected;
+        } catch (error) {
+            Logger.error(`Failed to release lock for task "${running.task.id}": ${inspect(error)}`);
+            return false;
+        }
+    }
+
+    /**
+     * Must stay well under the stale threshold used by StaleTaskService, which is the
+     * schedule interval. Capped so long schedules do not overflow `setInterval`.
+     */
+    private computeLockRefreshMs(task: ScheduledTask): number {
+        const intervalMs = this.getScheduleIntervalMs(task);
+        if (intervalMs === undefined) {
+            return MAX_LOCK_REFRESH_MS;
+        }
+        return Math.floor(Math.min(intervalMs * LOCK_REFRESH_FRACTION, MAX_LOCK_REFRESH_MS));
     }
 
     async getTasks(): Promise<TaskReport[]> {
@@ -235,16 +337,23 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
      * task that has just completed on a faster worker.
      */
     private computeLockHoldMs(task: ScheduledTask): number {
-        let intervalMs: number;
-        try {
-            intervalMs = this.staleTaskService.getScheduleIntervalMs(task);
-        } catch {
-            return DEFAULT_MAX_LOCK_HOLD_MS;
-        }
-        if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+        const intervalMs = this.getScheduleIntervalMs(task);
+        if (intervalMs === undefined) {
             return DEFAULT_MAX_LOCK_HOLD_MS;
         }
         return Math.floor(Math.min(intervalMs * DEFAULT_LOCK_HOLD_FRACTION, DEFAULT_MAX_LOCK_HOLD_MS));
+    }
+
+    /**
+     * Returns the schedule interval, or `undefined` if it cannot be computed.
+     */
+    private getScheduleIntervalMs(task: ScheduledTask): number | undefined {
+        try {
+            const intervalMs = this.staleTaskService.getScheduleIntervalMs(task);
+            return Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : undefined;
+        } catch {
+            return undefined;
+        }
     }
 
     private async ensureAllTasksAreRegistered() {
@@ -271,7 +380,8 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
     private async tryAcquireLock(
         task: ScheduledTask,
         options: { skipHoldCheck?: boolean } = {},
-    ): Promise<boolean> {
+    ): Promise<Date | undefined> {
+        const lockedAt = new Date();
         const dbType = this.connection.rawConnection.options.type;
         const supportsPessimisticLocking = ['postgres', 'mysql', 'mariadb'].includes(dbType);
         const holdThreshold = options.skipHoldCheck
@@ -301,15 +411,13 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
 
                 if (!taskRecord) {
                     // Task is either already locked, disabled, or doesn't exist
-                    return false;
+                    return undefined;
                 }
 
                 // Now update the lock within the same transaction
-                await manager
-                    .getRepository(ScheduledTaskRecord)
-                    .update({ id: taskRecord.id }, { lockedAt: new Date() });
+                await manager.getRepository(ScheduledTaskRecord).update({ id: taskRecord.id }, { lockedAt });
 
-                return true;
+                return lockedAt;
             });
         } else {
             // For databases without pessimistic locking support (SQLite, SQL.js),
@@ -319,7 +427,7 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
                 .getRepository(ScheduledTaskRecord)
                 .createQueryBuilder('task')
                 .update()
-                .set({ lockedAt: new Date() })
+                .set({ lockedAt })
                 .where('taskId = :taskId', { taskId: task.id })
                 .andWhere('lockedAt IS NULL')
                 .andWhere('enabled = TRUE');
@@ -330,7 +438,7 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
             }
             const result = await qb.execute();
 
-            return !!result.affected;
+            return result.affected ? lockedAt : undefined;
         }
     }
 
