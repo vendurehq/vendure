@@ -30,6 +30,7 @@ import { registerTranslationEntityUniqueConstraints } from './entity/register-tr
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
+import { setProductVariantPriceEagerLoading } from './entity/set-product-variant-price-eager-loading';
 import { patchTypeOrmDeepValue } from './entity/typeorm-deep-value-fix';
 import { patchTypeOrmDuplicateEagerLoad } from './entity/typeorm-duplicate-eager-load-fix';
 import { patchTypeOrmEagerRelationJoins } from './entity/typeorm-eager-relation-join-fix';
@@ -357,6 +358,7 @@ export async function preBootstrapConfig(
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
     setMoneyStrategy(moneyStrategy, entities);
+    setProductVariantPriceEagerLoading(config.catalogOptions.productVariantPriceLoadingStrategy.eagerLoading);
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;
