@@ -6,7 +6,7 @@ import { Trans } from '@lingui/react/macro';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
-import { Control, useFieldArray, useForm } from 'react-hook-form';
+import { Control, FieldValues, useFieldArray, useForm } from 'react-hook-form';
 import { OptionValueInput } from './option-value-input.js';
 
 export const optionValueSchema = z.object({
@@ -39,17 +39,22 @@ export interface OptionGroupConfiguration {
 }
 
 
-interface SingleOptionGroupEditorProps {
-    control: Control<any>;
+interface SingleOptionGroupEditorProps<TFieldValues extends FieldValues> {
+    control: Control<TFieldValues, any, any>;
     fieldArrayPath: string;
     disabled?: boolean;
 }
 
-export function SingleOptionGroupEditor({
-    control,
+// Generic on purpose: since react-hook-form 7.72.0, `Control._options.validate` is compared
+// contravariantly, so a form's `Control<T>` is not assignable to `Control<any, any>`.
+export function SingleOptionGroupEditor<TFieldValues extends FieldValues>({
+    control: formControl,
     fieldArrayPath,
     disabled,
-}: Readonly<SingleOptionGroupEditorProps>) {
+}: Readonly<SingleOptionGroupEditorProps<TFieldValues>>) {
+    // fieldArrayPath is a runtime string, so the field names cannot be checked against the
+    // form's field types.
+    const control = formControl as Control<any>;
     const { fields, append, remove } = useFieldArray({
         control,
         name: fieldArrayPath ? `${fieldArrayPath}.values` : 'values',
