@@ -30,14 +30,16 @@ const getJobsByIdDocument = graphql(`
     }
 `);
 
-// #5439: Admin API job lookups on the default InMemoryJobQueueStrategy (no job queue plugin)
-describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
+// Job queue on the default InMemoryJobQueueStrategy (no job queue plugin).
+// #5439: Admin API job lookups. #5292: job updates read through the strategy's finders.
+describe('JobQueue with InMemoryJobQueueStrategy', () => {
     const activeConfig = testConfig();
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(activeConfig, {
             plugins: [PluginWithJobQueue],
         }),
     );
+    const baseUrl = `http://localhost:${activeConfig.apiOptions.port}/run-job`;
     let runningJobId: string;
 
     beforeAll(async () => {
@@ -48,7 +50,7 @@ describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
         });
         await adminClient.asSuperAdmin();
 
-        await adminClient.fetch(`http://localhost:${activeConfig.apiOptions.port}/run-job`);
+        await adminClient.fetch(baseUrl);
         await pollUntil(async () => {
             const { jobs } = await adminClient.query(getRunningJobsDocument, {
                 options: { filter: { queueName: { eq: 'test' }, state: { eq: JobState.RUNNING } } },
@@ -88,5 +90,18 @@ describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
 
         const { job } = await adminClient.query(getJobDocument, { id: runningJobId });
         expect(job?.state).toBe(JobState.CANCELLED);
+    });
+
+    it('updates() emits until the job completes', async () => {
+        const response = await adminClient.fetch(`${baseUrl}/subscribe-all-updates`);
+        const result = JSON.parse(await response.text());
+        expect(result.updateCount).toBeGreaterThanOrEqual(3);
+        expect(result.finalState).toBe(JobState.COMPLETED);
+        expect(result.finalResult).toBe('completed');
+    });
+
+    it('subscribe to result of job', async () => {
+        const response = await adminClient.fetch(`${baseUrl}/subscribe`);
+        expect(await response.text()).toBe('42!');
     });
 });
