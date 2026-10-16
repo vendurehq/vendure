@@ -1382,6 +1382,40 @@ describe('Promotions applied to Orders', () => {
                 expect(removeCouponCode.discounts).toEqual([]);
                 expect(removeCouponCode.shippingWithTax).toBe(345);
             });
+
+            // https://github.com/vendurehq/vendure/issues/3140
+            it('two free shipping promotions do not make shipping negative', async () => {
+                const secondCouponCode = 'FREE_SHIPPING_2';
+                const secondPromotion = await createPromotion({
+                    enabled: true,
+                    name: 'Free shipping 2',
+                    couponCode: secondCouponCode,
+                    conditions: [],
+                    actions: [{ code: freeShipping.code, arguments: [] }],
+                });
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await shopClient.asAnonymousUser();
+                await shopClient.query(addItemToOrderDocument, {
+                    productVariantId: getVariantBySlug('item-5000').id,
+                    quantity: 1,
+                });
+                const method = await createTestShippingMethod(E2E_DEFAULT_CHANNEL_TOKEN);
+                await shopClient.query(setShippingMethodDocument, { id: [method.id] });
+
+                await shopClient.query(applyCouponCodeDocument, { couponCode });
+                const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                    couponCode: secondCouponCode,
+                });
+                orderResultGuard.assertSuccess(applyCouponCode);
+
+                expect(applyCouponCode.shipping).toBe(0);
+                expect(applyCouponCode.shippingWithTax).toBe(0);
+                expect(applyCouponCode.total).toBe(5000);
+                expect(applyCouponCode.totalWithTax).toBe(6000);
+                expect(applyCouponCode.discounts.map(d => d.description)).toEqual(['Free shipping']);
+
+                await deletePromotion(secondPromotion.id);
+            });
         });
 
         describe('multiple promotions simultaneously', () => {
