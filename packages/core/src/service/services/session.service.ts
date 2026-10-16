@@ -9,7 +9,11 @@ import { DeserializedCachedSession, RequestContext } from '../../api/common/requ
 import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
-import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/session-cache-strategy';
+import {
+    CachedSession,
+    CachedSessionCustomFields,
+    SessionCacheStrategy,
+} from '../../config/session-cache/session-cache-strategy';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
@@ -244,7 +248,34 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 channelPermissions: getUserChannelsPermissions(user),
             };
         }
+        const customFields = this.serializeSessionCustomFields(session);
+        if (customFields) {
+            serializedSession.customFields = customFields;
+        }
         return serializedSession;
+    }
+
+    /**
+     * Returns a plain copy of the custom fields defined on the Session entity, or undefined if there
+     * are none. Custom fields of type `relation` are left out, since the cached session should stay
+     * small and easy to store. `datetime` values are converted to ISO strings, so that they look the
+     * same whether the session comes fresh from the database or from a JSON-based cache.
+     */
+    private serializeSessionCustomFields(session: Session): CachedSessionCustomFields | undefined {
+        const customFieldConfigs = this.configService.customFields.Session;
+        if (customFieldConfigs.length === 0) {
+            return;
+        }
+        const sessionCustomFields = (session.customFields ?? {}) as Record<string, unknown>;
+        const customFields: Record<string, unknown> = {};
+        for (const config of customFieldConfigs) {
+            if (config.type === 'relation') {
+                continue;
+            }
+            const value = sessionCustomFields[config.name];
+            customFields[config.name] = value instanceof Date ? value.toISOString() : value;
+        }
+        return customFields as CachedSessionCustomFields;
     }
 
     /**
