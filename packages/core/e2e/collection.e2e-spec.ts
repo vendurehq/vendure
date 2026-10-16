@@ -2,6 +2,8 @@
 import { CurrencyCode, DeletionResult, LanguageCode, SortOrder } from '@vendure/common/lib/generated-types';
 import { ROOT_COLLECTION_NAME } from '@vendure/common/lib/shared-constants';
 import {
+    Collection,
+    CollectionService,
     DefaultJobQueuePlugin,
     facetValueCollectionFilter,
     productIdCollectionFilter,
@@ -2631,6 +2633,48 @@ describe('Collection resolver', () => {
                 ]);
             });
         }
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5584
+    describe('single root Collection across Channels', () => {
+        it('does not create a second root when a non-default Channel resolves the root first', async () => {
+            const collectionRepo = server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Collection);
+            const rootsBefore = await collectionRepo.find({ where: { isRoot: true } });
+            expect(rootsBefore.length).toBe(1);
+
+            // Simulate a process restart: the root Collection is cached in memory per process
+            server.app.get(CollectionService).rootCollection = undefined;
+
+            const createParentless = async (name: string) => {
+                const { createCollection } = await adminClient.query(createCollectionDocument, {
+                    input: {
+                        translations: [{ languageCode: LanguageCode.en, name, description: '', slug: name }],
+                        filters: [],
+                    },
+                });
+                return createCollection;
+            };
+
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const secondChannelCollection = await createParentless('root-5584-second-channel');
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const defaultChannelCollection = await createParentless('root-5584-default-channel');
+
+            const rootsAfter = await collectionRepo.find({ where: { isRoot: true } });
+            expect(rootsAfter.map(r => r.id)).toEqual(rootsBefore.map(r => r.id));
+
+            const toInternalId = (id: string) => parseInt(id.replace('T_', ''), 10);
+            const created = await collectionRepo.find({
+                where: [
+                    { id: toInternalId(secondChannelCollection.id) },
+                    { id: toInternalId(defaultChannelCollection.id) },
+                ],
+            });
+            expect(created.length).toBe(2);
+            expect(created.map(c => c.parentId)).toEqual([rootsBefore[0].id, rootsBefore[0].id]);
+        });
     });
 
     function getFacetValueId(code: string): string {
