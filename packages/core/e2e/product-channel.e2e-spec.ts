@@ -430,6 +430,19 @@ describe('ChannelAware Products and ProductVariants', () => {
             expect(check.variants[1].channels.map(c => c.id).sort()).toEqual(['T_1']);
         });
 
+        it('assigns the ProductVariant options and option groups to the Channel', async () => {
+            const [expectedOption] = product1.variants[0].options;
+            adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+            const { productVariant } = await adminClient.query(getProductVariantOptionGroupsDocument, {
+                id: product1.variants[0].id,
+            });
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            expect(productVariant?.options.map(o => [o.id, o.group.id])).toEqual([
+                [expectedOption.id, expectedOption.groupId],
+            ]);
+        });
+
         it('does not assign ProductVariant to same channel twice', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
@@ -1455,6 +1468,20 @@ const deleteProductOptionDocument = graphql(`
         deleteProductOption(id: $id) {
             result
             message
+        }
+    }
+`);
+
+const getProductVariantOptionGroupsDocument = graphql(`
+    query GetProductVariantOptionGroups($id: ID!) {
+        productVariant(id: $id) {
+            id
+            options {
+                id
+                group {
+                    id
+                }
+            }
         }
     }
 `);
