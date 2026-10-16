@@ -85,6 +85,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
     private timer: any;
     private running = false;
     private activeJobs: Array<Job<Data>> = [];
+    private claimingNext = false;
 
     private errorNotifier$ = new Subject<[string, string]>();
     private queueStopped$ = new Subject<typeof STOP_SIGNAL>();
@@ -118,7 +119,16 @@ class ActiveQueue<Data extends JobData<Data> = object> {
             try {
                 const runningJobsCount = this.activeJobs.length;
                 for (let i = runningJobsCount; i < this.concurrency; i++) {
-                    const nextJob = await this.jobQueueStrategy.next(this.queueName);
+                    // next() may already mark the job as RUNNING in the store (the SQL strategy
+                    // does), so shutdown must also wait for an in-flight claim. Otherwise it can
+                    // close the connection and leave the job RUNNING with no worker.
+                    this.claimingNext = true;
+                    let nextJob: Job<Data> | undefined;
+                    try {
+                        nextJob = await this.jobQueueStrategy.next(this.queueName);
+                    } finally {
+                        this.claimingNext = false;
+                    }
                     if (nextJob) {
                         // Track the job as active before awaiting the initial status update,
                         // so it stays visible to awaitRunningJobsOrTimeout() during a shutdown
@@ -217,7 +227,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                 const timedOut =
                     stopActiveQueueTimeout === undefined ? false : now - start > stopActiveQueueTimeout;
 
-                if (this.activeJobs.length === 0) {
+                if (this.activeJobs.length === 0 && !this.claimingNext) {
                     clearTimeout(timeout);
                     resolve();
                     return;
