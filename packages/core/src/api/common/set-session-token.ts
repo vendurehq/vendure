@@ -28,7 +28,8 @@ export function setSessionToken(options: {
             req.session.token = sessionToken;
         }
     }
-    // A parallel resolver can finish after an error has already sent the response.
+    // AuthGuard runs for sibling root fields in parallel. Another field's non-null error
+    // can send the response before this guard finishes.
     if (usingBearer && !res.headersSent) {
         res.set(authOptions.authTokenHeaderKey, sessionToken);
     }
