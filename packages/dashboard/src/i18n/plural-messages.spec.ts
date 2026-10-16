@@ -74,15 +74,37 @@ function tsxFiles(dir: string): string[] {
     });
 }
 
-/** `file:line: code` for each line which picks a string with a ternary on a count of 1. */
+/**
+ * `file:line: code` for each line which picks a string with a ternary on a count of 1,
+ * such as `n > 1 ? 's' : ''` or a choice between two `t` templates.
+ */
 function countTernaryLines(file: string): string[] {
     return readFileSync(file, 'utf-8')
         .split('\n')
         .flatMap((line, index) =>
-            /[!=]==?\s*1\s*\?\s*['"`]/.test(line) && !line.includes('className')
+            /(?:[!=]==?|[<>]=?)\s*1\s*\?\s*t?['"`]/.test(line) && !line.includes('className')
                 ? [`${relative(srcDir, file)}:${index + 1}: ${line.trim()}`]
                 : [],
         );
+}
+
+/**
+ * `file: name` for each variable which holds a translated fragment and is spliced into a
+ * plural message, such as `const destination = t\`top level\`` used in
+ * `` other={`Moving # collections into ${destination}`} ``.
+ */
+function splicedFragments(file: string): string[] {
+    const source = readFileSync(file, 'utf-8');
+    const fragments = new Set(
+        [...source.matchAll(/\bconst (\w+) =([^;]*);/g)]
+            .filter(match => /\bt`/.test(match[2]))
+            .map(match => match[1]),
+    );
+    const arms = [...source.matchAll(/\b(?:zero|one|two|few|many|other|_\d+)[=:]\s*\{?`([^`]*)`/g)];
+    const spliced = arms
+        .flatMap(match => [...match[1].matchAll(/\$\{(\w+)\}/g)].map(name => name[1]))
+        .filter(name => fragments.has(name));
+    return [...new Set(spliced)].map(name => `${relative(srcDir, file)}: ${name}`);
 }
 
 function placeholders(text: string): Set<string> {
@@ -115,6 +137,15 @@ describe('plural messages', () => {
             countTernaryLines,
         );
         expect(handRolled, 'use <Plural> or plural() instead of a ternary on the count').toEqual([]);
+    });
+
+    // #5482 — a translated fragment such as `t\`top level\`` dropped into a plural message
+    // leaves translators with half a sentence they cannot inflect or reorder.
+    it('does not splice translated fragments into plural messages', () => {
+        const spliced = [...tsxFiles(join(srcDir, 'app')), ...tsxFiles(join(srcDir, 'lib'))].flatMap(
+            splicedFragments,
+        );
+        expect(spliced, 'give each case its own complete message').toEqual([]);
     });
 
     it.each(locales)('keeps the %s plural translations well-formed', locale => {

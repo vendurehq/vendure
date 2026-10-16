@@ -361,6 +361,11 @@ msgstr "A szerepkör sikeresen létrehozva"
 msgid "Are you sure you want to delete this variant?"
 msgstr "Biztosan törli ezt a termékváltozatot?"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
+msgstr "{0, plural, one {# gyűjtemény áthelyezése a kiválasztott gyűjteménybe} other {# gyűjtemény áthelyezése a kiválasztott gyűjteménybe}}"
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Minden erőforrás működik"
@@ -893,7 +898,9 @@ msgid "Successfully updated channel"
 msgstr "Csatorna sikeresen frissítve"
 
 #. placeholder {0}: lines.length
+#. placeholder {0}: summary.count
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0, plural, one {# item} other {# items}}"
 msgstr "{0, plural, one {# tétel} other {# tétel}}"
 
@@ -1547,6 +1554,11 @@ msgstr "Készlet"
 msgid "No sales for this period"
 msgstr "Nincs eladás ebben az időszakban"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Asset"
+msgstr "Eszköz kiválasztása"
+
 #: src/lib/components/shared/customer-selector.tsx
 msgid "No customers found"
 msgstr "Nem található vásárló"
@@ -1704,6 +1716,11 @@ msgstr "Promóció sikeresen frissítve"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Nem sikerült megszakítani {rejected} feladatot} other {Nem sikerült megszakítani {rejected} feladatot}}"
 
+#. placeholder {0}: failedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Failed to upload # asset} other {Failed to upload # assets}}"
+msgstr "{0, plural, one {# eszköz feltöltése sikertelen} other {# eszköz feltöltése sikertelen}}"
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "We couldn't load these metrics"
 msgstr "Nem sikerült betölteni ezeket a mutatókat"
@@ -1857,8 +1874,8 @@ msgid "Filters"
 msgstr "Szűrők"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "selected collection"
-msgstr "kiválasztott gyűjtemény"
+#~ msgid "selected collection"
+#~ msgstr "kiválasztott gyűjtemény"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -1976,6 +1993,7 @@ msgstr "{row} x {col} méretű táblázat beszúrása"
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
@@ -2908,10 +2926,9 @@ msgstr "Méret, szín stb."
 msgid "Browse facets"
 msgstr "Tulajdonságok böngészése"
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} items"
-msgstr ""
+#~ msgid "{0} items"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
@@ -3320,6 +3337,11 @@ msgstr "Termékopciók"
 msgid "Select country"
 msgstr "Válasszon országot"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection to the top level} other {Moving # collections to the top level}}"
+msgstr "{0, plural, one {# gyűjtemény áthelyezése a legfelső szintre} other {# gyűjtemény áthelyezése a legfelső szintre}}"
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund only partially completed"
 msgstr ""
@@ -3355,8 +3377,8 @@ msgid "Failed to remove customer from group"
 msgstr "Vásárló eltávolítása a csoportból sikertelen"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 property"
-msgstr ""
+#~ msgid "1 property"
+#~ msgstr ""
 
 #. placeholder {0}: testResult.length
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
@@ -4261,6 +4283,10 @@ msgstr "Új termékvariáns létrehozása opciókkal, árazással és készlette
 msgid "Private facets are not visible in the shop"
 msgstr "A privát tulajdonságok nem láthatók az áruházban"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select an asset"
+msgstr "Eszköz böngészése és kiválasztása"
+
 #: src/lib/components/shared/tax-category-selector.tsx
 msgid "Select a tax category"
 msgstr "Adókategória kiválasztása"
@@ -4452,6 +4478,11 @@ msgstr "Új csatorna"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "Opciócsoport neve"
+
+#. placeholder {0}: selectedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Select # Asset} other {Select # Assets}}"
+msgstr "{0, plural, one {# eszköz kiválasztása} other {# eszköz kiválasztása}}"
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -4723,6 +4754,11 @@ msgstr "Utca, házszám 2."
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Global view deleted successfully"
 msgstr "A globális nézet sikeresen törölve"
+
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
+msgid "{0, plural, one {# property} other {# properties}}"
+msgstr "{0, plural, one {# tulajdonság} other {# tulajdonság}}"
 
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "Edit Layout"
@@ -5774,10 +5810,9 @@ msgstr "Aktuális készlet"
 msgid "New address"
 msgstr ""
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} properties"
-msgstr ""
+#~ msgid "{0} properties"
+#~ msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
 msgid "Filter by {columnId}"
@@ -5948,6 +5983,11 @@ msgstr "Címkék hozzáadása..."
 #~ msgid "Failed to create product option group"
 #~ msgstr "Termékopció-csoport létrehozása sikertelen"
 
+#. placeholder {0}: createdAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Uploaded # asset} other {Uploaded # assets}}"
+msgstr "{0, plural, one {# eszköz feltöltve} other {# eszköz feltöltve}}"
+
 #. placeholder {0}: selectedIds.length
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "{0} items selected"
@@ -6060,10 +6100,9 @@ msgstr "Adókulcsok"
 msgid "Failed to remove customers from group"
 msgstr "Nem sikerült eltávolítani az ügyfeleket a csoportból"
 
-#. placeholder {0}: failedAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Failed to upload {0} assets"
-msgstr ""
+#~ msgid "Failed to upload {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"
@@ -6336,8 +6375,8 @@ msgid "Successfully added option value"
 msgstr "Az opcióérték sikeresen hozzáadva"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "top level"
-msgstr "legfelső szint"
+#~ msgid "top level"
+#~ msgstr "legfelső szint"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
@@ -6622,8 +6661,8 @@ msgid "Language"
 msgstr "Nyelv"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 item"
-msgstr ""
+#~ msgid "1 item"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "New Collection"
@@ -6632,6 +6671,10 @@ msgstr "Új gyűjtemény"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund and cancel order"
 msgstr "Megrendelés visszatérítése és törlése"
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Assets"
+msgstr "Eszközök kiválasztása"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -6719,10 +6762,9 @@ msgstr "Tulajdonság sikeresen frissítve"
 msgid "Strikethrough"
 msgstr "Áthúzott"
 
-#. placeholder {0}: createdAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Uploaded {0} assets"
-msgstr ""
+#~ msgid "Uploaded {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
@@ -7040,6 +7082,10 @@ msgstr "Sorok oldalanként"
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select one or more assets"
+msgstr "Egy vagy több eszköz böngészése és kiválasztása"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."

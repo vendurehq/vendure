@@ -361,6 +361,11 @@ msgstr "Rol başarıyla oluşturuldu"
 msgid "Are you sure you want to delete this variant?"
 msgstr "Bu varyantı silmek istediğinizden emin misiniz?"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
+msgstr "{0, plural, one {# koleksiyon seçilen koleksiyona taşınıyor} other {# koleksiyon seçilen koleksiyona taşınıyor}}"
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Tüm kaynaklar çalışıyor"
@@ -893,7 +898,9 @@ msgid "Successfully updated channel"
 msgstr "Kanal başarıyla güncellendi"
 
 #. placeholder {0}: lines.length
+#. placeholder {0}: summary.count
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0, plural, one {# item} other {# items}}"
 msgstr "{0, plural, one {# ürün} other {# ürün}}"
 
@@ -1547,6 +1554,11 @@ msgstr "Stok"
 msgid "No sales for this period"
 msgstr "Bu dönemde satış yok"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Asset"
+msgstr "Varlık seç"
+
 #: src/lib/components/shared/customer-selector.tsx
 msgid "No customers found"
 msgstr "Müşteri bulunamadı"
@@ -1704,6 +1716,11 @@ msgstr "Promosyon başarıyla güncellendi"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {{rejected} görev iptal edilemedi} other {{rejected} görev iptal edilemedi}}"
 
+#. placeholder {0}: failedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Failed to upload # asset} other {Failed to upload # assets}}"
+msgstr "{0, plural, one {# varlık yüklenemedi} other {# varlık yüklenemedi}}"
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "We couldn't load these metrics"
 msgstr "Bu metrikler yüklenemedi"
@@ -1857,8 +1874,8 @@ msgid "Filters"
 msgstr "Filtreler"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "selected collection"
-msgstr "seçilen koleksiyon"
+#~ msgid "selected collection"
+#~ msgstr "seçilen koleksiyon"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -1976,6 +1993,7 @@ msgstr "{row} x {col} tablo ekle"
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
@@ -2914,10 +2932,9 @@ msgstr "Boyut, renk, vb."
 msgid "Browse facets"
 msgstr "Fasetlere göz at"
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} items"
-msgstr ""
+#~ msgid "{0} items"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
@@ -3330,6 +3347,11 @@ msgstr "Ürün Seçenekleri"
 msgid "Select country"
 msgstr "Ülke seç"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection to the top level} other {Moving # collections to the top level}}"
+msgstr "{0, plural, one {# koleksiyon üst düzeye taşınıyor} other {# koleksiyon üst düzeye taşınıyor}}"
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund only partially completed"
 msgstr ""
@@ -3365,8 +3387,8 @@ msgid "Failed to remove customer from group"
 msgstr "Müşteri gruptan kaldırılamadı"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 property"
-msgstr ""
+#~ msgid "1 property"
+#~ msgstr ""
 
 #. placeholder {0}: testResult.length
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
@@ -4271,6 +4293,10 @@ msgstr "Seçenekler, fiyatlandırma ve stokla yeni bir ürün varyantı oluştur
 msgid "Private facets are not visible in the shop"
 msgstr "Özel özellikler mağazada görünmez"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select an asset"
+msgstr "Bir varlığa göz atın ve seçin"
+
 #: src/lib/components/shared/tax-category-selector.tsx
 msgid "Select a tax category"
 msgstr "Bir vergi kategorisi seçin"
@@ -4465,6 +4491,11 @@ msgstr "Yeni Kanal"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "Seçenek Grubu Adı"
+
+#. placeholder {0}: selectedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Select # Asset} other {Select # Assets}}"
+msgstr "{0, plural, one {# varlık seç} other {# varlık seç}}"
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -4736,6 +4767,11 @@ msgstr "Sokak Adresi 2"
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Global view deleted successfully"
 msgstr "Genel görünüm başarıyla silindi"
+
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
+msgid "{0, plural, one {# property} other {# properties}}"
+msgstr "{0, plural, one {# özellik} other {# özellik}}"
 
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "Edit Layout"
@@ -5787,10 +5823,9 @@ msgstr "Eldeki stok"
 msgid "New address"
 msgstr ""
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} properties"
-msgstr ""
+#~ msgid "{0} properties"
+#~ msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
 msgid "Filter by {columnId}"
@@ -5961,6 +5996,11 @@ msgstr "Etiket ekle..."
 #~ msgid "Failed to create product option group"
 #~ msgstr "Ürün seçenek grubu oluşturulamadı"
 
+#. placeholder {0}: createdAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Uploaded # asset} other {Uploaded # assets}}"
+msgstr "{0, plural, one {# varlık yüklendi} other {# varlık yüklendi}}"
+
 #. placeholder {0}: selectedIds.length
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "{0} items selected"
@@ -6073,10 +6113,9 @@ msgstr "Vergi Oranları"
 msgid "Failed to remove customers from group"
 msgstr "Müşteriler gruptan kaldırılamadı"
 
-#. placeholder {0}: failedAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Failed to upload {0} assets"
-msgstr ""
+#~ msgid "Failed to upload {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"
@@ -6349,8 +6388,8 @@ msgid "Successfully added option value"
 msgstr "Seçenek değeri başarıyla eklendi"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "top level"
-msgstr "üst düzey"
+#~ msgid "top level"
+#~ msgstr "üst düzey"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
@@ -6635,8 +6674,8 @@ msgid "Language"
 msgstr "Dil"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 item"
-msgstr ""
+#~ msgid "1 item"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "New Collection"
@@ -6645,6 +6684,10 @@ msgstr "Yeni Koleksiyon"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund and cancel order"
 msgstr "İade et ve siparişi iptal et"
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Assets"
+msgstr "Varlıkları seç"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -6732,10 +6775,9 @@ msgstr "Özellik başarıyla güncellendi"
 msgid "Strikethrough"
 msgstr "Üstü çizili"
 
-#. placeholder {0}: createdAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Uploaded {0} assets"
-msgstr ""
+#~ msgid "Uploaded {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
@@ -7053,6 +7095,10 @@ msgstr "Sayfa başına satır"
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select one or more assets"
+msgstr "Bir veya daha fazla varlığa göz atın ve seçin"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
