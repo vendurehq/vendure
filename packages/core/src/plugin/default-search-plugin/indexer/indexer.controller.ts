@@ -37,6 +37,7 @@ import {
     VariantChannelMessageData,
 } from '../types';
 
+import { POSTGRES_MAX_INDEXED_TEXT_BYTES, truncateToUtf8Bytes } from './constrain-indexed-text';
 import { dedupeSearchIndexItems } from './index-item-utils';
 import { MutableRequestContext } from './mutable-request-context';
 
@@ -461,9 +462,9 @@ export class IndexerController {
                             enabled: product.enabled === false ? false : variant.enabled,
                             slug: productTranslation?.slug ?? '',
                             productId: product.id,
-                            productName: productTranslation?.name ?? '',
-                            description: this.constrainDescription(productTranslation?.description ?? ''),
-                            productVariantName: variantTranslation?.name ?? '',
+                            productName: this.constrainIndexedText(productTranslation?.name ?? ''),
+                            description: this.constrainIndexedText(productTranslation?.description ?? ''),
+                            productVariantName: this.constrainIndexedText(variantTranslation?.name ?? ''),
                             productAssetId: product.featuredAsset ? product.featuredAsset.id : null,
                             productPreviewFocalPoint: product.featuredAsset
                                 ? product.featuredAsset.focalPoint
@@ -535,9 +536,9 @@ export class IndexerController {
             enabled: false,
             slug: productTranslation.slug,
             productId: product.id,
-            productName: productTranslation.name,
-            description: this.constrainDescription(productTranslation.description),
-            productVariantName: productTranslation.name,
+            productName: this.constrainIndexedText(productTranslation.name),
+            description: this.constrainIndexedText(productTranslation.description),
+            productVariantName: this.constrainIndexedText(productTranslation.name),
             productAssetId: product.featuredAsset?.id ?? null,
             productPreviewFocalPoint: product.featuredAsset?.focalPoint ?? null,
             productVariantPreviewFocalPoint: null,
@@ -652,12 +653,12 @@ export class IndexerController {
      * Prevent postgres errors from too-long indices
      * https://github.com/vendurehq/vendure/issues/745
      */
-    private constrainDescription(description: string): string {
+    private constrainIndexedText(text: string): string {
         const { type } = this.connection.rawConnection.options;
         const isPostgresLike = type === 'postgres' || type === 'aurora-postgres' || type === 'cockroachdb';
         if (isPostgresLike) {
-            return description.substring(0, 2600);
+            return truncateToUtf8Bytes(text, POSTGRES_MAX_INDEXED_TEXT_BYTES);
         }
-        return description;
+        return text;
     }
 }
