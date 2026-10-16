@@ -91,7 +91,7 @@ git push origin master
 ## Setting up the dev environment
 
 > [!IMPORTANT]
-> The following instructions are for those who want to develop the Vendure core framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
+> The following instructions are for those who want to develop the Vendure Framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
 ### Prerequisites
 

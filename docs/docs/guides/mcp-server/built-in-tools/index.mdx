@@ -315,7 +315,7 @@ entry per saved address with its `id`, the address fields, and the `defaultShipp
   from `Pending`, and core moves the order to its corresponding full or partial state. Use `Shipped` to mark it
   shipped.
 - The call is transactional: a refused transition rolls the fulfillment back.
-- Core checks quantities and fulfillable stock, not order state, so an open cart can be fulfilled too.
+- The Vendure Framework checks quantities and fulfillable stock, not order state, so an open cart can be fulfilled too.
 
 ### `update_order_state`
 

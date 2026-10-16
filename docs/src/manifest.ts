@@ -13,7 +13,7 @@ const folder = (relativePath: string) => join(packageRoot, relativePath);
 
 const manifestInput: DocsPackageManifestInput = {
     id: 'core',
-    name: 'Vendure Core Documentation',
+    name: 'Vendure Framework Documentation',
     version: lernaJson.version,
     vendureVersion: 'v3',
     basePath: packageRoot,
