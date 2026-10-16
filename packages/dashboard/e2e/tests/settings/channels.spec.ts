@@ -383,6 +383,20 @@ test.describe('Channel required-field validation', () => {
         await expect(page).toHaveURL(/\/channels\/new$/);
     });
 
+    // #5080 - a whitespace-only token must be rejected like an empty one
+    test('should reject a whitespace-only token', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Code', 'e2e-blank-token-channel');
+        await dp.fillInput('Token', '   ');
+        await dp.clickCreate();
+
+        await expect(dp.formItem('Token').getByText('This field is required')).toBeVisible();
+        await expect(page).toHaveURL(/\/channels\/new$/);
+    });
+
     // #4173 — the default currency used to be pickable from every currency there is while
     // "Available currencies" was still empty, so it could be left out of the list chosen
     // afterwards. The available currencies are now the only source of a default.

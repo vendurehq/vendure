@@ -205,6 +205,31 @@ test.describe('Product detail features', () => {
         }
         // If no custom fields configured in the fixture, this test passes silently
     });
+
+    // #5080 - a whitespace-only name must be rejected by the form instead of being saved
+    test('blocks creating a product with a blank name', async ({ page }) => {
+        await page.goto('/products/new');
+        const nameField = page
+            .getByRole('main')
+            .locator('[data-slot="field"]')
+            .filter({
+                has: page.locator('[data-slot="field-label"]').getByText('Product name', { exact: true }),
+            })
+            .getByRole('textbox');
+        await nameField.fill('   ');
+
+        let createSent = false;
+        page.on('request', req => {
+            if ((req.postData() ?? '').includes('mutation CreateProduct(')) {
+                createSent = true;
+            }
+        });
+        await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+        expect(await nameField.evaluate((el: HTMLInputElement) => el.validity.valid)).toBe(false);
+        await expect(page).toHaveURL(/\/products\/new$/);
+        expect(createSent).toBe(false);
+    });
 });
 
 // Provisions a throwaway product with a single "Size" option group (Small/Large) via the

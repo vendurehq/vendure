@@ -46,11 +46,11 @@ input FacetListOptions
 input FacetTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateFacetInput {
-    code: String!
+    code: String! @nonBlank
     isPrivate: Boolean!
     translations: [FacetTranslationInput!]!
     values: [CreateFacetValueWithFacetInput!]
@@ -59,29 +59,29 @@ input CreateFacetInput {
 input UpdateFacetInput {
     id: ID!
     isPrivate: Boolean
-    code: String
+    code: String @nonBlank
     translations: [FacetTranslationInput!]
 }
 input FacetValueTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateFacetValueWithFacetInput {
-    code: String!
+    code: String! @nonBlank
     translations: [FacetValueTranslationInput!]!
 }
 
 input CreateFacetValueInput {
     facetId: ID!
-    code: String!
+    code: String! @nonBlank
     translations: [FacetValueTranslationInput!]!
 }
 
 input UpdateFacetValueInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     translations: [FacetValueTranslationInput!]
 }
 

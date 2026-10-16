@@ -16,10 +16,10 @@ type Mutation {
 input TagListOptions
 
 input CreateTagInput {
-    value: String!
+    value: String! @nonBlank
 }
 
 input UpdateTagInput {
     id: ID!
-    value: String
+    value: String @nonBlank
 }

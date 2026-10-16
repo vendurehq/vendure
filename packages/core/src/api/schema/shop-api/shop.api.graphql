@@ -194,7 +194,7 @@ type Mutation {
 input AuthenticationInput
 
 input RegisterCustomerInput {
-    emailAddress: String!
+    emailAddress: String! @nonBlank
     title: String
     firstName: String
     lastName: String
@@ -204,8 +204,8 @@ input RegisterCustomerInput {
 
 input UpdateCustomerInput {
     title: String
-    firstName: String
-    lastName: String
+    firstName: String @nonBlank
+    lastName: String @nonBlank
     phoneNumber: String
 }
 
@@ -219,7 +219,7 @@ input PaymentInput {
     """
     This field should correspond to the `code` property of a PaymentMethod.
     """
-    method: String!
+    method: String! @nonBlank
     """
     This field should contain arbitrary data passed to the specified PaymentMethodHandler's `createPayment()` method
     as the "metadata" argument. For example, it could contain an ID for the payment and other
