@@ -33,8 +33,6 @@ const customConfig = mergeConfig(testConfig(), {
     dbConnectionOptions: {
         timezone: 'Z',
     },
-    // The cast gives the validate callbacks below their parameter types; the rule misses that.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     customFields: {
         Product: [
             { name: 'nullable', type: 'string' },
@@ -236,7 +234,7 @@ const customConfig = mergeConfig(testConfig(), {
                 nullable: true,
             },
         ],
-    } as CustomFields,
+    } satisfies CustomFields,
 });
 
 describe('Custom fields', () => {
