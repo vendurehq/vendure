@@ -55,12 +55,14 @@ import { createNewPlugin } from './create-new-plugin';
 
 function setupMocks() {
     // Re-apply VendureConfigRef mock each time (vi.restoreAllMocks clears it)
-    vi.mocked(VendureConfigRef).mockImplementation((() => ({
-        addToPluginsArray: vi.fn(),
-        sourceFile: {
-            getProject: vi.fn(() => ({ save: vi.fn().mockResolvedValue(undefined) })),
-        },
-    })) as any);
+    vi.mocked(VendureConfigRef).mockImplementation(function () {
+        return {
+            addToPluginsArray: vi.fn(),
+            sourceFile: {
+                getProject: vi.fn(() => ({ save: vi.fn().mockResolvedValue(undefined) })),
+            },
+        };
+    });
 
     const mockPluginClass = {
         rename: vi.fn(),

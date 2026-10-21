@@ -35,7 +35,15 @@ describe.skipIf(process.env.RUN_BUNDLE_AUDIT !== 'true')('bundle singleton dev s
         await execFileAsync('npm', ['run', 'build:lib'], { cwd: packageRoot });
         const server = await startDevServer();
         stopServer = server.stop;
-        libJs = await fetchWhenReady(`http://localhost:${server.port}/dist/bundle/lib.js`);
+        const baseUrl = `http://localhost:${server.port}`;
+        libJs = await fetchWhenReady(`${baseUrl}/dist/bundle/lib.js`);
+        // Rolldown (Vite 8) may route an external import through a shared chunk
+        // (e.g. lib.js -> chunks/common-operations.js -> sonner) instead of
+        // importing it from lib.js directly, so include lib.js's static chunk imports.
+        const chunkPaths = new Set(libJs.match(/\/dist\/bundle\/chunks\/[^"'?]+\.js/g) ?? []);
+        for (const chunkPath of chunkPaths) {
+            libJs += await fetch(`${baseUrl}${chunkPath}`).then(res => res.text());
+        }
     }, 180_000);
 
     afterAll(() => stopServer());
@@ -70,8 +78,11 @@ async function startDevServer(): Promise<{ port: number; stop: () => void }> {
     });
 
     const stop = () => {
+        if (child.pid === undefined) {
+            return;
+        }
         try {
-            process.kill(-child.pid!, 'SIGTERM');
+            process.kill(-child.pid, 'SIGTERM');
         } catch {
             // already gone
         }

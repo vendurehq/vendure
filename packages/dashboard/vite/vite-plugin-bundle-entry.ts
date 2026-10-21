@@ -3,7 +3,7 @@ import { Plugin } from 'vite';
 /**
  * @description
  * Rewrites the dashboard's `index.html` script entry from the TypeScript source
- * (`/src/app/main.jsx`) to the pre-built ESM bundle
+ * (`/src/app/main.tsx`) to the pre-built ESM bundle
  * (`/dist/bundle/main.js`).
  *
  * The CSS `<link>` tag is left untouched so the consumer's Tailwind +
@@ -23,8 +23,7 @@ export function bundleEntryPlugin(): Plugin {
                 // Don't transform Storybook HTML or anything else outside the dashboard's own entry
                 if (
                     ctx.filename &&
-                    (ctx.filename.includes('iframe.html') ||
-                        ctx.filename.includes('storybook'))
+                    (ctx.filename.includes('iframe.html') || ctx.filename.includes('storybook'))
                 ) {
                     return html;
                 }
@@ -38,16 +37,14 @@ export function bundleEntryPlugin(): Plugin {
                 // consumer's extension code (a plain <link> bypasses those
                 // hooks and the virtual `@import 'virtual:admin-theme'`
                 // directives fail to resolve).
-                const dashboardCssLink =
-                    `<link rel="stylesheet" href="/dist/bundle/dashboard.css" />`;
-                const extensionCssImport =
-                    `<script type="module">import '/src/app/extension-tailwind.css';</script>`;
+                const dashboardCssLink = `<link rel="stylesheet" href="/dist/bundle/dashboard.css" />`;
+                const extensionCssImport = `<script type="module">import '/src/app/extension-tailwind.css';</script>`;
                 const newScript = `<script type="module" src="/dist/bundle/main.js"></script>`;
 
                 // Match the source-entry script regardless of whether Vite has
                 // already prepended the configured `base` to the src attribute.
                 return html.replace(
-                    /<script\s+type="module"\s+src="[^"]*src\/app\/main\.jsx"\s*><\/script>/,
+                    /<script\s+type="module"\s+src="[^"]*src\/app\/main\.tsx"\s*><\/script>/,
                     `${dashboardCssLink}\n${extensionCssImport}\n${newScript}`,
                 );
             },

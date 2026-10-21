@@ -31,7 +31,7 @@ export default defineConfig({
                 host: adminApiHost,
                 port: adminApiPort,
             },
-            gqlOutputPath: path.resolve(__dirname, './graphql/'),
+            gqlOutputPath: path.resolve(import.meta.dirname, './graphql/'),
         }),
     ],
 });

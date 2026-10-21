@@ -21,7 +21,9 @@ vi.mock('../../../shared/shared-prompts', () => ({
 }));
 
 vi.mock('../../../shared/vendure-config-ref', () => ({
-    VendureConfigRef: vi.fn(() => ({ getPathRelativeToProjectRoot: () => 'vendure-config.ts' })),
+    VendureConfigRef: vi.fn(function () {
+        return { getPathRelativeToProjectRoot: () => 'vendure-config.ts' };
+    }),
 }));
 
 vi.mock('../../../shared/load-vendure-config-file', () => ({

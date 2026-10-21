@@ -2,7 +2,7 @@ import { lingui } from '@lingui/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
 
 import { dashboardBundleExternals } from './vite/lib-externals.js';
 import { themeVariablesPlugin } from './vite/vite-plugin-theme.js';
@@ -33,6 +33,10 @@ export default defineConfig({
         tailwindcss(),
         react({ babel: { plugins: ['@lingui/babel-plugin-lingui-macro'] } }),
         lingui(),
+        // Rolldown keeps `require()` of an external (e.g. use-sync-external-store's
+        // `require('react')`) as a runtime call that throws in the browser; this
+        // rewrites those calls to ESM imports, as @rollup/plugin-commonjs did under Vite 7.
+        esmExternalRequirePlugin({ external: dashboardBundleExternals }),
     ],
     resolve: {
         alias: {
@@ -59,9 +63,8 @@ export default defineConfig({
             fileName: name => `${name}.js`,
         },
         rollupOptions: {
-            // Single source of truth shared with the duplication audit
-            // (vite/tests/bundle-singleton.spec.ts). See vite/lib-externals.ts.
-            external: dashboardBundleExternals,
+            // Externals are declared via esmExternalRequirePlugin above (single source of
+            // truth shared with vite/tests/bundle-singleton.spec.ts; see vite/lib-externals.ts).
             output: {
                 // Predictable entry names so index.html can reference them
                 entryFileNames: '[name].js',
