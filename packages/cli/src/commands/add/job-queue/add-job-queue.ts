@@ -1,8 +1,9 @@
 import { cancel, isCancel, log, text } from '@clack/prompts';
-import { camelCase, pascalCase } from '../../../utilities/case-utils';
 import { Node, Scope } from 'ts-morph';
+import { camelCase, pascalCase } from '../../../utilities/case-utils';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
 import { ServiceRef } from '../../../shared/service-ref';
 import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts';
@@ -115,7 +116,7 @@ export async function addJobQueue(
 
     if (!options?.isNonInteractive && isCancel(jobQueueName)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     addImportsToFile(serviceRef.classDeclaration.getSourceFile(), {

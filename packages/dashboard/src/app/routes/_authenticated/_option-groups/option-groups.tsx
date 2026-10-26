@@ -1,4 +1,5 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
@@ -26,6 +27,7 @@ function OptionGroupListPage() {
             defaultVisibility={{
                 name: true,
                 code: true,
+                options: true,
                 productCount: true,
             }}
             customizeColumns={{
@@ -33,6 +35,28 @@ function OptionGroupListPage() {
                     cell: ({ row }) => (
                         <DetailPageButton id={row.original.id} label={row.original.name} />
                     ),
+                },
+                options: {
+                    header: () => <Trans>Options</Trans>,
+                    cell: ({ row }) => {
+                        const options = row.original.options ?? [];
+                        const maxDisplay = 5;
+                        const leftOver = Math.max(options.length - maxDisplay, 0);
+                        return (
+                            <div className="flex flex-wrap gap-2">
+                                {options.slice(0, maxDisplay).map(option => (
+                                    <Badge key={option.id} variant="outline">
+                                        {option.name}
+                                    </Badge>
+                                ))}
+                                {leftOver > 0 ? (
+                                    <Badge variant="outline">
+                                        <Trans>+ {leftOver} more</Trans>
+                                    </Badge>
+                                ) : null}
+                            </div>
+                        );
+                    },
                 },
                 productCount: {
                     header: () => <Trans>Products</Trans>,

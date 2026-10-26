@@ -217,6 +217,11 @@ type Refund implements Node {
     adjustment: Money!
     total: Money!
     method: String
+    """
+    The refund destination code, if a non-default destination was used.
+    When null, the refund was directed to the original payment method.
+    """
+    destination: String
     state: String!
     transactionId: String
     reason: String

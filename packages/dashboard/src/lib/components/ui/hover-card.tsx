@@ -2,4 +2,4 @@ export {
     HoverCard,
     HoverCardContent,
     HoverCardTrigger,
-} from '@vendure-io/ui/components/ui/hover-card';
+} from '@vendure-io/ui/components/atoms/hover-card';

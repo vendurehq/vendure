@@ -13,6 +13,7 @@ on any page in the dashboard.
 interface DashboardPageBlockDefinition {
     id: string;
     title?: React.ReactNode;
+    description?: React.ReactNode;
     location: PageBlockLocation;
     component?: React.FunctionComponent<{ context: PageContextValue }>;
     shouldRender?: (context: PageContextValue) => boolean;
@@ -33,6 +34,11 @@ to the page in which it appears.
 <MemberInfo kind="property" type={`React.ReactNode`}   />
 
 An optional title for the page block
+### description
+
+<MemberInfo kind="property" type={`React.ReactNode`}  since="3.8.0"  />
+
+Optional supporting text displayed below the page block title.
 ### location
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/page-blocks#pageblocklocation'>PageBlockLocation</a>`}   />

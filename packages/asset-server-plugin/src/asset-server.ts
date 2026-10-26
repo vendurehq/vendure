@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 import mime from 'mime-types';
 import path from 'path';
 
-import { getValidFormat } from './common';
+import { getValidBackgroundColor, getValidFormat } from './common';
 import { ImageTransformParameters, ImageTransformStrategy } from './config/image-transform-strategy';
 import { S3AssetStorageStrategy } from './config/s3-asset-storage-strategy';
 import {
@@ -58,7 +58,7 @@ export class AssetServer {
             if (typeof cacheHeader === 'string') {
                 this.cacheHeader = cacheHeader;
             } else {
-                this.cacheHeader = [cacheHeader.restriction, `max-age: ${cacheHeader.maxAge}`]
+                this.cacheHeader = [cacheHeader.restriction, `max-age=${cacheHeader.maxAge}`]
                     .filter(value => !!value)
                     .join(', ');
             }
@@ -147,6 +147,7 @@ export class AssetServer {
                         }
                         res.set('Content-Type', mimeType);
                         this.setAssetSecurityHeaders(res, mimeType);
+                        res.setHeader('Cache-Control', this.cacheHeader);
                         res.send(imageBuffer);
                         return;
                     } catch (e: any) {
@@ -206,6 +207,7 @@ export class AssetServer {
         const fpx = +queryParams.fpx || undefined;
         const fpy = +queryParams.fpy || undefined;
         const format = getValidFormat(queryParams.format);
+        const backgroundColor = getValidBackgroundColor(queryParams.bg);
 
         return {
             width,
@@ -216,14 +218,16 @@ export class AssetServer {
             fpx,
             fpy,
             preset: queryParams.preset,
+            backgroundColor,
         };
     }
 
     private getFileNameFromParameters(filePath: string, params: ImageTransformParameters): string {
-        const { width: w, height: h, mode, preset, fpx, fpy, format, quality: q } = params;
+        const { width: w, height: h, mode, preset, fpx, fpy, format, quality: q, backgroundColor } = params;
         /* eslint-disable @typescript-eslint/restrict-template-expressions */
         const focalPoint = fpx && fpy ? `_fpx${fpx}_fpy${fpy}` : '';
         const quality = q ? `_q${q}` : '';
+        const bg = backgroundColor ? `_bg${backgroundColor.replace('#', '')}` : '';
         const imageFormat = getValidFormat(format);
         let imageParamsString = '';
         if (w || h) {
@@ -245,11 +249,17 @@ export class AssetServer {
         if (quality) {
             imageParamsString += quality;
         }
+        if (bg) {
+            imageParamsString += bg;
+        }
 
         const decodedReqPath = this.sanitizeFilePath(filePath);
         if (imageParamsString !== '') {
             const imageParamHash = this.md5(imageParamsString);
-            return path.join(this.cacheDir, this.addSuffix(decodedReqPath, imageParamHash, imageFormat));
+            return path.posix.join(
+                this.cacheDir,
+                this.addSuffix(decodedReqPath, imageParamHash, imageFormat),
+            );
         } else {
             return decodedReqPath;
         }
@@ -280,7 +290,11 @@ export class AssetServer {
                 previousPath = sanitizedPath;
                 sanitizedPath = previousPath.replace(/(\.\.[\\/])+/g, '');
             } while (sanitizedPath !== previousPath);
-            return sanitizedPath;
+            // `path.normalize` rewrites separators to the platform form, so on Windows the
+            // result would otherwise carry backslashes into the asset identifier and into the
+            // cache key that `addSuffix` composes with `path.posix.join`. Normalizing here,
+            // after the traversal strip, keeps that guard unchanged.
+            return sanitizedPath.split(path.sep).join('/');
         }
     }
 
@@ -293,7 +307,7 @@ export class AssetServer {
         const effectiveExt = ext ? `.${ext}` : originalExt;
         const baseName = path.basename(fileName, originalExt);
         const dirName = path.dirname(fileName);
-        return path.join(dirName, `${baseName}${suffix}${effectiveExt}`);
+        return path.posix.join(dirName, `${baseName}${suffix}${effectiveExt}`);
     }
 
     /**

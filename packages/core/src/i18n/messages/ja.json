@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "ファセット値でフィルター",
+        "args": {
+          "facetValueIds": {
+            "label": "ファセット値"
+          },
+          "containsAny": {
+            "label": "いずれかを含む",
+            "description": "オンにすると、商品バリエーションは選択されたファセット値のいずれか1つ以上を持つ必要があります。オフにすると、バリエーションは選択されたすべての値を持つ必要があります。"
+          },
+          "combineWithAnd": {
+            "label": "組み合わせモード",
+            "description": "このフィルターを他のフィルターと組み合わせる場合、すべての条件を満たす必要がありますか (AND)、それともいずれか1つで十分ですか (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "商品バリエーション名でフィルター",
+        "args": {
+          "combineWithAnd": {
+            "label": "組み合わせモード",
+            "description": "このフィルターを他のフィルターと組み合わせる場合、すべての条件を満たす必要がありますか (AND)、それともいずれか1つで十分ですか (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "商品バリエーションを手動で選択",
+        "args": {
+          "variantIds": {
+            "label": "商品バリエーション"
+          },
+          "combineWithAnd": {
+            "label": "組み合わせモード",
+            "description": "このフィルターを他のフィルターと組み合わせる場合、すべての条件を満たす必要がありますか (AND)、それともいずれか1つで十分ですか (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "商品を手動で選択",
+        "args": {
+          "productIds": {
+            "label": "商品"
+          },
+          "combineWithAnd": {
+            "label": "組み合わせモード",
+            "description": "このフィルターを他のフィルターと組み合わせる場合、すべての条件を満たす必要がありますか (AND)、それともいずれか1つで十分ですか (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "商品の既定の複製ツール",
+        "args": {
+          "includeVariants": {
+            "label": "バリエーションを含める"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "コレクションの既定の複製ツール"
+      },
+      "facet-duplicator": {
+        "description": "ファセットの既定の複製ツール",
+        "args": {
+          "includeFacetValues": {
+            "label": "ファセット値を含める"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "プロモーションの既定の複製ツール"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "フルフィルメントの詳細を手動で入力"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "テストおよび開発専用のダミー決済プロバイダーです。",
+        "args": {
+          "automaticSettle": {
+            "label": "承認と確定を1ステップで実行",
+            "description": "有効にすると、支払いは \"Settled\" の状態で作成されます。"
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "サンプル決済プロバイダー"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "注文を固定額で割引"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine を固定額で割引"
+      },
+      "order_percentage_discount": {
+        "description": "注文を { discount }% 割引"
+      },
+      "facet_based_discount": {
+        "description": "これらのファセットを持つ商品を { discount }% 割引"
+      },
+      "products_percentage_discount": {
+        "description": "指定した商品を { discount }% 割引",
+        "args": {
+          "productVariantIds": {
+            "label": "商品バリエーション"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "送料無料"
+      },
+      "buy_x_get_y_free": {
+        "description": "商品を X 個購入すると、商品が Y 個無料"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "注文合計が { amount } を超える場合"
+      },
+      "at_least_n_with_facets": {
+        "description": "指定したファセットを持つ商品を { minimum } 個以上購入"
+      },
+      "contains_products": {
+        "description": "指定した商品を { minimum } 個以上購入",
+        "args": {
+          "productVariantIds": {
+            "label": "商品バリエーション"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "顧客が指定したグループのメンバーである",
+        "args": {
+          "customerGroupId": {
+            "label": "顧客グループ"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "商品を X 個購入すると、商品が Y 個無料",
+        "args": {
+          "variantIdsX": {
+            "label": "これらのバリエーションを amountX 個購入"
+          },
+          "variantIdsY": {
+            "label": "これらのバリエーションを amountY 個無料で取得"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "既定の定額配送料計算ツール",
+        "args": {
+          "rate": {
+            "label": "配送料"
+          },
+          "includesTax": {
+            "label": "価格に税を含む",
+            "options": {
+              "include": {
+                "label": "税込み"
+              },
+              "exclude": {
+                "label": "税抜き"
+              },
+              "auto": {
+                "label": "自動 (チャネルに基づく)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "税率"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "既定の配送適用条件チェッカー",
+        "args": {
+          "orderMinimum": {
+            "label": "最小注文金額",
+            "description": "注文の合計がこの値以上の場合にのみ、注文が対象となります"
+          }
+        }
+      }
+    }
+  }
+}

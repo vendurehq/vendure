@@ -2,7 +2,7 @@
 title: "StockLevelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="26" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="91" packageName="@vendure/core" since="2.0.0" />
 
 The StockLevelService is responsible for managing the stock levels of ProductVariants.
 Whenever you need to adjust the `stockOnHand` or `stockAllocated` for a ProductVariant,
@@ -10,12 +10,14 @@ you should use this service.
 
 ```ts title="Signature"
 class StockLevelService {
-    constructor(connection: TransactionalConnection, stockLocationService: StockLocationService, configService: ConfigService, requestCache: RequestContextCacheService)
+    constructor(connection: TransactionalConnection, stockLocationService: StockLocationService, configService: ConfigService, requestCache: RequestContextCacheService, globalSettingsService: GlobalSettingsService)
     getStockLevel(ctx: RequestContext, productVariantId: ID, stockLocationId: ID) => Promise<StockLevel>;
     getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID) => Promise<StockLevel[]>;
-    getAvailableStock(ctx: RequestContext, productVariantId: ID) => Promise<AvailableStock>;
+    getAvailableStock(ctx: RequestContext, productVariantId: ID, options?: StockLevelReadOptions) => Promise<AvailableStock>;
     updateStockOnHandForLocation(ctx: RequestContext, productVariantId: ID, stockLocationId: ID, change: number) => ;
     updateStockAllocatedForLocation(ctx: RequestContext, productVariantId: ID, stockLocationId: ID, change: number) => ;
+    lockStockLevelsForVariants(ctx: RequestContext, productVariantIds: ID[], options?: StockLevelLockOptions) => Promise<void>;
+    getLockedStockLevelsForVariant(ctx: RequestContext, productVariantId: ID) => Promise<StockLevel[]>;
 }
 ```
 
@@ -33,20 +35,67 @@ Returns the StockLevel for the given [ProductVariant](/reference/typescript-api/
 
 ### getAvailableStock
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options?: <a href='/reference/typescript-api/services/stock-level-read-options#stocklevelreadoptions'>StockLevelReadOptions</a>) => Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>>`}  since="3.7.4 - Added the `options` parameter"  />
 
 Returns the available stock (on hand and allocated) for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant). This is determined
 by the configured [StockLocationStrategy](/reference/typescript-api/products-stock/stock-location-strategy#stocklocationstrategy).
+
+Pass `{ lockStockLevels: true }` when the caller is about to allocate stock based on the
+returned figures. This takes a write lock on the underlying StockLevel rows which is held
+until the surrounding transaction commits, so that the check and the allocation cannot be
+interleaved with another checkout for the same ProductVariant.
 ### updateStockOnHandForLocation
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>, change: number) => `}   />
 
 Updates the `stockOnHand` for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) and [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
+When creating a new StockLevel the initial value is the adjustment delta itself, which may be
+negative (e.g. a backorder against a variant with a negative `outOfStockThreshold`), so the
+row stays consistent with the `StockAdjustment` ledger.
 ### updateStockAllocatedForLocation
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>, change: number) => `}   />
 
 Updates the `stockAllocated` for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) and [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
+`stockAllocated` is clamped at 0 so a release can never produce a negative value. A clamp
+which fires is logged, since it means more was released than was ever allocated.
+### lockStockLevelsForVariants
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], options?: <a href='/reference/typescript-api/services/stock-level-lock-options#stocklevellockoptions'>StockLevelLockOptions</a>) => Promise<void>`}  since="3.7.4"  />
+
+Takes the write lock of `StockLevelService.getLockedStockLevelsForVariant` for each of
+the given ProductVariants, in a fixed order: duplicates are dropped, the variants are visited
+in ascending id order and each variant's rows in id order. A transaction which changes the
+stock of more than one variant should call this once, before its first stock read or write.
+Two such transactions then take their locks in the same order, so they cannot deadlock, and
+later stock writes in the transaction meet rows it already holds.
+
+Variants which do not track inventory are skipped by default: nothing is checked or counted
+for them, so locking them would only serialize their checkouts. Pass
+`{ includeUntrackedVariants: true }` when the transaction derives what it writes from the
+current `stockOnHand` rather than from a saleable stock check.
+
+Degrades like `getLockedStockLevelsForVariant` without a transaction or row lock support.
+### getLockedStockLevelsForVariant
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>[]>`}  since="3.7.4"  />
+
+Returns every [StockLevel](/reference/typescript-api/entities/stock-level#stocklevel) of the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant), whatever its
+[StockLocation](/reference/typescript-api/entities/stock-location#stocklocation) or Channel, with a write lock (`SELECT ... FOR UPDATE`) held until
+the surrounding transaction commits. Use it when the returned figures decide how much
+stock to allocate and the allocation happens in the same transaction: a second
+transaction for the same variant waits here until the first commits, then reads the
+updated `stockAllocated`.
+
+The rows are read by the locking statement itself. On MySQL and MariaDB a plain SELECT
+under REPEATABLE READ keeps returning the transaction's opening snapshot, while a locking
+read sees the latest committed row.
+
+Rows are locked in id order. When locking several variants in one transaction, visit them
+in a fixed order too, so two transactions cannot take the same locks in opposite order.
+
+Without an open transaction, or on a driver without row locks (SQLite, SQL.js), this falls
+back to an unlocked read and logs a warning once per process.
 
 
 </div>

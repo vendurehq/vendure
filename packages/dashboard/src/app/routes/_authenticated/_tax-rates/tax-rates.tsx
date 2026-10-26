@@ -33,6 +33,7 @@ function TaxRateListPage() {
                 zone: true,
                 value: true,
             }}
+            searchPlaceholder={t`Search tax rates...`}
             onSearchTermChange={searchTerm => {
                 if (searchTerm === '') {
                     return {};

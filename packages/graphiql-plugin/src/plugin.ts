@@ -156,24 +156,45 @@ export class GraphiqlPlugin implements NestModule {
     }
 
     private createAssetsServer() {
-        const distDir = path.join(__dirname, '../dist/graphiql');
+        const assetsDir = path.join(__dirname, '../dist/graphiql/assets');
 
         return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+            const notFound = () => res.status(404).send('Asset not found');
             try {
-                // Extract asset path from URL
-                const assetPath = req.params[0] || req.params.path || '';
-                const filePath = path.join(distDir, 'assets', assetPath.toString());
-
-                if (fs.existsSync(filePath)) {
-                    return res.sendFile(assetPath.toString(), { root: path.join(distDir, 'assets') });
-                } else {
-                    return res.status(404).send('Asset not found');
+                // Express 5 provides the `*path` wildcard as an array of decoded segments.
+                // A segment may itself contain a decoded "/" (from "%2F"), so the resolved
+                // path must be checked against the assets dir before touching the filesystem.
+                const rawPath: string | string[] = req.params.path ?? '';
+                const assetPath = Array.isArray(rawPath) ? rawPath.join('/') : rawPath;
+                const filePath = path.resolve(assetsDir, assetPath);
+                if (!filePath.startsWith(assetsDir + path.sep)) {
+                    return notFound();
                 }
+                if (!isFile(filePath)) {
+                    return notFound();
+                }
+                return res.sendFile(path.relative(assetsDir, filePath), { root: assetsDir }, err => {
+                    if (err && !res.headersSent) {
+                        notFound();
+                    }
+                });
             } catch (e: unknown) {
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                 Logger.error(`Error serving static asset: ${errorMessage}`, loggerCtx);
                 return res.status(500).send('An error occurred while serving static asset');
             }
         };
+    }
+}
+
+/**
+ * Any stat failure (missing entry, over-long name, null byte) is treated as "not a file", so the
+ * caller can respond the same way for all of them.
+ */
+function isFile(filePath: string): boolean {
+    try {
+        return fs.statSync(filePath).isFile();
+    } catch {
+        return false;
     }
 }

@@ -5,14 +5,16 @@ import {
     OrderStateCell,
 } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { ErrorState } from '@/vdb/components/ui/state-views.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
+import { SortingState } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
 import { DashboardBaseWidget } from '../base-widget.js';
-import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { latestOrdersQuery } from './latest-orders-widget.graphql.js';
 
 export const WIDGET_ID = 'latest-orders-widget';
@@ -32,17 +34,6 @@ export function LatestOrdersWidget() {
     ]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(tableSettings?.pageSize ?? 10);
-    const [filters, setFilters] = useState<ColumnFiltersState>([
-        {
-            id: 'orderPlacedAt',
-            value: {
-                between: {
-                    start: dateRange.from.toISOString(),
-                    end: dateRange.to.toISOString(),
-                },
-            },
-        },
-    ]);
 
     // Update page size if user settings change
     useEffect(() => {
@@ -50,21 +41,6 @@ export function LatestOrdersWidget() {
             setPageSize(tableSettings.pageSize);
         }
     }, [tableSettings?.pageSize]);
-
-    // Update filters when date range changes
-    useEffect(() => {
-        setFilters([
-            {
-                id: 'orderPlacedAt',
-                value: {
-                    between: {
-                        start: dateRange.from.toISOString(),
-                        end: dateRange.to.toISOString(),
-                    },
-                },
-            },
-        ]);
-    }, [dateRange]);
 
     const defaultVisibility = {
         code: true,
@@ -76,78 +52,105 @@ export function LatestOrdersWidget() {
 
     return (
         <DashboardBaseWidget id={WIDGET_ID} title={t`Latest Orders`} description={t`Your latest orders`}>
-            <PaginatedListDataTable
-                page={page}
-                transformVariables={variables => ({
-                    ...variables,
-                    options: {
-                        ...variables.options,
-                        filter: {
-                            active: {
-                                eq: false,
+            {/* The plain frame resolves its band and edge-cell spacing against the
+                host card's --card-px, so the CardContent padding around the widget
+                body must be cancelled for the bands to run edge to edge. */}
+            <div className="-mx-(--card-px)">
+                <PaginatedListDataTable
+                    frame="plain"
+                    page={page}
+                    transformVariables={variables => ({
+                        ...variables,
+                        options: {
+                            ...variables.options,
+                            filter: {
+                                active: {
+                                    eq: false,
+                                },
+                                state: {
+                                    notIn: ['Cancelled', 'Draft'],
+                                },
+                                orderPlacedAt: {
+                                    between: {
+                                        start: dateRange.from.toISOString(),
+                                        end: dateRange.to.toISOString(),
+                                    },
+                                },
+                                ...(variables.options?.filter ?? {}),
                             },
-                            state: {
-                                notIn: ['Cancelled', 'Draft'],
+                        },
+                    })}
+                    // transformVariables output is not part of the query key, so the date range
+                    // must be appended for range changes to refetch. INSIGHTS_WIDGET_QUERY_KEY is
+                    // prepended so a page-level refresh, which invalidates that prefix, refetches this too.
+                    transformQueryKey={queryKey => [
+                        INSIGHTS_WIDGET_QUERY_KEY,
+                        ...queryKey,
+                        dateRange.from.toISOString(),
+                        dateRange.to.toISOString(),
+                    ]}
+                    customizeColumns={{
+                        code: {
+                            header: t`Code`,
+                            cell: ({ row }) => {
+                                return (
+                                    <Button
+                                        variant="ghost"
+                                        render={<Link to={`/orders/${row.original.id}`} />}
+                                    >
+                                        {row.original.code}
+                                    </Button>
+                                );
                             },
-                            ...(variables.options?.filter ?? {}),
                         },
-                    },
-                })}
-                customizeColumns={{
-                    code: {
-                        header: t`Code`,
-                        cell: ({ row }) => {
-                            return (
-                                <Button variant="ghost" render={<Link to={`/orders/${row.original.id}`} />}>
-                                    {row.original.code}
-                                </Button>
-                            );
+                        orderPlacedAt: {
+                            header: t`Placed At`,
+                            cell: ({ row }) => {
+                                return (
+                                    <span className="capitalize">
+                                        {formatRelativeDate(row.original.orderPlacedAt ?? new Date())}
+                                    </span>
+                                );
+                            },
                         },
-                    },
-                    orderPlacedAt: {
-                        header: t`Placed At`,
-                        cell: ({ row }) => {
-                            return (
-                                <span className="capitalize">
-                                    {formatRelativeDate(row.original.orderPlacedAt ?? new Date())}
-                                </span>
-                            );
+                        total: {
+                            meta: {
+                                dependencies: ['currencyCode'],
+                            },
+                            header: t`Total`,
+                            cell: OrderMoneyCell,
                         },
-                    },
-                    total: {
-                        meta: {
-                            dependencies: ['currencyCode'],
+                        totalWithTax: {
+                            meta: { dependencies: ['currencyCode'] },
+                            cell: OrderMoneyCell,
                         },
-                        header: t`Total`,
-                        cell: OrderMoneyCell,
-                    },
-                    totalWithTax: {
-                        meta: { dependencies: ['currencyCode'] },
-                        cell: OrderMoneyCell,
-                    },
-                    state: { cell: OrderStateCell },
-                    customer: { cell: CustomerCell },
-                }}
-                itemsPerPage={pageSize}
-                sorting={sorting}
-                columnFilters={filters}
-                listQuery={latestOrdersQuery}
-                defaultVisibility={columnVisibility}
-                onPageChange={(_, page, newPageSize) => {
-                    setPage(page);
-                    setPageSize(newPageSize);
-                    setTableSettings(WIDGET_ID, 'pageSize', newPageSize);
-                }}
-                onSortChange={(_, sorting) => {
-                    setSorting(sorting);
-                }}
-                onFilterChange={(_, filters) => {
-                    setFilters(filters);
-                }}
-                onColumnVisibilityChange={(_, columnVisibility) => {
-                    setTableSettings(WIDGET_ID, 'columnVisibility', columnVisibility);
-                }}
-            />
+                        state: { cell: OrderStateCell },
+                        customer: { cell: CustomerCell },
+                    }}
+                    itemsPerPage={pageSize}
+                    sorting={sorting}
+                    listQuery={latestOrdersQuery}
+                    defaultVisibility={columnVisibility}
+                    errorState={({ retry }) => (
+                        <ErrorState
+                            title={t`Could not load orders`}
+                            description={t`There was a problem loading your latest orders.`}
+                            onRetry={retry}
+                        />
+                    )}
+                    onPageChange={(_, page, newPageSize) => {
+                        setPage(page);
+                        setPageSize(newPageSize);
+                        setTableSettings(WIDGET_ID, 'pageSize', newPageSize);
+                    }}
+                    onSortChange={(_, sorting) => {
+                        setSorting(sorting);
+                    }}
+                    onColumnVisibilityChange={(_, columnVisibility) => {
+                        setTableSettings(WIDGET_ID, 'columnVisibility', columnVisibility);
+                    }}
+                />
+            </div>
         </DashboardBaseWidget>
     );
 }

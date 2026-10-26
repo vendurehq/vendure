@@ -1,4 +1,12 @@
-import { CollectionFilter, CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
+import { RefundOrderInput } from '@vendure/common/lib/generated-types';
+import {
+    CollectionFilter,
+    CustomFields,
+    dummyPaymentHandler,
+    LanguageCode,
+    RefundDestinationStrategy,
+    RequestContext,
+} from '@vendure/core';
 
 /**
  * Custom fields and payment handlers used by global-setup.ts to configure
@@ -32,6 +40,15 @@ export const e2eCustomFields: CustomFields = {
             type: 'int',
             label: [{ languageCode: LanguageCode.en, value: 'Review Rating' }],
         },
+        // A `nullable: false` custom field must declare a `defaultValue`, which becomes the
+        // column's SQL DEFAULT — the value a create form relies on when it is left empty (#5241).
+        {
+            name: 'warrantyMonths',
+            type: 'int',
+            nullable: false,
+            defaultValue: 12,
+            label: [{ languageCode: LanguageCode.en, value: 'Warranty Months' }],
+        },
         {
             name: 'isDownloadable',
             type: 'boolean',
@@ -60,6 +77,15 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
             options: [{ value: 'standard' }, { value: 'premium' }],
         },
+        {
+            // Used by the #4741 tests in catalog/custom-fields.spec.ts. Nullable, and the
+            // pattern accepts the empty default, so other product tests are unaffected.
+            name: 'numericCode',
+            type: 'string',
+            nullable: true,
+            pattern: '^[0-9]*$',
+            label: [{ languageCode: LanguageCode.en, value: 'Numeric Code' }],
+        },
         // ── SEO tab ──
         {
             name: 'seoTitle',
@@ -72,6 +98,13 @@ export const e2eCustomFields: CustomFields = {
             type: 'localeText',
             label: [{ languageCode: LanguageCode.en, value: 'SEO Description' }],
             ui: { tab: 'SEO', fullWidth: true },
+        },
+        // Deliberately has no label, so the Dashboard has to fall back to the
+        // field's own name when rendering it (#5246).
+        {
+            name: 'seoKeywords',
+            type: 'localeString',
+            ui: { tab: 'SEO' },
         },
         // ── Details tab ──
         {
@@ -146,6 +179,55 @@ export const e2eCustomFields: CustomFields = {
 };
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];
+
+/**
+ * A refund destination which always succeeds, used to exercise the non-default destination
+ * branch of the refund dialog.
+ */
+class TestStoreCreditDestination implements RefundDestinationStrategy {
+    readonly code = 'store-credit';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as store credit' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(
+        _ctx: RequestContext,
+        _input: RefundOrderInput,
+        amount: number,
+        _order: unknown,
+        _payment: unknown,
+        args?: any,
+    ) {
+        return {
+            state: 'Settled' as const,
+            transactionId: `sc-${Date.now()}`,
+            // `args` carries whatever the destination's dashboard component produced, so the
+            // tests can confirm it survived the round trip.
+            metadata: { storeCreditAmount: amount, args: args ?? null },
+        };
+    }
+}
+
+/**
+ * A refund destination whose external service always fails, used to exercise the dialog's handling
+ * of a multi-target refund which fails after an earlier target has already been refunded.
+ */
+class TestFailingVoucherDestination implements RefundDestinationStrategy {
+    readonly code = 'failing-voucher';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as voucher (always fails)' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(): never {
+        throw new Error('Voucher service unavailable');
+    }
+}
+
+export const e2eRefundDestinations = [new TestStoreCreditDestination(), new TestFailingVoucherDestination()];
 
 /**
  * A collection filter with a string list argument, used to reproduce #4987:

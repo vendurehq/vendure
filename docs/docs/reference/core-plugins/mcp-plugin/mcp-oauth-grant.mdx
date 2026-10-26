@@ -1,0 +1,145 @@
+---
+title: "McpOauthGrant"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-oauth-grant.entity.ts" sourceLine="27" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Represents one MCP OAuth grant: the hashed access + refresh token pair issued to a
+client, the granting user, and the dedicated Vendure session created for the grant.
+
+```ts title="Signature"
+class McpOauthGrant extends VendureEntity {
+    constructor(input?: DeepPartial<McpOauthGrant>)
+    @Index({ unique: true })
+    @Column()
+    accessTokenHash: string;
+    @Index({ unique: true })
+    @Column()
+    refreshTokenHash: string;
+    @Index()
+    @Column({ type: 'varchar', nullable: true })
+    previousRefreshTokenHash: string | null;
+    @Index()
+    @ManyToOne(() => McpOauthClient, { onDelete: 'CASCADE' })
+    oauthClient: McpOauthClient;
+    @EntityId()
+    oauthClientId: ID;
+    @Index()
+    @EntityId()
+    actorId: ID;
+    @Column({ type: 'varchar' })
+    actorType: McpGrantUserType;
+    @Column()
+    resource: string;
+    @Index()
+    @Column({ type: Date })
+    accessTokenExpiresAt: Date;
+    @Index()
+    @Column({ type: Date })
+    expiresAt: Date;
+    @Index()
+    @Column({ type: Date, nullable: true })
+    revokedAt: Date | null;
+    @Index()
+    @EntityId()
+    vendureSessionId: ID;
+    @Index()
+    @EntityId({ nullable: true })
+    channelId: ID | null;
+    @Index()
+    @Column({ type: Date })
+    lastActivityAt: Date;
+    status: McpOauthGrantStatus
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+
+<div className="members-wrapper">
+
+### accessTokenHash
+
+<MemberInfo kind="property" type={`string`}   />
+
+A hash of the access token, which is how a request finds its grant. The token itself is
+never stored, and every refresh replaces this hash.
+### refreshTokenHash
+
+<MemberInfo kind="property" type={`string`}   />
+
+A hash of the refresh token. The token itself is never stored, and every refresh replaces
+this hash.
+### previousRefreshTokenHash
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+A hash of the refresh token the last refresh replaced. Null until the first refresh. If a
+client presents this old token, the server assumes it was stolen and revokes the grant.
+### oauthClient
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
+
+
+### oauthClientId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### actorId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+The user who approved this grant. Tool calls made with it run as that user.
+### actorType
+
+<MemberInfo kind="property" type={`McpGrantUserType`}   />
+
+Whether an administrator or a customer approved this grant. It also decides which MCP
+endpoint the grant's tokens may call.
+### resource
+
+<MemberInfo kind="property" type={`string`}   />
+
+The one endpoint these tokens work against: the issuer URL plus `/mcp/admin` or
+`/mcp/shop`. Presenting a token anywhere else is refused.
+### accessTokenExpiresAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+### expiresAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+### revokedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### vendureSessionId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+The Vendure session this grant's tool calls run in. Revoking the grant deletes that
+session, and so does the cleanup job once the grant has expired.
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+### lastActivityAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+### status
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-grant-status#mcpoauthgrantstatus'>McpOauthGrantStatus</a>`}   />
+
+Worked out on read rather than stored, so it is always current without anything having to
+update it.
+
+
+</div>

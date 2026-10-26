@@ -11,6 +11,20 @@ export type ImageTransformFormat = 'jpg' | 'jpeg' | 'png' | 'webp' | 'avif';
 
 /**
  * @description
+ * A `#`-prefixed hex color string, e.g. `'#ffffff'` or `'#000'`.
+ * Full hex-char validation at the type level is not feasible because
+ * TypeScript's template literal unions exceed compiler limits for
+ * 6- and 8-char hex strings. The `#` prefix is enforced at compile time;
+ * hex-character and length validation is handled at runtime by
+ * `getValidBackgroundColor()`.
+ *
+ * @docsCategory core plugins/AssetServerPlugin
+ * @since 3.8.0
+ */
+export type HexColorString = `#${string}`;
+
+/**
+ * @description
  * Specifies the way in which an asset preview image will be resized to fit in the
  * proscribed dimensions:
  *

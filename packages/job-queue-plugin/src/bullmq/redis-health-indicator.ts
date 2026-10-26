@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { HealthCheckError, HealthIndicator, HealthIndicatorResult, Logger } from '@vendure/core';
-import { RedisConnection } from 'bullmq';
+import { isRedisInstance, RedisConnection } from 'bullmq';
 
 import { BULLMQ_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { BullMQPluginOptions } from './types';
@@ -12,7 +12,12 @@ export class RedisHealthIndicator extends HealthIndicator {
         super();
     }
     async isHealthy(key: string, timeoutMs = 5000): Promise<HealthIndicatorResult> {
-        const connection = new RedisConnection(this.options.connection ?? {});
+        // A supplied instance belongs to the caller, so `shared` stops `close()` from quitting it.
+        // `shared` is only passed for an instance: bullmq before 5.38 takes it as a positional
+        // boolean, where any options object is truthy and would leave our own connection open.
+        const connection = isRedisInstance(this.options.connection)
+            ? new RedisConnection(this.options.connection, { shared: true })
+            : new RedisConnection(this.options.connection ?? {});
         const pingResult = await new Promise(async (resolve, reject) => {
             try {
                 connection.on('error', err => {

@@ -1,7 +1,9 @@
+import { JobState } from '@vendure/common/lib/generated-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InMemoryJobQueueStrategy } from './in-memory-job-queue-strategy';
 import { Job } from './job';
+import { PollingJobQueueStrategy } from './polling-job-queue-strategy';
 
 describe('PollingJobQueueStrategy', () => {
     let strategy: InMemoryJobQueueStrategy;
@@ -131,5 +133,79 @@ describe('PollingJobQueueStrategy', () => {
         await stopPromise;
 
         expect(processed).toEqual(['job-1']);
+    });
+
+    // #5440 — a job cancelled while running stays CANCELLED whatever its process function returns
+    it.each([
+        ['undefined', undefined],
+        ['a string', 'done'],
+        ['an object', { processed: 3 }],
+    ])('keeps a job cancelled while running as CANCELLED when process returns %s', async (_, returnValue) => {
+        let releaseProcess: (() => void) | undefined;
+        const processGate = new Promise<void>(resolve => {
+            releaseProcess = resolve;
+        });
+        let runningJob: Job | undefined;
+        const process = async (job: Job) => {
+            runningJob = job;
+            await processGate;
+            return returnValue;
+        };
+
+        let released = false;
+        const updatesAfterRelease: Job[] = [];
+        const originalUpdate = strategy.update.bind(strategy);
+        vi.spyOn(strategy, 'update').mockImplementation(async (job: Job) => {
+            if (released && job === runningJob) {
+                updatesAfterRelease.push(job);
+            }
+            return originalUpdate(job);
+        });
+
+        await strategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+        activeProcess = process;
+        await strategy.start('test', process);
+        await vi.waitFor(() => expect(runningJob).toBeDefined(), { timeout: 2000, interval: 10 });
+
+        // The inherited cancelJob() cancels a stored copy, as the SQL strategy does, so only
+        // the ActiveQueue cancellation poll can reach the running job.
+        await PollingJobQueueStrategy.prototype.cancelJob.call(strategy, 'job-1');
+        await vi.waitFor(() => expect(runningJob?.state).toBe(JobState.CANCELLED), {
+            timeout: 2000,
+            interval: 10,
+        });
+
+        released = true;
+        releaseProcess?.();
+        // Wait for the settling write so the assertion cannot read the store before it.
+        await vi.waitFor(() => expect(updatesAfterRelease.length).toBe(1), { timeout: 2000, interval: 10 });
+
+        const settled = await strategy.findOne('job-1');
+        expect(settled?.state).toBe(JobState.CANCELLED);
+    });
+
+    // #5440
+    it('keeps a job cancelled while running as CANCELLED when process returns a non-Job value', async () => {
+        await strategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+
+        const process = async (job: Job) => {
+            await strategy.cancelJob(job.id as string);
+            await vi.waitFor(() => expect(job.state).toBe(JobState.CANCELLED), {
+                timeout: 2000,
+                interval: 10,
+            });
+            return 'done';
+        };
+        activeProcess = process;
+        await strategy.start('test', process);
+
+        await vi.waitFor(
+            async () => {
+                const job = await strategy.findOne('job-1');
+                expect(job?.isSettled).toBe(true);
+                expect(job?.state).toBe(JobState.CANCELLED);
+            },
+            { timeout: 2000, interval: 20 },
+        );
     });
 });

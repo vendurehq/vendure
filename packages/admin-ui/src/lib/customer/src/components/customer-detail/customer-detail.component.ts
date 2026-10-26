@@ -11,6 +11,7 @@ import {
     DataService,
     DeleteCustomerAddressMutation,
     EditNoteDialogComponent,
+    ErrorResult,
     GetAvailableCountriesQuery,
     GetCustomerHistoryQuery,
     getCustomFieldsDefaults,
@@ -220,27 +221,30 @@ export class CustomerDetailComponent
             customFields,
         };
         this.dataService.customer.createCustomer(customer, password).subscribe(({ createCustomer }) => {
-            switch (createCustomer.__typename) {
-                case 'Customer':
-                    this.notificationService.success(_('common.notify-create-success'), {
-                        entity: 'Customer',
-                    });
-                    if (createCustomer.emailAddress && !password) {
-                        this.notificationService.notify({
-                            message: _('customer.email-verification-sent'),
-                            translationVars: { emailAddress },
-                            type: 'info',
-                            duration: 10000,
-                        });
-                    }
-                    this.detailForm.markAsPristine();
-                    this.addressDefaultsUpdated = false;
-                    this.changeDetector.markForCheck();
-                    this.router.navigate(['../', createCustomer.id], { relativeTo: this.route });
-                    break;
-                case 'EmailAddressConflictError':
-                    this.notificationService.error(createCustomer.message);
+            if (createCustomer.__typename !== 'Customer') {
+                // Every member of the union other than Customer implements ErrorResult. The cast is
+                // needed because the generated `__typename` is optional, so it does not narrow.
+                const errorResult = createCustomer as ErrorResult & { validationErrorMessage?: string };
+                // A PasswordValidationError's `message` is the generic "Password is invalid"; the
+                // policy the password actually broke is in `validationErrorMessage`.
+                this.notificationService.error(errorResult.validationErrorMessage ?? errorResult.message);
+                return;
             }
+            this.notificationService.success(_('common.notify-create-success'), {
+                entity: 'Customer',
+            });
+            if (createCustomer.emailAddress && !password) {
+                this.notificationService.notify({
+                    message: _('customer.email-verification-sent'),
+                    translationVars: { emailAddress },
+                    type: 'info',
+                    duration: 10000,
+                });
+            }
+            this.detailForm.markAsPristine();
+            this.addressDefaultsUpdated = false;
+            this.changeDetector.markForCheck();
+            this.router.navigate(['../', createCustomer.id], { relativeTo: this.route });
         });
     }
 

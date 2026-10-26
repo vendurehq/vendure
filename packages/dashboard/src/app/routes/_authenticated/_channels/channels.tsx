@@ -4,7 +4,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { channelListQuery } from './channels.graphql.js';
@@ -16,6 +16,7 @@ export const Route = createFileRoute('/_authenticated/_channels/channels')({
 });
 
 function ChannelListPage() {
+    const { t } = useLingui();
     const { formatLanguageName } = useLocalFormat();
     return (
         <ListPage
@@ -31,6 +32,7 @@ function ChannelListPage() {
                 defaultTaxZone: false,
                 defaultShippingZone: false,
             }}
+            searchPlaceholder={t`Search channels...`}
             onSearchTermChange={searchTerm => {
                 return {
                     code: { contains: searchTerm },

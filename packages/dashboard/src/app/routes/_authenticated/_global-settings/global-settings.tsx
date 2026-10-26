@@ -41,7 +41,7 @@ export const Route = createFileRoute('/_authenticated/_global-settings/global-se
             breadcrumb: [{ path: '/global-settings', label: <Trans>Global Settings</Trans> }],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function GlobalSettingsPage() {

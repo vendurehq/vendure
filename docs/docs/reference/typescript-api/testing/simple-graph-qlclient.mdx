@@ -11,6 +11,7 @@ class SimpleGraphQLClient {
     constructor(vendureConfig: Required<VendureConfig>, apiUrl: string = '')
     setAuthToken(token: string) => ;
     setChannelToken(token: string | null) => ;
+    setHeader(key: string, value: string | null) => ;
     getAuthToken() => string;
     query(query: DocumentNode | TypedDocumentNode<T, V>, variables?: V, queryParams?: QueryParams) => Promise<T>;
     fetch(url: string, options: RequestInit = {}) => Promise<Response>;
@@ -39,6 +40,12 @@ Sets the authToken to be used in each GraphQL request.
 <MemberInfo kind="method" type={`(token: string | null) => `}   />
 
 Sets the authToken to be used in each GraphQL request.
+### setHeader
+
+<MemberInfo kind="method" type={`(key: string, value: string | null) => `}  since="3.8.0"  />
+
+Sets an arbitrary header to be sent with each subsequent request, or removes it when passed
+`null`. Useful for headers the server reads directly, such as `Accept-Language`.
 ### getAuthToken
 
 <MemberInfo kind="method" type={`() => string`}   />

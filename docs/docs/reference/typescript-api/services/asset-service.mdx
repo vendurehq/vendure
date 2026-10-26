@@ -4,13 +4,13 @@ generated: true
 ---
 ## AssetService
 
-<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="161" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="93" packageName="@vendure/core" />
 
 Contains methods relating to [Asset](/reference/typescript-api/entities/asset#asset) entities.
 
 ```ts title="Signature"
 class AssetService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, tagService: TagService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, translatableSaver: TranslatableSaver, translator: TranslatorService, requestContextService: RequestContextService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, tagService: TagService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, translatableSaver: TranslatableSaver, translator: TranslatorService, requestContextService: RequestContextService, storedMediaService: StoredMediaService)
     findOne(ctx: RequestContext, id: ID, relations?: RelationPaths<Asset>) => Promise<Translated<Asset> | undefined>;
     findAll(ctx: RequestContext, options?: AssetListOptions, relations?: RelationPaths<Asset>) => Promise<PaginatedList<Translated<Asset>>>;
     getFeaturedAsset(ctx: RequestContext, entity: T) => Promise<Asset | undefined>;

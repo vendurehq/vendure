@@ -1,13 +1,12 @@
 import { z, zodResolver } from '@/vdb/lib/zod.js';
-import { useAvailableCountries } from '@/vdb/hooks/use-available-countries.js';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Trans } from '@lingui/react/macro';
 import { Controller, useForm } from 'react-hook-form';
 import { Button } from '../ui/button.js';
 import { Checkbox } from '../ui/checkbox.js';
 import { FieldDescription, FieldLabel } from '../ui/field.js';
 import { Form } from '../ui/form.js';
 import { Input } from '../ui/input.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
+import { AddressCountrySelect } from './address-country-select.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
 import { CustomFieldsForm } from './custom-fields-form.js';
 
@@ -55,11 +54,6 @@ export function CustomerAddressForm<T>({
     hideDefaultAddressFlags = false,
     submitLabel,
 }: CustomerAddressFormProps<T>) {
-    const { t } = useLingui();
-
-    // Fetch available countries
-    const { data: countriesData, isLoading: isLoadingCountries } = useAvailableCountries();
-
     const form = useForm<AddressFormValues>({
         resolver: zodResolver(addressFormSchema),
         defaultValues: {
@@ -167,24 +161,7 @@ export function CustomerAddressForm<T>({
                         label={<Trans>Country</Trans>}
                         renderFormControl={false}
                         render={({ field }) => (
-                            <Select
-                                items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                onValueChange={field.onChange}
-                                defaultValue={field.value || undefined}
-                                value={field.value || undefined}
-                                disabled={isLoadingCountries}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t`Select a country`} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {countriesData?.countries.items.map(country => (
-                                        <SelectItem key={country.code} value={country.code}>
-                                            {country.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <AddressCountrySelect value={field.value} onChange={field.onChange} />
                         )}
                     />
 

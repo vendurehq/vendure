@@ -4,6 +4,7 @@ import { pick } from '@vendure/common/lib/pick';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
+import { Logger as TypeOrmLogger } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type {
     productVariantFragment,
@@ -15,6 +16,7 @@ import type { ResultOf, VariablesOf } from './graphql/graphql-admin';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { graphql } from './graphql/graphql-admin';
 import {
     addOptionGroupToProductDocument,
     createProductDocument,
@@ -41,8 +43,26 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 describe('Product resolver', () => {
+    /** The number of SQL queries run since it was last reset to 0. */
+    let sqlQueryCount = 0;
+    const countingLogger: TypeOrmLogger = {
+        logQuery: () => {
+            sqlQueryCount++;
+        },
+        logQueryError: () => undefined,
+        logQuerySlow: () => undefined,
+        logSchemaBuild: () => undefined,
+        logMigration: () => undefined,
+        log: () => undefined,
+    };
+    const config = testConfig();
     const { server, adminClient, shopClient } = createTestEnvironment({
-        ...testConfig(),
+        ...config,
+        dbConnectionOptions: {
+            ...config.dbConnectionOptions,
+            logging: ['query'],
+            logger: countingLogger,
+        },
     });
 
     const removeOptionGuard: ErrorResultGuard<ResultOf<typeof productWithOptionsFragment>> =
@@ -226,6 +246,36 @@ describe('Product resolver', () => {
                 'Tripod',
                 'USB Cable',
             ]);
+        });
+
+        // #5537 — Product.facetValues ran several SQL queries per product on a product list
+        it('resolves facetValues with a number of queries independent of the page size', async () => {
+            const countQueries = async (take: number) => {
+                // The first request warms up caches which are not part of the field resolver
+                await adminClient.query(getProductListFacetValuesDocument, { options: { take } });
+                sqlQueryCount = 0;
+                await adminClient.query(getProductListFacetValuesDocument, { options: { take } });
+                return sqlQueryCount;
+            };
+
+            expect(await countQueries(20)).toBe(await countQueries(2));
+        });
+
+        // #5537
+        it('resolves the same facetValues on the list as on a single product, ordered by id', async () => {
+            const { products } = await adminClient.query(getProductListFacetValuesDocument, {
+                options: { take: 20 },
+            });
+            const productsWithFacetValues = products.items.filter(p => p.facetValues.length > 0);
+            // The fixture shares FacetValues between products, which a single batch must give to each
+            expect(productsWithFacetValues.length).toBeGreaterThan(1);
+
+            for (const item of products.items) {
+                const { product } = await adminClient.query(getProductFacetValuesDocument, { id: item.id });
+                const ids = item.facetValues.map(fv => fv.id);
+                expect(ids).toEqual(product?.facetValues.map(fv => fv.id));
+                expect(ids).toEqual([...ids].sort((a, b) => Number(a.slice(2)) - Number(b.slice(2))));
+            }
         });
     });
 
@@ -1063,6 +1113,77 @@ describe('Product resolver', () => {
                 'No Product with the id "999" could be found',
             ),
         );
+
+        // #4884 — concurrent updates adding the same not-yet-existing language must not
+        // create two translation rows for that (product, languageCode) pair
+        it('concurrent updates adding the same new language do not create duplicate translations', async () => {
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'en Concurrent Potato',
+                            slug: 'en-concurrent-potato',
+                            description: 'A potato',
+                        },
+                    ],
+                },
+            });
+
+            const input = {
+                id: createProduct.id,
+                translations: [
+                    {
+                        languageCode: LanguageCode.de,
+                        name: 'de Concurrent Potato',
+                        slug: 'de-concurrent-potato',
+                        description: 'Ein Erdapfel',
+                    },
+                ],
+            };
+
+            // On MariaDB >= 11.6.2 (innodb_snapshot_isolation=ON by default) the losing
+            // request can be rejected with "Record has changed since last read" when both
+            // transactions update the same product row — a database-level concurrency
+            // conflict, not the bug under test. The invariant here is not that both
+            // requests succeed, but that no duplicate translation row is created and the
+            // product remains editable afterwards.
+            const results = await Promise.allSettled([
+                adminClient.query(updateProductDocument, { input }),
+                adminClient.query(updateProductDocument, { input }),
+            ]);
+            expect(results.some(result => result.status === 'fulfilled')).toBe(true);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: createProduct.id,
+            });
+            productGuard.assertSuccess(product);
+            const deTranslations = product.translations.filter(t => t.languageCode === LanguageCode.de);
+            expect(deTranslations.length).toBe(1);
+
+            // Before the unique constraint, a duplicate pair of rows made the entity
+            // uneditable (#4884) — verify a subsequent update still lands.
+            await adminClient.query(updateProductDocument, {
+                input: {
+                    id: createProduct.id,
+                    translations: [
+                        {
+                            languageCode: LanguageCode.de,
+                            name: 'de Concurrent Potato zwei',
+                            slug: 'de-concurrent-potato',
+                            description: 'Ein Erdapfel',
+                        },
+                    ],
+                },
+            });
+            const { product: productAfter } = await adminClient.query(getProductWithVariantsDocument, {
+                id: createProduct.id,
+            });
+            productGuard.assertSuccess(productAfter);
+            const deAfter = productAfter.translations.filter(t => t.languageCode === LanguageCode.de);
+            expect(deAfter.length).toBe(1);
+            expect(deAfter[0].name).toBe('de Concurrent Potato zwei');
+        });
 
         it('addOptionGroupToProduct adds an option group', async () => {
             const optionGroup = await createOptionGroup('Quark-type', ['Charm', 'Strange']);
@@ -1950,3 +2071,27 @@ describe('Product resolver', () => {
         return createProductOptionGroup;
     }
 });
+
+const getProductListFacetValuesDocument = graphql(`
+    query GetProductListFacetValues($options: ProductListOptions) {
+        products(options: $options) {
+            items {
+                id
+                facetValues {
+                    id
+                }
+            }
+        }
+    }
+`);
+
+const getProductFacetValuesDocument = graphql(`
+    query GetProductFacetValues($id: ID!) {
+        product(id: $id) {
+            id
+            facetValues {
+                id
+            }
+        }
+    }
+`);

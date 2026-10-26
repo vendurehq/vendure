@@ -12,8 +12,13 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    EventBus,
+    Order,
+    OrderLineEvent,
     OrderService,
     RequestContextService,
+    Surcharge,
+    TransactionalConnection,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     manualFulfillmentHandler,
@@ -85,6 +90,7 @@ import {
     addItemToOrderDocument,
     addMultipleItemsToOrderDocument,
     addPaymentDocument,
+    adjustItemQuantityDocument,
     applyCouponCodeDocument,
     getActiveCustomerWithOrdersProductPriceDocument,
     getActiveCustomerWithOrdersProductSlugDocument,
@@ -2452,6 +2458,159 @@ describe('Orders resolver', () => {
             });
             shopOrderGuard.assertSuccess(secondAdd);
             expect(secondAdd.lines[0].quantity).toBe(2);
+        });
+
+        // https://github.com/vendurehq/vendure/pull/5164
+        // Every Order mutation holds `order.surcharges` as a snapshot taken when the Order
+        // was loaded. Saving the Order must not act on that snapshot: a Surcharge added
+        // since the load, by a blocking event handler or by a concurrent request, would
+        // otherwise have its `orderId` set to null.
+        it('does not detach Surcharges when saving an Order with a stale surcharges array', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: add } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(add);
+            const internalOrderId = +add.id.replace('T_', '');
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const orderService = server.app.get(OrderService);
+            const connection = server.app.get(TransactionalConnection);
+
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Gift wrap',
+                listPrice: 200,
+            });
+
+            const staleOrder = await connection.getEntityOrThrow(ctx, Order, internalOrderId, {
+                // `lines` is joined because saving an Order reads its calculated `discounts`
+                // property, via the enumerable getter installed by the calculated-property
+                // subscriber, and that getter throws when the relation is missing.
+                relations: ['surcharges', 'lines'],
+            });
+            expect(staleOrder.surcharges.length).toBe(1);
+
+            // A blocking event handler or a concurrent request adds a second Surcharge, which
+            // the array held by `staleOrder` does not know about.
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Loyalty discount',
+                listPrice: -500,
+            });
+
+            await connection.getRepository(ctx, Order).save(staleOrder);
+
+            const surcharges = await orderService.getOrderSurcharges(ctx, internalOrderId);
+            expect(surcharges.map(s => s.listPrice).sort((a, b) => a - b)).toEqual([-500, 200]);
+
+            // Removal deletes the row, so it does not depend on the Order save detaching it.
+            const loyaltyDiscount = surcharges.find(s => s.description === 'Loyalty discount')!;
+            await orderService.removeSurchargeFromOrder(ctx, internalOrderId, loyaltyDiscount.id);
+            const remaining = await orderService.getOrderSurcharges(ctx, internalOrderId);
+            expect(remaining.map(s => s.description)).toEqual(['Gift wrap']);
+        });
+
+        // https://github.com/vendurehq/vendure/issues/5332
+        // `applyPriceAdjustments` calculates `Order.subTotal` from `order.surcharges`, which is
+        // a snapshot taken when the Order was loaded. A Surcharge added since then must still be
+        // reflected in the persisted totals.
+        it('calculates totals from current Surcharges, not a stale snapshot', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: add } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(add);
+            const internalOrderId = +add.id.replace('T_', '');
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const orderService = server.app.get(OrderService);
+            const connection = server.app.get(TransactionalConnection);
+
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Gift wrap',
+                listPrice: 200,
+            });
+
+            const staleOrder = await connection.getEntityOrThrow(ctx, Order, internalOrderId, {
+                relations: ['surcharges', 'lines', 'shippingLines'],
+            });
+
+            // A blocking event handler or a concurrent request adds a second Surcharge, which
+            // `staleOrder.surcharges` does not know about.
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Loyalty discount',
+                listPrice: -500,
+            });
+
+            const updatedOrder = await orderService.applyPriceAdjustments(ctx, staleOrder);
+
+            const expectedSubTotal =
+                staleOrder.lines.reduce((sum, l) => sum + l.proratedLinePrice, 0) + 200 - 500;
+            expect(updatedOrder.surcharges.length).toBe(2);
+            expect(updatedOrder.subTotal).toBe(expectedSubTotal);
+
+            // The row is deleted before the Order is repriced, so the reload does not bring the
+            // removed Surcharge back into the totals.
+            const loyaltyDiscount = updatedOrder.surcharges.find(s => s.description === 'Loyalty discount')!;
+            const afterRemoval = await orderService.removeSurchargeFromOrder(
+                ctx,
+                internalOrderId,
+                loyaltyDiscount.id,
+            );
+            expect(afterRemoval.surcharges.map(s => s.description)).toEqual(['Gift wrap']);
+            expect(afterRemoval.subTotal).toBe(expectedSubTotal + 500);
+        });
+
+        // https://github.com/vendurehq/vendure/issues/5332
+        // `adjustOrderLine` loads the Order, publishes an `OrderLineEvent`, then reprices the Order.
+        // A Surcharge saved by a blocking handler of that event must be included in the totals.
+        it('includes a Surcharge added by a blocking OrderLineEvent handler in the totals', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: add } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(add);
+            const orderCode = add.code;
+            const internalOrderId = +add.id.replace('T_', '');
+
+            const connection = server.app.get(TransactionalConnection);
+            let surchargeAdded = false;
+            server.app.get(EventBus).registerBlockingEventHandler({
+                id: 'e2e-5332-add-surcharge-on-order-line-update',
+                event: OrderLineEvent,
+                handler: async event => {
+                    if (event.type !== 'updated' || event.order.code !== orderCode || surchargeAdded) {
+                        return;
+                    }
+                    surchargeAdded = true;
+                    await connection.getRepository(event.ctx, Surcharge).save(
+                        new Surcharge({
+                            description: 'Loyalty discount',
+                            listPrice: -500,
+                            listPriceIncludesTax: event.ctx.channel.pricesIncludeTax,
+                            taxLines: [],
+                            sku: '',
+                            order: event.order,
+                        }),
+                    );
+                },
+            });
+
+            const { adjustOrderLine } = await shopClient.query(adjustItemQuantityDocument, {
+                orderLineId: add.lines[0].id,
+                quantity: 2,
+            });
+            shopOrderGuard.assertSuccess(adjustOrderLine);
+            expect(surchargeAdded).toBe(true);
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const persisted = await server.app.get(OrderService).findOne(ctx, internalOrderId);
+            expect(persisted!.surcharges.map(s => s.listPrice)).toEqual([-500]);
+            const expectedSubTotal = persisted!.lines.reduce((sum, l) => sum + l.proratedLinePrice, 0) - 500;
+            expect(persisted!.subTotal).toBe(expectedSubTotal);
+            expect(adjustOrderLine.subTotal).toBe(expectedSubTotal);
         });
     });
 

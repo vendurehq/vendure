@@ -1,0 +1,36 @@
+---
+title: "ToDecimalString"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/decimal-string.ts" sourceLine="22" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Formats a money amount in minor units, such as cents, as a decimal string. Pass the
+`precision` of the store's `MoneyStrategy` (2 by default) as the number of decimal places.
+
+Return it next to the raw amount in a tool result, so a language model can quote a price
+without doing the division itself.
+
+*Example*
+
+```ts
+import { toDecimalString } from '@vendure/mcp-sdk';
+
+toDecimalString(25199, 2); // '251.99'
+toDecimalString(5, 2); // '0.05'
+toDecimalString(-150, 2); // '-1.50'
+toDecimalString(1000, 0); // '1000'
+```
+
+```ts title="Signature"
+function toDecimalString(amount: number | undefined | null, precision: number): string
+```
+Parameters
+
+### amount
+
+<MemberInfo kind="parameter" type={`number | undefined | null`} />
+
+### precision
+
+<MemberInfo kind="parameter" type={`number`} />
+

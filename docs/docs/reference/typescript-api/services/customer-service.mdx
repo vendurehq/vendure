@@ -2,7 +2,7 @@
 title: "CustomerService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/customer.service.ts" sourceLine="80" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/customer.service.ts" sourceLine="82" packageName="@vendure/core" />
 
 Contains methods relating to [Customer](/reference/typescript-api/entities/customer#customer) entities.
 
@@ -20,7 +20,8 @@ class CustomerService {
     update(ctx: RequestContext, input: UpdateCustomerInput | (UpdateCustomerShopInput & { id: ID })) => Promise<ErrorResultUnion<UpdateCustomerResult, Customer>>;
     registerCustomerAccount(ctx: RequestContext, input: RegisterCustomerInput) => Promise<RegisterCustomerAccountResult | EmailAddressConflictError | PasswordValidationError>;
     refreshVerificationToken(ctx: RequestContext, emailAddress: string) => Promise<void>;
-    verifyCustomerEmailAddress(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, Customer>>;
+    verifyCustomerEmailAddress(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountShopResult, Customer>>;
+    verifyCustomerAccount(ctx: RequestContext, customerId: ID, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountAdminResult, Customer>>;
     requestPasswordReset(ctx: RequestContext, emailAddress: string) => Promise<void>;
     resetPassword(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
@@ -119,10 +120,19 @@ Refreshes a stale email address verification token by generating a new one and
 publishing a [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent).
 ### verifyCustomerEmailAddress
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, verificationToken: string, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><VerifyCustomerAccountResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, verificationToken: string, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><VerifyCustomerAccountShopResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
 
 Given a valid verification token which has been published in an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent), this
 method is used to set the Customer as `verified` as part of the account registration flow.
+### verifyCustomerAccount
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerId: <a href='/reference/typescript-api/common/id#id'>ID</a>, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><VerifyCustomerAccountAdminResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}  since="3.8.0"  />
+
+Manually marks a Customer's email address as verified, for use by an administrator when the
+customer has not received or cannot complete the verification email. See
+`UserService.verifyUserWithoutToken` for the rules the `password` argument follows.
+
+A Customer with no User (a guest checkout) has no account to verify, and is rejected.
 ### requestPasswordReset
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, emailAddress: string) => Promise<void>`}   />

@@ -3,6 +3,7 @@ import path from 'path';
 import { StructureKind } from 'ts-morph';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { PackageJson } from '../../../shared/package-json-ref';
 import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
 import { analyzeProject, selectMultiplePluginClasses } from '../../../shared/shared-prompts';
@@ -68,7 +69,7 @@ export async function addCodegen(options?: AddCodegenOptions): Promise<CliComman
     log.info(`Detected package manager: ${packageManager}`);
     if (!packageJsonFile) {
         cancel(`Could not locate package.json file with a dependency on Vendure.`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     log.info(`Detected package.json: ${packageJsonFile}`);
     try {

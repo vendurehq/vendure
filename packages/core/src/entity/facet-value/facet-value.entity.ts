@@ -46,9 +46,13 @@ export class FacetValue extends VendureEntity implements Translatable, HasCustom
     @JoinTable()
     channels: Channel[];
 
-    @ManyToMany(() => Product, product => product.facetValues, { onDelete: 'CASCADE' })
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(() => Product, product => product.facetValues, { onDelete: 'CASCADE', onUpdate: 'NO ACTION' })
     products: Product[];
 
-    @ManyToMany(type => ProductVariant, productVariant => productVariant.facetValues)
+    @ManyToMany(type => ProductVariant, productVariant => productVariant.facetValues, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     productVariants: ProductVariant[];
 }

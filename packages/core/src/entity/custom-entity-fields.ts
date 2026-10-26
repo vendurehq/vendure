@@ -35,7 +35,9 @@ export class CustomPromotionFieldsTranslation {}
 export class CustomRefundFields {}
 export class CustomRegionFields {}
 export class CustomRegionFieldsTranslation {}
+export class CustomRoleFields {}
 export class CustomSellerFields {}
+export class CustomSellerFieldsTranslation {}
 export class CustomSessionFields {}
 export class CustomShippingLineFields {}
 export class CustomShippingMethodFields {}

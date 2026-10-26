@@ -10,8 +10,14 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { getDashboardActionBarItems } from '@/vdb/framework/layout-engine/layout-extensions.js';
 import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
-import { useState } from 'react';
+import { api } from '@/vdb/graphql/api.js';
+import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { useLingui } from '@lingui/react/macro';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
+import { createAssetsDocument } from './asset-documents.js';
 import { Asset, AssetGallery } from './asset-gallery.js';
 
 /**
@@ -84,10 +90,45 @@ export function AssetPickerDialog({
     const extensionActionBarItems = pageId
         ? getDashboardActionBarItems(pageId).filter(item => item.type !== 'dropdown')
         : [];
+    const queryClient = useQueryClient();
+    const { t } = useLingui();
 
     const handleAssetSelect = (assets: Asset[]) => {
         setSelectedAssets(assets);
     };
+
+    // AssetGallery's own upload path opens a progress modal, which would nest
+    // a second Dialog inside this picker's Dialog — Base UI dismiss events
+    // from the inner one can then close the outer one too, discarding the
+    // selection. Uploading directly here (no modal) avoids that entirely.
+    const { mutate: createAssets } = useMutation({
+        mutationFn: api.mutate(createAssetsDocument),
+        onSuccess: (result: ResultOf<typeof createAssetsDocument>) => {
+            const createdAssets = result.createAssets.filter(asset => asset.__typename === 'Asset');
+            const failedAssets = result.createAssets.filter(asset => asset.__typename !== 'Asset');
+            if (createdAssets.length > 0) {
+                toast.success(t`Uploaded ${createdAssets.length} assets`);
+            }
+            if (failedAssets.length > 0) {
+                toast.error(t`Failed to upload ${failedAssets.length} assets`, {
+                    description: failedAssets.map(asset => ('message' in asset ? asset.message : '')).join(', '),
+                });
+            }
+            void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
+        },
+        onError: error => {
+            toast.error(t`Failed to upload assets`, {
+                description: error instanceof Error ? error.message : t`Unknown error`,
+            });
+        },
+    });
+
+    const handleFilesDropped = useCallback(
+        (droppedFiles: File[]) => {
+            createAssets({ input: droppedFiles.map(file => ({ file })) });
+        },
+        [createAssets],
+    );
 
     const handleConfirm = () => {
         onSelect(selectedAssets);
@@ -112,6 +153,7 @@ export function AssetPickerDialog({
                             initialSelectedAssets={initialSelectedAssets}
                             fixedHeight={false}
                             displayBulkActions={false}
+                            onFilesDropped={handleFilesDropped}
                         />
                     </div>
 

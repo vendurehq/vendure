@@ -1,5 +1,5 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,6 +10,7 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
@@ -57,20 +58,18 @@ function formatDuration(ms: number): string {
     return parts.join(' ');
 }
 
-function getJobStateBadgeVariant(state: string) {
-    switch (state) {
-        case 'PENDING':
-        case 'RETRYING':
-            return 'warning';
-        case 'COMPLETED':
-            return 'success';
-        case 'FAILED':
-        case 'CANCELLED':
-            return 'destructive';
-        default:
-            return 'secondary';
-    }
-}
+// Job-queue state dictionary. PENDING is a queued job waiting on the worker
+// (neutral, not warning); RUNNING is actively executing (progress — renders a
+// pulsing dot); RETRYING needs attention (warning); FAILED is a hard failure
+// (critical); CANCELLED is a terminal outcome, not a failure (neutral).
+const jobStateDictionary = defineStateEntries({
+    PENDING: { tone: 'neutral', defaultLabel: 'Pending' },
+    RUNNING: { tone: 'progress', defaultLabel: 'Running' },
+    RETRYING: { tone: 'warning', defaultLabel: 'Retrying' },
+    COMPLETED: { tone: 'success', defaultLabel: 'Completed' },
+    FAILED: { tone: 'critical', defaultLabel: 'Failed' },
+    CANCELLED: { tone: 'neutral', defaultLabel: 'Cancelled' },
+});
 
 export const Route = createFileRoute('/_authenticated/_system/job-queue')({
     component: JobQueuePage,
@@ -204,16 +203,14 @@ function JobQueuePage() {
                         const state = STATES.find(s => s.value === row.original.state);
                         return (
                             <div className="flex items-center gap-2">
-                                <Badge variant={getJobStateBadgeVariant(row.original.state)}>
-                                    {state && (
-                                        <state.icon
-                                            className={
-                                                row.original.state === 'RUNNING' ? 'animate-spin' : undefined
-                                            }
-                                        />
+                                <StatusBadge tone={jobStateDictionary.toneFor(row.original.state)}>
+                                    {/* RUNNING renders the progress tone's pulsing dot, so the
+                                        static state icon would be redundant — omit it there. */}
+                                    {state && row.original.state !== 'RUNNING' && (
+                                        <state.icon className="size-3" />
                                     )}
                                     {row.original.state}
-                                </Badge>
+                                </StatusBadge>
                                 {row.original.state === 'RUNNING' && (
                                     <DropdownMenu onOpenChange={open => (isActionMenuOpenRef.current = open)}>
                                         <DropdownMenuTrigger

@@ -21,6 +21,7 @@ export type RegionType = 'country' | 'province' | string;
  */
 @Entity()
 @TableInheritance({ column: { type: 'varchar', name: 'discriminator' } })
+@Index(['discriminator'])
 export abstract class Region extends VendureEntity implements Translatable, HasCustomFields {
     /**
      * @description

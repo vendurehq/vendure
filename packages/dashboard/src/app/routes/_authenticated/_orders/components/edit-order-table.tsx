@@ -15,12 +15,14 @@ import {
 } from '@tanstack/react-table';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+
 import {
     couponCodeSelectorPromotionListDocument,
     draftOrderEligibleShippingMethodsDocument,
     orderDetailDocument,
     orderLineFragment,
 } from '../orders.graphql.js';
+
 import { MoneyGrossNet } from './money-gross-net.js';
 import { OrderLineCustomFieldsForm } from './order-line-custom-fields-form.js';
 import { OrderTableTotals } from './order-table-totals.js';
@@ -89,7 +91,7 @@ function QuantityCell({
                         onAdjustLine({
                             lineId: line.id,
                             quantity: line.quantity,
-                            customFields: customFields,
+                            customFields,
                         });
                     }}
                     value={line.customFields}
@@ -141,7 +143,7 @@ export function EditOrderTable({
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const { t } = useLingui();
     const currencyCode = order.currencyCode;
-    const columns: ColumnDef<OrderLineFragment & { customFields?: Record<string, any> }>[] = useMemo(
+    const columns: Array<ColumnDef<OrderLineFragment & { customFields?: Record<string, any> }>> = useMemo(
         () => [
             {
                 header: '',

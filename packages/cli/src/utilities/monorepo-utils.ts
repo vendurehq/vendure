@@ -58,8 +58,8 @@ export function detectMonorepoStructure(dirPath: string): MonorepoInfo {
 
 /**
  * Searches for a package.json file with a specific dependency within monorepo structures.
- * Searches common monorepo directories (packages, apps, libs) for subdirectories containing
- * a package.json with the specified dependency.
+ * Checks the root package, declared workspace members, then common monorepo directories.
+ * Returns the first package.json with the specified dependency.
  *
  * @param rootDir - The root directory to search from
  * @param dependencyName - The dependency name to look for (e.g., '@vendure/core')
@@ -70,6 +70,11 @@ export function findPackageJsonWithDependency(rootDir: string, dependencyName: s
     const rootPackageJsonPath = path.join(rootDir, 'package.json');
     if (hasNamedDependency(rootPackageJsonPath, dependencyName)) {
         return rootPackageJsonPath;
+    }
+
+    const workspacePackages = findWorkspacePackageJsonsWithDependency(rootDir, dependencyName);
+    if (workspacePackages.length > 0) {
+        return workspacePackages[0];
     }
 
     // Search in monorepo package directories
@@ -86,6 +91,131 @@ export function findPackageJsonWithDependency(rootDir: string, dependencyName: s
     }
 
     return null;
+}
+
+/**
+ * Finds workspace members with the specified dependency. Supports array and object workspace
+ * declarations, with `*` wildcards in path segments. Overlapping patterns return each member once.
+ */
+export function findWorkspacePackageJsonsWithDependency(rootDir: string, dependencyName: string): string[] {
+    let workspaces: string[] | { packages?: string[] } | undefined;
+    try {
+        workspaces = fs.readJsonSync(path.join(rootDir, 'package.json')).workspaces;
+    } catch {
+        return [];
+    }
+    const patterns = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
+    if (!Array.isArray(patterns)) {
+        return [];
+    }
+    const packages = new Set<string>();
+    for (const pattern of patterns) {
+        let directories = [path.resolve(rootDir)];
+        for (const segment of pattern.split('/').filter(Boolean)) {
+            directories = directories.flatMap(dir => {
+                if (!segment.includes('*')) {
+                    const candidate = path.resolve(dir, segment);
+                    return fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()
+                        ? [candidate]
+                        : [];
+                }
+                const matcher = new RegExp(
+                    '^' +
+                        segment
+                            .split('*')
+                            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`))
+                            .join('.*') +
+                        '$',
+                );
+                return fs
+                    .readdirSync(dir, { withFileTypes: true })
+                    .filter(entry => {
+                        if (!matcher.test(entry.name)) {
+                            return false;
+                        }
+                        const candidate = path.join(dir, entry.name);
+                        return (
+                            entry.isDirectory() ||
+                            (entry.isSymbolicLink() &&
+                                fs.existsSync(candidate) &&
+                                fs.statSync(candidate).isDirectory())
+                        );
+                    })
+                    .map(entry => path.join(dir, entry.name));
+            });
+        }
+        for (const dir of directories) {
+            const packageJsonPath = path.join(dir, 'package.json');
+            if (hasNamedDependency(packageJsonPath, dependencyName)) {
+                packages.add(packageJsonPath);
+            }
+        }
+    }
+    return [...packages].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Lists the directories under `cwd` that likely hold the Vendure project: workspace members
+ * (the discovery `vendure dev` uses) and direct child directories with an `@vendure/core`
+ * dependency. Returns paths relative to `cwd`, sorted and without duplicates.
+ */
+export function findProjectDirectoryHints(cwd: string): string[] {
+    const directories = new Set(
+        findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core').map(file => path.dirname(file)),
+    );
+    try {
+        for (const entry of fs.readdirSync(cwd, { withFileTypes: true })) {
+            const child = path.join(cwd, entry.name);
+            if (
+                entry.name !== 'node_modules' &&
+                !entry.name.startsWith('.') &&
+                entry.isDirectory() &&
+                hasNamedDependency(path.join(child, 'package.json'), '@vendure/core')
+            ) {
+                directories.add(child);
+            }
+        }
+    } catch {
+        // An unreadable directory has no hints.
+    }
+    return [...directories].map(dir => path.relative(cwd, dir)).sort((a, b) => a.localeCompare(b));
+}
+
+/** A workspace has multiple Core projects and needs an explicit selection. */
+export class AmbiguousVendureProjectError extends Error {}
+
+/**
+ * Resolves a Core project from an explicit path, the current package, workspace members or
+ * conventional monorepo directories. Rejects ambiguous workspace members.
+ */
+export function resolveCoreProjectDirectory(cwd: string, project?: string): string {
+    if (project !== undefined) {
+        const projectDir = path.resolve(cwd, project);
+        if (!hasNamedDependency(path.join(projectDir, 'package.json'), '@vendure/core')) {
+            throw new Error(
+                `Invalid --project directory "${projectDir}". Expected a package.json with an @vendure/core dependency.`,
+            );
+        }
+        return projectDir;
+    }
+    if (hasNamedDependency(path.join(cwd, 'package.json'), '@vendure/core')) {
+        return cwd;
+    }
+
+    const workspacePackages = findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core');
+    if (workspacePackages.length > 1) {
+        const candidates = workspacePackages.map(file => path.relative(cwd, path.dirname(file)));
+        throw new AmbiguousVendureProjectError(
+            `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use --project <dir> to select one.`,
+        );
+    }
+    const packageJsonPath = workspacePackages[0] ?? findPackageJsonWithDependency(cwd, '@vendure/core');
+    if (!packageJsonPath) {
+        throw new Error(
+            `No Vendure project found in "${cwd}". Use --project <dir> to select a project directory.`,
+        );
+    }
+    return path.dirname(packageJsonPath);
 }
 
 /**

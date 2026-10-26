@@ -28,6 +28,21 @@ type Mutation {
     addNoteToCustomer(input: AddNoteToCustomerInput!): Customer!
     updateCustomerNote(input: UpdateCustomerNoteInput!): HistoryEntry!
     deleteCustomerNote(id: ID!): DeletionResponse!
+
+    """
+    Manually mark a Customer's email address as verified, without the Customer having to use a
+    verification email.
+
+    A Customer with no password set (as created by `createCustomer` without one) cannot log in.
+    Omitting `password` for such a Customer returns a `MissingPasswordError`. Passing one for a
+    Customer who already has a password returns a `PasswordAlreadySetError`.
+
+    Two failures are outside the result union, because they describe a Customer the caller should
+    not have picked rather than a password they should correct: a Customer with no User at all (a
+    guest checkout), and a User whose only credential is external, which a password cannot be
+    stored on. Both throw.
+    """
+    verifyCustomerAccount(id: ID!, password: String): VerifyCustomerAccountResult!
 }
 
 input UpdateCustomerInput {
@@ -58,6 +73,11 @@ input UpdateCustomerNoteInput {
     note: String!
 }
 
-union CreateCustomerResult = Customer | EmailAddressConflictError
+union CreateCustomerResult = Customer | EmailAddressConflictError | PasswordValidationError
 union UpdateCustomerResult = Customer | EmailAddressConflictError
+union VerifyCustomerAccountResult =
+    | Customer
+    | MissingPasswordError
+    | PasswordAlreadySetError
+    | PasswordValidationError
 

@@ -64,7 +64,7 @@ class TestGuestCheckoutStrategy implements GuestCheckoutStrategy {
         }
         if (TestGuestCheckoutStrategy.createNewCustomerOnEmailAddressConflict === true) {
             const existing = await this.connection.getRepository(ctx, Customer).findOne({
-                relations: ['channels'],
+                relations: { channels: true },
                 where: {
                     emailAddress: input.emailAddress,
                     deletedAt: IsNull(),

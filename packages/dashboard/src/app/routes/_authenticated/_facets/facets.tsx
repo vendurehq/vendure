@@ -1,10 +1,11 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { FacetValueChip } from '@/vdb/components/shared/facet-value-chip.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import {
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/_authenticated/_facets/facets')({
 });
 
 function FacetListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             pageId="facet-list"
@@ -39,10 +41,12 @@ function FacetListPage() {
                     header: () => <Trans>Visibility</Trans>,
                     cell: ({ row }) => {
                         const isPrivate = row.original.isPrivate;
+                        // Public is the default; private is the deliberate config
+                        // choice worth spotting — info, not warning (nothing is wrong).
                         return (
-                            <Badge variant={isPrivate ? 'warning' : 'success'}>
+                            <StatusBadge tone={isPrivate ? 'info' : 'neutral'}>
                                 {isPrivate ? <Trans>private</Trans> : <Trans>public</Trans>}
-                            </Badge>
+                            </StatusBadge>
                         );
                     },
                 },
@@ -60,18 +64,17 @@ function FacetListPage() {
                                         displayFacetName={false}
                                     />
                                 ))}
-                                <FacetValuesSheet facetId={row.original.id} facetName={row.original.name}>
-                                    {list && list.totalItems > 3 ? (
+                                {list && list.totalItems > 3 && (
+                                    <FacetValuesSheet facetId={row.original.id} facetName={row.original.name}>
                                         <Trans>+ {list.totalItems - 3} more</Trans>
-                                    ) : (
-                                        <Trans>View values</Trans>
-                                    )}
-                                </FacetValuesSheet>
+                                    </FacetValuesSheet>
+                                )}
                             </div>
                         );
                     },
                 },
             }}
+            searchPlaceholder={t`Search facets...`}
             onSearchTermChange={searchTerm => {
                 return {
                     name: { contains: searchTerm },
@@ -107,6 +110,14 @@ function FacetListPage() {
                 ],
             ]}
             route={Route}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateFacet', 'CreateCatalog']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        <Trans>Create your first facet</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
         >
             <ActionBarItem itemId="create-button" requiresPermission={['CreateFacet', 'CreateCatalog']}>
                 <Button render={<Link to="./new" />}>

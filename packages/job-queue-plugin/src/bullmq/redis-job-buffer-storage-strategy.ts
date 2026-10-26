@@ -10,6 +10,7 @@ const BUFFER_LIST_PREFIX = 'vendure-job-buffer';
 export class RedisJobBufferStorageStrategy implements JobBufferStorageStrategy {
     private redis: Redis | Cluster;
     private prefix: string;
+    private ownsRedisConnection = false;
 
     init(injector: Injector) {
         const options = injector.get<BullMQPluginOptions>(BULLMQ_PLUGIN_OPTIONS);
@@ -20,6 +21,22 @@ export class RedisJobBufferStorageStrategy implements JobBufferStorageStrategy {
             this.redis = options.connection;
         } else {
             this.redis = new Redis(options.connection as RedisOptions);
+            this.ownsRedisConnection = true;
+        }
+    }
+
+    async destroy() {
+        if (!this.ownsRedisConnection) {
+            return;
+        }
+        try {
+            await this.redis.quit();
+        } catch (e: any) {
+            Logger.error(
+                `Error closing Redis connection: ${JSON.stringify(e?.message)}`,
+                loggerCtx,
+                e?.stack,
+            );
         }
     }
 

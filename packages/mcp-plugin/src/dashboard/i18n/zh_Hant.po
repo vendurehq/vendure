@@ -1,0 +1,311 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2025-02-20 14:18+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: zh_Hant\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+
+msgid "Actions"
+msgstr "動作"
+
+msgid "Actor"
+msgstr "操作者"
+
+msgid "Actor type"
+msgstr "操作者類型"
+
+msgid "Approve"
+msgstr "核准"
+
+msgid "Authorization request could not be loaded"
+msgstr "無法載入授權請求"
+
+msgid "Calls per hour"
+msgstr "每小時呼叫次數"
+
+msgid "Client"
+msgstr "用戶端"
+
+msgid "Connect an MCP client to your Vendure server using the endpoints below."
+msgstr "使用下方的端點將 MCP 用戶端連接到您的 Vendure 伺服器。"
+
+msgid "Could not revoke grant"
+msgstr "無法撤銷授權"
+
+msgid "Could not update tool"
+msgstr "無法更新工具"
+
+msgid "Deny"
+msgstr "拒絕"
+
+msgid "Description"
+msgstr "描述"
+
+msgid "Destructive"
+msgstr "破壞性"
+
+msgid "Duration"
+msgstr "時長"
+
+msgid "Enabled"
+msgstr "已啟用"
+
+
+msgid "Expires"
+msgstr "到期時間"
+
+msgid "Grant revoked"
+msgstr "授權已撤銷"
+
+msgid "Health & usage"
+msgstr "運作狀況與使用情況"
+
+msgid "Last activity"
+msgstr "最近活動"
+
+msgid "Last hour"
+msgstr "過去1小時"
+
+msgid "Last 24 hours"
+msgstr "過去24小時"
+
+msgid "Last 7 days"
+msgstr "過去7天"
+
+msgid "Last 30 days"
+msgstr "過去30天"
+
+msgid "Loading authorization request…"
+msgstr "正在載入授權請求…"
+
+msgid "MCP Server"
+msgstr "MCP Server"
+
+msgid "Mutating"
+msgstr "修改性"
+
+msgid "Name"
+msgstr "名稱"
+
+msgid "No calls recorded in this period."
+msgstr "此期間沒有記錄到呼叫。"
+
+msgid "Read-only"
+msgstr "唯讀"
+
+msgid "Revoke"
+msgstr "撤銷"
+
+msgid "Revoke grant"
+msgstr "撤銷授權"
+
+msgid "Safety"
+msgstr "安全性"
+
+msgid "Status"
+msgstr "狀態"
+
+msgid "Success rate"
+msgstr "成功率"
+
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "此目的地位於本機。該機器上執行的任何應用程式都可能收到授權碼。"
+
+msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
+msgstr "這將立即撤銷該用戶端的存取權限。用戶端需要重新授權才能重新連線。"
+
+msgid "Time"
+msgstr "時間"
+
+msgid "Tool"
+msgstr "工具"
+
+msgid "Tool updated"
+msgstr "工具已更新"
+
+msgid "Tools"
+msgstr "工具"
+
+msgid "Toolset"
+msgstr "工具集"
+
+msgid "Top tools"
+msgstr "熱門工具"
+
+msgid "Total calls"
+msgstr "呼叫總數"
+
+msgid "Usage over the selected period"
+msgstr "所選期間的使用情況"
+
+msgid "p50 latency"
+msgstr "p50 延遲"
+
+msgid "p95 latency"
+msgstr "p95 延遲"
+
+msgid "Authorize MCP Client"
+msgstr "授權 MCP 用戶端"
+
+msgid "The grant could not be revoked; it may have already been removed"
+msgstr "無法撤銷此授權；可能已被移除"
+
+msgid "Request failed ({0})"
+msgstr "請求失敗 ({0})"
+
+msgid "Authorize MCP access"
+msgstr "授權 MCP 存取"
+
+msgid "Plugin"
+msgstr "外掛"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "載入 MCP 統計資訊時發生錯誤：{0}"
+
+msgid "Error loading tools: {0}"
+msgstr "載入工具時發生錯誤：{0}"
+
+msgid "The request could not be completed"
+msgstr "無法完成請求"
+
+msgid "Active"
+msgstr "活動"
+
+msgid "Revoked"
+msgstr "已撤銷"
+
+msgid "Expired"
+msgstr "已過期"
+
+msgid "No tool calls yet"
+msgstr ""
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr ""
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr ""
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr ""
+
+msgid "This tool only reads data. It never changes anything."
+msgstr ""
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr ""
+
+msgid "No actions available for a revoked grant"
+msgstr ""
+
+msgid "Unnamed application"
+msgstr ""
+
+msgid "Hostname verified"
+msgstr ""
+
+msgid "Unverified"
+msgstr ""
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr ""
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr ""
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr ""
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr ""
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr ""
+
+msgid "Access to the Shop API as a customer."
+msgstr ""
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr ""
+
+msgid "Setup guide for connecting MCP clients"
+msgstr ""
+
+msgid "Anonymous"
+msgstr ""
+
+msgid "Failed calls"
+msgstr ""
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr ""
+
+msgid "What this number means"
+msgstr ""
+
+msgid "See all activity"
+msgstr ""
+
+msgid "Granted to"
+msgstr ""
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr ""
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr ""
+
+msgid "Connect a client"
+msgstr ""
+
+msgid "Admin API"
+msgstr ""
+
+msgid "Shop API"
+msgstr ""
+
+msgid "Test with MCP Inspector"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
+msgstr ""
+
+msgid "The client will act on this channel:"
+msgstr ""
+
+msgid "This destination is not on the application's own host ({clientHost}). Only approve if you expect the code to be sent there."
+msgstr ""
+
+msgid "Revoking needs the UpdateMcpServer permission"
+msgstr ""
+
+msgid "Tool exposure is set to discovery. Clients see only search_tools and execute_tool. The toggles below still decide which tools execute_tool may run."
+msgstr ""
+
+msgid "OAuth is not configured, so no client can be granted access. Add an oauth block to McpPlugin.init to use grants."
+msgstr ""
+
+msgid "The admin endpoint needs OAuth. Add an oauth block to McpPlugin.init to enable it."
+msgstr ""
+
+msgid "The shop endpoint is disabled (shopAccess: 'disabled')."
+msgstr ""

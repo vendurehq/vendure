@@ -2,6 +2,7 @@ import { ApolloServerPlugin, GraphQLRequestListener, GraphQLServerContext } from
 import { isObject } from '@vendure/common/lib/shared-utils';
 import { DocumentNode } from 'graphql';
 
+import { ApiType } from '../common/get-api-type';
 import { GraphqlValueTransformer } from '../common/graphql-value-transformer';
 import { IdCodecService } from '../common/id-codec.service';
 
@@ -13,7 +14,14 @@ import { IdCodecService } from '../common/id-codec.service';
  */
 export class IdCodecPlugin implements ApolloServerPlugin {
     private graphqlValueTransformer: GraphqlValueTransformer;
-    constructor(private idCodecService: IdCodecService) {}
+    // Job ids only exist in the Admin API. A plugin could define its own `Job` type in the Shop API.
+    private readonly transformJobIds: boolean;
+    constructor(
+        private idCodecService: IdCodecService,
+        apiType: ApiType,
+    ) {
+        this.transformJobIds = apiType !== 'admin' || idCodecService.transformJobIds;
+    }
 
     async serverWillStart(service: GraphQLServerContext): Promise<void> {
         this.graphqlValueTransformer = new GraphqlValueTransformer(service.schema);
@@ -38,8 +46,11 @@ export class IdCodecPlugin implements ApolloServerPlugin {
             return;
         }
         const typeTree = this.graphqlValueTransformer.getOutputTypeTree(document);
-        this.graphqlValueTransformer.transformValues(typeTree, data, (value, type) => {
+        this.graphqlValueTransformer.transformValues(typeTree, data, (value, type, parentType) => {
             const isIdType = type && type.name === 'ID';
+            if (isIdType && parentType?.name === 'Job' && !this.transformJobIds) {
+                return value;
+            }
             if (type && type.name === 'JSON' && isObject(value)) {
                 return this.idCodecService.encode(value, [
                     'paymentId',

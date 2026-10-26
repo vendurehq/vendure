@@ -41,7 +41,7 @@ test.describe('Issue #3941: Customer group member removal', () => {
 
         // Add a customer to the group
         await page.getByRole('button', { name: /Add customer/i }).click();
-        await page.getByPlaceholder('Search customers...').fill('e');
+        await page.locator('[data-slot="popover-content"]').getByPlaceholder('Search customers...').fill('e');
         await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
         await page.getByRole('option').first().click();
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);

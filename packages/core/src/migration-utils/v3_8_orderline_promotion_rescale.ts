@@ -135,6 +135,14 @@ function getRelationColumnName(metadata: EntityMetadata, propertyName: string): 
  * Call this from your migration's `up()` method - it needs no schema change, so it
  * can run at any point in the migration.
  *
+ * :::warning
+ * Run it in the same deployment as the upgrade to v3.8, before the server handles any
+ * order cancellation, and never add it in a later migration. From v3.8 a partial
+ * cancellation rescales the line's `PROMOTION` adjustments itself. The helper cannot tell
+ * those lines apart from lines cancelled before v3.8, so it would scale them a second time
+ * and shrink their discount.
+ * :::
+ *
  * ```ts
  * import { MigrationInterface, QueryRunner } from 'typeorm';
  * import { rescaleOrderLinePromotionAdjustments } from '\@vendure/core';

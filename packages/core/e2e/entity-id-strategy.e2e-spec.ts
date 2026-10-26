@@ -149,6 +149,52 @@ describe('EntityIdStrategy', () => {
             ],
         });
     });
+
+    // #5511 — ID arguments of a field inside a named fragment must be decoded
+    it('decodes id variable in named fragment', async () => {
+        const { updateProduct } = await adminClient.query(idTest12Mutation, {
+            input: { id: 'T_1', featuredAssetId: 'T_3' },
+        });
+        expect(updateProduct).toEqual({
+            id: 'T_1',
+            featuredAsset: {
+                id: 'T_3',
+            },
+        });
+    });
+
+    // #5511 — ID arguments of a field inside a fragment spread from another fragment must be decoded
+    it('decodes id variable in nested named fragment', async () => {
+        const { product } = await adminClient.query(idTest13Query, { id: 'T_2' });
+        expect(product).toEqual({ id: 'T_2' });
+    });
+
+    // #5511 — `updateProduct` and `createProduct` both take an argument named `input`.
+    // `CreateProductInput` has no `id` field. Decoding the `input` of `updateProduct` with the type of
+    // the later `createProduct` argument leaves `input.id` encoded.
+    it('decodes id variable when a sibling field has an argument of the same name', async () => {
+        const { updateProduct, createProduct } = await adminClient.query(idTest14Mutation, {
+            update: { id: 'T_1', featuredAssetId: 'T_2' },
+            create: {
+                featuredAssetId: 'T_3',
+                translations: [
+                    {
+                        languageCode: LanguageCode.en,
+                        name: 'sibling create',
+                        slug: 'sibling-create',
+                        description: '',
+                    },
+                ],
+            },
+        });
+        expect(updateProduct).toEqual({
+            id: 'T_1',
+            featuredAsset: {
+                id: 'T_2',
+            },
+        });
+        expect(createProduct.featuredAsset).toEqual({ id: 'T_3' });
+    });
 });
 
 const idTest1Query = graphql(`
@@ -289,6 +335,51 @@ const idTest11Query = graphql(`
         id
         featuredAsset {
             id
+        }
+    }
+`);
+
+const idTest12Mutation = graphql(`
+    mutation IdTest12($input: UpdateProductInput!) {
+        ...IdTest12Fields
+    }
+    fragment IdTest12Fields on Mutation {
+        updateProduct(input: $input) {
+            id
+            featuredAsset {
+                id
+            }
+        }
+    }
+`);
+
+const idTest13Query = graphql(`
+    query IdTest13($id: ID!) {
+        ...IdTest13Outer
+    }
+    fragment IdTest13Outer on Query {
+        ...IdTest13Inner
+    }
+    fragment IdTest13Inner on Query {
+        product(id: $id) {
+            id
+        }
+    }
+`);
+
+const idTest14Mutation = graphql(`
+    mutation IdTest14($update: UpdateProductInput!, $create: CreateProductInput!) {
+        updateProduct(input: $update) {
+            id
+            featuredAsset {
+                id
+            }
+        }
+        createProduct(input: $create) {
+            id
+            featuredAsset {
+                id
+            }
         }
     }
 `);

@@ -1,5 +1,7 @@
 import { log } from '@clack/prompts';
 
+import { CliCommandExit, exitCliCommand } from '../shared/cli-command-exit';
+
 interface TtyLike {
     isTTY?: boolean;
 }
@@ -61,8 +63,7 @@ export function abortIfNonInteractive(commandName: string, examples: string[]): 
     if (examples.length) {
         log.info(`Examples:\n${examples.map(example => `   ${example}`).join('\n')}`);
     }
-    process.exit(1);
-    return true;
+    exitCliCommand(1);
 }
 
 /**
@@ -92,7 +93,7 @@ export async function withInteractiveTimeout<T>(
             const helpCommands = timeoutOptions.helpCommands ?? ['vendure --help'];
             log.info(`${helpCommands.map(command => `   ${command}`).join('\n')}\n`);
 
-            process.exit(1);
+            reject(new CliCommandExit(1));
         }, timeoutMs);
 
         promptFn()

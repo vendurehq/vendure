@@ -37,6 +37,7 @@ import { Instrument } from '../../../common/instrument-decorator';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { FulfillmentLine } from '../../../entity/order-line-reference/fulfillment-line.entity';
@@ -60,6 +61,7 @@ import { HistoryService } from '../../services/history.service';
 import { PaymentService } from '../../services/payment.service';
 import { ProductVariantService } from '../../services/product-variant.service';
 import { PromotionService } from '../../services/promotion.service';
+import { StockLevelReadOptions, StockLevelService } from '../../services/stock-level.service';
 import { StockMovementService } from '../../services/stock-movement.service';
 import { CustomFieldRelationService } from '../custom-field-relation/custom-field-relation.service';
 import { OrderCalculator } from '../order-calculator/order-calculator';
@@ -99,6 +101,7 @@ export class OrderModifier {
         private shippingCalculator: ShippingCalculator,
         private historyService: HistoryService,
         private translator: TranslatorService,
+        private stockLevelService: StockLevelService,
     ) {}
 
     /**
@@ -113,6 +116,11 @@ export class OrderModifier {
      * have differing values for one or more custom fields. In this case, we need to take _all_ of these
      * OrderLines into account when constraining the quantity. See https://github.com/vendurehq/vendure/issues/2702
      * for more on this.
+     * - `options.lockStockLevels` must be `true` when the caller allocates stock in the same
+     * transaction based on the result, so that the check and the allocation cannot be interleaved
+     * with another transaction for the same ProductVariant. See {@link StockLevelService.getAvailableStock}.
+     *
+     * @since 3.7.4 - Added the `options` parameter
      */
     async constrainQuantityToSaleable(
         ctx: RequestContext,
@@ -120,9 +128,14 @@ export class OrderModifier {
         quantity: number,
         existingOrderLineQuantity = 0,
         quantityInOtherOrderLines = 0,
+        options?: StockLevelReadOptions,
     ) {
         let correctedQuantity = quantity + existingOrderLineQuantity;
-        const saleableStockLevel = await this.productVariantService.getSaleableStockLevel(ctx, variant);
+        const saleableStockLevel = await this.productVariantService.getSaleableStockLevel(
+            ctx,
+            variant,
+            options,
+        );
         if (saleableStockLevel < correctedQuantity + quantityInOtherOrderLines) {
             correctedQuantity = Math.max(
                 saleableStockLevel - existingOrderLineQuantity - quantityInOtherOrderLines,
@@ -328,6 +341,14 @@ export class OrderModifier {
                 });
             }
         }
+        // Cancellations and releases touch different sets of variants, so lock their union once,
+        // in the shared order, rather than letting each call lock its own set.
+        await this.stockLevelService.lockStockLevelsForVariants(
+            ctx,
+            [...fulfilledLines, ...allocatedLines]
+                .map(line => fullOrder.lines.find(l => idsAreEqual(l.id, line.orderLineId))?.productVariantId)
+                .filter((id): id is ID => id != null),
+        );
         await this.stockMovementService.createCancellationsForOrderLines(ctx, fulfilledLines);
         await this.stockMovementService.createReleasesForOrderLines(ctx, allocatedLines);
         for (const line of lineInputs) {
@@ -418,6 +439,8 @@ export class OrderModifier {
             reason: refund.reason || input.note,
         }));
 
+        await this.lockStockLevelsForModification(ctx, order, input);
+
         for (const row of input.addItems ?? []) {
             const { productVariantId, quantity } = row;
             if (quantity < 0) {
@@ -426,10 +449,15 @@ export class OrderModifier {
 
             const customFields = (row as any).customFields || {};
             const orderLine = await this.getOrCreateOrderLine(ctx, order, productVariantId, customFields);
+            // The allocation in updateOrderLineQuantity runs in this transaction, so the check
+            // re-reads the rows locked by lockStockLevelsForModification() above.
             const correctedQuantity = await this.constrainQuantityToSaleable(
                 ctx,
                 orderLine.productVariant,
                 quantity,
+                0,
+                0,
+                { lockStockLevels: true },
             );
             if (orderItemsLimit < currentItemsCount + correctedQuantity) {
                 return new OrderLimitError({ maxItems: orderItemsLimit });
@@ -461,10 +489,14 @@ export class OrderModifier {
             const initialLineQuantity = orderLine.quantity;
             let correctedQuantity = quantity;
             if (initialLineQuantity < quantity) {
+                // See the comment on the addItems loop above.
                 const additionalQuantity = await this.constrainQuantityToSaleable(
                     ctx,
                     orderLine.productVariant,
                     quantity - initialLineQuantity,
+                    0,
+                    0,
+                    { lockStockLevels: true },
                 );
                 correctedQuantity = initialLineQuantity + additionalQuantity;
             }
@@ -813,7 +845,7 @@ export class OrderModifier {
 
     private getOrderPayments(ctx: RequestContext, orderId: ID): Promise<Payment[]> {
         return this.connection.getRepository(ctx, Payment).find({
-            relations: ['refunds'],
+            relations: { refunds: true },
             where: {
                 order: { id: orderId } as any,
             },
@@ -856,7 +888,9 @@ export class OrderModifier {
                 .getRepository(ctx, OrderLine)
                 .findOne({
                     where: { id: orderLine.id },
-                    relations: customFieldRelations.map(r => `customFields.${r.name}`),
+                    relations: findOptionsArrayToObject<OrderLine>(
+                        customFieldRelations.map(r => `customFields.${r.name}`),
+                    ),
                 })
                 .then(result => result ?? undefined);
         }
@@ -928,5 +962,20 @@ export class OrderModifier {
         } else {
             throw new EntityNotFoundError('ProductVariant', productVariantId);
         }
+    }
+
+    /**
+     * modifyOrder allocates, releases and cancels stock in one transaction, visiting the lines in
+     * the caller's order. Locking every affected variant up front, in the shared order, means it
+     * cannot deadlock with a concurrent modification or settlement.
+     */
+    private async lockStockLevelsForModification(ctx: RequestContext, order: Order, input: ModifyOrderInput) {
+        const variantIds = [
+            ...(input.addItems ?? []).map(row => row.productVariantId),
+            ...(input.adjustOrderLines ?? []).map(
+                row => order.lines.find(line => idsAreEqual(line.id, row.orderLineId))?.productVariantId,
+            ),
+        ].filter((id): id is ID => id != null);
+        await this.stockLevelService.lockStockLevelsForVariants(ctx, variantIds);
     }
 }

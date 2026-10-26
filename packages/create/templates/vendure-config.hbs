@@ -32,13 +32,6 @@ export const config: VendureConfig = {
             origin: IS_DEV ? true : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
             credentials: true,
         },
-        // The following options are useful in development mode,
-        // but are best turned off for production for security
-        // reasons.
-        ...(IS_DEV ? {
-            adminApiDebug: true,
-            shopApiDebug: true,
-        } : {}),
     },
     authOptions: {
         tokenMethod: ['bearer', 'cookie'],
@@ -95,18 +88,41 @@ export const config: VendureConfig = {
         DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
         DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
         EmailPlugin.init({
-            devMode: true,
-            outputPath: path.join(__dirname, '../static/email/test-emails'),
-            route: 'mailbox',
+            // In dev mode, emails are written to disk instead of being sent, and the dev mailbox
+            // at /mailbox lists and serves all of them without authentication.
+            ...(IS_DEV ? {
+                devMode: true,
+                outputPath: path.join(__dirname, '../static/email/test-emails'),
+                route: 'mailbox',
+            } : {
+                // No email transport is configured yet, so emails are written to this directory
+                // and not sent. Replace this with an SMTP, SES or other transport before you go
+                // live: https://docs.vendure.io/reference/core-plugins/email-plugin/
+                // This is the same directory that dev mode uses. Nothing serves it over HTTP.
+                transport: {
+                    type: 'file',
+                    outputPath: path.join(__dirname, '../static/email/test-emails'),
+                },
+            }),
             handlers: defaultEmailHandlers,
             templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
             globalTemplateVars: {
                 // The following variables will change depending on your storefront implementation.
-                // Here we are assuming a storefront running at http://localhost:8080.
+{{#if isMonorepo}}
+                // These point at the storefront created alongside this server, on the port it
+                // was assigned. Change them if you move the storefront elsewhere.
+{{else}}
+                // No storefront was created, so port {{ storefrontPort }} is only a placeholder:
+                // nothing is listening on it until you point these at your own storefront.
+{{/if}}
                 fromAddress: '"example" <noreply@example.com>',
-                verifyEmailAddressUrl: 'http://localhost:8080/verify',
-                passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
+{{!-- These paths must match the routes in vendurehq/nextjs-starter-vendure (src/app/[locale]/)
+      and vendurehq/tanstack-starter-vendure (src/routes/). Both are installed from main. --}}
+                verifyEmailAddressUrl: 'http://localhost:{{ storefrontPort }}/verify',
+                passwordResetUrl: 'http://localhost:{{ storefrontPort }}/reset-password',
+                changeEmailAddressUrl: 'http://localhost:{{ storefrontPort }}/account/verify-email',
+                // The URL of the password reset page of the Vendure Dashboard.
+                adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`
             },
         }),
         DashboardPlugin.init({

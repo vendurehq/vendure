@@ -22,6 +22,7 @@ import { Translated } from '../../common/types/locale-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ShippingMethodTranslation } from '../../entity/shipping-method/shipping-method-translation.entity';
 import { ShippingMethod } from '../../entity/shipping-method/shipping-method.entity';
@@ -101,9 +102,9 @@ export class ShippingMethodService {
             shippingMethod = await this.connection.getRepository(ctx, ShippingMethod).findOne({
                 where: {
                     id: shippingMethodId,
-                    deletedAt: includeDeleted ? undefined : IsNull(),
+                    ...(includeDeleted ? {} : { deletedAt: IsNull() }),
                 },
-                relations,
+                relations: findOptionsArrayToObject<ShippingMethod>(relations),
             });
         } else {
             shippingMethod = await this.connection.findOneInChannel(
@@ -170,12 +171,14 @@ export class ShippingMethodService {
             updatedShippingMethod.checker = this.configArgService.parseInput(
                 'ShippingEligibilityChecker',
                 input.checker,
+                shippingMethod.checker ?? undefined,
             );
         }
         if (input.calculator) {
             updatedShippingMethod.calculator = this.configArgService.parseInput(
                 'ShippingCalculator',
                 input.calculator,
+                shippingMethod.calculator ?? undefined,
             );
         }
         if (input.fulfillmentHandler) {
@@ -300,7 +303,7 @@ export class ShippingMethodService {
 
     async getActiveShippingMethods(ctx: RequestContext): Promise<ShippingMethod[]> {
         const shippingMethods = await this.connection.getRepository(ctx, ShippingMethod).find({
-            relations: ['channels', 'customFields'],
+            relations: { channels: true, customFields: true },
             where: { deletedAt: IsNull() },
         });
         return shippingMethods

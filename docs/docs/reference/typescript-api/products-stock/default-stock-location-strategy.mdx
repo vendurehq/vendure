@@ -2,18 +2,26 @@
 title: "DefaultStockLocationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/catalog/default-stock-location-strategy.ts" sourceLine="105" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/default-stock-location-strategy.ts" sourceLine="195" packageName="@vendure/core" since="2.0.0" />
 
 The DefaultStockLocationStrategy was the default implementation of the [StockLocationStrategy](/reference/typescript-api/products-stock/stock-location-strategy#stocklocationstrategy)
 prior to the introduction of the [MultiChannelStockLocationStrategy](/reference/typescript-api/products-stock/multi-channel-stock-location-strategy#multichannelstocklocationstrategy).
 It assumes only a single StockLocation and that all stock is allocated from that location. When
 more than one StockLocation or Channel is used, it will not behave as expected.
 
+Since 3.7.4, `forAllocation()` caps each allocation at the stock the ProductVariant actually has
+available, read under a write lock. With the default [DefaultStockAllocationStrategy](/reference/typescript-api/orders/default-stock-allocation-strategy#defaultstockallocationstrategy) the
+saleable stock check runs on the transition to `ArrangingPayment` and the allocation runs on the
+transition to `PaymentSettled`, in a later request, so another Order can take the stock in
+between. Before 3.7.4 the allocation went through at the full quantity and oversold the variant.
+Now the Order which loses that race is allocated less than it ordered, and
+[StockShortfallEvent](/reference/typescript-api/events/event-types#stockshortfallevent) reports the shortfall. The customer has already paid at that point,
+and core neither refunds nor cancels the Order: subscribe to the event to decide what to do.
+
 ```ts title="Signature"
 class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
-    init(injector: Injector) => ;
     getAvailableStock(ctx: RequestContext, productVariantId: ID, stockLevels: StockLevel[]) => AvailableStock;
-    forAllocation(ctx: RequestContext, stockLocations: StockLocation[], orderLine: OrderLine, quantity: number) => LocationWithQuantity[] | Promise<LocationWithQuantity[]>;
+    forAllocation(ctx: RequestContext, stockLocations: StockLocation[], orderLine: OrderLine, quantity: number) => Promise<LocationWithQuantity[]>;
 }
 ```
 * Extends: BaseStockLocationStrategy
@@ -22,11 +30,6 @@ class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
 
 <div className="members-wrapper">
 
-### init
-
-<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
-
-
 ### getAvailableStock
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLevels: <a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>[]) => <a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>`}   />
@@ -34,9 +37,13 @@ class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
 
 ### forAllocation
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, stockLocations: <a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>[], orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, quantity: number) => <a href='/reference/typescript-api/products-stock/stock-location-strategy#locationwithquantity'>LocationWithQuantity</a>[] | Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#locationwithquantity'>LocationWithQuantity</a>[]>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, stockLocations: <a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>[], orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, quantity: number) => Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#locationwithquantity'>LocationWithQuantity</a>[]>`}  since="3.7.4 - The quantity is capped and the StockLevels are read under a lock"  />
 
-
+Allocates from the first StockLocation, capped at the quantity the ProductVariant still has
+available: `stockOnHand - stockAllocated - outOfStockThreshold`, summed over every
+StockLevel of the variant, which is the same figure the saleable stock check uses. The
+StockLevels are read under a write lock, so a concurrent allocation of the same variant
+waits and then sees this one's result.
 
 
 </div>

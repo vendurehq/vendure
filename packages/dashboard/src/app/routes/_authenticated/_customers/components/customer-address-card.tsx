@@ -90,12 +90,12 @@ export function CustomerAddressCard({
             {(address.defaultShippingAddress || address.defaultBillingAddress) && (
                 <div className="flex flex-wrap gap-1 mb-2">
                     {address.defaultShippingAddress && (
-                        <Badge className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-md">
+                        <Badge className="text-xs px-2 py-1 bg-neutral-subtle text-neutral-subtle-foreground rounded-md">
                             Default Shipping
                         </Badge>
                     )}
                     {address.defaultBillingAddress && (
-                        <Badge className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-md">
+                        <Badge className="text-xs px-2 py-1 bg-neutral-subtle text-neutral-subtle-foreground rounded-md">
                             Default Billing
                         </Badge>
                     )}
@@ -120,7 +120,7 @@ export function CustomerAddressCard({
                 <div className="flex gap-4 mt-3 pt-3 border-t border-border">
                     {editable && (
                         <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger>
+                            <DialogTrigger aria-label={t`Edit Address`}>
                                 <EditIcon className="w-4 h-4" />
                             </DialogTrigger>
                             <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -140,6 +140,7 @@ export function CustomerAddressCard({
                         <ConfirmationDialog
                             title={t`Delete Address`}
                             description={t`Are you sure you want to delete this address?`}
+                            destructive
                             onConfirm={() => {
                                 deleteAddress({ id: address.id });
                                 onDelete?.();

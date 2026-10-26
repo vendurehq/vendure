@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "속성 값으로 필터링",
+        "args": {
+          "facetValueIds": {
+            "label": "속성 값"
+          },
+          "containsAny": {
+            "label": "하나라도 포함",
+            "description": "선택하면 상품 변형은 선택된 속성 값 중 하나 이상을 가져야 합니다. 선택하지 않으면 변형은 선택된 모든 값을 가져야 합니다."
+          },
+          "combineWithAnd": {
+            "label": "조합 모드",
+            "description": "이 필터를 다른 필터와 조합할 때 모든 조건을 충족해야 합니까(AND), 아니면 그중 하나만 충족하면 됩니까(OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "상품 변형 이름으로 필터링",
+        "args": {
+          "combineWithAnd": {
+            "label": "조합 모드",
+            "description": "이 필터를 다른 필터와 조합할 때 모든 조건을 충족해야 합니까(AND), 아니면 그중 하나만 충족하면 됩니까(OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "상품 변형 직접 선택",
+        "args": {
+          "variantIds": {
+            "label": "상품 변형"
+          },
+          "combineWithAnd": {
+            "label": "조합 모드",
+            "description": "이 필터를 다른 필터와 조합할 때 모든 조건을 충족해야 합니까(AND), 아니면 그중 하나만 충족하면 됩니까(OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "상품 직접 선택",
+        "args": {
+          "productIds": {
+            "label": "상품"
+          },
+          "combineWithAnd": {
+            "label": "조합 모드",
+            "description": "이 필터를 다른 필터와 조합할 때 모든 조건을 충족해야 합니까(AND), 아니면 그중 하나만 충족하면 됩니까(OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "상품 기본 복제기",
+        "args": {
+          "includeVariants": {
+            "label": "변형 포함"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "컬렉션 기본 복제기"
+      },
+      "facet-duplicator": {
+        "description": "속성 기본 복제기",
+        "args": {
+          "includeFacetValues": {
+            "label": "속성 값 포함"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "프로모션 기본 복제기"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "이행 정보를 직접 입력"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "테스트 및 개발 용도로만 사용하는 더미 결제 제공자입니다.",
+        "args": {
+          "automaticSettle": {
+            "label": "승인 및 정산을 1단계로 처리",
+            "description": "활성화하면 결제가 \"Settled\" 상태로 생성됩니다."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "예제 결제 제공자"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "주문에 고정 금액 할인 적용"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine에 고정 금액 할인 적용"
+      },
+      "order_percentage_discount": {
+        "description": "주문에 { discount }% 할인 적용"
+      },
+      "facet_based_discount": {
+        "description": "이 속성을 가진 상품에 { discount }% 할인 적용"
+      },
+      "products_percentage_discount": {
+        "description": "지정한 상품에 { discount }% 할인 적용",
+        "args": {
+          "productVariantIds": {
+            "label": "상품 변형"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "무료 배송"
+      },
+      "buy_x_get_y_free": {
+        "description": "상품 X개 구매 시 상품 Y개 무료"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "주문 합계가 { amount }보다 큰 경우"
+      },
+      "at_least_n_with_facets": {
+        "description": "지정한 속성을 가진 상품을 { minimum }개 이상 구매"
+      },
+      "contains_products": {
+        "description": "지정한 상품을 { minimum }개 이상 구매",
+        "args": {
+          "productVariantIds": {
+            "label": "상품 변형"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "고객이 지정한 그룹의 구성원임",
+        "args": {
+          "customerGroupId": {
+            "label": "고객 그룹"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "상품 X개 구매 시 상품 Y개 무료",
+        "args": {
+          "variantIdsX": {
+            "label": "이 변형을 amountX개 구매"
+          },
+          "variantIdsY": {
+            "label": "이 변형을 amountY개 무료로 받기"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "기본 정액 배송비 계산기",
+        "args": {
+          "rate": {
+            "label": "배송비"
+          },
+          "includesTax": {
+            "label": "가격에 세금 포함",
+            "options": {
+              "include": {
+                "label": "세금 포함"
+              },
+              "exclude": {
+                "label": "세금 미포함"
+              },
+              "auto": {
+                "label": "자동 (채널 기준)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "세율"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "기본 배송 자격 검사기",
+        "args": {
+          "orderMinimum": {
+            "label": "최소 주문 금액",
+            "description": "주문 합계가 이 값보다 크거나 같은 경우에만 주문이 자격을 갖습니다"
+          }
+        }
+      }
+    }
+  }
+}

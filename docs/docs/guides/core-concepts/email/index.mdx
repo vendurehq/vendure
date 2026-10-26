@@ -26,7 +26,7 @@ Here's an illustration of the flow of an email being sent:
 ![Email plugin flow](./email-plugin-flow.webp)
 
 All emails are triggered by a particular [Event](/developer-guide/events/) - in this case when the state of an
-Order changes. The EmailPlugin ships with a set of [default email handlers](https://github.com/vendurehq/vendure/blob/master/packages/email-plugin/src/default-email-handlers.ts),
+Order changes. The EmailPlugin ships with a set of [default email handlers](https://github.com/vendurehq/vendure/blob/master/packages/email-plugin/src/handler/default-email-handlers.ts),
 one of which is responsible for sending "order confirmation" emails.
 
 ### EmailEventHandlers
@@ -98,12 +98,19 @@ export const config: VendureConfig = {
                 fromAddress: '"MyShop" <noreply@myshop.com>', // [!code highlight]
                 verifyEmailAddressUrl: 'https://www.myshop.com/verify', // [!code highlight]
                 passwordResetUrl: 'https://www.myshop.com/password-reset', // [!code highlight]
-                changeEmailAddressUrl: 'https://www.myshop.com/verify-email-address-change' // [!code highlight]
+                changeEmailAddressUrl: 'https://www.myshop.com/verify-email-address-change', // [!code highlight]
+                adminPasswordResetUrl: 'https://my-server.com/dashboard/reset-password' // [!code highlight]
             }, // [!code highlight]
         }),
     ],
 };
 ```
+
+:::note
+The `adminPasswordResetUrl` variable is used by the `adminPasswordResetHandler` (one of the default email handlers since v3.8.0)
+and should point to the password reset page of your Dashboard. If it is not set, the reset link in the
+"admin-password-reset" email will not work.
+:::
 
 ### Email integrations
 

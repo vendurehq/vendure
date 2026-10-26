@@ -23,6 +23,7 @@ import {
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
     SOCKET_TIMEOUT_MS,
+    TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
@@ -386,10 +387,7 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];
     }
-    if (pmInfo.name === 'yarn') {
-        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
-    }
-    return pkg;
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
 }
 
 /**
@@ -406,19 +404,19 @@ export function getSingleProjectPackageJson(
         private: true,
         scripts: getServerPackageScripts(),
     };
-    if (pmInfo.name === 'yarn') {
-        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
-    }
-    return pkg;
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
 }
 
 /**
  * Native dependencies whose install/build scripts must run for the scaffolded project to
  * work — otherwise e.g. better-sqlite3's native binding is never compiled and the server
- * crashes on startup. pnpm (v10+) and yarn (v4.14+) block dependency build scripts unless
- * allowlisted, so this list feeds their respective allowlist mechanisms.
+ * crashes on startup. npm (v12+), pnpm (v10+), yarn (v4.14+) and bun block dependency
+ * build scripts unless allowlisted, so this list feeds their respective allowlist mechanisms
+ * (`allowScripts`, `onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
- * SQLite adds `better-sqlite3`.
+ * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
+ * guaranteed linear time; without its native binding those filters fall back to the built-in
+ * RegExp engine, which is vulnerable to ReDoS on SQLite backends (GHSA-jgm3-qmp2-c4p7).
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
@@ -426,9 +424,30 @@ export function getSingleProjectPackageJson(
 export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
-        deps.push('better-sqlite3');
+        deps.push('better-sqlite3', 're2');
     }
     return deps.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Returns the root package.json fields that allowlist native dependency build scripts for
+ * the given package manager. pnpm gets none: its allowlist lives in pnpm-workspace.yaml
+ * (see `getPnpmWorkspaceYaml()`).
+ */
+export function getBuildScriptAllowlistFields(
+    pmInfo: PackageManagerInfo,
+    dbType: DbType,
+): Record<string, unknown> {
+    switch (pmInfo.name) {
+        case 'npm':
+            return { allowScripts: getNpmAllowScripts(dbType) };
+        case 'yarn':
+            return { dependenciesMeta: getYarnDependenciesMeta(dbType) };
+        case 'bun':
+            return { trustedDependencies: getNativeBuildDependencies(dbType) };
+        case 'pnpm':
+            return {};
+    }
 }
 
 /**
@@ -437,6 +456,16 @@ export function getNativeBuildDependencies(dbType: DbType): string[] {
  */
 export function getYarnDependenciesMeta(dbType: DbType): Record<string, { built: true }> {
     return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, { built: true }]));
+}
+
+/**
+ * npm ≥12 does not run dependency install scripts unless they are allowlisted via
+ * `allowScripts` in the top-level package.json. Entries are name-only (not pinned to a
+ * version) so they keep matching as dependencies are upgraded. Older npm versions ignore
+ * the field.
+ */
+export function getNpmAllowScripts(dbType: DbType): Record<string, true> {
+    return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, true]));
 }
 
 /**
@@ -559,6 +588,7 @@ export function installPackages(options: {
 export function getDependencies(
     dbType: DbType,
     vendurePkgVersion = '',
+    packageManager?: PackageManager,
 ): { dependencies: string[]; devDependencies: string[] } {
     const dependencies = [
         `@vendure/core${vendurePkgVersion}`,
@@ -567,6 +597,10 @@ export function getDependencies(
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
         'dotenv',
+        // Generated migrations import from `typeorm`. Only pnpm's strict node_modules fails to
+        // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
+        // node-modules linker), so declare it directly for pnpm only. See #4960.
+        ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [

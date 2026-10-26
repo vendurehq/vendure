@@ -294,7 +294,7 @@ export class ProductOptionGroupService {
                 relationLoadStrategy: 'query',
                 loadEagerRelations: false,
                 where: { id: productId },
-                relations: ['optionGroups'],
+                relations: { optionGroups: true },
             });
             if (product) {
                 product.optionGroups = product.optionGroups.filter(og => !idsAreEqual(og.id, id));
@@ -330,10 +330,11 @@ export class ProductOptionGroupService {
             ProductOptionGroup,
             input.productOptionGroupIds,
             ctx.channelId,
-            { relations: ['options'] },
+            { relations: { options: true } },
         );
+        // Soft-deleted options remain on the group. assignToChannels throws if given one.
         const optionsToAssign = groupsToAssign.reduce(
-            (options, group) => [...options, ...group.options],
+            (options, group) => [...options, ...group.options.filter(option => !option.deletedAt)],
             [] as ProductOption[],
         );
 
@@ -383,7 +384,7 @@ export class ProductOptionGroupService {
             ProductOptionGroup,
             input.productOptionGroupIds,
             ctx.channelId,
-            { relations: ['options'] },
+            { relations: { options: true } },
         );
 
         const results: Array<

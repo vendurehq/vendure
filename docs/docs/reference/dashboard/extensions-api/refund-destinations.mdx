@@ -1,0 +1,126 @@
+---
+title: "RefundDestinations"
+generated: true
+---
+## DashboardRefundDestinationDefinition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/refund-destinations.ts" sourceLine="80" packageName="@vendure/dashboard" since="3.8.0" />
+
+Defines the dashboard-side presentation of a refund destination. The destination itself is
+defined on the backend by a `RefundDestinationStrategy`; this extension adds an icon, a label
+and an optional configuration component to the refund dialog.
+
+A destination only appears in the refund dialog if the backend reports it as available for the
+Order, so registering one here for which no backend strategy exists has no effect.
+
+*Example*
+
+```tsx
+import { defineDashboardExtension } from '@vendure/dashboard';
+import { Wallet } from 'lucide-react';
+
+defineDashboardExtension({
+    refundDestinations: [
+        {
+            code: 'store-credit',
+            label: 'Refund as store credit',
+            icon: Wallet,
+            component: ({ value, onChange }) => (
+                <input
+                    type="number"
+                    placeholder="Expires in days"
+                    value={value?.expiresInDays ?? ''}
+                    onChange={e => onChange({ expiresInDays: Number(e.target.value) })}
+                />
+            ),
+        },
+    ],
+});
+```
+
+```ts title="Signature"
+interface DashboardRefundDestinationDefinition {
+    code: string;
+    label?: string;
+    icon?: React.ComponentType<{ className?: string }>;
+    component?: React.ComponentType<RefundDestinationComponentProps>;
+}
+```
+
+<div className="members-wrapper">
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+Must match the `code` of the corresponding backend `RefundDestinationStrategy`.
+### label
+
+<MemberInfo kind="property" type={`string`}   />
+
+The label shown in the refund dialog. When omitted, the translated description supplied by
+the backend strategy is used.
+### icon
+
+<MemberInfo kind="property" type={`React.ComponentType<{ className?: string }>`}   />
+
+An optional icon shown next to the label.
+### component
+
+<MemberInfo kind="property" type={`React.ComponentType<<a href='/reference/dashboard/extensions-api/refund-destinations#refunddestinationcomponentprops'>RefundDestinationComponentProps</a>>`}   />
+
+An optional component rendered when this destination is selected, allowing extra
+configuration to be collected. The value it produces is passed to the backend strategy's
+`createRefund()` method.
+
+
+</div>
+## RefundDestinationComponentProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/refund-destinations.ts" sourceLine="11" packageName="@vendure/dashboard" since="3.8.0" />
+
+The props passed to a refund destination's configuration component.
+
+```ts title="Signature"
+interface RefundDestinationComponentProps {
+    amount: number;
+    paymentId: string;
+    currencyCode: string;
+    value: Record<string, any> | undefined;
+    onChange: (value: Record<string, any> | undefined) => void;
+}
+```
+
+<div className="members-wrapper">
+
+### amount
+
+<MemberInfo kind="property" type={`number`}   />
+
+The amount currently allocated to this destination, in minor units.
+### paymentId
+
+<MemberInfo kind="property" type={`string`}   />
+
+The id of the Payment the refund will be drawn from.
+### currencyCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+The currency code of the Order being refunded.
+### value
+
+<MemberInfo kind="property" type={`Record<string, any> | undefined`}   />
+
+The current configuration value, as last set by `onChange`. Undefined until the component
+sets a value.
+### onChange
+
+<MemberInfo kind="property" type={`(value: Record<string, any> | undefined) => void`}   />
+
+Sets the configuration value for this destination. Whatever is passed here is sent to the
+server as the `arguments` of the refund target, and is passed to the matching
+`RefundDestinationStrategy.createRefund()` method on the backend.
+
+
+</div>

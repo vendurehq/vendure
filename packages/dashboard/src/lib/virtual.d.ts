@@ -6,7 +6,11 @@ declare module 'virtual:dashboard-extensions' {
     export const runDashboardExtensions: () => Promise<void>;
 }
 declare module 'virtual:plugin-translations' {
-    export default translations = Record<string, any>;
+    import { Messages } from '@lingui/core';
+
+    // Keyed by locale with `-` replaced by `_`, as emitted by `translationsPlugin`.
+    const translations: Record<string, Messages>;
+    export default translations;
 }
 
 declare module 'virtual:vendure-ui-config' {

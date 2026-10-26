@@ -1,6 +1,7 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, type Response, expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Orders use a multi-step draft flow rather than a single CRUD form.
@@ -23,6 +24,38 @@ test.describe('Orders', () => {
         const lp = listPage(page);
         await lp.goto();
         await lp.expectLoaded();
+    });
+
+    // #2850 — order list can show the customer's email address
+    test('should show the customer email address column in the orders list', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const orderId = await createPaidOrder(client);
+        const { order } = await client.gql(
+            `query ($id: ID!) { order(id: $id) { code customer { emailAddress } } }`,
+            { id: orderId },
+        );
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+
+        // Hiding the Customer column must not stop the email column from getting its data.
+        await lp.openColumnSettings();
+        await page.getByRole('menuitemcheckbox', { name: /^customer$/i }).click();
+        await page.getByRole('menuitemcheckbox', { name: /customer email/i }).click();
+        await page.keyboard.press('Escape');
+
+        await expect(lp.dataTable.locator('thead th').filter({ hasText: /^customer$/i })).toBeHidden();
+        await expect(lp.dataTable.locator('thead th').filter({ hasText: 'Customer email' })).toHaveText(
+            'Customer email',
+        );
+        const orderRow = lp.getRows().filter({ hasText: order.code });
+        await expect(orderRow).toContainText(order.customer.emailAddress);
+
+        // Column settings are saved per user, so restore them for the other tests.
+        await lp.openColumnSettings();
+        await page.getByRole('menuitem', { name: 'Reset' }).click();
     });
 
     // #4748 — enum columns (e.g. Order.type / OrderType) must be offered in the
@@ -156,6 +189,131 @@ test.describe('Orders', () => {
         await expect(page).not.toHaveURL(/\/draft\//);
     });
 
+    // #5253 — eligible shipping methods must refresh after a line is added, without
+    // a page reload.
+    test('should refresh eligible shipping methods after adding a line to an existing draft order', async ({
+        page,
+    }) => {
+        test.setTimeout(60_000); // Draft order flow involves multiple mutations
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { countries } = await client.gql(
+            `query { countries(options: { take: 1 }) { items { code } } }`,
+        );
+        const customerSuffix = Date.now();
+        const customerName = `Shipping Refresh ${customerSuffix}`;
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Shipping',
+                    lastName: `Refresh ${customerSuffix}`,
+                    emailAddress: `shipping.refresh.${customerSuffix}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: customerName,
+                    streetLine1: '5253 Shipping Lane',
+                    city: 'Testville',
+                    postalCode: 'T3 5ST',
+                    countryCode: countries.items[0].code,
+                    defaultShippingAddress: true,
+                },
+            },
+        );
+        // Both seeded methods accept an empty order, so this test needs one that does
+        // not. It is created and deleted here rather than reconfiguring a seeded method,
+        // because spec files run in parallel against one shared server.
+        const conditionalMethodName = `Minimum Order Shipping ${customerSuffix}`;
+        const { createShippingMethod } = await client.gql(
+            `mutation ($input: CreateShippingMethodInput!) {
+                createShippingMethod(input: $input) { id }
+            }`,
+            {
+                input: {
+                    code: `minimum-order-shipping-${customerSuffix}`,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: {
+                        code: 'default-shipping-eligibility-checker',
+                        arguments: [{ name: 'orderMinimum', value: '1' }],
+                    },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        arguments: [
+                            { name: 'rate', value: '750' },
+                            { name: 'taxRate', value: '0' },
+                            { name: 'includesTax', value: 'auto' },
+                        ],
+                    },
+                    translations: [{ languageCode: 'en', name: conditionalMethodName, description: '' }],
+                },
+            },
+        );
+
+        let draftCreated = false;
+        try {
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+            await lp.newButton.click();
+            await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+            draftCreated = true;
+
+            // Set a customer with a default shipping address first — this
+            // enables the eligible-shipping-methods query for the first time
+            // (still a zero-line order).
+            await page.getByRole('button', { name: /Select customer/i }).click();
+            await page.getByPlaceholder('Search customers...').fill(String(customerSuffix));
+            const customerOption = page.getByRole('option').filter({ hasText: customerName });
+            await expect(customerOption).toBeVisible({ timeout: 5_000 });
+            const eligibilityResponse = page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.status() === 200 &&
+                    (response.request().postData() ?? '').includes('DraftOrderEligibleShippingMethods'),
+            );
+            await customerOption.click();
+            await eligibilityResponse;
+            await expect(page.getByText('Standard Shipping', { exact: true })).toBeVisible();
+            await expect(page.getByText(conditionalMethodName, { exact: true })).toHaveCount(0);
+
+            // Adding a product makes the minimum-order method eligible.
+            const addItemButton = page.locator('[role="combobox"]').filter({ hasText: 'Add item to order' });
+            await addItemButton.scrollIntoViewIfNeeded();
+            await addItemButton.click();
+            await page.getByPlaceholder('Add item to order...').fill('laptop');
+            await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
+            await page.getByRole('option').first().click();
+
+            const shippingLabel = page.getByText(conditionalMethodName, { exact: true });
+            await expect(shippingLabel).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByText('No shipping methods available')).toHaveCount(0);
+        } finally {
+            try {
+                if (draftCreated) {
+                    await deleteCurrentDraft(page);
+                }
+            } finally {
+                await client.gql(`mutation ($id: ID!) { deleteShippingMethod(id: $id) { result message } }`, {
+                    id: createShippingMethod.id,
+                });
+            }
+        }
+    });
+
     test('should show the completed order in the list', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -212,11 +370,7 @@ test.describe('Orders', () => {
         await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
 
         // Delete the draft without configuring it
-        await page.getByRole('button', { name: /Delete draft/i }).click();
-        // Confirm the deletion dialog — AlertDialog uses "Continue" as the action button
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
-        // Should navigate back to the orders list (URL may include query params)
-        await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
+        await deleteCurrentDraft(page);
         await expect(page.getByTestId('page-heading')).toBeVisible();
     });
 
@@ -507,6 +661,95 @@ test.describe('Orders', () => {
         await expect(recalculateCheckbox).toBeChecked();
     });
 
+    // #3389 — existing tax descriptions should be available when adding a surcharge
+    test('should suggest existing tax descriptions when adding a surcharge', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // The order's only tax line comes from the seeded 20% rate, which
+        // e2e/fixtures/initial-data.ts names "Standard Tax" and the populator suffixes with
+        // the zone. Hardcoded, so a wrong field mapping in the form can't go unnoticed.
+        const seededTaxDescription = 'Standard Tax Europe';
+
+        const surchargeBlock = page
+            .locator('[data-slot="card"]')
+            .filter({ has: page.getByText('Add surcharge', { exact: true }) });
+        const taxDescriptionInput = surchargeBlock.getByRole('combobox', { name: 'Tax description' });
+        const taxRateInput = surchargeBlock.getByRole('spinbutton', { name: 'Tax rate' });
+        // The popup is portalled, so it sits outside the surcharge block.
+        const suggestions = page.getByRole('listbox');
+        const suggestion = (name: string) => suggestions.getByRole('option', { name, exact: true });
+
+        const addSurcharge = async (description: string) => {
+            await surchargeBlock.getByRole('textbox', { name: 'Description' }).fill(description);
+            await surchargeBlock.getByRole('textbox', { name: 'Price' }).fill('10.00');
+            await surchargeBlock.getByRole('button', { name: 'Add surcharge' }).click();
+            await expect(page.getByText(description)).toBeVisible();
+        };
+
+        const addSurchargeButton = surchargeBlock.getByRole('button', { name: 'Add surcharge' });
+        await surchargeBlock.getByRole('textbox', { name: 'Description' }).fill('Handling fee');
+        await surchargeBlock.getByRole('textbox', { name: 'Price' }).fill('10.00');
+        await taxRateInput.fill('101');
+        await expect(addSurchargeButton).toBeDisabled();
+        await taxDescriptionInput.click();
+        await suggestion(seededTaxDescription).click();
+        await expect(taxDescriptionInput).toHaveValue(seededTaxDescription);
+        // Picking a description adopts the rate it is charged at. The tax summary groups by
+        // description and rate, so leaving the form's rate would split the tax line anyway.
+        await expect(taxRateInput).toHaveValue('20');
+        // Selecting the valid rate must clear an existing validation error immediately.
+        await expect(addSurchargeButton).toBeEnabled();
+
+        // Free text wins over the selection: a custom description must survive the popup
+        // closing, instead of snapping back to the description that was picked.
+        await taxDescriptionInput.fill(' Custom tax description ');
+        // Picking a suggestion above already closed the popup, and typing a description that
+        // matches no existing one does not reopen it. Pin that, because an open popup here
+        // would put a backdrop over the "Add surcharge" button below.
+        await expectPopupClosed(taxDescriptionInput);
+        await taxDescriptionInput.blur();
+        await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
+
+        await addSurcharge('Handling fee');
+
+        // The custom description is now suggested, which is only possible if it reached
+        // modifyOrderInput.surcharges — the duplicate-tax-line case, since the description
+        // is not yet on the order. Nothing on the page renders taxDescription directly.
+        await taxDescriptionInput.click();
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        await suggestion('Custom tax description').click();
+        // Existing descriptions are exact grouping keys, including significant whitespace.
+        await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
+
+        // Reuse the seeded description on a second surcharge: it must not then be
+        // suggested twice, once from the tax summary and once from the pending surcharge.
+        await taxDescriptionInput.fill(seededTaxDescription);
+        await suggestion(seededTaxDescription).click();
+        // A picked description stays browsable: the list is not narrowed to the pick, so
+        // the admin can reopen and switch to another description.
+        await taxDescriptionInput.click();
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        // Close the popup, which otherwise covers the fields below.
+        await closePopup(taxDescriptionInput);
+        await addSurcharge('Gift wrap');
+        await taxDescriptionInput.click();
+        await expect(suggestion(seededTaxDescription)).toHaveCount(1);
+
+        // Typing narrows the suggestions, and a description matching nothing closes the popup.
+        await taxDescriptionInput.fill('Custom');
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        await expect(suggestion(seededTaxDescription)).toBeHidden();
+        await taxDescriptionInput.fill('No such tax');
+        await expect(suggestions).toBeHidden();
+    });
+
     test.describe('Order lifecycle', () => {
         test('should fulfill an order', async ({ page }) => {
             test.setTimeout(60_000);
@@ -539,7 +782,7 @@ test.describe('Orders', () => {
             ).toBeVisible({ timeout: 10_000 });
         });
 
-        test('should transition order state', async ({ page }) => {
+        test('should transition fulfillment and update order state', async ({ page }) => {
             test.setTimeout(60_000);
 
             const client = new VendureAdminClient(page);
@@ -548,37 +791,24 @@ test.describe('Orders', () => {
 
             await page.goto(`/orders/${orderId}`);
 
-            // The state transition control is a badge with a dropdown trigger
-            // Find the ellipsis button near the state badge
-            const stateSection = page
-                .locator('[data-slot="card"]')
-                .filter({ hasText: /Fulfilled/i })
-                .first();
-            await expect(stateSection).toBeVisible({ timeout: 10_000 });
+            const fulfillmentStateControl = page.getByTestId('fulfillment-state-control');
+            await expect(fulfillmentStateControl).toContainText(/Pending/i, { timeout: 10_000 });
 
-            // Click the ellipsis dropdown button next to the state badge
-            const dropdownTrigger = stateSection.getByTestId('state-transition-trigger');
+            const dropdownTrigger = fulfillmentStateControl.getByTestId('state-transition-trigger');
             await dropdownTrigger.click();
 
-            // Select "Transition to Shipped" from the dropdown
             const menu = page.locator('[data-slot="dropdown-menu-content"]');
             await expect(menu).toBeVisible();
-            await menu
-                .getByText(/Shipped/i)
-                .first()
-                .click();
+            await menu.getByRole('menuitem', { name: /Transition to Shipped/i }).click();
 
-            // Wait for the mutation and page to update
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+            await expect(page.getByText(/Fulfillment state updated successfully/i)).toBeVisible({
+                timeout: 10_000,
+            });
 
-            // Reload to get a clean page state, then verify the order is now "Shipped"
             await page.reload();
-            await expect(
-                page
-                    .locator('[data-slot="card"]')
-                    .filter({ hasText: /Shipped/i })
-                    .first(),
-            ).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByTestId('order-state-control')).toContainText(/Shipped/i, {
+                timeout: 10_000,
+            });
         });
 
         // #5027 — Dialog for new payment has Transaction ID set as optional
@@ -709,6 +939,179 @@ test.describe('Orders', () => {
             await dialog.getByRole('button', { name: 'Cancel' }).click();
         });
 
+        // OSS-857 — a refundDestinations response which arrives after the administrator has allocated
+        // the refund must not reset the payment selection or the amounts.
+        test('should preserve refund allocations when destinations finish loading', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            // The default selection is the first payment, so the test needs a second payment to allocate to.
+            const orderId = await createOrderWithIncreasedLineQuantity(client);
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { payments { id state } } }`,
+                { id: orderId },
+            );
+            const [firstPaymentId, secondPaymentId] = order.payments
+                .filter((p: { state: string }) => p.state === 'Settled')
+                .map((p: { id: string }) => p.id);
+
+            // Hold back the first refundDestinations response until the test has allocated the refund.
+            let releaseDestinations!: () => void;
+            const destinationsGate = new Promise<void>(resolve => (releaseDestinations = resolve));
+            let destinationsHeld = false;
+            await page.route('**/admin-api**', async route => {
+                if (!destinationsHeld && route.request().postData()?.includes('RefundDestinations')) {
+                    destinationsHeld = true;
+                    await destinationsGate;
+                }
+                await route.fallback();
+            });
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+            await expect.poll(() => destinationsHeld).toBe(true);
+
+            await openRefundDialog(page);
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            await dialog.getByTestId('refund-quantity').first().fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const firstPaymentRow = dialog.getByTestId(`refund-target-payment-${String(firstPaymentId)}`);
+            const secondPaymentRow = dialog.getByTestId(`refund-target-payment-${String(secondPaymentId)}`);
+            await firstPaymentRow.getByRole('checkbox').uncheck();
+            await secondPaymentRow.getByRole('checkbox').check();
+            // One unit of the seeded "Laptop 13 inch 8GB" variant costs 1558.80 with tax.
+            const allocatedAmount = '1558.8';
+            await expect(secondPaymentRow.getByTestId('refund-target-amount')).toHaveValue(allocatedAmount);
+
+            // The refundDestinations response is held, so the store credit row is not rendered yet.
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toHaveCount(0);
+
+            releaseDestinations();
+            await expect(storeCreditRow).toBeVisible({ timeout: 10_000 });
+
+            await expect(firstPaymentRow.getByRole('checkbox')).not.toBeChecked();
+            await expect(firstPaymentRow.getByTestId('refund-target-amount')).toHaveValue('');
+            await expect(secondPaymentRow.getByRole('checkbox')).toBeChecked();
+            await expect(secondPaymentRow.getByTestId('refund-target-amount')).toHaveValue(allocatedAmount);
+            await expect(storeCreditRow.getByRole('checkbox')).not.toBeChecked();
+            await expect(dialog.getByText(/Allocated refund amounts must equal refund total/i)).toHaveCount(
+                0,
+            );
+
+            // A successful refund refetches the order. The test waits for that response, so the page does
+            // not close while the request is in flight.
+            const orderRefetched = page.waitForResponse(isOrderDetailResponse);
+            await dialog
+                .getByRole('button', { name: /Refund/i })
+                .last()
+                .click();
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasText: 'Refund processed successfully' }),
+            ).toBeVisible({ timeout: 10_000 });
+            await expect(dialog).toBeHidden();
+            await orderRefetched;
+
+            const { order: refunded } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { payments { id refunds { total } } } }`,
+                { id: orderId },
+            );
+            const refundedPayments = refunded.payments.filter(
+                (p: { refunds: unknown[] }) => p.refunds.length > 0,
+            );
+            expect(refundedPayments).toEqual([{ id: secondPaymentId, refunds: [{ total: 155880 }] }]);
+        });
+
+        // OSS-857 — an order refetch which changes the order's payments must not overwrite the refund
+        // amounts the administrator has typed.
+        test('should keep typed refund amounts when the order is refetched', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { lines { proratedUnitPriceWithTax } payments { id amount } } }`,
+                { id: orderId },
+            );
+            const paymentId = String(order.payments[0].id);
+            // The refund total is the price of the one unit refunded. The split is half to the payment and
+            // the rest to store credit.
+            const refundTotal: number = order.lines[0].proratedUnitPriceWithTax;
+            const paymentAmount = String(Math.floor(refundTotal / 2) / 100);
+            const storeCreditAmount = String((refundTotal - Math.floor(refundTotal / 2)) / 100);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+            await openRefundDialog(page);
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            await dialog.getByTestId('refund-quantity').first().fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const paymentRow = dialog.getByTestId(`refund-target-payment-${paymentId}`);
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await paymentRow.getByTestId('refund-target-amount').fill(paymentAmount);
+            await storeCreditRow.getByTestId('refund-target-amount').fill(storeCreditAmount);
+
+            // A refund made outside the dialog lowers the payment's refundable amount. React Query refetches
+            // the order when the window fires an `online` event after an `offline` event, which gives the
+            // dialog new payment data. The order detail page loads the order with `useSuspenseQuery`. React
+            // Query treats suspense data less than a second old as fresh and does not refetch it, so the
+            // test fires the events until the order is refetched.
+            const { refundOrder } = await client.gql(
+                `
+                mutation ($input: RefundOrderInput!) {
+                    refundOrder(input: $input) {
+                        ... on Refund { id }
+                        ... on ErrorResult { errorCode message }
+                    }
+                }
+            `,
+                { input: { paymentId, amount: 100, reason: 'e2e', lines: [] } },
+            );
+            expect(refundOrder.errorCode).toBeUndefined();
+            let orderRefetched = false;
+            page.on('response', response => {
+                if (isOrderDetailResponse(response)) {
+                    orderRefetched = true;
+                }
+            });
+            await expect
+                .poll(async () => {
+                    await page.evaluate(() => {
+                        window.dispatchEvent(new Event('offline'));
+                        window.dispatchEvent(new Event('online'));
+                    });
+                    return orderRefetched;
+                })
+                .toBe(true);
+            // The payment row shows the payment amount less the 1.00 refunded through the API.
+            const remainingBalance = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            }).format((order.payments[0].amount - 100) / 100);
+            await expect(paymentRow).toContainText(remainingBalance);
+
+            await expect(paymentRow.getByTestId('refund-target-amount')).toHaveValue(paymentAmount);
+            await expect(storeCreditRow.getByTestId('refund-target-amount')).toHaveValue(storeCreditAmount);
+            await expect(dialog.getByText(/Allocated refund amounts must equal refund total/i)).toHaveCount(
+                0,
+            );
+            await dialog.getByRole('button', { name: 'Cancel' }).click();
+        });
+
         test('should process a refund', async ({ page }) => {
             test.setTimeout(60_000);
 
@@ -754,6 +1157,329 @@ test.describe('Orders', () => {
             await refundButton.click();
 
             // Wait for success
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
+        // #4563 — refund to custom destination (store credit)
+        test('should process a refund to a custom destination', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            // Open the refund dialog
+            const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+            await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+            await actionBarEllipsis.click();
+
+            const menu = page.locator('[data-slot="dropdown-menu-content"]');
+            await menu
+                .getByText(/Refund/i)
+                .first()
+                .click();
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Set refund quantity to 1
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
+
+            // Uncheck the original payment so the whole refund goes to store credit
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            await paymentRow.getByRole('checkbox').first().uncheck();
+
+            // Selecting store credit moves the whole outstanding total onto it, which the
+            // dialog requires before it will submit.
+            await storeCreditRow.getByRole('checkbox').first().check();
+            await expect(storeCreditRow.getByTestId('refund-target-amount')).not.toHaveValue('');
+
+            // Submit
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            // Wait for success
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
+        // #4563 — refund dialog should show store credit destination
+        test('should display custom refund destinations in dialog', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // The destinations are fetched asynchronously once the dialog opens, so allow for the
+            // query to resolve before asserting on the section.
+            await expect(dialog.getByText('Other refund destinations')).toBeVisible({ timeout: 10_000 });
+
+            // Store credit destination should appear
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
+
+            // Store credit should be unchecked by default
+            await expect(storeCreditRow.getByRole('checkbox').first()).not.toBeChecked();
+        });
+
+        // #4563 — the refundDestinations dashboard extension point supplies the label, icon and
+        // optional configuration component for a destination defined by a backend strategy.
+        test('should render the registered dashboard extension for a refund destination', async ({
+            page,
+        }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
+
+            // The extension's `label` takes precedence over the backend strategy's description.
+            await expect(storeCreditRow.getByText('Store credit (plugin label)')).toBeVisible();
+
+            // The configuration component is only rendered once the destination is selected.
+            await expect(dialog.getByTestId('store-credit-expiry-input')).toBeHidden();
+
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            await dialog.getByTestId(/^refund-target-payment-/).getByRole('checkbox').first().uncheck();
+            await storeCreditRow.getByRole('checkbox').first().check();
+
+            const expiryInput = dialog.getByTestId('store-credit-expiry-input');
+            await expect(expiryInput).toBeVisible();
+            await expiryInput.fill('90');
+            await expect(expiryInput).toHaveValue('90');
+
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
+        // #4563 — refund dialog should validate allocated amounts match total
+        test('should show validation error when allocation does not match total', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Set refund quantity to 1 — this auto-allocates to the first payment
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            // Uncheck the original payment to create an allocation mismatch
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            await paymentRow.getByRole('checkbox').first().uncheck();
+
+            // Validation error should appear about allocation mismatch
+            await expect(dialog.getByText(/Allocated refund amounts must equal refund total/i)).toBeVisible();
+
+            // Submit button should be disabled
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await expect(refundButton).toBeDisabled();
+        });
+
+        // #4563 — split refund between original payment and store credit
+        test('should process a split refund across payment and destination', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Set refund quantity to 1
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            // Read the auto-calculated total from the payment row
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            const paymentAmountStr = await paymentRow.getByTestId('refund-target-amount').inputValue();
+            const fullAmount = Number.parseFloat(paymentAmountStr);
+
+            // Split: half to original payment, half to store credit
+            const halfAmount = (Math.floor((fullAmount * 100) / 2) / 100).toFixed(2);
+            const remainingAmount = (fullAmount - Number.parseFloat(halfAmount)).toFixed(2);
+
+            // Set the payment amount to half
+            await paymentRow.getByTestId('refund-target-amount').fill(halfAmount);
+
+            // Enter remaining amount into store credit
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await storeCreditRow.getByTestId('refund-target-amount').fill(remainingAmount);
+
+            // Submit the split refund
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            // Wait for success
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
+        // #4563 — when a later target fails after an earlier one was refunded, the dialog must report
+        // the partial refund and close, rather than leave the stale allocation to be resubmitted.
+        test('should report a partially completed split refund', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            await dialog.getByTestId('refund-quantity').first().fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            const fullAmount = Number.parseFloat(
+                await paymentRow.getByTestId('refund-target-amount').inputValue(),
+            );
+            const halfAmount = (Math.floor((fullAmount * 100) / 2) / 100).toFixed(2);
+            const remainingAmount = (fullAmount - Number.parseFloat(halfAmount)).toFixed(2);
+
+            // The original payment is refunded first and succeeds; the failing voucher is second.
+            await paymentRow.getByTestId('refund-target-amount').fill(halfAmount);
+            await dialog
+                .getByTestId('refund-target-failing-voucher')
+                .getByTestId('refund-target-amount')
+                .fill(remainingAmount);
+
+            await dialog.getByRole('button', { name: /Refund/i }).last().click();
+
+            const toast = page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: 'Refund only partially completed' });
+            await expect(toast).toBeVisible({ timeout: 10_000 });
+            await expect(toast).toContainText('Voucher service unavailable');
+            await expect(dialog).toBeHidden();
+
+            // The refund for the first target was kept.
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { payments { refunds { total destination } } } }`,
+                { id: orderId },
+            );
+            const refunds = order.payments.flatMap((p: { refunds: unknown[] }) => p.refunds);
+            expect(refunds).toHaveLength(1);
+            expect(refunds[0].destination).toBeNull();
+        });
+
+        // #4563 — refund with manual total override
+        test('should allow manual refund total override', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Check the "Override" checkbox to enable manual total
+            const overrideCheckbox = dialog.getByText('Override').locator('..').getByRole('checkbox');
+            await overrideCheckbox.check();
+
+            // Enter a manual refund total
+            const totalInput = dialog.locator('input[type="number"]').first();
+            await totalInput.fill('5.00');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            // Submit
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
             await expect(
                 page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
             ).toBeVisible({ timeout: 10_000 });
@@ -827,6 +1553,17 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
     );
 
     return orderId;
+}
+
+/**
+ * Deletes the draft order currently open in the page. A test may leave a popover or
+ * combobox open over the page, so dismiss that first or the delete button is not clickable.
+ */
+async function deleteCurrentDraft(page: Page) {
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: /Delete draft/i }).click();
+    await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+    await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
 }
 
 /**
@@ -1056,4 +1793,26 @@ async function createModifyingOrder(page: Page): Promise<string> {
     );
 
     return orderId;
+}
+
+/**
+ * Matches the response to the order detail page's `GetOrder` query.
+ */
+function isOrderDetailResponse(response: Response) {
+    return response.request().postData()?.includes('query GetOrder(') ?? false;
+}
+
+/**
+ * Opens the refund dialog from the order detail page via the action bar dropdown.
+ */
+async function openRefundDialog(page: Page) {
+    const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+    await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+    await actionBarEllipsis.click();
+
+    const menu = page.locator('[data-slot="dropdown-menu-content"]');
+    await menu
+        .getByText(/Refund/i)
+        .first()
+        .click();
 }

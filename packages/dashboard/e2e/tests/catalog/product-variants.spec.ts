@@ -388,7 +388,7 @@ test.describe('remove option group from product detail (#4703)', () => {
         // Confirm in the AlertDialog.
         const alertDialog = page.locator('[role="alertdialog"]');
         await expect(alertDialog.getByText('Remove option group')).toBeVisible();
-        await alertDialog.getByRole('button', { name: 'Continue' }).click();
+        await alertDialog.getByRole('button', { name: 'Confirm' }).click();
 
         await expect(
             page
@@ -503,7 +503,7 @@ test.describe('force-remove an in-use option group (#4703)', () => {
         await page
             .locator('[role="alertdialog"]')
             .filter({ hasText: 'Are you sure you want to remove this option group' })
-            .getByRole('button', { name: 'Continue' })
+            .getByRole('button', { name: 'Confirm' })
             .click();
 
         // The force-remove confirmation appears because the group is in use.
@@ -534,10 +534,10 @@ test.describe('force-remove an in-use option group (#4703)', () => {
     });
 });
 
-// Regression: the edit icon on the variant detail Options badge should navigate
-// to the option group detail page, not a broken route.
-test.describe('variant option group edit link', () => {
-    test('should navigate to option group detail when clicking edit icon on variant page', async ({
+// Regression: each option group's label on the variant detail Options block is a link to
+// the option group detail page (not a broken route, and no longer a separate pencil button).
+test.describe('variant option group label link', () => {
+    test('should navigate to option group detail when clicking the group label on variant page', async ({
         page,
     }) => {
         // Navigate to product variants list and click a Laptop variant (seed data, has options)
@@ -554,22 +554,539 @@ test.describe('variant option group edit link', () => {
             .click();
         await expect(page).toHaveURL(/\/product-variants\/[^/]+$/);
 
-        // The Options block should be visible with edit icons
+        // The Options block should be visible with the editable option comboboxes
         const optionsBlock = page.getByRole('main');
         await expect(optionsBlock.getByText('Options', { exact: true })).toBeVisible({
             timeout: 10_000,
         });
 
-        // Click the edit link (pencil icon) on the first option badge, capturing its group name
-        const firstBadge = optionsBlock.locator('[data-slot="badge"]').first();
-        const badgeText = await firstBadge.innerText();
-        const groupName = badgeText.split(':')[0].trim();
-        await firstBadge.getByRole('link').click();
+        // The option group label itself is the link to the option group detail
+        await optionsBlock.locator('a[href*="/option-groups/"]').first().click();
 
-        // Should navigate to the option group detail page with the correct group
+        // Should navigate to the option group detail page
         await expect(page).toHaveURL(/\/option-groups\/[^/]+$/);
-        await expect(page.getByRole('heading', { level: 1 })).toContainText(groupName, {
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10_000 });
+    });
+});
+
+// product-variants-option-groups-ux PRD — the standalone Product Variants list must
+// show a parent product column (visible by default) linking to the product detail page.
+test.describe('product variants list parent product column', () => {
+    test('shows a linked parent product column by default', async ({ page }) => {
+        await page.goto('/product-variants');
+        await expect(page.getByRole('heading', { name: 'Product Variants' })).toBeVisible({
             timeout: 10_000,
         });
+
+        // The Product column header is visible without opening column settings.
+        await expect(page.getByRole('columnheader', { name: 'Product', exact: true })).toBeVisible();
+
+        // The first row links to the parent product detail page (href distinguishes it
+        // from the variant-name column, which links to /product-variants/...).
+        const productLink = page.locator('table tbody tr').first().locator('a[href^="/products/"]').first();
+        await expect(productLink).toBeVisible();
+        expect(await productLink.getAttribute('href')).toMatch(/^\/products\/[^/]+$/);
+    });
+});
+
+// product-variants-option-groups-ux PRD (Nigel review) — the new-variant breadcrumb has no
+// parent entity yet, so it must fall back to the variants list rather than linking a broken
+// /products/undefined.
+test.describe('new variant breadcrumb', () => {
+    test('falls back to the variants list, with no broken parent-product link', async ({ page }) => {
+        await page.goto('/product-variants/new');
+        await expect(page.getByRole('heading', { name: 'New product variant' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // The pre-fix breadcrumb linked the (undefined) parent product — assert no such
+        // broken link exists anywhere on the page.
+        await expect(page.locator('a[href*="/products/undefined"]')).toHaveCount(0);
+
+        // The breadcrumb falls back to a link to the variants list.
+        await expect(page.locator('a[href$="/product-variants"]').first()).toBeVisible();
+    });
+});
+
+// product-variants-option-groups-ux PRD — in-place option editing (reassign + inline
+// create + duplicate-combination rejection) and inherited global stock settings on the
+// variant detail page.
+test.describe('variant detail option & stock editing (PRD)', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let smallVariantId: string;
+    let mediumVariantId: string;
+    let globalThreshold: number;
+
+    // Locates the field wrapper carrying a given (exact) label, so its control can be scoped.
+    const fieldByLabel = (page: import('@playwright/test').Page, label: string) =>
+        page.locator('[data-slot="field"]').filter({ has: page.getByText(label, { exact: true }) });
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const global = await client.gql(`query { globalSettings { outOfStockThreshold } }`);
+        globalThreshold = global.globalSettings.outOfStockThreshold;
+
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E Variant Options Product',
+                            slug: 'e2e-variant-options-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+
+        const group = await client.gql(
+            `mutation ($input: CreateProductOptionGroupInput!) {
+                createProductOptionGroup(input: $input) { id options { id name } }
+            }`,
+            {
+                input: {
+                    code: 'e2e-vo-size',
+                    translations: [{ languageCode: 'en', name: 'Size' }],
+                    options: [
+                        { code: 'e2e-vo-small', translations: [{ languageCode: 'en', name: 'Small' }] },
+                        { code: 'e2e-vo-medium', translations: [{ languageCode: 'en', name: 'Medium' }] },
+                        { code: 'e2e-vo-large', translations: [{ languageCode: 'en', name: 'Large' }] },
+                    ],
+                },
+            },
+        );
+        const optionGroupId = group.createProductOptionGroup.id;
+        const optionByName: Record<string, string> = {};
+        for (const option of group.createProductOptionGroup.options) {
+            optionByName[option.name] = option.id;
+        }
+
+        await client.gql(
+            `mutation ($productId: ID!, $optionGroupId: ID!) {
+                addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+            }`,
+            { productId, optionGroupId },
+        );
+
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { id name }
+            }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: 'E2E-VO-SM',
+                        price: 1000,
+                        optionIds: [optionByName.Small],
+                        // Distinct own threshold with global-inheritance ON, to prove the input
+                        // shows the global value while the switch is on and the variant's own
+                        // value reappears when it is off.
+                        outOfStockThreshold: 7,
+                        useGlobalOutOfStockThreshold: true,
+                        trackInventory: 'INHERIT',
+                        translations: [{ languageCode: 'en', name: 'E2E Variant Options Product Small' }],
+                    },
+                    {
+                        productId,
+                        sku: 'E2E-VO-MD',
+                        price: 1000,
+                        optionIds: [optionByName.Medium],
+                        translations: [{ languageCode: 'en', name: 'E2E Variant Options Product Medium' }],
+                    },
+                ],
+            },
+        );
+        for (const variant of variants.createProductVariants) {
+            if (variant.name.endsWith('Small')) smallVariantId = variant.id;
+            if (variant.name.endsWith('Medium')) mediumVariantId = variant.id;
+        }
+        await page.close();
+    });
+
+    // product-variants-option-groups-ux PRD (user decision) — Enter pressed inside an option
+    // combobox must NOT submit the page form; it only keeps the typed value locally. (Enter in
+    // a plain field like SKU still saves — covered by the tests below.)
+    test('pressing Enter in an option field does not submit the form', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Free text + Enter: the value is kept in the field and the form is not submitted.
+        await sizeInput.click();
+        await sizeInput.fill('ZZZ');
+        await sizeInput.press('Enter');
+        await expect(sizeInput).toHaveValue('ZZZ');
+        await expect(
+            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
+        ).toHaveCount(0);
+
+        // Picking a suggestion with Enter (popup open) still works — and still no submit.
+        await sizeInput.fill('La');
+        await sizeInput.press('ArrowDown');
+        await sizeInput.press('Enter');
+        await expect(sizeInput).toHaveValue('Large');
+        await expect(
+            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
+        ).toHaveCount(0);
+
+        // Definitive: a reload shows the original option — nothing was persisted.
+        await page.reload();
+        await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
+    });
+
+    // product-variants-option-groups-ux PRD — reassigning to an option combination that a
+    // sibling variant already uses is rejected client-side and blocks saving.
+    test('rejects a duplicate option combination', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Reassign the "Small" variant to "Medium" — already used by the sibling variant.
+        await sizeInput.fill('Medium');
+        await page.keyboard.press('Escape');
+
+        await expect(page.getByText(/already exists/i)).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled();
+    });
+
+    // product-variants-option-groups-ux PRD (Codex review) — a real Enter keypress in a text
+    // field triggers the native form submit, which must go through the same guards as the
+    // Update button and must NOT persist a duplicate combination the button refuses.
+    test('does not persist a duplicate combination when pressing Enter', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Set a duplicate combination (Medium is used by the sibling variant).
+        await sizeInput.fill('Medium');
+        await page.keyboard.press('Escape');
+        await expect(page.getByText(/already exists/i)).toBeVisible();
+
+        // Press Enter from a plain text field (SKU) — the guard must block the submit.
+        const skuInput = fieldByLabel(page, 'SKU').getByRole('textbox');
+        await skuInput.click();
+        await skuInput.press('Enter');
+
+        // No success toast, and a reload shows the option unchanged.
+        await expect(
+            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
+        ).toHaveCount(0);
+        await page.reload();
+        await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
+    });
+
+    // product-variants-option-groups-ux PRD — reassigning to a free option persists.
+    test('reassigns a variant option to a different existing option', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        await sizeInput.fill('Large');
+        await page.keyboard.press('Escape');
+        await expect(sizeInput).toHaveValue('Large');
+
+        const updateButton = page.getByRole('button', { name: 'Update' });
+        await expect(updateButton).toBeEnabled();
+        await updateButton.click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    // product-variants-option-groups-ux PRD (Codex review) — a real Enter keypress persists a
+    // valid change through the guarded save path.
+    test('persists a valid change when pressing Enter', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        // The reassign test left this variant on "Large"; move it back to "Small" via Enter.
+        await expect(sizeInput).toHaveValue('Large', { timeout: 10_000 });
+        await sizeInput.fill('Small');
+        await page.keyboard.press('Escape');
+        await expect(sizeInput).toHaveValue('Small');
+
+        // Press Enter from a plain text field (SKU) — the native submit must save.
+        const skuInput = fieldByLabel(page, 'SKU').getByRole('textbox');
+        await skuInput.click();
+        await skuInput.press('Enter');
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+        await page.reload();
+        await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
+    });
+
+    // product-variants-option-groups-ux PRD — creating a new option inline assigns it to
+    // the variant and can be saved.
+    test('creates a new option inline and assigns it', async ({ page }) => {
+        await page.goto(`/product-variants/${mediumVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Medium', { timeout: 10_000 });
+
+        // Type a value that matches no existing option — it is created on save. No
+        // suggestions open for an unmatched value, so there is no popup to dismiss.
+        await sizeInput.fill('XXL');
+        await expect(sizeInput).toHaveValue('XXL');
+
+        const updateButton = page.getByRole('button', { name: 'Update' });
+        await expect(updateButton).toBeEnabled();
+        await updateButton.click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    // product-variants-option-groups-ux PRD — the track-inventory select shows the resolved
+    // global value in the closed trigger, not just the bare "Inherit" text.
+    test('shows the resolved global value in the track-inventory select', async ({ page }) => {
+        await page.goto(`/product-variants/${mediumVariantId}`);
+        const trackField = fieldByLabel(page, 'Stock levels');
+        await expect(trackField).toContainText(/Inherit from global settings \((Track|Do not track)\)/, {
+            timeout: 10_000,
+        });
+    });
+
+    // product-variants-option-groups-ux PRD — while the global-threshold switch is on, the
+    // threshold input is disabled and shows the global value; turning it off re-enables the
+    // input and restores the variant's own value.
+    test('threshold input reflects the global switch state', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+
+        const thresholdInput = fieldByLabel(page, 'Out-of-stock threshold').getByRole('spinbutton');
+        const globalSwitch = fieldByLabel(page, 'Use global out-of-stock threshold').getByRole('switch');
+
+        // Switch on by default: input disabled and showing the global threshold value.
+        await expect(globalSwitch).toBeChecked();
+        await expect(thresholdInput).toBeDisabled();
+        await expect(thresholdInput).toHaveValue(String(globalThreshold));
+
+        // Turn it off: input re-enables and shows the variant's own stored value (7).
+        await globalSwitch.click();
+        await expect(thresholdInput).toBeEnabled();
+        await expect(thresholdInput).toHaveValue('7');
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// product-variants-option-groups-ux PRD (Codex review) — a variant on a product with no
+// option groups must not render a broken Options block and must still save.
+test.describe('variant with no option groups', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let variantId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E No Option Groups Product',
+                            slug: 'e2e-no-option-groups-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { id }
+            }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: 'E2E-NOG-1',
+                        price: 1000,
+                        optionIds: [],
+                        translations: [{ languageCode: 'en', name: 'E2E No Option Groups Variant' }],
+                    },
+                ],
+            },
+        );
+        variantId = variants.createProductVariants[0].id;
+        await page.close();
+    });
+
+    test('does not render an Options block and can still be saved', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        await expect(page.getByRole('heading', { name: 'E2E No Option Groups Variant' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // No Options block renders for a variant without option groups.
+        await expect(page.getByRole('main').getByText('Options', { exact: true })).toHaveCount(0);
+
+        // A simple field change still saves — the empty options state must not block it.
+        const skuInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('SKU', { exact: true }) })
+            .getByRole('textbox');
+        await skuInput.fill('E2E-NOG-1-EDITED');
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// OSS-567 — the form engine must submit only the fields the user actually
+// changed, so an untouched field's stale page-load value cannot silently
+// overwrite a concurrent edit by another admin or the API.
+test.describe('variant update sends only changed fields (OSS-567)', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let variantId: string;
+
+    // Create a dedicated product + variant instead of editing a seed variant: this test renames
+    // and saves, and mutating shared seed data (a "Laptop" variant) pollutes other specs. Seed the
+    // variant with a non-empty `facetValueIds` so the assertion below proves the unchanged non-empty
+    // replace-array is *omitted* (not merely that an empty one is).
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(
+            `query { facetValues(options: { take: 1 }) { items { id } } }`,
+        );
+        const facetValueId = facetValues.items[0].id as string;
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'OSS567 Variant Product',
+                            slug: `oss567-variant-product-${Date.now()}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) { createProductVariants(input: $input) { id } }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: `OSS567-SEED-${Date.now()}`,
+                        price: 1000,
+                        optionIds: [],
+                        facetValueIds: [facetValueId],
+                        translations: [{ languageCode: 'en', name: 'OSS567 Variant' }],
+                    },
+                ],
+            },
+        );
+        variantId = variants.createProductVariants[0].id;
+        await page.close();
+    });
+
+    test('editing only the SKU submits just id + sku', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+
+        // Locate the SKU field on the detail form and change only that.
+        const skuField = page
+            .getByRole('main')
+            .locator('[data-slot="field"]')
+            .filter({
+                has: page.locator('[data-slot="field-label"]').getByText('SKU', { exact: true }),
+            })
+            .getByRole('textbox');
+        await expect(skuField).toBeVisible({ timeout: 10_000 });
+        const newSku = `OSS567-${Date.now()}`;
+        await skuField.fill(newSku);
+
+        // Capture the update mutation payload. `mutation UpdateProductVariant(` (with the
+        // paren) avoids matching the plural `UpdateProductVariants` mutation.
+        const updateRequest = page.waitForRequest(
+            req =>
+                req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProductVariant('),
+            { timeout: 15_000 },
+        );
+        await page.getByRole('button', { name: 'Update' }).click();
+        const request = await updateRequest;
+        const input = request.postDataJSON()?.variables?.input;
+
+        // Only the non-nullable id and the changed sku should be present — every other
+        // replace-semantics field (facetValueIds, assetIds, translations, price, …) is omitted.
+        // The exhaustive key assertion below already proves each of those is absent.
+        expect(input).toBeTruthy();
+        expect(Object.keys(input).sort()).toEqual(['id', 'sku']);
+        expect(input.sku).toBe(newSku);
+
+        // Confirm the save succeeded.
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
     });
 });

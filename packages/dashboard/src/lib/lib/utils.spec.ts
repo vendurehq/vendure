@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { removeReadonlyAndLocalizedCustomFields } from './utils.js';
+import { removeReadonlyAndLocalizedCustomFields, toBcp47Tag } from './utils.js';
 
 describe('removeReadonlyAndLocalizedCustomFields', () => {
     it('should return values unchanged when no customFields present', () => {
@@ -249,5 +249,18 @@ describe('removeReadonlyAndLocalizedCustomFields', () => {
                 localeName: 'English name',
             });
         });
+    });
+});
+
+// #5538 — Intl rejects underscore language tags such as zh_Hans
+describe('toBcp47Tag', () => {
+    it('should replace underscores with hyphens', () => {
+        expect(toBcp47Tag('zh_Hans')).toBe('zh-Hans');
+        expect(toBcp47Tag('pt_BR')).toBe('pt-BR');
+    });
+
+    it('should return codes without underscores unchanged', () => {
+        expect(toBcp47Tag('en')).toBe('en');
+        expect(toBcp47Tag('zh-Hans')).toBe('zh-Hans');
     });
 });

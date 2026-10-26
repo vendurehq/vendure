@@ -3,7 +3,9 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -11,7 +13,6 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -36,7 +37,7 @@ export const Route = createFileRoute('/_authenticated/_customer-groups/customer-
             isNew ? <Trans>New customer group</Trans> : entity?.name,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CustomerGroupDetailPage() {
@@ -107,8 +108,11 @@ function CustomerGroupDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="CustomerGroup" control={form.control} />
                 {entity && (
-                    <PageBlock column="main" blockId="customers" title={<Trans>Customers</Trans>}>
-                        <CustomerGroupMembersTable customerGroupId={entity?.id} />
+                    <PageBlock column="main" blockId="customers" layout="bare">
+                        <CustomerGroupMembersTable
+                            customerGroupId={entity?.id}
+                            title={<Trans>Customers</Trans>}
+                        />
                     </PageBlock>
                 )}
             </PageLayout>

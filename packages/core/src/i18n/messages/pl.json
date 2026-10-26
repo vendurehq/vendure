@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtruj według wartości aspektów",
+        "args": {
+          "facetValueIds": {
+            "label": "Wartości aspektów"
+          },
+          "containsAny": {
+            "label": "Zawiera dowolną",
+            "description": "Jeśli zaznaczone, warianty produktu muszą mieć co najmniej jedną z wybranych wartości aspektów. Jeśli nie jest zaznaczone, wariant musi mieć wszystkie wybrane wartości."
+          },
+          "combineWithAnd": {
+            "label": "Tryb łączenia",
+            "description": "Jeśli ten filtr jest łączony z innymi filtrami, czy muszą być spełnione wszystkie warunki (AND), czy wystarczy tylko jeden z nich (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtruj według nazwy wariantu produktu",
+        "args": {
+          "combineWithAnd": {
+            "label": "Tryb łączenia",
+            "description": "Jeśli ten filtr jest łączony z innymi filtrami, czy muszą być spełnione wszystkie warunki (AND), czy wystarczy tylko jeden z nich (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Ręcznie wybierz warianty produktu",
+        "args": {
+          "variantIds": {
+            "label": "Warianty produktu"
+          },
+          "combineWithAnd": {
+            "label": "Tryb łączenia",
+            "description": "Jeśli ten filtr jest łączony z innymi filtrami, czy muszą być spełnione wszystkie warunki (AND), czy wystarczy tylko jeden z nich (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Ręcznie wybierz produkty",
+        "args": {
+          "productIds": {
+            "label": "Produkty"
+          },
+          "combineWithAnd": {
+            "label": "Tryb łączenia",
+            "description": "Jeśli ten filtr jest łączony z innymi filtrami, czy muszą być spełnione wszystkie warunki (AND), czy wystarczy tylko jeden z nich (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Domyślny duplikator produktów",
+        "args": {
+          "includeVariants": {
+            "label": "Uwzględnij warianty"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Domyślny duplikator kolekcji"
+      },
+      "facet-duplicator": {
+        "description": "Domyślny duplikator aspektów",
+        "args": {
+          "includeFacetValues": {
+            "label": "Uwzględnij wartości aspektów"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Domyślny duplikator promocji"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ręcznie wprowadź dane realizacji zamówienia"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Fikcyjny dostawca płatności przeznaczony wyłącznie do testów i prac programistycznych.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autoryzuj i rozlicz w 1 kroku",
+            "description": "Jeśli ta opcja jest włączona, płatności będą tworzone w stanie \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Przykładowy dostawca płatności"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Rabat kwotowy na zamówienie"
+      },
+      "order_line_fixed_discount": {
+        "description": "Rabat kwotowy na orderLine"
+      },
+      "order_percentage_discount": {
+        "description": "Rabat { discount }% na zamówienie"
+      },
+      "facet_based_discount": {
+        "description": "Rabat { discount }% na produkty z tymi aspektami"
+      },
+      "products_percentage_discount": {
+        "description": "Rabat { discount }% na wskazane produkty",
+        "args": {
+          "productVariantIds": {
+            "label": "Warianty produktu"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Darmowa wysyłka"
+      },
+      "buy_x_get_y_free": {
+        "description": "Kup X produktów, otrzymaj Y produktów gratis"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Jeśli wartość zamówienia jest większa niż { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Kup co najmniej { minimum } produktów z podanymi aspektami"
+      },
+      "contains_products": {
+        "description": "Kup co najmniej { minimum } ze wskazanych produktów",
+        "args": {
+          "productVariantIds": {
+            "label": "Warianty produktu"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Klient należy do wskazanej grupy",
+        "args": {
+          "customerGroupId": {
+            "label": "Grupa klientów"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Kup X produktów, otrzymaj Y produktów gratis",
+        "args": {
+          "variantIdsX": {
+            "label": "Kup amountX tych wariantów"
+          },
+          "variantIdsY": {
+            "label": "Otrzymaj amountY tych wariantów gratis"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Domyślny kalkulator wysyłki ze stawką ryczałtową",
+        "args": {
+          "rate": {
+            "label": "Cena wysyłki"
+          },
+          "includesTax": {
+            "label": "Cena zawiera podatek",
+            "options": {
+              "include": {
+                "label": "Zawiera podatek"
+              },
+              "exclude": {
+                "label": "Nie zawiera podatku"
+              },
+              "auto": {
+                "label": "Automatycznie (na podstawie kanału)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Stawka podatkowa"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Domyślna weryfikacja kwalifikowalności wysyłki",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimalna wartość zamówienia",
+            "description": "Zamówienie kwalifikuje się tylko wtedy, gdy jego wartość jest większa lub równa tej wartości"
+          }
+        }
+      }
+    }
+  }
+}

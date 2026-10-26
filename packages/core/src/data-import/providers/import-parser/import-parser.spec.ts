@@ -31,6 +31,19 @@ const mockConfigService = {
     },
 } as ConfigService;
 
+const mockConfigServiceWithLocaleText = {
+    defaultLanguageCode: LanguageCode.en,
+    customFields: {
+        Product: [
+            {
+                name: 'blurb',
+                type: 'localeText',
+            },
+        ],
+        ProductVariant: [],
+    },
+} as ConfigService;
+
 describe('ImportParser', () => {
     beforeAll(async () => {
         await ensureConfigLoaded();
@@ -114,6 +127,25 @@ describe('ImportParser', () => {
             expect(product.optionGroups[1].code).toBeUndefined();
             expect(product.optionGroups[1].translations[0].name).toBe('color');
             expect(product.optionGroups[1].translations[0].values).toEqual(['Red', 'Blue']);
+        });
+
+        // #5328 — a localeText custom field must be treated as translatable on import, like localeString
+        it('reads translations for a localeText custom field', async () => {
+            const importParser = new ImportParser(mockConfigServiceWithLocaleText);
+
+            const input = await loadTestFixture('locale-text-custom-field.csv');
+            const result = await importParser.parseProducts(input);
+
+            expect(result.errors).toEqual([]);
+            expect(result.results.length).toBe(1);
+
+            const translations = result.results[0].product.translations;
+            expect(translations.find(t => t.languageCode === LanguageCode.en)?.customFields).toEqual({
+                blurb: 'Long form English blurb',
+            });
+            expect(translations.find(t => t.languageCode === LanguageCode.de)?.customFields).toEqual({
+                blurb: 'Langer deutscher Fließtext',
+            });
         });
 
         describe('error conditions', () => {

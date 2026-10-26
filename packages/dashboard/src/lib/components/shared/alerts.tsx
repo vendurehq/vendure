@@ -12,7 +12,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '../ui/dropdown-menu.js';
+import { NoNotificationsIllustration } from '../ui/illustrations.js';
 import { ScrollArea } from '../ui/scroll-area.js';
+import { EmptyState } from '../ui/state-views.js';
 
 export function Alerts() {
     const { alerts, activeCount } = useAlerts();
@@ -42,9 +44,11 @@ export function Alerts() {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center py-10 text-muted-foreground">
-                            <Trans>No alerts</Trans>
-                        </div>
+                        <EmptyState
+                            className="border-0 rounded-none bg-transparent"
+                            illustration={<NoNotificationsIllustration />}
+                            title={<Trans>No alerts</Trans>}
+                        />
                     )}
                 </ScrollArea>
             </DropdownMenuContent>

@@ -85,7 +85,7 @@ function SortableItem({ id, item, isDisabled, isEditing, onRemove, onEdit, onSav
         <Badge
             ref={setNodeRef}
             style={style}
-            variant="secondary"
+            variant="default"
             className={cn(
                 isDragging && 'opacity-50',
                 'flex items-center gap-1',

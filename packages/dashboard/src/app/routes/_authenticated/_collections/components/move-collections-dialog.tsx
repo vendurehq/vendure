@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,10 +15,13 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { api } from '@/vdb/graphql/api.js';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { ChevronRight, Folder, FolderOpen, Search } from 'lucide-react';
 
 import { collectionListForMoveDocument, moveCollectionDocument } from '../collections.graphql.js';
+import { usePaginatedChildCollections } from '../hooks/use-paginated-child-collections.js';
+
+const CHILDREN_PAGE_SIZE = 20;
 
 type Collection = {
     id: string;
@@ -46,6 +49,8 @@ interface CollectionTreeNodeProps {
     selectedCollectionId?: string;
     collectionsToMove: Collection[];
     childCollectionsByParentId: Record<string, Collection[]>;
+    childTotalsByParentId: Record<string, number>;
+    onLoadMoreChildren: (parentId: string) => void;
 }
 
 interface TargetAlertProps {
@@ -67,18 +72,22 @@ function TargetAlert({
     topLevelCollectionId,
     collectionNameCache,
 }: Readonly<TargetAlertProps>) {
+    const { t } = useLingui();
+    const destination = !selectedCollectionId
+        ? ''
+        : selectedCollectionId === topLevelCollectionId
+          ? t`top level`
+          : collectionNameCache.current.get(selectedCollectionId) || t`selected collection`;
     return (
         <Alert className={selectedCollectionId ? 'border-primary/30 bg-primary/10' : 'opacity-50'}>
             <Folder className="h-4 w-4" />
             <AlertDescription>
                 {selectedCollectionId ? (
-                    <Trans>
-                        Moving {collectionsToMove.length} collection
-                        {collectionsToMove.length === 1 ? '' : 's'} into{' '}
-                        {selectedCollectionId === topLevelCollectionId
-                            ? 'top level'
-                            : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'}
-                    </Trans>
+                    <Plural
+                        value={collectionsToMove.length}
+                        one={`Moving # collection into ${destination}`}
+                        other={`Moving # collections into ${destination}`}
+                    />
                 ) : (
                     <Trans>Select a destination collection</Trans>
                 )}
@@ -120,6 +129,8 @@ function CollectionTreeNode({
     selectedCollectionId,
     collectionsToMove,
     childCollectionsByParentId,
+    childTotalsByParentId,
+    onLoadMoreChildren,
 }: Readonly<CollectionTreeNodeProps>) {
     const hasChildren = collection.children && collection.children.length > 0;
     const isExpanded = expanded[collection.id];
@@ -131,6 +142,7 @@ function CollectionTreeNode({
     const isSelectable = !isBeingMoved && !isChildOfBeingMoved;
 
     const childCollections = childCollectionsByParentId[collection.id] || [];
+    const hasMoreChildren = (childTotalsByParentId[collection.id] ?? 0) > childCollections.length;
 
     return (
         <div className="my-0.5">
@@ -197,8 +209,20 @@ function CollectionTreeNode({
                             selectedCollectionId={selectedCollectionId}
                             collectionsToMove={collectionsToMove}
                             childCollectionsByParentId={childCollectionsByParentId}
+                            childTotalsByParentId={childTotalsByParentId}
+                            onLoadMoreChildren={onLoadMoreChildren}
                         />
                     ))}
+                    {hasMoreChildren && (
+                        <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-foreground py-1.5 px-3"
+                            style={{ marginLeft: (depth + 1) * 20 }}
+                            onClick={() => onLoadMoreChildren(collection.id)}
+                        >
+                            <Trans>Load more</Trans>
+                        </button>
+                    )}
                 </div>
             )}
         </div>
@@ -220,8 +244,6 @@ export function MoveCollectionsDialog({
     const queryClient = useQueryClient();
     const { t } = useLingui();
     const collectionForMoveKey = ['collectionsForMove', debouncedSearchTerm];
-    const childCollectionsForMoveKey = (collectionId?: string) =>
-        collectionId ? ['childCollectionsForMove', collectionId] : ['childCollectionsForMove'];
 
     const { data: collectionsData, isLoading } = useQuery({
         queryKey: collectionForMoveKey,
@@ -243,45 +265,53 @@ export function MoveCollectionsDialog({
     const topLevelCollectionId = collectionsData?.collections.items[0]?.parentId;
     const selectionHasTopLevelParent = collectionsToMove.some(c => c.parentId === topLevelCollectionId);
 
-    // Load child collections for expanded nodes
-    const childrenQueries = useQueries({
-        queries: Object.entries(expanded).map(([collectionId, isExpanded]) => {
+    // Loads child collections for expanded nodes one page (CHILDREN_PAGE_SIZE) at a time.
+    // Expanding a node with many children (common in deeply nested trees) would otherwise
+    // fetch every descendant - and compute breadcrumbs for each - in a single unbounded
+    // request.
+    const { accumulatedChildren, handleLoadMoreChildren, resetChildren } = usePaginatedChildCollections<
+        Collection
+    >({
+        expandedIds: Object.entries(expanded)
+            .filter(([, isExpanded]) => isExpanded)
+            .map(([collectionId]) => collectionId),
+        pageSize: CHILDREN_PAGE_SIZE,
+        queryKeyPrefix: 'childCollectionsForMove',
+        fetchChildren: async (parentId, take, skip) => {
+            const result = await api.query(collectionListForMoveDocument, {
+                options: {
+                    filter: {
+                        parentId: { eq: parentId },
+                    },
+                    take,
+                    skip,
+                },
+            });
             return {
-                queryKey: childCollectionsForMoveKey(collectionId),
-                queryFn: () =>
-                    api.query(collectionListForMoveDocument, {
-                        options: {
-                            filter: {
-                                parentId: { eq: collectionId },
-                            },
-                        },
-                    }),
+                items: result.collections.items as Collection[],
+                totalItems: result.collections.totalItems,
             };
-        }),
+        },
     });
 
-    const childCollectionsByParentId = childrenQueries.reduce(
-        (acc, query, index) => {
-            const collectionId = Object.keys(expanded)[index];
-            if (query.data) {
-                const collections = query.data.collections.items as Collection[];
-                // Populate the name cache with these collections
-                collections.forEach(collection => {
-                    collectionNameCache.current.set(collection.id, collection.name);
-                });
-                acc[collectionId] = collections;
-            }
-            return acc;
-        },
-        {} as Record<string, Collection[]>,
-    );
+    const childCollectionsByParentId: Record<string, Collection[]> = {};
+    const childTotalsByParentId: Record<string, number> = {};
+    for (const [collectionId, { items, totalItems }] of Object.entries(accumulatedChildren)) {
+        // Populate the name cache with these collections
+        items.forEach(collection => {
+            collectionNameCache.current.set(collection.id, collection.name);
+        });
+        childCollectionsByParentId[collectionId] = items;
+        childTotalsByParentId[collectionId] = totalItems;
+    }
 
     const moveCollectionsMutation = useMutation({
         mutationFn: api.mutate(moveCollectionDocument),
         onSuccess: () => {
             toast.success(t`Collections moved successfully`);
             queryClient.invalidateQueries({ queryKey: collectionForMoveKey });
-            queryClient.invalidateQueries({ queryKey: childCollectionsForMoveKey() });
+            queryClient.removeQueries({ queryKey: ['childCollectionsForMove'] });
+            resetChildren();
             // Remove child caches BEFORE invalidating the main list to prevent
             // stale cached children from being synced back (same race as drag-reorder).
             onResetExpanded?.();
@@ -332,19 +362,27 @@ export function MoveCollectionsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] h-[90vh] flex flex-col p-0 gap-0">
+            <DialogContent
+                className="sm:max-w-[600px] h-[90vh] flex flex-col p-0 gap-0"
+                // The "Move" menu item keeps its DropdownMenu open (closeOnClick={false}) so
+                // this dialog can open on top of it. React bubbles synthetic keyboard events
+                // through the component tree, not the DOM tree. Without stopping propagation
+                // here, the still-open menu's own keydown handling (typeahead and roving
+                // focus) intercepts every keystroke typed into this dialog, including the
+                // filter input below (#5393). Escape-to-close is unaffected: Base UI merges
+                // its own dismiss handler onto this same element, and that handler still runs.
+                onKeyDown={e => e.stopPropagation()}
+            >
                 <DialogHeader className="px-6 pt-6 pb-4">
                     <DialogTitle>
                         <Trans>Move Collections</Trans>
                     </DialogTitle>
                     <DialogDescription>
-                        <Trans>
-                            Select a target collection to move{' '}
-                            {collectionsToMove.length === 1
-                                ? 'this collection'
-                                : `${collectionsToMove.length} collections`}{' '}
-                            to.
-                        </Trans>
+                        <Plural
+                            value={collectionsToMove.length}
+                            _1="Select a target collection to move this collection to."
+                            other="Select a target collection to move # collections to."
+                        />
                     </DialogDescription>
                 </DialogHeader>
                 <div className="px-6 py-3 bg-muted/50 border-y shrink-0">
@@ -396,6 +434,8 @@ export function MoveCollectionsDialog({
                                             selectedCollectionId={selectedCollectionId}
                                             collectionsToMove={collectionsToMove}
                                             childCollectionsByParentId={childCollectionsByParentId}
+                                            childTotalsByParentId={childTotalsByParentId}
+                                            onLoadMoreChildren={handleLoadMoreChildren}
                                         />
                                     ))}
                                 </>

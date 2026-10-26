@@ -11,11 +11,14 @@ or tax rules.
 class CustomerGroup extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<CustomerGroup>)
     @Column() name: string;
-    @ManyToMany(type => Customer, customer => customer.groups)
+    @ManyToMany(type => Customer, customer => customer.groups, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     customers: Customer[];
     @Column(type => CustomCustomerGroupFields)
     customFields: CustomCustomerGroupFields;
-    @OneToMany(type => TaxRate, taxRate => taxRate.zone)
+    @OneToMany(type => TaxRate, taxRate => taxRate.customerGroup)
     taxRates: TaxRate[];
 }
 ```

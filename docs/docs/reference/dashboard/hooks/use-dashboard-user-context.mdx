@@ -1,0 +1,53 @@
+---
+title: "UseDashboardUserContext"
+generated: true
+---
+## useDashboardUserContext
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-dashboard-user-context.ts" sourceLine="47" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns the [DashboardUserContext](/reference/dashboard/extensions-api/navigation#dashboardusercontext) for the logged-in administrator, plus a
+`ready` flag which is false while Administrator custom fields are still loading.
+
+Callers must not evaluate user-dependent rules until `ready` is true, otherwise
+rules that read `customFields` will briefly see them absent.
+
+Must be called inside `ChannelProvider`, which sits inside `AuthProvider`. Login
+extensions render outside both and cannot use this hook.
+
+```ts title="Signature"
+function useDashboardUserContext(options?: DashboardUserContextOptions): {
+    ctx: DashboardUserContext;
+    ready: boolean;
+}
+```
+Parameters
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/hooks/use-dashboard-user-context#dashboardusercontextoptions'>DashboardUserContextOptions</a>`} />
+
+## DashboardUserContextOptions
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-dashboard-user-context.ts" sourceLine="19" packageName="@vendure/dashboard" since="3.8.0" />
+
+Options for [useDashboardUserContext](/reference/dashboard/hooks/use-dashboard-user-context#usedashboardusercontext).
+
+```ts title="Signature"
+interface DashboardUserContextOptions {
+    includeCustomFields?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### includeCustomFields
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+Whether to load the administrator's custom fields. Pass false when your rules only
+read roles, channels or permissions: it saves an Admin API request, and
+`ctx.administrator.customFields` is then undefined while `ready` is true immediately.
+
+
+</div>

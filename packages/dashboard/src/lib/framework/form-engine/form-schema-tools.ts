@@ -37,6 +37,7 @@ function mapGraphQLCustomFieldToConfig(field: StructField) {
         readonly: false,
         requiresPermission: [],
         nullable: true, // Default to true since GraphQL fields are nullable by default
+        secret: false, // struct sub-fields cannot be secret
     };
 
     switch (field.__typename) {
@@ -247,17 +248,29 @@ function createStructFieldSchema(structFieldConfig: StructCustomFieldConfig): Zo
  * Many custom fields can be configured as lists (arrays) and/or nullable, so this helper
  * centralizes that logic to avoid duplication.
  *
+ * A create form also accepts an empty value for a `nullable: false` custom field (#5241). Every
+ * custom field is nullable in the GraphQL input type, so such a field is seeded `null`, and the
+ * create submit path strips that null from the payload (`stripNullNullableFields`). The server
+ * guarantees the field has a `defaultValue` backing the column's SQL DEFAULT, so the database
+ * supplies the value. The update schema keeps requiring one: the column is NOT NULL, so clearing
+ * the input must keep the form invalid, exactly as the server would reject that write.
+ *
  * @param zodType - The base Zod schema to modify
  * @param customField - Custom field config containing list/nullable flags
+ * @param isCreateForm - Whether the schema is for a create form (no entity yet)
  * @returns Modified Zod schema with list/nullable modifiers applied
  */
-function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldConfig): ZodType {
+function applyCustomFieldModifiers(
+    zodType: ZodType,
+    customField: CustomFieldConfig,
+    isCreateForm: boolean,
+): ZodType {
     let modifiedType = zodType;
 
     if (customField.list) {
         modifiedType = z.array(modifiedType);
     }
-    if (customField.nullable !== false || customField.readonly) {
+    if (customField.nullable !== false || customField.readonly || isCreateForm) {
         modifiedType = modifiedType.optional().nullable();
     }
     if (customField.readonly) {
@@ -273,11 +286,13 @@ function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldCon
  *
  * @param customFieldConfigs - Array of all custom field configurations
  * @param isTranslationContext - Whether we're processing fields for translation forms
+ * @param isCreateForm - Whether the schema is for a create form (no entity yet)
  * @returns Zod schema shape for the entire customFields object
  */
 function processCustomFieldsSchema(
     customFieldConfigs: CustomFieldConfig[],
     isTranslationContext: boolean,
+    isCreateForm: boolean,
 ): ZodRawShape {
     const customFieldsSchema: ZodRawShape = {};
     const translatableTypes = ['localeString', 'localeText'];
@@ -299,7 +314,7 @@ function processCustomFieldsSchema(
             zodType = createCustomFieldValidationSchema(customField);
         }
 
-        zodType = applyCustomFieldModifiers(zodType, customField);
+        zodType = applyCustomFieldModifiers(zodType, customField, isCreateForm);
         const schemaPropertyName = getGraphQlInputName(customField);
         customFieldsSchema[schemaPropertyName] = zodType;
     }
@@ -311,6 +326,7 @@ export function createFormSchemaFromFields(
     fields: FieldInfo[],
     customFieldConfigs?: CustomFieldConfig[],
     isTranslationContext = false,
+    isCreateForm = false,
 ) {
     const schemaConfig: ZodRawShape = {};
 
@@ -323,7 +339,7 @@ export function createFormSchemaFromFields(
         } else if (field.name === 'customFields') {
             const customFieldsSchema =
                 customFieldConfigs && customFieldConfigs.length > 0
-                    ? processCustomFieldsSchema(customFieldConfigs, isTranslationContext)
+                    ? processCustomFieldsSchema(customFieldConfigs, isTranslationContext, isCreateForm)
                     : {};
             // Use .passthrough() to preserve custom field values that aren't in the schema
             // This is essential for nested entities (e.g., ProductVariantPrice) whose custom
@@ -335,6 +351,7 @@ export function createFormSchemaFromFields(
                 field.typeInfo,
                 customFieldConfigs,
                 isNestedTranslationContext,
+                isCreateForm,
             );
 
             if (field.nullable) {

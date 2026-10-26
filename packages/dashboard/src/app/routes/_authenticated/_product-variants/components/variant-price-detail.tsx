@@ -1,4 +1,5 @@
 import { Money } from '@/vdb/components/data-display/money.js';
+import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -78,15 +79,16 @@ export function VariantPriceDetail({
     }, [price, taxRate, priceIncludesTax]);
 
     return (
-        <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">
-                <Trans>Tax rate: {taxRate}%</Trans>
+        <Field>
+            <FieldLabel>
+                <Trans>Gross price</Trans>{' '}
+                <span className="text-muted-foreground">
+                    <Trans>(incl. {taxRate}% tax)</Trans>
+                </span>
+            </FieldLabel>
+            <div className="text-sm pt-1.5">
+                <Money value={grossPrice} currency={currencyCode} />
             </div>
-            <div className="text-sm">
-                <Trans>
-                    Gross price: <Money value={grossPrice} currency={currencyCode} />
-                </Trans>
-            </div>
-        </div>
+        </Field>
     );
 }

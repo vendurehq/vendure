@@ -20,6 +20,15 @@ export interface ImageTransformParameters {
     fpx: number | undefined;
     fpy: number | undefined;
     preset: string | undefined;
+    /**
+     * @description
+     * A hex color string (e.g. `'#ffffff'`) to be used as the background color
+     * for images with alpha transparency. The alpha channel will be merged with
+     * this color using Sharp's `flatten()` method.
+     *
+     * @since 3.8.0
+     */
+    backgroundColor: string | undefined;
 }
 
 /**

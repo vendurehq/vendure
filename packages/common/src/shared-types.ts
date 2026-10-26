@@ -17,7 +17,7 @@ export type DeepPartial<T> = {
 };
 /* eslint-enable no-shadow, @typescript-eslint/no-shadow */
 
-/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /**
  * A recursive implementation of Required<T>.
  * Source: https://github.com/microsoft/TypeScript/issues/15012#issuecomment-365453623
@@ -29,12 +29,12 @@ export type DeepRequired<T, U extends object | undefined = undefined> = T extend
               : DeepRequired<NonNullable<T[P]>, U>;
       }
     : T;
-/* eslint-enable @typescript-eslint/ban-types */
+/* eslint-enable @typescript-eslint/no-unsafe-function-type */
 
 /**
  * A type representing the type rather than instance of a class.
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export interface Type<T> extends Function {
     // eslint-disable-next-line @typescript-eslint/prefer-function-type
     new (...args: any[]): T;

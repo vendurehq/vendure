@@ -1,4 +1,4 @@
-import { Button as BaseButton } from '@vendure-io/ui/components/ui/button';
+import { Button as BaseButton } from '@vendure-io/ui/components/atoms/button';
 import { type ComponentProps } from 'react';
 
 /** Auto-sets nativeButton={false} when render is provided to suppress Base UI warnings. */
@@ -7,4 +7,4 @@ function Button({ render, nativeButton, ...props }: ComponentProps<typeof BaseBu
 }
 
 export { Button };
-export { buttonVariants } from '@vendure-io/ui/components/ui/button';
+export { buttonVariants } from '@vendure-io/ui/components/atoms/button';

@@ -20,6 +20,7 @@ import {
     deleteProductVariantDocument,
     removeOptionGroupFromProductDocument,
     removeProductOptionGroupsFromChannelDocument,
+    updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
@@ -182,6 +183,7 @@ describe('ProductOption resolver', () => {
             ResultOf<typeof getProductOptionGroupDocument>['productOptionGroup']
         >;
         let variants: ResultOf<typeof createProductVariantsDocument>['createProductVariants'];
+        let productId: string;
 
         beforeAll(async () => {
             // Create a new product with a variant in each size option
@@ -219,6 +221,7 @@ describe('ProductOption resolver', () => {
             });
             variants = createProductVariants;
             sizeOptionGroupWithOptions = productOptionGroup!;
+            productId = createProduct.id;
         });
 
         it(
@@ -265,6 +268,46 @@ describe('ProductOption resolver', () => {
             expect(productOptionGroup?.options.length).toBe(2);
             expect(productOptionGroup?.options.findIndex(o => o.code === 'medium')).toBe(-1);
         });
+
+        it(
+            'createProductVariants rejects a deleted ProductOption',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(createProductVariantsDocument, {
+                        input: [
+                            {
+                                productId,
+                                sku: 'TS-medium-again',
+                                optionIds: [deletedOptionId()],
+                                translations: [
+                                    { languageCode: LanguageCode.en, name: 'T-shirt medium again' },
+                                ],
+                            },
+                        ],
+                    }),
+                'ProductVariant optionIds must include one optionId from each of the groups: size',
+            ),
+        );
+
+        it(
+            'updateProductVariants rejects moving a variant onto a deleted ProductOption',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(updateProductVariantsDocument, {
+                        input: [
+                            {
+                                id: variants.find(v => v!.name.includes('small'))!.id,
+                                optionIds: [deletedOptionId()],
+                            },
+                        ],
+                    }),
+                'ProductVariant optionIds must include one optionId from each of the groups: size',
+            ),
+        );
+
+        function deletedOptionId() {
+            return sizeOptionGroupWithOptions.options.find(o => o.code === 'medium')!.id;
+        }
     });
 
     describe('standalone deleteProductOptionGroup', () => {

@@ -2,13 +2,71 @@
 title: "SlugInput"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="137" packageName="@vendure/dashboard" />
+## requireGeneratedCode
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="80" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns `schema` with the generated `code` field required.
+
+SlugInput only generates a value for a new record, and the value arrives after the debounced
+lookup returns. Pages pass this to `extendSchema` while creating, so the form stays invalid — and
+the Create button disabled — until the value arrives. Nothing is generated for an existing
+record, so pages pass `undefined` there rather than blocking edits.
+
+*Example*
+
+```ts
+extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
+```
+
+```ts title="Signature"
+function requireGeneratedCode(schema: ZodObject<any>): void
+```
+Parameters
+
+### schema
+
+<MemberInfo kind="parameter" type={`ZodObject<any>`} />
+
+## requireGeneratedSlug
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="100" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns `schema` with the generated `slug` required on each translation row that has a name.
+The rows seeded for the channel's other languages have no name, so they still pass.
+
+Used the same way as [requireGeneratedCode](/reference/dashboard/form-components/slug-input#requiregeneratedcode), on pages whose slug lives on the translations.
+
+*Example*
+
+```ts
+extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
+```
+
+```ts title="Signature"
+function requireGeneratedSlug(schema: ZodObject<any>): void
+```
+Parameters
+
+### schema
+
+<MemberInfo kind="parameter" type={`ZodObject<any>`} />
+
+## SlugInput
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="198" packageName="@vendure/dashboard" />
 
 A component for generating and displaying slugs based on a watched field.
 The component watches a source field for changes, debounces the input,
-and generates a unique slug via the Admin API. The slug is only auto-generated
-when it's empty. For existing slugs, a regenerate button allows manual regeneration.
+and generates a unique slug via the Admin API. The slug is auto-generated while the
+field's form default value is empty, which covers creating an entity and adding a new
+language to an existing one. A field whose default value is already set keeps it when
+the watched field changes; a regenerate button allows manual regeneration.
 The input is readonly by default but can be made editable with a toggle button.
+
+The form must therefore hold the loaded entity in its default values, for example via
+`useForm({ values })` or `reset()`. If the entity is loaded with `setValue()`, or the form
+has no default values, an existing slug is overwritten when the watched field changes.
 
 *Example*
 

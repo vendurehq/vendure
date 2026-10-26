@@ -1,6 +1,6 @@
 {
     "name": "@vendure/job-queue-plugin",
-    "version": "3.7.3",
+    "version": "3.8.1",
     "license": "GPL-3.0-or-later",
     "main": "package/index.js",
     "types": "package/index.d.ts",
@@ -9,7 +9,8 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/vendurehq/vendure"
+        "url": "git+https://github.com/vendurehq/vendure.git",
+        "directory": "packages/job-queue-plugin"
     },
     "private": false,
     "scripts": {
@@ -25,8 +26,8 @@
         "access": "public"
     },
     "devDependencies": {
-        "@vendure/common": "3.7.3",
-        "@vendure/core": "3.7.3",
+        "@vendure/common": "3.8.1",
+        "@vendure/core": "3.8.1",
         "bullmq": "^5.67.1",
         "ioredis": "5.9.3",
         "rimraf": "^5.0.5",

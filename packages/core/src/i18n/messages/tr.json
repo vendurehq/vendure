@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Özellik değerlerine göre filtrele",
+        "args": {
+          "facetValueIds": {
+            "label": "Özellik değerleri"
+          },
+          "containsAny": {
+            "label": "Herhangi birini içerir",
+            "description": "İşaretlenirse, ürün varyantları seçilen özellik değerlerinden en az birine sahip olmalıdır. İşaretlenmezse, varyantın seçilen tüm değerlere sahip olması gerekir."
+          },
+          "combineWithAnd": {
+            "label": "Birleştirme modu",
+            "description": "Bu filtre diğer filtrelerle birleştirildiğinde tüm koşulların sağlanması mı (AND) yoksa yalnızca birinin sağlanması mı (OR) gerekir?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Ürün varyantı adına göre filtrele",
+        "args": {
+          "combineWithAnd": {
+            "label": "Birleştirme modu",
+            "description": "Bu filtre diğer filtrelerle birleştirildiğinde tüm koşulların sağlanması mı (AND) yoksa yalnızca birinin sağlanması mı (OR) gerekir?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Ürün varyantlarını elle seç",
+        "args": {
+          "variantIds": {
+            "label": "Ürün varyantları"
+          },
+          "combineWithAnd": {
+            "label": "Birleştirme modu",
+            "description": "Bu filtre diğer filtrelerle birleştirildiğinde tüm koşulların sağlanması mı (AND) yoksa yalnızca birinin sağlanması mı (OR) gerekir?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Ürünleri elle seç",
+        "args": {
+          "productIds": {
+            "label": "Ürünler"
+          },
+          "combineWithAnd": {
+            "label": "Birleştirme modu",
+            "description": "Bu filtre diğer filtrelerle birleştirildiğinde tüm koşulların sağlanması mı (AND) yoksa yalnızca birinin sağlanması mı (OR) gerekir?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Ürünler için varsayılan çoğaltıcı",
+        "args": {
+          "includeVariants": {
+            "label": "Varyantları dahil et"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Koleksiyonlar için varsayılan çoğaltıcı"
+      },
+      "facet-duplicator": {
+        "description": "Özellikler için varsayılan çoğaltıcı",
+        "args": {
+          "includeFacetValues": {
+            "label": "Özellik değerlerini dahil et"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Promosyonlar için varsayılan çoğaltıcı"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Sipariş karşılama bilgilerini elle gir"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Yalnızca test ve geliştirme amaçlı sahte bir ödeme sağlayıcısı.",
+        "args": {
+          "automaticSettle": {
+            "label": "Yetkilendir ve tek adımda tahsil et",
+            "description": "Etkinleştirilirse, ödemeler \"Settled\" durumunda oluşturulur."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Örnek Ödeme Sağlayıcısı"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Siparişe sabit tutarda indirim uygula"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine öğesine sabit tutarda indirim uygula"
+      },
+      "order_percentage_discount": {
+        "description": "Siparişe { discount }% indirim uygula"
+      },
+      "facet_based_discount": {
+        "description": "Bu özelliklere sahip ürünlere { discount }% indirim uygula"
+      },
+      "products_percentage_discount": {
+        "description": "Belirtilen ürünlere { discount }% indirim uygula",
+        "args": {
+          "productVariantIds": {
+            "label": "Ürün varyantları"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Ücretsiz kargo"
+      },
+      "buy_x_get_y_free": {
+        "description": "X ürün satın al, Y ürün ücretsiz al"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Sipariş toplamı { amount } tutarından büyükse"
+      },
+      "at_least_n_with_facets": {
+        "description": "Belirtilen özelliklere sahip en az { minimum } ürün satın al"
+      },
+      "contains_products": {
+        "description": "Belirtilen ürünlerden en az { minimum } tanesini satın al",
+        "args": {
+          "productVariantIds": {
+            "label": "Ürün varyantları"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Müşteri belirtilen grubun üyesidir",
+        "args": {
+          "customerGroupId": {
+            "label": "Müşteri grubu"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "X ürün satın al, Y ürün ücretsiz al",
+        "args": {
+          "variantIdsX": {
+            "label": "Bu varyantlardan amountX adet satın al"
+          },
+          "variantIdsY": {
+            "label": "Bu varyantlardan amountY adedini ücretsiz al"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Varsayılan Sabit Ücretli Kargo Hesaplayıcısı",
+        "args": {
+          "rate": {
+            "label": "Kargo ücreti"
+          },
+          "includesTax": {
+            "label": "Fiyata vergi dahildir",
+            "options": {
+              "include": {
+                "label": "Vergi dahil"
+              },
+              "exclude": {
+                "label": "Vergi hariç"
+              },
+              "auto": {
+                "label": "Otomatik (kanala göre)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Vergi oranı"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Varsayılan Kargo Uygunluk Denetleyicisi",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimum sipariş tutarı",
+            "description": "Sipariş yalnızca toplamı bu değere eşit veya bu değerden büyükse uygundur"
+          }
+        }
+      }
+    }
+  }
+}

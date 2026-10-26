@@ -1,4 +1,5 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { cn } from '@/vdb/lib/utils.js';
 import { X } from 'lucide-react';
 
 // Interface for facet value type
@@ -35,13 +36,21 @@ export function FacetValueChip({
 }: FacetValueChipProps) {
     return (
         <Badge
-            variant="secondary"
-            className="flex items-center gap-2 py-0.5 pl-2 pr-1 h-6 max-w-full shrink hover:bg-secondary/80"
+            variant="default"
+            className={cn(
+                'flex items-center gap-2 py-0.5 pl-2 h-6 max-w-full shrink hover:bg-secondary/80',
+                // The tighter right padding hugs the remove button; without it, keep the padding symmetric
+                removable ? 'pr-1' : 'pr-2',
+            )}
         >
             <div className="flex items-center gap-1.5 min-w-0 truncate">
-                <span className="font-medium truncate" title={facetValue.name}>{facetValue.name}</span>
+                <span className="font-medium truncate" title={facetValue.name}>
+                    {facetValue.name}
+                </span>
                 {displayFacetName && (
-                    <span className="text-muted-foreground text-xs truncate" title={facetValue.facet.name}>in {facetValue.facet.name}</span>
+                    <span className="text-muted-foreground text-xs truncate" title={facetValue.facet.name}>
+                        in {facetValue.facet.name}
+                    </span>
                 )}
             </div>
             {removable && (

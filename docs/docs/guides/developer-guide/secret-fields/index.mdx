@@ -1,0 +1,129 @@
+---
+title: "Secret fields"
+metaTitle: "Encrypting secret custom fields and config args in Vendure"
+metaDescription: "Store sensitive values such as API keys encrypted at rest and control who can read them via the API using the `secret` flag."
+---
+
+Some data stored by Vendure is sensitive — payment-gateway API keys, webhook signing secrets and
+similar. The `secret` flag lets you mark a custom field or a config arg so that its value is
+**encrypted in the database** and is **only returned in decrypted form via the API to users who are
+permitted to see it**.
+
+## Enabling encryption
+
+Encryption requires a stable secret key. Configure an [`EncryptionStrategy`](/reference/typescript-api/configuration/encryption-strategy/)
+in your VendureConfig, passing the secret key to its constructor:
+
+```ts
+import { DefaultEncryptionStrategy, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+    // ...
+    systemOptions: {
+        encryptionStrategy: new DefaultEncryptionStrategy({
+            secret: process.env.VENDURE_ENCRYPTION_KEY,
+        }),
+    },
+};
+```
+
+```sh
+VENDURE_ENCRYPTION_KEY=your-long-random-secret
+```
+
+:::warning
+The key must remain the same across restarts and deployments. If it changes, existing encrypted
+data can no longer be decrypted. Do not commit it to source control, and back it up securely.
+:::
+
+If a `secret` field or arg is configured but no encryption key is available, the server refuses to
+start, with a message showing exactly which configuration to add.
+
+## Marking a custom field as secret
+
+Set `secret: true` on a `string` or `text` custom field:
+
+```ts
+customFields: {
+    Customer: [
+        { name: 'externalApiKey', type: 'string', secret: true },
+    ],
+},
+```
+
+The value is encrypted when saved and decrypted when loaded. `secret` cannot be combined with
+`unique` or an explicit `length`, and is not supported on `relation`, `struct` or list fields.
+
+## Marking a config arg as secret
+
+Set `secret: true` on a `string` config arg — for example the API key of a payment method handler:
+
+```ts
+args: {
+    apiKey: { type: 'string', secret: true },
+},
+```
+
+This works for any configurable operation — payment method handlers and eligibility checkers,
+shipping calculators and checkers, promotion conditions and actions, collection filters, and any
+custom `ConfigurableOperationDef` you define yourself. The encryption, redaction and
+preservation-on-edit behaviour is handled centrally, so a custom operation does not need to
+implement any of it.
+
+`secret` is only supported on non-list `string` args. Encryption turns the value into an opaque
+ciphertext string, so the arg has to be a `string`; list args are not supported because the
+redaction placeholder that preserves an unchanged secret on edit stands for a single value.
+
+## Who can read the value
+
+Reading the decrypted value requires the `Permission.ReadSecret` permission, which by default is
+held only by the SuperAdmin. A user without it receives a redaction placeholder instead of the real
+value. This behaviour is defined by the [`SecretAccessStrategy`](/reference/typescript-api/configuration/secret-access-strategy/),
+which you can replace to apply your own logic (for example, revealing a secret only to certain
+roles). Its input is a discriminated union on `kind`: for a `customField` it includes the entity
+instance, its type and the field name; for a `configArg` it includes the arg name and, where the
+GraphQL query path allows it to be determined, the owning entity type and field.
+
+Writing a secret is **not** gated by `ReadSecret` — any user who is allowed to create or update the
+entity may set its secret fields.
+
+## Editing without re-entering the secret
+
+Because the API never returns the real value to an unauthorised user, the placeholder is what their
+edit form has to submit back. When the placeholder is submitted on an update, the stored value is
+left unchanged. To change the value, submit a new one; to clear it, submit an empty value. On a
+_create_, the placeholder is rejected, since there is no existing value to preserve.
+
+## Moving data between environments
+
+Secret values are stored encrypted, so a database dump contains ciphertext, not the original values.
+The key that encrypted them lives only in your environment configuration, never in the database. This
+means a dump can only be read in an environment that uses the **same** encryption key.
+
+The first time an encryption key is used against a database, Vendure stores a small "key check" value
+(a known string encrypted with that key). On every startup it verifies the configured key against
+this check, so if you restore a dump into an environment with a different key — or change the key of
+an existing database — the server **fails to start** with a clear error, rather than failing later
+with scattered decryption errors when a secret is first read.
+
+As a result:
+
+- **To move data you want to keep usable** (for example promoting a staging database to production),
+  use the **same `VENDURE_ENCRYPTION_KEY`** in both environments.
+- **To copy data into an environment that uses a different key** (for example pulling production data
+  onto a developer machine without sharing the production key), first clear the secret values in the
+  dump: set the encrypted custom-field columns to `NULL` and remove the secret config-arg values.
+  Otherwise the restored data cannot be decrypted with the local key.
+
+Key rotation (re-encrypting existing data under a new key) is not currently supported. If you have
+intentionally changed the key and there is no encrypted data to preserve, delete the
+`vendure.encryption.keyCheck` entry from the settings store to re-bind the database to the new key.
+
+## Existing data and limitations
+
+- Enabling `secret` on a field that already holds plain-text values does not break anything, but
+  those values are only encrypted the next time each record is saved.
+- Decrypted values are available to all internal code (events, jobs, plugins). The redaction applies
+  only to the GraphQL API, so take care not to re-leak secrets in logs or exports.
+- `secret` fields cannot be filtered or sorted, because the stored value is ciphertext.
+- Key rotation is not supported in this version; changing the key makes existing data unreadable.

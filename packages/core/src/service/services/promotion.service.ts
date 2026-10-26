@@ -179,13 +179,17 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput('PromotionCondition', c),
+                    p.conditions = this.configArgService.parseInputList(
+                        'PromotionCondition',
+                        input.conditions,
+                        promotion.conditions,
                     );
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput('PromotionAction', a),
+                    p.actions = this.configArgService.parseInputList(
+                        'PromotionAction',
+                        input.actions,
+                        promotion.actions,
                     );
                 }
             },
@@ -279,7 +283,7 @@ export class PromotionService {
                 deletedAt: IsNull(),
                 channels: { id: ctx.channelId },
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
         if (!promotion || !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
             return new CouponCodeInvalidError({ couponCode });

@@ -1,0 +1,75 @@
+---
+title: "Insights Filters"
+generated: true
+---
+## DashboardWidgetFilterDefinition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/insights.ts" sourceLine="41" packageName="@vendure/dashboard" since="3.8.0" />
+
+Defines a global filter that renders in the Insights page action bar, next to the
+built-in date range picker. The filter's value is shared with every widget on the
+page, which can read it via `useWidgetFilters().filters[id]`. Filter state is
+session-only (it is not persisted).
+
+```ts title="Signature"
+interface DashboardWidgetFilterDefinition<T = any> {
+    id: string;
+    component: React.ComponentType<DashboardWidgetFilterComponentProps<T>>;
+    defaultValue?: T;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique identifier for the filter. Widgets read the filter's value via
+`useWidgetFilters().filters[id]`. Registering two filters with the same id
+logs a warning and ignores the duplicate.
+### component
+
+<MemberInfo kind="property" type={`React.ComponentType<<a href='/reference/dashboard/extensions-api/insights-filters#dashboardwidgetfiltercomponentprops'>DashboardWidgetFilterComponentProps</a><T>>`}   />
+
+The React component rendered in the action bar. It receives the current `value`
+and an `onChange` callback (see [DashboardWidgetFilterComponentProps](/reference/dashboard/extensions-api/insights-filters#dashboardwidgetfiltercomponentprops)).
+### defaultValue
+
+<MemberInfo kind="property" type={`T`}   />
+
+The value the filter starts with on page load, before the user changes it.
+
+
+</div>
+## DashboardWidgetFilterComponentProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/insights.ts" sourceLine="15" packageName="@vendure/dashboard" since="3.8.0" />
+
+The props passed to a global insights filter's action-bar component. The component
+is a controlled input: it renders the current `value` and calls `onChange` when the
+user picks a new one.
+
+```ts title="Signature"
+interface DashboardWidgetFilterComponentProps<T = any> {
+    value: T;
+    onChange: (value: T) => void;
+}
+```
+
+<div className="members-wrapper">
+
+### value
+
+<MemberInfo kind="property" type={`T`}   />
+
+The current value of the filter.
+### onChange
+
+<MemberInfo kind="property" type={`(value: T) => void`}   />
+
+Call this with the new value when the user changes the filter. The updated value
+is made available to every widget through the `useWidgetFilters()` hook.
+
+
+</div>

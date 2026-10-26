@@ -1,9 +1,9 @@
 import { Money } from '@/vdb/components/data-display/money.js';
 import { DataTableCellComponent } from '@/vdb/components/data-table/types.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
-import { getTypeForState, stateTypeToBadgeVariant } from '@/vdb/utils/state-type.js';
+import { orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -34,7 +34,7 @@ export const OrderStateCell: DataTableCellComponent<{ state: string }> = ({ row 
     if (!value) {
         return null;
     }
-    return <Badge variant={stateTypeToBadgeVariant(getTypeForState(value))}>{getTranslatedOrderState(value)}</Badge>;
+    return <StatusBadge tone={orderStateDictionary.toneFor(value)}>{getTranslatedOrderState(value)}</StatusBadge>;
 };
 
 export const OrderMoneyCell: DataTableCellComponent<{ currencyCode: string }> = ({ cell, row }) => {

@@ -1,0 +1,311 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2025-02-20 14:18+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: ja\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+
+msgid "Actions"
+msgstr "アクション"
+
+msgid "Actor"
+msgstr "アクター"
+
+msgid "Actor type"
+msgstr "アクタータイプ"
+
+msgid "Approve"
+msgstr "承認"
+
+msgid "Authorization request could not be loaded"
+msgstr "認可リクエストを読み込めませんでした"
+
+msgid "Calls per hour"
+msgstr "1時間あたりの呼び出し"
+
+msgid "Client"
+msgstr "クライアント"
+
+msgid "Connect an MCP client to your Vendure server using the endpoints below."
+msgstr "以下のエンドポイントを使用して、MCPクライアントをVendureサーバーに接続します。"
+
+msgid "Could not revoke grant"
+msgstr "権限付与を取り消せませんでした"
+
+msgid "Could not update tool"
+msgstr "ツールを更新できませんでした"
+
+msgid "Deny"
+msgstr "拒否"
+
+msgid "Description"
+msgstr "説明"
+
+msgid "Destructive"
+msgstr "破壊的"
+
+msgid "Duration"
+msgstr "所要時間"
+
+msgid "Enabled"
+msgstr "有効"
+
+
+msgid "Expires"
+msgstr "有効期限"
+
+msgid "Grant revoked"
+msgstr "権限付与を取り消しました"
+
+msgid "Health & usage"
+msgstr "稼働状況と使用状況"
+
+msgid "Last activity"
+msgstr "最終アクティビティ"
+
+msgid "Last hour"
+msgstr "過去1時間"
+
+msgid "Last 24 hours"
+msgstr "過去24時間"
+
+msgid "Last 7 days"
+msgstr "過去7日間"
+
+msgid "Last 30 days"
+msgstr "過去30日間"
+
+msgid "Loading authorization request…"
+msgstr "認可リクエストを読み込んでいます…"
+
+msgid "MCP Server"
+msgstr "MCP Server"
+
+msgid "Mutating"
+msgstr "変更あり"
+
+msgid "Name"
+msgstr "名前"
+
+msgid "No calls recorded in this period."
+msgstr "この期間に記録された呼び出しはありません。"
+
+msgid "Read-only"
+msgstr "読み取り専用"
+
+msgid "Revoke"
+msgstr "取り消す"
+
+msgid "Revoke grant"
+msgstr "権限付与を取り消す"
+
+msgid "Safety"
+msgstr "安全性"
+
+msgid "Status"
+msgstr "ステータス"
+
+msgid "Success rate"
+msgstr "成功率"
+
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "この送信先はローカルマシン上にあります。そのマシンで動作しているどのアプリケーションも認可コードを受け取る可能性があります。"
+
+msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
+msgstr "これにより、クライアントのアクセスが直ちに取り消されます。再接続するには、クライアントは再度認可する必要があります。"
+
+msgid "Time"
+msgstr "時刻"
+
+msgid "Tool"
+msgstr "ツール"
+
+msgid "Tool updated"
+msgstr "ツールを更新しました"
+
+msgid "Tools"
+msgstr "ツール"
+
+msgid "Toolset"
+msgstr "ツールセット"
+
+msgid "Top tools"
+msgstr "トップツール"
+
+msgid "Total calls"
+msgstr "合計呼び出し"
+
+msgid "Usage over the selected period"
+msgstr "選択した期間の使用状況"
+
+msgid "p50 latency"
+msgstr "p50 レイテンシ"
+
+msgid "p95 latency"
+msgstr "p95 レイテンシ"
+
+msgid "Authorize MCP Client"
+msgstr "MCP クライアントを認可"
+
+msgid "The grant could not be revoked; it may have already been removed"
+msgstr "権限付与を取り消せませんでした。すでに削除されている可能性があります"
+
+msgid "Request failed ({0})"
+msgstr "リクエストに失敗しました ({0})"
+
+msgid "Authorize MCP access"
+msgstr "MCP アクセスを認可"
+
+msgid "Plugin"
+msgstr "プラグイン"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "MCP統計情報の読み込みに失敗しました: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "ツールの読み込みに失敗しました: {0}"
+
+msgid "The request could not be completed"
+msgstr "リクエストを完了できませんでした"
+
+msgid "Active"
+msgstr "アクティブ"
+
+msgid "Revoked"
+msgstr "取り消し済み"
+
+msgid "Expired"
+msgstr "期限切れ"
+
+msgid "No tool calls yet"
+msgstr ""
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr ""
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr ""
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr ""
+
+msgid "This tool only reads data. It never changes anything."
+msgstr ""
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr ""
+
+msgid "No actions available for a revoked grant"
+msgstr ""
+
+msgid "Unnamed application"
+msgstr ""
+
+msgid "Hostname verified"
+msgstr ""
+
+msgid "Unverified"
+msgstr ""
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr ""
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr ""
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr ""
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr ""
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr ""
+
+msgid "Access to the Shop API as a customer."
+msgstr ""
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr ""
+
+msgid "Setup guide for connecting MCP clients"
+msgstr ""
+
+msgid "Anonymous"
+msgstr ""
+
+msgid "Failed calls"
+msgstr ""
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr ""
+
+msgid "What this number means"
+msgstr ""
+
+msgid "See all activity"
+msgstr ""
+
+msgid "Granted to"
+msgstr ""
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr ""
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr ""
+
+msgid "Connect a client"
+msgstr ""
+
+msgid "Admin API"
+msgstr ""
+
+msgid "Shop API"
+msgstr ""
+
+msgid "Test with MCP Inspector"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
+msgstr ""
+
+msgid "The client will act on this channel:"
+msgstr ""
+
+msgid "This destination is not on the application's own host ({clientHost}). Only approve if you expect the code to be sent there."
+msgstr ""
+
+msgid "Revoking needs the UpdateMcpServer permission"
+msgstr ""
+
+msgid "Tool exposure is set to discovery. Clients see only search_tools and execute_tool. The toggles below still decide which tools execute_tool may run."
+msgstr ""
+
+msgid "OAuth is not configured, so no client can be granted access. Add an oauth block to McpPlugin.init to use grants."
+msgstr ""
+
+msgid "The admin endpoint needs OAuth. Add an oauth block to McpPlugin.init to enable it."
+msgstr ""
+
+msgid "The shop endpoint is disabled (shopAccess: 'disabled')."
+msgstr ""

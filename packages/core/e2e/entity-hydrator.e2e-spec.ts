@@ -1,5 +1,6 @@
 // @ts-nocheck -- file relies on queries that are defined at runtime
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
     ActiveOrderService,
     Asset,
@@ -29,7 +30,11 @@ import {
 } from './fixtures/test-plugins/hydration-test-plugin';
 import { FragmentOf, graphql } from './graphql/graphql-shop';
 import { updateChannelDocument } from './graphql/shared-definitions';
-import { addItemToOrderDocument, updatedOrderFragment } from './graphql/shop-definitions';
+import {
+    addItemToOrderDocument,
+    setShippingMethodDocument,
+    updatedOrderFragment,
+} from './graphql/shop-definitions';
 
 type UpdatedOrderFragment = FragmentOf<typeof updatedOrderFragment>;
 
@@ -455,6 +460,53 @@ describe('Entity hydration', () => {
         expect(order!.lines[1].productVariant.product.id).toBe(order!.lines[1].productVariant.productId);
     });
 
+    // https://github.com/vendurehq/vendure/issues/5428
+    // ShippingMethod holds the configured ShippingEligibilityChecker instances, which reference
+    // the DI graph (CacheService etc.). Merging a freshly loaded ShippingMethod into one already
+    // on the target must not walk those checker instances.
+    describe('merging into an already-loaded ShippingMethod', () => {
+        async function createOrderWithShippingLine() {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            await shopClient.query(setShippingMethodDocument, { id: ['T_1'] });
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const order = await server.app
+                .get(OrderService)
+                .findOne(ctx, +addItemToOrder.id.replace(/^\D+/g, ''));
+            expect(order!.shippingLines.length).toBe(1);
+            return { ctx, order: order! };
+        }
+
+        it('concurrent hydrate() calls on the same order both resolve', async () => {
+            const { ctx, order } = await createOrderWithShippingLine();
+            const hydrator = server.app.get(EntityHydrator);
+
+            await Promise.all(
+                [1, 2].map(() =>
+                    hydrator.hydrate(ctx, order, { relations: ['shippingLines.shippingMethod'] }),
+                ),
+            );
+
+            expect(order.shippingLines[0].shippingMethod.id).toBe(order.shippingLines[0].shippingMethodId);
+        });
+
+        it('hydrating a deeper relation re-merges the ShippingMethod', async () => {
+            const { ctx, order } = await createOrderWithShippingLine();
+            const hydrator = server.app.get(EntityHydrator);
+
+            await hydrator.hydrate(ctx, order, { relations: ['shippingLines.shippingMethod'] });
+            await hydrator.hydrate(ctx, order, { relations: ['shippingLines.shippingMethod.channels'] });
+
+            expect(order.shippingLines[0].shippingMethod.channels.map(c => c.code)).toEqual([
+                DEFAULT_CHANNEL_CODE,
+            ]);
+        });
+    });
+
     // https://github.com/vendurehq/vendure/issues/2546
     it('Preserves ordering when merging arrays of relations', async () => {
         await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');
@@ -525,6 +577,38 @@ describe('Entity hydration', () => {
         expect(child.image2).toBeDefined();
     });
 
+    /*
+     * Regression test for https://github.com/vendurehq/vendure/pull/5030
+     * TypeORM's query relation load strategy silently returns null for relations whose
+     * grouping key `<TargetEntity>_customFields_<fieldName>_id` exceeds the 63-char
+     * postgres/mysql alias limit. The long-named field below produces a 74-char key, while
+     * the short-named control field (49 chars) was never affected. SQLite imposes no alias
+     * limit, so only the postgres and mysql runs exercise the regression.
+     */
+    it('hydrates a relation custom field with a very long name', async () => {
+        await adminClient.query(updateChannelDocument, {
+            input: {
+                id: 'T_1',
+                customFields: {
+                    additionalConfigId: 'T_1',
+                    additionalConfigWithAVeryLongPropertyNameId: 'T_1',
+                },
+            },
+        });
+
+        const { hydrateChannelWithLongCustomFieldName } = await adminClient.query(
+            getHydratedChannelLongCustomFieldNameDocument,
+            {
+                id: 'T_1',
+            },
+        );
+
+        const customFields = hydrateChannelWithLongCustomFieldName.customFields;
+        expect(customFields.additionalConfig.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.backgroundImage).toBeDefined();
+    });
+
     // Follow-up to #4986: isTranslatable() decided from element [0] whether an entire relation
     // array was translatable. With a null featuredAsset at [0], nothing in the array was
     // translated (Asset.name is a LocaleString, so it stayed undefined); with the asset at [0],
@@ -543,7 +627,7 @@ describe('Entity hydration', () => {
         // Raw-connection queries take the numeric DB id; 'T_1' exists only at the API layer
         const laptop = await connection
             .getRepository(Product)
-            .findOne({ where: { id: 1 }, relations: ['variants'] });
+            .findOne({ where: { id: 1 }, relations: { variants: true } });
         const variantWithAssetId = laptop!.variants[laptop!.variants.length - 1].id;
         const nullAssetVariantCount = laptop!.variants.length - 1;
         // Give exactly one of the variants a featuredAsset; the others keep the
@@ -552,7 +636,7 @@ describe('Entity hydration', () => {
         try {
             const product = await connection
                 .getRepository(Product)
-                .findOne({ where: { id: 1 }, relations: ['variants'] });
+                .findOne({ where: { id: 1 }, relations: { variants: true } });
 
             await server.app.get(EntityHydrator).hydrate(ctx, product!, {
                 relations: ['variants.featuredAsset'],
@@ -626,5 +710,11 @@ const getHydratedChannelNestedDocument = graphql(`
 const getHydratedChannelLongAliasDocument = graphql(`
     query GetHydratedChannelNested($id: ID!) {
         hydrateChannelWithVeryLongPropertyName(id: $id)
+    }
+`);
+
+const getHydratedChannelLongCustomFieldNameDocument = graphql(`
+    query GetHydratedChannelLongCustomFieldName($id: ID!) {
+        hydrateChannelWithLongCustomFieldName(id: $id)
     }
 `);

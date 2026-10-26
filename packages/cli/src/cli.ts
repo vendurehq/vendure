@@ -3,19 +3,37 @@
 import { Command } from 'commander';
 import pc from 'picocolors';
 
-import { cliCommands } from './commands/command-declarations';
-import { registerCommands } from './shared/command-registry';
+import { builtinCommandDefs } from './commands/builtins';
+import { consoleCommandDef } from './commands/console/command';
+import { devCommandDef } from './commands/dev/command';
+import { buildOptionFlags } from './shared/cli-command-options';
+import { registerCommands, styleHelpTitle } from './shared/command-registry';
+import { CommandRegistry } from './shared/command-registry-store';
+import {
+    CliPluginScopeError,
+    CliPluginScopeKind,
+    findInactivePluginProvidingCommand,
+    listInactiveCliPluginPackages,
+    listInactiveCliPlugins,
+    pluginsCommandFor,
+    resolveCliPlugins,
+    ResolveCliPluginsOptions,
+} from './shared/resolve-cli-plugins';
 
-const program = new Command();
+async function main(): Promise<void> {
+    const program = new Command();
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const version = require('../package.json').version;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const version = require('../package.json').version;
 
-program
-    .version(version)
-    .usage(`vendure <command>`)
-    .description(
-        pc.blue(`
+    program
+        // Commander otherwise names the program after the binary file
+        // (`cli.js`), which would make every subcommand's help say `cli ...`.
+        .name('vendure')
+        .version(version)
+        .usage(`<command>`)
+        .description(
+            pc.blue(`
                                 888                          
                                 888                          
                                 888                          
@@ -25,9 +43,168 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
  Y8bd8P  Y8b.     888  888 Y88b 888 Y88b 888 888    Y8b.     
   Y88P    "Y8888  888  888  "Y88888  "Y88888 888     "Y8888                             
 `),
+        );
+
+    // Shared options are declared once on the command that owns them, so
+    // subcommand help needs Commander's "Global Options" section to be
+    // complete. Commander copies the help configuration into each subcommand as
+    // it is created, so this must be set first.
+    program.configureHelp({ showGlobalOptions: true, styleTitle: styleHelpTitle });
+
+    const registry = new CommandRegistry();
+    registry.registerAll(builtinCommandDefs);
+
+    // A broken plugin must not take down the CLI: built-ins (including the
+    // `plugins` command needed to disable it) stay available.
+    // Select the dev project before loading plugins that extend its options and action.
+    // Parse the full command only after those plugins have been registered.
+    const pluginOptions: ResolveCliPluginsOptions = {};
+    const projectSelectingCommand = [devCommandDef, consoleCommandDef].find(
+        def => def.name === process.argv[2],
     );
+    if (projectSelectingCommand) {
+        const selection = new Command().allowUnknownOption().exitOverride();
+        for (const option of projectSelectingCommand.options ?? []) {
+            selection.option(buildOptionFlags(option), option.description);
+        }
+        selection.parseOptions(process.argv.slice(3));
+        pluginOptions.project = selection.opts<{ project?: string }>().project;
+    }
+    const { loaded, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
+    for (const scopeError of scopeErrors) {
+        writeScopeError(scopeError);
+    }
+    for (const failure of failures) {
+        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
+    }
+    for (const { packageName, plugin, scope } of loaded) {
+        try {
+            registry.applyPlugin(plugin);
+        } catch (e) {
+            const reason = e instanceof Error ? e.message : String(e);
+            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason, scope);
+        }
+    }
 
-// Register all commands from the array
-registerCommands(program, cliCommands);
+    registerCommands(program, registry.getCommandTree(), {
+        rootOptions: registry.getRootOptions(),
+        getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
+    });
 
-void program.parseAsync(process.argv);
+    program.on('command:*', operands => {
+        const unknown = operands[0] ?? '';
+        writeUnknownCommandHelp(unknown, pluginOptions);
+        process.exit(1);
+    });
+
+    maybeWriteInactivePluginsHint(process.argv, pluginOptions);
+
+    await program.parseAsync(process.argv);
+}
+
+/**
+ * Reports a plugin scope the CLI could not use. An ambiguous project never
+ * supplies a member allowlist.
+ */
+function writeScopeError({ scope, origin, reason }: CliPluginScopeError): void {
+    process.stderr.write(pc.red(`${reason}\n`));
+    if (scope === 'project') {
+        process.stderr.write(
+            'No project CLI plugins were loaded. Run from a project directory or use dev --project <dir>.\n',
+        );
+    } else {
+        process.stderr.write(
+            `No CLI plugins were loaded from it. Fix ${origin}, or delete it to start over.\n`,
+        );
+    }
+}
+
+/**
+ * Reports a plugin the CLI could not use, and how to disable it. Built-ins stay
+ * registered either way, so `vendure plugins remove` remains reachable.
+ *
+ * The suggested command names the scope the plugin was enabled in, because
+ * removing it from the other one would report that it was never enabled there
+ * and leave the broken plugin in place.
+ */
+function writePluginSkipped(
+    packageName: string,
+    headline: string,
+    reason: string,
+    scope: CliPluginScopeKind,
+): void {
+    process.stderr.write(pc.red(`${headline} "${packageName}": ${reason}\n`));
+    process.stderr.write(
+        `Skipping it. Fix the issue or disable it with: ${pluginsCommandFor('remove', packageName, scope)}\n`,
+    );
+}
+
+/**
+ * Arguments and command names that mean the user is orienting themselves
+ * rather than running a command, so the inactive-plugins hint would be noise.
+ * Local to this file: they overlap the registry's reserved lists today, but
+ * answer a different question and should not move when those change.
+ */
+const HINT_SUPPRESSING_ARGS = new Set(['--help', '-h', '--version', '-V']);
+const HINT_SUPPRESSING_COMMANDS = new Set(['plugins', 'help']);
+
+/**
+ * One-line hint when packages declare CLI plugins but are not enabled yet.
+ * Skipped for `vendure plugins` itself and for `--help` / `--version`.
+ */
+function maybeWriteInactivePluginsHint(argv: string[], options: ResolveCliPluginsOptions): void {
+    const args = argv.slice(2);
+    if (args.length === 0) {
+        return;
+    }
+    const primary = args.find(arg => !arg.startsWith('-'));
+    if (
+        (primary && HINT_SUPPRESSING_COMMANDS.has(primary)) ||
+        args.some(arg => HINT_SUPPRESSING_ARGS.has(arg))
+    ) {
+        return;
+    }
+
+    const inactive = listInactiveCliPluginPackages(options);
+    if (inactive.length === 0) {
+        return;
+    }
+
+    const noun = inactive.length === 1 ? 'package provides' : 'packages provide';
+    process.stderr.write(`${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`);
+}
+
+function writeUnknownCommandHelp(commandName: string, options: ResolveCliPluginsOptions): void {
+    process.stderr.write(`Unknown command "${commandName}".\n`);
+
+    const provider = findInactivePluginProvidingCommand(commandName, options);
+    if (provider) {
+        process.stderr.write(
+            `It is provided by ${provider.packageName}, which is installed but not enabled.\n`,
+        );
+        process.stderr.write(
+            `Enable it with: ${pluginsCommandFor('add', provider.packageName, provider.scope)}\n`,
+        );
+        return;
+    }
+
+    const inactive = listInactiveCliPlugins(options);
+    if (inactive.length === 1) {
+        const [only] = inactive;
+        process.stderr.write(
+            `It may be provided by ${only.packageName}, which is installed but not enabled.\n`,
+        );
+        process.stderr.write(`Enable it with: ${pluginsCommandFor('add', only.packageName, only.scope)}\n`);
+        return;
+    }
+    if (inactive.length > 1) {
+        process.stderr.write(
+            `${inactive.length} packages provide CLI commands but are not enabled. Run "vendure plugins" to review them.\n`,
+        );
+    }
+}
+
+void main().catch((e: unknown) => {
+    process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`);
+    process.exit(1);
+});

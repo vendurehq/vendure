@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { PluginOption } from 'vite';
@@ -334,6 +335,7 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
             plugin: () =>
                 viteConfigPlugin({
                     packageRoot,
+                    gqlOutputPath: options.gqlOutputPath,
                     useExperimentalBundle: options.useExperimentalBundle,
                 }),
         },
@@ -400,6 +402,29 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
 
 /**
  * @description
+ * Walks up from `fromFile` until it finds a `package.json` whose `name` field
+ * matches `packageName`, and returns that directory.
+ */
+export function findPackageRoot(fromFile: string, packageName: string): string {
+    let dir = path.dirname(fromFile);
+    while (true) {
+        const packageJsonPath = path.join(dir, 'package.json');
+        if (
+            fs.existsSync(packageJsonPath) &&
+            JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).name === packageName
+        ) {
+            return dir;
+        }
+        const parentDir = path.dirname(dir);
+        if (parentDir === dir) {
+            throw new Error(`Could not find the root of the "${packageName}" package above ${fromFile}`);
+        }
+        dir = parentDir;
+    }
+}
+
+/**
+ * @description
  * Returns the path to the root of the `@vendure/dashboard` package.
  */
 function getDashboardPackageRoot(): string {
@@ -407,7 +432,8 @@ function getDashboardPackageRoot(): string {
     // containing e.g. spaces resolve correctly, and handles Windows drive letters.
     const fileUrl = import.meta.resolve('@vendure/dashboard');
     const packagePath = fileUrl.startsWith('file:') ? fileURLToPath(fileUrl) : fileUrl;
-    return path.join(packagePath, '../../../');
+
+    return findPackageRoot(packagePath, '@vendure/dashboard');
 }
 
 /**

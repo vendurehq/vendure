@@ -5,6 +5,7 @@ import {
     PriceRange,
     SearchResult,
     SearchResultAsset,
+    SearchResultSortParameter,
     SinglePrice,
 } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
@@ -114,6 +115,18 @@ function parseFocalPoint(focalPoint: any): Coordinate | undefined {
 
 export function createPlaceholderFromId(id: ID): string {
     return '_' + id.toString().replace(/-/g, '_');
+}
+
+/**
+ * Returns true if the given sort parameter actually specifies a field to sort by.
+ *
+ * Clients built with GraphQL code generation commonly send `sort: {}` when the user has
+ * not selected any sort order. Since an empty object is truthy, it must not be treated as
+ * an explicit sort, otherwise no ordering would be applied at all and the relevance
+ * ordering which applies when searching by term would be silently suppressed.
+ */
+export function hasSortParameter(sort?: SearchResultSortParameter | null): sort is SearchResultSortParameter {
+    return sort != null && Object.values(sort).some(value => value != null);
 }
 
 /**

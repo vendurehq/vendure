@@ -1,13 +1,23 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { JobState } from '@vendure/common/lib/generated-types';
 import { lastValueFrom } from 'rxjs';
 import { toArray } from 'rxjs/operators';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { JobQueueStrategy } from '../config/job-queue/job-queue-strategy';
 import { Logger } from '../config/logger/vendure-logger';
 
+import { InMemoryJobQueueStrategy } from './in-memory-job-queue-strategy';
 import { Job } from './job';
 import { SubscribableJob } from './subscribable-job';
+
+// `updates()` clamps the poll interval to a minimum of 50ms, so use that value directly —
+// anything lower would make the `sleep()` calls below shorter than the actual poll period.
+const pollInterval = 50;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 const TIMEOUT_RESULT = 'Job subscription timed out. The job may still be running';
 
@@ -45,52 +55,149 @@ function setup() {
     return { job, findOne, subscribableJob: new SubscribableJob(job, strategy) };
 }
 
-function tick(ms: number): Promise<void> {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
-}
-
 describe('SubscribableJob', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
+    describe('updates() with the InMemoryJobQueueStrategy', () => {
+        let strategy: InMemoryJobQueueStrategy;
+
+        beforeEach(() => {
+            strategy = new InMemoryJobQueueStrategy();
+            // init with mock injector & ProcessContext
+            strategy.init({
+                get() {
+                    return { isWorker: false };
+                },
+            } as any);
+        });
+
+        afterEach(() => {
+            strategy.destroy();
+        });
+
+        it('emits the terminal update when the job completes', async () => {
+            const job = await strategy.add(new Job({ queueName: 'test', data: {} }));
+            const subscribableJob = new SubscribableJob(job, strategy);
+
+            const collected = lastValueFrom(subscribableJob.updates({ pollInterval }).pipe(toArray()));
+
+            // Drive the job through the strategy the way the JobQueue would.
+            const running = await strategy.next('test');
+            await strategy.update(running!);
+            await sleep(pollInterval * 3);
+
+            running!.setProgress(50);
+            await strategy.update(running!);
+            await sleep(pollInterval * 3);
+
+            running!.complete('the result');
+            await strategy.update(running!);
+
+            const updates = await collected;
+            const final = updates[updates.length - 1];
+
+            expect(final.state).toBe(JobState.COMPLETED);
+            expect(final.progress).toBe(100);
+            expect(final.result).toBe('the result');
+        }, 10_000);
+
+        it('emits intermediate progress updates', async () => {
+            const job = await strategy.add(new Job({ queueName: 'test', data: {} }));
+            const subscribableJob = new SubscribableJob(job, strategy);
+
+            const collected = lastValueFrom(subscribableJob.updates({ pollInterval }).pipe(toArray()));
+
+            const running = await strategy.next('test');
+            await strategy.update(running!);
+            await sleep(pollInterval * 3);
+
+            running!.setProgress(33);
+            await strategy.update(running!);
+            await sleep(pollInterval * 3);
+
+            running!.setProgress(66);
+            await strategy.update(running!);
+            await sleep(pollInterval * 3);
+
+            running!.complete('done');
+            await strategy.update(running!);
+
+            const updates = await collected;
+
+            expect(updates.map(u => u.progress)).toEqual([0, 33, 66, 100]);
+            expect(updates.map(u => u.state)).toEqual([
+                JobState.RUNNING,
+                JobState.RUNNING,
+                JobState.RUNNING,
+                JobState.COMPLETED,
+            ]);
+        }, 10_000);
+
+        it('emits the terminal update when the job fails', async () => {
+            const job = await strategy.add(new Job({ queueName: 'test', data: {} }));
+            const subscribableJob = new SubscribableJob(job, strategy);
+
+            const collected = lastValueFrom(
+                subscribableJob.updates({ pollInterval, errorOnFail: false }).pipe(toArray()),
+            );
+
+            const running = await strategy.next('test');
+            await strategy.update(running!);
+            await sleep(pollInterval * 3);
+
+            running!.fail(new Error('it broke'));
+            await strategy.update(running!);
+
+            const updates = await collected;
+            const final = updates[updates.length - 1];
+
+            expect(final.state).toBe(JobState.FAILED);
+            expect(final.error).toBe('it broke');
+        }, 10_000);
     });
 
-    describe('updates()', () => {
+    describe('updates() timeout', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+            vi.restoreAllMocks();
+        });
+
         it('emits updates until the job settles', async () => {
             const { job, subscribableJob } = setup();
             job.start();
-            setTimeout(() => job.complete('job result'), 60);
 
-            const startedAt = Date.now();
-            const updates = await lastValueFrom(
-                subscribableJob.updates({ pollInterval: 20, timeoutMs: 5000 }).pipe(toArray()),
+            const result = lastValueFrom(
+                subscribableJob.updates({ pollInterval, timeoutMs: 5000 }).pipe(toArray()),
             );
+            await vi.advanceTimersByTimeAsync(50);
+            job.complete('job result');
+            await vi.advanceTimersByTimeAsync(50);
+            const updates = await result;
 
             expect(updates.map(u => u.state)).toEqual([JobState.RUNNING, JobState.COMPLETED]);
             expect(updates[updates.length - 1].result).toBe('job result');
-            // The stream must complete as soon as the job settles rather than hanging
-            // around until `timeoutMs` elapses.
-            expect(Date.now() - startedAt).toBeLessThan(2000);
         });
 
         it('times out after timeoutMs even once updates have been emitted', async () => {
-            // Without a total-wait bound this test hangs: the job emits a RUNNING update
-            // and then never settles, so the stream never completes.
             const { job, subscribableJob } = setup();
             job.start();
             const logError = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
 
-            const startedAt = Date.now();
-            const updates = await lastValueFrom(
-                subscribableJob.updates({ pollInterval: 20, timeoutMs: 200 }).pipe(toArray()),
-            );
-            const elapsed = Date.now() - startedAt;
+            let settled = false;
+            const result = lastValueFrom(
+                subscribableJob.updates({ pollInterval, timeoutMs: 200 }).pipe(toArray()),
+            ).finally(() => (settled = true));
+            await vi.advanceTimersByTimeAsync(199);
+            expect(settled).toBe(false);
+            await vi.advanceTimersByTimeAsync(1);
+            expect(settled).toBe(true);
+            const updates = await result;
 
             expect(updates.map(u => u.state)).toEqual([JobState.RUNNING, JobState.RUNNING]);
             expect(updates[0].result).toBeUndefined();
             expect(updates[1].result).toBe(TIMEOUT_RESULT);
-            expect(elapsed).toBeGreaterThanOrEqual(190);
-            expect(elapsed).toBeLessThan(2000);
-            // The timeout still logs exactly what it logged before this fix.
             expect(logError).toHaveBeenCalledTimes(1);
             expect(logError).toHaveBeenCalledWith(
                 'Job 1 SubscribableJob update polling timed out after 200ms. The job may still be running.',
@@ -101,9 +208,11 @@ describe('SubscribableJob', () => {
             const { findOne, subscribableJob } = setup();
             findOne.mockImplementation(() => Promise.resolve(undefined));
 
-            const updates = await lastValueFrom(
-                subscribableJob.updates({ pollInterval: 20, timeoutMs: 200 }).pipe(toArray()),
+            const result = lastValueFrom(
+                subscribableJob.updates({ pollInterval, timeoutMs: 200 }).pipe(toArray()),
             );
+            await vi.advanceTimersByTimeAsync(200);
+            const updates = await result;
 
             expect(updates.length).toBe(1);
             expect(updates[0].result).toBe(TIMEOUT_RESULT);
@@ -113,12 +222,14 @@ describe('SubscribableJob', () => {
             const { job, findOne, subscribableJob } = setup();
             job.start();
 
-            await lastValueFrom(
-                subscribableJob.updates({ pollInterval: 20, timeoutMs: 200 }).pipe(toArray()),
+            const result = lastValueFrom(
+                subscribableJob.updates({ pollInterval, timeoutMs: 200 }).pipe(toArray()),
             );
+            await vi.advanceTimersByTimeAsync(200);
+            await result;
             const callsWhenTimedOut = findOne.mock.calls.length;
 
-            await tick(200);
+            await vi.advanceTimersByTimeAsync(500);
 
             expect(findOne.mock.calls.length).toBe(callsWhenTimedOut);
         });
@@ -126,11 +237,14 @@ describe('SubscribableJob', () => {
         it('errors on a failed job when errorOnFail is not disabled', async () => {
             const { job, subscribableJob } = setup();
             job.start();
-            setTimeout(() => job.fail(new Error('job failed')), 60);
 
-            await expect(
-                lastValueFrom(subscribableJob.updates({ pollInterval: 20, timeoutMs: 5000 }).pipe(toArray())),
+            const assertion = expect(
+                lastValueFrom(subscribableJob.updates({ pollInterval, timeoutMs: 5000 }).pipe(toArray())),
             ).rejects.toThrowError('job failed');
+            await vi.advanceTimersByTimeAsync(50);
+            job.fail(new Error('job failed'));
+            await vi.advanceTimersByTimeAsync(50);
+            await assertion;
         });
     });
 });

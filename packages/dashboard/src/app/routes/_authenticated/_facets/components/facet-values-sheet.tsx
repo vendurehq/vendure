@@ -9,7 +9,6 @@ import {
 } from '@/vdb/components/ui/sheet.js';
 import { FullWidthPageBlock } from '@/vdb/framework/layout-engine/page-layout.js';
 import { Trans } from '@lingui/react/macro';
-import { PanelLeftOpen } from 'lucide-react';
 import { FacetValuesTable } from './facet-values-table.js';
 
 export interface FacetValuesSheetProps {
@@ -21,9 +20,10 @@ export interface FacetValuesSheetProps {
 export function FacetValuesSheet({ facetName, facetId, children }: Readonly<FacetValuesSheetProps>) {
     return (
         <Sheet>
-            <SheetTrigger render={<Button variant="outline" size="sm" className="flex items-center gap-2" />}>
+            <SheetTrigger
+                render={<Button variant="ghost" size="sm" className="h-6 px-2 text-muted-foreground" />}
+            >
                 {children}
-                <PanelLeftOpen className="w-4 h-4" />
             </SheetTrigger>
             <SheetContent className="min-w-[90vw] lg:min-w-[800px]">
                 <SheetHeader>

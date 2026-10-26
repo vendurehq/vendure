@@ -37,7 +37,7 @@ class Promotion extends AdjustmentSource implements ChannelAware, SoftDeletable,
     @ManyToMany(type => Channel, channel => channel.promotions)
     @JoinTable()
     channels: Channel[];
-    @ManyToMany(type => Order, order => order.promotions)
+    @ManyToMany(type => Order, order => order.promotions, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
     orders: Order[];
     @Column(type => CustomPromotionFields)
     customFields: CustomPromotionFields;

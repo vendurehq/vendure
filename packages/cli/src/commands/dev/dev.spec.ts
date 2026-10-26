@@ -1,7 +1,9 @@
+import { ChildProcess } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
     discoverDashboardExtensionDirectories,
@@ -10,6 +12,7 @@ import {
     normalizeDevTarget,
     resolveVendureProjectDirectory,
     shouldRestartOnFileChange,
+    startSupervisedDevProcess,
     waitForDevProcesses,
 } from './dev';
 
@@ -19,6 +22,23 @@ function createTempDir() {
 
 function writePackageJson(dir: string, packageJson: Record<string, any>) {
     writeFileSync(path.join(dir, 'package.json'), JSON.stringify(packageJson, null, 2));
+}
+
+// Stands in for a spawned child process, so that a test can decide exactly how and when it exits.
+class FakeChildProcess extends EventEmitter {
+    exitCode: number | null = null;
+    signalCode: NodeJS.Signals | null = null;
+
+    kill(signal: NodeJS.Signals): boolean {
+        this.close(null, signal);
+        return true;
+    }
+
+    close(code: number | null, signal: NodeJS.Signals | null) {
+        this.exitCode = code;
+        this.signalCode = signal;
+        this.emit('close', code, signal);
+    }
 }
 
 describe('dev command', () => {
@@ -119,6 +139,70 @@ describe('dev command', () => {
     });
 
     describe('resolveVendureProjectDirectory()', () => {
+        // A workspace server can be outside the conventional package directories.
+        it('finds the server workspace from the root', () => {
+            const dir = createTempDir();
+            const serverDir = path.join(dir, 'server');
+            try {
+                mkdirSync(serverDir);
+                writePackageJson(dir, { workspaces: ['server'] });
+                writePackageJson(serverDir, { dependencies: { '@vendure/core': '3.6.0' } });
+                expect(resolveVendureProjectDirectory(dir)).toBe(serverDir);
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('uses --project before root discovery and ambiguous workspace members', () => {
+            const dir = createTempDir();
+            try {
+                for (const name of ['server', 'other']) {
+                    mkdirSync(path.join(dir, name));
+                    writePackageJson(path.join(dir, name), { dependencies: { '@vendure/core': '3.6.0' } });
+                }
+                writePackageJson(dir, { workspaces: ['server', 'other'] });
+                expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
+                expect(() => resolveVendureProjectDirectory(dir)).toThrow(
+                    `Multiple Vendure projects found in "${dir}": other, server. Use --project <dir> to select one.`,
+                );
+                writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
+                expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
+                expect(resolveVendureProjectDirectory(dir, path.join(dir, 'other'))).toBe(
+                    path.join(dir, 'other'),
+                );
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('rejects invalid --project paths without falling back', () => {
+            const dir = createTempDir();
+            try {
+                writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
+                mkdirSync(path.join(dir, 'empty'));
+                writePackageJson(path.join(dir, 'empty'), {});
+                for (const name of ['missing', 'empty', 'package.json']) {
+                    expect(() => resolveVendureProjectDirectory(dir, name)).toThrow(
+                        `Invalid --project directory "${path.join(dir, name)}"`,
+                    );
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('names the searched directory and --project when no project exists', () => {
+            const dir = createTempDir();
+            try {
+                writePackageJson(dir, { workspaces: ['missing'] });
+                expect(() => resolveVendureProjectDirectory(dir)).toThrow(
+                    `No Vendure project found in "${dir}". Use --project <dir> to select a project directory.`,
+                );
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
         it('returns the current directory for a Vendure package', () => {
             const dir = createTempDir();
             try {
@@ -183,12 +267,14 @@ describe('dev command', () => {
             const dashboardDir = path.join(projectDir, 'src', 'plugins', 'reviews', 'dashboard');
 
             expect(
-                shouldRestartOnFileChange(path.join(dashboardDir, 'index.tsx'), projectDir, [dashboardDir]),
+                shouldRestartOnFileChange(path.join(dashboardDir, 'index.tsx'), projectDir, {
+                    dashboardExtensionDirectories: [dashboardDir],
+                }),
             ).toBe(false);
             expect(
-                shouldRestartOnFileChange(path.join(dashboardDir, 'components', 'rating.ts'), projectDir, [
-                    dashboardDir,
-                ]),
+                shouldRestartOnFileChange(path.join(dashboardDir, 'components', 'rating.ts'), projectDir, {
+                    dashboardExtensionDirectories: [dashboardDir],
+                }),
             ).toBe(false);
         });
 
@@ -197,9 +283,9 @@ describe('dev command', () => {
             const dashboardDir = path.join(projectDir, 'src', 'plugins', 'reviews', 'ui');
 
             expect(
-                shouldRestartOnFileChange(path.join(dashboardDir, 'components', 'rating.ts'), projectDir, [
-                    dashboardDir,
-                ]),
+                shouldRestartOnFileChange(path.join(dashboardDir, 'components', 'rating.ts'), projectDir, {
+                    dashboardExtensionDirectories: [dashboardDir],
+                }),
             ).toBe(false);
         });
 
@@ -237,6 +323,22 @@ describe('dev command', () => {
             expect(shouldRestartOnFileChange(path.join(projectDir, 'vite.config.mts'), projectDir)).toBe(
                 false,
             );
+        });
+
+        it('does not restart server or worker processes for paths a caller declares as generated', () => {
+            const projectDir = path.resolve('/project');
+            const generatedDir = path.join(projectDir, 'src', 'gql');
+
+            expect(
+                shouldRestartOnFileChange(path.join(generatedDir, 'graphql.ts'), projectDir, {
+                    reloadIgnoredPaths: [generatedDir],
+                }),
+            ).toBe(false);
+            expect(
+                shouldRestartOnFileChange(path.join(projectDir, 'src', 'vendure-config.ts'), projectDir, {
+                    reloadIgnoredPaths: [generatedDir],
+                }),
+            ).toBe(true);
         });
 
         it('restarts server or worker processes for TypeScript source files and env changes only', () => {
@@ -299,20 +401,139 @@ describe('dev command', () => {
         });
     });
 
+    describe('startSupervisedDevProcess()', () => {
+        const startedProcesses: ManagedDevProcess[] = [];
+        const temporaryDirectories: string[] = [];
+
+        afterEach(() => {
+            for (const startedProcess of startedProcesses) {
+                startedProcess.stop('SIGTERM');
+            }
+            startedProcesses.length = 0;
+            for (const directory of temporaryDirectories) {
+                rmSync(directory, { recursive: true, force: true });
+            }
+            temporaryDirectories.length = 0;
+        });
+
+        function startSupervisor() {
+            const projectDir = createTempDir();
+            temporaryDirectories.push(projectDir);
+            mkdirSync(path.join(projectDir, 'src'), { recursive: true });
+            const children: FakeChildProcess[] = [];
+            const spawnChild = vi.fn(() => {
+                const child = new FakeChildProcess();
+                children.push(child);
+                return child as unknown as ChildProcess;
+            });
+            const supervised = startSupervisedDevProcess(
+                projectDir,
+                getDevProcessDefinitions().server,
+                path.join(projectDir, 'node_modules', '.bin', 'ts-node'),
+                { prefixOutput: false, reloadIgnoredPaths: [], spawnChild },
+            );
+            startedProcesses.push(supervised);
+            return { children, projectDir, spawnChild, supervised };
+        }
+
+        it('leaves the other dev processes running when a supervised child crashes', async () => {
+            const { children, supervised } = startSupervisor();
+            const stopDashboard = vi.fn();
+            const dashboard = new ManagedDevProcess(stopDashboard);
+            const promise = waitForDevProcesses([supervised, dashboard]);
+
+            children[0].close(1, null);
+
+            expect(supervised.hasClosed).toBe(false);
+            expect(stopDashboard).not.toHaveBeenCalled();
+
+            process.emit('SIGINT');
+            dashboard.emitClose(null, 'SIGINT');
+            await expect(promise).resolves.toBe(130);
+        });
+
+        it('respawns a crashed supervised child on the next relevant file change', async () => {
+            const { children, projectDir, spawnChild, supervised } = startSupervisor();
+            const promise = waitForDevProcesses([supervised]);
+            const configPath = path.join(projectDir, 'src', 'vendure-config.ts');
+
+            children[0].close(1, null);
+            expect(spawnChild).toHaveBeenCalledTimes(1);
+
+            // The save is repeated because chokidar reports nothing for a file that appeared
+            // before it finished its initial scan of the directory. A single save that loses that
+            // race is invisible for the rest of the run, however long the test then waits. The
+            // interval is longer than `reloadDebounceMs` so that a save which did land has time to
+            // restart the process before the next one arrives.
+            await vi.waitFor(
+                () => {
+                    writeFileSync(configPath, `export const config = { revision: ${Date.now()} };`);
+                    expect(spawnChild.mock.calls.length).toBeGreaterThanOrEqual(2);
+                },
+                { timeout: 15000, interval: 300 },
+            );
+            expect(supervised.hasClosed).toBe(false);
+
+            process.emit('SIGINT');
+            await expect(promise).resolves.toBe(130);
+        }, 20000);
+
+        it('reports the crash exit code when something else ends the run', async () => {
+            const { children, supervised } = startSupervisor();
+            const dashboard = new ManagedDevProcess(vi.fn());
+            const promise = waitForDevProcesses([supervised, dashboard]);
+
+            children[0].close(1, null);
+            // The Dashboard then exits cleanly on its own, which ends the run while the server is
+            // still crashed. The run must not resolve 0.
+            dashboard.emitClose(0, null);
+
+            await expect(promise).resolves.toBe(1);
+        });
+
+        it('ends the whole run when a supervised child is killed by a signal', async () => {
+            const { children, supervised } = startSupervisor();
+            const stopDashboard = vi.fn();
+            const dashboard = new ManagedDevProcess(stopDashboard);
+            const promise = waitForDevProcesses([supervised, dashboard]);
+
+            children[0].close(null, 'SIGKILL');
+
+            expect(supervised.hasClosed).toBe(true);
+            expect(stopDashboard).toHaveBeenCalledWith('SIGTERM');
+
+            dashboard.emitClose(null, 'SIGTERM');
+            await expect(promise).resolves.toBe(1);
+        });
+
+        it('ends the whole run when a child closes with neither an exit code nor a signal', async () => {
+            const { children, supervised } = startSupervisor();
+            const promise = waitForDevProcesses([supervised]);
+
+            children[0].close(null, null);
+
+            expect(supervised.hasClosed).toBe(true);
+            await expect(promise).resolves.toBe(1);
+        });
+    });
+
     describe('waitForDevProcesses()', () => {
         it('resolves SIGINT shutdowns with the canonical signal exit code', async () => {
             const stopFirst = vi.fn();
             const stopSecond = vi.fn();
+            const onShutdownSignal = vi.fn();
             const firstChild = new ManagedDevProcess(stopFirst);
             const secondChild = new ManagedDevProcess(stopSecond);
             const sigintListenerCount = process.listenerCount('SIGINT');
             const sigtermListenerCount = process.listenerCount('SIGTERM');
-            const promise = waitForDevProcesses([firstChild, secondChild]);
+            const promise = waitForDevProcesses([firstChild, secondChild], { onShutdownSignal });
 
             process.emit('SIGINT');
 
             expect(stopFirst).toHaveBeenCalledWith('SIGINT');
             expect(stopSecond).toHaveBeenCalledWith('SIGINT');
+            expect(onShutdownSignal).toHaveBeenCalledOnce();
+            expect(onShutdownSignal).toHaveBeenCalledWith('SIGINT');
             firstChild.emitClose(null, 'SIGINT');
             secondChild.emitClose(0, null);
             await expect(promise).resolves.toBe(130);

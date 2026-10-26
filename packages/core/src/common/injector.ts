@@ -1,7 +1,5 @@
 import { Type } from '@nestjs/common';
 import { ContextId, ModuleRef } from '@nestjs/core';
-import { getConnectionToken } from '@nestjs/typeorm';
-import { Connection } from 'typeorm';
 
 /**
  * @description

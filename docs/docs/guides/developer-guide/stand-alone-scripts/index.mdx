@@ -26,12 +26,12 @@ if (require.main === module) {
 
 async function getProductCount() {
     // This will bootstrap an instance of the Vendure Worker, providing
-    // us access to all of the services defined in the Vendure core.
+    // us access to all of the services defined in the Vendure Framework.
     // (but without the unnecessary overhead of the API layer).
     const { app } = await bootstrapWorker(config);
 
     // Using `app.get()` we can grab an instance of _any_ provider defined in the
-    // Vendure core as well as by our plugins.
+    // Vendure Framework as well as by our plugins.
     const productService = app.get(ProductService);
 
     // For most service methods, we'll need to pass a RequestContext object.
@@ -77,7 +77,7 @@ There are 56 products in the database
 
 ## The `app` object
 
-The `app` object returned by the `bootstrapWorker()` function is an instance of the [NestJS Application Context](https://docs.nestjs.com/standalone-applications). It has full access to the NestJS dependency injection container, which means that you can use the `app.get()` method to retrieve any of the services defined in the Vendure core or by any plugins.
+The `app` object returned by the `bootstrapWorker()` function is an instance of the [NestJS Application Context](https://docs.nestjs.com/standalone-applications). It has full access to the NestJS dependency injection container, which means that you can use the `app.get()` method to retrieve any of the services defined in the Vendure Framework or by any plugins.
 
 ```ts title="src/import-customer-data.ts"
 import { bootstrapWorker, CustomerService } from '@vendure/core';

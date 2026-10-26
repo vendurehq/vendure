@@ -75,7 +75,13 @@ export class ApiKeyResolver {
         @Ctx() ctx: RequestContext,
         @Args() { ids }: MutationDeleteApiKeysArgs,
     ): Promise<DeletionResponse[]> {
-        return Promise.all(ids.map(id => this.apiKeyService.softDelete(ctx, id)));
+        // Delete sequentially: all softDeletes share one transactional query runner, so running them
+        // concurrently on a single connection can interleave.
+        const results: DeletionResponse[] = [];
+        for (const id of ids) {
+            results.push(await this.apiKeyService.softDelete(ctx, id));
+        }
+        return results;
     }
 
     @Transaction()

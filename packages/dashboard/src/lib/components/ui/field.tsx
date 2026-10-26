@@ -9,4 +9,4 @@ export {
     FieldSeparator,
     FieldSet,
     FieldTitle,
-} from '@vendure-io/ui/components/ui/field';
+} from '@vendure-io/ui/components/atoms/field';

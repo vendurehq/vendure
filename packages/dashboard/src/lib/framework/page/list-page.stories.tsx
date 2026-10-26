@@ -3,7 +3,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
 import { ListPage, ListPageProps } from '@/vdb/framework/page/list-page.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PlusIcon } from 'lucide-react';
 import { expect } from 'storybook/test';
 
@@ -148,21 +148,7 @@ export const WithSearch: Story = {
         },
         onSearchTermChange: (searchTerm: string) => {
             return {
-                name: {
-                    contains: searchTerm,
-                },
-                code: {
-                    contains: searchTerm,
-                },
-            };
-        },
-        transformVariables: (variables: any) => {
-            return {
-                ...variables,
-                options: {
-                    ...variables.options,
-                    filterOperator: 'OR',
-                },
+                _or: [{ name: { contains: searchTerm } }, { code: { contains: searchTerm } }],
             };
         },
         customizeColumns: {
@@ -222,21 +208,7 @@ export const Complete: Story = {
         },
         onSearchTermChange: (searchTerm: string) => {
             return {
-                name: {
-                    contains: searchTerm,
-                },
-                code: {
-                    contains: searchTerm,
-                },
-            };
-        },
-        transformVariables: (variables: any) => {
-            return {
-                ...variables,
-                options: {
-                    ...variables.options,
-                    filterOperator: 'OR',
-                },
+                _or: [{ name: { contains: searchTerm } }, { code: { contains: searchTerm } }],
             };
         },
         customizeColumns: {

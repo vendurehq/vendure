@@ -23,9 +23,12 @@ class FacetValue extends VendureEntity implements Translatable, HasCustomFields,
     @ManyToMany(type => Channel, channel => channel.facetValues)
     @JoinTable()
     channels: Channel[];
-    @ManyToMany(() => Product, product => product.facetValues, { onDelete: 'CASCADE' })
+    @ManyToMany(() => Product, product => product.facetValues, { onDelete: 'CASCADE', onUpdate: 'NO ACTION' })
     products: Product[];
-    @ManyToMany(type => ProductVariant, productVariant => productVariant.facetValues)
+    @ManyToMany(type => ProductVariant, productVariant => productVariant.facetValues, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     productVariants: ProductVariant[];
 }
 ```

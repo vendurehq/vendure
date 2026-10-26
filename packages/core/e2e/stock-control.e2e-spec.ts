@@ -5,19 +5,34 @@ import {
     type CreateAddressInput,
     ErrorCode,
     GlobalFlag,
+    LanguageCode,
     StockMovementType,
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import {
     DefaultOrderPlacedStrategy,
+    EventBus,
     manualFulfillmentHandler,
     mergeConfig,
     type Order,
     type OrderState,
+    PaymentMethodHandler,
     type RequestContext,
+    RequestContextService,
+    StockLevel,
+    StockLevelService,
+    StockMovementService,
+    StockShortfallEvent,
+    TransactionalConnection,
 } from '@vendure/core';
-import { createErrorResultGuard, createTestEnvironment, type ErrorResultGuard } from '@vendure/testing';
+import {
+    createErrorResultGuard,
+    createTestEnvironment,
+    type ErrorResultGuard,
+    SimpleGraphQLClient,
+} from '@vendure/testing';
 import path from 'path';
+import { firstValueFrom, timeout } from 'rxjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -44,6 +59,7 @@ import {
     getActiveOrderDocument,
     getEligibleShippingMethodsDocument,
     getProductWithStockLevelDocument,
+    removeAllOrderLinesDocument,
     setShippingAddressDocument,
     setShippingMethodDocument,
     testOrderFragment,
@@ -80,27 +96,53 @@ class TestOrderPlacedStrategy extends DefaultOrderPlacedStrategy {
     }
 }
 
+/**
+ * Settles immediately, but holds the settlement transaction open briefly. When several
+ * orders settle concurrently, this ensures they have all started their settlement
+ * transactions (and taken their DB snapshots) before the first one commits, which is
+ * the timing needed to exercise the allocation re-check under concurrency.
+ */
+const delayedSettlePaymentMethod = new PaymentMethodHandler({
+    code: 'delayed-settle-payment-method',
+    description: [{ languageCode: LanguageCode.en, value: 'Delayed settle payment method' }],
+    args: {},
+    createPayment: async (ctx, order, amount) => {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        return {
+            amount,
+            state: 'Settled' as const,
+            transactionId: 'delayed-12345',
+        };
+    },
+    settlePayment: () => ({
+        success: true,
+    }),
+});
+
 describe('Stock control', () => {
-    const { server, adminClient, shopClient } = createTestEnvironment(
-        mergeConfig(testConfig(), {
-            paymentOptions: {
-                paymentMethodHandlers: [testSuccessfulPaymentMethod, twoStagePaymentMethod],
-            },
-            orderOptions: {
-                orderPlacedStrategy: new TestOrderPlacedStrategy(),
-            },
-            customFields: {
-                Order: [
-                    {
-                        name: 'test1557',
-                        type: 'boolean',
-                        defaultValue: false,
-                    },
-                ],
-                OrderLine: [{ name: 'customization', type: 'string', nullable: true }],
-            },
-        }),
-    );
+    const testEnvConfig = mergeConfig(testConfig(), {
+        paymentOptions: {
+            paymentMethodHandlers: [
+                testSuccessfulPaymentMethod,
+                twoStagePaymentMethod,
+                delayedSettlePaymentMethod,
+            ],
+        },
+        orderOptions: {
+            orderPlacedStrategy: new TestOrderPlacedStrategy(),
+        },
+        customFields: {
+            Order: [
+                {
+                    name: 'test1557',
+                    type: 'boolean',
+                    defaultValue: false,
+                },
+            ],
+            OrderLine: [{ name: 'customization', type: 'string', nullable: true }],
+        },
+    });
+    const { server, adminClient, shopClient } = createTestEnvironment(testEnvConfig);
 
     const orderGuard: ErrorResultGuard<
         UpdatedOrderFragment | TestOrderFragment | TestOrderWithPaymentsFragment
@@ -141,6 +183,10 @@ describe('Stock control', () => {
                     {
                         name: twoStagePaymentMethod.code,
                         handler: { code: twoStagePaymentMethod.code, arguments: [] },
+                    },
+                    {
+                        name: delayedSettlePaymentMethod.code,
+                        handler: { code: delayedSettlePaymentMethod.code, arguments: [] },
                     },
                 ],
             },
@@ -1280,6 +1326,73 @@ describe('Stock control', () => {
         });
     });
 
+    // GHSA-8ghm-q833-cmgp: a release larger than the allocation clamps stockAllocated at 0, while
+    // stockOnHand is not clamped, because a negative stockOnHand is a valid backorder.
+    describe('stockAllocated is clamped at 0, stockOnHand is not', () => {
+        // Use product T_2 (Curvy Monitor) variant[2] (32 inch, id T_7). The edge-case tests above
+        // leave it in an arbitrary state, so it is reset here, and the shortfall attribution test
+        // below sets its own figures from whatever this leaves.
+        let trackedVariantId: string;
+        let ctx: RequestContext;
+        let stockLocationId: string | number;
+        const rawId = (id: string) => id.replace(/^T_/, '');
+
+        beforeAll(async () => {
+            const { product } = await adminClient.query(getStockMovementDocument, {
+                id: 'T_2',
+            });
+            trackedVariantId = product!.variants[2].id;
+            await adminClient.query(updateStockOnHandDocument, {
+                input: [
+                    {
+                        id: trackedVariantId,
+                        stockOnHand: 3,
+                        trackInventory: GlobalFlag.TRUE,
+                    },
+                ],
+            });
+            ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const [stockLevel] = await server.app
+                .get(StockLevelService)
+                .getStockLevelsForVariant(ctx, rawId(trackedVariantId));
+            stockLocationId = stockLevel.stockLocationId;
+        });
+
+        it('allocates 3 by completing an order', async () => {
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: trackedVariantId,
+                quantity: 3,
+            });
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(order);
+
+            const product = await getProductWithStockMovement('T_2');
+            expect(product!.variants[2].stockAllocated).toBe(3);
+        });
+
+        it('clamps stockAllocated at 0 when more is released than was allocated', async () => {
+            await server.app
+                .get(StockLevelService)
+                .updateStockAllocatedForLocation(ctx, rawId(trackedVariantId), stockLocationId, -5);
+
+            const product = await getProductWithStockMovement('T_2');
+            // 3 - 5 would be -2
+            expect(product!.variants[2].stockAllocated).toBe(0);
+        });
+
+        it('lets stockOnHand go negative', async () => {
+            await server.app
+                .get(StockLevelService)
+                .updateStockOnHandForLocation(ctx, rawId(trackedVariantId), stockLocationId, -5);
+
+            const product = await getProductWithStockMovement('T_2');
+            // 3 - 5
+            expect(product!.variants[2].stockOnHand).toBe(-2);
+        });
+    });
+
     // https://github.com/vendurehq/vendure/issues/1738
     describe('going out of stock after being added to order', () => {
         const variantId = 'T_1';
@@ -1370,6 +1483,352 @@ describe('Stock control', () => {
 
             expect(before[0]!.stockOnHand).toBe(11);
             expect(after[0]!.stockOnHand).toBe(13);
+        });
+    });
+
+    // GHSA-8ghm-q833-cmgp: lock re-check + shortfall detection at allocation
+    describe('stock shortfall detection when stock depleted between checkout and settlement', () => {
+        // T_3 = "Laptop 13 inch 16GB". Reset to 20 on hand, tracked, threshold=0.
+        const variantId = 'T_3';
+
+        beforeAll(async () => {
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [
+                    {
+                        id: variantId,
+                        stockOnHand: 20,
+                        trackInventory: GlobalFlag.TRUE,
+                        useGlobalOutOfStockThreshold: false,
+                        outOfStockThreshold: 0,
+                    },
+                ],
+            });
+        });
+
+        // GHSA-8ghm-q833-cmgp: concurrent settlement must not oversell; StockShortfallEvent must be published
+        it('emits StockShortfallEvent and does not oversell when stock is depleted before settlement', async () => {
+            const eventBus = server.app.get(EventBus);
+
+            // Order A (trevor): add 5 items and reach ArrangingPayment.
+            // Stock check passes because at least 5 units are available at this point.
+            await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');
+            const { addItemToOrder: addA } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: variantId,
+                quantity: 5,
+            });
+            orderGuard.assertSuccess(addA);
+            await proceedToArrangingPayment(shopClient);
+
+            // Order B (hayden): deplete all remaining saleable stock and settle.
+            // InsufficientStockError is fine here — as many units as are available are still added to the cart.
+            // This simulates the concurrent order that "wins" the stock between Order A's
+            // ArrangingPayment check and its payment settlement.
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: variantId,
+                quantity: 100, // request more than available; gets capped to available units
+            });
+            await proceedToArrangingPayment(shopClient);
+            const orderB = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(orderB);
+
+            // Verify stock is now fully allocated (stockAllocated = stockOnHand), leaving 0 for Order A
+            const productAfterB = await getProductWithStockMovement('T_1');
+            const variantAfterB = productAfterB!.variants.find(v => v.id === variantId);
+            expect(variantAfterB!.stockAllocated).toBe(variantAfterB!.stockOnHand);
+
+            // Subscribe to StockShortfallEvent BEFORE Order A settles
+            const shortfallEventPromise = firstValueFrom(
+                eventBus.ofType(StockShortfallEvent).pipe(timeout(5000)),
+            );
+
+            // Order A (trevor): settle — stock is fully allocated by Order B, so allocation
+            // must be capped at 0 (or whatever remains).
+            await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');
+            const orderA = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(orderA);
+
+            // Assert no oversell: Order B took all 20; Order A gets 0 additional allocation.
+            // stockOnHand stays 20 (only allocations changed, not sales); stockAllocated = 20.
+            const productAfterA = await getProductWithStockMovement('T_1');
+            const variantAfterA = productAfterA!.variants.find(v => v.id === variantId);
+            expect(variantAfterA!.stockOnHand).toBe(20);
+            expect(variantAfterA!.stockAllocated).toBe(20);
+
+            // Assert StockShortfallEvent was published for Order A
+            const shortfallEvent = await shortfallEventPromise;
+            // order.id in the event is the raw DB id; orderA.id from GraphQL is prefixed ('T_N').
+            // Verify they refer to the same record by checking the order code.
+            expect(shortfallEvent.order.code).toBe(orderA.code);
+            expect(shortfallEvent.shortfalls.length).toBeGreaterThan(0);
+            expect(shortfallEvent.shortfalls[0].requested).toBe(5);
+            // Order B allocated all 20 units; Order A's allocation delta is 0
+            expect(shortfallEvent.shortfalls[0].allocated).toBe(0);
+        });
+    });
+
+    // GHSA-8ghm-q833-cmgp: the allocation re-check must hold when settlements genuinely overlap,
+    // not only when one settlement completes before the next begins.
+    describe('truly concurrent settlement', () => {
+        // sql.js executes all queries on a single connection, so transactions cannot
+        // genuinely overlap there and the locking behaviour cannot be exercised.
+        // The CI database matrix (postgres/mysql/mariadb) is where this test has meaning.
+        const isRealDb = (process.env.DB ?? 'sqljs') !== 'sqljs';
+
+        it.runIf(isRealDb)(
+            'concurrent settlements never allocate more than stockOnHand',
+            async () => {
+                const variantId = 'T_4'; // Laptop 15 inch 16GB
+                const quantityPerOrder = 5;
+                const customers = [
+                    'hayden.zieme12@hotmail.com',
+                    'trevor_donnelly96@hotmail.com',
+                    'marques.sawayn@hotmail.com',
+                ];
+
+                // Make exactly one order's worth of stock saleable, accounting for
+                // any allocations left over from earlier tests.
+                const product = await getProductWithStockMovement('T_1');
+                const variant = product!.variants.find(v => v.id === variantId)!;
+                const stockOnHand = variant.stockAllocated + quantityPerOrder;
+                await adminClient.query(updateProductVariantsDocument, {
+                    input: [
+                        {
+                            id: variantId,
+                            stockOnHand,
+                            trackInventory: GlobalFlag.TRUE,
+                            useGlobalOutOfStockThreshold: false,
+                            outOfStockThreshold: 0,
+                        },
+                    ],
+                });
+
+                // Each customer needs their own client, since a client holds a single
+                // session. All of them reach ArrangingPayment: the stock check passes
+                // for each because nothing is allocated until settlement.
+                const clients: SimpleGraphQLClient[] = [];
+                for (const emailAddress of customers) {
+                    const client = new SimpleGraphQLClient(
+                        testEnvConfig,
+                        `http://localhost:${testEnvConfig.apiOptions.port}/${testEnvConfig.apiOptions.shopApiPath}`,
+                    );
+                    await client.asUserWithCredentials(emailAddress, 'test');
+                    // These customers are reused across the suite, so an earlier test may have
+                    // left this customer with an active order still in AddingItems that holds
+                    // lines for other (now-depleted) variants. Transitioning to ArrangingPayment
+                    // validates every line, so start from a clean order to keep this test hermetic.
+                    await client.query(removeAllOrderLinesDocument);
+                    const { addItemToOrder } = await client.query(addItemToOrderDocument, {
+                        productVariantId: variantId,
+                        quantity: quantityPerOrder,
+                    });
+                    orderGuard.assertSuccess(addItemToOrder);
+                    const arrangingPaymentOrderId = await proceedToArrangingPayment(client);
+                    expect(
+                        arrangingPaymentOrderId,
+                        `transition to ArrangingPayment failed for ${emailAddress}`,
+                    ).toBeDefined();
+                    clients.push(client);
+                }
+
+                // Settle all orders at once. The delayed payment handler keeps each
+                // settlement transaction open long enough that they all take their DB
+                // snapshots before the first one commits.
+                const results = await Promise.all(
+                    clients.map(client => addPaymentToOrder(client, delayedSettlePaymentMethod)),
+                );
+                for (const result of results) {
+                    orderGuard.assertSuccess(result);
+                }
+
+                // Only quantityPerOrder units were saleable, so at most one order's
+                // quantity may have been allocated on top of the pre-existing
+                // allocations. Anything more is an oversell.
+                const productAfter = await getProductWithStockMovement('T_1');
+                const variantAfter = productAfter!.variants.find(v => v.id === variantId)!;
+                expect(variantAfter.stockOnHand).toBe(stockOnHand);
+                expect(variantAfter.stockAllocated).toBeLessThanOrEqual(variantAfter.stockOnHand);
+            },
+            60_000,
+        );
+    });
+
+    // GHSA-8ghm-q833-cmgp: a StockShortfallEvent must reference the Order which the shortfalling
+    // line belongs to. Fulfillments can span multiple Orders (Fulfillment.orders is
+    // many-to-many), and default-fulfillment-process re-allocates a cancelled
+    // fulfillment's lines in a single createAllocationsForOrderLines() call, so the
+    // batch can mix lines of different Orders.
+    describe('shortfall attribution with lines from multiple orders', () => {
+        const rawId = (id: string) => id.replace(/^T_/, '');
+
+        it('attributes each shortfall to the order that the line belongs to', async () => {
+            const inStockVariantId = 'T_2'; // Laptop 15 inch 8GB
+            const depletedVariantId = 'T_7'; // Curvy Monitor 32 inch
+
+            const laptop = await getProductWithStockMovement('T_1');
+            const inStockVariant = laptop!.variants.find(v => v.id === inStockVariantId)!;
+            const monitor = await getProductWithStockMovement('T_2');
+            const depletedVariant = monitor!.variants.find(v => v.id === depletedVariantId)!;
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [
+                    {
+                        id: inStockVariantId,
+                        stockOnHand: inStockVariant.stockAllocated + 10,
+                        trackInventory: GlobalFlag.TRUE,
+                        useGlobalOutOfStockThreshold: false,
+                        outOfStockThreshold: 0,
+                    },
+                    {
+                        id: depletedVariantId,
+                        stockOnHand: depletedVariant.stockAllocated + 3,
+                        trackInventory: GlobalFlag.TRUE,
+                        useGlobalOutOfStockThreshold: false,
+                        outOfStockThreshold: 0,
+                    },
+                ],
+            });
+
+            // Order A (hayden): a line which can be fully allocated
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            const { addItemToOrder: orderA } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: inStockVariantId,
+                quantity: 1,
+            });
+            orderGuard.assertSuccess(orderA);
+
+            // Order B (trevor): a line whose stock will be depleted before allocation
+            await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');
+            const { addItemToOrder: orderB } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: depletedVariantId,
+                quantity: 3,
+            });
+            orderGuard.assertSuccess(orderB);
+
+            // Deplete order B's variant: all remaining stock is already allocated elsewhere
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [
+                    {
+                        id: depletedVariantId,
+                        stockOnHand: depletedVariant.stockAllocated,
+                    },
+                ],
+            });
+
+            const stockMovementService = server.app.get(StockMovementService);
+            const requestContextService = server.app.get(RequestContextService);
+            const connection = server.app.get(TransactionalConnection);
+            const eventBus = server.app.get(EventBus);
+            const ctx = await requestContextService.create({ apiType: 'admin' });
+
+            const events: StockShortfallEvent[] = [];
+            const subscription = eventBus.ofType(StockShortfallEvent).subscribe(e => events.push(e));
+            try {
+                // Reproduces what default-fulfillment-process does when a Fulfillment
+                // spanning two Orders is cancelled: one re-allocation call with a
+                // batch of lines from different Orders.
+                await connection.withTransaction(ctx, txCtx =>
+                    stockMovementService.createAllocationsForOrderLines(txCtx, [
+                        { orderLineId: rawId(orderA.lines[0].id), quantity: 1 },
+                        { orderLineId: rawId(orderB.lines[0].id), quantity: 3 },
+                    ]),
+                );
+                // Events are published after the transaction commits
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // The only shortfall is on Order B's line, so the event carrying that
+                // shortfall must reference Order B.
+                const shortfallEvent = events.find(e =>
+                    e.shortfalls.some(s => String(s.orderLineId) === rawId(orderB.lines[0].id)),
+                );
+                expect(shortfallEvent).toBeDefined();
+                expect(shortfallEvent!.order.code).toBe(orderB.code);
+            } finally {
+                subscription.unsubscribe();
+            }
+        });
+    });
+
+    // GHSA-8ghm-q833-cmgp: service methods must remain callable with a RequestContext that is not
+    // bound to a transaction (job-queue processors and scripts do this). A pessimistic
+    // lock outside a transaction makes TypeORM throw PessimisticLockTransactionRequiredError.
+    describe('allocation outside a transaction', () => {
+        it('createAllocationsForOrderLines works with a non-transactional context', async () => {
+            const variantId = 'T_2'; // Laptop 15 inch 8GB
+            const product = await getProductWithStockMovement('T_1');
+            const variant = product!.variants.find(v => v.id === variantId)!;
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [
+                    {
+                        id: variantId,
+                        stockOnHand: variant.stockAllocated + 10,
+                        trackInventory: GlobalFlag.TRUE,
+                    },
+                ],
+            });
+
+            await shopClient.asUserWithCredentials('marques.sawayn@hotmail.com', 'test');
+            const { addItemToOrder: order } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: variantId,
+                quantity: 1,
+            });
+            orderGuard.assertSuccess(order);
+
+            const stockMovementService = server.app.get(StockMovementService);
+            const requestContextService = server.app.get(RequestContextService);
+            const ctx = await requestContextService.create({ apiType: 'admin' });
+
+            await expect(
+                stockMovementService.createAllocationsForOrderLines(ctx, [
+                    { orderLineId: order.lines[0].id.replace(/^T_/, ''), quantity: 1 },
+                ]),
+            ).resolves.toBeDefined();
+        });
+    });
+
+    // GHSA-8ghm-q833-cmgp: a variant which does not track inventory has nothing to fall short of.
+    // Without a StockLevel in the Channel's locations it gets no Allocation, which must not be
+    // reported as a shortfall.
+    describe('untracked variant without a StockLevel', () => {
+        const variantId = 'T_6';
+
+        it('does not publish a StockShortfallEvent', async () => {
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: variantId, trackInventory: GlobalFlag.FALSE }],
+            });
+            await shopClient.asUserWithCredentials('marques.sawayn@hotmail.com', 'test');
+            const { addItemToOrder: order } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: variantId,
+                quantity: 1,
+            });
+            orderGuard.assertSuccess(order);
+            const line = order.lines.find(l => l.productVariant.id === variantId)!;
+            // Deleted after the item is added, because the saleable stock check creates a
+            // missing StockLevel.
+            await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(StockLevel)
+                .delete({ productVariantId: variantId.replace(/^T_/, '') });
+
+            const shortfallEvents: StockShortfallEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(StockShortfallEvent)
+                .subscribe(event => shortfallEvents.push(event));
+            try {
+                const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+                const allocations = await server.app
+                    .get(StockMovementService)
+                    .createAllocationsForOrderLines(ctx, [
+                        { orderLineId: line.id.replace(/^T_/, ''), quantity: 1 },
+                    ]);
+                // Let the event bus deliver anything published after the commit.
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                expect(allocations.length).toBe(0);
+                expect(shortfallEvents.length).toBe(0);
+            } finally {
+                subscription.unsubscribe();
+            }
         });
     });
 });

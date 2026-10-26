@@ -29,7 +29,7 @@ export class BaseListPage {
         protected config: ListPageConfig,
     ) {
         this.heading = page.getByTestId('page-heading');
-        this.searchInput = page.getByPlaceholder('Filter...');
+        this.searchInput = page.getByRole('textbox', { name: /^Search(?: .+)?\.\.\.$/ }).first();
         this.dataTable = page.locator('table');
         // Base UI's Button with render={<Link />} adds role="button" to the element
         this.newButton = page.getByRole(config.newButtonRole ?? 'button', { name: config.newButtonLabel });
@@ -58,13 +58,17 @@ export class BaseListPage {
     }
 
     async search(term: string) {
-        await this.searchInput.fill(term);
-        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await Promise.all([
+            this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            this.searchInput.fill(term),
+        ]);
     }
 
     async clearSearch() {
-        await this.searchInput.clear();
-        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await Promise.all([
+            this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            this.searchInput.clear(),
+        ]);
     }
 
     /**
@@ -105,6 +109,20 @@ export class BaseListPage {
 
     async expectRowCount(count: number) {
         await expect(this.getRows()).toHaveCount(count);
+    }
+
+    /**
+     * Wait until the table contains real data rows. `expectLoaded()` passes while
+     * the initial fetch is still rendering skeleton rows (and a transient empty
+     * state can flash between skeletons and data), so `getRows().count()` taken
+     * straight after it races the load. Only rows with a selection checkbox count
+     * as real data — skeleton and empty-state rows have none.
+     */
+    async expectRowsLoaded() {
+        await expect(this.dataTable.locator('[data-slot="skeleton"]')).toHaveCount(0, {
+            timeout: 10_000,
+        });
+        await expect(this.getRows().first().getByRole('checkbox')).toBeVisible({ timeout: 10_000 });
     }
 
     async expectRowCountGreaterThan(min: number) {
