@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HUSKY=0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates build-essential python3 git \
+      build-essential ca-certificates git python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Same Bun version as .github/actions/setup/action.yml
@@ -21,12 +21,12 @@ USER node
 
 # Bun only runs lifecycle scripts for the packages in `trustedDependencies` (root package.json).
 # better-sqlite3 and re2 need theirs to build their native modules.
-RUN bun install --frozen-lockfile
-
-# Builds every package, as the CI "build" job does
-RUN bun run build
+# `bun run build` builds every package, as the CI "build" job does.
+RUN bun install --frozen-lockfile && bun run build
 
 # Run the unit tests of @vendure/core as a smoke test, without letting failures abort the build.
 # E2E tests default to the in-memory sql.js driver and need no external services:
 #   cd packages/core && bun run e2e <spec-name>
-RUN cd packages/core && (bun run test || echo "WARNING: core unit tests reported failures")
+WORKDIR /src/packages/core
+RUN bun run test || echo "WARNING: core unit tests reported failures"
+WORKDIR /src
