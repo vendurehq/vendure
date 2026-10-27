@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g bun@1.3.10
 
 # scanner contract: the checkout lives inside the image, at /src
-COPY . /src
+COPY --chown=node:node . /src
 WORKDIR /src
+USER node
 
 RUN bun install --frozen-lockfile
 

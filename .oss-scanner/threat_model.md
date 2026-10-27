@@ -19,7 +19,10 @@ merchant's own application. It is deployed on the public internet.
 - **Asset uploads and serving**: `packages/core` (upload mutations) and `packages/asset-server-plugin`, which
   serves files and resizes images from query parameters.
 - **Email plugin** (`packages/email-plugin`): templates render data that customers control (names, addresses).
-- **MCP plugin** (`packages/mcp-plugin`): exposes Vendure operations to MCP clients over HTTP, with OAuth.
+- **MCP plugin** (`packages/mcp-plugin`): exposes Vendure operations to MCP clients over HTTP. `/mcp/shop` accepts
+  anonymous callers by default (`shopAccess: 'anonymous'`) and offers cart and checkout tools, so its input is
+  untrusted in the same way as the Shop API. `/mcp/admin` requires an OAuth bearer token, and the OAuth endpoints
+  themselves (client registration, client metadata document fetches, authorization) are reachable without one.
 - **Dashboard** (`packages/dashboard`): React admin app. Content that shop users or lower-privileged admins
   can write (product descriptions, customer fields, custom fields) is rendered here.
 
@@ -69,8 +72,9 @@ Out of scope:
 
 ## Anything to leave alone
 
-- Introspection, GraphiQL and verbose errors being enabled: these are development defaults that the
-  HardenPlugin and the production configuration turn off.
+- Introspection being enabled, or GraphiQL being served, on its own. The schema is public in this repository,
+  and GraphiQL can only do what the API already allows its caller to do. Report these only when they expose
+  something beyond that, such as data or operations the caller could not otherwise reach.
 - Denial of service through volume (many requests) or through very large but well-formed queries: rate
   limiting is the deployer's job, and query cost limits belong to the HardenPlugin.
 - Behaviour an administrator gets because they hold `SuperAdmin` or the permission for that operation.
