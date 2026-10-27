@@ -14,6 +14,9 @@ merchant's own application. It is deployed on the public internet.
 - **Authentication and sessions**: `packages/core/src/config/auth`, `packages/core/src/service/services/auth.service.ts`,
   `session.service.ts`, `api/middleware/auth-guard.ts`. Includes password reset, email verification and
   email-change tokens.
+- **API keys**: `packages/core/src/service/services/api-key.service.ts` and
+  `packages/core/src/config/api-key-strategy`. The auth guard reads the API key header on every request, so its
+  value is untrusted. A bypass of the key lookup or hash check gives Admin API access.
 - **List queries** (`filter`, `sort`, `options` arguments) are turned into SQL by the list query builder in
   `packages/core/src/service/helpers/list-query-builder`.
 - **Asset uploads and serving**: `packages/core` (upload mutations) and `packages/asset-server-plugin`, which
@@ -30,7 +33,8 @@ merchant's own application. It is deployed on the public internet.
 
 Most important:
 - Authentication, sessions, and the permission and channel checks on the Admin API.
-- Customers reaching other customers' data: orders, addresses, payment methods, account details.
+- Customers reaching other customers' data: orders, addresses, payments on their orders,
+  account details.
 - Changing what an order costs: prices, promotions, coupon codes, shipping, order state transitions,
   payments and refunds.
 - SQL injection through list query options or custom field filters.
@@ -38,6 +42,8 @@ Most important:
 - Stored XSS in the Dashboard from content that a customer or lower-privileged administrator can write.
 
 Lower importance, still in scope:
+- `packages/common`: shared code that ships inside core.
+- `packages/mcp-sdk`: the `@McpTool` decorator and helpers that the MCP plugin uses at runtime.
 - `packages/harden-plugin` (query complexity limits), `packages/job-queue-plugin`, `packages/graphiql-plugin`,
   `packages/telemetry-plugin`, `packages/sentry-plugin`.
 - `packages/admin-ui` and `packages/admin-ui-plugin`: the older Angular admin app, which is being replaced
@@ -46,7 +52,7 @@ Lower importance, still in scope:
 Out of scope:
 - `packages/dev-server`, `packages/testing`, `e2e-common`, `scripts`, `docs`: development and test tooling,
   never deployed.
-- `packages/create` and `packages/cli`: run locally by a developer against their own project.
+- `packages/create`, `packages/cli` and `packages/ui-devkit`: run locally by a developer against their own project.
 - Code generated into `packages/*/src/generated*` or `graphql-env.d.ts` files.
 
 ## How to exercise it
