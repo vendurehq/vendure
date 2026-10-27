@@ -59,6 +59,11 @@ export class UpdateVariantTool implements McpToolHandler<UpdateVariantToolInput>
 
     async execute(ctx: RequestContext, input: UpdateVariantToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'ProductVariant', input.input.customFields);
+        await this.customFieldInput.assertTranslationsWritable(
+            ctx,
+            'ProductVariant',
+            input.input.translations,
+        );
         const existing = await this.productVariantService.findOne(ctx, input.id, []);
         if (!existing) {
             throw new UserInputError(`Product variant ${input.id} is not available in the active channel.`);

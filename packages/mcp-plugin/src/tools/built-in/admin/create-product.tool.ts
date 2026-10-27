@@ -45,6 +45,7 @@ export class CreateProductTool implements McpToolHandler<CreateProductToolInput>
 
     async execute(ctx: RequestContext, input: CreateProductToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'Product', input.input.customFields);
+        await this.customFieldInput.assertTranslationsWritable(ctx, 'Product', input.input.translations);
         return { product: this.serializer.product(await this.productService.create(ctx, input.input)) };
     }
 }

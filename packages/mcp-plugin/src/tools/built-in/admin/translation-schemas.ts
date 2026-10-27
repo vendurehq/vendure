@@ -7,9 +7,11 @@ export const productTranslationSchema = z.strictObject({
     name: shortText.describe('Product name.').optional(),
     slug: shortText.describe('URL slug.').optional(),
     description: longText.describe('Product description.').optional(),
+    customFields: z.looseObject({}).describe('Localized product custom fields.').optional(),
 });
 
 export const variantTranslationSchema = z.strictObject({
     languageCode: z.enum(LanguageCode).describe('Language code, e.g. "en".'),
     name: shortText.describe('Variant name.').optional(),
+    customFields: z.looseObject({}).describe('Localized variant custom fields.').optional(),
 });

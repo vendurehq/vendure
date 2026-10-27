@@ -11,7 +11,10 @@ import {
     Order,
     Payment,
     Product,
+    ProductService,
+    ProductTranslation,
     ProductVariant,
+    ProductVariantTranslation,
     RequestContext,
     RequestContextService,
     Sale,
@@ -203,12 +206,15 @@ describe('MCP built-in admin tools (direct mode)', () => {
         rateLimits: { oauthIp: false },
     };
     const config = mergeConfig(testConfig(), {
-        // Two Product custom fields no tool may write: one internal, one read-only.
+        // Two Product custom fields no tool may write: one internal, one read-only. The localized
+        // fields are written per translation.
         customFields: {
             Product: [
                 { name: 'internalCode', type: 'string', internal: true },
                 { name: 'lockedCode', type: 'string', readonly: true },
+                { name: 'subtitle', type: 'localeString' },
             ],
+            ProductVariant: [{ name: 'shortName', type: 'localeString' }],
         },
         // `upload_asset` fetches over HTTP, and core's default import strategy refuses hostnames
         // that resolve to private or loopback addresses (its server-side request forgery guard).
@@ -2049,6 +2055,89 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(readonly.body.result.content[0].text).toContain('lockedCode');
         });
 
+        // #5654 — a localized custom field is stored per translation, so it is refused outside of one
+        it('update_product refuses a localized custom field outside of a translation', async () => {
+            const token = await adminAccessToken();
+
+            const response = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'update_product',
+                    { id: productId, input: { customFields: { subtitle: 'Hello' } } },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(response.body.result.isError).toBe(true);
+            expect(response.body.result.content[0].text).toContain(
+                'These custom fields are localized, so they must be set on a translation: subtitle.',
+            );
+        });
+
+        // #5654 — a translation takes the localized custom fields, and only those
+        it('update_product writes a localized custom field of a translation', async () => {
+            const token = await adminAccessToken();
+            const translation = () =>
+                connection
+                    .getRepository(adminCtx, ProductTranslation)
+                    .findOneOrFail({ where: { base: { id: productId }, languageCode: LanguageCode.en } });
+            const update = (customFields: Record<string, unknown>, id: number) =>
+                postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'update_product',
+                        { id: productId, input: { translations: [{ languageCode: 'en', customFields }] } },
+                        id,
+                    ),
+                    { token },
+                );
+
+            try {
+                const updated = await update({ subtitle: 'Hello' }, 1);
+                expect(updated.body.result.isError).toBeUndefined();
+                expect((await translation()).customFields).toMatchObject({ subtitle: 'Hello' });
+
+                const notLocalized = await update({ lockedCode: 'locked' }, 2);
+                expect(notLocalized.body.result.isError).toBe(true);
+                expect(notLocalized.body.result.content[0].text).toContain(
+                    'These custom fields are not localized, so they cannot be set on a translation: lockedCode.',
+                );
+            } finally {
+                await update({ subtitle: null }, 3);
+            }
+        });
+
+        // #5654 — a translation takes the localized custom fields
+        it('update_variant writes a localized custom field of a translation', async () => {
+            const token = await adminAccessToken();
+            const translation = () =>
+                connection
+                    .getRepository(adminCtx, ProductVariantTranslation)
+                    .findOneOrFail({ where: { base: { id: variantId }, languageCode: LanguageCode.en } });
+            const update = (customFields: Record<string, unknown>, id: number) =>
+                postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'update_variant',
+                        { id: variantId, input: { translations: [{ languageCode: 'en', customFields }] } },
+                        id,
+                    ),
+                    { token },
+                );
+
+            try {
+                const updated = await update({ shortName: 'Short' }, 1);
+                expect(updated.body.result.isError).toBeUndefined();
+                expect((await translation()).customFields).toMatchObject({ shortName: 'Short' });
+            } finally {
+                await update({ shortName: null }, 2);
+            }
+        });
+
         it('update_variant writes the new price and SKU', async () => {
             const token = await adminAccessToken();
 
@@ -2120,6 +2209,48 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 .getRepository(adminCtx, ProductVariant)
                 .findOneOrFail({ where: { sku }, relations: { product: true } });
             expect(String(stored.product.id)).toBe(String(emptyProductId));
+        });
+
+        // #5654 — a translation takes the localized custom fields
+        it('create_product writes a localized custom field of a translation', async () => {
+            const token = await adminAccessToken();
+            const slug = `mcp-localized-${Math.random().toString(36).slice(2, 8)}`;
+
+            const created = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'create_product',
+                    {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: 'en',
+                                    name: 'MCP Localized Product',
+                                    slug,
+                                    description: '',
+                                    customFields: { subtitle: 'Hello' },
+                                },
+                            ],
+                        },
+                    },
+                    1,
+                ),
+                { token },
+            );
+            const createdId = created.body.result.structuredContent?.product?.id;
+            try {
+                expect(created.body.result.isError).toBeUndefined();
+                const translation = await connection
+                    .getRepository(adminCtx, ProductTranslation)
+                    .findOneOrFail({ where: { slug } });
+                expect(translation.customFields).toMatchObject({ subtitle: 'Hello' });
+            } finally {
+                // Remove the product, so it does not show up in the product lists of later tests.
+                if (createdId != null) {
+                    await server.app.get(ProductService).softDelete(adminCtx, createdId);
+                }
+            }
         });
 
         it('create_variant refuses a fractional price and an unknown trackInventory value', async () => {

@@ -12,8 +12,8 @@ const addressCustomFields: CustomFieldConfig[] = [
 ];
 
 // Core's validator also receives this Injector, but resolves nothing from it for these field types.
-function injectorFor(customFields: CustomFieldConfig[]): Injector {
-    const configService = { customFields: { Address: customFields } } as unknown as ConfigService;
+function injectorFor(customFields: CustomFieldConfig[], entityName = 'Address'): Injector {
+    const configService = { customFields: { [entityName]: customFields } } as unknown as ConfigService;
     return { get: () => configService } as unknown as Injector;
 }
 
@@ -75,5 +75,40 @@ describe('assertCustomFieldsWritable', () => {
         await expect(
             assertCustomFieldsWritable(ctxFor('admin'), relationInjector, 'Address', { pickupPoint: 1 }),
         ).rejects.toThrow(/pickupPoint/);
+    });
+
+    // #5654 — as in the GraphQL API, a localized custom field is set on a translation, all others outside of it
+    describe('localized custom fields', () => {
+        // Only a translatable entity, such as Product, can have localized custom fields.
+        const productInjector = injectorFor(
+            [
+                { name: 'note', type: 'string' },
+                { name: 'subtitle', type: 'localeString' },
+                { name: 'details', type: 'localeText' },
+                { name: 'secretTitle', type: 'localeString', internal: true },
+            ],
+            'Product',
+        );
+        const assertProduct = (input: Record<string, unknown>, options?: { translation?: boolean }) =>
+            assertCustomFieldsWritable(ctxFor('admin'), productInjector, 'Product', input, options);
+
+        it('takes localized custom fields only on a translation', async () => {
+            await expect(assertProduct({ note: 'x' })).resolves.toBeUndefined();
+            await expect(assertProduct({ subtitle: 'x', details: 'y' })).rejects.toThrow(
+                'These custom fields are localized, so they must be set on a translation: subtitle, details.',
+            );
+            await expect(
+                assertProduct({ subtitle: 'x', details: 'y' }, { translation: true }),
+            ).resolves.toBeUndefined();
+            await expect(assertProduct({ note: 'x' }, { translation: true })).rejects.toThrow(
+                'These custom fields are not localized, so they cannot be set on a translation: note.',
+            );
+        });
+
+        it('refuses an internal localized field on a translation too', async () => {
+            await expect(assertProduct({ secretTitle: 'x' }, { translation: true })).rejects.toThrow(
+                'These custom fields cannot be set on Product: secretTitle.',
+            );
+        });
     });
 });

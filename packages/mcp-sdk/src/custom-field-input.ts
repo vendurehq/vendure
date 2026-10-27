@@ -1,6 +1,11 @@
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
 import type { CustomFieldConfig, CustomFields, Injector, RequestContext } from '@vendure/core';
-import { ConfigService, UserInputError, validateCustomFieldValue } from '@vendure/core';
+import {
+    ConfigService,
+    isLocalizedCustomFieldType,
+    UserInputError,
+    validateCustomFieldValue,
+} from '@vendure/core';
 
 /**
  * @description
@@ -11,6 +16,10 @@ import { ConfigService, UserInputError, validateCustomFieldValue } from '@vendur
  * non-`public` field sent by a Shop API caller. It then runs Vendure's normal custom field
  * validation on the rest. Any refusal throws a `UserInputError`. A relation field uses its
  * input name, so a field named `image` arrives as `imageId`.
+ *
+ * A localized custom field (`localeString` or `localeText`) is stored on the translation of the
+ * entity, so, as in the GraphQL API, it is only accepted in the custom fields of a translation. Pass
+ * `{ translation: true }` to check those: they take only the localized custom fields.
  *
  * @example
  * ```ts
@@ -45,26 +54,38 @@ export async function assertCustomFieldsWritable(
     injector: Injector,
     entityName: keyof CustomFields,
     input: Record<string, unknown> | undefined,
+    options: { translation?: boolean } = {},
 ): Promise<void> {
     if (input === undefined) {
         return;
     }
     const configs: CustomFieldConfig[] = injector.get(ConfigService).customFields[entityName] ?? [];
+    const inTranslation = options.translation === true;
     const notWritable: string[] = [];
+    const misplaced: string[] = [];
     const toValidate: Array<{ config: CustomFieldConfig; value: unknown }> = [];
 
     for (const [key, value] of Object.entries(input)) {
         // Matched like core's interceptor: a relation field arrives as `<name>Id` or `<name>Ids`.
         const config = configs.find(candidate => getGraphQlInputName(candidate) === key);
-        if (config && isWritableBy(ctx, config)) {
-            toValidate.push({ config, value });
-        } else {
+        if (!config || !isWritableBy(ctx, config)) {
             notWritable.push(key);
+        } else if (isLocalizedCustomFieldType(config.type) !== inTranslation) {
+            misplaced.push(key);
+        } else {
+            toValidate.push({ config, value });
         }
     }
     if (notWritable.length > 0) {
         throw new UserInputError(
             `These custom fields cannot be set on ${entityName}: ${notWritable.join(', ')}.`,
+        );
+    }
+    if (misplaced.length > 0) {
+        throw new UserInputError(
+            inTranslation
+                ? `These custom fields are not localized, so they cannot be set on a translation: ${misplaced.join(', ')}.`
+                : `These custom fields are localized, so they must be set on a translation: ${misplaced.join(', ')}.`,
         );
     }
 

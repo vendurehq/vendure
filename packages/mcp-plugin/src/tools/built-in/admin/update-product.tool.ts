@@ -50,6 +50,7 @@ export class UpdateProductTool implements McpToolHandler<UpdateProductToolInput>
 
     async execute(ctx: RequestContext, input: UpdateProductToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'Product', input.input.customFields);
+        await this.customFieldInput.assertTranslationsWritable(ctx, 'Product', input.input.translations);
         return {
             product: this.serializer.product(
                 await this.productService.update(ctx, { ...input.input, id: input.id }),

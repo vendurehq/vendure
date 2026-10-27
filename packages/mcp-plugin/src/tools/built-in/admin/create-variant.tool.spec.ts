@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { CreateVariantTool } from './create-variant.tool';
 
-const customFieldInput = { assertWritable: () => Promise.resolve() } as any;
+const customFieldInput = {
+    assertWritable: () => Promise.resolve(),
+    assertTranslationsWritable: () => Promise.resolve(),
+} as any;
 const serializer = { adminVariant: (variant: unknown) => variant } as any;
 
 describe('CreateVariantTool', () => {

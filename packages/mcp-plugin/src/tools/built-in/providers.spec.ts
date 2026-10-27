@@ -25,6 +25,10 @@ const allowedOpenObjectPaths = new Set([
     'update_product.input.customFields',
     'create_variant.input.customFields',
     'update_variant.input.customFields',
+    'create_product.input.translations[].customFields',
+    'update_product.input.translations[].customFields',
+    'create_variant.input.translations[].customFields',
+    'update_variant.input.translations[].customFields',
 ]);
 
 function assertStrictObjectSchemas(schema: unknown, path: string): void {
