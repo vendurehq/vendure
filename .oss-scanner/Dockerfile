@@ -12,13 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Same Bun version as .github/actions/setup/action.yml
-RUN npm install -g bun@1.3.10
+COPY --from=oven/bun:1.3.10-debian /usr/local/bin/bun /usr/local/bin/bun
 
 # scanner contract: the checkout lives inside the image, at /src
 COPY --chown=node:node . /src
 WORKDIR /src
 USER node
 
+# Bun only runs lifecycle scripts for the packages in `trustedDependencies` (root package.json).
+# better-sqlite3 and re2 need theirs to build their native modules.
 RUN bun install --frozen-lockfile
 
 # Builds every package, as the CI "build" job does
