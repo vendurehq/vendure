@@ -62,10 +62,10 @@ type Mutation {
 input UpdateCustomerInput {
     id: ID!
     title: String
-    firstName: String
-    lastName: String
+    firstName: String @nonBlank
+    lastName: String @nonBlank
     phoneNumber: String
-    emailAddress: String
+    emailAddress: String @nonBlank
 }
 
 input CustomerFilterParameter {

@@ -14,7 +14,7 @@ const addressFormSchema = z.object({
     id: z.string(),
     fullName: z.string().optional(),
     company: z.string().optional(),
-    streetLine1: z.string().min(1, { message: 'Street address is required' }),
+    streetLine1: z.string().regex(/\S/, { message: 'Street address is required' }),
     streetLine2: z.string().optional(),
     city: z.string().min(1, { message: 'City is required' }),
     province: z.string().optional(),

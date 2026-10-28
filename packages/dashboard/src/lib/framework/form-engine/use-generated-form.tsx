@@ -11,6 +11,8 @@ import {
     createFormSchemaFromFields,
     getDefaultValuesFromFields,
 } from './form-schema-tools.js';
+// Imported via `@/vdb/` like the wrappers that read it, so that both share one module instance.
+import { setNonBlankFields } from '@/vdb/framework/form-engine/non-blank-fields.js';
 import {
     convertEmptyStringsToNull,
     getChangedTopLevelFields,
@@ -260,6 +262,9 @@ export function useGeneratedForm<
     // Proxy actually populates it. If it were only read inside the submit handler it could come
     // back empty, and `stripUntouchedTranslations` would then keep every seeded row (see its docs).
     const { dirtyFields } = form.formState;
+    // Lets FormFieldWrapper and TranslatableFormFieldWrapper mark `@nonBlank` inputs as required.
+    // Done during render, not in an effect, because the wrappers read it in this same render.
+    useMemo(() => setNonBlankFields(form.control, updateFields), [form.control, updateFields]);
 
     // When editing an existing entity, validate the loaded values so that a stored value which
     // fails validation is shown as an error, rather than only disabling the submit button.

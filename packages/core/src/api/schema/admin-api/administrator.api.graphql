@@ -25,25 +25,25 @@ type Mutation {
 input AdministratorListOptions
 
 input CreateAdministratorInput {
-    firstName: String!
-    lastName: String!
-    emailAddress: String!
+    firstName: String! @nonBlank
+    lastName: String! @nonBlank
+    emailAddress: String! @nonBlank
     password: String!
     roleIds: [ID!]!
 }
 
 input UpdateAdministratorInput {
     id: ID!
-    firstName: String
-    lastName: String
-    emailAddress: String
+    firstName: String @nonBlank
+    lastName: String @nonBlank
+    emailAddress: String @nonBlank
     password: String
     roleIds: [ID!]
 }
 
 input UpdateActiveAdministratorInput {
-    firstName: String
-    lastName: String
-    emailAddress: String
+    firstName: String @nonBlank
+    lastName: String @nonBlank
+    emailAddress: String @nonBlank
     password: String
 }

@@ -1,6 +1,6 @@
 import { GraphQLTypesLoader } from '@nestjs/graphql';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
-import { buildSchema, concatAST, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
+import { buildSchema, concatAST, extendSchema, GraphQLSchema } from 'graphql/index';
 import path from 'path';
 
 import {
@@ -78,10 +78,20 @@ export async function getFinalVendureSchema(
     let schema = buildSchema(typeDefs);
     schema = buildSchemaFromVendureConfig(schema, config, apiType);
     if (options.output === 'sdl') {
-        return printSchema(schema);
+        return printSchemaWithDirectives(schema);
     } else {
         return schema;
     }
+}
+
+/**
+ * Like `printSchema()`, but keeps directives applied to fields, such as `@nonBlank`, which
+ * `printSchema()` drops. The Dashboard reads `@nonBlank` from the printed schema.
+ */
+export function printSchemaWithDirectives(schema: GraphQLSchema): string {
+    // Required lazily so that @graphql-tools/utils is not loaded at require time of @vendure/core.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('@graphql-tools/utils').printSchemaWithDirectives(schema);
 }
 
 /**

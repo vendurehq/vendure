@@ -26,8 +26,8 @@ type ChannelList implements PaginatedList {
 input ChannelListOptions
 
 input CreateChannelInput {
-    code: String!
-    token: String!
+    code: String! @nonBlank
+    token: String! @nonBlank
     defaultLanguageCode: LanguageCode!
     availableLanguageCodes: [LanguageCode!]
     pricesIncludeTax: Boolean!
@@ -43,8 +43,8 @@ input CreateChannelInput {
 
 input UpdateChannelInput {
     id: ID!
-    code: String
-    token: String
+    code: String @nonBlank
+    token: String @nonBlank
     defaultLanguageCode: LanguageCode
     availableLanguageCodes: [LanguageCode!]
     pricesIncludeTax: Boolean

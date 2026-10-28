@@ -31,13 +31,13 @@ input ShippingMethodListOptions
 input ShippingMethodTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
     description: String
 }
 
 input CreateShippingMethodInput {
-    code: String!
-    fulfillmentHandler: String!
+    code: String! @nonBlank
+    fulfillmentHandler: String! @nonBlank
     checker: ConfigurableOperationInput!
     calculator: ConfigurableOperationInput!
     translations: [ShippingMethodTranslationInput!]!
@@ -45,8 +45,8 @@ input CreateShippingMethodInput {
 
 input UpdateShippingMethodInput {
     id: ID!
-    code: String
-    fulfillmentHandler: String
+    code: String @nonBlank
+    fulfillmentHandler: String @nonBlank
     checker: ConfigurableOperationInput
     calculator: ConfigurableOperationInput
     translations: [ShippingMethodTranslationInput!]!

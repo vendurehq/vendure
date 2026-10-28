@@ -25,12 +25,12 @@ type Mutation {
 }
 
 input CreateTaxCategoryInput {
-    name: String!
+    name: String! @nonBlank
     isDefault: Boolean
 }
 
 input UpdateTaxCategoryInput {
     id: ID!
-    name: String
+    name: String @nonBlank
     isDefault: Boolean
 }

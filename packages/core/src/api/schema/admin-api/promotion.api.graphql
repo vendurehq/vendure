@@ -22,7 +22,7 @@ input PromotionListOptions
 input PromotionTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
     description: String
 }
 input CreatePromotionInput {

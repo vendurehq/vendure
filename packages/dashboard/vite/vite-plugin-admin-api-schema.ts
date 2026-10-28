@@ -18,6 +18,11 @@ export type FieldInfoTuple = readonly [
     nullable: boolean,
     list: boolean,
     isPaginatedList: boolean,
+    /**
+     * Set for input fields with the `@nonBlank` directive, which the server rejects when they
+     * are empty or whitespace-only.
+     */
+    nonBlank?: true,
 ];
 
 export interface SchemaInfo {
@@ -116,7 +121,9 @@ function generateSchemaInfo(schema: GraphQLSchema): SchemaInfo {
             result.inputs[type.name] = {};
 
             Object.entries(fields).forEach(([fieldName, field]) => {
-                result.inputs[type.name][fieldName] = getTypeInfo(field.type);
+                const typeInfo = getTypeInfo(field.type);
+                const nonBlank = field.astNode?.directives?.some(d => d.name.value === 'nonBlank');
+                result.inputs[type.name][fieldName] = nonBlank ? [...typeInfo, true] : typeInfo;
             });
         }
         if (isScalarType(type)) {
