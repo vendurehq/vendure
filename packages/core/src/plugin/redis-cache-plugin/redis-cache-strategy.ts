@@ -10,18 +10,16 @@ const INVALIDATION_BATCH_SIZE = 1000;
 
 /**
  * Adds a key to a tag's sorted set, scored by the key's expiry time in ms (Redis server clock).
- * Expired members are pruned, and the tag set expires no earlier than its longest-lived member.
+ * Expired members are pruned, and the tag set expires with its longest-lived remaining member.
  * KEYS[1] = tag set, ARGV[1] = member, ARGV[2] = ttl in ms.
  */
 const ADD_TO_TAG_SCRIPT = `
 local time = redis.call('TIME')
 local now = time[1] * 1000 + math.floor(time[2] / 1000)
-local ttl = tonumber(ARGV[2])
-redis.call('ZADD', KEYS[1], now + ttl, ARGV[1])
+redis.call('ZADD', KEYS[1], string.format('%.0f', now + ARGV[2]), ARGV[1])
 redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
-if redis.call('PTTL', KEYS[1]) < ttl then
-    redis.call('PEXPIRE', KEYS[1], ttl)
-end
+local last = redis.call('ZRANGE', KEYS[1], -1, -1, 'WITHSCORES')
+redis.call('PEXPIREAT', KEYS[1], string.format('%.0f', last[2]))
 `;
 
 /**
@@ -130,26 +128,37 @@ export class RedisCacheStrategy implements CacheStrategy {
 
     private async invalidateTag(tag: string) {
         const tagKey = this.tagNamespace(tag);
-        let members = await this.client.zrange(tagKey, 0, INVALIDATION_BATCH_SIZE - 1);
-        while (members.length) {
-            await this.deleteMembers(this.client.multi().zrem(tagKey, ...members), members);
-            members = await this.client.zrange(tagKey, 0, INVALIDATION_BATCH_SIZE - 1);
-        }
+        await this.deleteInBatches(
+            () => this.client.zrange(tagKey, 0, INVALIDATION_BATCH_SIZE - 1),
+            members => this.client.multi().zrem(tagKey, ...members),
+        );
         // Tags written by earlier versions are plain SETs under the legacy key name
         const legacyTagKey = this.legacyTagNamespace(tag);
-        members = await this.client.srandmember(legacyTagKey, INVALIDATION_BATCH_SIZE);
-        while (members.length) {
-            await this.deleteMembers(this.client.multi().srem(legacyTagKey, ...members), members);
-            members = await this.client.srandmember(legacyTagKey, INVALIDATION_BATCH_SIZE);
-        }
+        await this.deleteInBatches(
+            () => this.client.srandmember(legacyTagKey, INVALIDATION_BATCH_SIZE),
+            members => this.client.multi().srem(legacyTagKey, ...members),
+        );
     }
 
-    private async deleteMembers(multi: import('ioredis').ChainableCommander, members: string[]) {
-        const results = await multi.del(...members).exec();
+    /**
+     * Deletes a tag set's members one batch at a time, so that a large tag does not block Redis.
+     */
+    private async deleteInBatches(
+        readBatch: () => Promise<string[]>,
+        removeFromTag: (members: string[]) => import('ioredis').ChainableCommander,
+    ): Promise<void> {
+        const members = await readBatch();
+        if (!members.length) {
+            return;
+        }
+        const results = await removeFromTag(members)
+            .del(...members)
+            .exec();
         const error = results?.find(([err]) => err)?.[0];
         if (error) {
             throw error;
         }
+        return this.deleteInBatches(readBatch, removeFromTag);
     }
 
     private namespace(key: string) {

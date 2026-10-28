@@ -162,6 +162,19 @@ describe('CacheService with RedisCachePlugin', async () => {
         });
 
         // #5682
+        it('shortens a tag set expiry when its longest-lived key is re-set with a shorter ttl', async () => {
+            const tagKey = 'vendure-cache:ztag:shortened-tag';
+            await cacheService.set('shortened-key', 'value', { tags: ['shortened-tag'] });
+            expect(await redis.pttl(tagKey)).toBeGreaterThan(5000);
+
+            await cacheService.set('shortened-key', 'value', { ttl: 1000, tags: ['shortened-tag'] });
+
+            const pttl = await redis.pttl(tagKey);
+            expect(pttl).toBeGreaterThan(0);
+            expect(pttl).toBeLessThanOrEqual(1000);
+        });
+
+        // #5682
         it('invalidates keys tagged in the legacy SET format', async () => {
             const legacyTagKey = 'vendure-cache:tag:legacy-tag';
             await redis.set('vendure-cache:legacy-key', JSON.stringify('value'));

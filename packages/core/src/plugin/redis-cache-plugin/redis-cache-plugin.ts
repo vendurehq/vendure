@@ -17,7 +17,8 @@ import { RedisCachePluginInitOptions } from './types';
  * npm install ioredis@^5.3.2
  * ```
  *
- * Requires Redis 5.0 or later, or a compatible server such as Valkey.
+ * Requires Redis 5.0 or later, or a compatible server such as Valkey. Tagged writes run a Lua script
+ * with `EVAL`, so a Redis ACL user needs the `@scripting` permission.
  *
  * @docsCategory cache
  * @docsPage RedisCachePlugin
