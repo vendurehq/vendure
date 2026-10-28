@@ -945,7 +945,7 @@ describe('bundleEntryPlugin', () => {
         '<head></head>',
         '<body>',
         '<div id="app"></div>',
-        '<script type="module" src="/src/app/main.jsx"></script>',
+        '<script type="module" src="/src/app/main.tsx"></script>',
         '</body>',
         '</html>',
     ].join('\n');
@@ -967,20 +967,20 @@ describe('bundleEntryPlugin', () => {
         expect(result).toContain('/dist/bundle/main.js');
         expect(result).toContain('/dist/bundle/dashboard.css');
         expect(result).toContain('<link rel="stylesheet"');
-        expect(result).not.toContain('/src/app/main.jsx');
+        expect(result).not.toContain('/src/app/main.tsx');
     });
 
     it('matches the script src even when Vite has already prepended the base path', () => {
         const plugin = bundleEntryPlugin();
         const htmlWithBase = sourceEntryHtml.replace(
-            'src="/src/app/main.jsx"',
-            'src="/dashboard/src/app/main.jsx"',
+            'src="/src/app/main.tsx"',
+            'src="/dashboard/src/app/main.tsx"',
         );
         const result = callBundleEntryTransform(plugin, htmlWithBase, {
             filename: 'index.html',
         });
         expect(result).toContain('/dist/bundle/main.js');
-        expect(result).not.toContain('main.jsx');
+        expect(result).not.toContain('main.tsx');
     });
 
     it('leaves HTML unchanged when the source-entry script is not present', () => {
@@ -1129,7 +1129,7 @@ describe('filterActivePluginInfo', () => {
     // Fails open: a missing `plugins` key means "no filtering information",
     // not "disable everything", so the discovered pluginInfo is returned as-is.
     it('returns pluginInfo unchanged when the plugins key is missing', () => {
-        const result = filterActivePluginInfo([makePluginInfo('A')], {} as { plugins?: undefined });
+        const result = filterActivePluginInfo([makePluginInfo('A')], {});
         expect(result.map(p => p.name)).toEqual(['A']);
     });
 

@@ -19,11 +19,8 @@ export default defineConfig({
         environment: 'node',
         testTimeout: 60000,
         pool: 'forks',
-        poolOptions: {
-            forks: {
-                singleFork: true,
-            },
-        },
+        maxWorkers: 1,
+        isolate: false,
         typecheck: {
             tsconfig: path.join(__dirname, 'config/tsconfig.e2e.json'),
         },

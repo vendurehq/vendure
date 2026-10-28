@@ -37,15 +37,30 @@ export default ({ mode }: { mode: string }) => {
             globals: true,
             environment: 'jsdom',
             exclude: ['./dist/**/*', './e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
-            environmentMatchGlobs: [
-                ['vite/tests/**', 'node'],
+            projects: [
+                {
+                    extends: true,
+                    test: {
+                        name: 'dom',
+                        environment: 'jsdom',
+                        exclude: ['./dist/**/*', './e2e/**/*', './plugin/**/*', '**/node_modules/**/*', 'vite/tests/**'],
+                    },
+                },
+                {
+                    extends: true,
+                    test: {
+                        name: 'node',
+                        environment: 'node',
+                        include: ['vite/tests/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+                    },
+                },
             ],
         },
         plugins: [
             vendureDashboardPlugin({
                 vendureConfigPath: pathToFileURL(vendureConfigPath),
                 api: { host: adminApiHost, port: adminApiPort },
-                tempCompilationDir: path.resolve(__dirname, './.temp'),
+                tempCompilationDir: path.resolve(import.meta.dirname, './.temp'),
                 // Opt into the pre-built bundle for the bundle-mode e2e run.
                 useExperimentalBundle: process.env.VITE_USE_EXPERIMENTAL_BUNDLE === 'true',
             }) as any,

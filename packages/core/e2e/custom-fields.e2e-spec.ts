@@ -14,7 +14,7 @@ import {
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'node:assert';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -63,7 +63,7 @@ const customConfig = mergeConfig(testConfig(), {
                 type: 'string',
                 validate: value => {
                     if (value !== 'valid') {
-                        return `The value ['${value as string}'] is not valid`;
+                        return `The value ['${value}'] is not valid`;
                     }
                 },
             },
@@ -75,7 +75,7 @@ const customConfig = mergeConfig(testConfig(), {
                         return [
                             {
                                 languageCode: LanguageCode.en,
-                                value: `The value ['${value as string}'] is not valid`,
+                                value: `The value ['${value}'] is not valid`,
                             },
                         ];
                     }
@@ -234,7 +234,7 @@ const customConfig = mergeConfig(testConfig(), {
                 nullable: true,
             },
         ],
-    } as CustomFields,
+    } satisfies CustomFields,
 });
 
 describe('Custom fields', () => {
@@ -1235,6 +1235,10 @@ describe('Custom fields', () => {
     });
 
     describe('setting custom fields directly via a service method', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
         it('OrderService.addItemToOrder warns on unknown custom field', async () => {
             const orderService = server.app.get(OrderService);
             const requestContextService = server.app.get(RequestContextService);
