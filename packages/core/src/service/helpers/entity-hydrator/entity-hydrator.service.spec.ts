@@ -345,6 +345,10 @@ describe('EntityHydrator', () => {
             };
             const configService = {
                 catalogOptions: {
+                    productVariantPriceLoadingStrategy: {
+                        eagerLoading: true,
+                        loadPrices: (_ctx: any, variant: ProductVariant) => variant.productVariantPrices,
+                    },
                     productVariantPriceSelectionStrategy: {
                         selectPrice: (_ctx: any, prices: any[]) => Promise.resolve(prices[0]),
                     },
@@ -373,7 +377,7 @@ describe('EntityHydrator', () => {
             return new ProductVariant({
                 id,
                 productVariantPrices: [{ price: 4200, currencyCode: 'USD' }] as any,
-                taxCategory: { id: 1 } as any,
+                taxCategory: { id: 1 },
             });
         }
 

@@ -302,13 +302,13 @@ export class ShippingMethodService {
     }
 
     async getActiveShippingMethods(ctx: RequestContext): Promise<ShippingMethod[]> {
+        // Only the methods of the active Channel, each with only that Channel joined: loading
+        // every method with every Channel grows with the number of Channels.
         const shippingMethods = await this.connection.getRepository(ctx, ShippingMethod).find({
             relations: { channels: true, customFields: true },
-            where: { deletedAt: IsNull() },
+            where: { deletedAt: IsNull(), channels: { id: ctx.channelId } },
         });
-        return shippingMethods
-            .filter(sm => sm.channels.find(c => idsAreEqual(c.id, ctx.channelId)))
-            .map(m => this.translator.translate(m, ctx));
+        return shippingMethods.map(m => this.translator.translate(m, ctx));
     }
 
     /**
