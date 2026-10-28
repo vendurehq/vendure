@@ -48,7 +48,7 @@ export class AdminGetOrderTool implements McpToolHandler<GetOrderInput> {
                 ? await this.orderService.findOne(ctx, input.id, ORDER_DETAIL_RELATIONS)
                 : await this.orderService.findOneByCode(ctx, input.code as string, ORDER_DETAIL_RELATIONS);
         if (order) {
-            return { order: this.serializer.order(order) };
+            return { order: this.serializer.order(ctx, order) };
         }
         return { order: null, message: `No order with ${lookup}` };
     }

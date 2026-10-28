@@ -187,6 +187,30 @@ or `discounts`, so compare these fields with the previous cart before reporting 
 Cart tools use an existing cart's currency. A cart started through `add_to_cart` uses the channel's default
 currency.
 
+### Custom fields
+
+Products, variants, customers, orders and order lines carry a `customFields` object, as do the shipping and
+payment method quotes. It holds the custom fields the caller may read, by the same rules as the GraphQL API:
+
+- An `internal` field is never returned.
+- On the shop toolset, a field with `public: false` is not returned.
+- A field with `requiresPermission` is returned only to a caller who holds one of those permissions. On the shop
+  toolset, `public: true` makes it visible to everyone, as in the Shop API.
+- A `readonly` field is returned like any other. Only writing it is refused.
+- A localized field (`localeString` or `localeText`) holds the value in the language of the request.
+- A `datetime` field is an ISO 8601 string in UTC, like the other dates of a tool result.
+- A field that has no value is returned as `null`.
+
+Two rules differ from the GraphQL API, because the output is read by a language model:
+
+- A `secret` field is always redacted, even where a `secretAccessStrategy` would reveal it in the GraphQL API, so
+  its value never reaches the model. A field that is set holds the same placeholder as in the GraphQL API.
+- A relation field is returned as the ID it stores, under `<name>Id`, which is also the key a write tool takes.
+  A list relation is left out.
+
+An entity type without custom fields in your config has no `customFields` key. The product list items of
+`list_products` and `search_products` leave custom fields out, to stay compact; `get_product` returns them.
+
 ### Where IDs come from
 
 Every required ID input of a built-in tool has a tool that returns it:
@@ -275,8 +299,8 @@ does either without reporting it, so the tool reports it instead:
 
 - A shipping quote carries no currency of its own, so the tool takes the currency from the cart the quote was
   calculated for.
-- Anything a shipping calculator attached to the quote under `metadata` or `customFields` is returned unchanged
-  alongside the price fields.
+- Anything a shipping calculator attached to the quote under `metadata` is returned unchanged alongside the
+  price fields. Its `customFields` follow the [custom field rules](#custom-fields).
 
 ### `place_order`
 

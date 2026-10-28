@@ -110,7 +110,7 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
                         updated?.fulfillments?.find(item => idsAreEqual(item.id, fulfillment.id))?.lines ??
                             [],
                     ),
-                    order: this.serializer.order(updated),
+                    order: this.serializer.order(ctx, updated),
                 };
             });
         } catch (e) {

@@ -1,7 +1,12 @@
-import { InsufficientStockError, Order } from '@vendure/core';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
+import { InsufficientStockError, Order, RequestContext } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 
 import { McpToolSerializerService } from './serializer.service';
+
+/** Callers for the custom field rules: an administrator with every permission, and a shopper. */
+const adminCtx = { apiType: 'admin', userHasPermissions: () => true } as unknown as RequestContext;
+const shopCtx = { apiType: 'shop', userHasPermissions: () => false } as unknown as RequestContext;
 
 /** A stand-in for Vendure's ConfigService carrying only what the serializer reads. */
 function configWithPrecision(precision: number | undefined) {
@@ -30,7 +35,7 @@ describe('McpToolSerializerService', () => {
 
     it('serializes a variant with the same fields the old function returned', () => {
         expect(
-            service.variant({
+            service.variant(adminCtx, {
                 id: 27,
                 name: 'Instant Camera',
                 sku: 'IC-27',
@@ -53,7 +58,11 @@ describe('McpToolSerializerService', () => {
 
     it('adds stock on hand to the admin variant shape', () => {
         expect(
-            service.adminVariant({ id: 27, sku: 'IC-27', price: 100, priceWithTax: 120 } as any, 40),
+            service.adminVariant(
+                adminCtx,
+                { id: 27, sku: 'IC-27', price: 100, priceWithTax: 120 } as any,
+                40,
+            ),
         ).toMatchObject({
             id: 27,
             sku: 'IC-27',
@@ -95,8 +104,8 @@ describe('McpToolSerializerService', () => {
     });
 
     it('returns null for a missing variant or order', () => {
-        expect(service.variant(null)).toBeNull();
-        expect(service.order(undefined)).toBeNull();
+        expect(service.variant(adminCtx, null)).toBeNull();
+        expect(service.order(adminCtx, undefined)).toBeNull();
     });
 
     it('passes a Vendure error result straight through instead of serializing it', () => {
@@ -107,7 +116,7 @@ describe('McpToolSerializerService', () => {
         };
         // Returned bare, not wrapped: the registry recognises a Vendure error result at the top
         // level of a tool's output and reports the call as failed.
-        expect(service.orderOrError(errorResult)).toEqual(errorResult);
+        expect(service.orderOrError(adminCtx, errorResult)).toEqual(errorResult);
     });
 
     it("serializes an option group with its options, which is where a variant's optionIds come from", () => {
@@ -167,7 +176,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it('omits the address book unless the caller passes it', () => {
-        const serialized = service.customer({
+        const serialized = service.customer(adminCtx, {
             id: 4,
             firstName: 'Ada',
             lastName: 'Lovelace',
@@ -191,6 +200,7 @@ describe('McpToolSerializerService', () => {
 
     it("serializes the addresses it is given, with each address's default flags", () => {
         const serialized = service.customer(
+            adminCtx,
             {
                 id: 4,
                 firstName: 'Ada',
@@ -241,6 +251,7 @@ describe('McpToolSerializerService', () => {
         } as any);
         expect(
             quoteService.shippingQuote(
+                shopCtx,
                 {
                     id: 1,
                     code: 'standard-shipping',
@@ -269,7 +280,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it("turns an order's dates into ISO strings", () => {
-        const serialized = service.order({
+        const serialized = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'PaymentSettled',
@@ -288,7 +299,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it("serializes an order's payments and shows only the public part of their metadata", () => {
-        const serialized = service.order({
+        const serialized = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'ArrangingPayment',
@@ -324,7 +335,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it("serializes an order's shipping lines, and omits them when the relation was not loaded", () => {
-        const withLines = service.order({
+        const withLines = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'ArrangingPayment',
@@ -339,7 +350,7 @@ describe('McpToolSerializerService', () => {
             shippingLines: [{ id: 9, shippingMethodId: 2, priceWithTax: 500, priceWithTaxDecimal: '5.00' }],
         });
 
-        const withoutRelation = service.order({
+        const withoutRelation = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'AddingItems',
@@ -350,7 +361,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it("names an order's customer, answers null for a cart with nobody on it, and omits the key when the relation was not loaded", () => {
-        const withCustomer = service.order({
+        const withCustomer = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'AddingItems',
@@ -375,7 +386,7 @@ describe('McpToolSerializerService', () => {
 
         // TypeORM sets the property to null when the relation was asked for and the order has
         // nobody on it, and leaves it undefined when the relation was never loaded.
-        const anonymousCart = service.order({
+        const anonymousCart = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'AddingItems',
@@ -385,7 +396,7 @@ describe('McpToolSerializerService', () => {
         } as any);
         expect(anonymousCart?.customer).toBeNull();
 
-        const withoutRelation = service.order({
+        const withoutRelation = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'AddingItems',
@@ -458,7 +469,7 @@ describe('McpToolSerializerService', () => {
     it("gives an order's addresses as null when unset, whether missing or core's empty object", () => {
         const base = { id: 1, code: 'T_1', state: 'AddingItems', lines: [], discounts: [] };
         expect(
-            service.order({ ...base, shippingAddress: {}, billingAddress: undefined } as any),
+            service.order(adminCtx, { ...base, shippingAddress: {}, billingAddress: undefined } as any),
         ).toMatchObject({
             shippingAddress: null,
             billingAddress: null,
@@ -466,7 +477,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it('leaves out the address fields that were not given', () => {
-        const serialized = service.order({
+        const serialized = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'ArrangingPayment',
@@ -490,7 +501,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it('omits payments when the relation was not loaded', () => {
-        const serialized = service.order({
+        const serialized = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'AddingItems',
@@ -504,7 +515,7 @@ describe('McpToolSerializerService', () => {
 
     it('serializes an order and its lines', () => {
         expect(
-            service.order({
+            service.order(adminCtx, {
                 id: 1,
                 code: 'T_1',
                 state: 'AddingItems',
@@ -565,7 +576,7 @@ describe('McpToolSerializerService', () => {
     });
 
     it("lists an order's coupon codes and the discounts they earned", () => {
-        const serialized = service.order({
+        const serialized = service.order(adminCtx, {
             id: 1,
             code: 'T_1',
             state: 'AddingItems',
@@ -625,6 +636,7 @@ describe('McpToolSerializerService', () => {
         cart.shippingWithTax = 0;
 
         const serialized: any = service.orderOrError(
+            adminCtx,
             new InsufficientStockError({ order: cart, quantityAvailable: 3 }),
         );
 
@@ -648,7 +660,7 @@ describe('McpToolSerializerService', () => {
             removedCouponCodes: ['SAVE10'],
         };
 
-        expect(service.orderOrError(removed)).toEqual({
+        expect(service.orderOrError(adminCtx, removed)).toEqual({
             ...removed,
             newTotalWithTaxDecimal: '251.99',
             previousTotalWithTaxDecimal: '226.79',
@@ -659,14 +671,14 @@ describe('McpToolSerializerService', () => {
 describe('money scaling', () => {
     it('honours a store configured for three decimal places', () => {
         const service = new McpToolSerializerService(configWithPrecision(3));
-        expect(service.variant({ id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
+        expect(service.variant(adminCtx, { id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
             priceDecimal: '25.199',
         });
     });
 
     it('falls back to two decimal places when the store sets none', () => {
         const service = new McpToolSerializerService(configWithPrecision(undefined));
-        expect(service.variant({ id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
+        expect(service.variant(adminCtx, { id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
             priceDecimal: '251.99',
         });
     });
@@ -682,6 +694,7 @@ describe('money scaling', () => {
         };
 
         const shipping = quoteService.shippingQuote(
+            shopCtx,
             { id: 1, price: 500, priceWithTax: 600, metadata: { carrier: 'DHL' }, customFields } as any,
             'USD' as any,
         );
@@ -689,7 +702,7 @@ describe('money scaling', () => {
         expect(shipping.metadata).toEqual({ carrier: 'DHL' });
         expect(shipping.priceWithTaxDecimal).toBe('6.00');
 
-        const payment = quoteService.paymentQuote({ id: 2, code: 'card', customFields } as any);
+        const payment = quoteService.paymentQuote(shopCtx, { id: 2, code: 'card', customFields } as any);
         expect(payment.customFields).toEqual({ trackingUrl: 'https://track.example.test' });
         expect(payment.code).toBe('card');
     });
@@ -697,9 +710,146 @@ describe('money scaling', () => {
     it('passes a quote with no custom fields through untouched', () => {
         const quoteService = new McpToolSerializerService(configWithQuoteCustomFields());
         expect(
-            quoteService.shippingQuote({ id: 1, price: 0, priceWithTax: 0 } as any, 'USD' as any)
+            quoteService.shippingQuote(shopCtx, { id: 1, price: 0, priceWithTax: 0 } as any, 'USD' as any)
                 .customFields,
         ).toBeUndefined();
-        expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
+        expect(
+            quoteService.paymentQuote(shopCtx, { id: 2, code: 'card' } as any).customFields,
+        ).toBeUndefined();
+    });
+});
+
+// #5656 — tool outputs carry the custom fields the caller may read, by the rules of the GraphQL API
+describe('custom fields', () => {
+    const fields = [
+        { name: 'material', type: 'string' },
+        { name: 'internalCode', type: 'string', internal: true },
+        { name: 'lockedCode', type: 'string', readonly: true },
+        { name: 'oldCode', type: 'string', deprecated: true },
+        { name: 'tagline', type: 'localeString' },
+        { name: 'tags', type: 'string', list: true },
+        { name: 'dimensions', type: 'struct', fields: [{ name: 'width', type: 'int' }] },
+        { name: 'launchedAt', type: 'datetime' },
+        { name: 'restockDates', type: 'datetime', list: true },
+        { name: 'staffNote', type: 'string', public: false },
+        { name: 'margin', type: 'int', requiresPermission: 'ReadSettings' },
+        { name: 'badge', type: 'string', public: true, requiresPermission: 'ReadSettings' },
+        { name: 'apiKey', type: 'string', secret: true },
+        { name: 'supplier', type: 'relation', entity: {} },
+        { name: 'related', type: 'relation', list: true, entity: {} },
+    ];
+    const service = new McpToolSerializerService({
+        entityOptions: { moneyStrategy: { precision: 2 } },
+        customFields: { Product: fields, Order: fields, OrderLine: [{ name: 'engraving', type: 'string' }] },
+    } as any);
+    const values = {
+        material: 'Oak',
+        internalCode: 'X-1',
+        lockedCode: 'L-1',
+        oldCode: 'O-1',
+        tagline: 'Sit well',
+        tags: ['wood', 'chair'],
+        dimensions: { width: 40 },
+        launchedAt: new Date('2026-01-02T03:04:05.000Z'),
+        restockDates: [new Date('2026-02-01T00:00:00.000Z')],
+        staffNote: 'fragile',
+        margin: 40,
+        badge: 'new',
+        apiKey: 'sk-live-1',
+        supplier: { id: 7, name: 'Loaded relation' },
+        supplierId: 7,
+        related: [{ id: 8 }],
+        __fix_relational_custom_fields__: null,
+    };
+    const product = { id: 1, name: 'Chair', customFields: values } as any;
+
+    it('shows an administrator every field but internal ones, including readonly and deprecated ones, with secrets redacted and relations as IDs', () => {
+        expect(service.product(adminCtx, product)?.customFields).toEqual({
+            material: 'Oak',
+            lockedCode: 'L-1',
+            oldCode: 'O-1',
+            tagline: 'Sit well',
+            tags: ['wood', 'chair'],
+            dimensions: { width: 40 },
+            launchedAt: '2026-01-02T03:04:05.000Z',
+            restockDates: ['2026-02-01T00:00:00.000Z'],
+            staffNote: 'fragile',
+            margin: 40,
+            badge: 'new',
+            apiKey: REDACTED_SECRET_PLACEHOLDER,
+            supplierId: 7,
+        });
+    });
+
+    it('hides a field from an administrator without its required permission', () => {
+        const limitedCtx = { apiType: 'admin', userHasPermissions: () => false } as unknown as RequestContext;
+        expect(service.product(limitedCtx, product)?.customFields).toEqual({
+            material: 'Oak',
+            lockedCode: 'L-1',
+            oldCode: 'O-1',
+            tagline: 'Sit well',
+            tags: ['wood', 'chair'],
+            dimensions: { width: 40 },
+            launchedAt: '2026-01-02T03:04:05.000Z',
+            restockDates: ['2026-02-01T00:00:00.000Z'],
+            staffNote: 'fragile',
+            apiKey: REDACTED_SECRET_PLACEHOLDER,
+            supplierId: 7,
+        });
+    });
+
+    it('shows a shopper the public fields, and a permission-gated one only when it is explicitly public', () => {
+        expect(service.product(shopCtx, product)?.customFields).toEqual({
+            material: 'Oak',
+            lockedCode: 'L-1',
+            oldCode: 'O-1',
+            tagline: 'Sit well',
+            tags: ['wood', 'chair'],
+            dimensions: { width: 40 },
+            launchedAt: '2026-01-02T03:04:05.000Z',
+            restockDates: ['2026-02-01T00:00:00.000Z'],
+            badge: 'new',
+            apiKey: REDACTED_SECRET_PLACEHOLDER,
+            supplierId: 7,
+        });
+    });
+
+    it('gives an unset field as null, and an unset secret as null rather than the placeholder', () => {
+        expect(service.product(adminCtx, { id: 1, customFields: {} } as any)?.customFields).toEqual({
+            material: null,
+            lockedCode: null,
+            oldCode: null,
+            tagline: null,
+            tags: null,
+            dimensions: null,
+            launchedAt: null,
+            restockDates: null,
+            staffNote: null,
+            margin: null,
+            badge: null,
+            apiKey: null,
+            supplierId: null,
+        });
+    });
+
+    it('gives no custom fields for an entity which has none configured', () => {
+        const serialized = service.variant(adminCtx, {
+            id: 1,
+            price: 100,
+            priceWithTax: 120,
+            customFields: {},
+        } as any);
+        expect(serialized?.customFields).toBeUndefined();
+    });
+
+    it('gives the custom fields of an order and of its lines', () => {
+        const serialized = service.order(adminCtx, {
+            id: 1,
+            discounts: [],
+            customFields: { material: 'Oak' },
+            lines: [{ id: 2, quantity: 1, linePriceWithTax: 100, customFields: { engraving: 'For Sam' } }],
+        } as any);
+        expect(serialized?.customFields).toMatchObject({ material: 'Oak' });
+        expect(serialized?.lines[0].customFields).toEqual({ engraving: 'For Sam' });
     });
 });

@@ -66,6 +66,6 @@ export class CreateVariantTool implements McpToolHandler<CreateVariantToolInput>
             { ...input.input, productId: input.productId },
         ]);
         const { stockOnHand } = await this.stockLevelService.getAvailableStock(ctx, variant.id);
-        return { variant: this.serializer.adminVariant(variant, stockOnHand) };
+        return { variant: this.serializer.adminVariant(ctx, variant, stockOnHand) };
     }
 }

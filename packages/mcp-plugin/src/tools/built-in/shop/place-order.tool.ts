@@ -88,7 +88,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                 if (arranging.movedOutOfCart) {
                     await this.orderService.transitionToState(txCtx, order.id, 'AddingItems');
                 }
-                return this.serializer.orderOrError(result);
+                return this.serializer.orderOrError(txCtx, result);
             }
 
             result.payments = await this.orderService.getOrderPayments(txCtx, result.id);
@@ -121,7 +121,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                         'lastName } first, or sign in as a customer.',
                 );
             }
-            return { kind: 'error', result: this.serializer.orderOrError(transition) };
+            return { kind: 'error', result: this.serializer.orderOrError(txCtx, transition) };
         }
         return { kind: 'ok', movedOutOfCart: true };
     }
@@ -164,7 +164,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
             if (txCtx.session && idsAreEqual(txCtx.session.activeOrderId, orderId)) {
                 await this.sessionService.unsetActiveOrder(txCtx, txCtx.session);
             }
-            return { status: 'placed' as const, order: this.serializer.order(result) };
+            return { status: 'placed' as const, order: this.serializer.order(txCtx, result) };
         }
 
         let message =
@@ -175,7 +175,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
         }
         return {
             status: 'awaiting_payment' as const,
-            order: this.serializer.order(result),
+            order: this.serializer.order(txCtx, result),
             message,
         };
     }

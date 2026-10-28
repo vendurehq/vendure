@@ -65,6 +65,6 @@ export class UpdateVariantTool implements McpToolHandler<UpdateVariantToolInput>
         }
         const [variant] = await this.productVariantService.update(ctx, [{ ...input.input, id: input.id }]);
         const { stockOnHand } = await this.stockLevelService.getAvailableStock(ctx, variant.id);
-        return { variant: this.serializer.adminVariant(variant, stockOnHand) };
+        return { variant: this.serializer.adminVariant(ctx, variant, stockOnHand) };
     }
 }

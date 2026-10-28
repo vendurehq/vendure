@@ -49,7 +49,7 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
         );
         translateLineVariants(result.items, this.translator, ctx);
         return page(
-            result.items.map(order => this.serializer.order(order)),
+            result.items.map(order => this.serializer.order(ctx, order)),
             result.totalItems,
             input,
         );

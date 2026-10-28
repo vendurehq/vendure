@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OrderAddress, PaymentMethodQuote, ShippingMethodQuote } from '@vendure/common/lib/generated-types';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
     Address,
     Asset,
@@ -21,7 +22,9 @@ import {
     ProductOptionGroup,
     ProductVariant,
     Refund,
+    RequestContext,
     StockLevel,
+    userHasPermissionsOnCustomField,
 } from '@vendure/core';
 import { toDecimalString } from '@vendure/mcp-sdk';
 
@@ -47,7 +50,7 @@ export class McpToolSerializerService {
         return value ? new Date(value).toISOString() : null;
     }
 
-    variant(variant: ProductVariant | undefined | null) {
+    variant(ctx: RequestContext, variant: ProductVariant | undefined | null) {
         if (!variant) return null;
         return {
             id: variant.id,
@@ -59,14 +62,15 @@ export class McpToolSerializerService {
             priceWithTax: variant.priceWithTax,
             priceWithTaxDecimal: this.decimal(variant.priceWithTax),
             currencyCode: variant.currencyCode,
+            customFields: this.readableCustomFields(ctx, 'ProductVariant', variant.customFields),
         };
     }
 
-    adminVariant(variant: ProductVariant, stockOnHand: number) {
-        return { ...this.variant(variant), stockOnHand };
+    adminVariant(ctx: RequestContext, variant: ProductVariant, stockOnHand: number) {
+        return { ...this.variant(ctx, variant), stockOnHand };
     }
 
-    product(product: Product | undefined | null) {
+    product(ctx: RequestContext, product: Product | undefined | null) {
         if (!product) return null;
         return {
             id: product.id,
@@ -75,6 +79,7 @@ export class McpToolSerializerService {
             description: product.description,
             enabled: product.enabled,
             featuredAsset: product.featuredAsset ? this.asset(product.featuredAsset) : null,
+            customFields: this.readableCustomFields(ctx, 'Product', product.customFields),
         };
     }
 
@@ -153,7 +158,7 @@ export class McpToolSerializerService {
         };
     }
 
-    customer(customer: Customer | undefined | null, addresses?: Address[]) {
+    customer(ctx: RequestContext, customer: Customer | undefined | null, addresses?: Address[]) {
         if (!customer) return null;
         return {
             id: customer.id,
@@ -162,6 +167,7 @@ export class McpToolSerializerService {
             emailAddress: customer.emailAddress,
             phoneNumber: customer.phoneNumber,
             addresses: addresses ? addresses.map(address => this.customerAddress(address)) : undefined,
+            customFields: this.readableCustomFields(ctx, 'Customer', customer.customFields),
         };
     }
 
@@ -191,9 +197,9 @@ export class McpToolSerializerService {
     }
 
     // Errors are returned directly so the registry can report them as failed tool calls.
-    customerOrError(result: Customer | GraphQLErrorResult) {
+    customerOrError(ctx: RequestContext, result: Customer | GraphQLErrorResult) {
         if (!isGraphQlErrorResult(result)) {
-            return { customer: this.customer(result) };
+            return { customer: this.customer(ctx, result) };
         }
         return { ...result };
     }
@@ -289,7 +295,7 @@ export class McpToolSerializerService {
         };
     }
 
-    order(order: Order | undefined | null) {
+    order(ctx: RequestContext, order: Order | undefined | null) {
         if (!order) return null;
         return {
             id: order.id,
@@ -329,6 +335,7 @@ export class McpToolSerializerService {
                               sku: line.productVariant.sku,
                           }
                         : null,
+                    customFields: this.readableCustomFields(ctx, 'OrderLine', line.customFields),
                 })) ?? [],
             payments: order.payments ? order.payments.map(payment => this.payment(payment)) : undefined,
             // Left out by the cart tools, since an open cart has no shipments to report.
@@ -350,6 +357,7 @@ export class McpToolSerializerService {
                       priceWithTaxDecimal: this.decimal(line.priceWithTax),
                   }))
                 : undefined,
+            customFields: this.readableCustomFields(ctx, 'Order', order.customFields),
         };
     }
 
@@ -365,13 +373,13 @@ export class McpToolSerializerService {
     }
 
     // Errors are returned directly so the registry can report them as failed tool calls.
-    orderOrError(result: Order | GraphQLErrorResult) {
+    orderOrError(ctx: RequestContext, result: Order | GraphQLErrorResult) {
         if (!isGraphQlErrorResult(result)) {
-            return { order: this.order(result) };
+            return { order: this.order(ctx, result) };
         }
         const errorResult: Record<string, unknown> = { ...result };
         if (errorResult.order instanceof Order) {
-            errorResult.order = this.order(errorResult.order);
+            errorResult.order = this.order(ctx, errorResult.order);
         }
         if (
             errorResult.errorCode === 'COUPON_REMOVED_DURING_CHECKOUT_ERROR' &&
@@ -385,46 +393,69 @@ export class McpToolSerializerService {
     }
 
     // The currency belongs to the order, not the quote, so the caller passes it in.
-    shippingQuote(quote: ShippingMethodQuote, currencyCode: CurrencyCode) {
+    shippingQuote(ctx: RequestContext, quote: ShippingMethodQuote, currencyCode: CurrencyCode) {
         return {
             ...quote,
-            customFields: this.shopVisibleCustomFields('ShippingMethod', quote.customFields),
+            customFields: this.readableCustomFields(ctx, 'ShippingMethod', quote.customFields),
             priceDecimal: this.decimal(quote.price),
             priceWithTaxDecimal: this.decimal(quote.priceWithTax),
             currencyCode,
         };
     }
 
-    /** Same as `shippingQuote`: copies the quote and cuts `customFields` to what the Shop API shows. */
-    paymentQuote(quote: PaymentMethodQuote) {
+    /** Same as `shippingQuote`: copies the quote and cuts `customFields` to what the caller may read. */
+    paymentQuote(ctx: RequestContext, quote: PaymentMethodQuote) {
         return {
             ...quote,
-            customFields: this.shopVisibleCustomFields('PaymentMethod', quote.customFields),
+            customFields: this.readableCustomFields(ctx, 'PaymentMethod', quote.customFields),
         };
     }
 
-    // A shop caller never holds admin permissions, so anything permission-gated is hidden too.
-    private shopVisibleCustomFields(
+    /**
+     * The custom fields the caller may read, by the rules of the GraphQL API: no `internal` fields,
+     * on the shop toolset only `public` ones, and only those whose `requiresPermission` the caller
+     * holds. A `secret` field is always redacted, so its value never reaches a language model. A
+     * relation is given by the ID it stores, as `<name>Id`. A list relation is left out, because the
+     * entity holds its IDs only when the relation is loaded. See #5656
+     */
+    private readableCustomFields(
+        ctx: RequestContext,
         entityName: keyof CustomFields,
-        customFields: Record<string, unknown> | null | undefined,
-    ) {
-        if (customFields == null) {
-            return customFields;
-        }
+        customFields: object | null | undefined,
+    ): Record<string, unknown> | undefined {
         const configs = this.configService.customFields[entityName] ?? [];
-        const visible: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(customFields)) {
-            const config = configs.find(candidate => candidate.name === key);
+        if (customFields == null || configs.length === 0) {
+            return undefined;
+        }
+        const values = customFields as Record<string, unknown>;
+        const readable: Record<string, unknown> = {};
+        for (const config of configs) {
             if (
-                config &&
-                config.internal !== true &&
-                config.public !== false &&
-                config.requiresPermission == null
+                config.internal === true ||
+                (ctx.apiType === 'shop' && config.public === false) ||
+                !userHasPermissionsOnCustomField(ctx, config)
             ) {
-                visible[key] = value;
+                continue;
+            }
+            if (config.type === 'relation') {
+                if (config.list !== true) {
+                    readable[`${config.name}Id`] = values[`${config.name}Id`] ?? null;
+                }
+                continue;
+            }
+            const value = values[config.name] ?? null;
+            if (config.secret === true && value != null) {
+                readable[config.name] = REDACTED_SECRET_PLACEHOLDER;
+            } else if (config.type === 'datetime') {
+                // ISO strings, like the other dates of a tool result.
+                readable[config.name] = Array.isArray(value)
+                    ? value.map((date: Date) => this.isoDate(date))
+                    : this.isoDate(value as Date | null);
+            } else {
+                readable[config.name] = value;
             }
         }
-        return visible;
+        return readable;
     }
 
     /**

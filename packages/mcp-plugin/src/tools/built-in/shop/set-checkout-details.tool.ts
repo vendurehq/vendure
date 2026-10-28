@@ -105,7 +105,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         await this.customFieldInput.assertWritable(ctx, 'Address', input.billingAddress?.customFields);
         const cart = await this.activeOrder.findEditable(ctx);
         if (isGraphQlErrorResult(cart)) {
-            return this.serializer.orderOrError(cart);
+            return this.serializer.orderOrError(ctx, cart);
         }
         return this.connection.withTransaction(ctx, async txCtx => {
             // The customer relation is loaded so that the answer can show who the cart belongs to.
@@ -122,7 +122,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
             if (input.customer) {
                 const withCustomer = await this.setGuestCustomer(txCtx, before, input.customer);
                 if (isGraphQlErrorResult(withCustomer)) {
-                    return this.serializer.orderOrError(withCustomer);
+                    return this.serializer.orderOrError(ctx, withCustomer);
                 }
                 order = withCustomer;
             }
@@ -137,7 +137,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
             }
 
             return {
-                order: this.serializer.order(order),
+                order: this.serializer.order(ctx, order),
                 ...this.shippingMethodChange(methodsBefore, order),
             };
         });

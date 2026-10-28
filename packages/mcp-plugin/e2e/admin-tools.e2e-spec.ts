@@ -11,6 +11,7 @@ import {
     Order,
     Payment,
     Product,
+    ProductTranslation,
     ProductVariant,
     RequestContext,
     RequestContextService,
@@ -203,11 +204,19 @@ describe('MCP built-in admin tools (direct mode)', () => {
         rateLimits: { oauthIp: false },
     };
     const config = mergeConfig(testConfig(), {
-        // Two Product custom fields no tool may write: one internal, one read-only.
+        // Two Product custom fields no tool may write: one internal, one read-only. The others, and the
+        // Customer ones, are read back by the tools, each by the rules of its config.
         customFields: {
             Product: [
                 { name: 'internalCode', type: 'string', internal: true },
                 { name: 'lockedCode', type: 'string', readonly: true },
+                { name: 'material', type: 'string' },
+                { name: 'tagline', type: 'localeString' },
+                { name: 'margin', type: 'int', requiresPermission: Permission.ReadSettings },
+            ],
+            Customer: [
+                { name: 'loyaltyTier', type: 'string' },
+                { name: 'creditLimit', type: 'int', requiresPermission: Permission.ReadSettings },
             ],
         },
         // `upload_asset` fetches over HTTP, and core's default import strategy refuses hostnames
@@ -2047,6 +2056,72 @@ describe('MCP built-in admin tools (direct mode)', () => {
             const readonly = await update({ lockedCode: 'locked' }, 2);
             expect(readonly.body.result.isError).toBe(true);
             expect(readonly.body.result.content[0].text).toContain('lockedCode');
+        });
+
+        // #5656 — a tool returns the custom fields its caller may read
+        it('get_product returns the custom fields, but not an internal one', async () => {
+            const token = await adminAccessToken();
+            const translation = { base: { id: productId }, languageCode: LanguageCode.en };
+            await connection.getRepository(adminCtx, Product).update(productId, {
+                customFields: { internalCode: 'X-1', lockedCode: 'L-1', material: 'Oak', margin: 40 },
+            });
+            await connection
+                .getRepository(adminCtx, ProductTranslation)
+                .update(translation, { customFields: { tagline: 'Sit well' } });
+            try {
+                const response = await postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool('get_product', { id: productId }, 1),
+                    { token },
+                );
+
+                expect(response.body.result.isError).toBeUndefined();
+                expect(response.body.result.structuredContent.product.customFields).toEqual({
+                    lockedCode: 'L-1',
+                    material: 'Oak',
+                    tagline: 'Sit well',
+                    margin: 40,
+                });
+            } finally {
+                await connection.getRepository(adminCtx, Product).update(productId, {
+                    customFields: { internalCode: null, lockedCode: null, material: null, margin: null },
+                });
+                await connection
+                    .getRepository(adminCtx, ProductTranslation)
+                    .update(translation, { customFields: { tagline: null } });
+            }
+        });
+
+        // #5656 — a custom field with requiresPermission is returned only to a caller who holds it
+        it('get_customer returns a permission-gated custom field only to a caller with the permission', async () => {
+            const read = async (token: string) => {
+                const response = await postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool('get_customer', { id: seededCustomerId }, 1),
+                    { token },
+                );
+                expect(response.body.result.isError).toBeUndefined();
+                return response.body.result.structuredContent.customer.customFields;
+            };
+            await connection.getRepository(adminCtx, Customer).update(seededCustomerId, {
+                customFields: { loyaltyTier: 'Gold', creditLimit: 500 },
+            });
+            try {
+                expect(await read(await adminAccessToken())).toEqual({
+                    loyaltyTier: 'Gold',
+                    creditLimit: 500,
+                });
+                // This administrator may read customers, but does not hold ReadSettings.
+                expect(await read(await adminAccessToken(limitedAdminToken))).toEqual({
+                    loyaltyTier: 'Gold',
+                });
+            } finally {
+                await connection.getRepository(adminCtx, Customer).update(seededCustomerId, {
+                    customFields: { loyaltyTier: null, creditLimit: null },
+                });
+            }
         });
 
         it('update_variant writes the new price and SKU', async () => {

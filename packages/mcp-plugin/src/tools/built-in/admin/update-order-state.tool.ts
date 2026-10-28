@@ -44,6 +44,7 @@ export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInpu
 
     async execute(ctx: RequestContext, input: UpdateOrderStateInput) {
         return this.serializer.orderOrError(
+            ctx,
             await this.orderService.transitionToState(ctx, input.id, input.state),
         );
     }

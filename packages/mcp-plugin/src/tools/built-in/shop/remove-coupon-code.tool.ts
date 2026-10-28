@@ -40,10 +40,13 @@ export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInpu
     async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {
         const order = await this.activeOrder.findEditable(ctx);
         if (isGraphQlErrorResult(order)) {
-            return this.serializer.orderOrError(order);
+            return this.serializer.orderOrError(ctx, order);
         }
         return {
-            order: this.serializer.order(await this.orderService.removeCouponCode(ctx, order.id, input.code)),
+            order: this.serializer.order(
+                ctx,
+                await this.orderService.removeCouponCode(ctx, order.id, input.code),
+            ),
         };
     }
 }
