@@ -540,6 +540,217 @@ describe('EventBus', () => {
             expect(spy.mock.calls.map(call => call[0])).toEqual(['C', 'B', 'A']);
         });
 
+        // #5664 - "A after B" plus "B before A" declares the same constraint twice
+        it('orders handlers which declare "after" on one side and "before" on the other', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler1'),
+                id: 'test-handler1',
+                event: TestEvent,
+                after: 'test-handler2',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler2'),
+                id: 'test-handler2',
+                event: TestEvent,
+                before: 'test-handler1',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy).toHaveBeenCalledTimes(2);
+            expect(spy).toHaveBeenNthCalledWith(1, 'test-handler2');
+            expect(spy).toHaveBeenNthCalledWith(2, 'test-handler1');
+        });
+
+        // #5664
+        it('orders handlers which declare "before" on one side and "after" on the other', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler1'),
+                id: 'test-handler1',
+                event: TestEvent,
+                before: 'test-handler2',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler2'),
+                id: 'test-handler2',
+                event: TestEvent,
+                after: 'test-handler1',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy).toHaveBeenCalledTimes(2);
+            expect(spy).toHaveBeenNthCalledWith(1, 'test-handler1');
+            expect(spy).toHaveBeenNthCalledWith(2, 'test-handler2');
+        });
+
+        // #5664
+        it('orders handlers which declare the same constraint on both sides, with the "before" side registered first', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler2'),
+                id: 'test-handler2',
+                event: TestEvent,
+                before: 'test-handler1',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler1'),
+                id: 'test-handler1',
+                event: TestEvent,
+                after: 'test-handler2',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy).toHaveBeenCalledTimes(2);
+            expect(spy).toHaveBeenNthCalledWith(1, 'test-handler2');
+            expect(spy).toHaveBeenNthCalledWith(2, 'test-handler1');
+        });
+
+        // #5664
+        it('orders handlers which declare the same constraint on both sides among other handlers', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler3'),
+                id: 'test-handler3',
+                event: TestEvent,
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler1'),
+                id: 'test-handler1',
+                event: TestEvent,
+                after: 'test-handler2',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: e => spy('test-handler2'),
+                id: 'test-handler2',
+                event: TestEvent,
+                before: 'test-handler1',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual([
+                'test-handler3',
+                'test-handler2',
+                'test-handler1',
+            ]);
+        });
+
+        // #5664 - placing C after B must not move B behind A, which is also after B
+        it('runs a handler before every handler which is declared after it', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: TestEvent,
+                after: 'B',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('B'),
+                id: 'B',
+                event: TestEvent,
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('C'),
+                id: 'C',
+                event: TestEvent,
+                after: 'B',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual(['B', 'A', 'C']);
+        });
+
+        // #5664
+        it('runs a handler before several handlers which are declared after it', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: TestEvent,
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('B'),
+                id: 'B',
+                event: TestEvent,
+                after: 'A',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('C'),
+                id: 'C',
+                event: TestEvent,
+                after: 'A',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual(['A', 'B', 'C']);
+        });
+
+        // #5664
+        it('orders handlers whose constraints form no cycle but chain through each other', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: TestEvent,
+                after: 'B',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('B'),
+                id: 'B',
+                event: TestEvent,
+                before: 'C',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('C'),
+                id: 'C',
+                event: TestEvent,
+                after: 'A',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual(['B', 'A', 'C']);
+        });
+
+        // #5664
+        it('runs handlers with no before/after relation between them in registration order', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: TestEvent,
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('B'),
+                id: 'B',
+                event: TestEvent,
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('C'),
+                id: 'C',
+                event: TestEvent,
+                after: 'A',
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual(['A', 'B', 'C']);
+        });
+
         it('keeps the registered handlers when a registration is rejected', async () => {
             const event = new TestEvent('foo');
             const spy = vi.fn((input: string) => undefined);

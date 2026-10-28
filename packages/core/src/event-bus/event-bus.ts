@@ -100,6 +100,10 @@ export type BlockingEventHandlerOptions<T extends VendureEvent> = {
 export class EventBus implements OnModuleDestroy {
     private eventStream = new Subject<VendureEvent>();
     private destroy$ = new Subject<void>();
+    private registeredBlockingEventHandlers = new Map<
+        Type<VendureEvent>,
+        Array<BlockingEventHandlerOptions<any>>
+    >();
     private blockingEventHandlers = new Map<Type<VendureEvent>, Array<BlockingEventHandlerOptions<any>>>();
 
     constructor(private transactionSubscriber: TransactionSubscriber) {}
@@ -172,6 +176,9 @@ export class EventBus implements OnModuleDestroy {
      * the event (as long as you pass the `ctx` object from the event to any TransactionalConnection calls).
      * :::
      *
+     * Handlers run in the order given by their `before` and `after` options. Handlers with no
+     * `before` or `after` relation between them run in the order they were registered.
+     *
      * @example
      * ```ts
      * eventBus.registerBlockingEventHandler({
@@ -188,9 +195,15 @@ export class EventBus implements OnModuleDestroy {
     registerBlockingEventHandler<T extends VendureEvent>(handlerOptions: BlockingEventHandlerOptions<T>) {
         const events = Array.isArray(handlerOptions.event) ? handlerOptions.event : [handlerOptions.event];
 
-        const orderedHandlersByEvent = new Map<Type<T>, Array<BlockingEventHandlerOptions<T>>>();
+        const handlersByEvent = new Map<
+            Type<T>,
+            {
+                registered: Array<BlockingEventHandlerOptions<T>>;
+                ordered: Array<BlockingEventHandlerOptions<T>>;
+            }
+        >();
         for (const event of events) {
-            const handlers = this.blockingEventHandlers.get(event);
+            const handlers = this.registeredBlockingEventHandlers.get(event);
             const handlerWithIdAlreadyExists = handlers?.some(h => h.id === handlerOptions.id);
             if (handlerWithIdAlreadyExists) {
                 throw new Error(
@@ -198,10 +211,12 @@ export class EventBus implements OnModuleDestroy {
                 );
             }
 
-            orderedHandlersByEvent.set(event, this.orderEventHandlers([...(handlers ?? []), handlerOptions]));
+            const registered = [...(handlers ?? []), handlerOptions];
+            handlersByEvent.set(event, { registered, ordered: this.orderEventHandlers(registered) });
         }
-        for (const [event, orderedHandlers] of orderedHandlersByEvent) {
-            this.blockingEventHandlers.set(event, orderedHandlers);
+        for (const [event, { registered, ordered }] of handlersByEvent) {
+            this.registeredBlockingEventHandlers.set(event, registered);
+            this.blockingEventHandlers.set(event, ordered);
         }
     }
 
@@ -229,22 +244,33 @@ export class EventBus implements OnModuleDestroy {
         }
     }
 
-    private assertNoDependencyCycles<T extends VendureEvent>(
+    /**
+     * Maps each handler id to the ids of the handlers which must run after it. A Set is used
+     * because "A after B" and "B before A" declare the same constraint. Constraints which
+     * name a handler not registered for the event are ignored.
+     */
+    private getRunsBeforeGraph<T extends VendureEvent>(
         handlers: Array<BlockingEventHandlerOptions<T>>,
-    ): void {
-        const runsBefore = new Map<string, string[]>();
+    ): Map<string, Set<string>> {
+        const runsBefore = new Map<string, Set<string>>();
         for (const handler of handlers) {
-            runsBefore.set(handler.id, []);
+            runsBefore.set(handler.id, new Set());
         }
         for (const handler of handlers) {
             if (handler.after && runsBefore.has(handler.after)) {
-                runsBefore.get(handler.after)?.push(handler.id);
+                runsBefore.get(handler.after)?.add(handler.id);
             }
             if (handler.before && runsBefore.has(handler.before)) {
-                runsBefore.get(handler.id)?.push(handler.before);
+                runsBefore.get(handler.id)?.add(handler.before);
             }
         }
+        return runsBefore;
+    }
 
+    private assertNoDependencyCycles<T extends VendureEvent>(
+        handlers: Array<BlockingEventHandlerOptions<T>>,
+        runsBefore: Map<string, Set<string>>,
+    ): void {
         const finished = new Set<string>();
         const path: string[] = [];
         const visit = (id: string) => {
@@ -271,52 +297,34 @@ export class EventBus implements OnModuleDestroy {
         }
     }
 
+    /**
+     * Sorts the handlers topologically (Kahn's algorithm). When several handlers are free to
+     * run next, the one registered first is taken, so handlers with no `before` or `after`
+     * relation between them keep their registration order.
+     */
     private orderEventHandlers<T extends VendureEvent>(
         handlers: Array<BlockingEventHandlerOptions<T>>,
     ): Array<BlockingEventHandlerOptions<T>> {
-        this.assertNoDependencyCycles(handlers);
-        let orderedHandlers: Array<BlockingEventHandlerOptions<T>> = [];
-        const handlerMap: Map<string, BlockingEventHandlerOptions<T>> = new Map();
+        const runsBefore = this.getRunsBeforeGraph(handlers);
+        this.assertNoDependencyCycles(handlers, runsBefore);
 
-        // Create a map of handlers by ID for efficient lookup
-        for (const handler of handlers) {
-            handlerMap.set(handler.id, handler);
+        const unmetConstraints = new Map<string, number>(handlers.map(h => [h.id, 0]));
+        for (const nextIds of runsBefore.values()) {
+            for (const id of nextIds) {
+                unmetConstraints.set(id, (unmetConstraints.get(id) ?? 0) + 1);
+            }
         }
 
-        // Helper function to recursively add handlers in correct order
-        const addHandler = (handler: BlockingEventHandlerOptions<T>) => {
-            // If the handler is already in the ordered list, skip it
-            if (orderedHandlers.includes(handler)) {
-                return;
-            }
-
-            // If an "after" handler is specified, add it recursively
-            if (handler.after) {
-                const afterHandler = handlerMap.get(handler.after);
-                if (afterHandler) {
-                    orderedHandlers = orderedHandlers.filter(h => h.id !== afterHandler.id);
-                    addHandler(afterHandler);
-                }
-            }
-
-            // Add the current handler
+        const remaining = [...handlers];
+        const orderedHandlers: Array<BlockingEventHandlerOptions<T>> = [];
+        while (remaining.length) {
+            const nextIndex = remaining.findIndex(h => unmetConstraints.get(h.id) === 0);
+            const [handler] = remaining.splice(nextIndex, 1);
             orderedHandlers.push(handler);
-
-            // If a "before" handler is specified, add it recursively
-            if (handler.before) {
-                const beforeHandler = handlerMap.get(handler.before);
-                if (beforeHandler) {
-                    orderedHandlers = orderedHandlers.filter(h => h.id !== beforeHandler.id);
-                    addHandler(beforeHandler);
-                }
+            for (const id of runsBefore.get(handler.id) ?? []) {
+                unmetConstraints.set(id, (unmetConstraints.get(id) ?? 0) - 1);
             }
-        };
-
-        // Start adding handlers from the original list
-        for (const handler of handlers) {
-            addHandler(handler);
         }
-
         return orderedHandlers;
     }
 
