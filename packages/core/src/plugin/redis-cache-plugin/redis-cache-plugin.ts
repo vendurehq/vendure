@@ -18,7 +18,8 @@ import { RedisCachePluginInitOptions } from './types';
  * ```
  *
  * Requires Redis 5.0 or later, or a compatible server such as Valkey. Tagged writes run a Lua script
- * with `EVAL`, so a Redis ACL user needs the `@scripting` permission.
+ * with `EVAL`. A restricted Redis ACL user needs the `@scripting` category and the commands that the
+ * script calls: `TIME`, `ZADD`, `ZREMRANGEBYSCORE`, `ZRANGE` and `PEXPIREAT`.
  *
  * @docsCategory cache
  * @docsPage RedisCachePlugin
