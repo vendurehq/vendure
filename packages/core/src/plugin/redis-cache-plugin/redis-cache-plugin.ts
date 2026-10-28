@@ -17,6 +17,8 @@ import { RedisCachePluginInitOptions } from './types';
  * npm install ioredis@^5.3.2
  * ```
  *
+ * Requires Redis 5.0 or later, or a compatible server such as Valkey.
+ *
  * @docsCategory cache
  * @docsPage RedisCachePlugin
  * @docsWeight 0

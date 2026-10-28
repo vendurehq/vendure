@@ -55,6 +55,7 @@ describe('CacheService with RedisCachePlugin', async () => {
 
     describe.skipIf(!redisAvailable)('Redis Cache Tests', () => {
         let cacheService: CacheService;
+        let redis: import('ioredis').Redis;
 
         const { server, adminClient } = createTestEnvironment(
             mergeConfig(testConfig(), {
@@ -77,9 +78,12 @@ describe('CacheService with RedisCachePlugin', async () => {
             });
             await adminClient.asSuperAdmin();
             cacheService = server.app.get(CacheService);
+            const IORedis = await import('ioredis').then(m => m.default);
+            redis = new IORedis.Redis({ host: redisHost, port: redisPort });
         }, TEST_SETUP_TIMEOUT_MS);
 
         afterAll(async () => {
+            await redis.quit();
             await server.destroy();
         });
 
@@ -130,5 +134,64 @@ describe('CacheService with RedisCachePlugin', async () => {
             invalidatesALargeNumberOfKeysByTag(cacheService));
 
         it('invalid ttls should not set key', () => invalidTTLsShouldNotSetKey(cacheService));
+
+        // #5682 — tag sets must not keep members whose keys have expired
+        it('prunes expired keys from a tag set', async () => {
+            const tagKey = 'vendure-cache:ztag:churn-tag';
+            await redis.del(tagKey);
+            for (let i = 0; i < 50; i++) {
+                await cacheService.set(`churn-key${i}`, 'value', { ttl: 1000, tags: ['churn-tag'] });
+            }
+            expect(await redis.zcard(tagKey)).toBe(50);
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            await cacheService.set('churn-key-fresh', 'value', { ttl: 1000, tags: ['churn-tag'] });
+
+            expect(await redis.zrange(tagKey, 0, -1)).toEqual(['vendure-cache:churn-key-fresh']);
+        });
+
+        // #5682
+        it('expires a tag set with its longest-lived key', async () => {
+            const tagKey = 'vendure-cache:ztag:expiring-tag';
+            await cacheService.set('expiring-key1', 'value', { ttl: 5000, tags: ['expiring-tag'] });
+            await cacheService.set('expiring-key2', 'value', { ttl: 1000, tags: ['expiring-tag'] });
+
+            const pttl = await redis.pttl(tagKey);
+            expect(pttl).toBeGreaterThan(4000);
+            expect(pttl).toBeLessThanOrEqual(5000);
+        });
+
+        // #5682
+        it('invalidates keys tagged in the legacy SET format', async () => {
+            const legacyTagKey = 'vendure-cache:tag:legacy-tag';
+            await redis.set('vendure-cache:legacy-key', JSON.stringify('value'));
+            await redis.sadd(legacyTagKey, 'vendure-cache:legacy-key');
+
+            await cacheService.set('new-key', 'value', { tags: ['legacy-tag'] });
+            expect(await cacheService.get('new-key')).toBe('value');
+
+            await cacheService.invalidateTags(['legacy-tag']);
+
+            expect(await cacheService.get('legacy-key')).toBeUndefined();
+            expect(await cacheService.get('new-key')).toBeUndefined();
+            expect(await redis.exists(legacyTagKey, 'vendure-cache:ztag:legacy-tag')).toBe(0);
+        });
+
+        // #5682
+        it('invalidates a tag larger than one batch', async () => {
+            const count = 2500;
+            const keys = Array.from({ length: count }, (_, i) => `large-tag-key${i}`);
+            const legacyKeys = keys.map(key => `vendure-cache:legacy-${key}`);
+            await Promise.all(keys.map(key => cacheService.set(key, 'value', { tags: ['large-tag'] })));
+            await redis.mset(legacyKeys.flatMap(key => [key, JSON.stringify('value')]));
+            await redis.sadd('vendure-cache:tag:large-tag', ...legacyKeys);
+            expect(await redis.zcard('vendure-cache:ztag:large-tag')).toBe(count);
+
+            await cacheService.invalidateTags(['large-tag']);
+
+            expect(await redis.exists(...keys.map(key => `vendure-cache:${key}`))).toBe(0);
+            expect(await redis.exists(...legacyKeys)).toBe(0);
+            expect(await redis.exists('vendure-cache:ztag:large-tag', 'vendure-cache:tag:large-tag')).toBe(0);
+        });
     });
 });

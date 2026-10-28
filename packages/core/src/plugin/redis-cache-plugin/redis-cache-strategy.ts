@@ -6,6 +6,24 @@ import { CacheStrategy, SetCacheKeyOptions } from '../../config/system/cache-str
 import { DEFAULT_NAMESPACE, DEFAULT_TTL, loggerCtx } from './constants';
 import { RedisCachePluginInitOptions } from './types';
 
+const INVALIDATION_BATCH_SIZE = 1000;
+
+/**
+ * Adds a key to a tag's sorted set, scored by the key's expiry time in ms (Redis server clock).
+ * Expired members are pruned, and the tag set expires no earlier than its longest-lived member.
+ * KEYS[1] = tag set, ARGV[1] = member, ARGV[2] = ttl in ms.
+ */
+const ADD_TO_TAG_SCRIPT = `
+local time = redis.call('TIME')
+local now = time[1] * 1000 + math.floor(time[2] / 1000)
+local ttl = tonumber(ARGV[2])
+redis.call('ZADD', KEYS[1], now + ttl, ARGV[1])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
+if redis.call('PTTL', KEYS[1]) < ttl then
+    redis.call('PEXPIRE', KEYS[1], ttl)
+end
+`;
+
 /**
  * @description
  * A {@link CacheStrategy} which stores cached items in a Redis instance.
@@ -79,7 +97,13 @@ export class RedisCacheStrategy implements CacheStrategy {
             multi.set(namedspacedKey, JSON.stringify(value), 'EX', Math.round(ttl));
             if (options?.tags) {
                 for (const tag of options.tags) {
-                    multi.sadd(this.tagNamespace(tag), namedspacedKey);
+                    multi.eval(
+                        ADD_TO_TAG_SCRIPT,
+                        1,
+                        this.tagNamespace(tag),
+                        namedspacedKey,
+                        Math.round(ttl) * 1000,
+                    );
                 }
             }
             const results = await multi.exec();
@@ -101,24 +125,30 @@ export class RedisCacheStrategy implements CacheStrategy {
     }
 
     async invalidateTags(tags: string[]): Promise<void> {
-        try {
-            const keys = [
-                ...(await Promise.all(tags.map(tag => this.client.smembers(this.tagNamespace(tag))))),
-            ];
-            const pipeline = this.client.pipeline();
+        await Promise.all(tags.map(tag => this.invalidateTag(tag)));
+    }
 
-            keys.forEach(key => {
-                pipeline.del(key);
-            });
+    private async invalidateTag(tag: string) {
+        const tagKey = this.tagNamespace(tag);
+        let members = await this.client.zrange(tagKey, 0, INVALIDATION_BATCH_SIZE - 1);
+        while (members.length) {
+            await this.deleteMembers(this.client.multi().zrem(tagKey, ...members), members);
+            members = await this.client.zrange(tagKey, 0, INVALIDATION_BATCH_SIZE - 1);
+        }
+        // Tags written by earlier versions are plain SETs under the legacy key name
+        const legacyTagKey = this.legacyTagNamespace(tag);
+        members = await this.client.srandmember(legacyTagKey, INVALIDATION_BATCH_SIZE);
+        while (members.length) {
+            await this.deleteMembers(this.client.multi().srem(legacyTagKey, ...members), members);
+            members = await this.client.srandmember(legacyTagKey, INVALIDATION_BATCH_SIZE);
+        }
+    }
 
-            tags.forEach(tag => {
-                const namespacedTag = this.tagNamespace(tag);
-                pipeline.del(namespacedTag);
-            });
-
-            await pipeline.exec();
-        } catch (err) {
-            return Promise.reject(err);
+    private async deleteMembers(multi: import('ioredis').ChainableCommander, members: string[]) {
+        const results = await multi.del(...members).exec();
+        const error = results?.find(([err]) => err)?.[0];
+        if (error) {
+            throw error;
         }
     }
 
@@ -127,6 +157,10 @@ export class RedisCacheStrategy implements CacheStrategy {
     }
 
     private tagNamespace(tag: string) {
+        return `${this.options.namespace ?? DEFAULT_NAMESPACE}:ztag:${tag}`;
+    }
+
+    private legacyTagNamespace(tag: string) {
         return `${this.options.namespace ?? DEFAULT_NAMESPACE}:tag:${tag}`;
     }
 }
