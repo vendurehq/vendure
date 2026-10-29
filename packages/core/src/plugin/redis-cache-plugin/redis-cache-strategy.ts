@@ -12,8 +12,10 @@ const INVALIDATION_BATCH_SIZE = 1000;
  * Adds a key to a tag's sorted set, scored by the key's expiry time in ms (Redis server clock).
  * Expired members are pruned, and the tag set expires with its longest-lived remaining member.
  * KEYS[1] = tag set, ARGV[1] = member, ARGV[2] = ttl in ms.
+ * `redis.replicate_commands()` lets Redis 3.2-4.x run writes after `TIME`; it is a no-op from 5.0.
  */
 const ADD_TO_TAG_SCRIPT = `
+redis.replicate_commands()
 local time = redis.call('TIME')
 local now = time[1] * 1000 + math.floor(time[2] / 1000)
 redis.call('ZADD', KEYS[1], string.format('%.0f', now + ARGV[2]), ARGV[1])
@@ -132,7 +134,7 @@ export class RedisCacheStrategy implements CacheStrategy {
             () => this.client.zrange(tagKey, 0, INVALIDATION_BATCH_SIZE - 1),
             members => this.client.multi().zrem(tagKey, ...members),
         );
-        // Tags written by earlier versions are plain SETs under the legacy key name
+        // Vendure versions before 3.8.2 stored tags as plain SETs under `:tag:`
         const legacyTagKey = this.legacyTagNamespace(tag);
         await this.deleteInBatches(
             () => this.client.srandmember(legacyTagKey, INVALIDATION_BATCH_SIZE),
