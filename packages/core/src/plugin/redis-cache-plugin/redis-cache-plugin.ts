@@ -17,9 +17,11 @@ import { RedisCachePluginInitOptions } from './types';
  * npm install ioredis@^5.3.2
  * ```
  *
- * Requires Redis 5.0 or later, or a compatible server such as Valkey. Tagged writes run a Lua script
- * with `EVAL`. A restricted Redis ACL user needs the `@scripting` category and the commands that the
- * script calls: `TIME`, `ZADD`, `ZREMRANGEBYSCORE`, `ZRANGE` and `PEXPIREAT`.
+ * Requires Redis 3.2 or later, or a compatible server such as Valkey. Tagged writes run a Lua script
+ * with `EVAL`. A restricted Redis ACL user needs the `@scripting` category and these commands:
+ * - `GET`, `SET`, `DEL`, `MULTI` and `EXEC` for reading, writing and deleting cache items;
+ * - `TIME`, `ZADD`, `ZREMRANGEBYSCORE`, `ZRANGE` and `PEXPIREAT`, which the tag script calls;
+ * - `ZRANGE`, `ZREM`, `SRANDMEMBER` and `SREM` for tag invalidation.
  *
  * @docsCategory cache
  * @docsPage RedisCachePlugin
