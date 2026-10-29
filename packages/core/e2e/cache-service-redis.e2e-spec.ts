@@ -143,6 +143,8 @@ describe('CacheService with RedisCachePlugin', async () => {
                 await cacheService.set(`churn-key${i}`, 'value', { ttl: 1000, tags: ['churn-tag'] });
             }
             expect(await redis.zcard(tagKey)).toBe(50);
+            // Keep the tag set alive, so that the fresh write prunes it rather than creating a new one
+            await redis.pexpire(tagKey, 5000);
 
             await new Promise(resolve => setTimeout(resolve, 1500));
             await cacheService.set('churn-key-fresh', 'value', { ttl: 1000, tags: ['churn-tag'] });
