@@ -100,6 +100,56 @@ describe('GraphiQLPlugin', () => {
             expect(consumer.forRoutes).toHaveBeenCalledWith('graphiql/shop');
             expect(consumer.forRoutes).toHaveBeenCalledWith('/graphiql/assets/*path');
         });
+
+        it('should serve the assets under a custom route', async () => {
+            const plugin = await createPlugin({ route: '/tools/graphiql/' });
+            const consumer = createMockConsumer();
+
+            plugin.configure(consumer);
+
+            expect(consumer.forRoutes).toHaveBeenCalledWith('tools/graphiql/admin');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('tools/graphiql/shop');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/tools/graphiql/assets/*path');
+        });
+    });
+
+    describe('served HTML', () => {
+        const builtHtml =
+            '<html><head><script type="module" crossorigin src="./assets/index-abc.js"></script>' +
+            '<link rel="stylesheet" crossorigin href="./assets/index-abc.css"></head><body></body></html>';
+
+        function render(plugin: GraphiqlPlugin, route: string): string {
+            const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+            const readFileSyncSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue(builtHtml);
+            const res = { send: vi.fn(), status: vi.fn().mockReturnThis() };
+            try {
+                (plugin as any).createStaticServer(route)({}, res);
+            } finally {
+                existsSyncSpy.mockRestore();
+                readFileSyncSpy.mockRestore();
+            }
+            expect(res.status).not.toHaveBeenCalled();
+            return res.send.mock.calls[0][0];
+        }
+
+        it('should point the asset URLs at the configured route', async () => {
+            const plugin = await createPlugin({ route: 'tools/graphiql' });
+
+            const html = render(plugin, 'tools/graphiql');
+
+            expect(html).toContain('src="/tools/graphiql/assets/index-abc.js"');
+            expect(html).toContain('href="/tools/graphiql/assets/index-abc.css"');
+            expect(html).not.toContain('./assets/');
+        });
+
+        it('should inject relative API URLs', async () => {
+            const plugin = await createPlugin();
+
+            const html = render(plugin, 'graphiql');
+
+            expect(html).toContain('adminApiUrl: "/admin-api"');
+            expect(html).toContain('shopApiUrl: "/shop-api"');
+        });
     });
 
     describe('static server middleware', () => {

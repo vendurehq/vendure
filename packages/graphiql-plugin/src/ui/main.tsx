@@ -14,8 +14,7 @@ if (embeddedMode) {
 
 // Get the API URL and name from the URL path
 const path = window.location.pathname;
-const isAdminApi = path.includes('/admin');
-const isShopApi = path.includes('/shop');
+const isShopApi = /\/shop\/?$/.test(path);
 
 // Default to admin API if no specific path is found
 const apiType = isShopApi ? 'shop' : 'admin';

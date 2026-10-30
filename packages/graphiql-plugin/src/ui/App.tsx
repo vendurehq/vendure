@@ -23,18 +23,19 @@ const App: React.FC<AppProps> = ({ apiType }) => {
     const storage = embeddedMode ? embeddedModeStorage : undefined;
 
     const fetcher = useCallback(() => {
+        // The API URL is relative to the page, so the WebSocket URL is built from the page's own location.
+        const subscriptionUrl = new URL(apiUrl, window.location.href);
+        subscriptionUrl.protocol = subscriptionUrl.protocol === 'https:' ? 'wss:' : 'ws:';
         return createGraphiQLFetcher({
             url: apiUrl,
-            subscriptionUrl: apiUrl.replace(/^http/, 'ws'),
+            subscriptionUrl: subscriptionUrl.href,
         });
     }, [apiUrl]);
 
     const handleSwitchApi = (newApiType: 'admin' | 'shop') => {
         if (newApiType !== apiType) {
-            const pathParts = window.location.pathname.split('/');
-            const basePath = pathParts.length > 1 ? `/${pathParts[1]}` : '';
-
-            window.location.href = `${basePath}/${newApiType}`;
+            // Replace the last path segment, so a route with several segments keeps its prefix
+            window.location.href = window.location.pathname.replace(/\/(admin|shop)\/?$/, `/${newApiType}`);
         }
     };
 
