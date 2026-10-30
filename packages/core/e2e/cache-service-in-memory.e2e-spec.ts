@@ -1,7 +1,7 @@
 import { CacheService, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
-import { afterAll, beforeAll, describe, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -25,17 +25,31 @@ import {
     setsObjectValue,
 } from './fixtures/cache-service-shared-tests';
 
+class CountingInMemoryCacheStrategy extends InMemoryCacheStrategy {
+    // Populating the test database bootstraps and closes a separate app with the same strategy
+    initialized = 0;
+
+    init() {
+        this.initialized++;
+    }
+
+    destroy() {
+        this.initialized--;
+    }
+}
+
 describe('CacheService in-memory', () => {
     const ttlProvider = new TestingCacheTtlProvider();
+    const cacheStrategy = new CountingInMemoryCacheStrategy({
+        cacheSize: 5,
+        cacheTtlProvider: ttlProvider,
+    });
 
     let cacheService: CacheService;
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             systemOptions: {
-                cacheStrategy: new InMemoryCacheStrategy({
-                    cacheSize: 5,
-                    cacheTtlProvider: ttlProvider,
-                }),
+                cacheStrategy,
             },
         }),
     );
@@ -52,6 +66,10 @@ describe('CacheService in-memory', () => {
 
     afterAll(async () => {
         await server.destroy();
+    });
+
+    it('initializes the cacheStrategy once', () => {
+        expect(cacheStrategy.initialized).toBe(1);
     });
 
     it('get returns undefined for non-existent key', () =>
