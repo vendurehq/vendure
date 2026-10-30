@@ -544,8 +544,10 @@ tokens.
 `--json` writes one result to stdout and disables terminal prompts. Reporter progress, including the sign-in code,
 goes to stderr. Sign-in remains available unless `--non-interactive` is set. Without a terminal, the command links
 the Project that `--console-project` names, or an organization's single Project. When there are more and no
-`--console-project`, it fails, lists them with their slugs, and names the flag. Human output remains the
-default.
+`--console-project`, or when `--console-project` names none of them, the result is `incomplete`: `missingInputs`
+names `--console-project`, and `nextSteps` lists the Projects with their slugs. For a value that names none of them,
+`nextSteps` also points to `--organization`. When `--console-project` names another Project than the linked one,
+`missingInputs` names `--force`. Human output remains the default.
 The result has this shape:
 
 ```json
@@ -623,8 +625,8 @@ that belongs to another project root. Use `--console-project` to choose the Proj
 `--console-project` with a different Project needs `--force`.
 
 A prompt in a terminal waits for your answer. In a run without a terminal, or with `CI` or
-`VENDURE_CLI_NON_INTERACTIVE` set, a prompt that gets no answer within 60 seconds stops the command and names the
-flags that answer it.
+`VENDURE_CLI_NON_INTERACTIVE` set, the command does not prompt. Where it needs an answer, it stops and names the flag
+that gives it.
 
 Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
 is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
@@ -632,7 +634,8 @@ may have arrived with a clone.
 
 A cloned manifest can link a Project of a Customer Account that you are not a member of. The repair then names that
 account, and plugin setup runs without a Console session. Run `vendure console link --force` to link the project to
-one of your own Projects, or ask an administrator of that account to add you.
+one of your own Projects, or ask an administrator of that account to add you. If you use another Vendure Console login
+for that account, run `vendure auth login` with it.
 
 Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes and plugin setup on a
 repair. It does not answer questions asked by a plugin hook:
@@ -1175,8 +1178,8 @@ When a session-requesting hook gets no session, `context.sessionUnavailable` say
 
 - `'not-signed-in'`: no CLI login for the account is stored, and the run does not sign in. Ask the user to sign in.
 - `'account-inaccessible'`: the signed-in user is not a member of the manifest's Customer Account, and Core has
-  said so. Signing in again does not help. Point to `vendure console link --force`, and do not fall back to
-  `getAccessToken()`, whose login belongs to another account.
+  said so. Signing in again as the same user does not help. Point to `vendure console link --force`, and do not
+  fall back to `getAccessToken()`, whose login belongs to another account.
 - `'sign-in-failed'`: the sign-in failed, and Core has reported why.
 
 Check `context.isNonInteractive` before calling `context.confirm`. The confirm

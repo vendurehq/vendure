@@ -25,8 +25,9 @@ export type ConsoleLinkOutcome = 'linked' | 'repaired';
  *
  * - `'not-signed-in'`: no CLI login for the linked account is stored, and this run does not sign in.
  * - `'account-inaccessible'`: the signed-in user is not a member of the Customer Account the manifest
- *   links to. Signing in again does not help: `vendure console link --force` links one of the user's
- *   own Projects, or an administrator of that account adds the user. The CLI has said so.
+ *   links to. Signing in again as the same user does not help: `vendure console link --force` links one
+ *   of the user's own Projects, an administrator of that account adds the user, or the user runs
+ *   `vendure auth login` with another Vendure Console login that is a member. The CLI has said so.
  * - `'sign-in-failed'`: the sign-in failed. The CLI has reported why.
  *
  * @since 3.8.2

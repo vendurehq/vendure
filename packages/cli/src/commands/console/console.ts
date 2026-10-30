@@ -17,7 +17,7 @@ import {
 import { StoredOrganization } from '../../auth/auth-store';
 import { AuthOrganization, OrganizationNotFoundError, describeOrganizations } from '../../auth/console-api';
 import { CliCommandExit } from '../../shared/cli-command-exit';
-import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
+import { isNonInteractiveEnvironment } from '../../utilities/utils';
 
 import { openConsoleBrowser } from './authentication';
 import { ConsoleSession } from './cli-auth';
@@ -35,7 +35,7 @@ import {
     trustedConsoleOrigins,
 } from './console-origins';
 import { ConsoleReporter } from './console-reporter';
-import { ConsoleCommandResult, ConsoleLinkResultContribution } from './console-result';
+import { ConsoleCommandResult, ConsoleLinkResultContribution, ConsoleMissingInput } from './console-result';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
     ManifestReadResult,
@@ -135,6 +135,23 @@ class CommandInterruptedError extends Error {
     }
 }
 
+/**
+ * A refusal the CLI words itself because an input it was given names nothing
+ * it can link. Unlike other errors, `--json` reports it: an `incomplete` result
+ * with the input to change and the next steps. The next steps hold no option
+ * values, only what Console returned and the flags to use.
+ */
+class ConsoleInputError extends Error {
+    constructor(
+        message: string,
+        readonly missingInput: ConsoleMissingInput,
+        readonly nextSteps: string[],
+    ) {
+        super(message);
+        this.name = 'ConsoleInputError';
+    }
+}
+
 const defaultReporter: ConsoleReporter = {
     error: message => log.error(message),
     info: message => log.info(message),
@@ -152,25 +169,13 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         isNonInteractive: () => isNonInteractiveEnvironment(),
         now: () => Date.now(),
         openUrl: openConsoleBrowser,
+        // Every caller checks `isNonInteractive()` first, so these prompts always have a terminal.
         prompt: async message => {
-            const result = await withInteractiveTimeout(() => confirm({ message }), {
-                examples: [
-                    'vendure console link --yes',
-                    'vendure console link --force --console-project <id|slug>',
-                    'vendure console unlink --force',
-                ],
-                helpCommands: ['vendure console --help'],
-            });
+            const result = await confirm({ message });
             return isCancel(result) ? undefined : result;
         },
         select: async (message, choices) => {
-            const result = await withInteractiveTimeout(() => select({ message, options: choices }), {
-                examples: [
-                    'vendure console link --console-project <id|slug>',
-                    'vendure console link --organization <Account identifier> --console-project <id|slug>',
-                ],
-                helpCommands: ['vendure console --help'],
-            });
+            const result = await select({ message, options: choices });
             return isCancel(result) ? undefined : String(result);
         },
         reporter: defaultReporter,
@@ -274,6 +279,14 @@ function reportConsoleCommandError(
     state: ConsoleCommandState,
     interruptedExitCode: number | undefined,
 ): number {
+    if (error instanceof ConsoleInputError && interruptedExitCode === undefined) {
+        state.result.outcome = 'incomplete';
+        state.result.missingInputs.push(error.missingInput);
+        state.result.nextSteps.push(...error.nextSteps);
+        reporter.error(error.message);
+        error.nextSteps.forEach(step => reporter.info(step));
+        return 1;
+    }
     state.result.outcome = 'failed';
     state.result.nextSteps.push('Check the Console configuration and rerun vendure console link.');
     if (interruptedExitCode !== undefined || error instanceof CommandInterruptedError) {
@@ -419,14 +432,20 @@ async function link(
             : 'same';
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
-            throw new Error(
-                linked === 'different'
-                    ? `This project is already linked to ${current}. ` +
-                          `Add --force to link --console-project ${String(requestedProject)} instead.`
-                    : `This project is already linked to ${current}, and the CLI could not check whether ` +
-                          `--console-project ${String(requestedProject)} names that Project. ` +
-                          `Pass its id, ${existing.manifest.project.id}, to keep the link.`,
-            );
+            throw linked === 'different'
+                ? new ConsoleInputError(
+                      `This project is already linked to ${current}.`,
+                      { input: 'projectLinkReplacement', flag: '--force' },
+                      ['Add --force to replace the link with the Project that --console-project names.'],
+                  )
+                : new ConsoleInputError(
+                      `This project is already linked to ${current}, and the CLI could not check whether ` +
+                          `--console-project ${String(requestedProject)} names that Project.`,
+                      { input: 'consoleProject', flag: '--console-project' },
+                      [
+                          `Pass the linked Project's id, ${existing.manifest.project.id}, to --console-project to keep the link.`,
+                      ],
+                  );
         }
         // A repeated link reuses the manifest and reruns plugin setup.
         return repair(
@@ -932,10 +951,13 @@ async function chooseProject(
         return projects[0];
     }
     if (dependencies.isNonInteractive()) {
-        throw new Error(
-            `${accountName} has ${projects.length} projects. Choose one with ` +
-                'vendure console link --console-project <id|slug>, or run vendure console link in a terminal:\n' +
-                describeProjects(projects),
+        throw new ConsoleInputError(
+            `${accountName} has ${projects.length} projects.`,
+            { input: 'consoleProject', flag: '--console-project' },
+            [
+                'Choose one with vendure console link --console-project <id|slug>, or run vendure console link ' +
+                    `in a terminal:\n${describeProjects(projects)}`,
+            ],
         );
     }
     const projectId = await dependencies.select(
@@ -957,11 +979,19 @@ function findProject(projects: ConsoleProject[], requested: string): ConsoleProj
     );
 }
 
-function projectNotFound(requested: string, accountName: string, projects: ConsoleProject[]): Error {
-    return new Error(
+function projectNotFound(
+    requested: string,
+    accountName: string,
+    projects: ConsoleProject[],
+): ConsoleInputError {
+    return new ConsoleInputError(
         `--console-project ${requested} is not an active project of ${accountName}, the Customer Account ` +
-            `this login uses. Its projects:\n${describeProjects(projects)}\n` +
+            'this login uses.',
+        { input: 'consoleProject', flag: '--console-project' },
+        [
+            `Pass the id or slug of one of the projects of ${accountName} to --console-project:\n${describeProjects(projects)}`,
             'To link a project of another Customer Account, add --organization <Account identifier>.',
+        ],
     );
 }
 
@@ -1166,8 +1196,8 @@ interface RepairSession {
  *
  * A login for another account is enough to tell whether the user is a member
  * of the manifest's account at all. A manifest from a cloned repository often
- * names a Project of somebody else's account, and signing in again does not
- * help with that.
+ * names a Project of somebody else's account, and signing in again as the same
+ * user does not help with that.
  */
 async function repairSession(
     manifest: ProjectLinkManifest,
@@ -1254,6 +1284,7 @@ function reportInaccessibleAccount(
                 : 'Your login is not a member of any Customer Account.',
             'To link this project to one of your own Projects, run vendure console link --force. ' +
                 `To keep this link, ask an administrator of "${manifest.account.name}" to add you to that account.`,
+            'If you use another Vendure Console login for that account, run vendure auth login with it.',
             'Plugin setup runs without a Console session.',
         ].join('\n'),
     );

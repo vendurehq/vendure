@@ -206,7 +206,7 @@ export function resolveOrganization(organizations: AuthOrganization[], input: st
     }
     if (matches.length > 1) {
         throw new Error(
-            `More than one of your organizations is named "${wanted}". ` +
+            `More than one of your Customer Accounts is named "${wanted}". ` +
                 `Pass its Account identifier instead:\n${describeOrganizations(matches)}`,
         );
     }

@@ -604,6 +604,10 @@ describe('console link command line login', () => {
         expect(output).toContain(`Your Customer Accounts:\n  Other (${OTHER_ACCOUNT_ID})\n`);
         expect(output).toContain('run vendure console link --force');
         expect(output).toContain('ask an administrator of "Acme"');
+        // CLO-1166 — the user may have another Console login that is a member of the account.
+        expect(output).toContain(
+            'If you use another Vendure Console login for that account, run vendure auth login with it.',
+        );
         expect(output).not.toContain('sign in again');
         expect(output).not.toContain(ORGANIZATION_ID);
         // The next sentence is a line of its own, not glued onto the account list.
@@ -700,7 +704,9 @@ describe('console link --non-interactive --console-project', () => {
         expect(run.exitCode).toBe(1);
         expect(run.urls()).toEqual([]);
         const output = run.messages.join('\n');
-        expect(output).toContain(`Pass its id, ${PROJECT_ID}, to keep the link.`);
+        expect(output).toContain(
+            `Pass the linked Project's id, ${PROJECT_ID}, to --console-project to keep the link.`,
+        );
         expect(output).not.toContain('--force');
     });
 

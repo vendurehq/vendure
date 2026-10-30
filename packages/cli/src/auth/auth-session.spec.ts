@@ -287,7 +287,7 @@ describe('loginWithDevice', () => {
 
         await expect(
             loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Acme' }),
-        ).rejects.toThrow(/More than one.*\n.*11111111/s);
+        ).rejects.toThrow(/More than one of your Customer Accounts is named "Acme".*\n.*11111111/s);
         expect(readStoredAuth(options)).toBeUndefined();
     });
 
