@@ -15,13 +15,13 @@ else
     fi
     changed=$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)
 
-    if printf '%s\n' "$changed" | grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml|\.github/(workflows|actions)/)'; then
+    if grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml|\.github/(workflows|actions)/)' <<< "$changed"; then
         packages=true
     else
         packages=false
     fi
 
-    if printf '%s\n' "$changed" | grep -qE '^(packages/dashboard/|\.github/(workflows|actions)/)'; then
+    if grep -qE '^(packages/dashboard/|\.github/(workflows|actions)/)' <<< "$changed"; then
         dashboard=true
     else
         dashboard=false
