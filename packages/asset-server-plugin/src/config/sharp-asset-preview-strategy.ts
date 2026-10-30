@@ -76,6 +76,11 @@ interface SharpAssetPreviewConfig {
  * preview images will match the input format - so a source file in jpeg format will output a jpeg preview,
  * a webp source file will output a webp preview, and so on.
  *
+ * The XMP packet of the source image is copied to the preview unchanged, so provenance markings such as the
+ * IPTC `DigitalSourceType` of AI-generated images are kept, along with anything else stored in XMP.
+ * This applies to formats in which Sharp can read and write XMP, such as JPEG, PNG and WebP. Previews of GIF
+ * and SVG sources do not contain the source XMP. EXIF, ICC and IPTC-IIM metadata are not copied.
+ *
  * The settings for the outputs will default to Sharp's defaults (https://sharp.pixelplumbing.com/api-output).
  * However, it is possible to pass your own configurations to control the output of each format:
  *
@@ -118,7 +123,7 @@ export class SharpAssetPreviewStrategy implements AssetPreviewStrategy {
 
         if (assetType === AssetType.IMAGE) {
             try {
-                const image = sharp(data, { failOn: 'truncated' }).rotate();
+                const image = sharp(data, { failOn: 'truncated' }).rotate().keepXmp();
                 const metadata = await image.metadata();
                 const width = metadata.width || 0;
                 const height = metadata.height || 0;
