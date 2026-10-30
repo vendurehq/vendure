@@ -600,14 +600,35 @@ describe('console command', () => {
     it('does not let --console-project replace an existing link without --force', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
-        const fetchMock = vi.fn();
+        const fetchMock = sequenceFetch(
+            jsonResponse(
+                projectList([
+                    { id: PROJECT_ID, name: 'Storefront' },
+                    { id: OTHER_PROJECT_ID, name: 'Wholesale' },
+                ]),
+            ),
+        );
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', { consoleProject: 'wholesale' }, test.dependencies)).toBe(1);
-        expect(fetchMock).not.toHaveBeenCalled();
+        // Only the project list, to read the linked Project's slug. No link request.
+        expect(fetchMock).toHaveBeenCalledOnce();
         expect(test.messages.join('\n')).toContain(
             'Add --force to link --console-project wholesale instead.',
         );
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
+    });
+
+    it('repairs the link when --console-project names the linked project by slug', async () => {
+        const root = vendureProject();
+        fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
+        const fetchMock = sequenceFetch(jsonResponse(projectList()));
+        const test = testDependencies(root, fetchMock);
+
+        expect(await consoleCommand('link', { consoleProject: 'Storefront' }, test.dependencies)).toBe(0);
+        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3001/v1/projects');
+        expect(test.messages.join('\n')).toContain('Already linked to Storefront in Acme.');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 

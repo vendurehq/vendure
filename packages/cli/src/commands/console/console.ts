@@ -409,9 +409,8 @@ async function link(
     if (existing.kind === 'valid' && !options.force) {
         if (
             requestedProject &&
-            requestedProject.toLowerCase() !== existing.manifest.project.id.toLowerCase()
+            !(await namesLinkedProject(requestedProject, existing.manifest, endpoints, dependencies, signal))
         ) {
-            // The manifest names its Project by id only, so a slug cannot be matched against it.
             throw new Error(
                 `This project is already linked to ${existing.manifest.project.name} (${existing.manifest.project.id}) ` +
                     `in ${existing.manifest.account.name}. Add --force to link --console-project ${requestedProject} instead.`,
@@ -635,6 +634,41 @@ async function signIn(
             throw new CommandInterruptedError();
         }
         throw error;
+    }
+}
+
+/**
+ * Whether `--console-project` names the Project the manifest links. The
+ * manifest holds only the Project's id, so a slug is looked up with the stored
+ * login for the manifest's account. Without that login, only the id matches.
+ */
+async function namesLinkedProject(
+    requested: string,
+    manifest: ProjectLinkManifest,
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<boolean> {
+    const linkedId = manifest.project.id.toLowerCase();
+    const wanted = requested.toLowerCase();
+    if (wanted === linkedId) {
+        return true;
+    }
+    try {
+        const login = await storedLogin(
+            consoleAuthOptions(endpoints, dependencies, signal),
+            manifest.account.id,
+        );
+        if (!login) {
+            return false;
+        }
+        const projects = await listProjects(endpoints, login, manifest.account.name, dependencies, signal);
+        return projects.some(project => project.id.toLowerCase() === linkedId && project.slug === wanted);
+    } catch (error) {
+        if (signal.aborted || error instanceof CommandInterruptedError) {
+            throw new CommandInterruptedError();
+        }
+        return false;
     }
 }
 
