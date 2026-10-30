@@ -408,7 +408,14 @@ async function link(
     const requestedProject = options.consoleProject?.trim() || undefined;
     if (existing.kind === 'valid' && !options.force) {
         const linked = requestedProject
-            ? await namesLinkedProject(requestedProject, existing.manifest, endpoints, dependencies, signal)
+            ? await namesLinkedProject(
+                  requestedProject,
+                  options.organization?.trim() || undefined,
+                  existing.manifest,
+                  endpoints,
+                  dependencies,
+                  signal,
+              )
             : 'same';
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
@@ -646,16 +653,22 @@ async function signIn(
  * Whether `--console-project` names the Project the manifest links. The
  * manifest holds only the Project's id, so a slug is looked up with the stored
  * login for the manifest's account. `'unknown'` when there is no such login
- * or Console sends no slug for the linked Project. A failed lookup throws.
- * Only `'different'` may lead to `--force`, which replaces the link.
+ * or Console sends no slug for the linked Project. A failed lookup throws, and
+ * so does a value that names no active Project of the account.
+ * Only `'different'`, another active Project or another account named by
+ * `--organization`, may lead to `--force`, which replaces the link.
  */
 async function namesLinkedProject(
     requested: string,
+    organization: string | undefined,
     manifest: ProjectLinkManifest,
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<'same' | 'different' | 'unknown'> {
+    if (organization && !matchesManifestAccount(organization, manifest)) {
+        return 'different';
+    }
     const linkedId = manifest.project.id.toLowerCase();
     const wanted = requested.toLowerCase();
     if (wanted === linkedId) {
@@ -670,11 +683,15 @@ async function namesLinkedProject(
             return 'unknown';
         }
         const projects = await listProjects(endpoints, login, manifest.account.name, dependencies, signal);
-        const slug = projects.find(project => project.id.toLowerCase() === linkedId)?.slug;
-        if (slug === undefined) {
+        const match = findProject(projects, requested);
+        if (match) {
+            return match.id.toLowerCase() === linkedId ? 'same' : 'different';
+        }
+        if (projects.find(project => project.id.toLowerCase() === linkedId)?.slug === undefined) {
+            // The value may still be the linked Project's slug.
             return 'unknown';
         }
-        return slug.toLowerCase() === wanted ? 'same' : 'different';
+        throw projectNotFound(requested, manifest.account.name, projects);
     } catch (error) {
         if (signal.aborted || error instanceof CommandInterruptedError) {
             throw new CommandInterruptedError();
@@ -682,6 +699,14 @@ async function namesLinkedProject(
         // A failed lookup is not a different Project, so it must not lead to --force.
         throw error;
     }
+}
+
+/** Whether `--organization` names the manifest's account, by Account identifier or name. */
+function matchesManifestAccount(organization: string, manifest: ProjectLinkManifest): boolean {
+    const value = organization.toLowerCase();
+    return (
+        manifest.account.id.toLowerCase() === value || manifest.account.name.trim().toLowerCase() === value
+    );
 }
 
 /** The stored login for a `--non-interactive` link, which does not sign in. */
@@ -897,16 +922,9 @@ async function chooseProject(
         );
     }
     if (requested) {
-        const wanted = requested.toLowerCase();
-        const match = projects.find(
-            project => project.id.toLowerCase() === wanted || project.slug?.toLowerCase() === wanted,
-        );
+        const match = findProject(projects, requested);
         if (!match) {
-            throw new Error(
-                `--console-project ${requested} is not an active project of ${accountName}, the Customer Account ` +
-                    `this login uses. Its projects:\n${describeProjects(projects)}\n` +
-                    'To link a project of another Customer Account, add --organization <Account identifier>.',
-            );
+            throw projectNotFound(requested, accountName, projects);
         }
         return match;
     }
@@ -929,6 +947,22 @@ async function chooseProject(
         throw new CommandInterruptedError();
     }
     return chosen;
+}
+
+/** The project that `--console-project` names by id or slug, ignoring case. */
+function findProject(projects: ConsoleProject[], requested: string): ConsoleProject | undefined {
+    const wanted = requested.toLowerCase();
+    return projects.find(
+        project => project.id.toLowerCase() === wanted || project.slug?.toLowerCase() === wanted,
+    );
+}
+
+function projectNotFound(requested: string, accountName: string, projects: ConsoleProject[]): Error {
+    return new Error(
+        `--console-project ${requested} is not an active project of ${accountName}, the Customer Account ` +
+            `this login uses. Its projects:\n${describeProjects(projects)}\n` +
+            'To link a project of another Customer Account, add --organization <Account identifier>.',
+    );
 }
 
 function describeProjects(projects: ConsoleProject[]): string {

@@ -649,6 +649,56 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
+    it('names the projects, not --force, when --console-project names no project of a linked account', async () => {
+        const root = vendureProject();
+        fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
+        const fetchMock = sequenceFetch(jsonResponse(projectList()));
+        const test = testDependencies(root, fetchMock);
+
+        expect(await consoleCommand('link', { consoleProject: 'storefrnt' }, test.dependencies)).toBe(1);
+        const output = test.messages.join('\n');
+        expect(output).toContain('--console-project storefrnt is not an active project of Acme');
+        expect(output).toContain(`Storefront (storefront, ${PROJECT_ID})`);
+        expect(output).not.toContain('--force');
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
+    });
+
+    it('does not repair the link when --organization names another account than the linked one', async () => {
+        const root = vendureProject();
+        fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
+        const fetchMock = vi.fn();
+        const test = testDependencies(root, fetchMock);
+
+        expect(
+            await consoleCommand(
+                'link',
+                { organization: 'Other', consoleProject: 'storefront' },
+                test.dependencies,
+            ),
+        ).toBe(1);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(test.messages.join('\n')).toContain(
+            'Add --force to link --console-project storefront instead.',
+        );
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
+    });
+
+    it('repairs the link when --organization names the linked account and the slug its project', async () => {
+        const root = vendureProject();
+        fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
+        const fetchMock = sequenceFetch(jsonResponse(projectList()));
+        const test = testDependencies(root, fetchMock);
+
+        expect(
+            await consoleCommand(
+                'link',
+                { organization: 'acme', consoleProject: 'storefront' },
+                test.dependencies,
+            ),
+        ).toBe(0);
+        expect(test.messages.join('\n')).toContain('Already linked to Storefront in Acme.');
+    });
+
     it('repairs the link when --console-project names the linked project by slug', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
