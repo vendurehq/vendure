@@ -282,11 +282,9 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
             }
             if (
                 options.checkAdditionalPaymentsAmount !== false &&
-                fromState === 'ArrangingAdditionalPayment'
+                fromState === 'ArrangingAdditionalPayment' &&
+                toState !== 'Cancelled'
             ) {
-                if (toState === 'Cancelled') {
-                    return;
-                }
                 const existingPayments = await connection.getRepository(ctx, Payment).find({
                     relations: { refunds: true },
                     where: {

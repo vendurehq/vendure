@@ -1399,6 +1399,15 @@ describe('Order modification', () => {
             );
         });
 
+        it('cannot transition from ArrangingAdditionalPayment to Cancelled unless all items are cancelled', async () => {
+            const transitionOrderToState = await adminTransitionOrderToState(orderId2, 'Cancelled');
+            orderGuard.assertErrorResult(transitionOrderToState);
+            expect(transitionOrderToState.errorCode).toBe(ErrorCode.ORDER_STATE_TRANSITION_ERROR);
+            expect((transitionOrderToState as any).transitionError).toBe(
+                'Cannot transition Order to the "Cancelled" state unless all OrderItems are cancelled',
+            );
+        });
+
         it('addManualPaymentToOrder', async () => {
             const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentToOrderDocument, {
                 input: {
