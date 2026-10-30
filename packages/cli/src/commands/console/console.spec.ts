@@ -632,6 +632,23 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
+    it('asks for the linked project id, not --force, when the slug cannot be checked', async () => {
+        const root = vendureProject();
+        fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
+        // Console sends no slug for the linked Project.
+        const fetchMock = sequenceFetch(
+            jsonResponse([{ id: PROJECT_ID, name: 'Storefront', state: 'active' }]),
+        );
+        const test = testDependencies(root, fetchMock);
+
+        expect(await consoleCommand('link', { consoleProject: 'storefront' }, test.dependencies)).toBe(1);
+        const output = test.messages.join('\n');
+        expect(output).toContain('could not check whether --console-project storefront names that Project');
+        expect(output).toContain(`Pass its id, ${PROJECT_ID}, to keep the link.`);
+        expect(output).not.toContain('--force');
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
+    });
+
     it('repairs the link when --console-project names the linked project by slug', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);

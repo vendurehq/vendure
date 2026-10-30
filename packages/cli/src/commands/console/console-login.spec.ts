@@ -694,6 +694,16 @@ describe('console link --non-interactive --console-project', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(run.root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
+    it('asks for the linked project id, not --force, when no login can read the slug', async () => {
+        const run = await runLink({ linked: true, login: false, options: { consoleProject: 'storefront' } });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        const output = run.messages.join('\n');
+        expect(output).toContain(`Pass its id, ${PROJECT_ID}, to keep the link.`);
+        expect(output).not.toContain('--force');
+    });
+
     it('returns incomplete and names vendure auth login when no login is stored', async () => {
         const run = await runLink({
             login: false,

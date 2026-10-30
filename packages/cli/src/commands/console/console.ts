@@ -407,13 +407,18 @@ async function link(
     );
     const requestedProject = options.consoleProject?.trim() || undefined;
     if (existing.kind === 'valid' && !options.force) {
-        if (
-            requestedProject &&
-            !(await namesLinkedProject(requestedProject, existing.manifest, endpoints, dependencies, signal))
-        ) {
+        const linked = requestedProject
+            ? await namesLinkedProject(requestedProject, existing.manifest, endpoints, dependencies, signal)
+            : 'same';
+        if (linked !== 'same') {
+            const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
             throw new Error(
-                `This project is already linked to ${existing.manifest.project.name} (${existing.manifest.project.id}) ` +
-                    `in ${existing.manifest.account.name}. Add --force to link --console-project ${requestedProject} instead.`,
+                linked === 'different'
+                    ? `This project is already linked to ${current}. ` +
+                          `Add --force to link --console-project ${String(requestedProject)} instead.`
+                    : `This project is already linked to ${current}, and the CLI could not check whether ` +
+                          `--console-project ${String(requestedProject)} names that Project. ` +
+                          `Pass its id, ${existing.manifest.project.id}, to keep the link.`,
             );
         }
         // A repeated link reuses the manifest and reruns plugin setup.
@@ -640,8 +645,9 @@ async function signIn(
 /**
  * Whether `--console-project` names the Project the manifest links. The
  * manifest holds only the Project's id, so a slug is looked up with the stored
- * login for the manifest's account. Without that login, only the id matches.
- * A failed lookup throws rather than reporting a different Project.
+ * login for the manifest's account. `'unknown'` when there is no such login
+ * or Console sends no slug for the linked Project. A failed lookup throws.
+ * Only `'different'` may lead to `--force`, which replaces the link.
  */
 async function namesLinkedProject(
     requested: string,
@@ -649,11 +655,11 @@ async function namesLinkedProject(
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
-): Promise<boolean> {
+): Promise<'same' | 'different' | 'unknown'> {
     const linkedId = manifest.project.id.toLowerCase();
     const wanted = requested.toLowerCase();
     if (wanted === linkedId) {
-        return true;
+        return 'same';
     }
     try {
         const login = await storedLogin(
@@ -661,10 +667,14 @@ async function namesLinkedProject(
             manifest.account.id,
         );
         if (!login) {
-            return false;
+            return 'unknown';
         }
         const projects = await listProjects(endpoints, login, manifest.account.name, dependencies, signal);
-        return projects.some(project => project.id.toLowerCase() === linkedId && project.slug === wanted);
+        const slug = projects.find(project => project.id.toLowerCase() === linkedId)?.slug;
+        if (slug === undefined) {
+            return 'unknown';
+        }
+        return slug.toLowerCase() === wanted ? 'same' : 'different';
     } catch (error) {
         if (signal.aborted || error instanceof CommandInterruptedError) {
             throw new CommandInterruptedError();
