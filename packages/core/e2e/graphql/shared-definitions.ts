@@ -40,6 +40,7 @@ export const getTasksDocument = graphql(`
             timezone
             lastResult
             enabled
+            isRunning
         }
     }
 `);
