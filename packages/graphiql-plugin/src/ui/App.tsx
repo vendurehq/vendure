@@ -34,8 +34,13 @@ const App: React.FC<AppProps> = ({ apiType }) => {
 
     const handleSwitchApi = (newApiType: 'admin' | 'shop') => {
         if (newApiType !== apiType) {
-            // Replace the last path segment, so a route with several segments keeps its prefix
-            window.location.href = window.location.pathname.replace(/\/(admin|shop)\/?$/, `/${newApiType}`);
+            // Replace the last path segment, so a route with several segments keeps its prefix.
+            // A path without it (e.g. the Vite dev server at `/`) gets the segment appended.
+            const { pathname } = window.location;
+            const apiSuffix = /\/(admin|shop)\/?$/;
+            window.location.href = apiSuffix.test(pathname)
+                ? pathname.replace(apiSuffix, `/${newApiType}`)
+                : `${pathname.replace(/\/$/, '')}/${newApiType}`;
         }
     };
 

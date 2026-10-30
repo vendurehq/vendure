@@ -99,21 +99,25 @@ export class GraphiqlPlugin implements NestModule {
             return;
         }
 
+        // A single leading slash, also for an empty route (`'/'`), which mounts at the site root
         const route = trimSlashes(GraphiqlPlugin.options.route);
-        const adminRoute = route + '/admin';
-        const shopRoute = route + '/shop';
+        const routePrefix = route ? `/${route}` : '';
+        const adminRoute = `${routePrefix}/admin`;
+        const shopRoute = `${routePrefix}/shop`;
+        const assetsPrefix = `${routePrefix}/assets/`;
 
-        consumer.apply(this.createStaticServer(route)).forRoutes(adminRoute);
-        consumer.apply(this.createStaticServer(route)).forRoutes(shopRoute);
+        consumer.apply(this.createStaticServer(assetsPrefix)).forRoutes(adminRoute);
+        consumer.apply(this.createStaticServer(assetsPrefix)).forRoutes(shopRoute);
 
         // Add middleware for serving assets
-        consumer.apply(this.createAssetsServer()).forRoutes(`/${route}/assets/*path`);
+        consumer.apply(this.createAssetsServer()).forRoutes(`${assetsPrefix}*path`);
 
-        registerPluginStartupMessage('GraphiQL Admin', adminRoute);
-        registerPluginStartupMessage('GraphiQL Shop', shopRoute);
+        // The startup message adds its own leading slash
+        registerPluginStartupMessage('GraphiQL Admin', adminRoute.slice(1));
+        registerPluginStartupMessage('GraphiQL Shop', shopRoute.slice(1));
     }
 
-    private createStaticServer(route: string) {
+    private createStaticServer(assetsPrefix: string) {
         const distDir = path.join(__dirname, '../dist/graphiql');
 
         const adminApiUrl = this.graphiQLService.getAdminApiUrl();
@@ -129,7 +133,7 @@ export class GraphiqlPlugin implements NestModule {
 
                     // The app is built with relative asset URLs. Make them absolute under the
                     // configured route, so they resolve whatever the page URL looks like.
-                    html = html.replace(/(src|href)="\.\/assets\//g, `$1="/${route}/assets/`);
+                    html = html.replace(/(src|href)="\.\/assets\//g, `$1="${assetsPrefix}`);
 
                     // Inject API URLs
                     html = html.replace(

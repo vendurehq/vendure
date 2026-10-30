@@ -96,8 +96,8 @@ describe('GraphiQLPlugin', () => {
 
             // Should register middleware for admin and shop routes, plus assets route
             expect(consumer.apply).toHaveBeenCalledTimes(3);
-            expect(consumer.forRoutes).toHaveBeenCalledWith('graphiql/admin');
-            expect(consumer.forRoutes).toHaveBeenCalledWith('graphiql/shop');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/graphiql/admin');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/graphiql/shop');
             expect(consumer.forRoutes).toHaveBeenCalledWith('/graphiql/assets/*path');
         });
 
@@ -107,9 +107,20 @@ describe('GraphiQLPlugin', () => {
 
             plugin.configure(consumer);
 
-            expect(consumer.forRoutes).toHaveBeenCalledWith('tools/graphiql/admin');
-            expect(consumer.forRoutes).toHaveBeenCalledWith('tools/graphiql/shop');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/tools/graphiql/admin');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/tools/graphiql/shop');
             expect(consumer.forRoutes).toHaveBeenCalledWith('/tools/graphiql/assets/*path');
+        });
+
+        it('should mount at the site root when the route is "/"', async () => {
+            const plugin = await createPlugin({ route: '/' });
+            const consumer = createMockConsumer();
+
+            plugin.configure(consumer);
+
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/admin');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/shop');
+            expect(consumer.forRoutes).toHaveBeenCalledWith('/assets/*path');
         });
     });
 
@@ -118,12 +129,12 @@ describe('GraphiQLPlugin', () => {
             '<html><head><script type="module" crossorigin src="./assets/index-abc.js"></script>' +
             '<link rel="stylesheet" crossorigin href="./assets/index-abc.css"></head><body></body></html>';
 
-        function render(plugin: GraphiqlPlugin, route: string): string {
+        function render(plugin: GraphiqlPlugin, assetsPrefix: string): string {
             const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
             const readFileSyncSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue(builtHtml);
             const res = { send: vi.fn(), status: vi.fn().mockReturnThis() };
             try {
-                (plugin as any).createStaticServer(route)({}, res);
+                (plugin as any).createStaticServer(assetsPrefix)({}, res);
             } finally {
                 existsSyncSpy.mockRestore();
                 readFileSyncSpy.mockRestore();
@@ -135,17 +146,26 @@ describe('GraphiQLPlugin', () => {
         it('should point the asset URLs at the configured route', async () => {
             const plugin = await createPlugin({ route: 'tools/graphiql' });
 
-            const html = render(plugin, 'tools/graphiql');
+            const html = render(plugin, '/tools/graphiql/assets/');
 
             expect(html).toContain('src="/tools/graphiql/assets/index-abc.js"');
             expect(html).toContain('href="/tools/graphiql/assets/index-abc.css"');
             expect(html).not.toContain('./assets/');
         });
 
+        it('should use a single leading slash for an empty route', async () => {
+            const plugin = await createPlugin({ route: '/' });
+
+            const html = render(plugin, '/assets/');
+
+            expect(html).toContain('src="/assets/index-abc.js"');
+            expect(html).not.toContain('//assets/');
+        });
+
         it('should inject relative API URLs', async () => {
             const plugin = await createPlugin();
 
-            const html = render(plugin, 'graphiql');
+            const html = render(plugin, '/graphiql/assets/');
 
             expect(html).toContain('adminApiUrl: "/admin-api"');
             expect(html).toContain('shopApiUrl: "/shop-api"');
