@@ -80,7 +80,9 @@ jobs:
               run: |
                   echo "user-id=$(gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id)" >> "$GITHUB_OUTPUT"
 
-            - name: Attempt merge
+            # The push uses the app token from the checkout (not GITHUB_TOKEN) so that it
+            # triggers downstream workflow runs on the target, such as Docs CI.
+            - name: Merge and push
               id: merge
               env:
                   SOURCE: ${{ needs.resolve-branches.outputs.source }}
@@ -91,36 +93,46 @@ jobs:
                   git config user.name "${APP_SLUG}[bot]"
                   git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
 
-                  git fetch origin "$SOURCE"
+                  # Sets $result to up-to-date, clean (merge committed) or conflict.
+                  merge_source() {
+                    if git merge-base --is-ancestor "origin/$SOURCE" HEAD; then
+                      result=up-to-date
+                      echo "::notice::$TARGET is already up to date with $SOURCE"
+                    elif git merge "origin/$SOURCE" --no-edit; then
+                      result=clean
+                    # docs/manifest.json is a build output that docs_ci.yml compiles and commits
+                    # on each branch separately, so it differs between branches and conflicts on
+                    # almost every docs change. Keeping the target's copy is safe: it is compiled
+                    # from docs/src/manifest.ts, and if the merge brings docs source changes, the
+                    # push below (app token) triggers docs_ci.yml on the target, which recompiles it.
+                    elif [ "$(git diff --name-only --diff-filter=U)" = "docs/manifest.json" ] \
+                      && git checkout --ours docs/manifest.json \
+                      && git add docs/manifest.json \
+                      && git commit --no-edit; then
+                      result=clean
+                      echo "::notice::Kept $TARGET's docs/manifest.json; Docs CI regenerates it"
+                    else
+                      git merge --abort
+                      result=conflict
+                    fi
+                  }
 
-                  if git merge-base --is-ancestor "origin/$SOURCE" HEAD; then
-                    echo "result=up-to-date" >> "$GITHUB_OUTPUT"
-                    echo "::notice::$TARGET is already up to date with $SOURCE"
-                  elif git merge "origin/$SOURCE" --no-edit; then
-                    echo "result=clean" >> "$GITHUB_OUTPUT"
-                  # docs/manifest.json is a build output that docs_ci.yml compiles and commits
-                  # on each branch separately, so it differs between branches and conflicts on
-                  # almost every docs change. Keeping the target's copy is safe: it is compiled
-                  # from docs/src/manifest.ts, and if the merge brings docs source changes, the
-                  # push below (app token) triggers docs_ci.yml on the target, which recompiles it.
-                  elif [ "$(git diff --name-only --diff-filter=U)" = "docs/manifest.json" ] \
-                    && git checkout --ours docs/manifest.json \
-                    && git add docs/manifest.json \
-                    && git commit --no-edit; then
-                    echo "result=clean" >> "$GITHUB_OUTPUT"
-                    echo "::notice::Kept $TARGET's docs/manifest.json; Docs CI regenerates it"
-                  else
-                    git merge --abort
-                    echo "result=conflict" >> "$GITHUB_OUTPUT"
-                  fi
-
-            # App token is used for the push (not GITHUB_TOKEN) so that
-            # the push triggers downstream workflow runs for the cascade.
-            - name: Push merge
-              if: steps.merge.outputs.result == 'clean'
-              env:
-                  TARGET: ${{ needs.resolve-branches.outputs.target }}
-              run: git push origin "$TARGET"
+                  # Other workflows push to the target while this job runs. In particular, the
+                  # previous back-merge push triggers Docs CI there, which commits a regenerated
+                  # manifest seconds later. If our push is rejected because the target moved,
+                  # start again from its new tip and redo the merge instead of failing the run.
+                  for attempt in 1 2 3; do
+                    git fetch origin "$SOURCE" "$TARGET"
+                    git reset --hard "origin/$TARGET"
+                    merge_source
+                    if [ "$result" != "clean" ] || git push origin "$TARGET"; then
+                      echo "result=$result" >> "$GITHUB_OUTPUT"
+                      exit 0
+                    fi
+                    echo "::warning::Push to $TARGET was rejected (attempt $attempt of 3)"
+                  done
+                  echo "::error::Could not push the back-merge to $TARGET after 3 attempts"
+                  exit 1
 
             # GITHUB_TOKEN is sufficient for PR operations — they don't need
             # to trigger downstream workflows, and it avoids burning App token quota.
@@ -187,9 +199,9 @@ jobs:
             # path exits zero, so a back-merge which merged nothing reports success and the two
             # branches drift with no failing run to show it.
             #
-            # This condition needs !cancelled() where the Push merge step above does not. An `if`
-            # with no status check function implies success(), which is right for pushing but
-            # would skip this step after any earlier step failed and leave the conflict silent.
+            # This condition needs !cancelled(). An `if` with no status check function implies
+            # success(), which would skip this step after any earlier step failed and leave the
+            # conflict silent.
             - name: Report the conflict as a failure
               if: ${{ !cancelled() && steps.merge.outputs.result == 'conflict' }}
               env:
