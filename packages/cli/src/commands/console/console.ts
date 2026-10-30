@@ -641,6 +641,7 @@ async function signIn(
  * Whether `--console-project` names the Project the manifest links. The
  * manifest holds only the Project's id, so a slug is looked up with the stored
  * login for the manifest's account. Without that login, only the id matches.
+ * A failed lookup throws rather than reporting a different Project.
  */
 async function namesLinkedProject(
     requested: string,
@@ -668,7 +669,8 @@ async function namesLinkedProject(
         if (signal.aborted || error instanceof CommandInterruptedError) {
             throw new CommandInterruptedError();
         }
-        return false;
+        // A failed lookup is not a different Project, so it must not lead to --force.
+        throw error;
     }
 }
 

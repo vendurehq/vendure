@@ -619,6 +619,19 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
+    it('does not suggest --force when the slug of the linked project cannot be read', async () => {
+        const root = vendureProject();
+        fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
+        const fetchMock = sequenceFetch(new Response('{}', { status: 503 }));
+        const test = testDependencies(root, fetchMock);
+
+        expect(await consoleCommand('link', { consoleProject: 'storefront' }, test.dependencies)).toBe(1);
+        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(test.messages.join('\n')).toContain('HTTP 503');
+        expect(test.messages.join('\n')).not.toContain('--force');
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
+    });
+
     it('repairs the link when --console-project names the linked project by slug', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
