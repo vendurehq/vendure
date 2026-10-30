@@ -43,6 +43,13 @@ export const consoleCommandDef: CliCommandDefinition = {
             required: false,
         },
         {
+            long: '--console-project <id|slug>',
+            description:
+                'Link this Console Project, by its id or slug, instead of asking. ' +
+                'With --non-interactive, links with the stored CLI login.',
+            required: false,
+        },
+        {
             long: '--yes',
             description: 'Answer every CLI confirmation. Plugin hooks can still ask their own questions.',
             required: false,
