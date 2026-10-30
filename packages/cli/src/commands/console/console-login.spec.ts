@@ -15,6 +15,7 @@ import {
     ORGANIZATION_ID,
     OTHER_ACCOUNT_ID,
     OTHER_ORGANIZATION_ID,
+    OTHER_PROJECT_ID,
     PROJECT_ID,
     STORED_ACCESS_TOKEN,
     STORED_REFRESH_TOKEN,
@@ -27,6 +28,7 @@ import {
     fakeConsole,
     jsonResponse,
     manifest,
+    projectList,
     storeLogin,
 } from './console.fixtures';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
@@ -555,18 +557,165 @@ describe('console link command line login', () => {
 
     it('keeps a repair going without a session when the sign-in fails', async () => {
         const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
         const run = await runLink({
             linked: true,
             interactive: true,
             login: false,
             options: { yes: true },
             fetch: () => Promise.resolve(new Response('{}', { status: 503 })),
-            hooks: [recordingHook(sessions, true)],
+            hooks: [recordingHook(sessions, true, unavailable)],
         });
 
         expect(run.exitCode).toBe(0);
         expect(sessions).toEqual([undefined]);
-        expect(run.messages.join('\n')).toContain('Could not sign in to Vendure Console');
+        expect(unavailable).toEqual(['sign-in-failed']);
+        expect(run.messages.join('\n')).toContain(
+            'Could not sign in to Vendure Console: Could not read the sign-in settings from Vendure Console ' +
+                'at https://api.vendure.io (HTTP 503).\nPlugin setup runs without a Console session.',
+        );
+    });
+
+    // CLO-1165 — a cloned manifest that links a Project of somebody else's Customer Account
+    it('names the Customer Account a repair cannot reach and points to --force, without signing in again', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            console: { memberships: [twoAccounts[1]] },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['account-inaccessible']);
+        const output = run.messages.join('\n');
+        expect(output).toContain(
+            'This project is linked to Storefront in the Customer Account "Acme", which your Vendure Console login cannot access.',
+        );
+        expect(output).toContain(`Your Customer Accounts:\n  Other (${OTHER_ACCOUNT_ID})\n`);
+        expect(output).toContain('run vendure console link --force');
+        expect(output).toContain('ask an administrator of "Acme"');
+        expect(output).not.toContain('sign in again');
+        expect(output).not.toContain(ORGANIZATION_ID);
+        // The next sentence is a line of its own, not glued onto the account list.
+        expect(output).toContain('\nPlugin setup runs without a Console session.');
+    });
+
+    it('detects an unreachable Customer Account in a non-interactive repair too', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            console: { memberships: [twoAccounts[1]] },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['account-inaccessible']);
+        expect(run.messages.join('\n')).toContain('Customer Account "Acme"');
+        expect(run.messages.join('\n')).not.toContain('No CLI login for Acme');
+    });
+
+    it('names the Customer Account when the sign-in for a repair finds the user is not a member', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            login: false,
+            options: { yes: true },
+            console: { memberships: [twoAccounts[1]], deviceOrganizationId: OTHER_ORGANIZATION_ID },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(unavailable).toEqual(['account-inaccessible']);
+        const output = run.messages.join('\n');
+        expect(output).toContain('Customer Account "Acme", which your Vendure Console login cannot access');
+        expect(output).toContain(`  Other (${OTHER_ACCOUNT_ID})\nTo link this project`);
+        expect(output).toContain('vendure console link --force');
+        expect(output).not.toContain('Could not sign in');
+    });
+
+    it('tells a hook that no login is stored for a non-interactive repair', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            login: false,
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['not-signed-in']);
+    });
+
+    it('does not tell a hook with a session that it is unavailable', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({ linked: true, hooks: [recordingHook([], true, unavailable)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual([undefined]);
+    });
+});
+
+// CLO-1166
+describe('console link --non-interactive --console-project', () => {
+    const twoProjects = [
+        { id: PROJECT_ID, name: 'Storefront' },
+        { id: OTHER_PROJECT_ID, name: 'Parts Counter', slug: 'parts-counter' },
+    ];
+
+    it('links the named project with the stored login, without a prompt or browser', async () => {
+        const select = vi.fn();
+        const run = await runLink({
+            options: { nonInteractive: true, consoleProject: 'parts-counter' },
+            console: { projects: projectList(twoProjects) },
+            select,
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.openedUrls).toEqual([]);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(run.urls()).toContain(`${API_URL}/v1/projects/${OTHER_PROJECT_ID}/link`);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root)).project.id).toBe(OTHER_PROJECT_ID);
+    });
+
+    it('returns incomplete and names vendure auth login when no login is stored', async () => {
+        const run = await runLink({
+            login: false,
+            options: { nonInteractive: true, consoleProject: 'storefront' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        expect(run.openedUrls).toEqual([]);
+        expect(run.messages.join('\n')).toContain('--non-interactive does not sign in');
+        expect(run.messages.join('\n')).toContain('Run vendure auth login in a terminal');
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
+    it('names the --organization login it needs when the stored login belongs to another account', async () => {
+        const run = await runLink({
+            options: { nonInteractive: true, consoleProject: 'storefront', organization: 'Other' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        expect(run.messages.join('\n')).toContain('vendure auth login --organization "Other"');
     });
 });
 
@@ -658,12 +807,14 @@ function expectUnchangedUnscopedLogin(run: Awaited<ReturnType<typeof runLink>>):
 function recordingHook(
     sessions: Array<ConsoleSession | undefined>,
     requiresSession: boolean,
+    unavailable: Array<string | undefined> = [],
 ): RegisteredConsoleLinkHook {
     return {
         pluginId: requiresSession ? '@example/with-session' : '@example/without-session',
         requiresSession,
         hook: async context => {
             sessions.push(context.session);
+            unavailable.push(context.sessionUnavailable);
         },
     };
 }

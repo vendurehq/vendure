@@ -61,8 +61,9 @@ describe('EE-388 structured Console linking', () => {
         const result = JSON.parse(String(stdout.mock.calls[0][0]));
         expect(result).toMatchObject({ schemaVersion: 1, operation: 'console.link', outcome: 'incomplete' });
         expect(result.missingInputs).toEqual([
-            { input: 'projectLinkApproval', command: 'vendure console link' },
+            { input: 'projectLinkApproval', flag: '--console-project', command: 'vendure console link' },
         ]);
+        expect(result.nextSteps.join(' ')).toContain('--console-project <id|slug>');
         expect(result.nextSteps.join(' ')).toContain('vendure console link');
     });
 

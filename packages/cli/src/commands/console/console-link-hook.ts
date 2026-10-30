@@ -20,6 +20,19 @@ export interface ConsoleLinkEndpoints {
  */
 export type ConsoleLinkOutcome = 'linked' | 'repaired';
 
+/**
+ * Why a hook that requested a session has none.
+ *
+ * - `'not-signed-in'`: no CLI login for the linked account is stored, and this run does not sign in.
+ * - `'account-inaccessible'`: the signed-in user is not a member of the Customer Account the manifest
+ *   links to. Signing in again does not help: `vendure console link --force` links one of the user's
+ *   own Projects, or an administrator of that account adds the user. The CLI has said so.
+ * - `'sign-in-failed'`: the sign-in failed. The CLI has reported why.
+ *
+ * @since 3.8.2
+ */
+export type ConsoleSessionUnavailableReason = 'not-signed-in' | 'account-inaccessible' | 'sign-in-failed';
+
 /** Values supplied to an {@link ConsoleLinkHook}. @since 3.8.0 */
 export interface ConsoleLinkContext {
     /** The absolute Vendure project directory. */
@@ -40,6 +53,12 @@ export interface ConsoleLinkContext {
      * set to `endpoints.apiUrl`, returns the same token and renews it.
      */
     session?: ConsoleSession;
+    /**
+     * Set when this hook requested a session and has none. With
+     * `'account-inaccessible'`, do not fall back to `getAccessToken()`: a stored
+     * login belongs to another account. @since 3.8.2
+     */
+    sessionUnavailable?: ConsoleSessionUnavailableReason;
     /** Aborts on SIGINT or SIGTERM. */
     signal: AbortSignal;
     reporter: ConsoleReporter;
