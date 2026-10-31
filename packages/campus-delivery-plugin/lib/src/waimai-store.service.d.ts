@@ -42,6 +42,15 @@ export interface WaimaiStore {
     packingFeeCap: number | null;
     packingFeeLabel: string | null;
 }
+/** §113 信任文案（店铺级）：enabled=false 该行不展示，text=null 回落 C 端默认文案 */
+export interface CampusStoreTrust {
+    qualityEnabled: boolean;
+    qualityText: string | null;
+    serviceEnabled: boolean;
+    serviceText: string | null;
+    timeEnabled: boolean;
+    timeText: string | null;
+}
 export interface CampusStoreConfigWithChannel {
     channelId: number;
     channelName: string;
@@ -170,6 +179,8 @@ export declare class WaimaiStoreService {
         myToday: number | null;
         myRemaining: number | null;
     }[]>;
+    /** §113 公开只读：当前渠道的信任文案（评价页信任签名卡三行），空文案/无配置即回默认开启 + 空串 */
+    trustCopy(ctx: RequestContext): Promise<CampusStoreTrust>;
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。
      * C 端进入店铺后用 channelToken 作 vendure-token 切换渠道拉菜单/下单。 */
     listStores(ctx: RequestContext): Promise<WaimaiStore[]>;

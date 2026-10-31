@@ -131,6 +131,20 @@ let WaimaiStoreService = class WaimaiStoreService {
             };
         });
     }
+    /** §113 公开只读：当前渠道的信任文案（评价页信任签名卡三行），空文案/无配置即回默认开启 + 空串 */
+    async trustCopy(ctx) {
+        var _a, _b, _c;
+        const cfg = await this.connection.getRepository(ctx, campus_fulfillment_config_entity_1.CampusFulfillmentConfig)
+            .findOne({ where: { channelId: ctx.channelId } });
+        return {
+            qualityEnabled: (_a = cfg === null || cfg === void 0 ? void 0 : cfg.trustQualityEnabled) !== null && _a !== void 0 ? _a : true,
+            qualityText: (cfg === null || cfg === void 0 ? void 0 : cfg.trustQualityText) || null,
+            serviceEnabled: (_b = cfg === null || cfg === void 0 ? void 0 : cfg.trustServiceEnabled) !== null && _b !== void 0 ? _b : true,
+            serviceText: (cfg === null || cfg === void 0 ? void 0 : cfg.trustServiceText) || null,
+            timeEnabled: (_c = cfg === null || cfg === void 0 ? void 0 : cfg.trustTimeEnabled) !== null && _c !== void 0 ? _c : true,
+            timeText: (cfg === null || cfg === void 0 ? void 0 : cfg.trustTimeText) || null,
+        };
+    }
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。
      * C 端进入店铺后用 channelToken 作 vendure-token 切换渠道拉菜单/下单。 */
     async listStores(ctx) {

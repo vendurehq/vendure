@@ -54,6 +54,12 @@ let MerchantAdminResolver = class MerchantAdminResolver {
     async campusMerchantUpdateStore(ctx, businessHours, storeNotice, storePhone) {
         return this.merchant.updateStore(ctx, { businessHours, storeNotice, storePhone });
     }
+    /** 信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案，文案留空=回落 C 端默认 */
+    async campusMerchantUpdateTrustCopy(ctx, qualityEnabled, qualityText, serviceEnabled, serviceText, timeEnabled, timeText) {
+        return this.merchant.updateTrustCopy(ctx, {
+            qualityEnabled, qualityText, serviceEnabled, serviceText, timeEnabled, timeText,
+        });
+    }
     /** 每日日报推送设置（§86）：营业结束后把昨日日报推到店铺群；time 为 HH:MM，空=21:30 */
     async campusMerchantUpdateDailyPush(ctx, enabled, time) {
         return this.merchant.updateDailyPush(ctx, !!enabled, time);
@@ -609,6 +615,20 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext, Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], MerchantAdminResolver.prototype, "campusMerchantUpdateStore", null);
+__decorate([
+    (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(permissions_1.CampusPermissions.CampusMerchant),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)({ name: 'qualityEnabled', type: () => Boolean, nullable: true })),
+    __param(2, (0, graphql_1.Args)({ name: 'qualityText', type: () => String, nullable: true })),
+    __param(3, (0, graphql_1.Args)({ name: 'serviceEnabled', type: () => Boolean, nullable: true })),
+    __param(4, (0, graphql_1.Args)({ name: 'serviceText', type: () => String, nullable: true })),
+    __param(5, (0, graphql_1.Args)({ name: 'timeEnabled', type: () => Boolean, nullable: true })),
+    __param(6, (0, graphql_1.Args)({ name: 'timeText', type: () => String, nullable: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, Object, Object, Object, Object, Object]),
+    __metadata("design:returntype", Promise)
+], MerchantAdminResolver.prototype, "campusMerchantUpdateTrustCopy", null);
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Allow)(permissions_1.CampusPermissions.CampusMerchant),

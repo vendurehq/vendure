@@ -52,6 +52,16 @@ export interface WaimaiStore {
     packingFeeLabel: string | null;
 }
 
+/** §113 信任文案（店铺级）：enabled=false 该行不展示，text=null 回落 C 端默认文案 */
+export interface CampusStoreTrust {
+    qualityEnabled: boolean;
+    qualityText: string | null;
+    serviceEnabled: boolean;
+    serviceText: string | null;
+    timeEnabled: boolean;
+    timeText: string | null;
+}
+
 export interface CampusStoreConfigWithChannel {
     channelId: number;
     channelName: string;
@@ -257,6 +267,20 @@ export class WaimaiStoreService {
                 myRemaining: customerId == null ? null : remainingOf(perUserLimit, myToday as number),
             };
         });
+    }
+
+    /** §113 公开只读：当前渠道的信任文案（评价页信任签名卡三行），空文案/无配置即回默认开启 + 空串 */
+    async trustCopy(ctx: RequestContext): Promise<CampusStoreTrust> {
+        const cfg = await this.connection.getRepository(ctx, CampusFulfillmentConfig)
+            .findOne({ where: { channelId: ctx.channelId as any } });
+        return {
+            qualityEnabled: cfg?.trustQualityEnabled ?? true,
+            qualityText: cfg?.trustQualityText || null,
+            serviceEnabled: cfg?.trustServiceEnabled ?? true,
+            serviceText: cfg?.trustServiceText || null,
+            timeEnabled: cfg?.trustTimeEnabled ?? true,
+            timeText: cfg?.trustTimeText || null,
+        };
     }
 
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。

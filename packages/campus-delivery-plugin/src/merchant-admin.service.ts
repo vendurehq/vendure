@@ -22,6 +22,7 @@ import {
     AfterSalesTimeoutType,
 } from '@vendure/after-sales-plugin';
 import { CampusBuilding } from './campus-building.entity';
+import { TRUST_TEXT_MAX_LENGTH } from './campus-fulfillment-config.entity';
 import { CampusConfigService } from './campus-config.service';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { CampusNotifyService } from './campus-notify.service';
@@ -945,6 +946,18 @@ export interface MerchantStoreProfile {
     alertRefundRate: number;
     /** 超时待处理预警阈值（单，0=关闭该项） */
     alertOverdueCount: number;
+    /** 信任文案（§113）：质量行开关（关=该行不展示） */
+    trustQualityEnabled: boolean;
+    /** 质量行自定义文案（null=回落 C 端默认文案） */
+    trustQualityText: string | null;
+    /** 服务行开关 */
+    trustServiceEnabled: boolean;
+    /** 服务行自定义文案（null=回落默认） */
+    trustServiceText: string | null;
+    /** 时间行开关 */
+    trustTimeEnabled: boolean;
+    /** 时间行自定义文案（null=回落默认） */
+    trustTimeText: string | null;
 }
 
 /** KDS 出餐屏（P1-4）：一单一张票，按等待时长分级提醒 */
@@ -1193,6 +1206,13 @@ export class MerchantAdminService {
             alertEnabled: !!((channel.customFields ?? {}) as any).waimaiAfterSalesAlertEnabled,
             alertRefundRate: Math.max(0, Number(((channel.customFields ?? {}) as any).waimaiAfterSalesAlertRefundRate ?? 0) || 0),
             alertOverdueCount: Math.max(0, Number(((channel.customFields ?? {}) as any).waimaiAfterSalesAlertOverdueCount ?? 0) || 0),
+            // 信任文案（§113）：店铺级配置，空文案回落 C 端默认文案
+            trustQualityEnabled: cfg.trustQualityEnabled ?? true,
+            trustQualityText: cfg.trustQualityText ?? null,
+            trustServiceEnabled: cfg.trustServiceEnabled ?? true,
+            trustServiceText: cfg.trustServiceText ?? null,
+            trustTimeEnabled: cfg.trustTimeEnabled ?? true,
+            trustTimeText: cfg.trustTimeText ?? null,
         };
     }
 
@@ -1223,6 +1243,41 @@ export class MerchantAdminService {
         if (input.storePhone !== undefined) patch.storePhone = String(input.storePhone ?? '').trim() || null;
         if (Object.keys(patch).length) await this.config.updateConfig(ctx, patch);
         return this.storeProfile(ctx);
+    }
+
+    /**
+     * 信任文案（§113）：评价页信任签名卡「质量→服务→时间」三行，店铺级自定义。
+     * 未传的项保留原值；文案留空/纯空白 = 回落 C 端默认文案（传 null 即清空自定义）。
+     */
+    async updateTrustCopy(
+        ctx: RequestContext,
+        input: {
+            qualityEnabled?: boolean | null;
+            qualityText?: string | null;
+            serviceEnabled?: boolean | null;
+            serviceText?: string | null;
+            timeEnabled?: boolean | null;
+            timeText?: string | null;
+        },
+    ): Promise<MerchantStoreProfile> {
+        const patch: Record<string, boolean | string | null> = {};
+        if (input.qualityEnabled != null) patch.trustQualityEnabled = !!input.qualityEnabled;
+        if (input.serviceEnabled != null) patch.trustServiceEnabled = !!input.serviceEnabled;
+        if (input.timeEnabled != null) patch.trustTimeEnabled = !!input.timeEnabled;
+        if (input.qualityText !== undefined) patch.trustQualityText = this.trustText(input.qualityText, '质量');
+        if (input.serviceText !== undefined) patch.trustServiceText = this.trustText(input.serviceText, '服务');
+        if (input.timeText !== undefined) patch.trustTimeText = this.trustText(input.timeText, '时间');
+        if (Object.keys(patch).length) await this.config.updateConfig(ctx, patch);
+        return this.storeProfile(ctx);
+    }
+
+    /** 信任文案归一：去空白、超长拒绝、空串转 null（C 端按 null 回落默认文案） */
+    private trustText(value: string | null | undefined, label: string): string | null {
+        const text = String(value ?? '').trim();
+        if (text.length > TRUST_TEXT_MAX_LENGTH) {
+            throw new UserInputError(`${label}文案最多 ${TRUST_TEXT_MAX_LENGTH} 字`);
+        }
+        return text || null;
     }
 
     /**

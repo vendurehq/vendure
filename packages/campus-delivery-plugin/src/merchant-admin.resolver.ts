@@ -73,6 +73,23 @@ export class MerchantAdminResolver {
         return this.merchant.updateStore(ctx, { businessHours, storeNotice, storePhone });
     }
 
+    /** 信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案，文案留空=回落 C 端默认 */
+    @Mutation()
+    @Allow(CampusPermissions.CampusMerchant as any)
+    async campusMerchantUpdateTrustCopy(
+        @Ctx() ctx: RequestContext,
+        @Args({ name: 'qualityEnabled', type: () => Boolean, nullable: true }) qualityEnabled?: boolean | null,
+        @Args({ name: 'qualityText', type: () => String, nullable: true }) qualityText?: string | null,
+        @Args({ name: 'serviceEnabled', type: () => Boolean, nullable: true }) serviceEnabled?: boolean | null,
+        @Args({ name: 'serviceText', type: () => String, nullable: true }) serviceText?: string | null,
+        @Args({ name: 'timeEnabled', type: () => Boolean, nullable: true }) timeEnabled?: boolean | null,
+        @Args({ name: 'timeText', type: () => String, nullable: true }) timeText?: string | null,
+    ) {
+        return this.merchant.updateTrustCopy(ctx, {
+            qualityEnabled, qualityText, serviceEnabled, serviceText, timeEnabled, timeText,
+        });
+    }
+
     /** 每日日报推送设置（§86）：营业结束后把昨日日报推到店铺群；time 为 HH:MM，空=21:30 */
     @Mutation()
     @Allow(CampusPermissions.CampusMerchant as any)

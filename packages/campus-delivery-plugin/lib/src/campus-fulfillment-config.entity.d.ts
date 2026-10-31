@@ -1,6 +1,8 @@
 import { DeepPartial, ID, VendureEntity } from '@vendure/core';
 /** 店铺公告最大长度（列宽与应用层校验共用，避免「能填不能存」） */
 export declare const STORE_NOTICE_MAX_LENGTH = 500;
+/** 信任文案单条最大长度（§113）：评价页信任签名卡三行自定义文案 */
+export declare const TRUST_TEXT_MAX_LENGTH = 80;
 export declare class CampusFulfillmentConfig extends VendureEntity {
     [key: string]: any;
     channelId: ID;
@@ -143,6 +145,18 @@ export declare class CampusFulfillmentConfig extends VendureEntity {
     voiceSearchProvider: string;
     /** 拍照搜索服务商：mock（内置模拟识别）/ none（未开启） */
     imageSearchProvider: string;
+    /** 质量行开关（默认开）：关=该行不展示 */
+    trustQualityEnabled: boolean;
+    /** 质量行自定义文案（空=回落 C 端默认文案） */
+    trustQualityText: string | null;
+    /** 服务行开关（默认开） */
+    trustServiceEnabled: boolean;
+    /** 服务行自定义文案（空=回落默认） */
+    trustServiceText: string | null;
+    /** 时间行开关（默认开） */
+    trustTimeEnabled: boolean;
+    /** 时间行自定义文案（空=回落默认） */
+    trustTimeText: string | null;
     /** 无人配送通道总开关 */
     unmannedDeliveryEnabled: boolean;
     /** 通道服务商：none / mock / meituan / xinshiji */

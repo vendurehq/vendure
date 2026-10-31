@@ -177,6 +177,7 @@ const p35_withdraw_deduct_state_1 = require("./migrations/p35-withdraw-deduct-st
 const p36_compensation_task_1 = require("./migrations/p36-compensation-task");
 const p37_support_ticket_system_1 = require("./migrations/p37-support-ticket-system");
 const p38_support_assignee_dedupe_1 = require("./migrations/p38-support-assignee-dedupe");
+const p39_trust_copy_1 = require("./migrations/p39-trust-copy");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -413,6 +414,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p36_compensation_task_1.P36CompensationTaskMigration,
             p37_support_ticket_system_1.P37SupportTicketSystemMigration,
             p38_support_assignee_dedupe_1.P38SupportAssigneeDedupeMigration,
+            p39_trust_copy_1.P39TrustCopyMigration,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,
@@ -1661,6 +1663,18 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     alertRefundRate: Int!
                     """超时待处理预警阈值（单，0=关闭该项）"""
                     alertOverdueCount: Int!
+                    """信任文案（§113）：质量行开关（关=该行不展示）"""
+                    trustQualityEnabled: Boolean!
+                    """质量行自定义文案（空=回落 C 端默认文案）"""
+                    trustQualityText: String
+                    """服务行开关"""
+                    trustServiceEnabled: Boolean!
+                    """服务行自定义文案（空=回落默认）"""
+                    trustServiceText: String
+                    """时间行开关"""
+                    trustTimeEnabled: Boolean!
+                    """时间行自定义文案（空=回落默认）"""
+                    trustTimeText: String
                 }
 
                 """休业日期（§70 营业日历）：date=校园时区自然日 YYYY-MM-DD"""
@@ -2984,6 +2998,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusMerchantSetPaused(paused: Boolean!): CampusMerchantOpResult!
                     """商家自助修改门店资料：营业时间（Channel 自定义字段）/公告/电话，仅本渠道"""
                     campusMerchantUpdateStore(businessHours: String, storeNotice: String, storePhone: String): MerchantStoreProfile!
+                    """信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案，文案留空=回落 C 端默认"""
+                    campusMerchantUpdateTrustCopy(qualityEnabled: Boolean, qualityText: String, serviceEnabled: Boolean, serviceText: String, timeEnabled: Boolean, timeText: String): MerchantStoreProfile!
                     """每日日报推送设置（§86）：enabled=开关，time=HH:MM（空=21:30）"""
                     campusMerchantUpdateDailyPush(enabled: Boolean!, time: String): MerchantStoreProfile!
                     """售后月度摘要推送（§95）：每月指定日（1-28）把上月售后汇总推到店铺群"""
@@ -3311,6 +3327,22 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     leg1Status: String!
                 }
 
+                """信任文案（§113）：评价页信任签名卡三行，店铺级配置；text 为空=回落 C 端默认文案"""
+                type CampusStoreTrust {
+                    """质量行开关（false=该行不展示）"""
+                    qualityEnabled: Boolean!
+                    """质量行自定义文案（空=回落默认）"""
+                    qualityText: String
+                    """服务行开关"""
+                    serviceEnabled: Boolean!
+                    """服务行自定义文案（空=回落默认）"""
+                    serviceText: String
+                    """时间行开关"""
+                    timeEnabled: Boolean!
+                    """时间行自定义文案（空=回落默认）"""
+                    timeText: String
+                }
+
                 type WaimaiStore {
                     channelId: ID!
                     channelToken: String!
@@ -3630,6 +3662,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     myRiderEarnings(skip: Int, take: Int): [RiderEarning!]!
                     campusCapacityCheck: CampusCapacityCheck!
                     waimaiStoreList: [WaimaiStore!]!
+                    """当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案"""
+                    campusStoreTrust: CampusStoreTrust!
                     """菜品每日限量/每人限购（§68）：当前渠道有限量配置商品的当日额度"""
                     campusProductDailyStock: [CampusProductDailyStock!]!
                     campusOrderRider(orderId: ID!): CampusOrderRider

@@ -17,6 +17,13 @@ export class WaimaiShopResolver {
         return this.stores.listStores(ctx);
     }
 
+    /** 公开只读：当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案 */
+    @Query()
+    @Allow(Permission.Public)
+    async campusStoreTrust(@Ctx() ctx: RequestContext) {
+        return this.stores.trustCopy(ctx);
+    }
+
     /**
      * 公开只读：菜品每日限量/每人限购（§68）。
      * 未登录时 myToday/myRemaining 为 null；已登录返回本人当日已购与剩余。

@@ -13,6 +13,8 @@ export declare class MerchantAdminResolver {
     campusMerchantRefunds(ctx: RequestContext, from?: string | null, to?: string | null, take?: number | null, skip?: number | null): Promise<import("./merchant-admin.service").MerchantRefundList>;
     /** 商家自助修改门店资料：只改本渠道，营业时间写入 Channel 自定义字段 */
     campusMerchantUpdateStore(ctx: RequestContext, businessHours?: string | null, storeNotice?: string | null, storePhone?: string | null): Promise<import("./merchant-admin.service").MerchantStoreProfile>;
+    /** 信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案，文案留空=回落 C 端默认 */
+    campusMerchantUpdateTrustCopy(ctx: RequestContext, qualityEnabled?: boolean | null, qualityText?: string | null, serviceEnabled?: boolean | null, serviceText?: string | null, timeEnabled?: boolean | null, timeText?: string | null): Promise<import("./merchant-admin.service").MerchantStoreProfile>;
     /** 每日日报推送设置（§86）：营业结束后把昨日日报推到店铺群；time 为 HH:MM，空=21:30 */
     campusMerchantUpdateDailyPush(ctx: RequestContext, enabled: boolean, time?: string | null): Promise<import("./merchant-admin.service").MerchantStoreProfile>;
     /** 售后月度摘要推送设置（§95）：每月指定日（1-28）把上月售后汇总推到店铺群 */

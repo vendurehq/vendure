@@ -3,6 +3,8 @@ import { DeepPartial, ID, VendureEntity } from '@vendure/core';
 
 /** 店铺公告最大长度（列宽与应用层校验共用，避免「能填不能存」） */
 export const STORE_NOTICE_MAX_LENGTH = 500;
+/** 信任文案单条最大长度（§113）：评价页信任签名卡三行自定义文案 */
+export const TRUST_TEXT_MAX_LENGTH = 80;
 
 @Entity()
 export class CampusFulfillmentConfig extends VendureEntity {
@@ -151,6 +153,19 @@ export class CampusFulfillmentConfig extends VendureEntity {
     @Column({ type: 'varchar', length: 16, default: 'mock' }) voiceSearchProvider: string;
     /** 拍照搜索服务商：mock（内置模拟识别）/ none（未开启） */
     @Column({ type: 'varchar', length: 16, default: 'mock' }) imageSearchProvider: string;
+    // 信任文案（§113）：评价页信任签名卡「质量→服务→时间」三行，店铺级自定义；空文案=C 端回落默认
+    /** 质量行开关（默认开）：关=该行不展示 */
+    @Column({ default: true }) trustQualityEnabled: boolean;
+    /** 质量行自定义文案（空=回落 C 端默认文案） */
+    @Column({ type: 'varchar', length: TRUST_TEXT_MAX_LENGTH, nullable: true }) trustQualityText: string | null;
+    /** 服务行开关（默认开） */
+    @Column({ default: true }) trustServiceEnabled: boolean;
+    /** 服务行自定义文案（空=回落默认） */
+    @Column({ type: 'varchar', length: TRUST_TEXT_MAX_LENGTH, nullable: true }) trustServiceText: string | null;
+    /** 时间行开关（默认开） */
+    @Column({ default: true }) trustTimeEnabled: boolean;
+    /** 时间行自定义文案（空=回落默认） */
+    @Column({ type: 'varchar', length: TRUST_TEXT_MAX_LENGTH, nullable: true }) trustTimeText: string | null;
     // 无人配送（P2-4）：接口占位，mock=模拟受理；真实厂商需 endpoint + key
     /** 无人配送通道总开关 */
     @Column({ default: false }) unmannedDeliveryEnabled: boolean;

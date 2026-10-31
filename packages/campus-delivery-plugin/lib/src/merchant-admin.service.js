@@ -17,6 +17,7 @@ const typeorm_1 = require("typeorm");
 const core_2 = require("@vendure/core");
 const after_sales_plugin_1 = require("@vendure/after-sales-plugin");
 const campus_building_entity_1 = require("./campus-building.entity");
+const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const campus_config_service_1 = require("./campus-config.service");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const campus_notify_service_1 = require("./campus-notify.service");
@@ -103,7 +104,7 @@ let MerchantAdminService = class MerchantAdminService {
     }
     /** 商家自助经营：门店资料（营业时间/公告/电话/营业状态） */
     async storeProfile(ctx) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
         const cfg = await this.config.getConfig(ctx);
         const channel = await this.connection.getRepository(ctx, core_2.Channel)
             .findOne({ where: { id: ctx.channelId } });
@@ -145,6 +146,13 @@ let MerchantAdminService = class MerchantAdminService {
             alertEnabled: !!((_q = channel.customFields) !== null && _q !== void 0 ? _q : {}).waimaiAfterSalesAlertEnabled,
             alertRefundRate: Math.max(0, Number((_s = ((_r = channel.customFields) !== null && _r !== void 0 ? _r : {}).waimaiAfterSalesAlertRefundRate) !== null && _s !== void 0 ? _s : 0) || 0),
             alertOverdueCount: Math.max(0, Number((_u = ((_t = channel.customFields) !== null && _t !== void 0 ? _t : {}).waimaiAfterSalesAlertOverdueCount) !== null && _u !== void 0 ? _u : 0) || 0),
+            // 信任文案（§113）：店铺级配置，空文案回落 C 端默认文案
+            trustQualityEnabled: (_v = cfg.trustQualityEnabled) !== null && _v !== void 0 ? _v : true,
+            trustQualityText: (_w = cfg.trustQualityText) !== null && _w !== void 0 ? _w : null,
+            trustServiceEnabled: (_x = cfg.trustServiceEnabled) !== null && _x !== void 0 ? _x : true,
+            trustServiceText: (_y = cfg.trustServiceText) !== null && _y !== void 0 ? _y : null,
+            trustTimeEnabled: (_z = cfg.trustTimeEnabled) !== null && _z !== void 0 ? _z : true,
+            trustTimeText: (_0 = cfg.trustTimeText) !== null && _0 !== void 0 ? _0 : null,
         };
     }
     /** 商家自助修改门店资料：营业时间走 Channel 自定义字段，公告/电话走履约配置白名单 */
@@ -177,6 +185,36 @@ let MerchantAdminService = class MerchantAdminService {
         if (Object.keys(patch).length)
             await this.config.updateConfig(ctx, patch);
         return this.storeProfile(ctx);
+    }
+    /**
+     * 信任文案（§113）：评价页信任签名卡「质量→服务→时间」三行，店铺级自定义。
+     * 未传的项保留原值；文案留空/纯空白 = 回落 C 端默认文案（传 null 即清空自定义）。
+     */
+    async updateTrustCopy(ctx, input) {
+        const patch = {};
+        if (input.qualityEnabled != null)
+            patch.trustQualityEnabled = !!input.qualityEnabled;
+        if (input.serviceEnabled != null)
+            patch.trustServiceEnabled = !!input.serviceEnabled;
+        if (input.timeEnabled != null)
+            patch.trustTimeEnabled = !!input.timeEnabled;
+        if (input.qualityText !== undefined)
+            patch.trustQualityText = this.trustText(input.qualityText, '质量');
+        if (input.serviceText !== undefined)
+            patch.trustServiceText = this.trustText(input.serviceText, '服务');
+        if (input.timeText !== undefined)
+            patch.trustTimeText = this.trustText(input.timeText, '时间');
+        if (Object.keys(patch).length)
+            await this.config.updateConfig(ctx, patch);
+        return this.storeProfile(ctx);
+    }
+    /** 信任文案归一：去空白、超长拒绝、空串转 null（C 端按 null 回落默认文案） */
+    trustText(value, label) {
+        const text = String(value !== null && value !== void 0 ? value : '').trim();
+        if (text.length > campus_fulfillment_config_entity_1.TRUST_TEXT_MAX_LENGTH) {
+            throw new core_2.UserInputError(`${label}文案最多 ${campus_fulfillment_config_entity_1.TRUST_TEXT_MAX_LENGTH} 字`);
+        }
+        return text || null;
     }
     /**
      * 每日日报推送设置（§86）：开关 + 推送时间。

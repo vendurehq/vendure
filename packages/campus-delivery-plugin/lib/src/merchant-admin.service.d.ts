@@ -863,6 +863,18 @@ export interface MerchantStoreProfile {
     alertRefundRate: number;
     /** 超时待处理预警阈值（单，0=关闭该项） */
     alertOverdueCount: number;
+    /** 信任文案（§113）：质量行开关（关=该行不展示） */
+    trustQualityEnabled: boolean;
+    /** 质量行自定义文案（null=回落 C 端默认文案） */
+    trustQualityText: string | null;
+    /** 服务行开关 */
+    trustServiceEnabled: boolean;
+    /** 服务行自定义文案（null=回落默认） */
+    trustServiceText: string | null;
+    /** 时间行开关 */
+    trustTimeEnabled: boolean;
+    /** 时间行自定义文案（null=回落默认） */
+    trustTimeText: string | null;
 }
 /** KDS 出餐屏（P1-4）：一单一张票，按等待时长分级提醒 */
 export interface KitchenTicketLine {
@@ -1031,6 +1043,20 @@ export declare class MerchantAdminService {
         storeNotice?: string | null;
         storePhone?: string | null;
     }): Promise<MerchantStoreProfile>;
+    /**
+     * 信任文案（§113）：评价页信任签名卡「质量→服务→时间」三行，店铺级自定义。
+     * 未传的项保留原值；文案留空/纯空白 = 回落 C 端默认文案（传 null 即清空自定义）。
+     */
+    updateTrustCopy(ctx: RequestContext, input: {
+        qualityEnabled?: boolean | null;
+        qualityText?: string | null;
+        serviceEnabled?: boolean | null;
+        serviceText?: string | null;
+        timeEnabled?: boolean | null;
+        timeText?: string | null;
+    }): Promise<MerchantStoreProfile>;
+    /** 信任文案归一：去空白、超长拒绝、空串转 null（C 端按 null 回落默认文案） */
+    private trustText;
     /**
      * 每日日报推送设置（§86）：开关 + 推送时间。
      * - 时间按校园时区解释，格式 HH:MM，空=沿用 21:30；改时间不清 lastDate，同一天不会重复推。

@@ -26,6 +26,10 @@ let WaimaiShopResolver = class WaimaiShopResolver {
     async waimaiStoreList(ctx) {
         return this.stores.listStores(ctx);
     }
+    /** 公开只读：当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案 */
+    async campusStoreTrust(ctx) {
+        return this.stores.trustCopy(ctx);
+    }
     /**
      * 公开只读：菜品每日限量/每人限购（§68）。
      * 未登录时 myToday/myRemaining 为 null；已登录返回本人当日已购与剩余。
@@ -50,6 +54,14 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext]),
     __metadata("design:returntype", Promise)
 ], WaimaiShopResolver.prototype, "waimaiStoreList", null);
+__decorate([
+    (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.Public),
+    __param(0, (0, core_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext]),
+    __metadata("design:returntype", Promise)
+], WaimaiShopResolver.prototype, "campusStoreTrust", null);
 __decorate([
     (0, graphql_1.Query)(),
     (0, core_1.Allow)(core_1.Permission.Public),

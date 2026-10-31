@@ -9,11 +9,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CampusFulfillmentConfig = exports.STORE_NOTICE_MAX_LENGTH = void 0;
+exports.CampusFulfillmentConfig = exports.TRUST_TEXT_MAX_LENGTH = exports.STORE_NOTICE_MAX_LENGTH = void 0;
 const typeorm_1 = require("typeorm");
 const core_1 = require("@vendure/core");
 /** 店铺公告最大长度（列宽与应用层校验共用，避免「能填不能存」） */
 exports.STORE_NOTICE_MAX_LENGTH = 500;
+/** 信任文案单条最大长度（§113）：评价页信任签名卡三行自定义文案 */
+exports.TRUST_TEXT_MAX_LENGTH = 80;
 let CampusFulfillmentConfig = class CampusFulfillmentConfig extends core_1.VendureEntity {
     constructor(input) {
         super(input);
@@ -352,6 +354,30 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 16, default: 'mock' }),
     __metadata("design:type", String)
 ], CampusFulfillmentConfig.prototype, "imageSearchProvider", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], CampusFulfillmentConfig.prototype, "trustQualityEnabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: exports.TRUST_TEXT_MAX_LENGTH, nullable: true }),
+    __metadata("design:type", Object)
+], CampusFulfillmentConfig.prototype, "trustQualityText", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], CampusFulfillmentConfig.prototype, "trustServiceEnabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: exports.TRUST_TEXT_MAX_LENGTH, nullable: true }),
+    __metadata("design:type", Object)
+], CampusFulfillmentConfig.prototype, "trustServiceText", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], CampusFulfillmentConfig.prototype, "trustTimeEnabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: exports.TRUST_TEXT_MAX_LENGTH, nullable: true }),
+    __metadata("design:type", Object)
+], CampusFulfillmentConfig.prototype, "trustTimeText", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
