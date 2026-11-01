@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安全整改总结报告 · 2026-10-31</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --surface: #ffffff;
+    --surface-muted: #f0f2f4;
+    --text: #1b1f24;
+    --text-muted: #5f6672;
+    --border: #e2e5e9;
+    --brand: #1f7a4d;
+    --brand-soft: #e6f2eb;
+    --severe: #b42318;
+    --severe-soft: #fdecea;
+    --high: #b54708;
+    --high-soft: #fdf0e4;
+    --medium: #175cd3;
+    --medium-soft: #eaf0fb;
+    --fixed: #1f7a4d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 40px 24px 64px; }
+  header { margin-bottom: 28px; }
+  .eyebrow { color: var(--brand); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: 30px; line-height: 1.3; margin: 8px 0 12px; font-weight: 650; letter-spacing: -.01em; }
+  .meta { color: var(--text-muted); font-size: 13px; }
+  .meta span + span::before { content: "·"; margin: 0 8px; }
+  .banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--brand);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 20px 0 32px;
+    color: var(--text);
+  }
+  .banner strong { color: var(--brand); }
+  section { margin-top: 36px; }
+  h2 { font-size: 18px; margin: 0 0 4px; font-weight: 650; }
+  .sub { color: var(--text-muted); font-size: 13px; margin: 0 0 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi { padding: 16px 18px; }
+  .kpi .label { color: var(--text-muted); font-size: 12px; }
+  .kpi .value { font-size: 28px; font-weight: 650; margin-top: 4px; line-height: 1.2; }
+  .kpi .note { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .bars { padding: 20px; }
+  .bar-row { display: grid; grid-template-columns: 64px 1fr 96px; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .bar-row:last-child { margin-bottom: 0; }
+  .bar-label { font-size: 13px; font-weight: 600; }
+  .track { display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: var(--surface-muted); }
+  .seg { height: 100%; }
+  .seg.fixed { background: var(--fixed); }
+  .seg.open-severe { background: var(--severe); }
+  .seg.open-high { background: var(--high); }
+  .seg.open-medium { background: var(--medium); }
+  .bar-count { color: var(--text-muted); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 18px; color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-muted); font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td code, .hash { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12.5px; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 20px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .badge.severe { color: var(--severe); background: var(--severe-soft); }
+  .badge.high { color: var(--high); background: var(--high-soft); }
+  .badge.medium { color: var(--medium); background: var(--medium-soft); }
+  .badge.fixed { color: var(--fixed); background: var(--brand-soft); }
+  .badge.open { color: var(--text-muted); background: var(--surface-muted); }
+  .badge.now { color: var(--severe); background: var(--severe-soft); }
+  .badge.week { color: var(--high); background: var(--high-soft); }
+  .badge.later { color: var(--medium); background: var(--medium-soft); }
+  .compare { padding: 20px; }
+  .compare-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 13px; }
+  .compare-row:first-child { border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  .compare-row:last-child { border-bottom: none; }
+  .before { color: var(--severe); }
+  .after { color: var(--fixed); font-weight: 600; }
+  .ok { color: var(--fixed); }
+  .timeline { padding: 8px 20px 20px; }
+  .tl-item { display: grid; grid-template-columns: 70px 88px 1fr; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: baseline; }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-time { color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .tl-item .hash { color: var(--text); }
+  .tl-title { font-size: 13px; }
+  .tl-title small { display: block; color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .rows { padding: 4px 20px 20px; }
+  .risk { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .risk:last-child { border-bottom: none; }
+  .risk-head { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .risk-head strong { font-size: 13.5px; font-weight: 600; }
+  .risk p { margin: 0; color: var(--text-muted); font-size: 12.5px; }
+  .risk p b { color: var(--text); font-weight: 600; }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; }
+  footer code { color: var(--text); }
+  @media (max-width: 760px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .bar-row { grid-template-columns: 48px 1fr; }
+    .bar-count { grid-column: 2; text-align: left; }
+    .compare-row { grid-template-columns: 1fr; gap: 4px; }
+    .compare-row:first-child { display: none; }
+    .tl-item { grid-template-columns: 1fr; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Security Remediation · Vendure</div>
+    <h1>安全整改总结报告</h1>
+    <div class="meta">
+      <span>统计日期 2026-10-31</span>
+      <span>整改窗口 07:50 — 22:57 UTC+8</span>
+      <span>生产版本 83f7c076c</span>
+    </div>
+  </header>
+
+  <div class="banner">
+    <strong>第一阶段收口完成。</strong>本轮闭合 S1（admin resolver 匿名可调用）及其 5 项衍生问题；审计的其余 13 条仍未处理或仅部分缓解。生产已部署并通过冒烟，未闭合项不计入“已加固”。
+  </div>
+
+  <section>
+    <h2>整改概览</h2>
+    <p class="sub">审计问题总数与处置结果</p>
+    <div class="kpis">
+      <div class="card kpi"><div class="label">审计问题</div><div class="value">14</div><div class="note">严重 4 / 高危 5 / 中危 5</div></div>
+      <div class="card kpi"><div class="label">已修复</div><div class="value" style="color:var(--fixed)">1</div><div class="note">S1 及 5 项衍生问题</div></div>
+      <div class="card kpi"><div class="label">遗留风险</div><div class="value" style="color:var(--severe)">13</div><div class="note">严重 3 / 高危 5 / 中危 5</div></div>
+      <div class="card kpi"><div class="label">e2e 通过</div><div class="value">21</div><div class="note">payment-schedule 10 + TCM 11</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>严重度分布</h2>
+    <p class="sub">按审计级别统计已修复与遗留数量</p>
+    <div class="card bars">
+      <div class="bar-row">
+        <div class="bar-label">严重</div>
+        <div class="track">
+          <div class="seg fixed" style="width:25%" title="已修复 1"></div>
+          <div class="seg open-severe" style="width:75%" title="遗留 3"></div>
+        </div>
+        <div class="bar-count">修复 1 / 遗留 3</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">高危</div>
+        <div class="track">
+          <div class="seg open-high" style="width:100%" title="遗留 5"></div>
+        </div>
+        <div class="bar-count">修复 0 / 遗留 5</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">中危</div>
+        <div class="track">
+          <div class="seg open-medium" style="width:100%" title="遗留 5"></div>
+        </div>
+        <div class="bar-count">修复 0 / 遗留 5</div>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--fixed)"></i>已修复</span>
+        <span><i class="dot" style="background:var(--severe)"></i>严重遗留</span>
+        <span><i class="dot" style="background:var(--high)"></i>高危遗留</span>
+        <span><i class="dot" style="background:var(--medium)"></i>中危遗留</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>整改前后匿名访问对照</h2>
+    <p class="sub">S1 涉及的 4 个 admin resolver；合法 token 指 superadmin 或已授权店长</p>
+    <div class="card compare">
+      <div class="compare-row"><div>接口域</div><div>整改前 · 匿名</div><div>整改后 · 匿名</div><div>整改后 · 合法 token</div></div>
+      <div class="compare-row"><div>distribution 提现 / 分销查询</div><div class="before">可返回数据</div><div class="after">FORBIDDEN</div><div class="ok">正常</div></div>
+      <div class="compare-row"><div>operations 营销配置读写</div><div class="before">可返回数据</div><div class="after">FORBIDDEN</div><div class="ok">正常</div></div>
+      <div class="compare-row"><div>payment-schedule 计划与写操作</div><div class="before">可返回数据</div><div class="after">FORBIDDEN</div><div class="ok">正常</div></div>
+      <div class="compare-row"><div>tcm-clinic 病历 / 档案 / 审计</div><div class="before">可返回数据</div><div class="after">FORBIDDEN</div><div class="ok">正常</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>提交时间线</h2>
+    <p class="sub">按提交时间排序；第 6 项位于独立前端仓库 tcm-workbench</p>
+    <div class="card timeline">
+      <div class="tl-item"><div class="tl-time">08:11</div><div class="hash">16ab62ad5</div><div class="tl-title">fix(security): 为 admin resolver 补齐 @Allow 权限校验（S1）<small>4 个插件 · 40 个接口</small></div></div>
+      <div class="tl-item"><div class="tl-time">10:33</div><div class="hash">5a0455b09</div><div class="tl-title">feat(payment-schedule): 新增 ManagePaymentSchedule 自定义权限<small>店长收付款权限 + role-sync</small></div></div>
+      <div class="tl-item"><div class="tl-time">10:33</div><div class="hash">5a34188b0</div><div class="tl-title">fix(tcm): 只读查询按馆归属过滤，SuperAdmin 才跨馆<small>TCM 读隔离</small></div></div>
+      <div class="tl-item"><div class="tl-time">10:39</div><div class="hash">eaa450c4c</div><div class="tl-title">test(auth): 店长收付款权限与 TCM 跨馆隔离的 e2e 验证<small>3 个包新增用例</small></div></div>
+      <div class="tl-item"><div class="tl-time">10:59</div><div class="hash">c4ae011f6</div><div class="tl-title">fix(tcm): 写路径补齐馆归属校验，SuperAdmin 保留全量写<small>TCM 写隔离</small></div></div>
+      <div class="tl-item"><div class="tl-time">11:14</div><div class="hash">fbbee82</div><div class="tl-title">feat: clinic-not-bound guide state<small>tcm-workbench · 前端未绑定空态</small></div></div>
+      <div class="tl-item"><div class="tl-time">16:48</div><div class="hash">dc92d3b12</div><div class="tl-title">feat(payment-schedule): runScheduleScan 下放给店长并收敛渠道范围<small>扫描权限 + 渠道过滤</small></div></div>
+      <div class="tl-item"><div class="tl-time">22:55</div><div class="hash">83f7c076c</div><div class="tl-title">fix(payment-schedule): 团购成团事件按活动所属渠道解锁期次<small>事件路径渠道隔离</small></div></div>
+      <div class="tl-item"><div class="tl-time">22:55</div><div class="hash">8eaeaa370</div><div class="tl-title">chore(diy): 入库 quote-demo-plans 运维脚本并补充 README 用法<small>非安全项 · 收尾</small></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>遗留风险</h2>
+    <p class="sub">共 13 条：严重 3 / 高危 5 / 中危 5</p>
+    <div class="card rows">
+      <div class="risk">
+        <div class="risk-head"><span class="badge now">立即</span><span class="badge severe">严重</span><strong>S2 · 微信回调验签被绕过</strong></div>
+        <p><b>影响：</b>伪造支付成功、零元结算。<b>动作：</b><code>await pay.verifySign(...)</code>，补单测覆盖异步返回值。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge now">立即</span><span class="badge severe">严重</span><strong>S3 · 支付宝回调可跨应用伪造</strong></div>
+        <p><b>影响：</b>跨应用 / 跨订单结算。<b>动作：</b>校验 <code>app_id</code>、<code>seller_id</code>、金额与渠道归属。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge now">立即</span><span class="badge high">高危</span><strong>H1 · 渠道 token 作商家鉴权</strong></div>
+        <p><b>影响：</b>跨商家订单与对账泄露。<b>动作：</b>引入商家身份令牌，渠道 token 仅作渠道标识。<b>现状：</b>11-01 提交已停止聚合大厅批量下发，单店换取仍返回渠道 token。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge now">立即</span><span class="badge high">高危</span><strong>H2 · 默认超管口令</strong></div>
+        <p><b>影响：</b>全站接管。<b>动作：</b>核验生产凭据，强制轮换并禁用默认账号。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge now">立即</span><span class="badge high">高危</span><strong>H3 · 生产 DEV_BYPASS 开关</strong></div>
+        <p><b>影响：</b>零元购、绕过真实支付。<b>动作：</b>生产启动强制全部为 false，缺失时拒绝启动。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge now">立即</span><span class="badge high">高危</span><strong>H5 · 回调金额未与订单应付比对</strong></div>
+        <p><b>影响：</b>金额篡改、少付多结算。<b>动作：</b>结算前比对回调金额与订单应付。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge week">本周</span><span class="badge severe">严重</span><strong>S4 · 银行卡加密密钥硬编码默认值</strong></div>
+        <p><b>影响：</b>提现账户密文可被解密。<b>动作：</b>密钥改为必填环境变量，缺失拒绝启动。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge week">本周</span><span class="badge high">高危</span><strong>H4 · 生产 Playground / debug / verbose</strong></div>
+        <p><b>影响：</b>schema 与内部栈泄露。<b>动作：</b>生产配置显式关闭。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge week">本周</span><span class="badge medium">中危</span><strong>M1 · 登录 / 验证码限流缺口</strong></div>
+        <p><b>影响：</b>暴力破解、接口刷量。<b>动作：</b>统一限流与失败锁定策略。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge week">本周</span><span class="badge medium">中危</span><strong>M2 · SQL 拼接注入面</strong></div>
+        <p><b>影响：</b>数据泄露 / 破坏。<b>动作：</b>按调用点复核并参数化。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge later">近期</span><span class="badge medium">中危</span><strong>M3 · 上传校验不足</strong></div>
+        <p><b>影响：</b>恶意文件、路径穿越。<b>动作：</b>类型 / 大小 / 存储路径白名单。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge later">近期</span><span class="badge medium">中危</span><strong>M4 · 敏感数据明文日志</strong></div>
+        <p><b>影响：</b>PII 泄露。<b>动作：</b>日志脱敏与分级。</p>
+      </div>
+      <div class="risk">
+        <div class="risk-head"><span class="badge later">近期</span><span class="badge medium">中危</span><strong>M5 · GraphQL 深度 / 复杂度无限制</strong></div>
+        <p><b>影响：</b>资源耗尽。<b>动作：</b>配置深度与复杂度上限。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    生产 HEAD <code>83f7c076c</code> · pm2 <code>vendure</code> online（端口 3020） · 冒烟：shop-api 商品 54 条，admin-api 匿名 FORBIDDEN · 备份目录 <code>/www/apps/vendure-backup-20261031/</code>
+  </footer>
+</div>
+</body>
+</html>
