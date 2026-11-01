@@ -58,13 +58,10 @@ export class AfterSalesSlaAlertJob implements OnApplicationShutdown {
             rows = await raw.query(
                 `SELECT a.id AS "requestId", oc."channelId" AS "channelId",
                         a."createdAt" AS "createdAt",
-                        COALESCE(a."slaPausedMs", 0) AS "slaPausedMs",
-                        COALESCE(ch."customFieldsAfterSalesTimeoutHours", ${DEFAULT_TIMEOUT_HOURS}) AS "timeoutHours",
-                        COALESCE(ch."customFieldsAfterSalesDueSoonHours", ${DEFAULT_DUE_SOON_HOURS}) AS "dueSoonHours"
+                        COALESCE(a."slaPausedMs", 0) AS "slaPausedMs"
                    FROM after_sales_request a
                    JOIN "order" o ON o.id = a."orderId"
                    JOIN order_channels_channel oc ON oc."orderId" = o.id
-                   JOIN channel ch ON ch.id = oc."channelId"
                   WHERE a.state = 'Pending' AND a."slaPausedAt" IS NULL AND o."customFieldsHallstatus" IS NOT NULL
                   ORDER BY a."createdAt" ASC
                   LIMIT ${MAX_PER_RUN}`,
@@ -78,30 +75,41 @@ export class AfterSalesSlaAlertJob implements OnApplicationShutdown {
         if (!Array.isArray(list) || !list.length) return;
 
         const now = Date.now();
+        const channelCache = new Map<number, Channel | null>();
         let sent = 0;
         for (const r of list) {
-            const createdAt = new Date(r.createdAt).getTime();
-            const timeoutHours = Number(r.timeoutHours) || DEFAULT_TIMEOUT_HOURS;
-            const dueSoonHours = Number(r.dueSoonHours) || 0;
-            // §95：已累计暂停时长顺延截止时间
-            const deadline = createdAt + timeoutHours * 3600_000 + (Number(r.slaPausedMs) || 0);
-            const kind = now >= deadline
-                ? 'overdue'
-                : (dueSoonHours > 0 && deadline - now <= dueSoonHours * 3600_000 ? 'dueSoon' : null);
-            if (!kind) continue;
             try {
+                // 阈值改从渠道实体读（原裸 SQL 拼 channel 自定义字段列名，生产列名大小写与预期不符导致整轮查询失败）
+                const channelId = Number(r.channelId);
+                if (!channelCache.has(channelId)) {
+                    channelCache.set(
+                        channelId,
+                        await raw.getRepository(Channel).findOne({ where: { id: channelId } as any }),
+                    );
+                }
+                const channel = channelCache.get(channelId);
+                if (!channel) continue;
+                const cf = (channel.customFields ?? {}) as any;
+                // 与商家端「售后规则」同源：未配置按 48h / 12h；0 = 关闭该类提醒
+                const timeoutHours = Number(cf.afterSalesTimeoutHours ?? DEFAULT_TIMEOUT_HOURS) || DEFAULT_TIMEOUT_HOURS;
+                const dueSoonHours = Number(cf.afterSalesDueSoonHours ?? DEFAULT_DUE_SOON_HOURS) || 0;
+                const createdAt = new Date(r.createdAt).getTime();
+                // §95：已累计暂停时长顺延截止时间
+                const deadline = createdAt + timeoutHours * 3600_000 + (Number(r.slaPausedMs) || 0);
+                const kind = now >= deadline
+                    ? 'overdue'
+                    : (dueSoonHours > 0 && deadline - now <= dueSoonHours * 3600_000 ? 'dueSoon' : null);
+                if (!kind) continue;
                 const claimed: any = await raw.query(
                     `INSERT INTO campus_after_sales_sla_alert ("channelId", "requestId", "kind", "alertedAt")
                      VALUES ($1, $2, $3, now())
                      ON CONFLICT ("requestId", "kind") DO UPDATE SET "alertedAt" = now()
                       WHERE campus_after_sales_sla_alert."alertedAt" < now() - interval '${Math.floor(RENOTIFY_MS / 3600_000)} hours'
                      RETURNING "requestId"`,
-                    [Number(r.channelId), Number(r.requestId), kind],
+                    [channelId, Number(r.requestId), kind],
                 );
                 const claimedList: any[] = Array.isArray(claimed) && Array.isArray(claimed[0]) ? claimed[0] : claimed;
                 if (!Array.isArray(claimedList) || !claimedList.length) continue;
-                const channel = await raw.getRepository(Channel).findOne({ where: { id: Number(r.channelId) } as any });
-                if (!channel) continue;
                 const ctx = new RequestContext({
                     apiType: 'admin',
                     channel,
