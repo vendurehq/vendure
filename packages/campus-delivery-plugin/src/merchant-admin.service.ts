@@ -2682,8 +2682,9 @@ export class MerchantAdminService {
         const qb = applyFilters(scoped())
             .leftJoinAndSelect('a.customer', 'customer')
             // §115 退款失败单全局置顶：失败单排序权重 0、其余 1（跨分页稳定），同权重按申请时间倒序
-            .addSelect(`CASE WHEN a.state = 'RefundFailed' THEN 0 ELSE 1 END`, 'refundPin')
-            .orderBy('refundPin', 'ASC')
+            // 别名必须全小写：最终查询的 ORDER BY 别名不带引号，驼峰会被折叠成小写而找不到列
+            .addSelect(`CASE WHEN a.state = 'RefundFailed' THEN 0 ELSE 1 END`, 'refund_pin')
+            .orderBy('refund_pin', 'ASC')
             .addOrderBy('a.createdAt', 'DESC')
             .skip(skip)
             .take(take);
