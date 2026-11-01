@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Allow, Ctx, ID, Permission, RequestContext } from '@vendure/core';
 import { CampusPermissions } from './permissions';
 import { CampusAdService } from './campus-ad.service';
@@ -59,8 +59,10 @@ export class CampusAdAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args({ name: 'status', nullable: true }) status?: string | null,
         @Args({ name: 'channelId', type: () => String, nullable: true }) channelId?: string | null,
+        @Args({ name: 'skip', type: () => Int, nullable: true }) skip?: number | null,
+        @Args({ name: 'take', type: () => Int, nullable: true }) take?: number | null,
     ) {
-        return this.ads.adminList(ctx, status, channelId);
+        return this.ads.adminList(ctx, status, channelId, skip ?? 0, take ?? 20);
     }
 
     @Mutation()

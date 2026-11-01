@@ -65,6 +65,7 @@ import { P12DailyLimitMigration } from './migrations/p12-daily-limit';
 import { SoldOutAutoRestoreJob } from './soldout-auto-restore.job';
 import { AfterSalesSlaAlertJob } from './after-sales-sla-alert.job';
 import { AfterSalesFollowUpRemindJob } from './after-sales-followup-remind.job';
+import { RiderComplianceReminderJob } from './rider-compliance-reminder.job';
 import { AfterSalesMonthlyPushJob } from './after-sales-monthly-push.job';
 import { AfterSalesAutoAssignJob } from './after-sales-auto-assign.job';
 import { AfterSalesAutoRuleJob } from './after-sales-auto-rule.job';
@@ -270,6 +271,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         SoldOutAutoRestoreJob,
         AfterSalesSlaAlertJob,
         AfterSalesFollowUpRemindJob,
+        RiderComplianceReminderJob,
         AfterSalesMonthlyPushJob,
         AfterSalesAutoAssignJob,
         AfterSalesAutoRuleJob,
@@ -2266,6 +2268,12 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     createdAt: DateTime
                 }
 
+                """广告投放单分页（§122）：total 为当前筛选下的总数，items 为当前页"""
+                type CampusAdCampaignPage {
+                    total: Int!
+                    items: [CampusAdCampaign!]!
+                }
+
                 type CampusAdSlot {
                     code: String!
                     name: String!
@@ -2355,8 +2363,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     campusAdSlots: [CampusAdSlot!]!
                     """商家侧：本渠道广告投放单"""
                     campusMerchantAds: [CampusAdCampaign!]!
-                    """平台侧：按渠道/状态查投放单"""
-                    campusAdCampaigns(status: String, channelId: ID): [CampusAdCampaign!]!
+                    """平台侧：按渠道/状态分页查投放单（skip/take，默认 20、上限 100）"""
+                    campusAdCampaigns(status: String, channelId: ID, skip: Int, take: Int): CampusAdCampaignPage!
                     """智能取餐柜（P2-4）：本渠道站点（含停用）"""
                     campusLockerStations: [CampusLockerStation!]!
                     """无人配送通道（P2-4 接口占位）配置"""
@@ -3752,6 +3760,8 @@ export class CampusDeliveryPlugin implements OnApplicationBootstrap {
         this.injector.get(DailyReportPushJob).start();
         // 回访到期提醒（§95）：10 分钟扫描到期回访，向商家发站内信（同一条只提醒一次）
         this.injector.get(AfterSalesFollowUpRemindJob).start();
+        // 骑手合规到期提醒（§54.6）：60 分钟扫描 30 天内到期/已过期的健康证与保险，向骑手发站内信（每人每天一条）
+        this.injector.get(RiderComplianceReminderJob).start();
         // 售后月度摘要推送（§95）：每月指定日把上月售后汇总推到店铺群（同月只推一条）
         this.injector.get(AfterSalesMonthlyPushJob).start();
         // 售后自动分配（§96）：5 分钟把未指派售后单派给未完结量最少的处理人
