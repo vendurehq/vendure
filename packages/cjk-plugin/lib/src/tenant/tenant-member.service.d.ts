@@ -158,7 +158,7 @@ export declare class TenantMemberService {
     globalRoles(ctx: RequestContext): Promise<any[]>;
     /** 全局默认角色模板（不落库为 Role）：租户"导入到本店"时复制独立副本，各租户权限互不影响 */
     globalRoleTemplates(ctx: RequestContext): Promise<any[]>;
-    /** 单租户一键导入默认三角色（幂等）。已初始化则返回空数组，不重复建。 */
+    /** 单租户按模板补齐缺失的默认角色（幂等）。逐个 code 判存，模板新增角色时存量租户也能补齐。 */
     importDefaultRoles(ctx: RequestContext, channelId: ID): Promise<any[]>;
     /** 租户自助：从全局默认模板复制独立副本到当前 ctx.channelId（幂等，复用 importDefaultRoles） */
     myImportDefaultRoles(ctx: RequestContext): Promise<any[]>;

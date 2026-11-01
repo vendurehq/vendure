@@ -64,5 +64,13 @@ exports.OFFICIAL_ROLE_TEMPLATES = [
             'ManageOwnShop',
         ],
     },
+    {
+        key: 'campus-order-taker',
+        busiPrefix: 'campus-order-taker',
+        description: '外卖接单',
+        // 校园外卖商家工作台的最小权限：仅接单/拒单/出餐/沽清/催单/售后与退款，全部挂在 CampusMerchant，
+        // 不含目录/商品/订单等通用后台权限；能看到哪家店由角色绑定的 channel 决定。
+        permissions: ['CampusMerchant'],
+    },
 ];
 //# sourceMappingURL=role-templates.js.map

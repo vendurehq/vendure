@@ -5,7 +5,7 @@
  * 仅角色「定义」收敛为一处，改一处全局生效。
  */
 export interface RoleTemplate {
-    key: 'tenant-admin' | 'sales' | 'stock' | 'cashier';
+    key: 'tenant-admin' | 'sales' | 'stock' | 'cashier' | 'campus-order-taker';
     busiPrefix: string;
     description: string;
     permissions: string[];

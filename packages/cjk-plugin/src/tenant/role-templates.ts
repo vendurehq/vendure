@@ -7,7 +7,7 @@ import { Permission } from '@vendure/core';
  * 仅角色「定义」收敛为一处，改一处全局生效。
  */
 export interface RoleTemplate {
-    key: 'tenant-admin' | 'sales' | 'stock' | 'cashier';
+    key: 'tenant-admin' | 'sales' | 'stock' | 'cashier' | 'campus-order-taker';
     busiPrefix: string;
     description: string;
     permissions: string[];
@@ -74,5 +74,13 @@ export const OFFICIAL_ROLE_TEMPLATES: RoleTemplate[] = [
             Permission.ReadOrder, Permission.UpdateOrder,
             'ManageOwnShop',
         ],
+    },
+    {
+        key: 'campus-order-taker',
+        busiPrefix: 'campus-order-taker',
+        description: '外卖接单',
+        // 校园外卖商家工作台的最小权限：仅接单/拒单/出餐/沽清/催单/售后与退款，全部挂在 CampusMerchant，
+        // 不含目录/商品/订单等通用后台权限；能看到哪家店由角色绑定的 channel 决定。
+        permissions: ['CampusMerchant'],
     },
 ];

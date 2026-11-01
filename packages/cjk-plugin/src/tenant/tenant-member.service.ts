@@ -713,7 +713,7 @@ export class TenantMemberService {
         }));
     }
 
-    /** 单租户一键导入默认三角色（幂等）。已初始化则返回空数组，不重复建。 */
+    /** 单租户按模板补齐缺失的默认角色（幂等）。逐个 code 判存，模板新增角色时存量租户也能补齐。 */
     async importDefaultRoles(ctx: RequestContext, channelId: ID): Promise<any[]> {
         const channel = await this.connection
             .getRepository(ctx, Channel)
@@ -721,9 +721,6 @@ export class TenantMemberService {
         if (!channel) throw new Error('CHANNEL_NOT_FOUND');
         const tenantNo = Number((channel as any).customFields?.tenantNo);
         if (!Number.isFinite(tenantNo)) throw new Error('TENANT_NO_MISSING');
-        const chId = String(channelId);
-        const adminCode = `t${tenantNo}-tenant-admin`;
-        if (await this.roleExistsInChannel(ctx, chId, adminCode)) return [];
         const created: any[] = [];
         for (const tpl of OFFICIAL_ROLE_TEMPLATES) {
             const role = await this.createTenantRoleDirect(ctx, channelId, {
