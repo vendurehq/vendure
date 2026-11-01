@@ -238,13 +238,18 @@ export class CampusLockerService {
         if (provider.needsKey && !cfg.unmannedDeliveryKey) {
             return { ...base, ok: false, status: 'unconfigured', message: '无人配送密钥未配置' };
         }
-        const requestNo = `UD-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+        // L1：只有 mock 允许「受理」；真实厂商未接入时必须明确失败，不伪造运单号，
+        // 否则商家会误以为已下发无人车，且该假单号可能被记录进履约链路。
+        if (provider.code !== 'mock') {
+            return { ...base, ok: false, status: 'unsupported', message: `${provider.name}通道尚未接入，未下发运单` };
+        }
+        const requestNo = `MOCK-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
         return {
             ...base,
             ok: true,
             status: 'accepted',
             requestNo,
-            message: `${provider.name}已受理（占位通道，未真实下发运单）`,
+            message: '模拟通道已受理（未真实下发运单，仅用于联调验证）',
         };
     }
 }

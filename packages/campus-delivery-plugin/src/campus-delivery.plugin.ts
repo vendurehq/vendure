@@ -2332,7 +2332,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     ok: Boolean!
                     provider: String!
                     providerName: String!
-                    """disabled / unconfigured / rejected / accepted"""
+                    """disabled / unconfigured / unsupported / rejected / accepted（accepted 仅 mock 模拟通道）"""
                     status: String!
                     requestNo: String
                     message: String!
@@ -2723,7 +2723,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     campusDeleteLockerStation(id: ID!): Boolean!
                     """无人配送通道：保存配置（endpoint/key 传空串 = 清空）"""
                     campusUpdateUnmannedChannel(input: CampusUnmannedChannelInput!): CampusUnmannedChannel!
-                    """无人配送调用占位：配置校验通过后模拟受理，返回模拟单号"""
+                    """无人配送调用占位：mock 模拟受理并返回 MOCK 单号；真实厂商未接入返回 unsupported，不下发运单"""
                     campusRequestUnmannedDelivery(orderId: ID!): CampusUnmannedDeliveryResult!
                     campusSettleAddressChange(id: ID!, action: String!, note: String): CampusAddressChangeRow!
                     """运营代客改址：取货后也可代改，必须填写原因"""
