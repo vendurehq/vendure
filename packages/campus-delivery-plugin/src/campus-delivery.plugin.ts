@@ -157,6 +157,7 @@ import { CampusErrorReport, CampusTrackEvent } from './telemetry.entities';
 import { TelemetryAdminResolver, TelemetryShopResolver } from './telemetry.resolver';
 import { ResumePaymentShopResolver } from './resume-payment-shop.resolver';
 import { TelemetryService } from './telemetry.service';
+import { TelemetryRetentionJob } from './telemetry-retention.job';
 import { P17AfterSalesNoteMigration } from './migrations/p17-after-sales-note';
 import { P18ReplyTemplateMigration } from './migrations/p18-reply-template';
 import { P19AfterSalesTagMigration } from './migrations/p19-after-sales-tag';
@@ -299,6 +300,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         DeliveryStatsService,
         SalesStatsService,
         TelemetryService,
+        TelemetryRetentionJob,
         ErrandService,
         R2MarkService,
         R4TagService,
@@ -3840,6 +3842,8 @@ export class CampusDeliveryPlugin implements OnApplicationBootstrap {
         this.injector.get(OpsCheckJob).start();
         // R3 锁位对账：容量与实际占位偏差告警（只读，先观测不自动修复）
         this.injector.get(SlotReconcileJob).start();
+        // 埋点/错误报告过期清理：保留 90 天，分批删除避免影响上报写入
+        this.injector.get(TelemetryRetentionJob).start();
         // 管理消息推送：notification 发布 AdminNotifyEvent（新订单/售后），本插件订阅后转飞书群
         this.eventBus.ofType(AdminNotifyEvent).subscribe(event => {
             void this.injector.get(FeishuNotifyService).onAdminNotify(event);
