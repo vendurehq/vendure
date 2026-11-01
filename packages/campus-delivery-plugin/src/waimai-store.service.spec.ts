@@ -109,6 +109,15 @@ describe('WaimaiStoreService.storeEntry', () => {
         await expect(env.svc.storeEntry({} as any, 4)).rejects.toThrow('店铺不存在');
     });
 
+    it('L2：industryType 未设置（漏填/存量未刷）按餐饮处理，可换取 token', async () => {
+        const env = makeEnv();
+        env.repoByEntity.Channel.findOne.mockResolvedValue({
+            id: 5, token: 'legacy', code: '老店', customFields: {},
+        });
+        env.repoByEntity.CampusFulfillmentConfig.findOne.mockResolvedValue({ channelId: 5 });
+        await expect(env.svc.storeEntry({} as any, 5)).resolves.toEqual({ channelId: 5, channelToken: 'legacy' });
+    });
+
     it('每 IP 每分钟限流 120 次', async () => {
         const env = makeEnv();
         env.repoByEntity.Channel.findOne.mockResolvedValue({
@@ -124,6 +133,14 @@ describe('WaimaiStoreService.storeEntry', () => {
 });
 
 describe('WaimaiStoreService.listStoreConfigs', () => {
+    it('L2：industryType 未设置的店铺仍出现在 C 端列表（显式非餐饮才过滤）', async () => {
+        const env = makeEnv({
+            configs: [{ channelId: 6, paused: false, routesEnabled: ['R1'] }],
+            channels: [{ id: 6, token: 'legacy', code: '老店', customFields: {} }],
+        });
+        const list = await env.svc.listStores({} as any);
+        expect(list.map(s => s.channelId)).toEqual([6]);
+    });
     it('全渠道输出（默认渠道跳过），无配置行店铺 routesEnabled=[] 且 6 字段全 null', async () => {
         const env = makeEnv({
             configs: [{ channelId: 2, paused: false, routesEnabled: ['R1', 'R3'], deliveryMinutes: 35, minOrderAmount: 1500, deliveryFee: 200, storeAddress: '东门 1 号楼', storePhone: '13800000000', storeNotice: '周末出餐慢' }],
@@ -146,6 +163,7 @@ describe('WaimaiStoreService.listStoreConfigs', () => {
             merchantAcceptMinutes: 5, externalPushTimeoutMinutes: 10, externalFallbackMinutes: 20,
             storeLat: null, storeLng: null,
             privacyNumberEnabled: false, privacyNumberProvider: 'mask',
+            privacyNumberEffectiveProvider: 'mask', privacyNumberDegraded: false, privacyNumberNote: null,
             privacyNumberTtlMinutes: 60, privacyNumberPrefix: null,
             foodLicenseNo: null, foodLicenseImage: null, foodLicenseExpiry: null,
             foodSafetyGrade: null, foodSafetyCommitmentImage: null,
@@ -284,6 +302,7 @@ describe('WaimaiStoreService.updateStoreConfig', () => {
             merchantAcceptMinutes: 5, externalPushTimeoutMinutes: 10, externalFallbackMinutes: 20,
             storeLat: null, storeLng: null,
             privacyNumberEnabled: false, privacyNumberProvider: 'mask',
+            privacyNumberEffectiveProvider: 'mask', privacyNumberDegraded: false, privacyNumberNote: null,
             privacyNumberTtlMinutes: 60, privacyNumberPrefix: null,
             foodLicenseNo: null, foodLicenseImage: null, foodLicenseExpiry: null,
             foodSafetyGrade: null, foodSafetyCommitmentImage: null,

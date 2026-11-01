@@ -1715,6 +1715,11 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     privacyNumberEnabled: Boolean!
                     """隐私号服务商：mask / mock / aliyun / tencent"""
                     privacyNumberProvider: String!
+                    """实际生效的服务商（外部号池未接入时回落 mask）"""
+                    privacyNumberEffectiveProvider: String!
+                    """配置值≠生效值：号码保护未真正启用，后台需提示运营"""
+                    privacyNumberDegraded: Boolean!
+                    privacyNumberNote: String
                     privacyNumberTtlMinutes: Int!
                     privacyNumberPrefix: String
                     foodLicenseNo: String

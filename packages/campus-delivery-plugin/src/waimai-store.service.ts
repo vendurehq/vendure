@@ -121,6 +121,11 @@ export interface CampusStoreConfigWithChannel {
     dynamicPricing: string | null;
     privacyNumberEnabled: boolean;
     privacyNumberProvider: string;
+    /** M3：实际生效的服务商（aliyun/tencent 未接入时回落 mask） */
+    privacyNumberEffectiveProvider: string;
+    /** M3：配置值 ≠ 生效值（后台应提示运营「号码保护未真正启用」） */
+    privacyNumberDegraded: boolean;
+    privacyNumberNote: string | null;
     privacyNumberTtlMinutes: number;
     privacyNumberPrefix: string | null;
     foodLicenseNo: string | null;
@@ -191,6 +196,59 @@ export function normalizePrintMode(v: unknown): PrintMode {
 const ROUTE_WHITELIST = ['R1', 'R2', 'R3', 'R4', 'R5'];
 /** 隐私号服务商白名单：mask=仅脱敏，mock=本地虚拟号，aliyun/tencent=外部号池（缺凭证自动降级为 mask） */
 export const PRIVACY_PROVIDERS = ['mask', 'mock', 'aliyun', 'tencent'] as const;
+
+/** M3：隐私号服务商实际生效口径（配置值 ≠ 生效值即降级，后台可直接看到） */
+export interface PrivacyProviderStatus {
+    /** 配置里选的服务商 */
+    provider: string;
+    /** 实际生效的服务商（外部号池未接入时回落 mask） */
+    effective: 'mask' | 'mock' | 'aliyun' | 'tencent';
+    degraded: boolean;
+    note: string | null;
+}
+
+/** 外部号池凭证环境变量：缺失即降级为脱敏号 */
+const PROVIDER_ENV: Record<string, string> = {
+    aliyun: 'PRIVACY_ALIYUN_KEY',
+    tencent: 'PRIVACY_TENCENT_KEY',
+};
+
+/**
+ * 服务商生效口径（M3）：aliyun/tencent 号池接口尚未接入，
+ * 即使配了凭证也只能回落脱敏号——统一算出「配置值 / 生效值 / 降级原因」，
+ * 供后台配置视图与运行时 resolve 共用，避免被静默降级误导。
+ */
+export function privacyProviderStatus(
+    cfg: { privacyNumberEnabled?: boolean | null; privacyNumberProvider?: string | null } | null | undefined,
+): PrivacyProviderStatus {
+    const configured = String(cfg?.privacyNumberProvider ?? 'mask');
+    const provider = PRIVACY_PROVIDERS.includes(configured as any) ? configured : 'mask';
+    if (!cfg?.privacyNumberEnabled) {
+        return { provider, effective: provider as PrivacyProviderStatus['effective'], degraded: false, note: null };
+    }
+    if (provider === 'mock') {
+        return { provider, effective: 'mock', degraded: false, note: 'mock 虚拟号仅本地演示，不会真实转接' };
+    }
+    if (provider === 'aliyun' || provider === 'tencent') {
+        const envKey = PROVIDER_ENV[provider];
+        const note = process.env[envKey]
+            ? `${provider} 号池接口待接入，暂以脱敏号兜底`
+            : `${provider} 号池未配置凭证（${envKey}），已降级为脱敏号`;
+        return { provider, effective: 'mask', degraded: true, note };
+    }
+    return { provider: 'mask', effective: 'mask', degraded: false, note: null };
+}
+
+/**
+ * L2：外卖准入行业判断——只有「显式配置为非餐饮」才剔除；
+ * industryType 未设置（存量未刷成功 / 新建渠道漏填）时按餐饮处理，
+ * 避免已有履约配置的店铺从 C 端列表与进店换取里静默消失。
+ */
+export function isCateringIndustry(cf: any): boolean {
+    const industry = String(cf?.industryType ?? '').trim();
+    return !industry || industry === 'catering';
+}
+
 /** 食安量化分级：A/B/C（空=未评级） */
 const FOOD_GRADES = ['A', 'B', 'C'] as const;
 
@@ -309,7 +367,8 @@ export class WaimaiStoreService {
             const cf = (ch.customFields ?? {}) as any;
             // 外卖准入：仅餐饮行业租户展示（设计文档 2026-10-09 §4.2；存量由 BackfillWaimaiIndustryMigration 刷数）。
             // 仅过滤 C 端列表；listStoreConfigs（admin 配置视图）不过滤，避免管理员看不到已配履约的非餐饮渠道。
-            if (cf.industryType !== 'catering') continue;
+            // L2：未设置行业按餐饮处理（只有显式非餐饮才剔除）。
+            if (!isCateringIndustry(cf)) continue;
             // 营业日历（§70）：今日在休业名单中则整店休业（优先于营业时间判断）
             const closure = closedToday(safeClosureDates(cfg.closureDates, now), now);
             stores.push({
@@ -371,7 +430,8 @@ export class WaimaiStoreService {
             .getRepository(ctx, CampusFulfillmentConfig)
             .findOne({ where: { channelId } });
         const cf = (channel.customFields ?? {}) as any;
-        if (!cfg || cf.industryType !== 'catering') {
+        // L2：与列表同口径——只有显式非餐饮才拒绝，未设置行业按餐饮处理
+        if (!cfg || !isCateringIndustry(cf)) {
             throw new UserInputError('店铺不存在');
         }
         return { channelId: Number(channel.id), channelToken: channel.token };
@@ -880,6 +940,7 @@ export class WaimaiStoreService {
         channelToken: string,
         cfg: CampusFulfillmentConfig | undefined,
     ): CampusStoreConfigWithChannel {
+        const privacyStatus = privacyProviderStatus(cfg);
         return {
             channelId,
             channelName,
@@ -940,6 +1001,9 @@ export class WaimaiStoreService {
             dynamicPricing: cfg?.dynamicPricing ? JSON.stringify(cfg.dynamicPricing) : null,
             privacyNumberEnabled: cfg?.privacyNumberEnabled ?? false,
             privacyNumberProvider: cfg?.privacyNumberProvider ?? 'mask',
+            privacyNumberEffectiveProvider: privacyStatus.effective,
+            privacyNumberDegraded: privacyStatus.degraded,
+            privacyNumberNote: privacyStatus.note,
             privacyNumberTtlMinutes: cfg?.privacyNumberTtlMinutes ?? 60,
             privacyNumberPrefix: cfg?.privacyNumberPrefix ?? null,
             foodLicenseNo: cfg?.foodLicenseNo ?? null,

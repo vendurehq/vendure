@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { RequestContext, TransactionalConnection } from '@vendure/core';
+import { Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
-import { PRIVACY_PROVIDERS } from './waimai-store.service';
+import { privacyProviderStatus, type PrivacyProviderStatus } from './waimai-store.service';
 
 export interface PrivacyContact {
     /** 是否启用了号码保护（false 时 display 就是真实号） */
@@ -33,6 +33,8 @@ export interface PrivacySource {
 export class PrivacyNumberService {
     /** mock 虚拟号池：同一渠道/订单/真实号在 TTL 内保持稳定 */
     private readonly mockPool = new Map<string, { number: string; expiresAt: Date }>();
+    /** 降级告警去重：`channelId:provider` 只提醒一次 */
+    private readonly degradedWarned = new Set<string>();
 
     constructor(private connection: TransactionalConnection) {}
 
@@ -80,10 +82,10 @@ export class PrivacyNumberService {
         if (!cfg?.privacyNumberEnabled || !real) {
             return { protected: false, display: real || null, callable: real || null, provider: 'off', expiresAt: null, note: null };
         }
-        const configured = String(cfg.privacyNumberProvider ?? 'mask');
-        const provider = PRIVACY_PROVIDERS.includes(configured as any) ? configured : 'mask';
+        const status = privacyProviderStatus(cfg);
+        if (status.degraded) this.warnDegraded(source.channelId, status);
 
-        if (provider === 'mock') {
+        if (status.effective === 'mock') {
             const ttl = Math.max(1, Number(cfg.privacyNumberTtlMinutes ?? 60)) * 60_000;
             const key = `${source.channelId}:${source.orderCode ?? ''}:${real}`;
             const now = Date.now();
@@ -93,9 +95,9 @@ export class PrivacyNumberService {
                     protected: true,
                     display: hit.number,
                     callable: hit.number,
-                    provider,
+                    provider: status.effective,
                     expiresAt: hit.expiresAt,
-                    note: 'mock 虚拟号仅本地演示，不会真实转接',
+                    note: status.note,
                 };
             }
             const prefix = String(cfg.privacyNumberPrefix ?? '').replace(/\D/g, '') || '1700000';
@@ -107,35 +109,29 @@ export class PrivacyNumberService {
                 protected: true,
                 display: number,
                 callable: number,
-                provider,
+                provider: status.effective,
                 expiresAt,
-                note: 'mock 虚拟号仅本地演示，不会真实转接',
+                note: status.note,
             };
         }
 
-        if (provider === 'aliyun' || provider === 'tencent') {
-            const envKey = provider === 'aliyun' ? 'PRIVACY_ALIYUN_KEY' : 'PRIVACY_TENCENT_KEY';
-            if (!process.env[envKey]) {
-                return {
-                    protected: true,
-                    display: this.mask(real),
-                    callable: null,
-                    provider: 'mask',
-                    expiresAt: null,
-                    note: `${provider} 号池未配置凭证（${envKey}），已降级为脱敏号`,
-                };
-            }
-            // 号池接口按 provider 接入（AXB 绑定/解绑）；未接入前同样降级，避免给出打不通的号码
-            return {
-                protected: true,
-                display: this.mask(real),
-                callable: null,
-                provider: 'mask',
-                expiresAt: null,
-                note: `${provider} 号池接口待接入，暂以脱敏号兜底`,
-            };
-        }
+        // mask 兜底（含 aliyun/tencent 未接入的降级）：只给脱敏号，不给可拨号
+        return {
+            protected: true,
+            display: this.mask(real),
+            callable: null,
+            provider: status.effective,
+            expiresAt: null,
+            note: status.note,
+        };
+    }
 
-        return { protected: true, display: this.mask(real), callable: null, provider: 'mask', expiresAt: null, note: null };
+    /** 降级告警去重：同一渠道同一服务商只提醒一次（进程内，多实例各自一条） */
+    private warnDegraded(channelId: number | string, status: PrivacyProviderStatus): void {
+        const key = `${channelId}:${status.provider}`;
+        if (this.degradedWarned.has(key)) return;
+        if (this.degradedWarned.size >= 500) this.degradedWarned.clear();
+        this.degradedWarned.add(key);
+        Logger.warn(`渠道 ${channelId} 隐私号配置为 ${status.provider}，实际回落 ${status.effective}：${status.note}`, 'PrivacyNumberService');
     }
 }
