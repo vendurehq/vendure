@@ -16,6 +16,8 @@ export interface CreateReviewInput {
     videos?: string[];
     tags?: string[];
     isAnonymous?: boolean;
+    /** 好评有礼所选礼包：quality / service / time；仅 ≥4 星主评有效，其它忽略。 */
+    giftChoice?: string | null;
 }
 export interface UpdateReviewInput {
     content?: string;

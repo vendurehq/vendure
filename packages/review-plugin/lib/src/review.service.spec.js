@@ -179,6 +179,20 @@ function makeGiftService(channelCf, reviewRow) {
         (0, vitest_1.expect)(saved.status).toBe('approved');
         (0, vitest_1.expect)(saved.giftGranted).toBeFalsy();
     });
+    // §114：好评送礼闭环——按顾客所选礼包取专属券模板
+    (0, vitest_1.it)('礼包「质量」有专属模板 → 发该模板券（不落通用模板）', async () => {
+        gift.coupon.grantCouponIssue.mockResolvedValue([{ customerId: 9, ok: true, code: 'CQ', reason: null }]);
+        const { svc } = makeGiftService({ reviewGiftCouponTemplateId: 'T9', reviewGiftQualityCouponTemplateId: 'TQ', reviewGiftPoints: 0 }, { id: 1, status: 'pending', parentId: null, customerId: 9, productId: 42, giftChoice: 'quality' });
+        const saved = await svc.approveReview(CTX, '1');
+        (0, vitest_1.expect)(gift.coupon.grantCouponIssue).toHaveBeenCalledWith(CTX, 'TQ', [9], false);
+        (0, vitest_1.expect)(saved.giftGranted).toBe(true);
+    });
+    (0, vitest_1.it)('礼包专属模板为空 → 回落通用奖励券模板', async () => {
+        gift.coupon.grantCouponIssue.mockResolvedValue([{ customerId: 9, ok: true, code: 'C9', reason: null }]);
+        const { svc } = makeGiftService({ reviewGiftCouponTemplateId: 'T9', reviewGiftPoints: 0 }, { id: 1, status: 'pending', parentId: null, customerId: 9, productId: 42, giftChoice: 'service' });
+        await svc.approveReview(CTX, '1');
+        (0, vitest_1.expect)(gift.coupon.grantCouponIssue).toHaveBeenCalledWith(CTX, 'T9', [9], false);
+    });
 });
 // ── 四期 Task 8：追评窗口校验 ──
 const FOLLOW_CTX = { channelId: 113, activeUserId: 77 };
@@ -239,6 +253,48 @@ function makeFollowService(parentRow, channelCf = { reviewFollowUpWindowDays: 7 
             reviewedAt: daysAgo(1), productId: 42, rating: 5,
         });
         await (0, vitest_1.expect)(svc.createFollowUpReview(FOLLOW_CTX, '1', { content: '还没通过就追' })).rejects.toThrow(/通过审核/);
+    });
+});
+// ── §114：好评送礼闭环（礼包选择落库与校验） ──
+(0, vitest_1.describe)('ReviewService.createReview 礼包选择', () => {
+    const CREATE_CTX = { channelId: 113, activeUserId: 77, channel: { id: 113 } };
+    const ORDER_LINE = { id: 501, order: { customer: { id: 9 }, state: 'Delivered' } };
+    function makeCreateService() {
+        const reviewRepo = {
+            findOne: vitest_1.vi.fn().mockResolvedValue(null),
+            save: vitest_1.vi.fn().mockImplementation(async (r) => (Object.assign({}, r))),
+            update: vitest_1.vi.fn().mockResolvedValue({}),
+            find: vitest_1.vi.fn().mockResolvedValue([]),
+        };
+        const orderLineRepo = { findOne: vitest_1.vi.fn().mockResolvedValue(ORDER_LINE) };
+        const connection = {
+            getRepository: vitest_1.vi.fn((_ctx, entity) => (entity === core_1.OrderLine ? orderLineRepo : reviewRepo)),
+        };
+        const customerService = { findOneByUserId: vitest_1.vi.fn().mockResolvedValue({ id: 9 }) };
+        const svc = new review_service_1.ReviewService({}, connection, {}, customerService, {});
+        return { svc, reviewRepo };
+    }
+    (0, vitest_1.beforeEach)(() => vitest_1.vi.clearAllMocks());
+    (0, vitest_1.it)('≥4 星 + 合法礼包 → 落库英文枚举 giftChoice', async () => {
+        const { svc, reviewRepo } = makeCreateService();
+        const saved = await svc.createReview(CREATE_CTX, {
+            productId: 42, orderLineId: 501, rating: 5, content: '好吃', giftChoice: 'quality',
+        });
+        (0, vitest_1.expect)(saved.giftChoice).toBe('quality');
+        (0, vitest_1.expect)(reviewRepo.save).toHaveBeenCalledTimes(1);
+    });
+    (0, vitest_1.it)('≤3 星带礼包 → 忽略置 null（不发礼包）', async () => {
+        const { svc } = makeCreateService();
+        const saved = await svc.createReview(CREATE_CTX, {
+            productId: 42, orderLineId: 501, rating: 2, content: '一般', giftChoice: 'time',
+        });
+        (0, vitest_1.expect)(saved.giftChoice).toBeNull();
+    });
+    (0, vitest_1.it)('非法礼包值 → 抛 UserInputError', async () => {
+        const { svc } = makeCreateService();
+        await (0, vitest_1.expect)(svc.createReview(CREATE_CTX, {
+            productId: 42, orderLineId: 501, rating: 5, content: '好', giftChoice: '质量',
+        })).rejects.toThrow(/giftChoice/);
     });
 });
 //# sourceMappingURL=review.service.spec.js.map

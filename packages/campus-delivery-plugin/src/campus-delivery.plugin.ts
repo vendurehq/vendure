@@ -179,6 +179,7 @@ import { P36CompensationTaskMigration } from './migrations/p36-compensation-task
 import { P37SupportTicketSystemMigration } from './migrations/p37-support-ticket-system';
 import { P38SupportAssigneeDedupeMigration } from './migrations/p38-support-assignee-dedupe';
 import { P39TrustCopyMigration } from './migrations/p39-trust-copy';
+import { P40ReviewGiftChoiceMigration } from './migrations/p40-review-gift-choice';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { WithdrawReconcileJob } from './withdraw-reconcile.job';
 import { CompensationTaskService } from './compensation-task.service';
@@ -244,6 +245,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P37SupportTicketSystemMigration,
         P38SupportAssigneeDedupeMigration,
         P39TrustCopyMigration,
+        P40ReviewGiftChoiceMigration,
         CampusDedupeService,
         WithdrawReconcileJob,
         CompensationTaskService,

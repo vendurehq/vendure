@@ -58,12 +58,20 @@ export declare class ReviewService {
     /** 重算商品评风聚合（approved 主评）并写回 Product.customFields。 */
     recomputeProductRating(ctx: RequestContext, productId: number): Promise<void>;
     getCustomerName(ctx: RequestContext, review: Review): Promise<string | null>;
-    /** 渠道评价奖励配置（Channel customFields，未配置 = 不发奖）。 */
+    /**
+     * 渠道评价奖励配置（Channel customFields，未配置 = 不发奖）。
+     * 传 giftChoice 时优先取该礼包专属券模板，模板为空回落 reviewGiftCouponTemplateId。
+     */
     private getGiftConfig;
     /** 渠道追评窗口（天；缺省 7，0 = 不允许追评）。 */
     private getFollowUpWindowDays;
     /** 评价有礼：发券/积分（任一成功返回 true）。单侧失败仅告警不阻塞。 */
     private grantReviewGift;
+    /**
+     * 校验并归一化礼包选择：非法枚举直接报错；
+     * ≤3 星（非好评）或未传 → null（不记录，也不发礼包券）。
+     */
+    private normalizeGiftChoice;
     private assertContent;
     private requireCustomer;
 }

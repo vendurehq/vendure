@@ -42,6 +42,8 @@ const adminSchema = () => gql`
         isAnonymous: Boolean!
         status: String!
         giftGranted: Boolean!
+        """好评有礼所选礼包：quality / service / time；null 表示未选"""
+        giftChoice: String
         reply: String
         repliedAt: DateTime
         reviewedAt: DateTime
@@ -206,6 +208,10 @@ const shopSchema = () => gql`
         tags: [String!]
         isAnonymous: Boolean!
         status: String!
+        """好评有礼是否已发放（主评审核通过后置 true）"""
+        giftGranted: Boolean!
+        """好评有礼所选礼包：quality / service / time；null 表示未选"""
+        giftChoice: String
         reply: String
         repliedAt: DateTime
         reviewedAt: DateTime
@@ -244,6 +250,8 @@ const shopSchema = () => gql`
         videos: [String!]
         tags: [String!]
         isAnonymous: Boolean
+        """好评有礼所选礼包：quality / service / time（仅 ≥4 星主评有效）"""
+        giftChoice: String
     }
 
     input UpdateReviewInput {

@@ -33,6 +33,14 @@ const APPEALABLE_MAX_RATING = 3;
 const APPEAL_STATUSES = ['pending', 'approved', 'rejected'];
 const MAX_APPEAL_REASON = 300;
 const MAX_APPEAL_IMAGES = 6;
+/** 好评有礼可选礼包（与 C 端枚举一致）；≤3 星与追评不记录。 */
+const GIFT_CHOICES = ['quality', 'service', 'time'];
+/** 礼包 → 渠道 customFields 券模板字段名（缺省回落 reviewGiftCouponTemplateId）。 */
+const GIFT_COUPON_FIELD = {
+    quality: 'reviewGiftQualityCouponTemplateId',
+    service: 'reviewGiftServiceCouponTemplateId',
+    time: 'reviewGiftTimeCouponTemplateId',
+};
 /**
  * 星级档筛选条件：TypeORM 的同一列不能挂两个 FindOperator，故按入参合并为单个。
  * 入参越界（非 1-5 整数）或 min > max 时返回 undefined，即忽略该筛选（不抛错，避免拖垮 C 端列表）。
@@ -119,6 +127,7 @@ let ReviewService = class ReviewService {
         if (!input.orderLineId) {
             throw new core_2.UserInputError('orderLineId is required to create a review');
         }
+        const giftChoice = this.normalizeGiftChoice(input.giftChoice, input.rating);
         const orderLineRepo = this.connection.getRepository(ctx, core_2.OrderLine);
         const orderLine = await orderLineRepo.findOne({
             where: { id: Number(input.orderLineId) },
@@ -158,6 +167,7 @@ let ReviewService = class ReviewService {
             isAnonymous: (_d = input.isAnonymous) !== null && _d !== void 0 ? _d : false,
             status,
             channelId: ctx.channelId,
+            giftChoice,
         });
         review.channels = [ctx.channel];
         const saved = await reviewRepo.save(review);
@@ -592,15 +602,21 @@ let ReviewService = class ReviewService {
         }
         return [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.emailAddress;
     }
-    /** 渠道评价奖励配置（Channel customFields，未配置 = 不发奖）。 */
-    async getGiftConfig(ctx) {
-        var _a;
+    /**
+     * 渠道评价奖励配置（Channel customFields，未配置 = 不发奖）。
+     * 传 giftChoice 时优先取该礼包专属券模板，模板为空回落 reviewGiftCouponTemplateId。
+     */
+    async getGiftConfig(ctx, giftChoice) {
+        var _a, _b;
         const channel = await this.connection
             .getRepository(ctx, core_2.Channel)
             .findOne({ where: { id: ctx.channelId } });
         const cf = ((_a = channel === null || channel === void 0 ? void 0 : channel.customFields) !== null && _a !== void 0 ? _a : {});
         const points = Number(cf.reviewGiftPoints) || 0;
-        const couponTemplateId = cf.reviewGiftCouponTemplateId ? String(cf.reviewGiftCouponTemplateId) : null;
+        const field = giftChoice ? GIFT_COUPON_FIELD[giftChoice] : null;
+        const picked = field ? cf[field] : null;
+        const templateId = String((_b = picked !== null && picked !== void 0 ? picked : cf.reviewGiftCouponTemplateId) !== null && _b !== void 0 ? _b : '');
+        const couponTemplateId = templateId ? templateId : null;
         return { couponTemplateId, points };
     }
     /** 渠道追评窗口（天；缺省 7，0 = 不允许追评）。 */
@@ -617,7 +633,7 @@ let ReviewService = class ReviewService {
         var _a, _b, _c, _d, _e, _f, _g;
         let granted = false;
         try {
-            const cfg = await this.getGiftConfig(ctx);
+            const cfg = await this.getGiftConfig(ctx, review.giftChoice);
             if (!cfg.couponTemplateId && cfg.points <= 0) {
                 return false;
             }
@@ -651,6 +667,20 @@ let ReviewService = class ReviewService {
             core_2.Logger.warn(`grantReviewGift failed for review ${review.id}: ${(_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : e}`, constants_1.loggerCtx);
         }
         return granted;
+    }
+    /**
+     * 校验并归一化礼包选择：非法枚举直接报错；
+     * ≤3 星（非好评）或未传 → null（不记录，也不发礼包券）。
+     */
+    normalizeGiftChoice(raw, rating) {
+        if (raw == null || raw === '') {
+            return null;
+        }
+        const value = String(raw).trim();
+        if (!GIFT_CHOICES.includes(value)) {
+            throw new core_2.UserInputError(`giftChoice must be one of ${GIFT_CHOICES.join('/')}`);
+        }
+        return rating >= 4 ? value : null;
     }
     assertContent(content) {
         var _a;

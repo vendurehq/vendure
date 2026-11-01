@@ -21,6 +21,11 @@ export declare class Review extends VendureEntity implements ChannelAware {
     parentId: number | null;
     /** 评价有礼：主评审核通过时已发放奖励（券/积分任一），幂等闸。 */
     giftGranted: boolean;
+    /**
+     * 好评有礼所选礼包：quality（质量）/ service（服务）/ time（时间）。
+     * null = 未选礼包（≤3 星或追评）。列由 campus-delivery-plugin 的 p40 迁移补齐。
+     */
+    giftChoice: string | null;
     /** 审核时间（approve/reject 留痕）；追评窗口以此为基准。 */
     reviewedAt?: Date | null;
     /** null=未申诉；pending=待审核；approved=申诉成立（评价被隐藏）；rejected=申诉驳回 */

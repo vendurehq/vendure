@@ -49,6 +49,13 @@ export class Review extends VendureEntity implements ChannelAware {
     @Column({ default: false })
     giftGranted: boolean;
 
+    /**
+     * 好评有礼所选礼包：quality（质量）/ service（服务）/ time（时间）。
+     * null = 未选礼包（≤3 星或追评）。列由 campus-delivery-plugin 的 p40 迁移补齐。
+     */
+    @Column({ type: 'varchar', nullable: true })
+    giftChoice: string | null;
+
     /** 审核时间（approve/reject 留痕）；追评窗口以此为基准。 */
     @Column({ type: 'timestamp', nullable: true })
     reviewedAt?: Date | null;

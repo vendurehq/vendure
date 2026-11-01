@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { Channel } from '@vendure/core';
+import { Channel, OrderLine } from '@vendure/core';
 import { CouponService } from '@vendure/coupon-plugin';
 import { MemberLevelService } from '@vendure/member-level-plugin';
 import { Review } from './review.entity';
@@ -222,6 +222,28 @@ describe('ReviewService.approveReview 评价有礼', () => {
         expect(saved.status).toBe('approved');
         expect(saved.giftGranted).toBeFalsy();
     });
+
+    // §114：好评送礼闭环——按顾客所选礼包取专属券模板
+    it('礼包「质量」有专属模板 → 发该模板券（不落通用模板）', async () => {
+        gift.coupon.grantCouponIssue.mockResolvedValue([{ customerId: 9, ok: true, code: 'CQ', reason: null }]);
+        const { svc } = makeGiftService(
+            { reviewGiftCouponTemplateId: 'T9', reviewGiftQualityCouponTemplateId: 'TQ', reviewGiftPoints: 0 },
+            { id: 1, status: 'pending', parentId: null, customerId: 9, productId: 42, giftChoice: 'quality' },
+        );
+        const saved = await svc.approveReview(CTX, '1');
+        expect(gift.coupon.grantCouponIssue).toHaveBeenCalledWith(CTX, 'TQ', [9], false);
+        expect(saved.giftGranted).toBe(true);
+    });
+
+    it('礼包专属模板为空 → 回落通用奖励券模板', async () => {
+        gift.coupon.grantCouponIssue.mockResolvedValue([{ customerId: 9, ok: true, code: 'C9', reason: null }]);
+        const { svc } = makeGiftService(
+            { reviewGiftCouponTemplateId: 'T9', reviewGiftPoints: 0 },
+            { id: 1, status: 'pending', parentId: null, customerId: 9, productId: 42, giftChoice: 'service' },
+        );
+        await svc.approveReview(CTX, '1');
+        expect(gift.coupon.grantCouponIssue).toHaveBeenCalledWith(CTX, 'T9', [9], false);
+    });
 });
 
 // ── 四期 Task 8：追评窗口校验 ──
@@ -295,5 +317,56 @@ describe('ReviewService.createFollowUpReview 追评窗口', () => {
             reviewedAt: daysAgo(1), productId: 42, rating: 5,
         });
         await expect(svc.createFollowUpReview(FOLLOW_CTX, '1', { content: '还没通过就追' })).rejects.toThrow(/通过审核/);
+    });
+});
+
+// ── §114：好评送礼闭环（礼包选择落库与校验） ──
+
+describe('ReviewService.createReview 礼包选择', () => {
+    const CREATE_CTX = { channelId: 113, activeUserId: 77, channel: { id: 113 } } as any;
+    const ORDER_LINE = { id: 501, order: { customer: { id: 9 }, state: 'Delivered' } };
+
+    function makeCreateService() {
+        const reviewRepo = {
+            findOne: vi.fn().mockResolvedValue(null),
+            save: vi.fn().mockImplementation(async (r: Review) => ({ ...r })),
+            update: vi.fn().mockResolvedValue({}),
+            find: vi.fn().mockResolvedValue([]),
+        };
+        const orderLineRepo = { findOne: vi.fn().mockResolvedValue(ORDER_LINE) };
+        const connection = {
+            getRepository: vi.fn((_ctx: any, entity: any) => (entity === OrderLine ? orderLineRepo : reviewRepo)),
+        };
+        const customerService = { findOneByUserId: vi.fn().mockResolvedValue({ id: 9 }) };
+        const svc = new ReviewService({} as any, connection as any, {} as any, customerService as any, {} as any);
+        return { svc, reviewRepo };
+    }
+
+    beforeEach(() => vi.clearAllMocks());
+
+    it('≥4 星 + 合法礼包 → 落库英文枚举 giftChoice', async () => {
+        const { svc, reviewRepo } = makeCreateService();
+        const saved = await svc.createReview(CREATE_CTX, {
+            productId: 42, orderLineId: 501, rating: 5, content: '好吃', giftChoice: 'quality',
+        } as any);
+        expect(saved.giftChoice).toBe('quality');
+        expect(reviewRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('≤3 星带礼包 → 忽略置 null（不发礼包）', async () => {
+        const { svc } = makeCreateService();
+        const saved = await svc.createReview(CREATE_CTX, {
+            productId: 42, orderLineId: 501, rating: 2, content: '一般', giftChoice: 'time',
+        } as any);
+        expect(saved.giftChoice).toBeNull();
+    });
+
+    it('非法礼包值 → 抛 UserInputError', async () => {
+        const { svc } = makeCreateService();
+        await expect(
+            svc.createReview(CREATE_CTX, {
+                productId: 42, orderLineId: 501, rating: 5, content: '好', giftChoice: '质量',
+            } as any),
+        ).rejects.toThrow(/giftChoice/);
     });
 });

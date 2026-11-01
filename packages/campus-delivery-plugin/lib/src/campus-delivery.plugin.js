@@ -178,6 +178,7 @@ const p36_compensation_task_1 = require("./migrations/p36-compensation-task");
 const p37_support_ticket_system_1 = require("./migrations/p37-support-ticket-system");
 const p38_support_assignee_dedupe_1 = require("./migrations/p38-support-assignee-dedupe");
 const p39_trust_copy_1 = require("./migrations/p39-trust-copy");
+const p40_review_gift_choice_1 = require("./migrations/p40-review-gift-choice");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -415,6 +416,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p37_support_ticket_system_1.P37SupportTicketSystemMigration,
             p38_support_assignee_dedupe_1.P38SupportAssigneeDedupeMigration,
             p39_trust_copy_1.P39TrustCopyMigration,
+            p40_review_gift_choice_1.P40ReviewGiftChoiceMigration,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,

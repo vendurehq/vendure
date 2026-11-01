@@ -12,6 +12,30 @@ export const reviewChannelCustomFields: CustomFields = {
             ],
         },
         {
+            name: 'reviewGiftQualityCouponTemplateId',
+            type: 'string',
+            label: [{ languageCode: LanguageCode.zh_Hans, value: '评价有礼：礼包「质量」券模板 ID（空=用通用模板）' }],
+            description: [
+                { languageCode: LanguageCode.zh_Hans, value: '顾客写评价时选「质量」礼包，审核通过后发此模板；留空回落通用奖励券模板' },
+            ],
+        },
+        {
+            name: 'reviewGiftServiceCouponTemplateId',
+            type: 'string',
+            label: [{ languageCode: LanguageCode.zh_Hans, value: '评价有礼：礼包「服务」券模板 ID（空=用通用模板）' }],
+            description: [
+                { languageCode: LanguageCode.zh_Hans, value: '顾客写评价时选「服务」礼包，审核通过后发此模板；留空回落通用奖励券模板' },
+            ],
+        },
+        {
+            name: 'reviewGiftTimeCouponTemplateId',
+            type: 'string',
+            label: [{ languageCode: LanguageCode.zh_Hans, value: '评价有礼：礼包「时间」券模板 ID（空=用通用模板）' }],
+            description: [
+                { languageCode: LanguageCode.zh_Hans, value: '顾客写评价时选「时间」礼包，审核通过后发此模板；留空回落通用奖励券模板' },
+            ],
+        },
+        {
             name: 'reviewGiftPoints',
             type: 'int',
             defaultValue: 0,
