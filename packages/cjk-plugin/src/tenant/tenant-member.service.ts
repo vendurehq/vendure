@@ -720,7 +720,8 @@ export class TenantMemberService {
             .findOne({ where: { id: String(channelId) } } as any);
         if (!channel) throw new Error('CHANNEL_NOT_FOUND');
         const tenantNo = Number((channel as any).customFields?.tenantNo);
-        if (!Number.isFinite(tenantNo)) throw new Error('TENANT_NO_MISSING');
+        // 空值/0 视为未分配租户号：Number(null) === 0、Number('') === 0，会被误当成 t0 而写出重复角色
+        if (!Number.isFinite(tenantNo) || tenantNo <= 0) throw new Error('TENANT_NO_MISSING');
         const created: any[] = [];
         for (const tpl of OFFICIAL_ROLE_TEMPLATES) {
             // 单个模板失败（如模板含已被收紧为超管专属的权限）不应阻塞其余模板补齐

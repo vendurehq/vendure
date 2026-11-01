@@ -663,7 +663,8 @@ let TenantMemberService = class TenantMemberService {
         if (!channel)
             throw new Error('CHANNEL_NOT_FOUND');
         const tenantNo = Number((_a = channel.customFields) === null || _a === void 0 ? void 0 : _a.tenantNo);
-        if (!Number.isFinite(tenantNo))
+        // 空值/0 视为未分配租户号：Number(null) === 0、Number('') === 0，会被误当成 t0 而写出重复角色
+        if (!Number.isFinite(tenantNo) || tenantNo <= 0)
             throw new Error('TENANT_NO_MISSING');
         const created = [];
         for (const tpl of role_templates_1.OFFICIAL_ROLE_TEMPLATES) {
