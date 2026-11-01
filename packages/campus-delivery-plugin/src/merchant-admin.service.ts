@@ -2992,6 +2992,8 @@ export class MerchantAdminService {
         const escalatedMap = await this.afterSalesEscalatedMap(ctx, [Number(request.id)]);
         const reviewPending = await this.refundReviewPendingSet(ctx, [Number(request.id)]);
         const businessHours = await this.channelBusinessHours(ctx);
+        // H2：售后详情对商家侧统一走号码保护口径，启用后不再回显顾客明文手机号
+        const displayPhone = await this.privacy.displayer(ctx, ctx.channelId);
         return {
             request: this.toAfterSalesRow(request, counts, timeoutHours, Date.now(), lastSender, {
                 risks: riskMap,
@@ -3006,11 +3008,11 @@ export class MerchantAdminService {
             refundError: request.refundError ?? null,
             actualRefundAmount: request.actualRefundAmount == null ? null : Number(request.actualRefundAmount),
             timeoutHours,
-            customerPhone: customer?.phoneNumber ?? null,
+            customerPhone: displayPhone(customer?.phoneNumber),
             shippingAddress: addr
                 ? {
                     fullName: [addr.fullName, addr.company].filter(Boolean).join(' / ') || String(addr.fullName ?? ''),
-                    phoneNumber: String(addr.phoneNumber ?? ''),
+                    phoneNumber: displayPhone(addr.phoneNumber) ?? '',
                     address: [addr.streetLine1, addr.streetLine2, addr.postalCode]
                         .filter(Boolean)
                         .join(' '),

@@ -54,6 +54,23 @@ export class PrivacyNumberService {
     }
 
     /**
+     * 展示号转换器（H2）：一次读取渠道配置，返回同步转换函数。
+     * 启用号码保护 → 脱敏号；未启用 → 原文。供列表/文案等 String 字段批量复用，避免逐条查配置。
+     */
+    async displayer(
+        ctx: RequestContext,
+        channelId: number | string,
+    ): Promise<(phone: string | null | undefined) => string | null> {
+        const cfg = await this.getConfig(ctx, channelId);
+        const enabled = !!cfg?.privacyNumberEnabled;
+        return phone => {
+            const raw = String(phone ?? '').trim();
+            if (!raw) return null;
+            return enabled ? this.mask(raw) : raw;
+        };
+    }
+
+    /**
      * 解析一个手机号在当前渠道下的展示方式。
      * 调用方：骑手任务联系人、商家工作台、客服台、运营侧工单。
      */

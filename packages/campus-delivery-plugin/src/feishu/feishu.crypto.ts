@@ -1,4 +1,4 @@
-import { createDecipheriv, createHash } from 'crypto';
+import { createDecipheriv, createHash, timingSafeEqual } from 'crypto';
 
 /**
  * 飞书事件订阅加密解密：AES-256-CBC。
@@ -23,4 +23,12 @@ export function decryptFeishuPayload(encrypt: string, encryptKey: string): any |
 /** 飞书回调签名：sha256(timestamp + nonce + encryptKey + rawBody)，rawBody 拿不到时用 JSON.stringify(body) */
 export function feishuSignature(timestamp: string, nonce: string, encryptKey: string, rawBody: string): string {
     return createHash('sha256').update(`${timestamp}${nonce}${encryptKey}${rawBody}`).digest('hex');
+}
+
+/** 定时安全比较两个 hex 签名：长度不等直接 false，避免 timingSafeEqual 抛错 */
+export function signatureEquals(expected: string, given: string): boolean {
+    if (!expected || !given) return false;
+    const a = Buffer.from(expected, 'utf8');
+    const b = Buffer.from(given, 'utf8');
+    return a.length === b.length && timingSafeEqual(a, b);
 }

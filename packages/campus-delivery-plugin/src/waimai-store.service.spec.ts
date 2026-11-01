@@ -38,7 +38,7 @@ describe('WaimaiStoreService.listStores', () => {
         const list = await env.svc.listStores({} as any);
         expect(list).toHaveLength(1);
         expect(list[0]).toEqual({
-            channelId: 2, channelToken: 'canteen', name: '一食堂麻辣香锅',
+            channelId: 2, name: '一食堂麻辣香锅',
             logo: '/static/a.webp', tags: ['米饭快餐', '夜宵'], monthlySales: 320,
             promoText: '满20减4',
             paused: false, routesEnabled: ['R1', 'R3'],
@@ -74,6 +74,52 @@ describe('WaimaiStoreService.listStores', () => {
         expect(list[0].storePhone).toBeNull();
         expect(list[0].storeNotice).toBeNull();
         expect(list[0].errandBaseFee).toBeNull();
+    });
+});
+
+describe('WaimaiStoreService.storeEntry', () => {
+    it('餐饮店铺按 channelId 下发 token（列表已不含 token）', async () => {
+        const env = makeEnv();
+        env.repoByEntity.Channel.findOne.mockResolvedValue({
+            id: 2, token: 'canteen', code: '一食堂麻辣香锅', customFields: { industryType: 'catering' },
+        });
+        env.repoByEntity.CampusFulfillmentConfig.findOne.mockResolvedValue({ channelId: 2 });
+        const entry = await env.svc.storeEntry({} as any, 2);
+        expect(entry).toEqual({ channelId: 2, channelToken: 'canteen' });
+        expect(entry).not.toHaveProperty('name');
+    });
+
+    it('默认渠道 / 非餐饮 / 无履约配置均拒绝', async () => {
+        const env = makeEnv();
+        env.repoByEntity.Channel.findOne.mockResolvedValue({
+            id: 1, token: 'default', code: '__default_channel__', customFields: {},
+        });
+        await expect(env.svc.storeEntry({} as any, 1)).rejects.toThrow('店铺不存在');
+
+        env.repoByEntity.Channel.findOne.mockResolvedValue({
+            id: 3, token: 'other', code: 'other', customFields: { industryType: 'retail' },
+        });
+        env.repoByEntity.CampusFulfillmentConfig.findOne.mockResolvedValue({ channelId: 3 });
+        await expect(env.svc.storeEntry({} as any, 3)).rejects.toThrow('店铺不存在');
+
+        env.repoByEntity.Channel.findOne.mockResolvedValue({
+            id: 4, token: 'no-cfg', code: 'no-cfg', customFields: { industryType: 'catering' },
+        });
+        env.repoByEntity.CampusFulfillmentConfig.findOne.mockResolvedValue(null);
+        await expect(env.svc.storeEntry({} as any, 4)).rejects.toThrow('店铺不存在');
+    });
+
+    it('每 IP 每分钟限流 120 次', async () => {
+        const env = makeEnv();
+        env.repoByEntity.Channel.findOne.mockResolvedValue({
+            id: 2, token: 'canteen', code: '一食堂', customFields: { industryType: 'catering' },
+        });
+        env.repoByEntity.CampusFulfillmentConfig.findOne.mockResolvedValue({ channelId: 2 });
+        const ctx = { req: { headers: {}, ip: '1.1.1.1' } } as any;
+        for (let i = 0; i < 120; i++) {
+            await env.svc.storeEntry(ctx, 2);
+        }
+        await expect(env.svc.storeEntry(ctx, 2)).rejects.toThrow('请求过于频繁');
     });
 });
 

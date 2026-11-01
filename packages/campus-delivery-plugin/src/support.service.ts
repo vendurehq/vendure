@@ -17,6 +17,7 @@ import { In, Not } from 'typeorm';
 import { CampusRiderAppeal, CampusBlacklist, CampusSupportTicket } from './support.entities';
 import { RiderCreditService } from './rider-credit.service';
 import { FeishuNotifyService, FeishuPushTarget } from './feishu/feishu-notify.service';
+import { PrivacyNumberService } from './privacy-number.service';
 import { dutyAssigneeAt, DutyEntry } from './after-sales-duty';
 
 const loggerCtx = 'CampusSupport';
@@ -59,7 +60,18 @@ export class SupportService {
         private credit: RiderCreditService,
         private feishu: FeishuNotifyService,
         private moduleRef?: ModuleRef,
+        /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响工单主流程 */
+        private privacy?: PrivacyNumberService,
     ) {}
+
+    /** 展示号转换器：启用号码保护时脱敏，未启用/依赖缺失时退回原文 */
+    private async phoneDisplayer(ctx: RequestContext): Promise<(p: string | null | undefined) => string | null> {
+        if (this.privacy) return this.privacy.displayer(ctx, ctx.channelId);
+        return p => {
+            const raw = String(p ?? '').trim();
+            return raw || null;
+        };
+    }
 
     /** vendure Injector 需由 ModuleRef 构造（Nest 不直接提供 Injector 作为可注入项） */
     private getAfterSales(): AfterSalesService | null {
@@ -255,6 +267,9 @@ export class SupportService {
         } as any);
         // 运营提醒：新工单推当前店铺群（channel 定向；平台群始终接收），无群也不影响提交
         const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '-';
+        // H2：飞书群消息会长期留存，顾客号码按号码保护口径脱敏
+        const display = await this.phoneDisplayer(ctx);
+        const phoneText = display(customer.phoneNumber);
         void this.pushFeishu(
             'support_ticket',
             '新客服工单',
@@ -266,7 +281,7 @@ export class SupportService {
                     : category === 'refund'
                         ? '售后单：未关联（顾客尚未发起售后申请）'
                         : '',
-                `顾客：${name}${customer.phoneNumber ? `（${customer.phoneNumber}）` : ''}`,
+                `顾客：${name}${phoneText ? `（${phoneText}）` : ''}`,
                 `内容：${content.slice(0, 120)}${content.length > 120 ? '…' : ''}`,
             ].filter(Boolean).join('\n'),
             orderCode,
@@ -435,6 +450,8 @@ export class SupportService {
         const byId = new Map(customers.map(c => [String(c.id), c]));
         // 工单与售后打通：列表直接回显关联售后单状态/金额，运营无需另开售后列表对照
         const { byId: asById, latestByOrderId } = await this.loadAfterSalesSummaries(ctx, items);
+        // H2：后台工单列表顾客号码按号码保护口径展示
+        const display = await this.phoneDisplayer(ctx);
         return {
             items: items.map(t => {
                 const c = byId.get(String(t.customerId));
@@ -446,7 +463,7 @@ export class SupportService {
                 return {
                     ...view,
                     customerName: [c?.firstName, c?.lastName].filter(Boolean).join(' ') || '-',
-                    customerPhone: c?.phoneNumber ?? null,
+                    customerPhone: display(c?.phoneNumber),
                 };
             }),
             total,

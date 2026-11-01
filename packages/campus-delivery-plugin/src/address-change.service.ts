@@ -35,6 +35,13 @@ const loggerCtx = 'CampusAddressChange';
 /** 外部配送已接单/取货后不可改址 */
 const THIRD_PARTY_LOCKED = ['accepted', 'pickup', 'delivered'];
 
+/**
+ * H4 未结清补差闸门：自助改址不阻断当前订单履约（先服务后补差），
+ * 但「其它订单」累计未结清补差达到上限后必须先结清，避免反复改到高价分区后欠费累积。
+ */
+const MAX_UNPAID_DIFF_CENTS = 1000; // ¥10
+const MAX_UNPAID_DIFF_ROWS = 3;
+
 @Injectable()
 export class AddressChangeService {
     constructor(
@@ -68,6 +75,7 @@ export class AddressChangeService {
             if (cf.deliveryStatus === 'in_progress') throw new UserInputError('骑手已取货，无法自助改址，请联系客服');
             if (THIRD_PARTY_LOCKED.includes(cf.thirdPartyState)) throw new UserInputError('外部配送已接单，无法自助改址');
 
+            await this.assertNoUnpaidDiff(ctx, customer.id, Number(order.id));
             const { zone, building } = await this.resolveTarget(ctx, input.zoneId, input.buildingId);
             return this.applyChange(ctx, order, zone, building, input.detail, {
                 source: 'customer',
@@ -363,6 +371,26 @@ export class AddressChangeService {
         // 否则该 Pending 单仍占已退额度，后续重试/拒单退款会少退。
         await settleRefundOrMarkFailed(this.connection, this.orderService, ctx, created.id);
         return created as Refund;
+    }
+
+    /**
+     * H4：自助改址前的未结清补差闸门。
+     * 只统计「其它订单」的待补收差额（本单连续改址允许，顾客改错后仍可纠正），
+     * 累计金额或笔数超限时要求先结清，防止反复改到高价分区后一直欠费。
+     */
+    private async assertNoUnpaidDiff(ctx: RequestContext, customerId: ID, orderId: number): Promise<void> {
+        const rows = await this.connection.getRepository(ctx, CampusAddressChange).find({
+            where: {
+                channelId: ctx.channelId as any,
+                customerId: customerId as any,
+                status: 'pending',
+            } as any,
+        });
+        const owed = rows.filter(r => Number(r.orderId) !== orderId && Number(r.diff ?? 0) > 0);
+        const owedSum = owed.reduce((sum, r) => sum + Number(r.diff ?? 0), 0);
+        if (owedSum >= MAX_UNPAID_DIFF_CENTS || owed.length >= MAX_UNPAID_DIFF_ROWS) {
+            throw new UserInputError('有未结清的改址差价，请先联系客服结清后再修改地址');
+        }
     }
 
     private async loadOrder(ctx: RequestContext, orderId: ID): Promise<Order> {

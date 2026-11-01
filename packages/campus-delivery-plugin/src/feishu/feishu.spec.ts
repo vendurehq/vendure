@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FeishuClient, buildWebhookPayload, buildWebhookSignature } from './feishu.client';
 import { AUDIT_TABLE_SQL, buildRestoreSQL, FeishuCommandService, parseCommand, requiredRole } from './feishu.command.service';
 import { parseChatMap, readFeishuSettings } from './feishu.config';
-import { decryptFeishuPayload } from './feishu.crypto';
+import { decryptFeishuPayload, feishuSignature, signatureEquals } from './feishu.crypto';
 import { FeishuEventService } from './feishu.event.service';
 import { FeishuNotifyService } from './feishu-notify.service';
 import { campusHhmm } from './feishu.digest.service';
@@ -782,5 +782,66 @@ describe('FeishuEventService 事件去重（M5 跨实例）', () => {
         await Promise.resolve();
         expect(a.command.handleMessage).toHaveBeenCalledTimes(1);
         expect(b.command.handleMessage).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('FeishuEventService 回调签名（H3）', () => {
+    const encryptKey = 'k-123';
+    const inner = {
+        header: { event_id: 'ev_sig', event_type: 'im.message.receive_v1', token: 'tok' },
+        event: {
+            message: { message_type: 'text', content: JSON.stringify({ text: '帮助' }), chat_id: 'oc_c1' },
+            sender: { sender_id: { open_id: 'ou_u1' } },
+        },
+    };
+
+    function makeEvent() {
+        const cfg = { enabled: true, settings: { verifyToken: 'tok', encryptKey } } as any;
+        const command = { handleMessage: vi.fn().mockResolvedValue(undefined), handleCardAction: vi.fn() } as any;
+        return { svc: new FeishuEventService(cfg, command), command };
+    }
+
+    /** 构造 { encrypt } 请求体与配套签名头 */
+    function signedBody(ts = Math.floor(Date.now() / 1000), nonce = 'n-1') {
+        const body = { encrypt: encrypt(JSON.stringify(inner), encryptKey) };
+        const timestamp = String(ts);
+        return {
+            body,
+            headers: {
+                timestamp,
+                nonce,
+                signature: feishuSignature(timestamp, nonce, encryptKey, JSON.stringify(body)),
+            },
+        };
+    }
+
+    it('signatureEquals：等长不同内容与长度不等都不通过', () => {
+        const a = feishuSignature('1', 'n', 'k', '{}');
+        expect(signatureEquals(a, a)).toBe(true);
+        expect(signatureEquals(a, a.replace(/^./, c => (c === 'a' ? 'b' : 'a')))).toBe(false);
+        expect(signatureEquals(a, 'abc')).toBe(false);
+    });
+
+    it('签名正确 → 解密后执行指令', async () => {
+        const { svc, command } = makeEvent();
+        const { body, headers } = signedBody();
+        expect((await svc.handle(body, headers)).status).toBe(200);
+        await Promise.resolve();
+        expect(command.handleMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it('签名错误 / 缺签名头 / 时间戳过期 → 403 且不执行', async () => {
+        const { svc, command } = makeEvent();
+        const { body, headers } = signedBody();
+        expect((await svc.handle(body, { ...headers, signature: 'deadbeef' })).status).toBe(403);
+        expect((await svc.handle(body, { timestamp: headers.timestamp, nonce: headers.nonce })).status).toBe(403);
+        const stale = signedBody(Math.floor(Date.now() / 1000) - 7200);
+        expect((await svc.handle(stale.body, stale.headers)).status).toBe(403);
+        expect(command.handleMessage).not.toHaveBeenCalled();
+    });
+
+    it('已配置 Encrypt Key 但收到明文回调 → 拒绝（fail closed）', async () => {
+        const { svc } = makeEvent();
+        expect((await svc.handle(inner)).status).toBe(403);
     });
 });

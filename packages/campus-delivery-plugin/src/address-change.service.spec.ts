@@ -10,11 +10,14 @@ interface EnvOpts {
     /** applyChange 先查改址史（effectiveOldFee）：默认无历史 */
     history?: any;
     updateAffected?: number;
+    /** 该顾客的待结清台账行（H4 闸门读取） */
+    pendingDiffs?: any[];
 }
 
 function makeEnv(opts: EnvOpts = {}) {
     const ledgerRepo = {
         findOne: vi.fn().mockResolvedValue(null),
+        find: vi.fn().mockResolvedValue(opts.pendingDiffs ?? []),
         update: vi.fn().mockResolvedValue({ affected: opts.updateAffected ?? 1 }),
         save: vi.fn(async (x: any) => ({ id: 99, ...x })),
         delete: vi.fn().mockResolvedValue({ affected: 1 }),
@@ -191,6 +194,49 @@ describe('AddressChangeService.applyChange 台账回滚（第13轮 P3）', () =>
         expect(env.ledgerRepo.delete).toHaveBeenCalledWith(99);
         // 改址失败不得通知用户/触发外部快递取消
         expect(env.orderService.updateCustomFields).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('AddressChangeService 未结清补差闸门（H4）', () => {
+    const row = (over: any = {}) => ({
+        id: 1,
+        channelId: 1,
+        orderId: 20,
+        orderCode: 'A20',
+        diff: 300,
+        status: 'pending',
+        refundId: null,
+        ...over,
+    });
+    const call = (env: ReturnType<typeof makeEnv>) =>
+        env.svc.changeByCustomer(
+            { channelId: 1, activeUserId: 5 } as any,
+            { orderId: 10, zoneId: 3, buildingId: 7 } as any,
+        );
+
+    it('其它订单累计 3 笔待补收 → 拒绝自助改址，且不写台账/不改订单', async () => {
+        const env = makeEnv({ pendingDiffs: [row({ orderId: 20 }), row({ orderId: 21 }), row({ orderId: 22 })] });
+        await expect(call(env)).rejects.toThrow('有未结清的改址差价');
+        expect(env.ledgerRepo.save).not.toHaveBeenCalled();
+        expect(env.orderService.updateCustomFields).not.toHaveBeenCalled();
+    });
+
+    it('其它订单累计待补收达到 ¥10 → 拒绝', async () => {
+        const env = makeEnv({ pendingDiffs: [row({ orderId: 20, diff: 600 }), row({ orderId: 21, diff: 500 })] });
+        await expect(call(env)).rejects.toThrow('有未结清的改址差价');
+    });
+
+    it('本单自身的待补收不阻断本单改址（允许顾客纠正地址）', async () => {
+        const env = makeEnv({ pendingDiffs: [row({ orderId: 10, diff: 500 })] });
+        const out: any = await call(env);
+        expect(out.recordId).toBe(99);
+        expect(env.ledgerRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('未结清差额在阈值内 → 正常改址', async () => {
+        const env = makeEnv({ pendingDiffs: [row({ orderId: 20, diff: 200 })] });
+        const out: any = await call(env);
+        expect(out.recordId).toBe(99);
     });
 });
 

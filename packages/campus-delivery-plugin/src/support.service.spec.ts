@@ -1,6 +1,7 @@
 // 工单/申诉提醒单测：新工单/新申诉 → 飞书店铺定向提醒；回复/审核结果 → 站内信（Message+MessageDelivery）
 import { describe, expect, it, vi } from 'vitest';
 import { SupportService } from './support.service';
+import { PrivacyNumberService } from './privacy-number.service';
 
 const ctx = {
     channelId: 1,
@@ -22,6 +23,8 @@ function make(overrides?: {
     openTickets?: any[];
     /** 值班表原始行（G3 自动指派：weekday/startMin/endMin/userId/userName） */
     dutyRows?: any[];
+    /** 渠道号码保护配置行（null/未传 = 未开启，原文展示） */
+    privacyConfig?: any;
 }) {
     const customer = {
         id: 5,
@@ -73,6 +76,7 @@ function make(overrides?: {
             }),
         },
         Customer: {
+            findByIds: vi.fn().mockResolvedValue([customer]),
             createQueryBuilder: vi.fn(() => ({
                 leftJoin: vi.fn().mockReturnThis(),
                 where: vi.fn().mockReturnThis(),
@@ -81,6 +85,9 @@ function make(overrides?: {
                     (overrides?.validCustomers ?? []).map(id => ({ id })),
                 ),
             })),
+        },
+        CampusFulfillmentConfig: {
+            findOne: vi.fn(() => Promise.resolve(overrides?.privacyConfig ?? null)),
         },
         Message: {
             create: vi.fn((v: any) => v),
@@ -110,7 +117,14 @@ function make(overrides?: {
     const moduleRef = overrides?.afterSalesSvc
         ? ({ get: vi.fn(() => overrides.afterSalesSvc) } as any)
         : undefined;
-    const svc = new SupportService(connection, customerService, credit, feishu, moduleRef);
+    const svc = new SupportService(
+        connection,
+        customerService,
+        credit,
+        feishu,
+        moduleRef,
+        overrides?.privacyConfig ? new PrivacyNumberService(connection) : undefined,
+    );
     return { svc, repos, saved, credit, feishu, blacklistSaved, blacklistUpdated, moduleRef };
 }
 
@@ -448,6 +462,33 @@ describe('SupportService 系统工单（R7）', () => {
         }));
         await expect(svc.adminTickets(ctx, undefined, undefined, undefined, undefined, 'abc'))
             .rejects.toThrow('值班人 id 不合法');
+    });
+});
+
+describe('SupportService 号码保护（H2）', () => {
+    const privacyConfig = { privacyNumberEnabled: true, privacyNumberProvider: 'mask' };
+
+    it('启用号码保护：飞书文案脱敏，不出现顾客明文号', async () => {
+        const { svc, feishu } = make({ privacyConfig });
+        await svc.createTicket(ctx, { category: 'delivery', content: '餐送错楼栋' });
+        await vi.waitFor(() => expect(feishu.pushEvent).toHaveBeenCalledTimes(1));
+        const content = feishu.pushEvent.mock.calls[0][2];
+        expect(content).toContain('138****0000');
+        expect(content).not.toContain('13800000000');
+    });
+
+    it('启用号码保护：后台工单列表返回脱敏号', async () => {
+        const { svc, repos } = make({ privacyConfig });
+        repos.CampusSupportTicket.findAndCount.mockResolvedValue([[{ id: 11, customerId: 5 }], 1]);
+        const list: any = await svc.adminTickets(ctx);
+        expect(list.items[0].customerPhone).toBe('138****0000');
+    });
+
+    it('未开启号码保护：保持原文展示', async () => {
+        const { svc, feishu } = make();
+        await svc.createTicket(ctx, { category: 'delivery', content: '餐送错楼栋' });
+        await vi.waitFor(() => expect(feishu.pushEvent).toHaveBeenCalledTimes(1));
+        expect(feishu.pushEvent.mock.calls[0][2]).toContain('13800000000');
     });
 });
 

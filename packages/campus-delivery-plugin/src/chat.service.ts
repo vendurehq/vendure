@@ -13,6 +13,7 @@ import {
 import { CampusChatConversation, CampusChatMessage } from './chat.entities';
 import { MoreThan } from 'typeorm';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
+import { PrivacyNumberService } from './privacy-number.service';
 
 const loggerCtx = 'CampusChat';
 
@@ -55,7 +56,18 @@ export class ChatService {
         private connection: TransactionalConnection,
         private customerService: CustomerService,
         private feishu: FeishuNotifyService,
+        /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响会话主流程 */
+        private privacy?: PrivacyNumberService,
     ) {}
+
+    /** 展示号转换器：启用号码保护时脱敏，未启用/依赖缺失时退回原文 */
+    private async phoneDisplayer(ctx: RequestContext): Promise<(p: string | null | undefined) => string | null> {
+        if (this.privacy) return this.privacy.displayer(ctx, ctx.channelId);
+        return p => {
+            const raw = String(p ?? '').trim();
+            return raw || null;
+        };
+    }
 
     private async requireCustomer(ctx: RequestContext): Promise<Customer> {
         if (!ctx.activeUserId) throw new ForbiddenError();
@@ -192,11 +204,14 @@ export class ChatService {
         // 仅新会话的首条消息提醒（后续消息靠后台会话列表未读角标，避免刷屏）
         if (firstMessage) {
             const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '-';
+            // H2：飞书群消息长期留存，顾客号码按号码保护口径脱敏
+            const display = await this.phoneDisplayer(ctx);
+            const phoneText = display(customer.phoneNumber);
             void this.pushFeishu(
                 ctx,
                 '新客服咨询',
                 [
-                    `顾客：${name}${customer.phoneNumber ? `（${customer.phoneNumber}）` : ''}`,
+                    `顾客：${name}${phoneText ? `（${phoneText}）` : ''}`,
                     conversation.orderCode ? `订单：${conversation.orderCode}` : '订单：未关联',
                     `内容：${brief(text || messageBrief(null, imgs))}`,
                 ].join('\n'),
@@ -252,13 +267,15 @@ export class ChatService {
             ? await this.connection.getRepository(ctx, Customer).findByIds(items.map(i => String(i.customerId)) as any)
             : [];
         const byId = new Map(customers.map(c => [String(c.id), c]));
+        // H2：后台会话列表顾客号码按号码保护口径展示
+        const display = await this.phoneDisplayer(ctx);
         return {
             items: items.map(c => {
                 const customer = byId.get(String(c.customerId));
                 return {
                     ...c,
                     customerName: [customer?.firstName, customer?.lastName].filter(Boolean).join(' ') || '-',
-                    customerPhone: customer?.phoneNumber ?? null,
+                    customerPhone: display(customer?.phoneNumber),
                 };
             }),
             total,

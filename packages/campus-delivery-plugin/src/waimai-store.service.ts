@@ -11,7 +11,6 @@ import { closedToday, safeClosureDates } from './closure-calendar';
 
 export interface WaimaiStore {
     channelId: number;
-    channelToken: string;
     name: string;
     logo: string | null;
     tags: string[];
@@ -50,6 +49,12 @@ export interface WaimaiStore {
     packingFeeAmount: number;
     packingFeeCap: number | null;
     packingFeeLabel: string | null;
+}
+
+/** 单店进店凭证：列表不再批量下发 token，C 端按 channelId 单店换取（限流） */
+export interface CampusStoreEntry {
+    channelId: number;
+    channelToken: string;
 }
 
 /** §113 信任文案（店铺级）：enabled=false 该行不展示，text=null 回落 C 端默认文案 */
@@ -216,8 +221,14 @@ const NOTIFY_TEMPLATE_FIELDS = [
     'notifyTemplateAddressChanged',
 ] as const;
 
+/** 单店进店换取限流：每 IP 每分钟 120 次（首屏并发换 token 足够，抑制批量枚举） */
+const ENTRY_RATE_WINDOW_MS = 60_000;
+const ENTRY_RATE_MAX = 120;
+
 @Injectable()
 export class WaimaiStoreService {
+    private readonly entryRate = new Map<string, { start: number; count: number }>();
+
     constructor(private connection: TransactionalConnection) {}
 
     /**
@@ -284,7 +295,7 @@ export class WaimaiStoreService {
     }
 
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。
-     * C 端进入店铺后用 channelToken 作 vendure-token 切换渠道拉菜单/下单。 */
+     * 不再下发 channelToken；C 端进店时按 channelId 调 campusStoreEntry 单店换取。 */
     async listStores(ctx: RequestContext): Promise<WaimaiStore[]> {
         const configs = await this.connection.getRepository(ctx, CampusFulfillmentConfig).find();
         const byChannel = new Map(configs.map(c => [Number(c.channelId), c]));
@@ -303,7 +314,6 @@ export class WaimaiStoreService {
             const closure = closedToday(safeClosureDates(cfg.closureDates, now), now);
             stores.push({
                 channelId: Number(ch.id),
-                channelToken: ch.token,
                 name: ch.code,
                 logo: cf.waimaiLogo ?? null,
                 tags: typeof cf.waimaiTags === 'string' && cf.waimaiTags.length
@@ -342,6 +352,53 @@ export class WaimaiStoreService {
             });
         }
         return stores;
+    }
+
+    /**
+     * 单店进店换取渠道 token：仅对「有履约配置 + 非默认渠道 + 餐饮行业」的店铺下发，
+     * 避免 public 列表一次性批量暴露全部渠道 token；每 IP 每分钟限流。
+     */
+    async storeEntry(ctx: RequestContext, channelId: number): Promise<CampusStoreEntry> {
+        if (!Number.isInteger(channelId) || channelId <= 0) {
+            throw new UserInputError('店铺不存在');
+        }
+        this.assertEntryRate(ctx);
+        const channel = await this.connection.getRepository(ctx, Channel).findOne({ where: { id: channelId } });
+        if (!channel || channel.code === '__default_channel__') {
+            throw new UserInputError('店铺不存在');
+        }
+        const cfg = await this.connection
+            .getRepository(ctx, CampusFulfillmentConfig)
+            .findOne({ where: { channelId } });
+        const cf = (channel.customFields ?? {}) as any;
+        if (!cfg || cf.industryType !== 'catering') {
+            throw new UserInputError('店铺不存在');
+        }
+        return { channelId: Number(channel.id), channelToken: channel.token };
+    }
+
+    /** 单店换取的进程内滑动窗口限流（多实例时各实例独立计数） */
+    private assertEntryRate(ctx: RequestContext): void {
+        const req: any = (ctx as any).req;
+        const forwarded = req?.headers?.['x-forwarded-for'];
+        const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split?.(',')?.[0]?.trim()
+            || req?.ip
+            || 'unknown';
+        const now = Date.now();
+        const rec = this.entryRate.get(ip);
+        if (!rec || now - rec.start >= ENTRY_RATE_WINDOW_MS) {
+            this.entryRate.set(ip, { start: now, count: 1 });
+            if (this.entryRate.size > 10_000) {
+                for (const [key, value] of this.entryRate) {
+                    if (now - value.start >= ENTRY_RATE_WINDOW_MS) this.entryRate.delete(key);
+                }
+            }
+            return;
+        }
+        if (rec.count >= ENTRY_RATE_MAX) {
+            throw new UserInputError('请求过于频繁，请稍后再试');
+        }
+        rec.count += 1;
     }
 
     /** admin：全店铺配置（跨渠道，join Channel 取店铺名/token；默认渠道是平台会话渠道，跳过） */
