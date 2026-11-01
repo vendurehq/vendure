@@ -58,6 +58,7 @@ import { P14ClosureCalendarMigration } from './migrations/p14-closure-calendar';
 import { P15SupportTicketAfterSalesMigration } from './migrations/p15-support-ticket-after-sales';
 import { P16MerchantUrgeAckMigration } from './migrations/p16-merchant-urge-ack';
 import { P23DailyPushMigration } from './migrations/p23-daily-push';
+import { P119DailyPushFailMigration } from './migrations/p119-daily-push-fail';
 import { AutoAcceptJob } from './auto-accept.job';
 import { DailyReportPushJob } from './daily-report-push.job';
 import { P12DailyLimitMigration } from './migrations/p12-daily-limit';
@@ -262,6 +263,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P15SupportTicketAfterSalesMigration,
         P16MerchantUrgeAckMigration,
         P23DailyPushMigration,
+        P119DailyPushFailMigration,
         AutoAcceptJob,
         DailyReportPushJob,
         SoldOutAutoRestoreJob,
@@ -1484,6 +1486,10 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     dailyPushTime: String!
                     """推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」"""
                     dailyPushChannelReady: Boolean!
+                    """最近一次推送失败时间（epoch ms，§119）：0 = 无可见失败"""
+                    dailyPushLastFailAt: Float!
+                    """最近一次推送失败原因（§119）：空 = 无可见失败"""
+                    dailyPushLastFailReason: String!
                     """售后月度摘要推送开关（§95）"""
                     monthlyPushEnabled: Boolean!
                     """月度推送日（1-28，默认 1）"""
@@ -3182,7 +3188,6 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
 
                 type WaimaiStore {
                     channelId: ID!
-                    channelToken: String!
                     name: String!
                     logo: String
                     tags: [String!]!
@@ -3224,6 +3229,12 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     packingFeeCap: Int
                     """C 端展示名称（空=打包费）"""
                     packingFeeLabel: String
+                }
+
+                """单店进店凭证：C 端按 channelId 换取渠道 token（服务端限流，避免列表批量暴露）"""
+                type CampusStoreEntry {
+                    channelId: ID!
+                    channelToken: String!
                 }
 
                 """隐私联系方式（号码保护）：protected=false 时 display 即真实号"""
@@ -3499,6 +3510,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     myRiderEarnings(skip: Int, take: Int): [RiderEarning!]!
                     campusCapacityCheck: CampusCapacityCheck!
                     waimaiStoreList: [WaimaiStore!]!
+                    """C 端进店换取单店渠道 token（按 channelId，避免 public 列表批量暴露 token）"""
+                    campusStoreEntry(channelId: ID!): CampusStoreEntry!
                     """当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案"""
                     campusStoreTrust: CampusStoreTrust!
                     """菜品每日限量/每人限购（§68）：当前渠道有限量配置商品的当日额度"""

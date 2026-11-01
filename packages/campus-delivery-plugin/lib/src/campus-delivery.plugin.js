@@ -57,6 +57,7 @@ const p14_closure_calendar_1 = require("./migrations/p14-closure-calendar");
 const p15_support_ticket_after_sales_1 = require("./migrations/p15-support-ticket-after-sales");
 const p16_merchant_urge_ack_1 = require("./migrations/p16-merchant-urge-ack");
 const p23_daily_push_1 = require("./migrations/p23-daily-push");
+const p119_daily_push_fail_1 = require("./migrations/p119-daily-push-fail");
 const auto_accept_job_1 = require("./auto-accept.job");
 const daily_report_push_job_1 = require("./daily-report-push.job");
 const p12_daily_limit_1 = require("./migrations/p12-daily-limit");
@@ -433,6 +434,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p15_support_ticket_after_sales_1.P15SupportTicketAfterSalesMigration,
             p16_merchant_urge_ack_1.P16MerchantUrgeAckMigration,
             p23_daily_push_1.P23DailyPushMigration,
+            p119_daily_push_fail_1.P119DailyPushFailMigration,
             auto_accept_job_1.AutoAcceptJob,
             daily_report_push_job_1.DailyReportPushJob,
             soldout_auto_restore_job_1.SoldOutAutoRestoreJob,
@@ -1655,6 +1657,10 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     dailyPushTime: String!
                     """推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」"""
                     dailyPushChannelReady: Boolean!
+                    """最近一次推送失败时间（epoch ms，§119）：0 = 无可见失败"""
+                    dailyPushLastFailAt: Float!
+                    """最近一次推送失败原因（§119）：空 = 无可见失败"""
+                    dailyPushLastFailReason: String!
                     """售后月度摘要推送开关（§95）"""
                     monthlyPushEnabled: Boolean!
                     """月度推送日（1-28，默认 1）"""
@@ -3353,7 +3359,6 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
 
                 type WaimaiStore {
                     channelId: ID!
-                    channelToken: String!
                     name: String!
                     logo: String
                     tags: [String!]!
@@ -3395,6 +3400,12 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     packingFeeCap: Int
                     """C 端展示名称（空=打包费）"""
                     packingFeeLabel: String
+                }
+
+                """单店进店凭证：C 端按 channelId 换取渠道 token（服务端限流，避免列表批量暴露）"""
+                type CampusStoreEntry {
+                    channelId: ID!
+                    channelToken: String!
                 }
 
                 """隐私联系方式（号码保护）：protected=false 时 display 即真实号"""
@@ -3670,6 +3681,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     myRiderEarnings(skip: Int, take: Int): [RiderEarning!]!
                     campusCapacityCheck: CampusCapacityCheck!
                     waimaiStoreList: [WaimaiStore!]!
+                    """C 端进店换取单店渠道 token（按 channelId，避免 public 列表批量暴露 token）"""
+                    campusStoreEntry(channelId: ID!): CampusStoreEntry!
                     """当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案"""
                     campusStoreTrust: CampusStoreTrust!
                     """菜品每日限量/每人限购（§68）：当前渠道有限量配置商品的当日额度"""

@@ -124,15 +124,21 @@ let DailyReportPushJob = class DailyReportPushJob {
             return;
         const report = await this.buildReport(channelId, now);
         const text = this.renderText(channel.code, report, (0, campus_time_1.campusDayKey)((0, campus_time_1.startOfCampusDay)(now) - DAY_MS));
-        const ok = await this.feishu.broadcast(text, { channel: channel.code });
+        const reasonOut = { reason: '' };
+        const ok = await this.feishu.broadcast(text, { channel: channel.code, reasonOut });
         if (!ok) {
             const n = attempts + 1;
             this.attempts.set(channelId, { day: todayKey, n });
+            // §119 失败原因落库：设置页展示「上次推送失败 时间 + 原因」，成功推送后清空
+            const reason = (reasonOut.reason || '推送失败（未知原因）').slice(0, 200);
+            await this.connection.rawConnection
+                .query('UPDATE "channel" SET "customFieldsWaimaidailypushlastfailat" = $1, "customFieldsWaimaidailypushlastfailreason" = $2 WHERE id = $3', [String(now), reason, channelId])
+                .catch((e) => core_1.Logger.warn(`daily report fail state not saved: ${e === null || e === void 0 ? void 0 : e.message}`, loggerCtx));
             if (n >= MAX_ATTEMPTS) {
-                core_1.Logger.error(`daily report retry limit reached (channel ${channel.code}, ${n}/${MAX_ATTEMPTS} today); give up until next day`, loggerCtx);
+                core_1.Logger.error(`daily report retry limit reached (channel ${channel.code}, ${n}/${MAX_ATTEMPTS} today, reason: ${reason}); give up until next day`, loggerCtx);
             }
             else {
-                core_1.Logger.warn(`daily report not delivered (channel ${channel.code}, attempt ${n}/${MAX_ATTEMPTS}), retry next round`, loggerCtx);
+                core_1.Logger.warn(`daily report not delivered (channel ${channel.code}, attempt ${n}/${MAX_ATTEMPTS}, reason: ${reason}), retry next round`, loggerCtx);
             }
             return;
         }
@@ -143,6 +149,10 @@ let DailyReportPushJob = class DailyReportPushJob {
             fresh.customFields.waimaiDailyPushLastDate = todayKey;
             await repo.save(fresh);
         }
+        // 成功即抹掉历史失败标记（§119），避免设置页继续显示过期失败
+        await this.connection.rawConnection
+            .query('UPDATE "channel" SET "customFieldsWaimaidailypushlastfailat" = NULL, "customFieldsWaimaidailypushlastfailreason" = NULL WHERE id = $1', [channelId])
+            .catch(() => undefined);
         core_1.Logger.info(`daily report pushed for channel ${channel.code} (${report.orders} orders)`, loggerCtx);
     }
     /** 昨日日报（校园时区自然日；口径同经营设置页 revenue：deliveredAt 归日） */

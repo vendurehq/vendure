@@ -63,22 +63,32 @@ let FeishuClient = class FeishuClient {
     get enabled() {
         return this.cfg.enabled;
     }
-    /** 推送到群自定义机器人（or 单群 webhook） */
-    async sendWebhook(text) {
-        var _a, _b, _c, _d;
+    /** 推送到群自定义机器人（or 单群 webhook）；reasonOut（§119）回填失败原因，供后台展示 */
+    async sendWebhook(text, reasonOut) {
+        var _a, _b, _c, _d, _e;
         const { webhook, secret } = this.cfg.settings;
-        if (!webhook)
+        if (!webhook) {
+            if (reasonOut)
+                reasonOut.reason = '未配置 webhook';
             return false;
+        }
         try {
             const json = await postJson(webhook, buildWebhookPayload(text, secret));
             const code = (_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : json === null || json === void 0 ? void 0 : json.StatusCode;
             if (json && (code === 0 || code === undefined) && !json.__httpStatus)
                 return true;
-            core_1.Logger.warn(`飞书 webhook 发送失败：code=${code !== null && code !== void 0 ? code : 'n/a'} msg=${(_c = (_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : json === null || json === void 0 ? void 0 : json.StatusMessage) !== null && _c !== void 0 ? _c : 'n/a'}`, loggerCtx);
+            const reason = (json === null || json === void 0 ? void 0 : json.__httpStatus)
+                ? `webhook HTTP ${json.__httpStatus}`
+                : `code=${code !== null && code !== void 0 ? code : 'n/a'} msg=${(_c = (_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : json === null || json === void 0 ? void 0 : json.StatusMessage) !== null && _c !== void 0 ? _c : 'n/a'}`;
+            core_1.Logger.warn(`飞书 webhook 发送失败：${reason}`, loggerCtx);
+            if (reasonOut)
+                reasonOut.reason = `webhook ${reason}`;
             return false;
         }
         catch (e) {
             core_1.Logger.warn(`飞书 webhook 发送异常：${(_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e}`, loggerCtx);
+            if (reasonOut)
+                reasonOut.reason = `webhook 异常：${(_e = e === null || e === void 0 ? void 0 : e.message) !== null && _e !== void 0 ? _e : e}`;
             return false;
         }
     }
@@ -86,12 +96,12 @@ let FeishuClient = class FeishuClient {
     async sendToChat(chatId, text, opts) {
         const { appId, appSecret } = this.cfg.settings;
         if (!appId || !appSecret)
-            return this.sendWebhook(text);
+            return this.sendWebhook(text, opts === null || opts === void 0 ? void 0 : opts.reasonOut);
         const content = { text };
         if (opts === null || opts === void 0 ? void 0 : opts.atAll) {
             content.text = `<at user_id="all">所有人</at> ${text}`;
         }
-        return (await this.sendMessage(chatId, 'text', content)) != null;
+        return (await this.sendMessage(chatId, 'text', content, opts === null || opts === void 0 ? void 0 : opts.reasonOut)) != null;
     }
     /** 发交互卡片，返回 message_id（失败 null；调用方自行降级） */
     async sendCard(chatId, card) {
@@ -173,18 +183,26 @@ let FeishuClient = class FeishuClient {
         }
         return ok;
     }
-    async sendMessage(chatId, msgType, content) {
+    async sendMessage(chatId, msgType, content, reasonOut) {
         var _a, _b, _c, _d;
         const { appId, appSecret } = this.cfg.settings;
-        if (!appId || !appSecret)
+        if (!appId || !appSecret) {
+            if (reasonOut)
+                reasonOut.reason = '未配置飞书应用';
             return null;
+        }
         const json = await this.request('POST', `${API_BASE}/im/v1/messages?receive_id_type=chat_id`, {
             receive_id: chatId,
             msg_type: msgType,
             content: JSON.stringify(content),
         });
         if (!this.ok(json)) {
-            core_1.Logger.warn(`飞书消息发送失败：code=${(_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : 'n/a'} msg=${(_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : 'n/a'}${(json === null || json === void 0 ? void 0 : json.__httpStatus) ? ` http=${json.__httpStatus}` : ''}`, loggerCtx);
+            const reason = json
+                ? `code=${(_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : 'n/a'} msg=${(_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : 'n/a'}${(json === null || json === void 0 ? void 0 : json.__httpStatus) ? ` http=${json.__httpStatus}` : ''}`
+                : '请求失败（无法获取 access_token）';
+            core_1.Logger.warn(`飞书消息发送失败：${reason}`, loggerCtx);
+            if (reasonOut)
+                reasonOut.reason = reason;
             return null;
         }
         return (_d = (_c = json === null || json === void 0 ? void 0 : json.data) === null || _c === void 0 ? void 0 : _c.message_id) !== null && _d !== void 0 ? _d : null;
@@ -235,11 +253,14 @@ let FeishuClient = class FeishuClient {
      *   若没有任何群命中（例如未配置店铺群）则退回 webhook，保证告警不静默丢失。
      */
     async broadcast(text, opts) {
-        if (!this.enabled)
+        if (!this.enabled) {
+            if (opts === null || opts === void 0 ? void 0 : opts.reasonOut)
+                opts.reasonOut.reason = '推送渠道未配置';
             return false;
+        }
         const chats = Object.entries(this.cfg.settings.chats);
         if (chats.length === 0)
-            return this.sendWebhook(text);
+            return this.sendWebhook(text, opts === null || opts === void 0 ? void 0 : opts.reasonOut);
         let ok = false;
         let matched = false;
         for (const [chatId, chat] of chats) {
@@ -253,7 +274,9 @@ let FeishuClient = class FeishuClient {
                 ok = true;
         }
         if (!matched)
-            return this.sendWebhook(text);
+            return this.sendWebhook(text, opts === null || opts === void 0 ? void 0 : opts.reasonOut);
+        if (!ok && (opts === null || opts === void 0 ? void 0 : opts.reasonOut) && !opts.reasonOut.reason)
+            opts.reasonOut.reason = '已映射群均发送失败';
         return ok;
     }
     /** tenant_access_token 缓存（提前 5 分钟过期），单飞防并发重复取 */

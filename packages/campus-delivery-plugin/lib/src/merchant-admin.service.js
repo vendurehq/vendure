@@ -104,13 +104,18 @@ let MerchantAdminService = class MerchantAdminService {
     }
     /** 商家自助经营：门店资料（营业时间/公告/电话/营业状态） */
     async storeProfile(ctx) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4;
         const cfg = await this.config.getConfig(ctx);
         const channel = await this.connection.getRepository(ctx, core_2.Channel)
             .findOne({ where: { id: ctx.channelId } });
         if (!channel)
             throw new core_2.UserInputError('当前店铺渠道不存在');
         const hours = (_b = ((_a = channel.customFields) !== null && _a !== void 0 ? _a : {}).waimaiBusinessHours) !== null && _b !== void 0 ? _b : null;
+        // 日报失败原因（§119）：只有失败发生在「最近一次成功」之后就展示，避免成功后仍挂旧错误
+        const pushCf = ((_c = channel.customFields) !== null && _c !== void 0 ? _c : {});
+        const failAt = Number((_d = pushCf.waimaiDailyPushLastFailAt) !== null && _d !== void 0 ? _d : 0) || 0;
+        const lastPushDate = String((_e = pushCf.waimaiDailyPushLastDate) !== null && _e !== void 0 ? _e : '');
+        const failVisible = failAt > 0 && (lastPushDate === '' || (0, campus_time_1.campusDayKey)(failAt) > lastPushDate);
         const closureDates = (0, closure_calendar_1.safeClosureDates)(cfg.closureDates);
         const closure = (0, closure_calendar_1.closedToday)(closureDates);
         // 未出餐订单（§71）：休业日提醒商家仍有待接单/备餐中订单需处理；轮询 10s 一次，轻量计数
@@ -123,38 +128,41 @@ let MerchantAdminService = class MerchantAdminService {
         return {
             storeName: channel.code,
             businessHours: hours,
-            storeNotice: (_c = cfg.storeNotice) !== null && _c !== void 0 ? _c : null,
-            storePhone: (_d = cfg.storePhone) !== null && _d !== void 0 ? _d : null,
+            storeNotice: (_f = cfg.storeNotice) !== null && _f !== void 0 ? _f : null,
+            storePhone: (_g = cfg.storePhone) !== null && _g !== void 0 ? _g : null,
             paused: cfg.paused,
             // 与 C 端 openNow / 下单闸门同口径：营业时段内、未临时休息、且今日不在休业日历
             openNow: (0, business_hours_1.isWithinBusinessHours)(hours) && !cfg.paused && !closure,
             closedToday: !!closure,
-            closureNote: (_e = closure === null || closure === void 0 ? void 0 : closure.note) !== null && _e !== void 0 ? _e : null,
+            closureNote: (_h = closure === null || closure === void 0 ? void 0 : closure.note) !== null && _h !== void 0 ? _h : null,
             closureDates,
             nextTransition: (0, business_hours_1.nextBusinessTransition)(hours),
             unfinishedOrders,
             // 日报推送（§86）：Channel 自定义字段，空时间按 21:30
-            dailyPushEnabled: !!((_f = channel.customFields) !== null && _f !== void 0 ? _f : {}).waimaiDailyPushEnabled,
-            dailyPushTime: ((_g = channel.customFields) !== null && _g !== void 0 ? _g : {}).waimaiDailyPushTime || '21:30',
+            dailyPushEnabled: !!((_j = channel.customFields) !== null && _j !== void 0 ? _j : {}).waimaiDailyPushEnabled,
+            dailyPushTime: ((_k = channel.customFields) !== null && _k !== void 0 ? _k : {}).waimaiDailyPushTime || '21:30',
             // 推送渠道（§118）：飞书未配置时日报无法送达，设置页显示降级提示
             dailyPushChannelReady: this.feishu.enabled,
+            // 失败原因可见（§119）：最近一次失败时间（epoch ms）与原因，仅当失败晚于最近成功日
+            dailyPushLastFailAt: failVisible ? failAt : 0,
+            dailyPushLastFailReason: failVisible ? String((_l = pushCf.waimaiDailyPushLastFailReason) !== null && _l !== void 0 ? _l : '') : '',
             // 售后月度摘要推送（§95）：空按每月 1 日 21:30
-            monthlyPushEnabled: !!((_h = channel.customFields) !== null && _h !== void 0 ? _h : {}).waimaiAfterSalesMonthlyPushEnabled,
-            monthlyPushDay: Number((_k = ((_j = channel.customFields) !== null && _j !== void 0 ? _j : {}).waimaiAfterSalesMonthlyPushDay) !== null && _k !== void 0 ? _k : 1) || 1,
-            monthlyPushTime: ((_l = channel.customFields) !== null && _l !== void 0 ? _l : {}).waimaiAfterSalesMonthlyPushTime || '21:30',
+            monthlyPushEnabled: !!((_m = channel.customFields) !== null && _m !== void 0 ? _m : {}).waimaiAfterSalesMonthlyPushEnabled,
+            monthlyPushDay: Number((_p = ((_o = channel.customFields) !== null && _o !== void 0 ? _o : {}).waimaiAfterSalesMonthlyPushDay) !== null && _p !== void 0 ? _p : 1) || 1,
+            monthlyPushTime: ((_q = channel.customFields) !== null && _q !== void 0 ? _q : {}).waimaiAfterSalesMonthlyPushTime || '21:30',
             // 售后自动化（§96）：自动分配 + 异常预警，阈值 0=关闭该项
-            autoAssignEnabled: !!((_m = channel.customFields) !== null && _m !== void 0 ? _m : {}).waimaiAfterSalesAutoAssignEnabled,
-            autoAssignMax: Math.max(0, Number((_p = ((_o = channel.customFields) !== null && _o !== void 0 ? _o : {}).waimaiAfterSalesAutoAssignMax) !== null && _p !== void 0 ? _p : 0) || 0),
-            alertEnabled: !!((_q = channel.customFields) !== null && _q !== void 0 ? _q : {}).waimaiAfterSalesAlertEnabled,
-            alertRefundRate: Math.max(0, Number((_s = ((_r = channel.customFields) !== null && _r !== void 0 ? _r : {}).waimaiAfterSalesAlertRefundRate) !== null && _s !== void 0 ? _s : 0) || 0),
-            alertOverdueCount: Math.max(0, Number((_u = ((_t = channel.customFields) !== null && _t !== void 0 ? _t : {}).waimaiAfterSalesAlertOverdueCount) !== null && _u !== void 0 ? _u : 0) || 0),
+            autoAssignEnabled: !!((_r = channel.customFields) !== null && _r !== void 0 ? _r : {}).waimaiAfterSalesAutoAssignEnabled,
+            autoAssignMax: Math.max(0, Number((_t = ((_s = channel.customFields) !== null && _s !== void 0 ? _s : {}).waimaiAfterSalesAutoAssignMax) !== null && _t !== void 0 ? _t : 0) || 0),
+            alertEnabled: !!((_u = channel.customFields) !== null && _u !== void 0 ? _u : {}).waimaiAfterSalesAlertEnabled,
+            alertRefundRate: Math.max(0, Number((_w = ((_v = channel.customFields) !== null && _v !== void 0 ? _v : {}).waimaiAfterSalesAlertRefundRate) !== null && _w !== void 0 ? _w : 0) || 0),
+            alertOverdueCount: Math.max(0, Number((_y = ((_x = channel.customFields) !== null && _x !== void 0 ? _x : {}).waimaiAfterSalesAlertOverdueCount) !== null && _y !== void 0 ? _y : 0) || 0),
             // 信任文案（§113）：店铺级配置，空文案回落 C 端默认文案
-            trustQualityEnabled: (_v = cfg.trustQualityEnabled) !== null && _v !== void 0 ? _v : true,
-            trustQualityText: (_w = cfg.trustQualityText) !== null && _w !== void 0 ? _w : null,
-            trustServiceEnabled: (_x = cfg.trustServiceEnabled) !== null && _x !== void 0 ? _x : true,
-            trustServiceText: (_y = cfg.trustServiceText) !== null && _y !== void 0 ? _y : null,
-            trustTimeEnabled: (_z = cfg.trustTimeEnabled) !== null && _z !== void 0 ? _z : true,
-            trustTimeText: (_0 = cfg.trustTimeText) !== null && _0 !== void 0 ? _0 : null,
+            trustQualityEnabled: (_z = cfg.trustQualityEnabled) !== null && _z !== void 0 ? _z : true,
+            trustQualityText: (_0 = cfg.trustQualityText) !== null && _0 !== void 0 ? _0 : null,
+            trustServiceEnabled: (_1 = cfg.trustServiceEnabled) !== null && _1 !== void 0 ? _1 : true,
+            trustServiceText: (_2 = cfg.trustServiceText) !== null && _2 !== void 0 ? _2 : null,
+            trustTimeEnabled: (_3 = cfg.trustTimeEnabled) !== null && _3 !== void 0 ? _3 : true,
+            trustTimeText: (_4 = cfg.trustTimeText) !== null && _4 !== void 0 ? _4 : null,
         };
     }
     /** 商家自助修改门店资料：营业时间走 Channel 自定义字段，公告/电话走履约配置白名单 */

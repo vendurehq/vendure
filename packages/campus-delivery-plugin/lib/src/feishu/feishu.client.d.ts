@@ -26,11 +26,16 @@ export declare class FeishuClient {
     private inflight?;
     constructor(cfg: FeishuConfigService);
     get enabled(): boolean;
-    /** 推送到群自定义机器人（or 单群 webhook） */
-    sendWebhook(text: string): Promise<boolean>;
+    /** 推送到群自定义机器人（or 单群 webhook）；reasonOut（§119）回填失败原因，供后台展示 */
+    sendWebhook(text: string, reasonOut?: {
+        reason: string;
+    }): Promise<boolean>;
     /** 以自建应用身份发到指定群；未配置应用时退回 webhook */
     sendToChat(chatId: string, text: string, opts?: {
         atAll?: boolean;
+        reasonOut?: {
+            reason: string;
+        };
     }): Promise<boolean>;
     /** 发交互卡片，返回 message_id（失败 null；调用方自行降级） */
     sendCard(chatId: string, card: unknown): Promise<string | null>;
@@ -64,6 +69,9 @@ export declare class FeishuClient {
         atAll?: boolean;
         scope?: string;
         channel?: string;
+        reasonOut?: {
+            reason: string;
+        };
     }): Promise<boolean>;
     /** tenant_access_token 缓存（提前 5 分钟过期），单飞防并发重复取 */
     private tenantToken;

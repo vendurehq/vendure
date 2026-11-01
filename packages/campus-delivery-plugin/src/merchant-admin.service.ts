@@ -934,6 +934,10 @@ export interface MerchantStoreProfile {
     dailyPushTime: string;
     /** 推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」 */
     dailyPushChannelReady: boolean;
+    /** 最近一次推送失败时间（epoch ms，§119）：0 = 无可见失败 */
+    dailyPushLastFailAt: number;
+    /** 最近一次推送失败原因（≤200 字，§119）：空 = 无可见失败 */
+    dailyPushLastFailReason: string;
     /** 售后月度摘要推送开关（§95） */
     monthlyPushEnabled: boolean;
     /** 月度推送日（1-28，默认 1） */
@@ -1175,6 +1179,11 @@ export class MerchantAdminService {
             .findOne({ where: { id: ctx.channelId as any } });
         if (!channel) throw new UserInputError('当前店铺渠道不存在');
         const hours = ((channel.customFields ?? {}) as any).waimaiBusinessHours ?? null;
+        // 日报失败原因（§119）：只有失败发生在「最近一次成功」之后就展示，避免成功后仍挂旧错误
+        const pushCf = (channel.customFields ?? {}) as any;
+        const failAt = Number(pushCf.waimaiDailyPushLastFailAt ?? 0) || 0;
+        const lastPushDate = String(pushCf.waimaiDailyPushLastDate ?? '');
+        const failVisible = failAt > 0 && (lastPushDate === '' || campusDayKey(failAt) > lastPushDate);
         const closureDates = safeClosureDates(cfg.closureDates);
         const closure = closedToday(closureDates);
         // 未出餐订单（§71）：休业日提醒商家仍有待接单/备餐中订单需处理；轮询 10s 一次，轻量计数
@@ -1202,6 +1211,9 @@ export class MerchantAdminService {
             dailyPushTime: ((channel.customFields ?? {}) as any).waimaiDailyPushTime || '21:30',
             // 推送渠道（§118）：飞书未配置时日报无法送达，设置页显示降级提示
             dailyPushChannelReady: this.feishu.enabled,
+            // 失败原因可见（§119）：最近一次失败时间（epoch ms）与原因，仅当失败晚于最近成功日
+            dailyPushLastFailAt: failVisible ? failAt : 0,
+            dailyPushLastFailReason: failVisible ? String(pushCf.waimaiDailyPushLastFailReason ?? '') : '',
             // 售后月度摘要推送（§95）：空按每月 1 日 21:30
             monthlyPushEnabled: !!((channel.customFields ?? {}) as any).waimaiAfterSalesMonthlyPushEnabled,
             monthlyPushDay: Number(((channel.customFields ?? {}) as any).waimaiAfterSalesMonthlyPushDay ?? 1) || 1,

@@ -69,31 +69,39 @@ export class FeishuClient {
         return this.cfg.enabled;
     }
 
-    /** 推送到群自定义机器人（or 单群 webhook） */
-    async sendWebhook(text: string): Promise<boolean> {
+    /** 推送到群自定义机器人（or 单群 webhook）；reasonOut（§119）回填失败原因，供后台展示 */
+    async sendWebhook(text: string, reasonOut?: { reason: string }): Promise<boolean> {
         const { webhook, secret } = this.cfg.settings;
-        if (!webhook) return false;
+        if (!webhook) {
+            if (reasonOut) reasonOut.reason = '未配置 webhook';
+            return false;
+        }
         try {
             const json = await postJson(webhook, buildWebhookPayload(text, secret));
             const code = json?.code ?? json?.StatusCode;
             if (json && (code === 0 || code === undefined) && !json.__httpStatus) return true;
-            Logger.warn(`飞书 webhook 发送失败：code=${code ?? 'n/a'} msg=${json?.msg ?? json?.StatusMessage ?? 'n/a'}`, loggerCtx);
+            const reason = json?.__httpStatus
+                ? `webhook HTTP ${json.__httpStatus}`
+                : `code=${code ?? 'n/a'} msg=${json?.msg ?? json?.StatusMessage ?? 'n/a'}`;
+            Logger.warn(`飞书 webhook 发送失败：${reason}`, loggerCtx);
+            if (reasonOut) reasonOut.reason = `webhook ${reason}`;
             return false;
         } catch (e: any) {
             Logger.warn(`飞书 webhook 发送异常：${e?.message ?? e}`, loggerCtx);
+            if (reasonOut) reasonOut.reason = `webhook 异常：${e?.message ?? e}`;
             return false;
         }
     }
 
     /** 以自建应用身份发到指定群；未配置应用时退回 webhook */
-    async sendToChat(chatId: string, text: string, opts?: { atAll?: boolean }): Promise<boolean> {
+    async sendToChat(chatId: string, text: string, opts?: { atAll?: boolean; reasonOut?: { reason: string } }): Promise<boolean> {
         const { appId, appSecret } = this.cfg.settings;
-        if (!appId || !appSecret) return this.sendWebhook(text);
+        if (!appId || !appSecret) return this.sendWebhook(text, opts?.reasonOut);
         const content: any = { text };
         if (opts?.atAll) {
             content.text = `<at user_id="all">所有人</at> ${text}`;
         }
-        return (await this.sendMessage(chatId, 'text', content)) != null;
+        return (await this.sendMessage(chatId, 'text', content, opts?.reasonOut)) != null;
     }
 
     /** 发交互卡片，返回 message_id（失败 null；调用方自行降级） */
@@ -176,19 +184,31 @@ export class FeishuClient {
         return ok;
     }
 
-    private async sendMessage(chatId: string, msgType: string, content: unknown): Promise<string | null> {
+    private async sendMessage(
+        chatId: string,
+        msgType: string,
+        content: unknown,
+        reasonOut?: { reason: string },
+    ): Promise<string | null> {
         const { appId, appSecret } = this.cfg.settings;
-        if (!appId || !appSecret) return null;
+        if (!appId || !appSecret) {
+            if (reasonOut) reasonOut.reason = '未配置飞书应用';
+            return null;
+        }
         const json = await this.request('POST', `${API_BASE}/im/v1/messages?receive_id_type=chat_id`, {
             receive_id: chatId,
             msg_type: msgType,
             content: JSON.stringify(content),
         });
         if (!this.ok(json)) {
+            const reason = json
+                ? `code=${json?.code ?? 'n/a'} msg=${json?.msg ?? 'n/a'}${json?.__httpStatus ? ` http=${json.__httpStatus}` : ''}`
+                : '请求失败（无法获取 access_token）';
             Logger.warn(
-                `飞书消息发送失败：code=${json?.code ?? 'n/a'} msg=${json?.msg ?? 'n/a'}${json?.__httpStatus ? ` http=${json.__httpStatus}` : ''}`,
+                `飞书消息发送失败：${reason}`,
                 loggerCtx,
             );
+            if (reasonOut) reasonOut.reason = reason;
             return null;
         }
         return json?.data?.message_id ?? null;
@@ -238,10 +258,16 @@ export class FeishuClient {
      * - channel：店铺定向推送 —— 只发「该店铺群 + 平台群」，避免 A 店告警刷到 B 店群；
      *   若没有任何群命中（例如未配置店铺群）则退回 webhook，保证告警不静默丢失。
      */
-    async broadcast(text: string, opts?: { atAll?: boolean; scope?: string; channel?: string }): Promise<boolean> {
-        if (!this.enabled) return false;
+    async broadcast(
+        text: string,
+        opts?: { atAll?: boolean; scope?: string; channel?: string; reasonOut?: { reason: string } },
+    ): Promise<boolean> {
+        if (!this.enabled) {
+            if (opts?.reasonOut) opts.reasonOut.reason = '推送渠道未配置';
+            return false;
+        }
         const chats = Object.entries(this.cfg.settings.chats);
-        if (chats.length === 0) return this.sendWebhook(text);
+        if (chats.length === 0) return this.sendWebhook(text, opts?.reasonOut);
         let ok = false;
         let matched = false;
         for (const [chatId, chat] of chats) {
@@ -251,7 +277,8 @@ export class FeishuClient {
             matched = true;
             if (await this.sendToChat(chatId, text, opts)) ok = true;
         }
-        if (!matched) return this.sendWebhook(text);
+        if (!matched) return this.sendWebhook(text, opts?.reasonOut);
+        if (!ok && opts?.reasonOut && !opts.reasonOut.reason) opts.reasonOut.reason = '已映射群均发送失败';
         return ok;
     }
 

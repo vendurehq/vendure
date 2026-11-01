@@ -83,6 +83,9 @@ exports.campusCustomFields = {
         { name: 'waimaiDailyPushEnabled', type: 'boolean', nullable: true, defaultValue: false },
         { name: 'waimaiDailyPushTime', type: 'string', nullable: true }, // 'HH:MM'，空=21:30
         { name: 'waimaiDailyPushLastDate', type: 'string', nullable: true }, // 幂等键：已推送的校园日 'YYYY-MM-DD'
+        // §119 失败原因可见：最近一次失败的时间（epoch ms）与原因（≤200 字），成功推送后清空
+        { name: 'waimaiDailyPushLastFailAt', type: 'string', nullable: true },
+        { name: 'waimaiDailyPushLastFailReason', type: 'string', nullable: true },
         // 售后月度摘要推送（§95）：每月指定日把上月售后汇总推到店铺群
         { name: 'waimaiAfterSalesMonthlyPushEnabled', type: 'boolean', nullable: true, defaultValue: false },
         { name: 'waimaiAfterSalesMonthlyPushDay', type: 'int', nullable: true }, // 1-28，空=1
