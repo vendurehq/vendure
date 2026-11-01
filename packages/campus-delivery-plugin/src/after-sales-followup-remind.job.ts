@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { Channel, EventBus, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 import { AfterSalesMerchantNotifyEvent } from '@vendure/after-sales-plugin';
+import { withAdvisoryLock } from './advisory-lock';
 import { PeriodicFallback } from './periodic-fallback';
 
 const loggerCtx = 'CampusAfterSalesFollowUp';
@@ -31,7 +32,10 @@ export class AfterSalesFollowUpRemindJob implements OnApplicationShutdown {
             bootDelayMs: BOOT_DELAY_MS,
             loggerCtx,
         });
-        this.fallback.start(() => this.runOnce());
+        this.fallback.start(() =>
+            // 多实例互斥：拿不到锁说明其他实例正在扫描，本轮直接跳过（避免回访提醒重复推送）
+            withAdvisoryLock(this.connection, 'campus:after-sales-followup-remind', () => this.runOnce()),
+        );
     }
 
     stop(): void {

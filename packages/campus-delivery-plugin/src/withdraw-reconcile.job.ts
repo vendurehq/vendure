@@ -1,4 +1,6 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { TransactionalConnection } from '@vendure/core';
+import { withAdvisoryLock } from './advisory-lock';
 import { PeriodicFallback } from './periodic-fallback';
 import { RiderWalletService } from './rider-wallet.service';
 
@@ -10,7 +12,7 @@ import { RiderWalletService } from './rider-wallet.service';
 export class WithdrawReconcileJob implements OnApplicationShutdown {
     private fallback: PeriodicFallback | null = null;
 
-    constructor(private wallet: RiderWalletService) {}
+    constructor(private wallet: RiderWalletService, private connection: TransactionalConnection) {}
 
     start(intervalMs = 5 * 60_000) {
         if (this.fallback) return;
@@ -20,7 +22,10 @@ export class WithdrawReconcileJob implements OnApplicationShutdown {
             loggerCtx: 'CampusWallet',
         });
         this.fallback.start(async () => {
-            await this.wallet.reconcileWithdrawIntents();
+            // 多实例互斥：拿不到锁说明其他实例正在对账，本轮直接跳过（避免同一 intent 被并发重复收敛）
+            await withAdvisoryLock(this.connection, 'campus:withdraw-reconcile', () =>
+                this.wallet.reconcileWithdrawIntents(),
+            );
         });
     }
 
