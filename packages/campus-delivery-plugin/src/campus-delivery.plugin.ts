@@ -3350,7 +3350,6 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     shipping: Int!
                     createdAt: DateTime!
                     channelId: ID!
-                    channelToken: String!
                     channelName: String!
                     customFields: CampusHallOrderCustomFields
                 }

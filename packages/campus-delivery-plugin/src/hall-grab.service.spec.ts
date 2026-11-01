@@ -175,7 +175,7 @@ describe('HallGrabService.hallAll（F5 聚合大厅）', () => {
         { id: 3, code: 'shop-b', token: 'tok-b' },
     ];
 
-    it('open 单附加 channelToken/channelName；paused 渠道剔除', async () => {
+    it('open 单附加 channelId/channelName（不再下发 channelToken）；paused 渠道剔除', async () => {
         const o1 = { id: 1, code: 'A', total: 1000, shipping: 300, createdAt: new Date(), channels: [{ id: 2 }], customFields: { hallStatus: 'open', tip: 0, hallEnteredAt: new Date() } };
         const o2 = { id: 2, code: 'B', total: 2000, shipping: 300, createdAt: new Date(), channels: [{ id: 3 }], customFields: { hallStatus: 'open', tip: 100, hallEnteredAt: new Date() } };
         const svc = makeHallAllEnv(
@@ -185,7 +185,8 @@ describe('HallGrabService.hallAll（F5 聚合大厅）', () => {
         );
         const out: any[] = await svc.hallAll({} as any);
         expect(out.map(o => o.id)).toEqual([1]);
-        expect(out[0].channelToken).toBe('tok-a');
+        expect(out[0].channelId).toBe('2');
+        expect(out[0].channelToken).toBeUndefined();
         expect(out[0].channelName).toBe('shop-a');
         expect(out[0].customFields.hallStatus).toBe('open');
     });
