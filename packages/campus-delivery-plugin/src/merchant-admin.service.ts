@@ -2681,7 +2681,10 @@ export class MerchantAdminService {
         const skip = Math.max(Number(opts.skip ?? 0) || 0, 0);
         const qb = applyFilters(scoped())
             .leftJoinAndSelect('a.customer', 'customer')
-            .orderBy('a.createdAt', 'DESC')
+            // §115 退款失败单全局置顶：失败单排序权重 0、其余 1（跨分页稳定），同权重按申请时间倒序
+            .addSelect(`CASE WHEN a.state = 'RefundFailed' THEN 0 ELSE 1 END`, 'refundPin')
+            .orderBy('refundPin', 'ASC')
+            .addOrderBy('a.createdAt', 'DESC')
             .skip(skip)
             .take(take);
         if (wanted) qb.andWhere('a.state = :st', { st: wanted });
