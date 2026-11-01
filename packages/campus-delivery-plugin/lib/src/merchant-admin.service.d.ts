@@ -824,6 +824,8 @@ export interface MerchantBoard {
     refundFailed: number;
     /** 出餐超时订单数（§83 今日待办）：待接单/备餐中等待 ≥25 分钟，口径与出餐屏 late 一致 */
     overdueOrders: number;
+    /** 日报未推送（§118 今日待办）：已开启推送、已过设定时间且今日尚未推送成功 */
+    dailyPushPending: boolean;
 }
 /** 商家自助经营：门店资料（营业时间存 Channel.customFields，与 C 端展示/下单闸门同源） */
 export interface MerchantStoreProfile {
@@ -847,6 +849,8 @@ export interface MerchantStoreProfile {
     dailyPushEnabled: boolean;
     /** 日报推送时间 'HH:MM'，默认 21:30 */
     dailyPushTime: string;
+    /** 推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」 */
+    dailyPushChannelReady: boolean;
     /** 售后月度摘要推送开关（§95） */
     monthlyPushEnabled: boolean;
     /** 月度推送日（1-28，默认 1） */
@@ -1097,6 +1101,11 @@ export declare class MerchantAdminService {
     customerContact(ctx: RequestContext, orderId: ID): Promise<import("./privacy-number.service").PrivacyContact>;
     /** 本渠道营业时间（Channel.customFields.waimaiBusinessHours）；原生查询，供工作台高频轮询 */
     private channelBusinessHours;
+    /**
+     * 日报推送状态（§118 今日待办）：「已开启 + 已到点 + 今日未推成功」= 日报未推送。
+     * 走原生单行查询（同 channel 表），避免工作台 10s 轮询实例化 Channel 实体。
+     */
+    private channelDailyPushState;
     /** 本渠道休业日列表（§100 SLA 口径）：含历史日期，供 businessDeadline 整天跳过 */
     private channelClosureDateKeys;
     board(ctx: RequestContext): Promise<MerchantBoard>;

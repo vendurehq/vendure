@@ -767,6 +767,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     refundFailed: Int!
                     """出餐超时订单数（§83 今日待办）：待接单/备餐中等待 ≥25 分钟"""
                     overdueOrders: Int!
+                    """日报未推送（§118 今日待办）：已开启推送、已过设定时间且今日尚未推送成功"""
+                    dailyPushPending: Boolean!
                 }
 
                 """KDS 出餐屏单行（含加料快照）"""
@@ -1651,6 +1653,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     dailyPushEnabled: Boolean!
                     """日报推送时间 HH:MM（默认 21:30）"""
                     dailyPushTime: String!
+                    """推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」"""
+                    dailyPushChannelReady: Boolean!
                     """售后月度摘要推送开关（§95）"""
                     monthlyPushEnabled: Boolean!
                     """月度推送日（1-28，默认 1）"""

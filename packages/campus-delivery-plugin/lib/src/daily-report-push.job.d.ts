@@ -6,12 +6,15 @@ import { FeishuClient } from './feishu/feishu.client';
  * - 口径与经营设置页「今日/近 7 日」一致：deliveryStatus='delivered' 按 deliveredAt 归日，取消单不计入。
  * - 幂等：Channel.waimaiDailyPushLastDate 记已推送的校园日；同一天只推一条，改时间不会重复推。
  * - 未启用 / 未到点 / 今日已推过 都跳过；推送失败只告警不写 lastDate，下一轮重试。
+ * - 重试上限（§118）：同一渠道同一天失败满 3 次即放弃（保留 lastDate 不写），次日重新计次。
  * - 渠道间用咨询锁隔离，多实例部署不重复推送。
  */
 export declare class DailyReportPushJob implements OnApplicationShutdown {
     private connection;
     private feishu;
     private fallback;
+    /** 当日失败计数（§118）：channelId → { 校园日, 次数 }；仅进程内，多实例各自计次 */
+    private attempts;
     constructor(connection: TransactionalConnection, feishu: FeishuClient);
     start(): void;
     stop(): void;

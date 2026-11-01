@@ -12,6 +12,8 @@ const INTERVAL_MS = 30 * 60_000;
 /** 默认推送时间 21:30 */
 const DEFAULT_TIME = '21:30';
 const DAY_MS = 24 * 3600_000;
+/** 单日失败重试上限（§118）：满 3 次放弃，次日 0 点自然重置 */
+const MAX_ATTEMPTS = 3;
 
 interface Report {
     orders: number;
@@ -27,11 +29,14 @@ interface Report {
  * - 口径与经营设置页「今日/近 7 日」一致：deliveryStatus='delivered' 按 deliveredAt 归日，取消单不计入。
  * - 幂等：Channel.waimaiDailyPushLastDate 记已推送的校园日；同一天只推一条，改时间不会重复推。
  * - 未启用 / 未到点 / 今日已推过 都跳过；推送失败只告警不写 lastDate，下一轮重试。
+ * - 重试上限（§118）：同一渠道同一天失败满 3 次即放弃（保留 lastDate 不写），次日重新计次。
  * - 渠道间用咨询锁隔离，多实例部署不重复推送。
  */
 @Injectable()
 export class DailyReportPushJob implements OnApplicationShutdown {
     private fallback: PeriodicFallback | null = null;
+    /** 当日失败计数（§118）：channelId → { 校园日, 次数 }；仅进程内，多实例各自计次 */
+    private attempts = new Map<number, { day: string; n: number }>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -106,14 +111,32 @@ export class DailyReportPushJob implements OnApplicationShutdown {
         if (cf.waimaiDailyPushLastDate === todayKey) return;
         const dueAt = startOfCampusDay(now) + this.minutesOf(pushTime) * 60_000;
         if (now < dueAt) return;
+        // 重试上限（§118）：当日已失败 3 次则不再尝试，避免坏配置整夜重复请求推送接口
+        const prev = this.attempts.get(channelId);
+        const attempts = prev && prev.day === todayKey ? prev.n : 0;
+        if (attempts >= MAX_ATTEMPTS) return;
 
         const report = await this.buildReport(channelId, now);
         const text = this.renderText(channel.code, report, campusDayKey(startOfCampusDay(now) - DAY_MS));
         const ok = await this.feishu.broadcast(text, { channel: channel.code });
         if (!ok) {
-            Logger.warn(`daily report not delivered (channel ${channel.code}), retry next round`, loggerCtx);
+            const n = attempts + 1;
+            this.attempts.set(channelId, { day: todayKey, n });
+            if (n >= MAX_ATTEMPTS) {
+                Logger.error(
+                    `daily report retry limit reached (channel ${channel.code}, ${n}/${MAX_ATTEMPTS} today); give up until next day`,
+                    loggerCtx,
+                );
+            } else {
+                Logger.warn(
+                    `daily report not delivered (channel ${channel.code}, attempt ${n}/${MAX_ATTEMPTS}), retry next round`,
+                    loggerCtx,
+                );
+            }
             return;
         }
+        // 成功后清空当日计次（次日从 0 开始）
+        this.attempts.delete(channelId);
         const fresh = await repo.findOne({ where: { id: channelId } as any });
         if (fresh) {
             (fresh.customFields as any).waimaiDailyPushLastDate = todayKey;

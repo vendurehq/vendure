@@ -906,6 +906,8 @@ export interface MerchantBoard {
     refundFailed: number;
     /** 出餐超时订单数（§83 今日待办）：待接单/备餐中等待 ≥25 分钟，口径与出餐屏 late 一致 */
     overdueOrders: number;
+    /** 日报未推送（§118 今日待办）：已开启推送、已过设定时间且今日尚未推送成功 */
+    dailyPushPending: boolean;
 }
 
 /** 商家自助经营：门店资料（营业时间存 Channel.customFields，与 C 端展示/下单闸门同源） */
@@ -930,6 +932,8 @@ export interface MerchantStoreProfile {
     dailyPushEnabled: boolean;
     /** 日报推送时间 'HH:MM'，默认 21:30 */
     dailyPushTime: string;
+    /** 推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」 */
+    dailyPushChannelReady: boolean;
     /** 售后月度摘要推送开关（§95） */
     monthlyPushEnabled: boolean;
     /** 月度推送日（1-28，默认 1） */
@@ -1196,6 +1200,8 @@ export class MerchantAdminService {
             // 日报推送（§86）：Channel 自定义字段，空时间按 21:30
             dailyPushEnabled: !!((channel.customFields ?? {}) as any).waimaiDailyPushEnabled,
             dailyPushTime: ((channel.customFields ?? {}) as any).waimaiDailyPushTime || '21:30',
+            // 推送渠道（§118）：飞书未配置时日报无法送达，设置页显示降级提示
+            dailyPushChannelReady: this.feishu.enabled,
             // 售后月度摘要推送（§95）：空按每月 1 日 21:30
             monthlyPushEnabled: !!((channel.customFields ?? {}) as any).waimaiAfterSalesMonthlyPushEnabled,
             monthlyPushDay: Number(((channel.customFields ?? {}) as any).waimaiAfterSalesMonthlyPushDay ?? 1) || 1,
@@ -1538,6 +1544,33 @@ export class MerchantAdminService {
         return hours == null || hours === '' ? null : String(hours);
     }
 
+    /**
+     * 日报推送状态（§118 今日待办）：「已开启 + 已到点 + 今日未推成功」= 日报未推送。
+     * 走原生单行查询（同 channel 表），避免工作台 10s 轮询实例化 Channel 实体。
+     */
+    private async channelDailyPushState(
+        ctx: RequestContext,
+        now: number,
+    ): Promise<{ enabled: boolean; due: boolean; pushedToday: boolean }> {
+        const rows: any = await this.connection.rawConnection.query(
+            'SELECT COALESCE("customFieldsWaimaidailypushenabled", false) AS enabled, '
+                + '"customFieldsWaimaidailypushtime" AS time, '
+                + '"customFieldsWaimaidailypushlastdate" AS last FROM channel WHERE id = $1',
+            [ctx.channelId as any],
+        );
+        const list: any[] = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
+        const row = list?.[0] ?? {};
+        if (row.enabled !== true) return { enabled: false, due: false, pushedToday: false };
+        const raw = String(row.time ?? '').trim();
+        const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(raw) ? raw : '21:30';
+        const [h, m] = time.split(':').map(Number);
+        return {
+            enabled: true,
+            due: now >= startOfCampusDay(now) + (h * 60 + m) * 60_000,
+            pushedToday: String(row.last ?? '') === campusDayKey(now),
+        };
+    }
+
     /** 本渠道休业日列表（§100 SLA 口径）：含历史日期，供 businessDeadline 整天跳过 */
     private async channelClosureDateKeys(ctx: RequestContext): Promise<string[]> {
         try {
@@ -1626,6 +1659,8 @@ export class MerchantAdminService {
         const afterSalesPending = asCountOf(AFTER_SALES_PENDING_STATES);
         const refundFailed = asCountOf(['RefundFailed']);
         const printProvider = String(cfg.printProvider ?? 'local');
+        // 日报推送状态（§118 今日待办）：与业务设置页同源，判断「已到点但今日未推成功」
+        const dailyPush = await this.channelDailyPushState(ctx, nowMs);
         // 营业时间（自动开关门）：轻量原生查询，避免工作台 10s 轮询时反复实例化 Channel 实体
         const hours = await this.channelBusinessHours(ctx);
         const closure = closedToday(safeClosureDates(cfg.closureDates));
@@ -1662,6 +1697,8 @@ export class MerchantAdminService {
             afterSalesPending,
             refundFailed,
             overdueOrders,
+            // 日报未推送（§118）：推送渠道未配置时不计（该情形由设置页降级提示引导联系运营）
+            dailyPushPending: this.feishu.enabled && dailyPush.enabled && dailyPush.due && !dailyPush.pushedToday,
         };
     }
 
