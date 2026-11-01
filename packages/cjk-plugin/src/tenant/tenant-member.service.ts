@@ -723,12 +723,17 @@ export class TenantMemberService {
         if (!Number.isFinite(tenantNo)) throw new Error('TENANT_NO_MISSING');
         const created: any[] = [];
         for (const tpl of OFFICIAL_ROLE_TEMPLATES) {
-            const role = await this.createTenantRoleDirect(ctx, channelId, {
-                code: `t${tenantNo}-${tpl.busiPrefix}`,
-                description: tpl.description,
-                permissions: tpl.permissions,
-            });
-            if (role) created.push(role);
+            // 单个模板失败（如模板含已被收紧为超管专属的权限）不应阻塞其余模板补齐
+            try {
+                const role = await this.createTenantRoleDirect(ctx, channelId, {
+                    code: `t${tenantNo}-${tpl.busiPrefix}`,
+                    description: tpl.description,
+                    permissions: tpl.permissions,
+                });
+                if (role) created.push(role);
+            } catch (e: any) {
+                Logger.warn(`租户 ${channelId} 角色模板 ${tpl.key} 补齐失败: ${e.message}`, loggerCtx);
+            }
         }
         return created;
     }

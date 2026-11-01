@@ -667,13 +667,19 @@ let TenantMemberService = class TenantMemberService {
             throw new Error('TENANT_NO_MISSING');
         const created = [];
         for (const tpl of role_templates_1.OFFICIAL_ROLE_TEMPLATES) {
-            const role = await this.createTenantRoleDirect(ctx, channelId, {
-                code: `t${tenantNo}-${tpl.busiPrefix}`,
-                description: tpl.description,
-                permissions: tpl.permissions,
-            });
-            if (role)
-                created.push(role);
+            // 单个模板失败（如模板含已被收紧为超管专属的权限）不应阻塞其余模板补齐
+            try {
+                const role = await this.createTenantRoleDirect(ctx, channelId, {
+                    code: `t${tenantNo}-${tpl.busiPrefix}`,
+                    description: tpl.description,
+                    permissions: tpl.permissions,
+                });
+                if (role)
+                    created.push(role);
+            }
+            catch (e) {
+                core_1.Logger.warn(`租户 ${channelId} 角色模板 ${tpl.key} 补齐失败: ${e.message}`, constants_1.loggerCtx);
+            }
         }
         return created;
     }
