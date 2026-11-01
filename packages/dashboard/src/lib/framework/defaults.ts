@@ -284,7 +284,7 @@ export function registerDefaults() {
         id: 'latest-orders-widget',
         name: /* i18n*/ 'Latest Orders Widget',
         component: LatestOrdersWidget,
-        defaultSize: { w: 6, h: 7, x: 0, y: 0 },
+        defaultSize: { w: 6, h: 7, x: 0, y: 6 },
         requiresPermissions: ['ReadOrder'],
     });
 
@@ -292,7 +292,7 @@ export function registerDefaults() {
         id: 'orders-summary-widget',
         name: /* i18n*/ 'Orders Summary Widget',
         component: OrdersSummaryWidget,
-        defaultSize: { w: 6, h: 3, x: 6, y: 0 },
+        defaultSize: { w: 6, h: 3, x: 6, y: 6 },
         requiresPermissions: ['ReadOrder'],
     });
 
@@ -300,7 +300,7 @@ export function registerDefaults() {
         id: 'top-products-widget',
         name: /* i18n*/ 'Top Products Widget',
         component: TopProductsWidget,
-        defaultSize: { w: 4, h: 6, x: 0, y: 0 },
+        defaultSize: { w: 4, h: 6, x: 0, y: 13 },
         minSize: { w: 3, h: 4 },
         requiresPermissions: ['ReadOrder'],
         // Matches the TopProductsMetric union in the top products widget component.
@@ -311,7 +311,7 @@ export function registerDefaults() {
         id: 'low-stock-widget',
         name: /* i18n*/ 'Low Stock Widget',
         component: LowStockWidget,
-        defaultSize: { w: 4, h: 6, x: 4, y: 0 },
+        defaultSize: { w: 4, h: 6, x: 4, y: 13 },
         minSize: { w: 3, h: 4 },
         requiresPermissions: ['ReadCatalog', 'ReadProduct'],
         // Matches THRESHOLD_OPTIONS in the low stock widget component.
@@ -322,7 +322,7 @@ export function registerDefaults() {
         id: 'latest-customers-widget',
         name: /* i18n*/ 'Latest Customers Widget',
         component: LatestCustomersWidget,
-        defaultSize: { w: 4, h: 6, x: 8, y: 0 },
+        defaultSize: { w: 4, h: 6, x: 8, y: 13 },
         minSize: { w: 3, h: 4 },
         requiresPermissions: ['ReadCustomer'],
     });

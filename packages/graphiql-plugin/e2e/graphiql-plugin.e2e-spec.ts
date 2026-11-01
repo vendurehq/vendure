@@ -81,32 +81,34 @@ describe('GraphiQLPlugin', () => {
         });
 
         describe('createApiUrl', () => {
+            afterAll(() => {
+                configService.apiOptions.hostname = '';
+                configService.apiOptions.adminApiPath = 'admin-api';
+            });
+
             it('should create a relative URL if no host is specified', () => {
                 configService.apiOptions.hostname = '';
-                configService.apiOptions.port = 3000;
                 const url = (serviceInstance as any).createApiUrl('test-api');
                 expect(url).toBe('/test-api');
             });
 
-            it('should create an absolute URL if host is specified', () => {
-                configService.apiOptions.hostname = 'example.com';
+            // The hostname is the listen address (e.g. 0.0.0.0 in Docker), which a browser cannot reach
+            it('should create a relative URL if a hostname is set', () => {
+                configService.apiOptions.hostname = '0.0.0.0';
                 configService.apiOptions.port = 3000;
-                const url = (serviceInstance as any).createApiUrl('test-api');
-                expect(url).toBe('http://example.com:3000/test-api');
-            });
-
-            it('should handle HTTPS hosts', () => {
-                configService.apiOptions.hostname = 'https://example.com';
-                configService.apiOptions.port = 443;
-                const url = (serviceInstance as any).createApiUrl('test-api');
-                expect(url).toBe('https://example.com:443/test-api');
+                expect(serviceInstance.getAdminApiUrl()).toBe('/admin-api');
+                expect(serviceInstance.getShopApiUrl()).toBe('/shop-api');
             });
 
             it('should handle paths with leading slash', () => {
-                configService.apiOptions.hostname = 'example.com';
-                configService.apiOptions.port = 3000;
                 const url = (serviceInstance as any).createApiUrl('/test-api');
-                expect(url).toBe('http://example.com:3000/test-api');
+                expect(url).toBe('/test-api');
+            });
+
+            it('should use a custom adminApiPath', () => {
+                configService.apiOptions.hostname = 'example.com';
+                configService.apiOptions.adminApiPath = 'custom-admin';
+                expect(serviceInstance.getAdminApiUrl()).toBe('/custom-admin');
             });
         });
     });
@@ -144,6 +146,21 @@ describe('GraphiQLPlugin', () => {
 
             expect(result.status).toBe(200);
             expect(result.body).toBe(fs.readFileSync(path.join(assetsDir, assetName), 'utf8'));
+        });
+
+        it('serves a page whose asset URLs resolve', async () => {
+            const page = await getRaw('/graphiql/admin');
+            const assetUrls = [...page.body.matchAll(/(?:src|href)="([^"]+\/assets\/[^"]+)"/g)].map(
+                m => m[1],
+            );
+
+            expect(page.status).toBe(200);
+            expect(page.body).toContain('adminApiUrl: "/admin-api"');
+            expect(assetUrls.length).toBeGreaterThan(0);
+            for (const url of assetUrls) {
+                expect(url.startsWith('/graphiql/assets/')).toBe(true);
+                expect((await getRaw(url)).status).toBe(200);
+            }
         });
 
         it('returns 404 for a missing asset', async () => {
