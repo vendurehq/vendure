@@ -276,6 +276,23 @@ export class NotificationService {
         return [...new Set(products.map((p: any) => Number(p.customFields?.shopId)).filter((id: number) => id > 0))];
     }
 
+    /**
+     * 商家收件人解析（§126）：优先商品归属（Product.shopId）；
+     * 校园商品大多未配置 shopId，回退到渠道维度（Shop.channelId = 当前渠道），
+     * 避免售后提醒因解析为空而静默丢弃。
+     */
+    private async resolveMerchantShopIds(ctx: RequestContext, order: any): Promise<number[]> {
+        const productShopIds = await this.getOrderShopIds(ctx, order);
+        if (productShopIds.length > 0) return productShopIds;
+        const channelId = Number(ctx.channelId ?? order?.channelId);
+        if (!channelId) return [];
+        // 用裸连接查询：Shop 实现 ChannelAware，按 ctx 渠道过滤会漏掉未挂 channels 关联的店铺
+        const shops = await this.connection.rawConnection.getRepository(Shop).find({
+            where: { channelId } as any,
+        });
+        return [...new Set(shops.map((s: any) => Number(s.id)).filter((id: number) => id > 0))];
+    }
+
     private titleFor(scene: string): string {
         const m: Record<string, string> = {
             order_paid: '支付成功', order_shipped: '订单已发货', order_delivered: '订单已送达', order_completed: '交易完成',
@@ -394,9 +411,9 @@ export class NotificationService {
                 relations: { order: { lines: { productVariant: true } } } as any,
             });
             if (!request?.order) return;
-            const shopIds = await this.getOrderShopIds(ctx, request.order);
+            const shopIds = await this.resolveMerchantShopIds(ctx, request.order);
             if (shopIds.length === 0) return;
-            const shops = await this.connection.getRepository(ctx, Shop).find({ where: { id: In(shopIds) } as any });
+            const shops = await this.connection.rawConnection.getRepository(Shop).find({ where: { id: In(shopIds) } as any });
             for (const shop of shops) {
                 if (shop.administratorId == null) continue;
                 await this.createInbox(ctx, {

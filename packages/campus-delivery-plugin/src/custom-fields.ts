@@ -100,6 +100,11 @@ export const campusCustomFields: CustomFields = {
         { name: 'waimaiAfterSalesAlertLastDay', type: 'string', nullable: true }, // 幂等键：已预警的校园日 'YYYY-MM-DD'
         // 大额退款二次复核（§99）：申请退款金额达到阈值（分）时，需另一位管理员复核后才执行退款
         { name: 'waimaiAfterSalesReviewThreshold', type: 'int', nullable: true }, // 0/空=关闭
+        // 售后规则三项阈值（§126）：商家端「售后规则」已可编辑，但此前未声明为渠道自定义字段，
+        // 保存时被 Vendure 静默丢弃；生产同步关闭，物理列由 P42 迁移 + 手工 ALTER 补齐
+        { name: 'afterSalesDueSoonHours', type: 'int', nullable: true }, // 临期提醒阈值（小时，0/空=按 12）
+        { name: 'afterSalesFirstResponseTargetHours', type: 'int', nullable: true }, // 首响目标（小时，0/空=不考核）
+        { name: 'afterSalesResolveTargetHours', type: 'int', nullable: true }, // 完结目标（小时，0/空=不考核）
     ],
     Product: [
         { name: 'waimaiMonthlySales', type: 'int', nullable: true }, // 商品月销量，C 端菜单排序用，未设置按 0
