@@ -44,6 +44,37 @@ async function selectStorefront(): Promise<StorefrontId | undefined> {
 
 /* eslint-disable no-console */
 
+/**
+ * Asks whether to use SQLite or to retry Docker, and checks Docker again on each retry.
+ * Resolves to true once Docker is running, or false when the user picks SQLite.
+ */
+async function askToRetryDocker(notResponding: boolean): Promise<boolean> {
+    for (;;) {
+        const useSqlite = await select({
+            message: notResponding
+                ? 'Docker is not responding. How should we proceed?'
+                : 'We could not automatically start Docker. How should we proceed?',
+            options: [
+                { label: `Let's use SQLite as the database`, value: true },
+                {
+                    label: notResponding ? 'I have restarted Docker' : 'I have manually started Docker',
+                    value: false,
+                },
+            ],
+            initialValue: true,
+        });
+        checkCancel(useSqlite);
+        if (useSqlite) {
+            return false;
+        }
+        const { result } = await isDockerAvailable();
+        if (result === 'running') {
+            return true;
+        }
+        notResponding = result === 'not-responding';
+    }
+}
+
 export async function getQuickStartConfiguration(
     root: string,
     packageManager: PackageManager,
@@ -60,37 +91,9 @@ export async function getQuickStartConfiguration(
             usePostgres = false;
             break;
         case 'not-running':
-        case 'not-responding': {
-            let useSqlite = false;
-            let dockerIsNowRunning = false;
-            let notResponding = dockerStatus === 'not-responding';
-            do {
-                const useSqliteResponse = await select({
-                    message: notResponding
-                        ? 'Docker is not responding. How should we proceed?'
-                        : 'We could not automatically start Docker. How should we proceed?',
-                    options: [
-                        { label: `Let's use SQLite as the database`, value: true },
-                        {
-                            label: notResponding
-                                ? 'I have restarted Docker'
-                                : 'I have manually started Docker',
-                            value: false,
-                        },
-                    ],
-                    initialValue: true,
-                });
-                checkCancel(useSqliteResponse);
-                useSqlite = useSqliteResponse as boolean;
-                if (useSqlite === false) {
-                    const { result: dockerStatusManual } = await isDockerAvailable();
-                    dockerIsNowRunning = dockerStatusManual === 'running';
-                    notResponding = dockerStatusManual === 'not-responding';
-                }
-            } while (dockerIsNowRunning !== true && useSqlite === false);
-            usePostgres = !useSqlite;
+        case 'not-responding':
+            usePostgres = await askToRetryDocker(dockerStatus === 'not-responding');
             break;
-        }
     }
 
     const storefront = await selectStorefront();

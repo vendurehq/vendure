@@ -1030,8 +1030,11 @@ export function checkCancel<T>(value: T | symbol): value is T {
 
 export function cleanUpDockerResources(name: string) {
     const labelFilter = `label=io.vendure.create.name=${name}`;
+    // Runs the user's own `docker` from PATH, like every other Docker call in this CLI.
+    const docker = (args: string[], stdio?: 'ignore') =>
+        execFileSync('docker', args, { stdio, timeout: DOCKER_COMMAND_TIMEOUT_MS }); // NOSONAR
     const listIds = (args: string[]): string[] =>
-        execFileSync('docker', args, { timeout: DOCKER_COMMAND_TIMEOUT_MS })
+        docker(args)
             .toString()
             .split('\n')
             .map(line => line.trim())
@@ -1039,21 +1042,12 @@ export function cleanUpDockerResources(name: string) {
     try {
         const containerIds = listIds(['ps', '-a', '-q', '--filter', labelFilter]);
         if (containerIds.length) {
-            execFileSync('docker', ['stop', ...containerIds], {
-                stdio: 'ignore',
-                timeout: DOCKER_COMMAND_TIMEOUT_MS,
-            });
-            execFileSync('docker', ['rm', ...containerIds], {
-                stdio: 'ignore',
-                timeout: DOCKER_COMMAND_TIMEOUT_MS,
-            });
+            docker(['stop', ...containerIds], 'ignore');
+            docker(['rm', ...containerIds], 'ignore');
         }
         const volumeIds = listIds(['volume', 'ls', '-q', '--filter', labelFilter]);
         if (volumeIds.length) {
-            execFileSync('docker', ['volume', 'rm', ...volumeIds], {
-                stdio: 'ignore',
-                timeout: DOCKER_COMMAND_TIMEOUT_MS,
-            });
+            docker(['volume', 'rm', ...volumeIds], 'ignore');
         }
     } catch (e) {
         log(pc.yellow(`Could not clean up Docker resources`), { level: 'verbose' });
