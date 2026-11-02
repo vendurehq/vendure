@@ -6,6 +6,9 @@ import { getAuthOverride, isAuthMethodEnabled } from '@vendure/cjk-plugin';
 import { loggerCtx } from './constants';
 import { WechatAuthPluginOptions } from './types';
 
+/** 微信登录换取 openid 的出站超时：超时即登录失败，不能挂住请求 */
+const WECHAT_LOGIN_TIMEOUT_MS = 5000;
+
 export interface WechatAuthData {
     code: string;
     type: 'mp' | 'mini';
@@ -138,7 +141,7 @@ export class WechatAuthenticationStrategy implements AuthenticationStrategy<Wech
             `https://api.weixin.qq.com/sns/oauth2/access_token` +
             `?appid=${appId}&secret=${appSecret}` +
             `&code=${code}&grant_type=authorization_code`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(WECHAT_LOGIN_TIMEOUT_MS) });
         const data = (await response.json()) as any;
         if (!data.openid) {
             return { openid: '', userInfo: null };
@@ -148,7 +151,9 @@ export class WechatAuthenticationStrategy implements AuthenticationStrategy<Wech
         if (data.access_token && data.scope?.includes('snsapi_userinfo')) {
             try {
                 const infoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${data.access_token}&openid=${data.openid}&lang=zh_CN`;
-                const infoRes = await fetch(infoUrl);
+                const infoRes = await fetch(infoUrl, {
+                    signal: AbortSignal.timeout(WECHAT_LOGIN_TIMEOUT_MS),
+                });
                 userInfo = await infoRes.json();
             } catch (e) {
                 Logger.warn('Failed to fetch WeChat user info', loggerCtx);
@@ -167,7 +172,7 @@ export class WechatAuthenticationStrategy implements AuthenticationStrategy<Wech
         const finalAppId = miniProgramAppId || appId;
         const finalSecret = miniProgramAppSecret || appSecret;
         const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${finalAppId}&secret=${finalSecret}&js_code=${code}&grant_type=authorization_code`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(WECHAT_LOGIN_TIMEOUT_MS) });
         const data = (await response.json()) as any;
         return data.openid;
     }

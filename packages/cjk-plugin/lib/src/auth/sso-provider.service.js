@@ -14,6 +14,8 @@ exports.SsoProviderService = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const crypto_1 = require("./crypto");
+/** SSO 探测/登录出站超时：超时快速失败，避免管理端测试或登录挂住 */
+const SSO_HTTP_TIMEOUT_MS = 5000;
 let SsoProviderService = class SsoProviderService {
     constructor(channelService) {
         this.channelService = channelService;
@@ -49,6 +51,7 @@ let SsoProviderService = class SsoProviderService {
                     app_code: provider.clientId,
                     app_secret: clientSecret,
                 }),
+                signal: AbortSignal.timeout(SSO_HTTP_TIMEOUT_MS),
             });
             const latencyMs = Date.now() - start;
             if (resp.ok)
@@ -56,7 +59,10 @@ let SsoProviderService = class SsoProviderService {
             // 降级:GET health 端点
             if (resp.status === 400 || resp.status === 401) {
                 const healthUrl = `${provider.baseUrl.replace(/\/$/, '')}/v1/auth/authorize`;
-                const healthResp = await fetch(healthUrl, { method: 'GET' });
+                const healthResp = await fetch(healthUrl, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(SSO_HTTP_TIMEOUT_MS),
+                });
                 return {
                     success: healthResp.status < 500,
                     latencyMs: Date.now() - start,
@@ -66,7 +72,12 @@ let SsoProviderService = class SsoProviderService {
             return { success: false, latencyMs, error: `Token endpoint returned ${resp.status}` };
         }
         catch (e) {
-            return { success: false, latencyMs: Date.now() - start, error: e.message };
+            const timedOut = (e === null || e === void 0 ? void 0 : e.name) === 'TimeoutError' || (e === null || e === void 0 ? void 0 : e.name) === 'AbortError';
+            return {
+                success: false,
+                latencyMs: Date.now() - start,
+                error: timedOut ? `连接超时(${SSO_HTTP_TIMEOUT_MS}ms)` : e.message,
+            };
         }
     }
 };

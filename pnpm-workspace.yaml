@@ -21,7 +21,7 @@ overrides:
   '@graphql-tools/stitch': 10.1.16
   # DI 单实例化：pnpm 严格隔离下多版本并存导致 NestJS DI token 分裂（DataSource 注入失败、
   # GraphQL 装饰器元数据分裂），钉成全仓单版本
-  'typeorm': 0.3.21
+  'typeorm': 0.3.31
   '@nestjs/graphql': 13.1.0
   'rxjs': 7.8.2
   # 连带钉死 typeorm 的 optional peer，否则同版本 typeorm 会按 peer 组合裂成多实例

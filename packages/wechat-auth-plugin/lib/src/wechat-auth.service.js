@@ -51,6 +51,8 @@ const core_1 = require("@vendure/core");
 const crypto = __importStar(require("crypto"));
 const constants_1 = require("./constants");
 const constants_2 = require("./constants");
+/** 微信出站 API 超时：登录/取 token 必须快速失败，避免请求挂死拖住线程 */
+const WECHAT_HTTP_TIMEOUT_MS = 5000;
 let WechatAuthService = class WechatAuthService {
     constructor(options) {
         this.options = options;
@@ -101,7 +103,7 @@ let WechatAuthService = class WechatAuthService {
     }
     async fetchAccessTokenByCredentials(appId, appSecret) {
         const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appId}&secret=${appSecret}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(WECHAT_HTTP_TIMEOUT_MS) });
         const data = (await response.json());
         if (data.access_token) {
             this.miniProgramTokenCacheMap.set(appId, {
@@ -140,7 +142,7 @@ let WechatAuthService = class WechatAuthService {
     async fetchJsapiTicket() {
         const accessToken = await this.getAccessToken();
         const url = `https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=${accessToken}&type=jsapi`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(WECHAT_HTTP_TIMEOUT_MS) });
         const data = (await response.json());
         if (data.ticket) {
             this.ticketCache = {
@@ -164,7 +166,9 @@ let WechatAuthService = class WechatAuthService {
     /** 微信 cgi-bin 通用 GET 请求（自动带 access_token，errcode 非 0 抛错） */
     async wxGet(path, cred) {
         const token = await this.getAccessTokenFor(cred);
-        const res = await fetch(`https://api.weixin.qq.com/cgi-bin/${path}${path.includes('?') ? '&' : '?'}access_token=${token}`);
+        const res = await fetch(`https://api.weixin.qq.com/cgi-bin/${path}${path.includes('?') ? '&' : '?'}access_token=${token}`, {
+            signal: AbortSignal.timeout(WECHAT_HTTP_TIMEOUT_MS),
+        });
         const data = (await res.json());
         if (data.errcode && data.errcode !== 0) {
             throw new Error(`WeChat API ${data.errcode}: ${data.errmsg}`);
@@ -177,6 +181,7 @@ let WechatAuthService = class WechatAuthService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(WECHAT_HTTP_TIMEOUT_MS),
         });
         const data = (await res.json());
         if (data.errcode && data.errcode !== 0) {

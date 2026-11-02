@@ -5,5 +5,5 @@ export declare class ConnectionCoreModule {
 export declare class ConnectionModule {
     static forRoot(): DynamicModule;
     static forPlugin(): DynamicModule;
-    static getTypeOrmLogger(dbConnectionOptions: DataSourceOptions): import("typeorm").Logger | "debug" | "advanced-console" | "simple-console" | "file";
+    static getTypeOrmLogger(dbConnectionOptions: DataSourceOptions): import("typeorm").Logger | "debug" | "advanced-console" | "simple-console" | "formatted-console" | "file";
 }

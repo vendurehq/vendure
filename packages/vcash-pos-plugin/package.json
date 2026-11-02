@@ -19,7 +19,7 @@
     "@nestjs/graphql": "^13.0.0",
     "@nestjs/typeorm": "^11.0.0",
     "graphql-tag": "2.12.6",
-    "typeorm": "0.3.21"
+    "typeorm": "^0.3.31"
   },
   "peerDependencies": {
     "@vendure/common": "^3.6.0",

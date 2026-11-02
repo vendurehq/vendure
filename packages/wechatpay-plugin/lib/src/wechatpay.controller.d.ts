@@ -19,7 +19,9 @@ export declare class WechatpayController {
     private routeSettlement;
     /**
      * 结算订单支付：dev-notify 和 notify 共用
-     * 查询 Authorized 状态的支付并调用 settlePayment
+     * 查询 Authorized 状态的支付并调用 settlePayment。
+     * 失败必须抛错（由外层返回 500/FAIL），让微信重投，避免「已扣款不结单」；
+     * 已结算/非 Authorized 的支付直接跳过，平台重复通知天然幂等。
      * 注意：订单到达 PaymentAuthorized 后 active=false，不能用 order.active 判断
      */
     private settleOrderPayment;

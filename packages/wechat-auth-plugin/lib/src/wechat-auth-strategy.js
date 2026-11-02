@@ -5,6 +5,8 @@ const graphql_tag_1 = require("graphql-tag");
 const core_1 = require("@vendure/core");
 const cjk_plugin_1 = require("@vendure/cjk-plugin");
 const constants_1 = require("./constants");
+/** 微信登录换取 openid 的出站超时：超时即登录失败，不能挂住请求 */
+const WECHAT_LOGIN_TIMEOUT_MS = 5000;
 class WechatAuthenticationStrategy {
     constructor(options) {
         this.options = options;
@@ -122,7 +124,7 @@ class WechatAuthenticationStrategy {
         const url = `https://api.weixin.qq.com/sns/oauth2/access_token` +
             `?appid=${appId}&secret=${appSecret}` +
             `&code=${code}&grant_type=authorization_code`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(WECHAT_LOGIN_TIMEOUT_MS) });
         const data = (await response.json());
         if (!data.openid) {
             return { openid: '', userInfo: null };
@@ -132,7 +134,9 @@ class WechatAuthenticationStrategy {
         if (data.access_token && ((_a = data.scope) === null || _a === void 0 ? void 0 : _a.includes('snsapi_userinfo'))) {
             try {
                 const infoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${data.access_token}&openid=${data.openid}&lang=zh_CN`;
-                const infoRes = await fetch(infoUrl);
+                const infoRes = await fetch(infoUrl, {
+                    signal: AbortSignal.timeout(WECHAT_LOGIN_TIMEOUT_MS),
+                });
                 userInfo = await infoRes.json();
             }
             catch (e) {
@@ -145,7 +149,7 @@ class WechatAuthenticationStrategy {
         const finalAppId = miniProgramAppId || appId;
         const finalSecret = miniProgramAppSecret || appSecret;
         const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${finalAppId}&secret=${finalSecret}&js_code=${code}&grant_type=authorization_code`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(WECHAT_LOGIN_TIMEOUT_MS) });
         const data = (await response.json());
         return data.openid;
     }

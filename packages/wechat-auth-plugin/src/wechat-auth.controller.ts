@@ -46,7 +46,7 @@ export class WechatAuthController {
                 `https://api.weixin.qq.com/sns/oauth2/access_token` +
                 `?appid=${this.options.appId}&secret=${this.options.appSecret}` +
                 `&code=${code}&grant_type=authorization_code`;
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
             const data = await response.json() as any;
 
             if (data.openid) {

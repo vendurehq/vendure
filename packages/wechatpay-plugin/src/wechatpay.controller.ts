@@ -6,10 +6,12 @@ import {
     Order,
     OrderService,
     ChannelService,
+    Payment,
     PaymentMethodService,
     RequestContext,
     RequestContextService,
     TransactionalConnection,
+    isGraphQlErrorResult,
 } from '@vendure/core';
 // 断开循环依赖（同 wechatpay-handler.ts 注释）：从叶子模块导入，不经 cjk 主入口
 import { findChannelByDomain } from '@vendure/cjk-plugin/lib/src/tenant/domain-resolver.service';
@@ -64,7 +66,9 @@ export class WechatpayController {
 
     /**
      * 结算订单支付：dev-notify 和 notify 共用
-     * 查询 Authorized 状态的支付并调用 settlePayment
+     * 查询 Authorized 状态的支付并调用 settlePayment。
+     * 失败必须抛错（由外层返回 500/FAIL），让微信重投，避免「已扣款不结单」；
+     * 已结算/非 Authorized 的支付直接跳过，平台重复通知天然幂等。
      * 注意：订单到达 PaymentAuthorized 后 active=false，不能用 order.active 判断
      */
     private async settleOrderPayment(ctx: RequestContext, orderCode: string): Promise<void> {
@@ -76,8 +80,8 @@ export class WechatpayController {
             relations: ['channels'],
         });
         if (!base) {
-            Logger.warn(`settleOrderPayment: order ${orderCode} not found`, loggerCtx);
-            return;
+            Logger.error(`settleOrderPayment: order ${orderCode} not found (any channel)`, loggerCtx);
+            throw new Error(`order ${orderCode} not found`);
         }
         const orderChannel =
             base.channels?.find(c => Number(c.id) === Number(ctx.channelId)) ?? base.channels?.[0];
@@ -92,19 +96,44 @@ export class WechatpayController {
                 : ctx;
         const order = await this.orderService.findOneByCode(orderCtx, orderCode, ['payments']);
         if (!order) {
-            Logger.warn(`settleOrderPayment: order ${orderCode} not found in channel ${orderCtx.channelId}`, loggerCtx);
-            return;
+            Logger.error(
+                `settleOrderPayment: order ${orderCode} not found in channel ${orderCtx.channelId}`,
+                loggerCtx,
+            );
+            throw new Error(`order ${orderCode} not found in channel ${orderCtx.channelId}`);
         }
         const payments = order.payments || [];
+        let settledCount = 0;
         for (const payment of payments) {
-            if (payment.state === 'Authorized') {
-                try {
-                    await this.orderService.settlePayment(orderCtx, payment.id);
-                    Logger.info(`Settled payment ${payment.id} for order ${orderCode}`, loggerCtx);
-                } catch (e: any) {
-                    Logger.error(`settlePayment failed for payment ${payment.id}: ${e.message}`, loggerCtx);
-                }
+            // 幂等：已 Settled / 已取消等非 Authorized 状态直接跳过，重复通知不会重复结算
+            if (payment.state !== 'Authorized') {
+                continue;
             }
+            const result = await this.orderService.settlePayment(orderCtx, payment.id);
+            if (isGraphQlErrorResult(result)) {
+                // 并发重复通知：另一路已抢先结算成功时重查状态，已 Settled 视为幂等成功
+                const fresh = await this.connection
+                    .getRepository(orderCtx, Payment)
+                    .findOne({ where: { id: payment.id } });
+                if (fresh?.state === 'Settled') {
+                    Logger.info(
+                        `Payment ${payment.id} already settled by concurrent notify, skip (outTradeNo=${orderCode})`,
+                        loggerCtx,
+                    );
+                    continue;
+                }
+                throw new Error(
+                    `settlePayment failed for order ${orderCode} payment ${payment.id}: ${result.message}`,
+                );
+            }
+            settledCount++;
+            Logger.info(`Settled payment ${payment.id} for order ${orderCode}`, loggerCtx);
+        }
+        if (settledCount === 0) {
+            Logger.info(
+                `No Authorized payment to settle for order ${orderCode} (idempotent skip)`,
+                loggerCtx,
+            );
         }
     }
 
