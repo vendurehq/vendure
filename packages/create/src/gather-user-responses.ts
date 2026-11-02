@@ -59,15 +59,24 @@ export async function getQuickStartConfiguration(
         case 'not-found':
             usePostgres = false;
             break;
-        case 'not-running': {
+        case 'not-running':
+        case 'not-responding': {
             let useSqlite = false;
             let dockerIsNowRunning = false;
+            let notResponding = dockerStatus === 'not-responding';
             do {
                 const useSqliteResponse = await select({
-                    message: 'We could not automatically start Docker. How should we proceed?',
+                    message: notResponding
+                        ? 'Docker is not responding. How should we proceed?'
+                        : 'We could not automatically start Docker. How should we proceed?',
                     options: [
                         { label: `Let's use SQLite as the database`, value: true },
-                        { label: 'I have manually started Docker', value: false },
+                        {
+                            label: notResponding
+                                ? 'I have restarted Docker'
+                                : 'I have manually started Docker',
+                            value: false,
+                        },
                     ],
                     initialValue: true,
                 });
@@ -76,6 +85,7 @@ export async function getQuickStartConfiguration(
                 if (useSqlite === false) {
                     const { result: dockerStatusManual } = await isDockerAvailable();
                     dockerIsNowRunning = dockerStatusManual === 'running';
+                    notResponding = dockerStatusManual === 'not-responding';
                 }
             } while (dockerIsNowRunning !== true && useSqlite === false);
             usePostgres = !useSqlite;
