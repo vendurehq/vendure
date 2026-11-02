@@ -81,4 +81,16 @@ describe('createVendureApp() Console hint', () => {
         expect(events[1]).toBe(`hint: ${getConsoleHint(false)}`);
         expect(events[2]).toContain('Happy hacking!');
     }, 30000);
+
+    // OSS-932 - a failed email template copy stops create with a non-zero exit code.
+    it('exits with code 1 when the email templates cannot be copied', async () => {
+        const { createVendureApp } = await import('./create-vendure-app');
+        mkdirSync(path.join(workDir, 'app-templates'));
+        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+
+        // resolvePackageRootDir points at a missing package, so the template copy fails first.
+        await createVendureApp(path.join(workDir, 'app-templates'), false, 'silent', true);
+
+        expect(exitSpy.mock.calls[0]).toEqual([1]);
+    }, 30000);
 });
