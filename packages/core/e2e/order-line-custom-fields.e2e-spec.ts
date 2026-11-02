@@ -1,5 +1,13 @@
 import { Permission } from '@vendure/common/lib/generated-types';
-import { mergeConfig, OrderLine, Product, TransactionalConnection } from '@vendure/core';
+import {
+    ConfigService,
+    mergeConfig,
+    OrderLine,
+    OrderService,
+    Product,
+    RequestContextService,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -300,6 +308,8 @@ const customConfig = mergeConfig(testConfig(), {
                     { name: 'b', type: 'string' },
                 ],
             },
+            // Only server-side code can set an internal field.
+            { name: 'internalField', type: 'string', internal: true, nullable: true },
             {
                 name: 'superAdminField',
                 type: 'string',
@@ -860,6 +870,91 @@ describe('OrderLine Custom Fields', () => {
                     );
                 });
             });
+        });
+    });
+
+    // A plugin can write a readonly or an internal OrderLine custom field after it creates the line.
+    // The API input cannot contain such a field, so the field must not prevent a merge.
+    describe('readonly and internal fields set by server-side code', () => {
+        // The service layer uses the database ID, not the "T_" ID of the API.
+        function decodeId(id: string) {
+            const { entityIdStrategy } = server.app.get(ConfigService).entityOptions;
+            if (!entityIdStrategy?.decodeId) {
+                throw new Error('The entityIdStrategy cannot decode IDs');
+            }
+            return entityIdStrategy.decodeId(id);
+        }
+
+        async function setServerSideFields(orderLineId: string) {
+            await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(OrderLine)
+                .update(decodeId(orderLineId), {
+                    customFields: { readonlyField: 'server value', internalField: 'server value' },
+                } as any);
+        }
+
+        it('merges into the existing line when the input has custom fields', async () => {
+            const input = { productVariantId: 'T_1', quantity: 1, customFields: { stringField: 'merge' } };
+            const { addItemToOrder: first } = await shopClient.query(
+                addItemToOrderWithCustomFieldsDocument,
+                input,
+            );
+            orderGuard.assertSuccess(first);
+            await setServerSideFields(first.lines[0].id);
+
+            const { addItemToOrder: second } = await shopClient.query(
+                addItemToOrderWithCustomFieldsDocument,
+                input,
+            );
+            orderGuard.assertSuccess(second);
+
+            expect(second.lines.length).toBe(1);
+            expect(second.lines[0].id).toBe(first.lines[0].id);
+            expect(second.lines[0].quantity).toBe(2);
+        });
+
+        it('merges into the existing line when the input has no custom fields', async () => {
+            const input = { productVariantId: 'T_1', quantity: 1 };
+            const { addItemToOrder: first } = await shopClient.query(
+                addItemToOrderWithCustomFieldsDocument,
+                input,
+            );
+            orderGuard.assertSuccess(first);
+            await setServerSideFields(first.lines[0].id);
+
+            const { addItemToOrder: second } = await shopClient.query(
+                addItemToOrderWithCustomFieldsDocument,
+                input,
+            );
+            orderGuard.assertSuccess(second);
+
+            expect(second.lines.length).toBe(1);
+            expect(second.lines[0].quantity).toBe(2);
+        });
+
+        it('compares a readonly field that a service-level input specifies', async () => {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+                customFields: { stringField: 'service' },
+            });
+            orderGuard.assertSuccess(addItemToOrder);
+            await setServerSideFields(addItemToOrder.lines[0].id);
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const orderService = server.app.get(OrderService);
+            const addReadonlyValue = (readonlyField: string) =>
+                orderService.addItemToOrder(ctx, decodeId(addItemToOrder.id), decodeId('T_1'), 1, {
+                    stringField: 'service',
+                    readonlyField,
+                });
+
+            const matching = await addReadonlyValue('server value');
+            expect((matching as any).lines.length).toBe(1);
+
+            const different = await addReadonlyValue('other value');
+            expect((different as any).lines.length).toBe(2);
         });
     });
 
