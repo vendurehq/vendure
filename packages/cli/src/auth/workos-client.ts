@@ -55,7 +55,7 @@ export interface PollOptions extends AuthOptions {
 export const TOKEN_TOO_BIG = 'token_too_big';
 export const TOKEN_TOO_BIG_ADVICE =
     'Your account holds too many roles in the organization for a sign-in token. ' +
-    'Ask an organization admin to remove the roles you do not need, then try again.';
+    'Ask an organization admin to remove the roles you do not need from your membership, then try again.';
 
 /**
  * WorkOS error codes that mean the session needs a new interactive sign-in

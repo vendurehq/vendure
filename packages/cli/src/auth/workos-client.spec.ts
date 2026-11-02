@@ -90,7 +90,7 @@ describe('pollDeviceAuthorization', () => {
         await expect(pollDeviceAuthorization(CLIENT, DEVICE, run.options)).rejects.toThrow(
             'The login failed: the authentication service answered token_too_big (HTTP 400). ' +
                 'Your account holds too many roles in the organization for a sign-in token. ' +
-                'Ask an organization admin to remove the roles you do not need, then try again.',
+                'Ask an organization admin to remove the roles you do not need from your membership, then try again.',
         );
     });
 });

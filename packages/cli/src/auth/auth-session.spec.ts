@@ -588,7 +588,7 @@ describe('refreshAccessToken', () => {
 
         await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toThrow(
             'Could not renew the CLI session. Your account holds too many roles in the organization for a ' +
-                'sign-in token. Ask an organization admin to remove the roles you do not need, then try again. ' +
+                'sign-in token. Ask an organization admin to remove the roles you do not need from your membership, then try again. ' +
                 'The authentication service answered token_too_big (HTTP 400).',
         );
     });

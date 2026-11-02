@@ -175,7 +175,7 @@ describe('vendure auth status', () => {
         expect(messages).toEqual([
             'The stored login for dev@example.com can no longer be renewed (token_too_big, HTTP 400). ' +
                 'Your account holds too many roles in the organization for a sign-in token. ' +
-                'Ask an organization admin to remove the roles you do not need, then try again. ' +
+                'Ask an organization admin to remove the roles you do not need from your membership, then try again. ' +
                 'Run `vendure auth login` to sign in again.',
         ]);
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
