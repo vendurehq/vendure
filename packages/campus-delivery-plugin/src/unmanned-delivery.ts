@@ -10,13 +10,15 @@ export interface UnmannedProviderOption {
     needsEndpoint: boolean;
     /** 是否需要填密钥 */
     needsKey: boolean;
+    /** 服务端是否已实现下发：mock=模拟实现；真实厂商暂未接入→false（调用返回 unsupported） */
+    integrated: boolean;
 }
 
 export const UNMANNED_PROVIDERS: UnmannedProviderOption[] = [
-    { code: 'none', name: '未开通', needsEndpoint: false, needsKey: false },
-    { code: 'mock', name: '模拟通道（占位）', needsEndpoint: false, needsKey: false },
-    { code: 'meituan', name: '美团无人车', needsEndpoint: true, needsKey: true },
-    { code: 'xinshiji', name: '新石器无人车', needsEndpoint: true, needsKey: true },
+    { code: 'none', name: '未开通', needsEndpoint: false, needsKey: false, integrated: false },
+    { code: 'mock', name: '模拟通道（占位）', needsEndpoint: false, needsKey: false, integrated: true },
+    { code: 'meituan', name: '美团无人车', needsEndpoint: true, needsKey: true, integrated: false },
+    { code: 'xinshiji', name: '新石器无人车', needsEndpoint: true, needsKey: true, integrated: false },
 ];
 
 export function findUnmannedProvider(code: string): UnmannedProviderOption {

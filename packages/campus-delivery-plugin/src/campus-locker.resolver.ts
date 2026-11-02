@@ -78,6 +78,6 @@ export class CampusLockerShopResolver {
     @Allow(Permission.Public)
     async campusUnmannedDeliveryChannel(@Ctx() ctx: RequestContext) {
         const ch = await this.lockers.channel(ctx);
-        return { enabled: ch.enabled, provider: ch.provider, providerName: ch.providerName };
+        return { enabled: ch.enabled, provider: ch.provider, providerName: ch.providerName, integrated: ch.integrated };
     }
 }

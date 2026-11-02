@@ -175,11 +175,12 @@ export class CampusLockerService {
             enabled: !!cfg.unmannedDeliveryEnabled,
             provider: provider.code,
             providerName: provider.name,
-            providers: UNMANNED_PROVIDERS.map(p => ({ code: p.code, name: p.name, needsEndpoint: p.needsEndpoint, needsKey: p.needsKey })),
+            providers: UNMANNED_PROVIDERS.map(p => ({ code: p.code, name: p.name, needsEndpoint: p.needsEndpoint, needsKey: p.needsKey, integrated: p.integrated })),
             endpoint: cfg.unmannedDeliveryEndpoint ?? null,
             keyConfigured: !!cfg.unmannedDeliveryKey,
             needsEndpoint: provider.needsEndpoint,
             needsKey: provider.needsKey,
+            integrated: provider.integrated,
         };
     }
 
