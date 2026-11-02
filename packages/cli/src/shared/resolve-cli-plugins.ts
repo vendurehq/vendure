@@ -459,9 +459,25 @@ export function listInactiveCliPluginPackages(options: ResolveCliPluginsOptions 
 /**
  * As {@link listInactiveCliPluginPackages}, keeping the scope each package was
  * found in so a hint can name the command that would enable it.
+ *
+ * A package enabled in any scope is active, even though the other scope lists
+ * it as not enabled. A package installed in both scopes and enabled in neither
+ * is listed once, from the project, because the project's copy is the one that
+ * would be loaded.
  */
 export function listInactiveCliPlugins(options: ResolveCliPluginsOptions = {}): DiscoveredCliPlugin[] {
-    return discoverCliPlugins(options).filter(plugin => plugin.status === 'not-enabled');
+    const discovered = discoverCliPlugins(options);
+    const active = new Set(
+        discovered.filter(plugin => plugin.status !== 'not-enabled').map(plugin => plugin.packageName),
+    );
+    const inactive = new Map<string, DiscoveredCliPlugin>();
+    for (const plugin of discovered) {
+        if (plugin.status === 'not-enabled' && !active.has(plugin.packageName)) {
+            // Scopes are discovered global first, so a project entry replaces a global one.
+            inactive.set(plugin.packageName, plugin);
+        }
+    }
+    return [...inactive.values()];
 }
 
 /**
@@ -472,8 +488,20 @@ export function findInactivePluginProvidingCommand(
     commandName: string,
     options: ResolveCliPluginsOptions = {},
 ): DiscoveredCliPlugin | undefined {
+    return listInactiveCliPlugins(options).find(plugin => plugin.declaredCommands?.includes(commandName));
+}
+
+/**
+ * Finds an enabled plugin package that declares `commandName` via
+ * `vendure.cliCommands`, for when that command was still not registered.
+ * Does not load plugin code.
+ */
+export function findEnabledPluginDeclaringCommand(
+    commandName: string,
+    options: ResolveCliPluginsOptions = {},
+): DiscoveredCliPlugin | undefined {
     return discoverCliPlugins(options).find(
-        plugin => plugin.status === 'not-enabled' && plugin.declaredCommands?.includes(commandName),
+        plugin => plugin.status !== 'not-enabled' && plugin.declaredCommands?.includes(commandName),
     );
 }
 
