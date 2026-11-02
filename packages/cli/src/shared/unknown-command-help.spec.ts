@@ -89,7 +89,7 @@ describe('unknown command help', () => {
 
         expect(listInactiveCliPlugins(options)).toEqual([]);
         expect(findInactivePluginProvidingCommand('cloud', options)).toBeUndefined();
-        expect(unknownCommandHelp('bogus', options, new Set())).toEqual(['Unknown command "bogus".']);
+        expect(unknownCommandHelp('bogus', options, new Map())).toEqual(['Unknown command "bogus".']);
     });
 
     it('names a plugin only when it declares the command', () => {
@@ -97,8 +97,8 @@ describe('unknown command help', () => {
             global: { installed: [['@example/cloud', ['cloud']]] },
         });
 
-        expect(unknownCommandHelp('bogus', options, new Set())).toEqual(['Unknown command "bogus".']);
-        expect(unknownCommandHelp('cloud', options, new Set())).toEqual([
+        expect(unknownCommandHelp('bogus', options, new Map())).toEqual(['Unknown command "bogus".']);
+        expect(unknownCommandHelp('cloud', options, new Map())).toEqual([
             'Unknown command "cloud".',
             'It is provided by @example/cloud, which is installed but not enabled.',
             'Enable it with: vendure plugins add --global @example/cloud',
@@ -112,7 +112,7 @@ describe('unknown command help', () => {
         });
 
         expect(listInactiveCliPlugins(options).map(plugin => plugin.scope)).toEqual(['project']);
-        expect(unknownCommandHelp('cloud', options, new Set())).toContain(
+        expect(unknownCommandHelp('cloud', options, new Map())).toContain(
             'Enable it with: vendure plugins add @example/cloud',
         );
     });
@@ -124,7 +124,7 @@ describe('unknown command help', () => {
             },
         });
 
-        expect(unknownCommandHelp('bogus', options, new Set())).toEqual([
+        expect(unknownCommandHelp('bogus', options, new Map())).toEqual([
             'Unknown command "bogus".',
             '2 packages provide CLI commands but are not enabled. Run "vendure plugins" to review them.',
         ]);
@@ -133,7 +133,7 @@ describe('unknown command help', () => {
     it('does not name a single package that declares no commands', () => {
         const options = makeMachine({ project: { installed: [['@example/tools']] } });
 
-        expect(unknownCommandHelp('bogus', options, new Set())).toEqual([
+        expect(unknownCommandHelp('bogus', options, new Map())).toEqual([
             'Unknown command "bogus".',
             '1 package provides CLI commands but is not enabled. Run "vendure plugins" to review it.',
         ]);
@@ -145,10 +145,41 @@ describe('unknown command help', () => {
         });
 
         expect(findEnabledPluginDeclaringCommand('cloud', options)?.packageName).toBe('@example/cloud');
-        expect(unknownCommandHelp('cloud', options, new Set(['@example/cloud']))).toEqual([
+        expect(unknownCommandHelp('cloud', options, new Map([['@example/cloud', 'load']]))).toEqual([
             'Unknown command "cloud".',
             '@example/cloud is enabled but did not register "cloud". It failed to load; see the error above.',
         ]);
+    });
+
+    it('says an enabled plugin that failed to register did not register its command', () => {
+        const options = makeMachine({
+            project: { installed: [['@example/cloud', ['cloud']]], enabled: ['@example/cloud'] },
+        });
+
+        expect(unknownCommandHelp('cloud', options, new Map([['@example/cloud', 'register']]))).toContain(
+            '@example/cloud is enabled but did not register "cloud". It failed to register; see the error above.',
+        );
+    });
+
+    it('names an inactive global copy that declares the command when the project copy does not', () => {
+        const options = makeMachine({
+            global: { installed: [['@example/cloud', ['cloud']]] },
+            project: { installed: [['@example/cloud']] },
+        });
+
+        expect(unknownCommandHelp('cloud', options, new Map())).toContain(
+            'Enable it with: vendure plugins add --global @example/cloud',
+        );
+    });
+
+    it('reads the enabled copy startup loads, which is the project one', () => {
+        const options = makeMachine({
+            global: { installed: [['@example/cloud', ['cloud']]], enabled: ['@example/cloud'] },
+            project: { installed: [['@example/cloud']], enabled: ['@example/cloud'] },
+        });
+
+        expect(findEnabledPluginDeclaringCommand('cloud', options)).toBeUndefined();
+        expect(unknownCommandHelp('cloud', options, new Map())).toEqual(['Unknown command "cloud".']);
     });
 
     it('says an enabled plugin declares a command it does not provide', () => {
@@ -156,7 +187,7 @@ describe('unknown command help', () => {
             global: { installed: [['@example/cloud', ['cloud']]], enabled: ['@example/cloud'] },
         });
 
-        expect(unknownCommandHelp('cloud', options, new Set())).toEqual([
+        expect(unknownCommandHelp('cloud', options, new Map())).toEqual([
             'Unknown command "cloud".',
             '@example/cloud is enabled but did not register "cloud". ' +
                 'Its vendure.cliCommands lists "cloud", but the plugin does not provide it.',

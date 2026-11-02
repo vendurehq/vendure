@@ -17,7 +17,7 @@ import {
     resolveCliPlugins,
     ResolveCliPluginsOptions,
 } from './shared/resolve-cli-plugins';
-import { unknownCommandHelp } from './shared/unknown-command-help';
+import { PluginFailureStep, unknownCommandHelp } from './shared/unknown-command-help';
 
 async function main(): Promise<void> {
     const program = new Command();
@@ -74,7 +74,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         writeScopeError(scopeError);
     }
     // Enabled packages whose commands are missing for a reason already printed.
-    const unavailablePackages = new Set(failures.map(failure => failure.packageName));
+    const unavailablePackages = new Map<string, PluginFailureStep>(
+        failures.map(failure => [failure.packageName, 'load']),
+    );
     for (const failure of failures) {
         writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
     }
@@ -83,7 +85,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
             registry.applyPlugin(plugin);
         } catch (e) {
             const reason = e instanceof Error ? e.message : String(e);
-            unavailablePackages.add(packageName);
+            unavailablePackages.set(packageName, 'register');
             writePluginSkipped(packageName, 'Failed to register CLI plugin', reason, scope);
         }
     }
