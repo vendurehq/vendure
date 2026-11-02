@@ -113,9 +113,11 @@ export class ReauthenticationRequiredError extends Error {
 }
 
 /**
- * Whether a renewal failure means the stored login can no longer be renewed, so
- * only a new sign-in helps. A failure that may pass, such as no answer, a
- * timeout, rate limiting or a server error, is not a refusal.
+ * Whether a renewal failure means the stored login can no longer be renewed as
+ * it is. A failure that may pass, such as no answer, a timeout, rate limiting
+ * or a server error, is not a refusal. Neither is a 4xx answer without an
+ * error code, which may come from a proxy rather than the authentication
+ * service.
  *
  * @since 3.8.2
  */
@@ -123,7 +125,11 @@ export function isRenewalRefused(error: unknown): boolean {
     if (error instanceof SessionRejectedError || error instanceof ReauthenticationRequiredError) {
         return true;
     }
-    if (error instanceof SessionRefreshUnavailableError && error.status !== undefined) {
+    if (
+        error instanceof SessionRefreshUnavailableError &&
+        error.code !== undefined &&
+        error.status !== undefined
+    ) {
         return error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429;
     }
     return false;

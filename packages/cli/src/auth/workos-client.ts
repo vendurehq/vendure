@@ -52,8 +52,8 @@ export interface PollOptions extends AuthOptions {
  * exceed its size limit (CLO-1083). The claims list every role and permission
  * the user holds in the organization, so the fix is fewer roles.
  */
-const TOKEN_TOO_BIG = 'token_too_big';
-const TOKEN_TOO_BIG_ADVICE =
+export const TOKEN_TOO_BIG = 'token_too_big';
+export const TOKEN_TOO_BIG_ADVICE =
     'Your account holds too many roles in the organization for a sign-in token. ' +
     'Ask an organization admin to remove the roles you do not need, then try again.';
 

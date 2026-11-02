@@ -162,6 +162,25 @@ describe('vendure auth status', () => {
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
     });
 
+    // CLO-1083: the renewal fails with token_too_big while the user holds too many roles.
+    it('says what to do when the renewed token would be too big', async () => {
+        storeLogin();
+
+        await expect(
+            authStatusCommand(
+                {},
+                { ...dependencies, fetch: renewalAnswers({ status: 400, body: { error: 'token_too_big' } }) },
+            ),
+        ).resolves.toBe(1);
+        expect(messages).toEqual([
+            'The stored login for dev@example.com can no longer be renewed (token_too_big, HTTP 400). ' +
+                'Your account holds too many roles in the organization for a sign-in token. ' +
+                'Ask an organization admin to remove the roles you do not need, then try again. ' +
+                'Run `vendure auth login` to sign in again.',
+        ]);
+        expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
+    });
+
     it('reports the login and warns when the renewal cannot be checked', async () => {
         storeLogin();
 

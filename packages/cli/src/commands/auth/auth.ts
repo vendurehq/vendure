@@ -13,6 +13,7 @@ import {
 import { AuthOptions, resolveConsoleApiUrl } from '../../auth/auth-options';
 import { hasLoginForOtherConsole } from '../../auth/auth-session';
 import { StoredOrganization } from '../../auth/auth-store';
+import { TOKEN_TOO_BIG, TOKEN_TOO_BIG_ADVICE } from '../../auth/workos-client';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 import { openConsoleBrowser } from '../console/authentication';
 
@@ -66,28 +67,9 @@ export async function authLoginCommand(
     if (!hasValidEnvironment(deps)) {
         return 1;
     }
-    // Without a terminal the login is replaced without asking, so there is nothing to check.
-    if (readAuthStatus(deps).loggedIn && !deps.isNonInteractive()) {
-        const existing = await checkAuthStatus(deps);
-        if (existing.renewable === false) {
-            deps.reporter.warn(
-                `The stored login for ${describeEmail(existing)} can no longer be renewed` +
-                    `${describeAnswer(existing.renewalError)}. Signing in again.`,
-            );
-        } else if (existing.loggedIn) {
-            if (existing.renewalError) {
-                deps.reporter.warn(
-                    `Could not check that the stored login can be renewed: ${existing.renewalError.message}`,
-                );
-            }
-            const replace = await deps.confirm(
-                `Already logged in as ${describeEmail(existing)}. Sign in again?`,
-            );
-            if (!replace) {
-                deps.reporter.info('Login cancelled.');
-                return 0;
-            }
-        }
+    if (!(await confirmReplacingStoredLogin(deps))) {
+        deps.reporter.info('Login cancelled.');
+        return 0;
     }
 
     const abortController = new AbortController();
@@ -147,10 +129,7 @@ export async function authStatusCommand(
         return status.loggedIn ? 0 : 1;
     }
     if (status.renewable === false) {
-        deps.reporter.warn(
-            `The stored login for ${describeEmail(status)} can no longer be renewed` +
-                `${describeAnswer(status.renewalError)}. Run \`vendure auth login\` to sign in again.`,
-        );
+        deps.reporter.warn(describeRefusal(status, 'Run `vendure auth login` to sign in again.'));
         return 1;
     }
     if (!status.loggedIn) {
@@ -208,6 +187,33 @@ export async function authLogoutCommand(
     return 0;
 }
 
+/**
+ * Checks a stored login before the sign-in replaces it. A login that can still
+ * be renewed is replaced only when the user confirms. Resolves `false` when the
+ * user keeps it.
+ */
+async function confirmReplacingStoredLogin(deps: AuthCommandDependencies): Promise<boolean> {
+    // Without a terminal the login is replaced without asking, so there is nothing to check.
+    if (deps.isNonInteractive() || !readAuthStatus(deps).loggedIn) {
+        return true;
+    }
+    const existing = await checkAuthStatus(deps);
+    if (existing.renewable === false) {
+        deps.reporter.warn(describeRefusal(existing, 'Signing in again.'));
+        return true;
+    }
+    if (!existing.loggedIn) {
+        return true;
+    }
+    if (existing.renewalError) {
+        deps.reporter.warn(
+            `Could not check that the stored login can be renewed: ${existing.renewalError.message}`,
+        );
+    }
+    const replace = await deps.confirm(`Already logged in as ${describeEmail(existing)}. Sign in again?`);
+    return replace === true;
+}
+
 /** Reports a misconfigured Console API rather than throwing it. */
 function hasValidEnvironment(deps: AuthCommandDependencies): boolean {
     try {
@@ -235,6 +241,15 @@ function describeLogin(status: AuthStatus): string {
 
 function describeEmail(status: AuthStatus): string {
     return status.user?.email ?? 'an unknown user';
+}
+
+function describeRefusal(status: AuthStatus, nextStep: string): string {
+    const error = status.renewalError;
+    const advice = error?.code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
+    return (
+        `The stored login for ${describeEmail(status)} can no longer be renewed` +
+        `${describeAnswer(error)}.${advice} ${nextStep}`
+    );
 }
 
 /** The authentication service's answer, such as ` (invalid_grant, HTTP 400)`, or nothing without one. */

@@ -808,6 +808,8 @@ describe('isRenewalRefused', () => {
         [new SessionRejectedError(), true],
         [new ReauthenticationRequiredError('sso_required', 403), true],
         [new SessionRefreshUnavailableError('refused', { code: 'invalid_client', status: 400 }), true],
+        [new SessionRefreshUnavailableError('too big', { code: 'token_too_big', status: 400 }), true],
+        [new SessionRefreshUnavailableError('no code', { status: 403 }), false],
         [new SessionRefreshUnavailableError('timeout', { status: 408 }), false],
         [
             new SessionRefreshUnavailableError('rate limited', { code: 'rate_limit_exceeded', status: 429 }),
