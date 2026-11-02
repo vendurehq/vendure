@@ -7068,6 +7068,10 @@ msgstr "Buyurtmaga to'lov qo'shish"
 #~ msgid "Loading..."
 #~ msgstr "Yuklanmoqda..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Hali mavjud bo‘lmagan tanlov kombinatsiyalari uchun variantlar yarating. Allaqachon mavjud kombinatsiyalar ma’lumot uchun ko‘rsatilgan va ularni tahrirlab bo‘lmaydi."

@@ -1,4 +1,7 @@
 import { VendurePlugin, VendurePluginMetadata } from '@vendure/core';
+import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
 import { pathToFileURL } from 'node:url';
 import path from 'path';
 import type { Plugin } from 'vite';
@@ -610,6 +613,49 @@ describe('dashboardMetadataPlugin', () => {
         expect((result.match(/await import/g) || []).length).toBe(1);
     });
 
+    // Extensions are dynamically imported, so Vite's cold-start crawl misses their
+    // dependencies; warming them at startup avoids a mid-boot re-optimization.
+    // POSIX only: the expected `/@fs/` URL is a literal path without a drive letter.
+    it.skipIf(process.platform === 'win32')(
+        'configureServer warms up active extension entries once the server is listening',
+        async () => {
+            const root = path.resolve('/project/node_modules/@vendure/dashboard');
+            const plugin = setupPlugin(
+                [
+                    {
+                        name: 'LocalPlugin',
+                        pluginPath: '/project/src/plugin.js',
+                        dashboardEntryPath: './ui.tsx',
+                    },
+                    {
+                        name: 'NoDashboard',
+                        pluginPath: '/project/src/other.js',
+                        dashboardEntryPath: undefined,
+                    },
+                    {
+                        name: 'InsideRoot',
+                        pluginPath: path.join(root, 'plugin/index.js'),
+                        dashboardEntryPath: './ui.tsx',
+                    },
+                ],
+                new Set(['LocalPlugin', 'NoDashboard', 'InsideRoot']),
+            );
+            const warmupRequest = vi.fn(() => Promise.resolve());
+            const httpServer = new EventEmitter();
+            (plugin.configureServer as (server: unknown) => void)({
+                config: { root },
+                environments: { client: { warmupRequest } },
+                httpServer,
+            });
+            // The deps optimizer is only initialized just before the server listens.
+            expect(warmupRequest).not.toHaveBeenCalled();
+            httpServer.emit('listening');
+            await vi.waitFor(() => expect(warmupRequest).toHaveBeenCalledTimes(2));
+            expect(warmupRequest).toHaveBeenCalledWith('/@fs/project/src/ui.tsx');
+            expect(warmupRequest).toHaveBeenCalledWith('/plugin/ui.tsx');
+        },
+    );
+
     it('load returns undefined for non-matching IDs', async () => {
         const plugin = setupPlugin([]);
         const fakeContext = { debug: noop, info: noop };
@@ -974,12 +1020,55 @@ describe('viteConfigPlugin: useExperimentalBundle', () => {
         expect(aliases['@vendure/dashboard']).toBe(path.resolve(packageRoot, './dist/bundle/lib.js'));
     });
 
+    // A stale `lib.js` served from the browser's immutable cache alongside a fresh
+    // `main.js` loads two copies of the shared chunks, splitting React contexts.
+    it('with flag: versions the lib.js alias by bundle content so a changed bundle gets a new URL', () => {
+        const realRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vdb-bundle-'));
+        const libEntry = path.join(realRoot, 'dist/bundle/lib.js');
+        fs.mkdirSync(path.dirname(libEntry), { recursive: true });
+        const getAlias = () => {
+            const result = callConfig(
+                viteConfigPlugin({ packageRoot: realRoot, useExperimentalBundle: true }),
+                {},
+                { command: 'serve' },
+            );
+            return (result.resolve.alias as Record<string, string>)['@vendure/dashboard'];
+        };
+        try {
+            fs.writeFileSync(libEntry, 'export * from "./chunks/common-AAAA.js";');
+            const first = getAlias();
+            expect(first.startsWith(`${libEntry}?v=`)).toBe(true);
+            expect(first.slice(`${libEntry}?v=`.length)).toMatch(/^[0-9a-f]{8}$/);
+            expect(getAlias()).toBe(first);
+
+            fs.writeFileSync(libEntry, 'export * from "./chunks/common-BBBB.js";');
+            expect(getAlias()).not.toBe(first);
+        } finally {
+            fs.rmSync(realRoot, { recursive: true, force: true });
+        }
+    });
+
     it('with flag: still keeps @/vdb and @/graphql aliases', () => {
         const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
         expect(aliases['@/vdb']).toBe(path.resolve(packageRoot, './src/lib'));
         expect(aliases['@/graphql']).toBe(path.resolve(packageRoot, './src/lib/graphql'));
+    });
+
+    // Otherwise the bundle gets a raw `@lingui/core` while extension code gets an
+    // optimized copy (two `i18n` singletons), and it is discovered late on cold start.
+    it('optimizeDeps.include pre-bundles the Lingui runtime in both modes', () => {
+        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        const on = callConfig(
+            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+            {},
+            { command: 'serve' },
+        );
+        for (const result of [off, on]) {
+            expect(result.optimizeDeps.include).toContain('@lingui/core');
+            expect(result.optimizeDeps.include).toContain('@lingui/react');
+        }
     });
 
     it('optimizeDeps.exclude always includes virtual:plugin-translations (regardless of flag)', () => {

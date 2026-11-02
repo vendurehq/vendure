@@ -356,6 +356,7 @@ Refunds the selected payment.
 
 - Fetches the URL once and does not follow redirects. Give it the final URL of the file.
 - A URL that does not answer with the file is refused with a message saying so.
+- Publishes an `AssetEvent` with the type `created` for the new asset, as the `createAssets` mutation does.
 
 ## Tool exposure: direct vs discovery
 

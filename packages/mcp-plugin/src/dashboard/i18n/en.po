@@ -309,3 +309,23 @@ msgstr "The admin endpoint needs OAuth. Add an oauth block to McpPlugin.init to 
 
 msgid "The shop endpoint is disabled (shopAccess: 'disabled')."
 msgstr "The shop endpoint is disabled (shopAccess: 'disabled')."
+
+#. js-lingui-explicit-id
+msgid "MCP Server"
+msgstr "MCP Server"
+
+#. js-lingui-explicit-id
+msgid "Overview"
+msgstr "Overview"
+
+#. js-lingui-explicit-id
+msgid "Tools"
+msgstr "Tools"
+
+#. js-lingui-explicit-id
+msgid "Activity"
+msgstr "Activity"
+
+#. js-lingui-explicit-id
+msgid "Grants"
+msgstr "Grants"

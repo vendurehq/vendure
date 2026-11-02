@@ -7272,6 +7272,10 @@ msgstr "Siparişe ödeme ekle"
 #~ msgid "Loading..."
 #~ msgstr "Yükleniyor..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Henüz mevcut olmayan seçenek kombinasyonları için varyantlar oluşturun. Zaten mevcut olan kombinasyonlar bilgi amaçlı gösterilir ve düzenlenemez."

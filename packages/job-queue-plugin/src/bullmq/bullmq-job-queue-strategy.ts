@@ -379,9 +379,36 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
         if (!this.cancellationSubscribed) {
             this.cancellationSubscribed = true;
+            await this.waitUntilReady(this.cancellationSub);
             await this.cancellationSub.subscribe(this.cancelJobChannel);
             this.cancellationSub.on('message', this.subscribeToCancellationEvents);
         }
+    }
+
+    private waitUntilReady(connection: Redis | Cluster): Promise<void> {
+        if (connection.status === 'ready') {
+            return Promise.resolve();
+        }
+        if (connection.status === 'end') {
+            return Promise.reject(new Error('Redis connection closed before it became ready'));
+        }
+        return new Promise((resolve, reject) => {
+            const onReady = () => {
+                connection.off('end', onEnd);
+                resolve();
+            };
+            const onEnd = () => {
+                connection.off('ready', onReady);
+                reject(new Error('Redis connection closed before it became ready'));
+            };
+            connection.once('ready', onReady);
+            connection.once('end', onEnd);
+            // A lazyConnect connection stays in 'wait' until a command is sent, and nothing
+            // else uses this connection, so connect it here.
+            if (connection.status === 'wait') {
+                connection.connect().catch(() => undefined);
+            }
+        });
     }
 
     private readonly subscribeToCancellationEvents = (channel: string, jobId: string) => {

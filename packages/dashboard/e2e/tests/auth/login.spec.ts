@@ -1,5 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { type Browser, expect, type Page, test } from '@playwright/test';
 
+import {
+    LS_KEY_SESSION_TOKEN,
+    LS_KEY_USER_SETTINGS,
+    SETTINGS_STORE_KEY_USER_SETTINGS,
+} from '../../../src/lib/storage-keys.js';
 import { LoginPage } from '../../page-objects/login-page.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -30,6 +35,193 @@ test.describe('Login', () => {
     test('should redirect to login when accessing protected route unauthenticated', async ({ page }) => {
         await page.goto('/products');
         await expect(page).toHaveURL(/\/login/);
+    });
+});
+
+// #5617 — an administrator without access to any channel cannot use the Dashboard
+test.describe('Administrator without access to any channel', () => {
+    const password = 'test-password';
+
+    async function createAdministrator(client: VendureAdminClient, channelIds?: string[]) {
+        const suffix = `${Date.now()}-${Math.round(Math.random() * 1000)}`;
+        const emailAddress = `no-channel-${suffix}@test.com`;
+        const { createRole } = await client.gql(
+            `mutation ($input: CreateRoleInput!) { createRole(input: $input) { id } }`,
+            {
+                input: {
+                    code: `no-channel-${suffix}`,
+                    description: 'Role for an administrator without channels',
+                    permissions: ['ReadCatalog'],
+                    channelIds,
+                },
+            },
+        );
+        const { createAdministrator: administrator } = await client.gql(
+            `mutation ($input: CreateAdministratorInput!) { createAdministrator(input: $input) { id } }`,
+            {
+                input: {
+                    firstName: 'No',
+                    lastName: 'Channel',
+                    emailAddress,
+                    password,
+                    roleIds: [createRole.id],
+                },
+            },
+        );
+        return {
+            emailAddress,
+            administratorId: administrator.id as string,
+            roleId: createRole.id as string,
+        };
+    }
+
+    // Removes the test data, so that later tests which reuse the e2e database do not see it
+    async function cleanupAdministrator(
+        client: VendureAdminClient,
+        { administratorId, roleId }: { administratorId: string; roleId: string },
+    ) {
+        await client.gql(`mutation ($ids: [ID!]!) { deleteAdministrators(ids: $ids) { result } }`, {
+            ids: [administratorId],
+        });
+        await client.gql(`mutation ($ids: [ID!]!) { deleteRoles(ids: $ids) { result } }`, { ids: [roleId] });
+    }
+
+    // A fresh browser context, so that the page is not signed in as the SuperAdmin
+    async function newLoginPage(browser: Browser) {
+        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        const page = await context.newPage();
+        return { context, page, loginPage: new LoginPage(page) };
+    }
+
+    // Fails the first current-user request after the login, as a network error would
+    async function failFirstCurrentUserRefetch(page: Page) {
+        const state = { loginSent: false, failedRefetch: false };
+        await page.route('**/admin-api**', async route => {
+            const operation = route.request().postDataJSON()?.query ?? '';
+            if (operation.includes('mutation Login')) {
+                state.loginSent = true;
+            } else if (
+                state.loginSent &&
+                !state.failedRefetch &&
+                operation.includes('query CurrentUserInformation')
+            ) {
+                state.failedRefetch = true;
+                return route.abort();
+            }
+            return route.continue();
+        });
+        return state;
+    }
+
+    test('shows an error and the login form after logging in', async ({ page, browser }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const administrator = await createAdministrator(client, []);
+        const { context, page: adminPage, loginPage } = await newLoginPage(browser);
+        try {
+            await loginPage.goto();
+            await loginPage.login(administrator.emailAddress, password);
+
+            await expect(
+                adminPage
+                    .locator('[data-sonner-toast]')
+                    .filter({ hasText: 'You do not have access to any channel' }),
+            ).toBeVisible({ timeout: 10_000 });
+            await loginPage.expectVisible();
+
+            // The session was ended, so a reload still shows the login form
+            await adminPage.reload();
+            await loginPage.expectVisible();
+        } finally {
+            await context.close();
+            await cleanupAdministrator(client, administrator);
+        }
+    });
+
+    test('shows the login form after a reload when access to all channels was removed', async ({
+        page,
+        browser,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const administrator = await createAdministrator(client);
+        const { context, page: adminPage, loginPage } = await newLoginPage(browser);
+        try {
+            await loginPage.goto();
+            await loginPage.login(administrator.emailAddress, password);
+            await expect(adminPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
+
+            const { activeChannel } = await client.gql(`query { activeChannel { id } }`);
+            await client.gql(`mutation ($input: UpdateRoleInput!) { updateRole(input: $input) { id } }`, {
+                input: { id: administrator.roleId, channelIds: [] },
+            });
+            await adminPage.reload();
+
+            await expect(
+                adminPage
+                    .locator('[data-sonner-toast]')
+                    .filter({ hasText: 'You do not have access to any channel' }),
+            ).toBeVisible({ timeout: 10_000 });
+            await loginPage.expectVisible();
+
+            // The session was ended, so it stays signed out even once the access is given back
+            await client.gql(`mutation ($input: UpdateRoleInput!) { updateRole(input: $input) { id } }`, {
+                input: { id: administrator.roleId, channelIds: [activeChannel.id] },
+            });
+            await adminPage.reload();
+            await loginPage.expectVisible();
+            await expect(adminPage).toHaveURL(/\/login/);
+        } finally {
+            await context.close();
+            await cleanupAdministrator(client, administrator);
+        }
+    });
+
+    test('does not report missing channel access when the current user cannot be loaded', async ({
+        browser,
+    }) => {
+        const { context, page: adminPage, loginPage } = await newLoginPage(browser);
+        try {
+            const refetch = await failFirstCurrentUserRefetch(adminPage);
+            await loginPage.goto();
+            await loginPage.login('superadmin', 'superadmin');
+
+            await expect(adminPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
+            expect(refetch.failedRefetch).toBe(true);
+            await expect(
+                adminPage
+                    .locator('[data-sonner-toast]')
+                    .filter({ hasText: 'You do not have access to any channel' }),
+            ).toHaveCount(0);
+        } finally {
+            await context.close();
+        }
+    });
+
+    test('shows an error and the login form when the current user cannot be loaded after logging in', async ({
+        page,
+        browser,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const administrator = await createAdministrator(client, []);
+        const { context, page: adminPage, loginPage } = await newLoginPage(browser);
+        try {
+            const refetch = await failFirstCurrentUserRefetch(adminPage);
+            await loginPage.goto();
+            await loginPage.login(administrator.emailAddress, password);
+
+            await expect(
+                adminPage
+                    .locator('[data-sonner-toast]')
+                    .filter({ hasText: 'You do not have access to any channel' }),
+            ).toBeVisible({ timeout: 10_000 });
+            await loginPage.expectVisible();
+            expect(refetch.failedRefetch).toBe(true);
+        } finally {
+            await context.close();
+            await cleanupAdministrator(client, administrator);
+        }
     });
 });
 
@@ -154,6 +346,205 @@ test.describe('Switching user', () => {
                 .catch(() => {});
             await client
                 .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, { id: channelId })
+                .catch(() => {});
+        }
+    });
+});
+
+// #5595 — signing in from a signed-out page must not overwrite the stored user settings
+test.describe('Stored user settings on login', () => {
+    const MARKER_TABLE_ID = 'e2e-5595';
+    const markerTableSettings = { pageSize: 37 };
+
+    /**
+     * The e2e server has no DashboardPlugin, so the user settings store is emulated here. Each
+     * request still goes to the server first, so that the server decides whether the session
+     * may read the settings: without a valid session it answers FORBIDDEN, as with the plugin.
+     * The emulated stored value has no `activeChannelId`, so the Dashboard writes the settings
+     * back soon after the login, once it has set the active channel. `stores` holds one stored
+     * value per administrator, and `currentStore` names the one the current session reads and writes.
+     */
+    async function emulateUserSettingsStore(
+        page: Page,
+        stores: Record<string, Record<string, any>> = {
+            default: { displayLanguage: 'en', tableSettings: { [MARKER_TABLE_ID]: markerTableSettings } },
+        },
+        currentStore: () => string = () => 'default',
+    ) {
+        const savedValues: Array<Record<string, any>> = [];
+        await page.route('**/admin-api**', async route => {
+            const request = route.request().postDataJSON();
+            const query: string = request?.query ?? '';
+            const isRead =
+                query.includes('GetSettingsStoreValue') &&
+                request.variables?.key === SETTINGS_STORE_KEY_USER_SETTINGS;
+            const isWrite =
+                query.includes('SetSettingsStoreValue') &&
+                request.variables?.input?.key === SETTINGS_STORE_KEY_USER_SETTINGS;
+            if (!isRead && !isWrite) {
+                await route.fallback();
+                return;
+            }
+            const response = await route.fetch();
+            const json = await response.json();
+            if (json.errors?.some((e: any) => e.extensions?.code === 'FORBIDDEN')) {
+                await route.fulfill({ response });
+                return;
+            }
+            if (isWrite) {
+                stores[currentStore()] = request.variables.input.value;
+                savedValues.push(request.variables.input.value);
+            }
+            await route.fulfill({
+                response,
+                json: isRead
+                    ? { data: { getSettingsStoreValue: stores[currentStore()] } }
+                    : {
+                          data: {
+                              setSettingsStoreValue: {
+                                  key: SETTINGS_STORE_KEY_USER_SETTINGS,
+                                  result: true,
+                                  error: null,
+                              },
+                          },
+                      },
+            });
+        });
+        return savedValues;
+    }
+
+    async function expectStoredSettingsKept(page: Page, savedValues: Array<Record<string, any>>) {
+        // Wait for the write which follows the login, then check that it kept the stored value
+        await expect.poll(() => savedValues.length, { timeout: 15_000 }).toBeGreaterThan(0);
+        for (const value of savedValues) {
+            expect(value.tableSettings?.[MARKER_TABLE_ID]).toEqual(markerTableSettings);
+        }
+        // The stored value is applied in the browser, too
+        const localSettings = await page.evaluate(
+            key => JSON.parse(localStorage.getItem(key) ?? '{}'),
+            LS_KEY_USER_SETTINGS,
+        );
+        expect(localSettings.tableSettings?.[MARKER_TABLE_ID]).toEqual(markerTableSettings);
+    }
+
+    test('keeps the stored settings when signing in from a fresh browser', async ({ page }) => {
+        const savedValues = await emulateUserSettingsStore(page);
+        const loginPage = new LoginPage(page);
+        await loginPage.goto();
+        await loginPage.expectVisible();
+        await loginPage.login('superadmin', 'superadmin');
+        await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
+
+        await expectStoredSettingsKept(page, savedValues);
+    });
+
+    test('keeps the stored settings when signing in after the session token expired', async ({ page }) => {
+        const savedValues = await emulateUserSettingsStore(page);
+        const loginPage = new LoginPage(page);
+        await loginPage.goto();
+        // A session token which the server no longer accepts, as after the session expired
+        await page.evaluate(key => localStorage.setItem(key, 'expired-session-token'), LS_KEY_SESSION_TOKEN);
+        await page.goto('/products');
+        await expect(page).toHaveURL(/\/login/);
+        await loginPage.expectVisible();
+        await loginPage.login('superadmin', 'superadmin');
+        await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
+
+        await expectStoredSettingsKept(page, savedValues);
+    });
+
+    // #5646: after logging out, the next login must use the next administrator's stored settings
+    test('keeps the stored settings of the next user after logging out', async ({ page, browser }) => {
+        const suffix = `${Date.now()}-${Math.round(Math.random() * 1000)}`;
+        const password = 'test-password';
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { activeChannel } = await client.gql(`query { activeChannel { id } }`);
+        const roleIds: string[] = [];
+        const administratorIds: string[] = [];
+        const createAdministrator = async (name: string) => {
+            const { createRole } = await client.gql(
+                `mutation ($input: CreateRoleInput!) { createRole(input: $input) { id } }`,
+                {
+                    input: {
+                        code: `${name}-${suffix}`,
+                        description: 'Catalog access',
+                        permissions: ['ReadCatalog'],
+                        channelIds: [activeChannel.id],
+                    },
+                },
+            );
+            roleIds.push(createRole.id);
+            const emailAddress = `${name}-${suffix}@test.com`;
+            const { createAdministrator: administrator } = await client.gql(
+                `mutation ($input: CreateAdministratorInput!) { createAdministrator(input: $input) { id } }`,
+                {
+                    input: {
+                        firstName: 'Settings',
+                        lastName: name,
+                        emailAddress,
+                        password,
+                        roleIds: [createRole.id],
+                    },
+                },
+            );
+            administratorIds.push(administrator.id);
+            return emailAddress;
+        };
+
+        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        try {
+            const firstEmailAddress = await createAdministrator('SettingsFirst');
+            const secondEmailAddress = await createAdministrator('SettingsSecond');
+
+            const firstTableSettings = { pageSize: 11 };
+            let currentUser = 'first';
+            const stores = {
+                first: { displayLanguage: 'en', tableSettings: { [MARKER_TABLE_ID]: firstTableSettings } },
+                second: { displayLanguage: 'en', tableSettings: { [MARKER_TABLE_ID]: markerTableSettings } },
+            };
+            const userPage = await context.newPage();
+            const savedValues = await emulateUserSettingsStore(userPage, stores, () => currentUser);
+            const loginPage = new LoginPage(userPage);
+            await loginPage.goto();
+            await loginPage.login(firstEmailAddress, password);
+            await expect(userPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
+            await expect.poll(() => savedValues.length, { timeout: 15_000 }).toBeGreaterThan(0);
+
+            await userPage
+                .locator('[data-sidebar="footer"] [data-sidebar="menu-button"]')
+                .filter({ hasText: 'Settings SettingsFirst' })
+                .click();
+            await userPage.getByRole('menuitem', { name: 'Log out' }).click();
+            await loginPage.expectVisible();
+
+            const savedBeforeSecondLogin = savedValues.length;
+            currentUser = 'second';
+            await loginPage.login(secondEmailAddress, password);
+            await expect(userPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
+            const markerInBrowser = () =>
+                userPage.evaluate(
+                    ([settingsKey, tableId]) =>
+                        JSON.parse(localStorage.getItem(settingsKey) ?? '{}').tableSettings?.[tableId],
+                    [LS_KEY_USER_SETTINGS, MARKER_TABLE_ID],
+                );
+            await expect.poll(markerInBrowser, { timeout: 15_000 }).toEqual(markerTableSettings);
+
+            for (const value of savedValues.slice(savedBeforeSecondLogin)) {
+                expect(value.tableSettings?.[MARKER_TABLE_ID]).toEqual(markerTableSettings);
+            }
+            expect(stores.second.tableSettings?.[MARKER_TABLE_ID]).toEqual(markerTableSettings);
+        } finally {
+            // The emulated store may still be handling a request, which fails once the context closes
+            await Promise.all(context.pages().map(p => p.unrouteAll({ behavior: 'ignoreErrors' })));
+            await context.close();
+            await client
+                .gql(`mutation ($ids: [ID!]!) { deleteAdministrators(ids: $ids) { result } }`, {
+                    ids: administratorIds,
+                })
+                .catch(() => {});
+            await client
+                .gql(`mutation ($ids: [ID!]!) { deleteRoles(ids: $ids) { result } }`, { ids: roleIds })
                 .catch(() => {});
         }
     });

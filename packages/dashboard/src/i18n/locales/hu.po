@@ -7255,6 +7255,10 @@ msgstr "Fizetés hozzáadása a megrendeléshez"
 #~ msgid "Loading..."
 #~ msgstr "Betöltés..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Hozzon létre variánsokat a még nem létező opciókombinációkhoz. A már létező kombinációk tájékoztatásul jelennek meg, és nem szerkeszthetők."

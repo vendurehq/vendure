@@ -7068,6 +7068,10 @@ msgstr "Adaugă plată la comandă"
 #~ msgid "Loading..."
 #~ msgstr "Se încarcă..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Creați variante pentru combinațiile de opțiuni care nu există încă. Combinațiile care există deja sunt afișate pentru context și nu pot fi editate."

@@ -7272,6 +7272,10 @@ msgstr "向订单添加支付"
 #~ msgid "Loading..."
 #~ msgstr "正在加载..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "为尚不存在的选项组合创建变体。已存在的组合仅供参考显示，无法编辑。"

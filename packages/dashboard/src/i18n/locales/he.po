@@ -7272,6 +7272,10 @@ msgstr "הוסף תשלום להזמנה"
 #~ msgid "Loading..."
 #~ msgstr "טוען..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "צרו וריאנטים עבור שילובי האפשרויות שעדיין לא קיימים. שילובים שכבר קיימים מוצגים לצורך הקשר ולא ניתן לערוך אותם."

@@ -7272,6 +7272,10 @@ msgstr "إضافة دفع إلى الطلب"
 #~ msgid "Loading..."
 #~ msgstr "جارٍ التحميل..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "أنشئ متغيرات لتركيبات الخيارات غير الموجودة بعد. التركيبات الموجودة بالفعل معروضة للتوضيح ولا يمكن تعديلها."

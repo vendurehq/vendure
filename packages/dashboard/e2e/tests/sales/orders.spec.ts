@@ -142,8 +142,9 @@ test.describe('Orders', () => {
         await page.getByRole('button', { name: /Select customer/i }).click();
         await page.getByPlaceholder('Search customers...').fill('hayden');
         // CommandItems have role="option"; wait for search results to load
-        await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
-        await page.getByRole('option').first().click();
+        const haydenOption = page.getByRole('option').filter({ hasText: /hayden/i });
+        await expect(haydenOption.first()).toBeVisible({ timeout: 5_000 });
+        await haydenOption.first().click();
         // Wait for the set-customer mutation to complete and re-render
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
 

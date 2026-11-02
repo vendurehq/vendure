@@ -1,6 +1,6 @@
 {
     "name": "@vendure/graphiql-plugin",
-    "version": "3.8.0",
+    "version": "3.8.1",
     "license": "GPL-3.0-or-later",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -35,8 +35,8 @@
         "@types/express": "^5.0.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
-        "@vendure/common": "3.8.0",
-        "@vendure/core": "3.8.0",
+        "@vendure/common": "3.8.1",
+        "@vendure/core": "3.8.1",
         "@vitejs/plugin-react": "^5.0.4",
         "graphiql": "^4.0.2",
         "react": "^19.0.0",

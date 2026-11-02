@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Framework Documentation",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -12,7 +12,7 @@
           "title": "Installation",
           "slug": "installation",
           "file": "docs/guides/getting-started/installation/index.mdx",
-          "lastModified": "2026-08-19T14:27:37+02:00"
+          "lastModified": "2026-10-23T13:20:29+02:00"
         },
         {
           "title": "Introducing GraphQL",
@@ -434,7 +434,7 @@
           "title": "CMS Integration Plugin",
           "slug": "cms-integration-plugin",
           "file": "docs/guides/how-to/cms-integration-plugin/index.mdx",
-          "lastModified": "2026-07-14T11:47:37+02:00"
+          "lastModified": "2026-10-23T13:20:29+02:00"
         },
         {
           "title": "Codegen",
@@ -488,7 +488,7 @@
           "title": "S3 Asset Storage",
           "slug": "s3-asset-storage",
           "file": "docs/guides/how-to/s3-asset-storage/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-10-23T13:20:29+02:00"
         },
         {
           "title": "Telemetry",
@@ -1001,7 +1001,7 @@
           "title": "Built-in Tool Reference",
           "slug": "built-in-tools",
           "file": "docs/guides/mcp-server/built-in-tools/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-10-28T10:59:46+01:00"
         },
         {
           "title": "OAuth Protocol Reference",
@@ -1226,13 +1226,13 @@
                   "title": "RedisCachePlugin",
                   "slug": "redis-cache-plugin",
                   "file": "docs/reference/typescript-api/cache/redis-cache-plugin.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-10-30T11:14:22Z"
                 },
                 {
                   "title": "RedisCacheStrategy",
                   "slug": "redis-cache-strategy",
                   "file": "docs/reference/typescript-api/cache/redis-cache-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-10-30T11:14:22Z"
                 },
                 {
                   "title": "RequestContextCacheService",
@@ -3930,7 +3930,7 @@
               "slug": "graphiql-plugin",
               "file": "docs/reference/core-plugins/graphiql-plugin/index.mdx",
               "children": [],
-              "lastModified": "2026-04-20T16:08:16+02:00"
+              "lastModified": "2026-10-30T13:57:08Z"
             },
             {
               "title": "HardenPlugin",
@@ -4168,7 +4168,7 @@
               "title": "IdSchema",
               "slug": "id-schema",
               "file": "docs/reference/mcp-sdk/id-schema.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-10-23T13:51:19Z"
             },
             {
               "title": "Int32Schema",
@@ -4198,7 +4198,7 @@
               "title": "MAX_ID_LIST_LENGTH",
               "slug": "max_id_list_length",
               "file": "docs/reference/mcp-sdk/max_id_list_length.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-10-23T13:51:19Z"
             },
             {
               "title": "MAX_LIST_PAGE_SIZE",
@@ -4721,7 +4721,7 @@
                   "title": "UseAuth",
                   "slug": "use-auth",
                   "file": "docs/reference/dashboard/hooks/use-auth.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-10-23T13:32:49+02:00"
                 },
                 {
                   "title": "UseChannel",

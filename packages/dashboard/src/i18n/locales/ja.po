@@ -7272,6 +7272,10 @@ msgstr "注文に支払いを追加"
 #~ msgid "Loading..."
 #~ msgstr "読み込み中..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "まだ存在しないオプションの組み合わせのバリアントを作成します。既に存在する組み合わせは参考として表示され、編集できません。"

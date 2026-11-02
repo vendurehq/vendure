@@ -7272,6 +7272,10 @@ msgstr "افزودن پرداخت به سفارش"
 #~ msgid "Loading..."
 #~ msgstr "در حال بارگذاری..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "برای ترکیب‌های گزینه‌هایی که هنوز وجود ندارند متغیر ایجاد کنید. ترکیب‌های موجود فقط برای مرجع نمایش داده می‌شوند و قابل ویرایش نیستند."

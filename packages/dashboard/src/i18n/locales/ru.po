@@ -7272,6 +7272,10 @@ msgstr "Добавить платёж к заказу"
 #~ msgid "Loading..."
 #~ msgstr "Загрузка..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Создайте варианты для комбинаций опций, которых ещё нет. Уже существующие комбинации показаны для справки и не могут быть изменены."

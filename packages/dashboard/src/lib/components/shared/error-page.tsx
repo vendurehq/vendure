@@ -1,4 +1,5 @@
 import { Page, PageBlock, PageLayout, PageTitle } from '@/vdb/framework/layout-engine/page-layout.js';
+import { isForbiddenError } from '@/vdb/utils/is-forbidden-error.js';
 import { Trans } from '@lingui/react/macro';
 import { Link, useRouter } from '@tanstack/react-router';
 import { Button } from '../ui/button.js';
@@ -29,8 +30,7 @@ export function getErrorKind(error: unknown): ErrorKind {
     if (error instanceof NotFoundError) {
         return 'not-found';
     }
-    const code = (error as any)?.extensions?.code;
-    if (code === 'FORBIDDEN' || code === 'UNAUTHORIZED') {
+    if (isForbiddenError(error)) {
         return 'forbidden';
     }
     const status = (error as any)?.response?.status;
