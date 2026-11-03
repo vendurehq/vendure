@@ -1113,8 +1113,22 @@ let TenantMemberService = class TenantMemberService {
         const channel = await channelRepo.findOne({ where: { id: channelId } });
         if (!channel)
             throw new Error('CHANNEL_NOT_FOUND');
-        // 安全字段禁止租户端越权修改（启停/租户号/官营标记仅超管可改）
-        const protectedKeys = ['enabled', 'tenantNo', 'isOfficial', 'industryType'];
+        // 安全字段禁止租户端越权修改：启停/租户号/官营标记/行业、店面模式仅超管可改；
+        // 支付、登录、地图、企微通知为加密存储的敏感配置，必须走 tenantConfig 专用通道（含加密与审计），
+        // 不能经本装修接口直写（否则会绕过加密/脱敏并可能被任意后台角色改写）。
+        const protectedKeys = [
+            'enabled',
+            'tenantNo',
+            'isOfficial',
+            'industryType',
+            'storefrontMode',
+            'payConfig',
+            'authConfig',
+            'mapConfig',
+            'serviceNotifyConfig',
+            'customDomains',
+            'domain',
+        ];
         const merged = Object.assign(Object.assign({}, (channel.customFields || {})), Object.fromEntries(Object.entries(input).filter(([k]) => !protectedKeys.includes(k))));
         await this.channelService.update(ctx, { id: channelId, customFields: merged });
         const updated = await this.channelService.findOne(ctx, channelId);

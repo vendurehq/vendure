@@ -63,6 +63,7 @@ let MockAdminResolver = class MockAdminResolver {
 exports.MockAdminResolver = MockAdminResolver;
 __decorate([
     (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(core_1.Permission.UpdateOrder),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('input')),
     __metadata("design:type", Function),
@@ -71,6 +72,7 @@ __decorate([
 ], MockAdminResolver.prototype, "createDelivery", null);
 __decorate([
     (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.ReadOrder),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('orderId')),
     __metadata("design:type", Function),
@@ -79,6 +81,7 @@ __decorate([
 ], MockAdminResolver.prototype, "deliveryOrders", null);
 __decorate([
     (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(core_1.Permission.UpdateOrder),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('deliveryOrderNo')),
     __param(2, (0, graphql_1.Args)('status')),

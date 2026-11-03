@@ -18,6 +18,7 @@ export class PaymentTemplateAdminResolver {
     constructor(private paymentTemplateService: PaymentTemplateService) {}
 
     @Query()
+    @Allow(PaymentTemplatePermissions.ReadPaymentTemplate as Permission)
     async paymentTemplates(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<PaymentTemplate>,
@@ -26,6 +27,7 @@ export class PaymentTemplateAdminResolver {
     }
 
     @Query()
+    @Allow(PaymentTemplatePermissions.ReadPaymentTemplate as Permission)
     async paymentTemplate(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,

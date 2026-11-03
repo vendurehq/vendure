@@ -43,12 +43,14 @@ let RoomTemplateAdminResolver = class RoomTemplateAdminResolver {
 exports.RoomTemplateAdminResolver = RoomTemplateAdminResolver;
 __decorate([
     (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.SuperAdmin),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], RoomTemplateAdminResolver.prototype, "roomTemplates", null);
 __decorate([
     (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.SuperAdmin),
     __param(0, (0, graphql_1.Args)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),

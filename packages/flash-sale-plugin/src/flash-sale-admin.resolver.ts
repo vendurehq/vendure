@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Ctx, ID, ListQueryOptions, PaginatedList, RequestContext, Transaction } from '@vendure/core';
+import { Allow, Ctx, ID, ListQueryOptions, PaginatedList, Permission, RequestContext, Transaction } from '@vendure/core';
 
 import { FlashSaleActivity } from './flash-sale-activity.entity';
 import { FlashSaleService } from './flash-sale.service';
@@ -9,6 +9,7 @@ export class FlashSaleAdminResolver {
     constructor(private flashSaleService: FlashSaleService) {}
 
     @Query()
+    @Allow(Permission.Authenticated)
     async flashSaleActivities(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<FlashSaleActivity>,
@@ -17,6 +18,7 @@ export class FlashSaleAdminResolver {
     }
 
     @Query()
+    @Allow(Permission.Authenticated)
     async flashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -26,6 +28,7 @@ export class FlashSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async createFlashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -35,6 +38,7 @@ export class FlashSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async updateFlashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -44,6 +48,7 @@ export class FlashSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async deleteFlashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,

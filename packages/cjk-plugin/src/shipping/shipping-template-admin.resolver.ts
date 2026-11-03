@@ -18,6 +18,7 @@ export class ShippingTemplateAdminResolver {
     constructor(private shippingTemplateService: ShippingTemplateService) {}
 
     @Query()
+    @Allow(ShippingTemplatePermissions.ReadShippingTemplate as Permission)
     async shippingTemplates(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<ShippingTemplate>,
@@ -26,6 +27,7 @@ export class ShippingTemplateAdminResolver {
     }
 
     @Query()
+    @Allow(ShippingTemplatePermissions.ReadShippingTemplate as Permission)
     async shippingTemplate(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,

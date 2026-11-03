@@ -1,5 +1,5 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
-import { Ctx, ID, OrderService, RequestContext } from '@vendure/core';
+import { Allow, Ctx, ID, OrderService, Permission, RequestContext } from '@vendure/core';
 
 import { InvoicePdfService } from './invoice-pdf.service';
 
@@ -11,6 +11,7 @@ export class InvoicePdfAdminResolver {
     ) {}
 
     @Mutation()
+    @Allow(Permission.UpdateOrder)
     async generateInvoicePdf(
         @Ctx() ctx: RequestContext,
         @Args('orderId') orderId: string,

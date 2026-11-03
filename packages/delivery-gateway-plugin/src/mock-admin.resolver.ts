@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Ctx, RequestContext } from '@vendure/core';
+import { Allow, Ctx, Permission, RequestContext } from '@vendure/core';
 import { DeliveryGatewayService } from './delivery-gateway.service';
 import { DeliveryOrder } from './delivery-order.entity';
 
@@ -8,6 +8,7 @@ export class MockAdminResolver {
     constructor(private deliveryGateway: DeliveryGatewayService) {}
 
     @Mutation()
+    @Allow(Permission.UpdateOrder)
     async createDelivery(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -17,6 +18,7 @@ export class MockAdminResolver {
     }
 
     @Query()
+    @Allow(Permission.ReadOrder)
     async deliveryOrders(
         @Ctx() ctx: RequestContext,
         @Args('orderId') orderId: string,
@@ -26,6 +28,7 @@ export class MockAdminResolver {
     }
 
     @Mutation()
+    @Allow(Permission.UpdateOrder)
     async mockDeliveryEvent(
         @Ctx() ctx: RequestContext,
         @Args('deliveryOrderNo') deliveryOrderNo: string,

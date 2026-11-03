@@ -40,6 +40,7 @@ let InvoicePdfAdminResolver = class InvoicePdfAdminResolver {
 exports.InvoicePdfAdminResolver = InvoicePdfAdminResolver;
 __decorate([
     (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(core_1.Permission.UpdateOrder),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('orderId')),
     __metadata("design:type", Function),

@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Ctx, ID, ListQueryOptions, PaginatedList, RequestContext, Transaction } from '@vendure/core';
+import { Allow, Ctx, ID, ListQueryOptions, PaginatedList, Permission, RequestContext, Transaction } from '@vendure/core';
 
 import { GroupBuyActivity } from './group-buy-activity.entity';
 import { GroupBuyService } from './group-buy.service';
@@ -9,6 +9,7 @@ export class GroupBuyAdminResolver {
     constructor(private groupBuyService: GroupBuyService) {}
 
     @Query()
+    @Allow(Permission.Authenticated)
     async groupBuyActivities(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<GroupBuyActivity>,
@@ -17,6 +18,7 @@ export class GroupBuyAdminResolver {
     }
 
     @Query()
+    @Allow(Permission.Authenticated)
     async groupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -26,6 +28,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async createGroupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -35,6 +38,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async updateGroupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -44,6 +48,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async deleteGroupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -54,6 +59,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async runGroupBuyExpiryCheck(@Ctx() ctx: RequestContext): Promise<boolean> {
         await this.groupBuyService.processExpired(ctx);
         return true;

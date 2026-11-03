@@ -15,11 +15,13 @@ export class RoomTemplateAdminResolver {
     constructor(private roomTemplateService: RoomTemplateService) {}
 
     @Query()
+    @Allow(Permission.SuperAdmin)
     async roomTemplates(): Promise<RoomTemplate[]> {
         return this.roomTemplateService.findAll();
     }
 
     @Query()
+    @Allow(Permission.SuperAdmin)
     async roomTemplate(@Args('id') id: ID): Promise<RoomTemplate | undefined> {
         return this.roomTemplateService.findOne(id);
     }

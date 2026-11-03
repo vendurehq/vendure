@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Ctx, ID, ListQueryOptions, PaginatedList, RequestContext, Transaction } from '@vendure/core';
+import { Allow, Ctx, ID, ListQueryOptions, PaginatedList, Permission, RequestContext, Transaction } from '@vendure/core';
 
 import { PreSaleActivity } from './pre-sale-activity.entity';
 import { PreSaleService } from './pre-sale.service';
@@ -9,6 +9,7 @@ export class PreSaleAdminResolver {
     constructor(private preSaleService: PreSaleService) {}
 
     @Query()
+    @Allow(Permission.Authenticated)
     async preSaleActivities(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<PreSaleActivity>,
@@ -17,6 +18,7 @@ export class PreSaleAdminResolver {
     }
 
     @Query()
+    @Allow(Permission.Authenticated)
     async preSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -26,6 +28,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async createPreSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -35,6 +38,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async updatePreSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -44,6 +48,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async deletePreSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -54,6 +59,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
+    @Allow(Permission.Authenticated)
     async deliverPreSale(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
