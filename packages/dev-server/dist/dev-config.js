@@ -325,7 +325,7 @@ exports.devConfig = {
     },
     plugins: [
         ReadonlySettingsTestPlugin,
-        ...(IS_PROD ? [harden_plugin_1.HardenPlugin.init({ maxQueryComplexity: 1000, apiMode: 'prod' })] : []),
+        ...(IS_PROD ? [harden_plugin_1.HardenPlugin.init({ maxQueryComplexity: 3000, apiMode: 'prod' })] : []),
         ...devOnlyPlugins,
         ...(IS_PROD ? [] : [graphiql_plugin_1.GraphiqlPlugin.init()]),
         asset_server_plugin_1.AssetServerPlugin.init({
