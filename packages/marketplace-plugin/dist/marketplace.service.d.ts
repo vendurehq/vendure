@@ -46,6 +46,10 @@ export declare class MarketplaceService {
     }>>;
     /** 运营手动归类已过审商品：collectionId 为空 → 置待归类；否则写入平台分类并清标记 */
     setProductPlatformCategory(ctx: RequestContext, productId: ID, collectionId: string): Promise<void>;
+    /** marketplace 聚合商品过滤条件：已审批且已上架 */
+    private marketplaceProductsWhere;
+    /** 聚合 marketplace 商品总数（与 getMarketplaceProducts 使用同一过滤条件） */
+    countMarketplaceProducts(ctx: RequestContext): Promise<number>;
     /**
      * 聚合 marketplace 对外展示的商品（自营 + 各商家）。
      * 仅返回 marketplaceStatus='approved' 且 listedInMarketplace=true 的商品，

@@ -29,7 +29,14 @@ export declare class ShopResolver {
         code?: undefined;
         token?: undefined;
     }>;
-    marketplaceProducts(ctx: RequestContext): Promise<{
+    /** 聚合列表项映射：product → GraphQL MarketplaceProduct */
+    private toMarketplaceProduct;
+    /** take 限定 1..100，skip 不得为负；未传时保持原行为（不限制） */
+    private normalizePaging;
+    marketplaceProducts(ctx: RequestContext, args: {
+        take?: number;
+        skip?: number;
+    }): Promise<{
         id: import("@vendure/core").ID;
         name: string;
         slug: string;
@@ -41,6 +48,25 @@ export declare class ShopResolver {
             name: any;
         } | null;
     }[]>;
+    /** 分页版本：返回切片 + totalItems（不改变 marketplaceProducts 的返回类型） */
+    marketplaceProductPage(ctx: RequestContext, args: {
+        take?: number;
+        skip?: number;
+    }): Promise<{
+        items: {
+            id: import("@vendure/core").ID;
+            name: string;
+            slug: string;
+            barcode: string | null;
+            internalCode: string | null;
+            merchantChannel: {
+                id: any;
+                code: any;
+                name: any;
+            } | null;
+        }[];
+        totalItems: number;
+    }>;
     submitForMarketplace(ctx: RequestContext, args: {
         productId: string;
     }): Promise<boolean>;

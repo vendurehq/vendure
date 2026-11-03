@@ -56,11 +56,9 @@ export class ShopResolver {
         }
     }
 
-    @Query('marketplaceProducts')
-    @Allow(Permission.Public)
-    async marketplaceProducts(@Ctx() ctx: RequestContext) {
-        const products = await this.marketplaceService.getMarketplaceProducts(ctx);
-        return products.map(product => ({
+    /** 聚合列表项映射：product → GraphQL MarketplaceProduct */
+    private toMarketplaceProduct(product: Product) {
+        return {
             id: product.id,
             name: this.translate(product).name ?? '',
             slug: this.translate(product).slug ?? '',
@@ -75,7 +73,45 @@ export class ShopResolver {
                           (product.customFields.merchantRef as any).code,
                   }
                 : null,
-        }));
+        };
+    }
+
+    /** take 限定 1..100，skip 不得为负；未传时保持原行为（不限制） */
+    private normalizePaging(take?: number | null, skip?: number | null) {
+        return {
+            take: take == null ? undefined : Math.min(Math.max(Math.trunc(take), 1), 100),
+            skip: skip == null ? undefined : Math.max(Math.trunc(skip), 0),
+        };
+    }
+
+    @Query('marketplaceProducts')
+    @Allow(Permission.Public)
+    async marketplaceProducts(
+        @Ctx() ctx: RequestContext,
+        @Args() args: { take?: number; skip?: number },
+    ) {
+        const paging = this.normalizePaging(args.take, args.skip);
+        const products = await this.marketplaceService.getMarketplaceProducts(ctx, paging);
+        return products.map(product => this.toMarketplaceProduct(product));
+    }
+
+    /** 分页版本：返回切片 + totalItems（不改变 marketplaceProducts 的返回类型） */
+    @Query('marketplaceProductPage')
+    @Allow(Permission.Public)
+    async marketplaceProductPage(
+        @Ctx() ctx: RequestContext,
+        @Args() args: { take?: number; skip?: number },
+    ) {
+        const take = Math.min(Math.max(Math.trunc(args.take ?? 12), 1), 100);
+        const skip = Math.max(Math.trunc(args.skip ?? 0), 0);
+        const [products, totalItems] = await Promise.all([
+            this.marketplaceService.getMarketplaceProducts(ctx, { take, skip }),
+            this.marketplaceService.countMarketplaceProducts(ctx),
+        ]);
+        return {
+            items: products.map(product => this.toMarketplaceProduct(product)),
+            totalItems,
+        };
     }
 
     @Mutation('submitForMarketplace')

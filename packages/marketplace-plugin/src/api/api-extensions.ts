@@ -7,9 +7,15 @@ export const shopApiExtensions = `
     }
 
     extend type Query {
-        marketplaceProducts: [MarketplaceProduct!]!
+        marketplaceProducts(take: Int, skip: Int): [MarketplaceProduct!]!
+        marketplaceProductPage(take: Int, skip: Int): MarketplaceProductPage!
         myMerchantProducts: [MyProduct!]!
         marketplacePendingProducts: [MyProduct!]!
+    }
+
+    type MarketplaceProductPage {
+        items: [MarketplaceProduct!]!
+        totalItems: Int!
     }
 
     type MyProduct {

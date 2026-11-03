@@ -179,6 +179,21 @@ let MarketplaceService = class MarketplaceService {
         product.customFields.needsCategorization = !collectionId;
         await this.connection.getRepository(ctx, core_1.Product).save(product);
     }
+    /** marketplace 聚合商品过滤条件：已审批且已上架 */
+    marketplaceProductsWhere() {
+        return {
+            customFields: {
+                marketplaceStatus: constants_1.MARKETPLACE_STATUS_APPROVED,
+                listedInMarketplace: true,
+            },
+        };
+    }
+    /** 聚合 marketplace 商品总数（与 getMarketplaceProducts 使用同一过滤条件） */
+    async countMarketplaceProducts(ctx) {
+        return this.connection.getRepository(ctx, core_1.Product).count({
+            where: this.marketplaceProductsWhere(),
+        });
+    }
     /**
      * 聚合 marketplace 对外展示的商品（自营 + 各商家）。
      * 仅返回 marketplaceStatus='approved' 且 listedInMarketplace=true 的商品，
@@ -187,12 +202,9 @@ let MarketplaceService = class MarketplaceService {
      */
     async getMarketplaceProducts(ctx, options) {
         const products = await this.connection.getRepository(ctx, core_1.Product).find({
-            where: {
-                customFields: {
-                    marketplaceStatus: constants_1.MARKETPLACE_STATUS_APPROVED,
-                    listedInMarketplace: true,
-                },
-            },
+            where: this.marketplaceProductsWhere(),
+            // 稳定排序，保证 skip/take 分页切片确定（不传分页参数时输出顺序也固定）
+            order: { id: 'ASC' },
             take: options === null || options === void 0 ? void 0 : options.take,
             skip: options === null || options === void 0 ? void 0 : options.skip,
         });

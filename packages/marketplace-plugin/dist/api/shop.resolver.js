@@ -47,25 +47,49 @@ let ShopResolver = class ShopResolver {
             throw e;
         }
     }
-    async marketplaceProducts(ctx) {
-        const products = await this.marketplaceService.getMarketplaceProducts(ctx);
-        return products.map(product => {
-            var _a, _b, _c, _d, _e, _f;
-            return ({
-                id: product.id,
-                name: (_a = this.translate(product).name) !== null && _a !== void 0 ? _a : '',
-                slug: (_b = this.translate(product).slug) !== null && _b !== void 0 ? _b : '',
-                barcode: (_c = product.customFields.barcode) !== null && _c !== void 0 ? _c : null,
-                internalCode: (_d = product.customFields.internalCode) !== null && _d !== void 0 ? _d : null,
-                merchantChannel: product.customFields.merchantRef
-                    ? {
-                        id: product.customFields.merchantRef.id,
-                        code: product.customFields.merchantRef.code,
-                        name: (_f = (_e = product.customFields.merchantRef.seller) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : product.customFields.merchantRef.code,
-                    }
-                    : null,
-            });
-        });
+    /** 聚合列表项映射：product → GraphQL MarketplaceProduct */
+    toMarketplaceProduct(product) {
+        var _a, _b, _c, _d, _e, _f;
+        return {
+            id: product.id,
+            name: (_a = this.translate(product).name) !== null && _a !== void 0 ? _a : '',
+            slug: (_b = this.translate(product).slug) !== null && _b !== void 0 ? _b : '',
+            barcode: (_c = product.customFields.barcode) !== null && _c !== void 0 ? _c : null,
+            internalCode: (_d = product.customFields.internalCode) !== null && _d !== void 0 ? _d : null,
+            merchantChannel: product.customFields.merchantRef
+                ? {
+                    id: product.customFields.merchantRef.id,
+                    code: product.customFields.merchantRef.code,
+                    name: (_f = (_e = product.customFields.merchantRef.seller) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : product.customFields.merchantRef.code,
+                }
+                : null,
+        };
+    }
+    /** take 限定 1..100，skip 不得为负；未传时保持原行为（不限制） */
+    normalizePaging(take, skip) {
+        return {
+            take: take == null ? undefined : Math.min(Math.max(Math.trunc(take), 1), 100),
+            skip: skip == null ? undefined : Math.max(Math.trunc(skip), 0),
+        };
+    }
+    async marketplaceProducts(ctx, args) {
+        const paging = this.normalizePaging(args.take, args.skip);
+        const products = await this.marketplaceService.getMarketplaceProducts(ctx, paging);
+        return products.map(product => this.toMarketplaceProduct(product));
+    }
+    /** 分页版本：返回切片 + totalItems（不改变 marketplaceProducts 的返回类型） */
+    async marketplaceProductPage(ctx, args) {
+        var _a, _b;
+        const take = Math.min(Math.max(Math.trunc((_a = args.take) !== null && _a !== void 0 ? _a : 12), 1), 100);
+        const skip = Math.max(Math.trunc((_b = args.skip) !== null && _b !== void 0 ? _b : 0), 0);
+        const [products, totalItems] = await Promise.all([
+            this.marketplaceService.getMarketplaceProducts(ctx, { take, skip }),
+            this.marketplaceService.countMarketplaceProducts(ctx),
+        ]);
+        return {
+            items: products.map(product => this.toMarketplaceProduct(product)),
+            totalItems,
+        };
     }
     async submitForMarketplace(ctx, args) {
         await this.marketplaceService.submitForMarketplace(ctx, args.productId);
@@ -129,10 +153,20 @@ __decorate([
     (0, graphql_1.Query)('marketplaceProducts'),
     (0, core_1.Allow)(core_1.Permission.Public),
     __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [core_1.RequestContext]),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object]),
     __metadata("design:returntype", Promise)
 ], ShopResolver.prototype, "marketplaceProducts", null);
+__decorate([
+    (0, graphql_1.Query)('marketplaceProductPage'),
+    (0, core_1.Allow)(core_1.Permission.Public),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object]),
+    __metadata("design:returntype", Promise)
+], ShopResolver.prototype, "marketplaceProductPage", null);
 __decorate([
     (0, graphql_1.Mutation)('submitForMarketplace'),
     (0, core_1.Transaction)(),
