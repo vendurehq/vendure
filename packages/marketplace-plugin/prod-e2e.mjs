@@ -149,6 +149,17 @@ async function main() {
     const merchantToken = merchantCh?.token || SHOP_TOKEN;
     ok(!!merchantChannelId, `商家渠道 id=${merchantChannelId}`);
 
+    // merchant-api 使用服务端签发令牌（Channel token 在生产已不允许作 Bearer）
+    const issued = await gql(
+        ADMIN,
+        `mutation($id:ID!){ issueMerchantApiToken(channelId:$id){ token expiresAt } }`,
+        { id: merchantChannelId },
+        sup.auth,
+        SHOP_TOKEN,
+    );
+    const merchantApiToken = issued.issueMerchantApiToken?.token;
+    ok(!!merchantApiToken, '已签发 merchant-api 令牌');
+
     // ===== 2. 商家 admin 登录 + 创建测试商品 =====
     console.log('\n[2] 商家创建测试商品');
     const merch = await loginAdmin(ADMIN, MERCHANT_EMAIL, MERCHANT_PWD);
@@ -390,9 +401,9 @@ async function main() {
 
     // ===== 9. 商家分栏查询 + 对账导出 =====
     console.log('\n[9] 商家分栏查询 + 对账导出');
-    const mOrders = await restGet(REST, '/orders', merchantToken);
+    const mOrders = await restGet(REST, '/orders', merchantApiToken);
     ok(mOrders.items?.some((o) => `${o.orderId}` === `${sellerOrder.id}`), `merchant-api/orders 命中商家子单(${mOrders.count} 单)`);
-    const mOrdersAll = await restGet(REST, '/orders', merchantToken);
+    const mOrdersAll = await restGet(REST, '/orders', merchantApiToken);
     ok(mOrdersAll.count > 0, `商家分栏订单总数=${mOrdersAll.count}`);
 
     const merchOrdersQ = await gql(
@@ -406,7 +417,7 @@ async function main() {
     const srcOk = merchOrdersQ.merchantOrders?.items?.every((o) => o.customFields?.saleSource === 'marketplace');
     ok(srcOk !== false, '商家分栏全部为 marketplace 销售来源');
 
-    const settle = await restGet(REST, '/settlement', merchantToken);
+    const settle = await restGet(REST, '/settlement', merchantApiToken);
     ok(settle.entries?.some((e) => `${e.orderId}` === `${sellerOrder.id}`), `对账导出命中商家子单(state=${settle.entries?.find((e) => `${e.orderId}` === `${sellerOrder.id}`)?.state})`);
     console.log(`  对账总单数=${settle.count} 总额(分)=${settle.totalWithTax}`);
 

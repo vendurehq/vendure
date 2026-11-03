@@ -1,43 +1,66 @@
 import { Controller, Get, Headers, Query, UnauthorizedException } from '@nestjs/common';
-import {
-    Channel,
-    ChannelService,
-    RequestContext,
-} from '@vendure/core';
+import { Channel, ChannelService, Logger, RequestContext } from '@vendure/core';
 
 import { SettlementService } from '../settlement.service';
+import { MerchantApiTokenService } from '../merchant-api-token.service';
+
+const IS_PROD = process.env.NODE_ENV === 'production' || process.env.IS_PROD === 'true';
 
 /**
  * 商家对账 / 订单查询 REST API。
  *
- * 鉴权：校验 `Authorization: Bearer <channelToken>`，其中 channelToken 即该商家
- * Channel 的 token（注册商家时生成，格式如 `${shopCode}-token`）。
- * 通过 ChannelService.getChannelFromToken 将 token 解析为商家 Channel。
- *
- * 注意：当前实现依赖 Channel token 作为共享密钥，未接入 Vendure 的完整
- * JWT/APIKey 鉴权体系。如需更严格的鉴权，可在此基础上接入
- * JwtStrategy / ApiKey 校验。
+ * 鉴权：`Authorization: Bearer <merchant-api token>`。
+ * 令牌由服务端签发（见 MerchantApiTokenService），绑定 channelId 与过期时间，
+ * 客户端无法伪造；不再接受公开的 Channel token（生产环境）。
+ * 开发/测试环境保留 Channel token 兼容，便于本地 e2e；生产禁止。
  */
 @Controller('merchant-api')
 export class MerchantApiController {
     constructor(
         private channelService: ChannelService,
         private settlementService: SettlementService,
+        private tokenService: MerchantApiTokenService,
     ) {}
 
-    private async resolveChannel(authHeader?: string) {
+    private async resolveChannel(authHeader?: string): Promise<Channel> {
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             throw new UnauthorizedException('Missing or invalid Authorization header');
         }
         const token = authHeader.slice('Bearer '.length).trim();
         if (!token) {
-            throw new UnauthorizedException('Missing channel token');
+            throw new UnauthorizedException('Missing merchant token');
         }
-        const channel = await this.channelService.getChannelFromToken(token);
-        if (!channel) {
-            throw new UnauthorizedException('Invalid channel token');
+
+        // 1. 服务端签发令牌：签名校验通过后按 token 绑定的 channelId 取渠道
+        const signed = this.tokenService.verify(token);
+        if (signed) {
+            const defaultChannel = await this.channelService.getDefaultChannel();
+            const ctx = new RequestContext({
+                apiType: 'admin',
+                channel: defaultChannel as any,
+                isAuthorized: true,
+                authorizedAsOwnerOnly: false,
+            });
+            const channel = await this.channelService.findOne(ctx, signed.channelId);
+            if (!channel) {
+                throw new UnauthorizedException('Merchant channel not found');
+            }
+            return channel;
         }
-        return channel;
+
+        // 2. 历史兼容：Channel token 仅在非生产接受（生产必须改用签发令牌）
+        if (!IS_PROD) {
+            const channel = await this.channelService.getChannelFromToken(token);
+            if (channel) {
+                Logger.warn(
+                    'merchant-api 使用 Channel token 鉴权（仅开发环境兼容），生产请改用签发令牌',
+                    'marketplace-plugin',
+                );
+                return channel;
+            }
+        }
+
+        throw new UnauthorizedException('Invalid merchant token');
     }
 
     private buildCtx(channel: Channel): RequestContext {

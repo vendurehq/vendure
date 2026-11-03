@@ -3,6 +3,8 @@ export type PaymentMethodCode = 'alipay' | 'wechatpay' | 'douyinpay';
 export interface AlipayCredentials {
     appId: string;
     privateKey: string;
+    /** 收款方 PID（2088 开头）；配置后回调会校验 seller_id */
+    sellerId?: string;
     tradeType?: 'QR' | 'WAP' | 'APP' | 'MINI';
 }
 

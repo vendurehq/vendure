@@ -21,10 +21,12 @@ const core_1 = require("@vendure/core");
 const plugin_1 = require("@vendure/dashboard/plugin");
 const email_plugin_1 = require("@vendure/email-plugin");
 const graphiql_plugin_1 = require("@vendure/graphiql-plugin");
+const harden_plugin_1 = require("@vendure/harden-plugin");
 const telemetry_plugin_1 = require("@vendure/telemetry-plugin");
 require("dotenv/config");
 const path_1 = __importDefault(require("path"));
 const cjk_plugin_1 = require("@vendure/cjk-plugin");
+const graphql_depth_limit_1 = require("./graphql-depth-limit");
 const alipay_plugin_1 = require("@vendure/alipay-plugin");
 const wechatpay_plugin_1 = require("@vendure/wechatpay-plugin");
 const oss_plugin_1 = require("@vendure/oss-plugin");
@@ -96,6 +98,9 @@ const devOnlyPlugins = IS_PROD
     })();
 const devServerDir = path_1.default.basename(__dirname) === 'dist' ? path_1.default.dirname(__dirname) : __dirname;
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
+const IS_NODE_PROD = process.env.NODE_ENV === 'production';
+const ALLOW_DEV_BYPASS = !IS_PROD && !IS_NODE_PROD;
+const devBypassEnabled = (envName) => ALLOW_DEV_BYPASS && process.env[envName] === 'true';
 let ReadonlySettingsTestPlugin = class ReadonlySettingsTestPlugin {
     constructor(settingsStoreService, requestContextService) {
         this.settingsStoreService = settingsStoreService;
@@ -158,19 +163,25 @@ exports.devConfig = {
     apiOptions: {
         port: Number(process.env.API_PORT) || shared_constants_1.API_PORT,
         adminApiPath: shared_constants_1.ADMIN_API_PATH,
-        adminApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
+        adminApiPlayground: IS_PROD
+            ? false
+            : {
+                settings: {
+                    'request.credentials': 'include',
+                },
             },
-        },
-        adminApiDebug: true,
+        adminApiDebug: !IS_PROD,
         shopApiPath: shared_constants_1.SHOP_API_PATH,
-        shopApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
+        shopApiPlayground: IS_PROD
+            ? false
+            : {
+                settings: {
+                    'request.credentials': 'include',
+                },
             },
-        },
-        shopApiDebug: true,
+        shopApiDebug: !IS_PROD,
+        adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
+        shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
         middleware: [
             {
                 handler: (req, res, next) => {
@@ -308,14 +319,15 @@ exports.devConfig = {
         runTasksInWorkerOnly: false,
         tasks: [core_1.cleanSessionsTask, core_1.cleanOrphanedSettingsStoreTask],
     },
-    logger: new core_1.DefaultLogger({ level: core_1.LogLevel.Verbose }),
+    logger: new core_1.DefaultLogger({ level: IS_PROD ? core_1.LogLevel.Info : core_1.LogLevel.Verbose }),
     importExportOptions: {
         importAssetsDir: path_1.default.join(devServerDir, 'import-assets'),
     },
     plugins: [
         ReadonlySettingsTestPlugin,
+        ...(IS_PROD ? [harden_plugin_1.HardenPlugin.init({ maxQueryComplexity: 1000, apiMode: 'prod' })] : []),
         ...devOnlyPlugins,
-        graphiql_plugin_1.GraphiqlPlugin.init(),
+        ...(IS_PROD ? [] : [graphiql_plugin_1.GraphiqlPlugin.init()]),
         asset_server_plugin_1.AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path_1.default.join(devServerDir, 'assets'),
@@ -360,17 +372,18 @@ exports.devConfig = {
         shop_template_plugin_1.ShopTemplatePlugin.init({ app: (_a = process.env.APP) !== null && _a !== void 0 ? _a : 'nshop' }),
         diy_plugin_1.DiyPlugin.init({ app: (_b = process.env.APP) !== null && _b !== void 0 ? _b : 'nshop' }),
         pickup_plugin_1.PickupPlugin.init({}),
-        ...((process.env.ALIPAY_NOTIFY_URL || process.env.DEV_BYPASS_ALIPAY === 'true') ? [alipay_plugin_1.AlipayPlugin.init({
+        ...((process.env.ALIPAY_NOTIFY_URL || devBypassEnabled('DEV_BYPASS_ALIPAY')) ? [alipay_plugin_1.AlipayPlugin.init({
                 notifyUrl: process.env.ALIPAY_NOTIFY_URL || '',
                 alipayPublicKey: (_c = process.env.ALIPAY_PUBLIC_KEY) !== null && _c !== void 0 ? _c : '',
-                auth: process.env.DEV_BYPASS_ALIPAY === 'true' ? {
+                sellerId: process.env.ALIPAY_SELLER_ID || undefined,
+                auth: devBypassEnabled('DEV_BYPASS_ALIPAY') ? {
                     devBypass: true,
                     devBypassOpenid: 'dev_test_openid',
                 } : undefined,
             })] : []),
         wechatpay_plugin_1.WechatpayPlugin.init({
             notifyUrl: process.env.WECHATPAY_NOTIFY_URL || '',
-            devBypass: process.env.DEV_BYPASS_WECHATPAY === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_WECHATPAY'),
             devBypassOpenid: 'dev_test_openid',
             extraHandlerCodes: (process.env.WECHATPAY_EXTRA_HANDLER_CODES || '')
                 .split(',').map(s => s.trim()).filter(Boolean),
@@ -389,24 +402,24 @@ exports.devConfig = {
             accessKeySecret: (_h = process.env.SMS_ACCESS_KEY_SECRET) !== null && _h !== void 0 ? _h : '',
             signName: (_j = process.env.SMS_SIGN_NAME) !== null && _j !== void 0 ? _j : '',
             templateCode: (_k = process.env.SMS_TEMPLATE_CODE) !== null && _k !== void 0 ? _k : '',
-            devBypass: process.env.DEV_BYPASS_SMS === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_SMS'),
             devBypassCode: '123456',
             redisUrl: process.env.PHONE_AUTH_REDIS_URL || undefined,
         }),
-        ...((process.env.WECHAT_AUTH_APP_ID || process.env.DEV_BYPASS_WECHAT === 'true') ? [wechat_auth_plugin_1.WechatAuthPlugin.init({
+        ...((process.env.WECHAT_AUTH_APP_ID || devBypassEnabled('DEV_BYPASS_WECHAT')) ? [wechat_auth_plugin_1.WechatAuthPlugin.init({
                 appId: process.env.WECHAT_AUTH_APP_ID || 'dev_test_app_id',
                 appSecret: process.env.WECHAT_AUTH_APP_SECRET || 'dev_test_app_secret',
                 miniProgramAppId: process.env.WECHAT_AUTH_MINI_APP_ID || '',
                 miniProgramAppSecret: process.env.WECHAT_AUTH_MINI_APP_SECRET || '',
                 token: process.env.WECHAT_MESSAGE_TOKEN || '',
                 encodingAESKey: process.env.WECHAT_MESSAGE_AES_KEY || '',
-                devBypass: process.env.DEV_BYPASS_WECHAT === 'true',
+                devBypass: devBypassEnabled('DEV_BYPASS_WECHAT'),
                 devBypassOpenid: 'dev_test_openid',
             })] : []),
-        ...((process.env.DOUYIN_AUTH_APP_ID || process.env.DEV_BYPASS_DOUYIN === 'true') ? [douyin_auth_plugin_1.DouyinAuthPlugin.init({
+        ...((process.env.DOUYIN_AUTH_APP_ID || devBypassEnabled('DEV_BYPASS_DOUYIN')) ? [douyin_auth_plugin_1.DouyinAuthPlugin.init({
                 appId: process.env.DOUYIN_AUTH_APP_ID || 'dev_test_app_id',
                 appSecret: process.env.DOUYIN_AUTH_APP_SECRET || 'dev_test_app_secret',
-                devBypass: process.env.DEV_BYPASS_DOUYIN === 'true',
+                devBypass: devBypassEnabled('DEV_BYPASS_DOUYIN'),
                 devBypassOpenid: 'dev_test_openid',
             })] : []),
         order_timeout_plugin_1.OrderTimeoutPlugin.init({ defaultPaymentTimeoutMinutes: 30 }),
@@ -422,7 +435,7 @@ exports.devConfig = {
         tcm_clinic_plugin_1.TcmClinicPlugin.init({
             sso: {
                 baseUrl: process.env.ZHAO_SSO_BASE_URL || '',
-                mock: process.env.SSO_MOCK === 'true',
+                mock: devBypassEnabled('SSO_MOCK'),
             },
         }),
         eco_plugin_1.EcoPlugin.init(),

@@ -62,6 +62,7 @@
         "@vendure/favorite-plugin": "0.0.1",
         "@vendure/flash-sale-plugin": "0.0.1",
         "@vendure/graphiql-plugin": "3.6.4",
+        "@vendure/harden-plugin": "3.6.4",
         "@vendure/group-buy-plugin": "0.0.1",
         "@vendure/installment-plugin": "0.0.1",
         "@vendure/inventory-plugin": "1.0.0",

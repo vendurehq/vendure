@@ -15,7 +15,8 @@ export declare class WechatpayController {
      *  解析不到回退默认渠道，兼容历史单店部署。
      *  验签/解密/结算必须用「下单时那个租户」的商户凭证，否则 apiKey 不匹配解不开密。 */
     private callbackCtx;
-    /** 结算路由：非订单前缀（如 RC-）交给注册的结算器，否则默认结 Vendure Order */
+    /** 结算路由：非订单前缀（如 RC-）交给注册的结算器，否则默认结 Vendure Order。
+     *  expectedAmountCents：微信回调解密出的金额（分），用于与 Authorized 支付金额比对。 */
     private routeSettlement;
     /**
      * 结算订单支付：dev-notify 和 notify 共用

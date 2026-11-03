@@ -4,6 +4,11 @@ export const adminApiExtensions = `
         rejectMarketplaceProduct(productId: ID!, reason: String!): Boolean!
         submitForMarketplaceAdmin(productId: ID!): Boolean!
         setProductPlatformCategory(productId: ID!, collectionId: String): Boolean!
+        issueMerchantApiToken(channelId: ID!, ttlSeconds: Int): MerchantApiToken!
+    }
+    type MerchantApiToken {
+        token: String!
+        expiresAt: String!
     }
     extend type Query {
         marketplacePendingProducts: [Product!]!

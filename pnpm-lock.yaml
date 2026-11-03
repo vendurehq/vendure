@@ -848,7 +848,7 @@ importers:
         version: 11.2.7(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)
       '@nestjs/terminus':
         specifier: ^11.0.0
-        version: 11.1.1(@grpc/grpc-js@1.14.5)(@grpc/proto-loader@0.8.1)(@nestjs/axios@4.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.18.1)(rxjs@7.8.2))(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(@nestjs/typeorm@11.0.3(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)))
+        version: 11.1.1(@grpc/grpc-js@1.14.5)(@grpc/proto-loader@0.8.1)(@nestjs/axios@4.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.18.1)(rxjs@7.8.2))(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(@nestjs/typeorm@11.0.3(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)))
       '@nestjs/typeorm':
         specifier: ^11.0.0
         version: 11.0.3(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)))
@@ -944,7 +944,7 @@ importers:
         version: 7.8.5
       typeorm:
         specifier: 0.3.31
-        version: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
+        version: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.0.12
@@ -1504,6 +1504,9 @@ importers:
       '@vendure/group-buy-plugin':
         specifier: 0.0.1
         version: link:../group-buy-plugin
+      '@vendure/harden-plugin':
+        specifier: 3.6.4
+        version: link:../harden-plugin
       '@vendure/installment-plugin':
         specifier: 0.0.1
         version: link:../installment-plugin
@@ -2690,7 +2693,7 @@ importers:
         version: 2.12.6(graphql@16.14.2)
       typeorm:
         specifier: 0.3.31
-        version: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
+        version: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
     devDependencies:
       '@vendure/common':
         specifier: workspace:*
@@ -2721,7 +2724,7 @@ importers:
         version: 2.12.6(graphql@16.14.2)
       typeorm:
         specifier: 0.3.31
-        version: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
+        version: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
     devDependencies:
       '@vendure/common':
         specifier: workspace:*
@@ -23926,7 +23929,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@nestjs/terminus@11.1.1(@grpc/grpc-js@1.14.5)(@grpc/proto-loader@0.8.1)(@nestjs/axios@4.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.18.1)(rxjs@7.8.2))(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(@nestjs/typeorm@11.0.3(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)))':
+  '@nestjs/terminus@11.1.1(@grpc/grpc-js@1.14.5)(@grpc/proto-loader@0.8.1)(@nestjs/axios@4.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.18.1)(rxjs@7.8.2))(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(@nestjs/typeorm@11.0.3(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)))':
     dependencies:
       '@nestjs/common': 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.2.7(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -23939,7 +23942,7 @@ snapshots:
       '@grpc/proto-loader': 0.8.1
       '@nestjs/axios': 4.0.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.18.1)(rxjs@7.8.2)
       '@nestjs/typeorm': 11.0.3(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)))
-      typeorm: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
+      typeorm: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
 
   '@nestjs/testing@11.2.7(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.7)(@nestjs/platform-express@11.2.7)':
     dependencies:
@@ -23955,7 +23958,7 @@ snapshots:
       '@nestjs/core': 11.2.7(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
-      typeorm: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
+      typeorm: 0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2))
 
   '@ng-select/ng-select@14.2.6(@angular/common@19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0))(rxjs@7.8.2))(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0))(@angular/forms@19.2.25(@angular/common@19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0))(rxjs@7.8.2))(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0))(@angular/platform-browser@19.2.25(@angular/animations@19.2.25(@angular/common@19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0))(rxjs@7.8.2))(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0)))(@angular/common@19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0))(rxjs@7.8.2))(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.15.0)))(rxjs@7.8.2))':
     dependencies:
@@ -37340,7 +37343,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1)(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)):
+  typeorm@0.3.31(better-sqlite3@11.6.0)(ioredis@5.11.1(supports-color@7.2.0))(mysql2@3.24.5(@types/node@20.19.43))(pg@8.23.1)(sql.js@1.14.1)(supports-color@7.2.0)(ts-node@10.9.2(@swc/core@1.16.0(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.8.2)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 4.4.0

@@ -3,13 +3,28 @@ import { OrderListOptions } from '@vendure/common/lib/generated-types';
 import { Allow, Ctx, Order, Permission, RequestContext, Transaction, TransactionalConnection } from '@vendure/core';
 
 import { MarketplaceService } from '../marketplace.service';
+import { MerchantApiTokenService } from '../merchant-api-token.service';
 
 @Resolver()
 export class AdminMarketplaceResolver {
     constructor(
         private marketplaceService: MarketplaceService,
         private connection: TransactionalConnection,
+        private merchantApiTokenService: MerchantApiTokenService,
     ) {}
+
+    /** 为指定商家渠道签发 merchant-api 令牌（仅平台超管） */
+    @Mutation('issueMerchantApiToken')
+    @Allow(Permission.SuperAdmin)
+    issueMerchantApiToken(
+        @Args() args: { channelId: string; ttlSeconds?: number },
+    ): { token: string; expiresAt: string } {
+        const ttl = args.ttlSeconds && args.ttlSeconds > 0 ? args.ttlSeconds : 24 * 60 * 60;
+        return {
+            token: this.merchantApiTokenService.issue(args.channelId, ttl),
+            expiresAt: new Date(Date.now() + ttl * 1000).toISOString(),
+        };
+    }
 
     @Mutation('approveMarketplaceProduct')
     @Transaction()

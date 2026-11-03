@@ -50,18 +50,20 @@ export class WechatpayController {
         });
     }
 
-    /** 结算路由：非订单前缀（如 RC-）交给注册的结算器，否则默认结 Vendure Order */
+    /** 结算路由：非订单前缀（如 RC-）交给注册的结算器，否则默认结 Vendure Order。
+     *  expectedAmountCents：微信回调解密出的金额（分），用于与 Authorized 支付金额比对。 */
     private async routeSettlement(
         ctx: RequestContext,
         outTradeNo: string,
         transactionId: string,
+        expectedAmountCents?: number,
     ): Promise<void> {
         const settlement = this.settlementRegistry.find(outTradeNo);
         if (settlement) {
             await settlement.settle(ctx, outTradeNo, transactionId);
             return;
         }
-        await this.settleOrderPayment(ctx, outTradeNo);
+        await this.settleOrderPayment(ctx, outTradeNo, expectedAmountCents);
     }
 
     /**
@@ -71,7 +73,11 @@ export class WechatpayController {
      * 已结算/非 Authorized 的支付直接跳过，平台重复通知天然幂等。
      * 注意：订单到达 PaymentAuthorized 后 active=false，不能用 order.active 判断
      */
-    private async settleOrderPayment(ctx: RequestContext, orderCode: string): Promise<void> {
+    private async settleOrderPayment(
+        ctx: RequestContext,
+        orderCode: string,
+        expectedAmountCents?: number,
+    ): Promise<void> {
         // 回调域名解析出的渠道未必是下单渠道（如 t1 站点回调落 www.youshop.cn 时回退默认渠道），
         // 而 OrderService.findOne 会按 ctx 渠道过滤 → 查不到单，微信已扣款却不结单。
         // 故先全局按 code 取单和它所属渠道，再切到该渠道 ctx 去查单/结算。
@@ -103,6 +109,17 @@ export class WechatpayController {
             throw new Error(`order ${orderCode} not found in channel ${orderCtx.channelId}`);
         }
         const payments = order.payments || [];
+        const authorized = payments.filter(p => p.state === 'Authorized');
+        // 金额校验：仅对待结算支付校验（已全部 Settled 的重复通知应直接幂等跳过，
+        // 不能因无 Authorized 支付而误判失败、导致平台无限重投）
+        if (expectedAmountCents != undefined && authorized.length > 0) {
+            if (!authorized.some(p => Number(p.amount) === expectedAmountCents)) {
+                const amounts = authorized.map(p => `${p.id}:${p.amount}`).join(', ');
+                throw new Error(
+                    `amount mismatch for order ${orderCode}: notify=${expectedAmountCents}, authorized=[${amounts}]`,
+                );
+            }
+        }
         let settledCount = 0;
         for (const payment of payments) {
             // 幂等：已 Settled / 已取消等非 Authorized 状态直接跳过，重复通知不会重复结算
@@ -147,6 +164,8 @@ export class WechatpayController {
     private async buildWxPay(ctx: RequestContext, host: string): Promise<{
         pay: WxPay;
         apiKey: string;
+        appId: string;
+        mchId: string;
     }> {
         const mapCode = this.options?.callbackMethodMap?.[host];
         const pms = await this.paymentMethodService.findAll(ctx);
@@ -173,17 +192,19 @@ export class WechatpayController {
         const args = pm?.handler?.args || [];
         const getArg = (name: string) => args.find(a => a.name === name)?.value || '';
         const apiKey = override?.apiKey || getArg('apiKey');
+        const appId = override?.appId || getArg('appId');
+        const mchId = override?.mchId || getArg('mchId');
 
         const pay = new WxPay({
-            appid: override?.appId || getArg('appId'),
-            mchid: override?.mchId || getArg('mchId'),
+            appid: appId,
+            mchid: mchId,
             publicKey: Buffer.from(override?.publicKey || getArg('publicKey')),
             privateKey: Buffer.from(override?.privateKey || getArg('privateKey')),
             key: apiKey,
             serial_no: override?.serialNo || getArg('serialNo'),
         });
 
-        return { pay, apiKey };
+        return { pay, apiKey, appId, mchId };
     }
 
     /**
@@ -206,11 +227,11 @@ export class WechatpayController {
 
             const ctx = await this.callbackCtx(req);
             const host = req.hostname || (req.headers.host as string) || '';
-            const { pay, apiKey } = await this.buildWxPay(ctx, host);
+            const { pay, apiKey, appId, mchId } = await this.buildWxPay(ctx, host);
 
-            // 1. 验签
+            // 1. 验签（verifySign 返回 Promise，必须 await，否则恒为真 = 验签失效）
             const bodyStr = JSON.stringify(body);
-            const verified = pay.verifySign({
+            const verified = await pay.verifySign({
                 timestamp,
                 nonce,
                 body: bodyStr,
@@ -228,7 +249,13 @@ export class WechatpayController {
                 resource.ciphertext,
                 resource.associated_data,
                 resource.nonce,
-            ) as { out_trade_no?: string; transaction_id?: string };
+            ) as {
+                out_trade_no?: string;
+                transaction_id?: string;
+                appid?: string;
+                mchid?: string;
+                amount?: { total?: number; currency?: string };
+            };
             const outTradeNo = decrypted?.out_trade_no;
             const transactionId = decrypted?.transaction_id;
 
@@ -239,7 +266,18 @@ export class WechatpayController {
 
             // 3. 处理支付结果
             if (body?.event_type === 'TRANSACTION.SUCCESS' && outTradeNo) {
-                await this.routeSettlement(ctx, outTradeNo, transactionId || '');
+                // 商户归属校验：通知的 appid/mchid 必须与验签所用凭证一致
+                if ((decrypted.appid && decrypted.appid !== appId) ||
+                    (decrypted.mchid && decrypted.mchid !== mchId)) {
+                    throw new Error(
+                        `merchant mismatch for ${outTradeNo}: appid=${String(decrypted.appid)}/${appId}, mchid=${String(decrypted.mchid)}/${mchId}`,
+                    );
+                }
+                const amountTotal = decrypted.amount?.total;
+                if (typeof amountTotal !== 'number' || !Number.isFinite(amountTotal)) {
+                    throw new Error(`missing amount in wechat notify for ${outTradeNo}`);
+                }
+                await this.routeSettlement(ctx, outTradeNo, transactionId || '', amountTotal);
             }
 
             res.status(200).json({ code: 'SUCCESS', message: 'OK' });

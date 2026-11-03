@@ -1,6 +1,8 @@
 import { Body, Controller, Inject, Post, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Logger, Order, OrderService, Payment, ChannelService, RequestContext, TransactionalConnection, isGraphQlErrorResult } from '@vendure/core';
+import { getPaymentOverride } from '@vendure/cjk-plugin/lib/src/payment/payment-config';
+import type { AlipayCredentials } from '@vendure/cjk-plugin/lib/src/payment/payment-config.types';
 
 import { ALIPAY_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { AlipayPluginOptions } from './types';
@@ -15,20 +17,16 @@ export class AlipayController {
         private connection: TransactionalConnection,
     ) {}
 
-    /**
-     * 结算订单支付。失败必须抛错（外层返回 failure）触发支付宝重投，避免「已扣款不结单」；
-     * 已结算/非 Authorized 的支付直接跳过，重复通知天然幂等。
-     */
-    private async settleOrderPayment(outTradeNo: string): Promise<void> {
+    /** 全局按单号取单并切到订单所属渠道（回调域名/默认渠道未必是下单渠道） */
+    private async resolveOrder(outTradeNo: string): Promise<{ order: Order; orderCtx: RequestContext }> {
         const channel = await this.channelService.getDefaultChannel();
-        const ctx = new RequestContext({
+        const baseCtx = new RequestContext({
             apiType: 'admin',
             channel,
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
         });
-        // 默认渠道未必是下单渠道：先全局按 code 取单，再切到订单所属渠道结算
-        const base = await this.connection.getRepository(ctx, Order).findOne({
+        const base = await this.connection.getRepository(baseCtx, Order).findOne({
             where: { code: outTradeNo },
             relations: ['channels'],
         });
@@ -37,16 +35,16 @@ export class AlipayController {
             throw new Error(`order ${outTradeNo} not found`);
         }
         const orderChannel =
-            base.channels?.find(c => Number(c.id) === Number(ctx.channelId)) ?? base.channels?.[0];
+            base.channels?.find(c => Number(c.id) === Number(baseCtx.channelId)) ?? base.channels?.[0];
         const orderCtx =
-            orderChannel && Number(orderChannel.id) !== Number(ctx.channelId)
+            orderChannel && Number(orderChannel.id) !== Number(baseCtx.channelId)
                 ? new RequestContext({
                       apiType: 'admin',
                       channel: orderChannel,
                       isAuthorized: true,
                       authorizedAsOwnerOnly: false,
                   })
-                : ctx;
+                : baseCtx;
         const order = await this.orderService.findOneByCode(orderCtx, outTradeNo, ['payments']);
         if (!order) {
             Logger.error(
@@ -55,6 +53,65 @@ export class AlipayController {
             );
             throw new Error(`order ${outTradeNo} not found in channel ${orderCtx.channelId}`);
         }
+        return { order, orderCtx };
+    }
+
+    /**
+     * 回调内容校验：app_id / seller_id 必须与订单所属渠道（或插件）配置一致，
+     * 金额必须等于某笔待结算支付的金额；任一不符即拒绝（返回 failure）。
+     */
+    private assertNotifyMatchesOrder(
+        orderCtx: RequestContext,
+        order: Order,
+        body: any,
+    ): void {
+        const override = getPaymentOverride(orderCtx, 'alipay') as AlipayCredentials | null;
+        const expectedAppId = override?.appId || this.options.auth?.appId;
+        const expectedSellerId = override?.sellerId || this.options.sellerId;
+        const outTradeNo = String(body.out_trade_no);
+
+        if (expectedAppId && body.app_id !== expectedAppId) {
+            throw new Error(
+                `app_id mismatch for ${outTradeNo}: notify=${String(body.app_id)}, expected=${expectedAppId}`,
+            );
+        }
+        if (expectedSellerId) {
+            if (body.seller_id !== expectedSellerId) {
+                throw new Error(
+                    `seller_id mismatch for ${outTradeNo}: notify=${String(body.seller_id)}, expected=${expectedSellerId}`,
+                );
+            }
+        } else if (!this.warnedMissingSellerId) {
+            // 未配置 sellerId 时无法校验收款方，记录一次告警（不阻断，兼容存量配置）
+            this.warnedMissingSellerId = true;
+            Logger.warn(
+                'ALIPAY_SELLER_ID 未配置，跳过 seller_id 校验；建议在插件选项或渠道 alipayJson 中补充',
+                loggerCtx,
+            );
+        }
+
+        const authorized = (order.payments || []).filter(p => p.state === 'Authorized');
+        // 仅在有待结算支付时校验金额：已全部 Settled 的重复通知应幂等跳过
+        if (authorized.length > 0) {
+            const notifyCents = Math.round(Number(body.total_amount) * 100);
+            if (!Number.isFinite(notifyCents)) {
+                throw new Error(`missing total_amount in alipay notify for ${outTradeNo}`);
+            }
+            if (!authorized.some(p => Number(p.amount) === notifyCents)) {
+                const amounts = authorized.map(p => `${p.id}:${p.amount}`).join(', ');
+                throw new Error(
+                    `amount mismatch for ${outTradeNo}: notify=${notifyCents}, authorized=[${amounts}]`,
+                );
+            }
+        }
+    }
+
+    /**
+     * 结算订单支付。失败必须抛错（外层返回 failure）触发支付宝重投，避免「已扣款不结单」；
+     * 已结算/非 Authorized 的支付直接跳过，重复通知天然幂等。
+     */
+    private async settleOrderPayment(orderCtx: RequestContext, order: Order): Promise<void> {
+        const outTradeNo = order.code;
         let settledCount = 0;
         for (const payment of order.payments || []) {
             // 幂等：已 Settled / 已取消等非 Authorized 状态直接跳过
@@ -87,11 +144,12 @@ export class AlipayController {
         }
     }
 
+    private warnedMissingSellerId = false;
+
     @Post('notify')
     async notify(@Req() req: Request, @Res() res: Response, @Body() body: any) {
         let outTradeNo: string | undefined;
         try {
-            const sign = body.sign;
             const signType = body.sign_type || 'RSA2';
 
             const alipaySdk = new AlipaySdk({
@@ -112,8 +170,10 @@ export class AlipayController {
             outTradeNo = body.out_trade_no;
 
             if (tradeStatus === 'TRADE_SUCCESS' || tradeStatus === 'TRADE_FINISHED') {
+                const { order, orderCtx } = await this.resolveOrder(String(outTradeNo));
+                this.assertNotifyMatchesOrder(orderCtx, order, body);
                 Logger.info(`Alipay trade success: ${String(outTradeNo)}, txId: ${String(body.trade_no)}`, loggerCtx);
-                await this.settleOrderPayment(String(outTradeNo));
+                await this.settleOrderPayment(orderCtx, order);
             }
 
             // 支付宝：只有返回 success 才会停止重投

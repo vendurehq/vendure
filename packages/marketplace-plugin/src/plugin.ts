@@ -39,6 +39,7 @@ import { DirectPaymentResolver } from './payment/direct-payment.resolver';
 import { adminApiExtensions } from './api/admin.api-extensions';
 import { AdminMarketplaceResolver } from './api/admin.resolver';
 import { MerchantApiController } from './api/merchant-api.controller';
+import { MerchantApiTokenService } from './merchant-api-token.service';
 import { SettlementService } from './settlement.service';
 
 @VendurePlugin({
@@ -93,6 +94,7 @@ import { SettlementService } from './settlement.service';
         MarketplaceSellerService,
         SettlementService,
         LedgerService,
+        MerchantApiTokenService,
         { provide: MARKETPLACE_PLUGIN_OPTIONS, useFactory: () => MarketplacePlugin.options },
     ],
     controllers: [MerchantApiController],

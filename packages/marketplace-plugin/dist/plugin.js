@@ -30,6 +30,7 @@ const direct_payment_resolver_1 = require("./payment/direct-payment.resolver");
 const admin_api_extensions_1 = require("./api/admin.api-extensions");
 const admin_resolver_1 = require("./api/admin.resolver");
 const merchant_api_controller_1 = require("./api/merchant-api.controller");
+const merchant_api_token_service_1 = require("./merchant-api-token.service");
 const settlement_service_1 = require("./settlement.service");
 let MarketplacePlugin = MarketplacePlugin_1 = class MarketplacePlugin {
     constructor(eventBus, connection, entityHydrator, ledgerService, roleService, channelService, configService, requestContextService, facetService) {
@@ -242,6 +243,7 @@ exports.MarketplacePlugin = MarketplacePlugin = MarketplacePlugin_1 = __decorate
             marketplace_seller_service_1.MarketplaceSellerService,
             settlement_service_1.SettlementService,
             ledger_service_1.LedgerService,
+            merchant_api_token_service_1.MerchantApiTokenService,
             { provide: constants_1.MARKETPLACE_PLUGIN_OPTIONS, useFactory: () => MarketplacePlugin.options },
         ],
         controllers: [merchant_api_controller_1.MerchantApiController],

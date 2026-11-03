@@ -14,8 +14,13 @@ if (!process.env.DB_HOST) {
 }
 
 // 禁用开发调试工具（生产环境不需要）
+process.env.IS_PROD = 'true';
 process.env.DEV_BYPASS_SMS = 'false';
 process.env.DEV_BYPASS_WECHAT = 'false';
+process.env.DEV_BYPASS_WECHATPAY = 'false';
+process.env.DEV_BYPASS_ALIPAY = 'false';
+process.env.DEV_BYPASS_DOUYIN = 'false';
+process.env.SSO_MOCK = 'false';
 
 // 启动 Vendure Server（已编译为 JS，不依赖 ts-node）
 require('./dist/index');

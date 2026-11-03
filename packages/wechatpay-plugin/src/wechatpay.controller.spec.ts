@@ -9,6 +9,28 @@ vi.mock('@vendure/cjk-plugin/lib/src/payment/payment-config', () => ({
     getPaymentOverride: vi.fn().mockReturnValue(null),
 }));
 
+// 真实回调 notify 的 WxPay 打桩：verifySign 返回 Promise，用于验证必须 await
+const wxState = vi.hoisted(() => ({
+    verifyOk: true,
+    decrypted: {
+        out_trade_no: 'ORD1',
+        transaction_id: 'TX1',
+        appid: 'appid',
+        mchid: 'mch',
+        amount: { total: 1000 },
+    } as any,
+}));
+vi.mock('wechatpay-node-v3', () => ({
+    default: class {
+        async verifySign() {
+            return wxState.verifyOk;
+        }
+        decipher_gcm() {
+            return wxState.decrypted;
+        }
+    },
+}));
+
 import { WechatpayController } from './wechatpay.controller';
 
 function makeRes() {
@@ -185,5 +207,111 @@ describe('结算失败语义与幂等（回调不能吞异常）', () => {
         await ctrl.devNotify(req, res);
         expect(orderService.settlePayment).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('真实回调 notify：验签必须 await、金额/appid 必须校验', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        wxState.verifyOk = true;
+        wxState.decrypted = {
+            out_trade_no: 'ORD1',
+            transaction_id: 'TX1',
+            appid: 'appid',
+            mchid: 'mch',
+            amount: { total: 1000 },
+        };
+    });
+
+    function makeNotifyController(payments: any[]) {
+        const settlement = { find: vi.fn().mockReturnValue(undefined), settle: vi.fn() };
+        const orderService = {
+            findOneByCode: vi.fn().mockResolvedValue({
+                code: 'ORD1',
+                channels: [{ id: 1, code: 'default' }],
+                payments,
+            }),
+            settlePayment: vi.fn().mockResolvedValue({ id: 7, state: 'Settled' }),
+        };
+        const connection = {
+            getRepository: vi.fn().mockReturnValue({
+                findOne: vi.fn().mockResolvedValue({ code: 'ORD1', channels: [{ id: 1 }] }),
+            }),
+        };
+        const args = [
+            { name: 'apiKey', value: 'key' },
+            { name: 'appId', value: 'appid' },
+            { name: 'mchId', value: 'mch' },
+            { name: 'publicKey', value: 'pk' },
+            { name: 'privateKey', value: 'priv' },
+            { name: 'serialNo', value: 'serial' },
+        ];
+        const paymentMethodService = {
+            findAll: vi.fn().mockResolvedValue({
+                items: [{ code: 'wechatpay', handler: { args } }],
+            }),
+        };
+        const ctrl = new WechatpayController(
+            {} as any,
+            orderService as any,
+            { getDefaultChannel: vi.fn().mockResolvedValue({ id: 1, code: 'default' }) } as any,
+            connection as any,
+            paymentMethodService as any,
+            {} as any,
+            settlement as any,
+        );
+        return { ctrl, orderService, settlement };
+    }
+
+    const notifyReq = {
+        headers: {
+            'wechatpay-timestamp': 't',
+            'wechatpay-nonce': 'n',
+            'wechatpay-signature': 'sig',
+            'wechatpay-serial': 'serial',
+        },
+        hostname: 'localhost',
+    } as any;
+
+    const notifyBody = {
+        id: 'evt',
+        event_type: 'TRANSACTION.SUCCESS',
+        resource: { ciphertext: 'c', associated_data: 'ad', nonce: 'n' },
+    };
+
+    it('验签失败（verifySign 为 Promise 且已 await）：返回 401 且不结算', async () => {
+        wxState.verifyOk = false;
+        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
+        const res = makeRes();
+        await ctrl.notify(notifyReq, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('通知金额与 Authorized 支付金额不符：返回 500 且不结算', async () => {
+        wxState.decrypted.amount = { total: 999 };
+        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
+        const res = makeRes();
+        await ctrl.notify(notifyReq, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('通知 appid/mchid 与验签凭证不符：返回 500 且不结算', async () => {
+        wxState.decrypted.appid = 'other-app';
+        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
+        const res = makeRes();
+        await ctrl.notify(notifyReq, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('校验通过：结算并返回 200 SUCCESS', async () => {
+        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
+        const res = makeRes();
+        await ctrl.notify(notifyReq, res, notifyBody);
+        expect(orderService.settlePayment).toHaveBeenCalledWith(expect.anything(), 7);
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'SUCCESS' }));
     });
 });

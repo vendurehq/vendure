@@ -18,6 +18,14 @@ export interface SmsCredentials {
 
 const SEND_COOLDOWN_MS = 60_000; // 同号发码冷却
 const DAILY_SEND_LIMIT = 10; // 同号每日发码上限
+
+/** 日志脱敏：手机号仅保留前 3 后 2 位 */
+function maskPhone(phoneNumber: string): string {
+    if (!phoneNumber || phoneNumber.length <= 5) {
+        return '****';
+    }
+    return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-2)}`;
+}
 const MAX_VERIFY_FAILURES = 5; // 同一验证码连续失败 N 次后作废
 
 export interface StoredCode {
@@ -214,7 +222,7 @@ export class SmsService {
         await this.store.markSent(phoneNumber, SEND_COOLDOWN_MS);
 
         if (this.devBypass) {
-            Logger.info(`[DEV BYPASS] Verification code for ${phoneNumber}: ${code}`, loggerCtx);
+            Logger.info(`[DEV BYPASS] Verification code for ${maskPhone(phoneNumber)}: ${code}`, loggerCtx);
             return true;
         }
 
@@ -226,7 +234,7 @@ export class SmsService {
         };
         // 兜底凭证缺失（未配置短信/租户覆盖也不完整）时，验证码仅存内存不发真实短信
         if (!creds.accessKeyId || !creds.accessKeySecret) {
-            Logger.warn(`SMS credentials missing, code stored without sending (${phoneNumber})`, loggerCtx);
+            Logger.warn(`SMS credentials missing, code stored without sending (${maskPhone(phoneNumber)})`, loggerCtx);
             return false;
         }
 
@@ -241,7 +249,7 @@ export class SmsService {
             const result = await client.sendSms(request);
 
             if (result.body?.code === 'OK') {
-                Logger.info(`SMS sent to ${phoneNumber}`, loggerCtx);
+                Logger.info(`SMS sent to ${maskPhone(phoneNumber)}`, loggerCtx);
                 return true;
             }
 
@@ -268,13 +276,13 @@ export class SmsService {
         // devBypass 判定须在失败计数之前：bypass 成功不应消耗失败次数，也避免先回写再删除
         if (this.devBypass && code === this.devBypassCode) {
             await this.store.deleteCode(phoneNumber);
-            Logger.info(`[DEV BYPASS] Accepted bypass code for ${phoneNumber}`, loggerCtx);
+            Logger.info(`[DEV BYPASS] Accepted bypass code for ${maskPhone(phoneNumber)}`, loggerCtx);
             return true;
         }
         stored.failures += 1;
         if (stored.failures >= MAX_VERIFY_FAILURES) {
             await this.store.deleteCode(phoneNumber);
-            Logger.warn(`Verification code invalidated after ${stored.failures} failures (${phoneNumber})`, loggerCtx);
+            Logger.warn(`Verification code invalidated after ${stored.failures} failures (${maskPhone(phoneNumber)})`, loggerCtx);
             return false;
         }
         await this.store.setCode(phoneNumber, stored);

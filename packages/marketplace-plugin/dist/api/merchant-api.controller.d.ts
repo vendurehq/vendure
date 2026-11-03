@@ -1,20 +1,19 @@
 import { ChannelService } from '@vendure/core';
 import { SettlementService } from '../settlement.service';
+import { MerchantApiTokenService } from '../merchant-api-token.service';
 /**
  * 商家对账 / 订单查询 REST API。
  *
- * 鉴权：校验 `Authorization: Bearer <channelToken>`，其中 channelToken 即该商家
- * Channel 的 token（注册商家时生成，格式如 `${shopCode}-token`）。
- * 通过 ChannelService.getChannelFromToken 将 token 解析为商家 Channel。
- *
- * 注意：当前实现依赖 Channel token 作为共享密钥，未接入 Vendure 的完整
- * JWT/APIKey 鉴权体系。如需更严格的鉴权，可在此基础上接入
- * JwtStrategy / ApiKey 校验。
+ * 鉴权：`Authorization: Bearer <merchant-api token>`。
+ * 令牌由服务端签发（见 MerchantApiTokenService），绑定 channelId 与过期时间，
+ * 客户端无法伪造；不再接受公开的 Channel token（生产环境）。
+ * 开发/测试环境保留 Channel token 兼容，便于本地 e2e；生产禁止。
  */
 export declare class MerchantApiController {
     private channelService;
     private settlementService;
-    constructor(channelService: ChannelService, settlementService: SettlementService);
+    private tokenService;
+    constructor(channelService: ChannelService, settlementService: SettlementService, tokenService: MerchantApiTokenService);
     private resolveChannel;
     private buildCtx;
     /** 对账单：GET /merchant-api/settlement?from=ISO&to=ISO */

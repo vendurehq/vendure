@@ -1,10 +1,20 @@
 import { OrderListOptions } from '@vendure/common/lib/generated-types';
 import { Order, RequestContext, TransactionalConnection } from '@vendure/core';
 import { MarketplaceService } from '../marketplace.service';
+import { MerchantApiTokenService } from '../merchant-api-token.service';
 export declare class AdminMarketplaceResolver {
     private marketplaceService;
     private connection;
-    constructor(marketplaceService: MarketplaceService, connection: TransactionalConnection);
+    private merchantApiTokenService;
+    constructor(marketplaceService: MarketplaceService, connection: TransactionalConnection, merchantApiTokenService: MerchantApiTokenService);
+    /** 为指定商家渠道签发 merchant-api 令牌（仅平台超管） */
+    issueMerchantApiToken(args: {
+        channelId: string;
+        ttlSeconds?: number;
+    }): {
+        token: string;
+        expiresAt: string;
+    };
     approveMarketplaceProduct(ctx: RequestContext, args: {
         productId: string;
     }): Promise<boolean>;

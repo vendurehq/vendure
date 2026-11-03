@@ -16,10 +16,20 @@ exports.AdminMarketplaceResolver = void 0;
 const graphql_1 = require("@nestjs/graphql");
 const core_1 = require("@vendure/core");
 const marketplace_service_1 = require("../marketplace.service");
+const merchant_api_token_service_1 = require("../merchant-api-token.service");
 let AdminMarketplaceResolver = class AdminMarketplaceResolver {
-    constructor(marketplaceService, connection) {
+    constructor(marketplaceService, connection, merchantApiTokenService) {
         this.marketplaceService = marketplaceService;
         this.connection = connection;
+        this.merchantApiTokenService = merchantApiTokenService;
+    }
+    /** 为指定商家渠道签发 merchant-api 令牌（仅平台超管） */
+    issueMerchantApiToken(args) {
+        const ttl = args.ttlSeconds && args.ttlSeconds > 0 ? args.ttlSeconds : 24 * 60 * 60;
+        return {
+            token: this.merchantApiTokenService.issue(args.channelId, ttl),
+            expiresAt: new Date(Date.now() + ttl * 1000).toISOString(),
+        };
     }
     async approveMarketplaceProduct(ctx, args) {
         await this.marketplaceService.approveMarketplaceProduct(ctx, args.productId);
@@ -72,6 +82,14 @@ let AdminMarketplaceResolver = class AdminMarketplaceResolver {
     }
 };
 exports.AdminMarketplaceResolver = AdminMarketplaceResolver;
+__decorate([
+    (0, graphql_1.Mutation)('issueMerchantApiToken'),
+    (0, core_1.Allow)(core_1.Permission.SuperAdmin),
+    __param(0, (0, graphql_1.Args)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Object)
+], AdminMarketplaceResolver.prototype, "issueMerchantApiToken", null);
 __decorate([
     (0, graphql_1.Mutation)('approveMarketplaceProduct'),
     (0, core_1.Transaction)(),
@@ -156,5 +174,6 @@ __decorate([
 exports.AdminMarketplaceResolver = AdminMarketplaceResolver = __decorate([
     (0, graphql_1.Resolver)(),
     __metadata("design:paramtypes", [marketplace_service_1.MarketplaceService,
-        core_1.TransactionalConnection])
+        core_1.TransactionalConnection,
+        merchant_api_token_service_1.MerchantApiTokenService])
 ], AdminMarketplaceResolver);

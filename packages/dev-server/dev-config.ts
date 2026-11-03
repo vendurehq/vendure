@@ -26,12 +26,14 @@ import {
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
+import { HardenPlugin } from '@vendure/harden-plugin';
 import { TelemetryPlugin } from '@vendure/telemetry-plugin';
 import 'dotenv/config';
 import path from 'path';
 import { DataSourceOptions } from 'typeorm';
 import { Request, Response, NextFunction } from 'express';
 import { CjkPlugin, PhysicalAwareStockLocationStrategy } from '@vendure/cjk-plugin';
+import { createDepthLimitRule } from './graphql-depth-limit';
 // 注意：ReviewsPlugin/FloorBuilderPlugin/NavModifierPlugin 为开发演示插件，
 // 改为惰性 require（见 devOnlyPlugins），避免生产模式静态 require 缺失的 test-plugins 产物。
 import { AlipayPlugin } from '@vendure/alipay-plugin';
@@ -115,6 +117,16 @@ const devServerDir = path.basename(__dirname) === 'dist' ? path.dirname(__dirnam
 
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
 
+/**
+ * 生产硬门禁：devBypass 类开关（微信/支付宝/抖音支付、短信、微信登录、SSO mock）
+ * 一律以进程模式为准，不能只靠 `.env` 里的 DEV_BYPASS_* 值。
+ * 即使 .env 误留 `DEV_BYPASS_X=true`，生产（dist/ 或 NODE_ENV=production）也强制关闭。
+ */
+const IS_NODE_PROD = process.env.NODE_ENV === 'production';
+const ALLOW_DEV_BYPASS = !IS_PROD && !IS_NODE_PROD;
+const devBypassEnabled = (envName: string): boolean =>
+    ALLOW_DEV_BYPASS && process.env[envName] === 'true';
+
 @VendurePlugin({
     imports: [PluginCommonModule],
     configuration: config => {
@@ -193,19 +205,27 @@ export const devConfig: VendureConfig = {
     apiOptions: {
         port: Number(process.env.API_PORT) || API_PORT,
         adminApiPath: ADMIN_API_PATH,
-        adminApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
-            },
-        },
-        adminApiDebug: true,
+        // 生产关闭 Playground 与调试信息（避免暴露 schema/内部错误栈）
+        adminApiPlayground: IS_PROD
+            ? false
+            : {
+                  settings: {
+                      'request.credentials': 'include',
+                  },
+              },
+        adminApiDebug: !IS_PROD,
         shopApiPath: SHOP_API_PATH,
-        shopApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
-            },
-        },
-        shopApiDebug: true,
+        shopApiPlayground: IS_PROD
+            ? false
+            : {
+                  settings: {
+                      'request.credentials': 'include',
+                  },
+              },
+        shopApiDebug: !IS_PROD,
+        // GraphQL 查询深度上限（防深嵌套拖垮服务；复杂度上限由 HardenPlugin 负责）
+        adminApiValidationRules: [createDepthLimitRule(12)],
+        shopApiValidationRules: [createDepthLimitRule(12)],
         middleware: [
             {
                 handler: (req: Request, res: Response, next: NextFunction) => {
@@ -372,7 +392,8 @@ export const devConfig: VendureConfig = {
         runTasksInWorkerOnly: false,
         tasks: [cleanSessionsTask, cleanOrphanedSettingsStoreTask],
     },
-    logger: new DefaultLogger({ level: LogLevel.Verbose }),
+    // 生产日志降到 Info（Verbose 会打印 GraphQL 查询/内部细节，且放大量级）
+    logger: new DefaultLogger({ level: IS_PROD ? LogLevel.Info : LogLevel.Verbose }),
     importExportOptions: {
         importAssetsDir: path.join(devServerDir, 'import-assets'),
     },
@@ -383,8 +404,10 @@ export const devConfig: VendureConfig = {
         // }),
         ReadonlySettingsTestPlugin,
         // FieldTestPlugin,
+        // 生产：复杂度上限 + 关闭 introspection/debug；GraphiQL 调试台仅非生产启用
+        ...(IS_PROD ? [HardenPlugin.init({ maxQueryComplexity: 1000, apiMode: 'prod' })] : []),
         ...devOnlyPlugins,
-        GraphiqlPlugin.init(),
+        ...(IS_PROD ? [] : [GraphiqlPlugin.init()]),
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(devServerDir, 'assets'),
@@ -439,10 +462,11 @@ export const devConfig: VendureConfig = {
         // 保持位于设置 orderItemPriceCalculationStrategy 的插件/配置之后（diy 价格包装器委托 original）
         DiyPlugin.init({ app: (process.env.APP as 'nshop' | 'vshop') ?? 'nshop' }),
         PickupPlugin.init({}),
-        ...((process.env.ALIPAY_NOTIFY_URL || process.env.DEV_BYPASS_ALIPAY === 'true') ? [AlipayPlugin.init({
+        ...((process.env.ALIPAY_NOTIFY_URL || devBypassEnabled('DEV_BYPASS_ALIPAY')) ? [AlipayPlugin.init({
             notifyUrl: process.env.ALIPAY_NOTIFY_URL || '',
             alipayPublicKey: process.env.ALIPAY_PUBLIC_KEY ?? '',
-            auth: process.env.DEV_BYPASS_ALIPAY === 'true' ? {
+            sellerId: process.env.ALIPAY_SELLER_ID || undefined,
+            auth: devBypassEnabled('DEV_BYPASS_ALIPAY') ? {
                 devBypass: true,
                 devBypassOpenid: 'dev_test_openid',
             } : undefined,
@@ -452,7 +476,7 @@ export const devConfig: VendureConfig = {
         // CS-/RC- 结算器注册失败、微信支付入口全部不可用。env 仅保留 devBypass 与 notifyUrl 兜底。
         WechatpayPlugin.init({
             notifyUrl: process.env.WECHATPAY_NOTIFY_URL || '',
-            devBypass: process.env.DEV_BYPASS_WECHATPAY === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_WECHATPAY'),
             devBypassOpenid: 'dev_test_openid',
             // 分端分支付方案：额外注册的支付方法 code（handler 同 wechatpay）
             extraHandlerCodes: (process.env.WECHATPAY_EXTRA_HANDLER_CODES || '')
@@ -476,25 +500,25 @@ export const devConfig: VendureConfig = {
             accessKeySecret: process.env.SMS_ACCESS_KEY_SECRET ?? '',
             signName: process.env.SMS_SIGN_NAME ?? '',
             templateCode: process.env.SMS_TEMPLATE_CODE ?? '',
-            devBypass: process.env.DEV_BYPASS_SMS === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_SMS'),
             devBypassCode: '123456',
             // 可选：配置后验证码/限流状态存 Redis（多实例部署共享），未配置走进程内存
             redisUrl: process.env.PHONE_AUTH_REDIS_URL || undefined,
         }),
-        ...((process.env.WECHAT_AUTH_APP_ID || process.env.DEV_BYPASS_WECHAT === 'true') ? [WechatAuthPlugin.init({
+        ...((process.env.WECHAT_AUTH_APP_ID || devBypassEnabled('DEV_BYPASS_WECHAT')) ? [WechatAuthPlugin.init({
             appId: process.env.WECHAT_AUTH_APP_ID || 'dev_test_app_id',
             appSecret: process.env.WECHAT_AUTH_APP_SECRET || 'dev_test_app_secret',
             miniProgramAppId: process.env.WECHAT_AUTH_MINI_APP_ID || '',
             miniProgramAppSecret: process.env.WECHAT_AUTH_MINI_APP_SECRET || '',
             token: process.env.WECHAT_MESSAGE_TOKEN || '',
             encodingAESKey: process.env.WECHAT_MESSAGE_AES_KEY || '',
-            devBypass: process.env.DEV_BYPASS_WECHAT === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_WECHAT'),
             devBypassOpenid: 'dev_test_openid',
         })] : []),
-        ...((process.env.DOUYIN_AUTH_APP_ID || process.env.DEV_BYPASS_DOUYIN === 'true') ? [DouyinAuthPlugin.init({
+        ...((process.env.DOUYIN_AUTH_APP_ID || devBypassEnabled('DEV_BYPASS_DOUYIN')) ? [DouyinAuthPlugin.init({
             appId: process.env.DOUYIN_AUTH_APP_ID || 'dev_test_app_id',
             appSecret: process.env.DOUYIN_AUTH_APP_SECRET || 'dev_test_app_secret',
-            devBypass: process.env.DEV_BYPASS_DOUYIN === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_DOUYIN'),
             devBypassOpenid: 'dev_test_openid',
         })] : []),
         OrderTimeoutPlugin.init({ defaultPaymentTimeoutMinutes: 30 }),
@@ -511,7 +535,7 @@ export const devConfig: VendureConfig = {
         TcmClinicPlugin.init({
             sso: {
                 baseUrl: process.env.ZHAO_SSO_BASE_URL || '',
-                mock: process.env.SSO_MOCK === 'true',
+                mock: devBypassEnabled('SSO_MOCK'),
             },
         }),
         EcoPlugin.init(),

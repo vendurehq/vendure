@@ -55,6 +55,13 @@ const ioredis_1 = __importDefault(require("ioredis"));
 const constants_1 = require("./constants");
 const SEND_COOLDOWN_MS = 60000; // 同号发码冷却
 const DAILY_SEND_LIMIT = 10; // 同号每日发码上限
+/** 日志脱敏：手机号仅保留前 3 后 2 位 */
+function maskPhone(phoneNumber) {
+    if (!phoneNumber || phoneNumber.length <= 5) {
+        return '****';
+    }
+    return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-2)}`;
+}
 const MAX_VERIFY_FAILURES = 5; // 同一验证码连续失败 N 次后作废
 class InMemoryStore {
     constructor() {
@@ -203,7 +210,7 @@ let SmsService = class SmsService {
         });
         await this.store.markSent(phoneNumber, SEND_COOLDOWN_MS);
         if (this.devBypass) {
-            core_1.Logger.info(`[DEV BYPASS] Verification code for ${phoneNumber}: ${code}`, constants_1.loggerCtx);
+            core_1.Logger.info(`[DEV BYPASS] Verification code for ${maskPhone(phoneNumber)}: ${code}`, constants_1.loggerCtx);
             return true;
         }
         const creds = credentials || {
@@ -214,7 +221,7 @@ let SmsService = class SmsService {
         };
         // 兜底凭证缺失（未配置短信/租户覆盖也不完整）时，验证码仅存内存不发真实短信
         if (!creds.accessKeyId || !creds.accessKeySecret) {
-            core_1.Logger.warn(`SMS credentials missing, code stored without sending (${phoneNumber})`, constants_1.loggerCtx);
+            core_1.Logger.warn(`SMS credentials missing, code stored without sending (${maskPhone(phoneNumber)})`, constants_1.loggerCtx);
             return false;
         }
         try {
@@ -227,7 +234,7 @@ let SmsService = class SmsService {
             });
             const result = await client.sendSms(request);
             if (((_a = result.body) === null || _a === void 0 ? void 0 : _a.code) === 'OK') {
-                core_1.Logger.info(`SMS sent to ${phoneNumber}`, constants_1.loggerCtx);
+                core_1.Logger.info(`SMS sent to ${maskPhone(phoneNumber)}`, constants_1.loggerCtx);
                 return true;
             }
             core_1.Logger.error(`SMS send failed: ${(_b = result.body) === null || _b === void 0 ? void 0 : _b.message}`, constants_1.loggerCtx);
@@ -254,13 +261,13 @@ let SmsService = class SmsService {
         // devBypass 判定须在失败计数之前：bypass 成功不应消耗失败次数，也避免先回写再删除
         if (this.devBypass && code === this.devBypassCode) {
             await this.store.deleteCode(phoneNumber);
-            core_1.Logger.info(`[DEV BYPASS] Accepted bypass code for ${phoneNumber}`, constants_1.loggerCtx);
+            core_1.Logger.info(`[DEV BYPASS] Accepted bypass code for ${maskPhone(phoneNumber)}`, constants_1.loggerCtx);
             return true;
         }
         stored.failures += 1;
         if (stored.failures >= MAX_VERIFY_FAILURES) {
             await this.store.deleteCode(phoneNumber);
-            core_1.Logger.warn(`Verification code invalidated after ${stored.failures} failures (${phoneNumber})`, constants_1.loggerCtx);
+            core_1.Logger.warn(`Verification code invalidated after ${stored.failures} failures (${maskPhone(phoneNumber)})`, constants_1.loggerCtx);
             return false;
         }
         await this.store.setCode(phoneNumber, stored);
