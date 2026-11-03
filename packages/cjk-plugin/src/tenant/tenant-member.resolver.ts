@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver, ResolveField, Parent } from '@nestjs/graphql';
-import { Allow, Ctx, Permission, RequestContext, TransactionalConnection, Administrator, ID } from '@vendure/core';
+import { Allow, Ctx, Permission, RequestContext, TransactionalConnection, Administrator, ID, ForbiddenError } from '@vendure/core';
 import { Inject } from '@nestjs/common';
 import { TenantMemberService, PERMISSION_CATALOG, PermissionCatalogGroup } from './tenant-member.service';
 import { TenantMember } from './tenant-member.entity';
@@ -203,13 +203,17 @@ export class TenantMemberResolver {
     }
 
     /** 当前登录者修改自身密码（主动改密传旧密码校验；首登强改密 oldPassword 传 null 跳过校验） */
+    // 不能使用 Permission.Authenticated：它按「当前渠道」判定，首登改密时前端尚未带渠道头，
+    // ctx.channelId 落到 default 渠道而该账号只在 canteen-a 有角色 → 改密接口恒 403。
+    // 本接口只改当前登录者自身密码，改为 Public + 显式登录校验（service 内仍会二次校验 activeUserId）。
     @Mutation()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.Public)
     async tenantChangeMyPassword(
         @Ctx() ctx: RequestContext,
         @Args('oldPassword') oldPassword: string | null,
         @Args('newPassword') newPassword: string,
     ): Promise<boolean> {
+        if (!ctx.activeUserId) throw new ForbiddenError();
         await this.tenantMemberService.changeMyPassword(ctx, oldPassword, newPassword);
         return true;
     }

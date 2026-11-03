@@ -125,7 +125,12 @@ let TenantMemberResolver = class TenantMemberResolver {
         return true;
     }
     /** 当前登录者修改自身密码（主动改密传旧密码校验；首登强改密 oldPassword 传 null 跳过校验） */
+    // 不能使用 Permission.Authenticated：它按「当前渠道」判定，首登改密时前端尚未带渠道头，
+    // ctx.channelId 落到 default 渠道而该账号只在 canteen-a 有角色 → 改密接口恒 403。
+    // 本接口只改当前登录者自身密码，改为 Public + 显式登录校验（service 内仍会二次校验 activeUserId）。
     async tenantChangeMyPassword(ctx, oldPassword, newPassword) {
+        if (!ctx.activeUserId)
+            throw new core_1.ForbiddenError();
         await this.tenantMemberService.changeMyPassword(ctx, oldPassword, newPassword);
         return true;
     }
@@ -306,7 +311,7 @@ __decorate([
 ], TenantMemberResolver.prototype, "myResetTenantMemberPassword", null);
 __decorate([
     (0, graphql_1.Mutation)(),
-    (0, core_1.Allow)(core_1.Permission.Authenticated),
+    (0, core_1.Allow)(core_1.Permission.Public),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('oldPassword')),
     __param(2, (0, graphql_1.Args)('newPassword')),
