@@ -21,6 +21,15 @@ export declare class AlreadyLoggedInError extends ErrorResult {
     readonly message = "ALREADY_LOGGED_IN_ERROR";
     constructor();
 }
+export declare class CancelPaymentError extends ErrorResult {
+    readonly __typename = "CancelPaymentError";
+    readonly errorCode: any;
+    readonly message = "CANCEL_PAYMENT_ERROR";
+    readonly paymentErrorMessage: Scalars['String'];
+    constructor(input: {
+        paymentErrorMessage: Scalars['String'];
+    });
+}
 export declare class CouponCodeExpiredError extends ErrorResult {
     readonly __typename = "CouponCodeExpiredError";
     readonly errorCode: any;
@@ -230,6 +239,19 @@ export declare class PaymentFailedError extends ErrorResult {
         paymentErrorMessage: Scalars['String'];
     });
 }
+export declare class PaymentStateTransitionError extends ErrorResult {
+    readonly __typename = "PaymentStateTransitionError";
+    readonly errorCode: any;
+    readonly message = "PAYMENT_STATE_TRANSITION_ERROR";
+    readonly transitionError: Scalars['String'];
+    readonly fromState: Scalars['String'];
+    readonly toState: Scalars['String'];
+    constructor(input: {
+        transitionError: Scalars['String'];
+        fromState: Scalars['String'];
+        toState: Scalars['String'];
+    });
+}
 export declare class VerificationTokenExpiredError extends ErrorResult {
     readonly __typename = "VerificationTokenExpiredError";
     readonly errorCode: any;
@@ -243,6 +265,9 @@ export declare class VerificationTokenInvalidError extends ErrorResult {
     constructor();
 }
 export declare const shopErrorOperationTypeResolvers: {
+    CancelPaymentResult: {
+        __resolveType(value: any): any;
+    };
     UpdateOrderItemsResult: {
         __resolveType(value: any): any;
     };

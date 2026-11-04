@@ -135,6 +135,9 @@ export declare function generateResolvers(configService: ConfigService, customFi
         __resolveType(value: Region): "Country" | "Province";
     };
 } | {
+    CancelPaymentResult: {
+        __resolveType(value: any): any;
+    };
     UpdateOrderItemsResult: {
         __resolveType(value: any): any;
     };

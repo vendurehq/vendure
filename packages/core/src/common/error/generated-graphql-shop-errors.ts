@@ -30,6 +30,19 @@ export class AlreadyLoggedInError extends ErrorResult {
   }
 }
 
+export class CancelPaymentError extends ErrorResult {
+  readonly __typename = 'CancelPaymentError';
+  readonly errorCode = 'CANCEL_PAYMENT_ERROR' as any;
+  readonly message = 'CANCEL_PAYMENT_ERROR';
+  readonly paymentErrorMessage: Scalars['String'];
+  constructor(
+    input: { paymentErrorMessage: Scalars['String'] }
+  ) {
+    super();
+    this.paymentErrorMessage = input.paymentErrorMessage
+  }
+}
+
 export class CouponCodeExpiredError extends ErrorResult {
   readonly __typename = 'CouponCodeExpiredError';
   readonly errorCode = 'COUPON_CODE_EXPIRED_ERROR' as any;
@@ -361,6 +374,23 @@ export class PaymentFailedError extends ErrorResult {
   }
 }
 
+export class PaymentStateTransitionError extends ErrorResult {
+  readonly __typename = 'PaymentStateTransitionError';
+  readonly errorCode = 'PAYMENT_STATE_TRANSITION_ERROR' as any;
+  readonly message = 'PAYMENT_STATE_TRANSITION_ERROR';
+  readonly transitionError: Scalars['String'];
+  readonly fromState: Scalars['String'];
+  readonly toState: Scalars['String'];
+  constructor(
+    input: { transitionError: Scalars['String'], fromState: Scalars['String'], toState: Scalars['String'] }
+  ) {
+    super();
+    this.transitionError = input.transitionError
+    this.fromState = input.fromState
+    this.toState = input.toState
+  }
+}
+
 export class VerificationTokenExpiredError extends ErrorResult {
   readonly __typename = 'VerificationTokenExpiredError';
   readonly errorCode = 'VERIFICATION_TOKEN_EXPIRED_ERROR' as any;
@@ -384,12 +414,17 @@ export class VerificationTokenInvalidError extends ErrorResult {
 }
 
 
-const errorTypeNames = new Set<string>(['AlreadyLoggedInError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'EmailAddressConflictError', 'GuestCheckoutError', 'IdentifierChangeTokenExpiredError', 'IdentifierChangeTokenInvalidError', 'IneligiblePaymentMethodError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InvalidCredentialsError', 'MissingPasswordError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NotVerifiedError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderPaymentStateError', 'OrderStateTransitionError', 'PasswordAlreadySetError', 'PasswordResetTokenExpiredError', 'PasswordResetTokenInvalidError', 'PasswordValidationError', 'PaymentDeclinedError', 'PaymentFailedError', 'VerificationTokenExpiredError', 'VerificationTokenInvalidError']);
+const errorTypeNames = new Set<string>(['AlreadyLoggedInError', 'CancelPaymentError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'EmailAddressConflictError', 'GuestCheckoutError', 'IdentifierChangeTokenExpiredError', 'IdentifierChangeTokenInvalidError', 'IneligiblePaymentMethodError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InvalidCredentialsError', 'MissingPasswordError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NotVerifiedError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderPaymentStateError', 'OrderStateTransitionError', 'PasswordAlreadySetError', 'PasswordResetTokenExpiredError', 'PasswordResetTokenInvalidError', 'PasswordValidationError', 'PaymentDeclinedError', 'PaymentFailedError', 'PaymentStateTransitionError', 'VerificationTokenExpiredError', 'VerificationTokenInvalidError']);
 function isGraphQLError(input: any): input is import('@vendure/common/lib/generated-types').ErrorResult {
   return input instanceof ErrorResult || errorTypeNames.has(input.__typename);
 }
 
 export const shopErrorOperationTypeResolvers = {
+  CancelPaymentResult: {
+    __resolveType(value: any) {
+      return isGraphQLError(value) ? (value as any).__typename : 'Payment';
+    },
+  },
   UpdateOrderItemsResult: {
     __resolveType(value: any) {
       return isGraphQLError(value) ? (value as any).__typename : 'Order';
