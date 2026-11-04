@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import { Column, DataSource, DefaultNamingStrategy, Entity, NamingStrategyInterface } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { VendureEntity } from './entity/base/base.entity';
 import {
@@ -689,13 +689,31 @@ describe('deduplicateTranslations() with a missing column', () => {
         );
     });
 
-    it('does nothing when the table has no duplicates', async () => {
-        await withTable(['en', 'de'], async dataSource => {
-            await deduplicateTranslations(dataSource.createQueryRunner(), 'thing_translation');
-            expect(await dataSource.query('SELECT COUNT(*) AS "count" FROM "thing_translation"')).toEqual([
-                { count: 2 },
-            ]);
-        });
+    it('does nothing, silently, when the table has no duplicates', async () => {
+        const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+        try {
+            await withTable(['en', 'de'], async dataSource => {
+                await deduplicateTranslations(dataSource.createQueryRunner(), 'thing_translation');
+                expect(await dataSource.query('SELECT COUNT(*) AS "count" FROM "thing_translation"')).toEqual(
+                    [{ count: 2 }],
+                );
+            });
+            expect(consoleLog).not.toHaveBeenCalled();
+        } finally {
+            consoleLog.mockRestore();
+        }
+    });
+
+    it('does nothing, silently, when the table does not exist', async () => {
+        const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+        try {
+            await withTable([], async dataSource => {
+                await deduplicateTranslations(dataSource.createQueryRunner(), 'missing_translation');
+            });
+            expect(consoleLog).not.toHaveBeenCalled();
+        } finally {
+            consoleLog.mockRestore();
+        }
     });
 
     it('throws a clear error when the table has duplicates', async () => {

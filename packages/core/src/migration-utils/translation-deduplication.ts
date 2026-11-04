@@ -159,8 +159,9 @@ async function deduplicateTranslationTable(
     columns: TranslationTableColumnNames,
 ): Promise<void> {
     const tableSchema = await queryRunner.getTable(translationTableName);
+    // Only report work that was done. A table which does not exist yet, or which has no duplicates,
+    // needs nothing, and logging every such table adds noise to every migration run.
     if (!tableSchema) {
-        console.log(`The ${translationTableName} table does not exist. Skipping de-duplication.`);
         return;
     }
     // Checking the columns first gives one error which names the `columns` option. Without the
@@ -194,7 +195,6 @@ async function deduplicateTranslationTable(
     );
     const duplicateCount = Number(duplicateCounts[0].count);
     if (duplicateCount === 0) {
-        console.log(`No duplicate rows found in ${translationTableName}. Skipping de-duplication.`);
         return;
     }
     assertColumnsExist(columns.id, columns.updatedAt);
