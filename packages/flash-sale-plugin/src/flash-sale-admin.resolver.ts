@@ -9,7 +9,7 @@ export class FlashSaleAdminResolver {
     constructor(private flashSaleService: FlashSaleService) {}
 
     @Query()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.ReadPromotion)
     async flashSaleActivities(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<FlashSaleActivity>,
@@ -18,7 +18,7 @@ export class FlashSaleAdminResolver {
     }
 
     @Query()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.ReadPromotion)
     async flashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -28,7 +28,7 @@ export class FlashSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.CreatePromotion)
     async createFlashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -38,7 +38,7 @@ export class FlashSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.UpdatePromotion)
     async updateFlashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -48,7 +48,7 @@ export class FlashSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.DeletePromotion)
     async deleteFlashSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,

@@ -265,7 +265,7 @@ let ShopService = class ShopService {
             code: constants_1.SHOP_OWNER_ROLE_CODE,
             description: 'Shop owner with access to manage their own shop',
             channelIds: [ctx.channelId],
-            permissions: [merchant_permissions_1.manageOwnShop.Permission],
+            permissions: [merchant_permissions_1.manageOwnShop.Permission, core_1.Permission.ReadPromotion],
         });
     }
     async updateMyShop(ctx, input) {
