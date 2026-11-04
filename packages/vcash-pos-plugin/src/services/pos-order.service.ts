@@ -67,18 +67,27 @@ export class PosOrderService {
     if (session.activeOrderId) {
       const existing = await this.orderService.findOne(ctx, session.activeOrderId);
       if (existing && existing.active) {
+        // 取单/历史挂单可能缺少 orderKind（旧数据），补齐后再返回，
+        // 否则 marketplace 订单流程会以 "not all lines have shipping" 阻断转入 ArrangingPayment。
+        if ((existing.customFields as any)?.orderKind !== 'assistant') {
+          await this.connection.getRepository(Order).update(existing.id, {
+            customFields: { ...existing.customFields, orderKind: 'assistant' } as any,
+          });
+        }
         return existing;
       }
     }
     // 创建新 Order（create 不接受 customFields，需创建后 update）
     const order = await this.orderService.create(ctx);
     // 设置 Order custom fields + 绑定 session.customer（会员价引擎依赖 order.customer.customFields.memberLevel）
+    // orderKind='assistant'：POS 单无配送行，marketplace 订单流程据此豁免 shippingLineId 校验（与公众号助手直付单同语义）
     await this.connection.getRepository(Order).update(order.id, {
       customFields: {
         posSessionId: session.id,
         orderType: 'sale',
         terminalCode: session.terminal.code,
-      },
+        orderKind: 'assistant',
+      } as any,
       ...(session.customerId
         ? { customer: { id: session.customerId } as any }
         : {}),
@@ -290,7 +299,9 @@ export class PosOrderService {
       customFields: {
         orderType: order.orderType,
         terminalCode: order.terminalCode,
-      },
+        // 离线补单同为 POS 直付单，需豁免 marketplace 流程的 shippingLineId 校验
+        orderKind: 'assistant',
+      } as any,
     });
 
     // 2. 遍历 lines 加商品
@@ -434,7 +445,9 @@ export class PosOrderService {
         orderType: 'refund',
         refundedOrderId: Number(originalOrder.id),
         terminalCode: session.terminal.code,
-      },
+        // 退货单无配送行，同样需要豁免 marketplace 流程的 shippingLineId 校验
+        orderKind: 'assistant',
+      } as any,
     });
 
     // 5. 直插负数量 OrderLine（绕过 addItemToOrder 的正数量校验）
@@ -630,7 +643,9 @@ export class PosOrderService {
         ...order.customFields,
         orderType: 'sale',
         posSessionId: session.id,
-      },
+        // 旧挂单可能没有 orderKind，取单时补齐
+        orderKind: 'assistant',
+      } as any,
     });
     await this.connection.getRepository(PosSession).update(session.id, {
       activeOrderId: Number(order.id),
