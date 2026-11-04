@@ -43,6 +43,7 @@ let PickupGuestOrderResolver = class PickupGuestOrderResolver {
         return (0, pickup_guest_order_1.buildGuestOverview)(order, redemption);
     }
     async guestSetOrderCustomFields(ctx, input) {
+        var _a, _b, _c;
         const order = await this.loadOrder(ctx, input.orderCode);
         if (!order)
             throw new core_1.UserInputError(ERR_NOT_FOUND);
@@ -50,7 +51,18 @@ let PickupGuestOrderResolver = class PickupGuestOrderResolver {
         if (!windowAccess || !(0, pickup_guest_order_1.isGuestOrder)(order)) {
             throw new core_1.UserInputError(ERR_NOT_FOUND);
         }
-        await this.orderService.updateCustomFields(ctx, order.id, Object.assign({ contactPhone: input.phone }, (input.name ? { contactName: input.name } : {})));
+        // 归属校验：订单已留存手机号时，必须与之一致；仅当订单尚无手机号时允许首次补录。
+        // 防止仅凭 orderCode（可能被截图/员工看到）覆盖他人订单的联系方式。
+        const existingPhone = String((_b = (_a = order.customFields) === null || _a === void 0 ? void 0 : _a.contactPhone) !== null && _b !== void 0 ? _b : '').trim();
+        const nextPhone = String((_c = input.phone) !== null && _c !== void 0 ? _c : '').trim();
+        if (!nextPhone || nextPhone.length > 20) {
+            throw new core_1.UserInputError('手机号格式不正确');
+        }
+        const digits = (v) => v.replace(/\D/g, '');
+        if (existingPhone && digits(existingPhone) !== digits(nextPhone)) {
+            throw new core_1.UserInputError(ERR_NOT_FOUND);
+        }
+        await this.orderService.updateCustomFields(ctx, order.id, Object.assign({ contactPhone: nextPhone }, (input.name ? { contactName: input.name } : {})));
         const refreshed = (await this.loadOrder(ctx, input.orderCode));
         await this.service.ensurePickupRedemptionForOrder(ctx, refreshed.id).catch(() => undefined);
         const redemption = await this.findRedemption(ctx, refreshed.id);

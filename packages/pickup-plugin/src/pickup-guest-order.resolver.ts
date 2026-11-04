@@ -52,8 +52,19 @@ export class PickupGuestOrderResolver {
         if (!windowAccess || !isGuestOrder(order)) {
             throw new UserInputError(ERR_NOT_FOUND);
         }
+        // 归属校验：订单已留存手机号时，必须与之一致；仅当订单尚无手机号时允许首次补录。
+        // 防止仅凭 orderCode（可能被截图/员工看到）覆盖他人订单的联系方式。
+        const existingPhone = String((order.customFields as any)?.contactPhone ?? '').trim();
+        const nextPhone = String(input.phone ?? '').trim();
+        if (!nextPhone || nextPhone.length > 20) {
+            throw new UserInputError('手机号格式不正确');
+        }
+        const digits = (v: string) => v.replace(/\D/g, '');
+        if (existingPhone && digits(existingPhone) !== digits(nextPhone)) {
+            throw new UserInputError(ERR_NOT_FOUND);
+        }
         await this.orderService.updateCustomFields(ctx, order.id, {
-            contactPhone: input.phone,
+            contactPhone: nextPhone,
             ...(input.name ? { contactName: input.name } : {}),
         } as any);
         const refreshed = (await this.loadOrder(ctx, input.orderCode))!;
