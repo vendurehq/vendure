@@ -181,6 +181,7 @@ exports.devConfig = {
                 },
             },
         shopApiDebug: !IS_PROD,
+        trustProxy: 1,
         adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
         shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
         middleware: [

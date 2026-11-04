@@ -26,11 +26,20 @@ function resolveIp(req: Request): string {
     return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
-function resolveIdentifier(body: any): string {
+function resolveIdentifier(query: string, body: any): string {
     const variables = body?.variables ?? {};
+    // 1. 从 GraphQL 原文里取 login/authenticate 的 username 参数（字面量或 $变量）
+    const argMatch = /(?:username|identifier|emailAddress|phoneNumber)\s*:\s*(?:"([^"]*)"|\$(\w+))/i.exec(query);
+    if (argMatch) {
+        const value = argMatch[1] !== undefined ? argMatch[1] : variables?.[argMatch[2]];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+            return String(value).trim().toLowerCase();
+        }
+    }
+    // 2. 变量名恰好是常见账号字段
     let value =
         variables.username ?? variables.identifier ?? variables.emailAddress ?? variables.phoneNumber;
-    // authenticate(input: { native: { username, password } })：取第一个认证方式里的账号
+    // 3. authenticate(input: { native: { username } }) 结构：取第一个认证方式里的账号
     if (!value && variables.input && typeof variables.input === 'object') {
         const first: any = Object.values(variables.input)[0];
         value = first?.username ?? first?.identifier ?? first?.emailAddress ?? first?.phoneNumber;
@@ -39,8 +48,8 @@ function resolveIdentifier(body: any): string {
     return normalized || 'anonymous';
 }
 
-function buildKey(req: Request, body: any): string {
-    return `${resolveIp(req)}|${resolveIdentifier(body)}`;
+function buildKey(req: Request, query: string, body: any): string {
+    return `${resolveIp(req)}|${resolveIdentifier(query, body)}`;
 }
 
 type InspectResult = 'success' | 'failure' | 'unknown';
@@ -129,7 +138,7 @@ export function loginRateLimit(req: Request, res: Response, next: NextFunction) 
 
     const now = Date.now();
     pruneExpired(now);
-    const key = buildKey(req, body);
+    const key = buildKey(req, query, body);
     const record = attempts.get(key);
     if (record && record.blockedUntil > now) {
         sendRateLimited(res, record.blockedUntil - now);

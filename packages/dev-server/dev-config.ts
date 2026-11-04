@@ -225,6 +225,8 @@ export const devConfig: VendureConfig = {
                   },
               },
         shopApiDebug: !IS_PROD,
+        // 位于 nginx 之后，信任第一层代理以获取真实客户端 IP（登录限速按 IP+账号）
+        trustProxy: 1,
         // GraphQL 查询深度上限（防深嵌套拖垮服务；复杂度上限由 HardenPlugin 负责）
         adminApiValidationRules: [createDepthLimitRule(12)],
         shopApiValidationRules: [createDepthLimitRule(12)],

@@ -9,9 +9,16 @@ function resolveIp(req) {
     var _a;
     return req.ip || ((_a = req.socket) === null || _a === void 0 ? void 0 : _a.remoteAddress) || 'unknown';
 }
-function resolveIdentifier(body) {
+function resolveIdentifier(query, body) {
     var _a, _b, _c, _d, _e, _f, _g;
     const variables = (_a = body === null || body === void 0 ? void 0 : body.variables) !== null && _a !== void 0 ? _a : {};
+    const argMatch = /(?:username|identifier|emailAddress|phoneNumber)\s*:\s*(?:"([^"]*)"|\$(\w+))/i.exec(query);
+    if (argMatch) {
+        const value = argMatch[1] !== undefined ? argMatch[1] : variables === null || variables === void 0 ? void 0 : variables[argMatch[2]];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+            return String(value).trim().toLowerCase();
+        }
+    }
     let value = (_d = (_c = (_b = variables.username) !== null && _b !== void 0 ? _b : variables.identifier) !== null && _c !== void 0 ? _c : variables.emailAddress) !== null && _d !== void 0 ? _d : variables.phoneNumber;
     if (!value && variables.input && typeof variables.input === 'object') {
         const first = Object.values(variables.input)[0];
@@ -20,8 +27,8 @@ function resolveIdentifier(body) {
     const normalized = String(value !== null && value !== void 0 ? value : '').trim().toLowerCase();
     return normalized || 'anonymous';
 }
-function buildKey(req, body) {
-    return `${resolveIp(req)}|${resolveIdentifier(body)}`;
+function buildKey(req, query, body) {
+    return `${resolveIp(req)}|${resolveIdentifier(query, body)}`;
 }
 function inspectLoginResult(payload) {
     var _a, _b, _c;
@@ -104,7 +111,7 @@ function loginRateLimit(req, res, next) {
     }
     const now = Date.now();
     pruneExpired(now);
-    const key = buildKey(req, body);
+    const key = buildKey(req, query, body);
     const record = attempts.get(key);
     if (record && record.blockedUntil > now) {
         sendRateLimited(res, record.blockedUntil - now);
