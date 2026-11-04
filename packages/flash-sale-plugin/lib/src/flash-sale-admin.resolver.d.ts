@@ -9,4 +9,8 @@ export declare class FlashSaleAdminResolver {
     createFlashSaleActivity(ctx: RequestContext, input: any): Promise<FlashSaleActivity>;
     updateFlashSaleActivity(ctx: RequestContext, input: any): Promise<FlashSaleActivity>;
     deleteFlashSaleActivity(ctx: RequestContext, id: ID): Promise<boolean>;
+    /** 写权限门控：超管直通；其余必须持有 TenantPromotionManage（按当前渠道授权） */
+    private assertCanManage;
+    /** 归属校验：非超管只能操作当前渠道的活动（防跨渠道 IDOR） */
+    private assertChannelAccess;
 }

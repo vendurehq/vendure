@@ -78,7 +78,11 @@ let PreSaleService = class PreSaleService {
     async create(ctx, input) {
         await this.assertLegalDepositCap(ctx, input);
         const repo = this.connection.getRepository(ctx, pre_sale_activity_entity_1.PreSaleActivity);
-        const activity = new pre_sale_activity_entity_1.PreSaleActivity(input);
+        // B2：创建强制落到调用者当前渠道，忽略前端传入的 channels/channelId
+        const safeInput = Object.assign({}, input);
+        delete safeInput.channels;
+        delete safeInput.channelId;
+        const activity = new pre_sale_activity_entity_1.PreSaleActivity(safeInput);
         activity.channels = [ctx.channel];
         activity.channelId = ctx.channelId;
         const now = new Date();

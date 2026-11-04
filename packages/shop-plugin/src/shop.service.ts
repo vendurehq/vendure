@@ -315,7 +315,13 @@ export class ShopService {
             code: SHOP_OWNER_ROLE_CODE,
             description: 'Shop owner with access to manage their own shop',
             channelIds: [ctx.channelId as ID],
-            permissions: [manageOwnShop.Permission, Permission.ReadPromotion, 'TenantSettingsManage' as Permission],
+            permissions: [
+                manageOwnShop.Permission,
+                Permission.ReadPromotion,
+                'TenantSettingsManage' as Permission,
+                // B2：店主可管理本渠道营销活动（写操作另有渠道归属校验）
+                'TenantPromotionManage' as Permission,
+            ],
         });
     }
 

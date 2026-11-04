@@ -68,7 +68,11 @@ let FlashSaleService = class FlashSaleService {
     }
     async create(ctx, input) {
         const repo = this.connection.getRepository(ctx, flash_sale_activity_entity_1.FlashSaleActivity);
-        const activity = new flash_sale_activity_entity_1.FlashSaleActivity(input);
+        // B2：创建强制落到调用者当前渠道，忽略前端传入的 channels/channelId
+        const safeInput = Object.assign({}, input);
+        delete safeInput.channels;
+        delete safeInput.channelId;
+        const activity = new flash_sale_activity_entity_1.FlashSaleActivity(safeInput);
         activity.channels = [ctx.channel];
         const now = new Date();
         if (activity.startAt && now >= activity.startAt) {

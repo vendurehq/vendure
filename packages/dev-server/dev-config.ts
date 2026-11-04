@@ -279,10 +279,15 @@ export const devConfig: VendureConfig = {
         tokenMethod: ['bearer', 'cookie', 'api-key'] as const,
         requireVerification: false,
         // 租户配置（支付/地图/登录方式等）专用写权限，按渠道授权，替代原先「渠道成员即可写」的判定
+        // 营销活动写权限同理：只授予本渠道内的秒杀/拼团/预售管理，不放开全站 Promotion 权限
         customPermissions: [
             new PermissionDefinition({
                 name: 'TenantSettingsManage',
                 description: '管理本渠道租户配置（支付/地图/登录方式等）',
+            }),
+            new PermissionDefinition({
+                name: 'TenantPromotionManage',
+                description: '管理本渠道营销活动（秒杀/拼团/预售）',
             }),
         ],
         cookieOptions: {

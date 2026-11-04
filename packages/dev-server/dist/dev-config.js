@@ -231,6 +231,10 @@ exports.devConfig = {
                 name: 'TenantSettingsManage',
                 description: '管理本渠道租户配置（支付/地图/登录方式等）',
             }),
+            new core_1.PermissionDefinition({
+                name: 'TenantPromotionManage',
+                description: '管理本渠道营销活动（秒杀/拼团/预售）',
+            }),
         ],
         cookieOptions: {
             secret: process.env.COOKIE_SECRET || 'abc',

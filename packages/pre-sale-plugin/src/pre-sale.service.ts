@@ -92,7 +92,11 @@ export class PreSaleService {
     async create(ctx: RequestContext, input: Partial<PreSaleActivity>): Promise<PreSaleActivity> {
         await this.assertLegalDepositCap(ctx, input);
         const repo = this.connection.getRepository(ctx, PreSaleActivity);
-        const activity = new PreSaleActivity(input as any);
+        // B2：创建强制落到调用者当前渠道，忽略前端传入的 channels/channelId
+        const safeInput = { ...(input as any) };
+        delete safeInput.channels;
+        delete safeInput.channelId;
+        const activity = new PreSaleActivity(safeInput);
         activity.channels = [ctx.channel];
         activity.channelId = ctx.channelId as number;
         const now = new Date();

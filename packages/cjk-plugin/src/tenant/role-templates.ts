@@ -36,8 +36,9 @@ export const OFFICIAL_ROLE_TEMPLATES: RoleTemplate[] = [
             'TenantRoleManage', 'TenantMemberManage',
             // 租户配置（支付/地图/登录方式等）写入专用权限，替代原先「渠道成员即可写」的判定
             'TenantSettingsManage',
-            // 营销活动：flash-sale/团购/预售 admin 接口已收紧到 Promotion 权限，租户管理员仅保留只读
+            // 营销活动：读走 Promotion 只读权限；写走租户专用 TenantPromotionManage（仅限本渠道，B2）
             Permission.ReadPromotion,
+            'TenantPromotionManage',
             // 多人协同盘库（规格 §9）：StocktakeCount/StocktakePost 为超管专属权限，
             // 授予租户角色会 FORBIDDEN_PERMISSION（每次启动补种 warn），移除——租户侧盘点由超管操作
         ],

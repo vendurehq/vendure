@@ -78,7 +78,11 @@ let GroupBuyService = class GroupBuyService {
     }
     async create(ctx, input) {
         const repo = this.connection.getRepository(ctx, group_buy_activity_entity_1.GroupBuyActivity);
-        const activity = new group_buy_activity_entity_1.GroupBuyActivity(input);
+        // B2：创建强制落到调用者当前渠道，忽略前端传入的 channels/channelId
+        const safeInput = Object.assign({}, input);
+        delete safeInput.channels;
+        delete safeInput.channelId;
+        const activity = new group_buy_activity_entity_1.GroupBuyActivity(safeInput);
         activity.channels = [ctx.channel];
         const saved = await repo.save(activity);
         if (this.stockPrewarmService && saved.status === 'active') {
