@@ -18,6 +18,9 @@ class PermissionError extends Error {
     }
 }
 
+/** 租户配置专用权限（在 dev-config customPermissions 中注册） */
+const TENANT_SETTINGS_MANAGE = 'TenantSettingsManage' as Permission;
+
 @Injectable()
 @Resolver()
 export class TenantConfigAdminResolver {
@@ -34,6 +37,8 @@ export class TenantConfigAdminResolver {
 
     private canEdit(ctx: RequestContext, channelId: string): boolean {
         if (ctx.userHasPermissions([Permission.SuperAdmin])) return true;
+        // C2：必须是该渠道成员，且持有租户配置专用权限（不能再用全站 UpdateSettings 替代）
+        if (!ctx.userHasPermissions([TENANT_SETTINGS_MANAGE])) return false;
         // Vendure API: ctx.session.user.channelPermissions 是 { id, token, code, permissions }[]
         const channelPermissions = (ctx as any).session?.user?.channelPermissions || [];
         return channelPermissions.some((c: any) => String(c.id) === String(channelId));

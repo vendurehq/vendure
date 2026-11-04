@@ -315,7 +315,7 @@ export class ShopService {
             code: SHOP_OWNER_ROLE_CODE,
             description: 'Shop owner with access to manage their own shop',
             channelIds: [ctx.channelId as ID],
-            permissions: [manageOwnShop.Permission, Permission.ReadPromotion],
+            permissions: [manageOwnShop.Permission, Permission.ReadPromotion, 'TenantSettingsManage' as Permission],
         });
     }
 

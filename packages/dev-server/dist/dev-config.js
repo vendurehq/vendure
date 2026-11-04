@@ -27,6 +27,7 @@ require("dotenv/config");
 const path_1 = __importDefault(require("path"));
 const cjk_plugin_1 = require("@vendure/cjk-plugin");
 const graphql_depth_limit_1 = require("./graphql-depth-limit");
+const login_rate_limit_1 = require("./login-rate-limit");
 const alipay_plugin_1 = require("@vendure/alipay-plugin");
 const wechatpay_plugin_1 = require("@vendure/wechatpay-plugin");
 const oss_plugin_1 = require("@vendure/oss-plugin");
@@ -210,13 +211,26 @@ exports.devConfig = {
                 },
                 route: '/admin-api',
             },
+            {
+                handler: login_rate_limit_1.loginRateLimit,
+                route: '/shop-api',
+            },
+            {
+                handler: login_rate_limit_1.loginRateLimit,
+                route: '/admin-api',
+            },
         ],
     },
     authOptions: {
         disableAuth: false,
         tokenMethod: ['bearer', 'cookie', 'api-key'],
         requireVerification: false,
-        customPermissions: [],
+        customPermissions: [
+            new core_1.PermissionDefinition({
+                name: 'TenantSettingsManage',
+                description: '管理本渠道租户配置（支付/地图/登录方式等）',
+            }),
+        ],
         cookieOptions: {
             secret: process.env.COOKIE_SECRET || 'abc',
         },

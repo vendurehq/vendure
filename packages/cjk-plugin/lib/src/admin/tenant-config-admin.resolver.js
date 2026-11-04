@@ -31,6 +31,8 @@ class PermissionError extends Error {
         this.name = 'PermissionError';
     }
 }
+/** 租户配置专用权限（在 dev-config customPermissions 中注册） */
+const TENANT_SETTINGS_MANAGE = 'TenantSettingsManage';
 let TenantConfigAdminResolver = class TenantConfigAdminResolver {
     constructor(authConfigService, payConfigService, mapConfigService, ssoProviderService, basicConfigService, multiLanguageConfigService, serviceNotifyConfigService, connection) {
         this.authConfigService = authConfigService;
@@ -46,6 +48,9 @@ let TenantConfigAdminResolver = class TenantConfigAdminResolver {
         var _a, _b;
         if (ctx.userHasPermissions([core_1.Permission.SuperAdmin]))
             return true;
+        // C2：必须是该渠道成员，且持有租户配置专用权限（不能再用全站 UpdateSettings 替代）
+        if (!ctx.userHasPermissions([TENANT_SETTINGS_MANAGE]))
+            return false;
         // Vendure API: ctx.session.user.channelPermissions 是 { id, token, code, permissions }[]
         const channelPermissions = ((_b = (_a = ctx.session) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.channelPermissions) || [];
         return channelPermissions.some((c) => String(c.id) === String(channelId));

@@ -16,6 +16,7 @@ import {
     dummyPaymentHandler,
     LanguageCode,
     LogLevel,
+    PermissionDefinition,
     PluginCommonModule,
     RequestContextService,
     SettingsStoreScopes,
@@ -34,6 +35,7 @@ import { DataSourceOptions } from 'typeorm';
 import { Request, Response, NextFunction } from 'express';
 import { CjkPlugin, PhysicalAwareStockLocationStrategy } from '@vendure/cjk-plugin';
 import { createDepthLimitRule } from './graphql-depth-limit';
+import { loginRateLimit } from './login-rate-limit';
 // 注意：ReviewsPlugin/FloorBuilderPlugin/NavModifierPlugin 为开发演示插件，
 // 改为惰性 require（见 devOnlyPlugins），避免生产模式静态 require 缺失的 test-plugins 产物。
 import { AlipayPlugin } from '@vendure/alipay-plugin';
@@ -259,13 +261,28 @@ export const devConfig: VendureConfig = {
                 },
                 route: '/admin-api',
             },
+            // 登录/认证失败限速（IP + 账号，5 次失败/15 分钟，进程内计数）
+            {
+                handler: loginRateLimit,
+                route: '/shop-api',
+            },
+            {
+                handler: loginRateLimit,
+                route: '/admin-api',
+            },
         ],
     },
     authOptions: {
         disableAuth: false,
         tokenMethod: ['bearer', 'cookie', 'api-key'] as const,
         requireVerification: false,
-        customPermissions: [],
+        // 租户配置（支付/地图/登录方式等）专用写权限，按渠道授权，替代原先「渠道成员即可写」的判定
+        customPermissions: [
+            new PermissionDefinition({
+                name: 'TenantSettingsManage',
+                description: '管理本渠道租户配置（支付/地图/登录方式等）',
+            }),
+        ],
         cookieOptions: {
             // 会话 Cookie 签名密钥从环境变量注入，避免源码内置固定 secret 导致会话伪造
             secret: process.env.COOKIE_SECRET || 'abc',
