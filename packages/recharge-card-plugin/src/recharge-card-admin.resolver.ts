@@ -17,7 +17,8 @@ export class RechargeCardAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<RechargeCard> = { take: 20 },
     ): Promise<PaginatedList<RechargeCard>> {
-        return this.rechargeCardService.findAll(ctx, options);
+        // GraphQL 显式/nullable 缺省时 Nest 会传 null，参数默认值不生效，需二次兜底
+        return this.rechargeCardService.findAll(ctx, options ?? { take: 20 });
     }
 
     @Query()
@@ -26,7 +27,7 @@ export class RechargeCardAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<RechargeCardBatch> = { take: 20 },
     ): Promise<PaginatedList<RechargeCardBatch>> {
-        return this.rechargeCardService.findAllBatches(ctx, options);
+        return this.rechargeCardService.findAllBatches(ctx, options ?? { take: 20 });
     }
 
     @Mutation()

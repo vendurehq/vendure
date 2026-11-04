@@ -18,7 +18,8 @@ export class MessageAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: any = { take: 20 },
     ) {
-        return this.messageService.findAll(ctx, options);
+        // GraphQL 显式/nullable 缺省时 Nest 会传 null，参数默认值不生效，需二次兜底
+        return this.messageService.findAll(ctx, options ?? { take: 20 });
     }
 
     @Query()

@@ -21,10 +21,11 @@ let RechargeCardAdminResolver = class RechargeCardAdminResolver {
         this.rechargeCardService = rechargeCardService;
     }
     async rechargeCards(ctx, options = { take: 20 }) {
-        return this.rechargeCardService.findAll(ctx, options);
+        // GraphQL 显式/nullable 缺省时 Nest 会传 null，参数默认值不生效，需二次兜底
+        return this.rechargeCardService.findAll(ctx, options !== null && options !== void 0 ? options : { take: 20 });
     }
     async rechargeCardBatches(ctx, options = { take: 20 }) {
-        return this.rechargeCardService.findAllBatches(ctx, options);
+        return this.rechargeCardService.findAllBatches(ctx, options !== null && options !== void 0 ? options : { take: 20 });
     }
     async createRechargeCardBatch(ctx, input) {
         return this.rechargeCardService.createBatch(ctx, input);

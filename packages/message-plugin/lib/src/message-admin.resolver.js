@@ -24,7 +24,8 @@ let MessageAdminResolver = class MessageAdminResolver {
         this.messageJob = messageJob;
     }
     async messages(ctx, options = { take: 20 }) {
-        return this.messageService.findAll(ctx, options);
+        // GraphQL 显式/nullable 缺省时 Nest 会传 null，参数默认值不生效，需二次兜底
+        return this.messageService.findAll(ctx, options !== null && options !== void 0 ? options : { take: 20 });
     }
     async message(ctx, id) {
         return this.messageService.findOne(ctx, id);
