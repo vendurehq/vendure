@@ -218,7 +218,7 @@ exports.devConfig = {
         requireVerification: false,
         customPermissions: [],
         cookieOptions: {
-            secret: 'abc',
+            secret: process.env.COOKIE_SECRET || 'abc',
         },
     },
     dbConnectionOptions: Object.assign({ synchronize: false, logging: process.env.SQL_LOG === '1' ? ['query', 'error'] : false, logger: process.env.SQL_LOG === '1' ? 'simple-console' : undefined, migrations: [path_1.default.join(devServerDir, 'migrations/*.ts')] }, getDbConfig()),

@@ -5,6 +5,12 @@ process.env.NODE_ENV = 'production';
 require('dotenv').config();
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
+// 会话 Cookie 签名密钥必须由环境变量注入，禁止在生产回落到源码内置默认值
+if (!process.env.COOKIE_SECRET) {
+    console.error('[prod-start] 缺少 COOKIE_SECRET，拒绝启动');
+    process.exit(1);
+}
+
 // 确保 PostgreSQL 连接配置
 if (!process.env.DB) {
     process.env.DB = 'postgres';

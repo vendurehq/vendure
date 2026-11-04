@@ -267,7 +267,8 @@ export const devConfig: VendureConfig = {
         requireVerification: false,
         customPermissions: [],
         cookieOptions: {
-            secret: 'abc',
+            // 会话 Cookie 签名密钥从环境变量注入，避免源码内置固定 secret 导致会话伪造
+            secret: process.env.COOKIE_SECRET || 'abc',
         },
     },
     dbConnectionOptions: {
