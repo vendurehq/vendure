@@ -9,7 +9,7 @@ export class GroupBuyAdminResolver {
     constructor(private groupBuyService: GroupBuyService) {}
 
     @Query()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.ReadPromotion)
     async groupBuyActivities(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<GroupBuyActivity>,
@@ -18,7 +18,7 @@ export class GroupBuyAdminResolver {
     }
 
     @Query()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.ReadPromotion)
     async groupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -28,7 +28,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.CreatePromotion)
     async createGroupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -38,7 +38,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.UpdatePromotion)
     async updateGroupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -48,7 +48,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.DeletePromotion)
     async deleteGroupBuyActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -59,7 +59,7 @@ export class GroupBuyAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.UpdatePromotion)
     async runGroupBuyExpiryCheck(@Ctx() ctx: RequestContext): Promise<boolean> {
         await this.groupBuyService.processExpired(ctx);
         return true;

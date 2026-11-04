@@ -9,7 +9,7 @@ export class PreSaleAdminResolver {
     constructor(private preSaleService: PreSaleService) {}
 
     @Query()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.ReadPromotion)
     async preSaleActivities(
         @Ctx() ctx: RequestContext,
         @Args('options', { nullable: true }) options: ListQueryOptions<PreSaleActivity>,
@@ -18,7 +18,7 @@ export class PreSaleAdminResolver {
     }
 
     @Query()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.ReadPromotion)
     async preSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -28,7 +28,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.CreatePromotion)
     async createPreSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -38,7 +38,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.UpdatePromotion)
     async updatePreSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('input') input: any,
@@ -48,7 +48,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.DeletePromotion)
     async deletePreSaleActivity(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
@@ -59,7 +59,7 @@ export class PreSaleAdminResolver {
 
     @Mutation()
     @Transaction()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.UpdateOrder)
     async deliverPreSale(
         @Ctx() ctx: RequestContext,
         @Args('id') id: ID,
