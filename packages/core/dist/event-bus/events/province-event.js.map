@@ -1,0 +1,1 @@
+{"version":3,"file":"province-event.js","sourceRoot":"","sources":["../../../src/event-bus/events/province-event.ts"],"names":[],"mappings":";;;AAKA,kEAA6D;AAI7D;;;;;;;GAOG;AACH,MAAa,aAAc,SAAQ,yCAAgD;IAC/E,YACI,GAAmB,EACnB,MAAgB,EAChB,IAAuC,EACvC,KAA0B;QAE1B,KAAK,CAAC,MAAM,EAAE,IAAI,EAAE,GAAG,EAAE,KAAK,CAAC,CAAC;IACpC,CAAC;CACJ;AATD,sCASC"}

@@ -18,6 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const core_1 = require("@vendure/core");
 const typeorm_2 = require("typeorm");
 const constants_1 = require("../constants");
+const db_columns_1 = require("./db-columns");
 /**
  * 报表查询服务（店长/老板维度，全店数据）。
  *
@@ -213,7 +214,7 @@ let ReportService = class ReportService {
     async queryOrdersByDateRange(channelId, start, end, orderType) {
         const numChannelId = parseInt(channelId, 10);
         // 查找 orderType custom field 的实际列名
-        const orderTypeCol = await this.findCustomFieldColumn('order', 'orderType');
+        const orderTypeCol = await (0, db_columns_1.findDbColumn)(this.connection, 'order', 'orderType');
         if (!orderTypeCol) {
             // custom field 列不存在，返回空
             return [];
@@ -223,27 +224,10 @@ let ReportService = class ReportService {
             .createQueryBuilder('ord')
             .innerJoin('ord.channels', 'channel', 'channel.id = :channelId', { channelId: numChannelId })
             .leftJoinAndSelect('ord.payments', 'payment')
-            .where(`ord.${orderTypeCol} = :orderType`, { orderType })
+            .where(`ord."${orderTypeCol}" = :orderType`, { orderType })
             .andWhere('ord.createdAt >= :start', { start })
             .andWhere('ord.createdAt < :end', { end })
             .getMany();
-    }
-    /**
-     * 动态查找 custom field 的实际数据库列名。
-     * Vendure customFields 是 embedded entity，列名形如 customFields_xxx，
-     * 但不同环境/命名策略可能产生差异，用 PRAGMA/table_info 动态查找。
-     */
-    async findCustomFieldColumn(tableName, fieldName) {
-        var _a;
-        const isPostgres = this.connection.options.type === 'postgres';
-        if (isPostgres) {
-            // PostgreSQL 列名规范：customFields_xxx（驼峰保留）
-            return `customFields_${fieldName}`;
-        }
-        // SQLite：用 PRAGMA 查找
-        const columns = (await this.connection.query(`PRAGMA table_info("${tableName}")`));
-        const col = columns.find(c => c.name.toLowerCase().replace(/_/g, '').includes(fieldName.toLowerCase()));
-        return (_a = col === null || col === void 0 ? void 0 : col.name) !== null && _a !== void 0 ? _a : null;
     }
     /**
      * 聚合支付方式（按 Payment.method 分组，仅统计 Settled 状态）。

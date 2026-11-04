@@ -39,6 +39,7 @@ const payment_method_resolver_1 = require("./resolvers/admin/payment-method.reso
 const product_option_resolver_1 = require("./resolvers/admin/product-option.resolver");
 const product_resolver_1 = require("./resolvers/admin/product.resolver");
 const promotion_resolver_1 = require("./resolvers/admin/promotion.resolver");
+const province_resolver_1 = require("./resolvers/admin/province.resolver");
 const role_resolver_1 = require("./resolvers/admin/role.resolver");
 const scheduled_task_resolver_1 = require("./resolvers/admin/scheduled-task.resolver");
 const search_resolver_1 = require("./resolvers/admin/search.resolver");
@@ -108,6 +109,7 @@ const adminResolvers = [
     product_option_resolver_1.ProductOptionResolver,
     product_resolver_1.ProductResolver,
     promotion_resolver_1.PromotionResolver,
+    province_resolver_1.ProvinceResolver,
     role_resolver_1.RoleResolver,
     search_resolver_1.SearchResolver,
     scheduled_task_resolver_1.ScheduledTaskResolver,

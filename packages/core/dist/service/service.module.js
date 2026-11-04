@@ -66,6 +66,7 @@ const product_option_service_1 = require("./services/product-option.service");
 const product_variant_service_1 = require("./services/product-variant.service");
 const product_service_1 = require("./services/product.service");
 const promotion_service_1 = require("./services/promotion.service");
+const province_service_1 = require("./services/province.service");
 const role_service_1 = require("./services/role.service");
 const search_service_1 = require("./services/search.service");
 const seller_service_1 = require("./services/seller.service");
@@ -104,6 +105,7 @@ const services = [
     product_service_1.ProductService,
     product_variant_service_1.ProductVariantService,
     promotion_service_1.PromotionService,
+    province_service_1.ProvinceService,
     role_service_1.RoleService,
     search_service_1.SearchService,
     seller_service_1.SellerService,

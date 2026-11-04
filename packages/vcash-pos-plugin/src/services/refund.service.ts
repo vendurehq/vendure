@@ -12,6 +12,8 @@ import {
 } from '@vendure/core';
 import { Connection, In } from 'typeorm';
 
+import { findDbColumn } from './db-columns';
+
 /**
  * 退货退款服务：
  * - createRefund: 调用 OrderService.refundOrder 创建 Refund
@@ -153,13 +155,8 @@ export class RefundService {
    * 返回的 Refund 已加载 payment 关系，供 GraphQL Refund.payment 解析。
    */
   async findRefundsBySession(sessionId: number): Promise<Refund[]> {
-    // 查找 order 表的 posSessionId 列名
-    const orderColumns = (await this.connection.query(
-      'PRAGMA table_info("order")',
-    )) as Array<{ name: string }>;
-    const sessionCol = orderColumns.find(c =>
-      c.name.toLowerCase().replace(/_/g, '').includes('possessionid'),
-    )?.name;
+    // 查找 order 表的 posSessionId 列名（SQLite/PostgreSQL 通用）
+    const sessionCol = await findDbColumn(this.connection, 'order', 'posSessionId');
 
     if (!sessionCol) return [];
 

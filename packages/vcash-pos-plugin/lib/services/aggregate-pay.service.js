@@ -20,6 +20,7 @@ const typeorm_2 = require("typeorm");
 const constants_1 = require("../constants");
 const pos_session_entity_1 = require("../entities/pos-session.entity");
 const pos_order_service_1 = require("./pos-order.service");
+const db_columns_1 = require("./db-columns");
 /**
  * 聚合码支付服务：
  * - createPendingPayment: 创建 Payment(state=Created) + Order → ArrangingPayment
@@ -182,12 +183,10 @@ let AggregatePayService = class AggregatePayService {
      * 关班时调用，返回结算笔数。
      */
     async settleSessionPayments(ctx, sessionId) {
-        var _a, _b;
         // 查找班次内所有 aggregatePayStatus='confirmed' 的 Payment
-        // Payment.customFields 是 embedded entity，需用 PRAGMA 查找列名
-        const columns = (await this.connection.query('PRAGMA table_info("payment")'));
-        const statusCol = (_a = columns.find(c => c.name.toLowerCase().replace(/_/g, '').includes('aggregatepaystatus'))) === null || _a === void 0 ? void 0 : _a.name;
-        const sessionCol = (_b = columns.find(c => c.name.toLowerCase().replace(/_/g, '').includes('possessionid'))) === null || _b === void 0 ? void 0 : _b.name;
+        // Payment.customFields 是 embedded entity，动态查找实际列名
+        const statusCol = await (0, db_columns_1.findDbColumn)(this.connection, 'payment', 'aggregatePayStatus');
+        const sessionCol = await (0, db_columns_1.findDbColumn)(this.connection, 'payment', 'posSessionId');
         if (!statusCol || !sessionCol) {
             return 0;
         }
@@ -216,10 +215,8 @@ let AggregatePayService = class AggregatePayService {
      * 根据聚合码查找待支付 Payment。
      */
     async findByCode(aggregatePayCode) {
-        var _a;
         // 查找 customFields.aggregatePayCode = code 的 Payment
-        const columns = (await this.connection.query('PRAGMA table_info("payment")'));
-        const codeCol = (_a = columns.find(c => c.name.toLowerCase().replace(/_/g, '').includes('aggregatepaycode'))) === null || _a === void 0 ? void 0 : _a.name;
+        const codeCol = await (0, db_columns_1.findDbColumn)(this.connection, 'payment', 'aggregatePayCode');
         if (!codeCol)
             return null;
         return this.connection

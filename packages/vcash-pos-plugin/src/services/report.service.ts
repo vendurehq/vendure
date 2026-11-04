@@ -4,6 +4,7 @@ import { Order, OrderLine, Payment, ProductVariant, Product, RequestContext } fr
 import { Connection } from 'typeorm';
 
 import { ORDER_TYPE } from '../constants';
+import { findDbColumn } from './db-columns';
 
 /**
  * 报表查询服务（店长/老板维度，全店数据）。
@@ -243,7 +244,7 @@ export class ReportService {
   ): Promise<Order[]> {
     const numChannelId = parseInt(channelId, 10);
     // 查找 orderType custom field 的实际列名
-    const orderTypeCol = await this.findCustomFieldColumn('order', 'orderType');
+    const orderTypeCol = await findDbColumn(this.connection, 'order', 'orderType');
     if (!orderTypeCol) {
       // custom field 列不存在，返回空
       return [];
@@ -253,27 +254,10 @@ export class ReportService {
       .createQueryBuilder('ord')
       .innerJoin('ord.channels', 'channel', 'channel.id = :channelId', { channelId: numChannelId })
       .leftJoinAndSelect('ord.payments', 'payment')
-      .where(`ord.${orderTypeCol} = :orderType`, { orderType })
+      .where(`ord."${orderTypeCol}" = :orderType`, { orderType })
       .andWhere('ord.createdAt >= :start', { start })
       .andWhere('ord.createdAt < :end', { end })
       .getMany();
-  }
-
-  /**
-   * 动态查找 custom field 的实际数据库列名。
-   * Vendure customFields 是 embedded entity，列名形如 customFields_xxx，
-   * 但不同环境/命名策略可能产生差异，用 PRAGMA/table_info 动态查找。
-   */
-  private async findCustomFieldColumn(tableName: string, fieldName: string): Promise<string | null> {
-    const isPostgres = this.connection.options.type === 'postgres';
-    if (isPostgres) {
-      // PostgreSQL 列名规范：customFields_xxx（驼峰保留）
-      return `customFields_${fieldName}`;
-    }
-    // SQLite：用 PRAGMA 查找
-    const columns = (await this.connection.query(`PRAGMA table_info("${tableName}")`)) as Array<{ name: string }>;
-    const col = columns.find(c => c.name.toLowerCase().replace(/_/g, '').includes(fieldName.toLowerCase()));
-    return col?.name ?? null;
   }
 
   /**

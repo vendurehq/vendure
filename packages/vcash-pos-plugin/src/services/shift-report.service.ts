@@ -6,6 +6,7 @@ import { Connection } from 'typeorm';
 import { PosSession, ShiftSummary } from '../entities/pos-session.entity';
 import { ORDER_TYPE } from '../constants';
 import { RefundService } from './refund.service';
+import { findDbColumn } from './db-columns';
 
 /**
  * 交班对账服务：
@@ -169,13 +170,8 @@ export class ShiftReportService {
    * 'customFieldsPossessionid'）。此处用 PRAGMA 动态查找实际列名后查询。
    */
   private async queryOrdersBySession(sessionId: number): Promise<Order[]> {
-    // 1. 用 PRAGMA 查找 order 表中包含 'possession' 的列名（不区分大小写）
-    const columns = (await this.connection.query(
-      'PRAGMA table_info("order")',
-    )) as Array<{ name: string }>;
-    const colName = columns.find(c =>
-      c.name.toLowerCase().replace(/_/g, '').includes('possessionid'),
-    )?.name;
+    // 1. 动态查找 order 表中 posSessionId 的实际列名（SQLite/PostgreSQL 通用）
+    const colName = await findDbColumn(this.connection, 'order', 'posSessionId');
 
     if (!colName) {
       // 列不存在（schema 未同步 custom field），返回空数组

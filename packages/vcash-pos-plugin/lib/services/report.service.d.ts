@@ -63,12 +63,6 @@ export declare class ReportService {
      */
     private queryOrdersByDateRange;
     /**
-     * 动态查找 custom field 的实际数据库列名。
-     * Vendure customFields 是 embedded entity，列名形如 customFields_xxx，
-     * 但不同环境/命名策略可能产生差异，用 PRAGMA/table_info 动态查找。
-     */
-    private findCustomFieldColumn;
-    /**
      * 聚合支付方式（按 Payment.method 分组，仅统计 Settled 状态）。
      */
     private aggregatePaymentsByMethod;

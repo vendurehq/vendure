@@ -20,6 +20,7 @@ const typeorm_2 = require("typeorm");
 const pos_session_entity_1 = require("../entities/pos-session.entity");
 const constants_1 = require("../constants");
 const refund_service_1 = require("./refund.service");
+const db_columns_1 = require("./db-columns");
 /**
  * 交班对账服务：
  * - 聚合班次内所有 Order（通过 Order.customFields.posSessionId 关联）
@@ -152,10 +153,8 @@ let ShiftReportService = class ShiftReportService {
      * 'customFieldsPossessionid'）。此处用 PRAGMA 动态查找实际列名后查询。
      */
     async queryOrdersBySession(sessionId) {
-        var _a;
-        // 1. 用 PRAGMA 查找 order 表中包含 'possession' 的列名（不区分大小写）
-        const columns = (await this.connection.query('PRAGMA table_info("order")'));
-        const colName = (_a = columns.find(c => c.name.toLowerCase().replace(/_/g, '').includes('possessionid'))) === null || _a === void 0 ? void 0 : _a.name;
+        // 1. 动态查找 order 表中 posSessionId 的实际列名（SQLite/PostgreSQL 通用）
+        const colName = await (0, db_columns_1.findDbColumn)(this.connection, 'order', 'posSessionId');
         if (!colName) {
             // 列不存在（schema 未同步 custom field），返回空数组
             return [];

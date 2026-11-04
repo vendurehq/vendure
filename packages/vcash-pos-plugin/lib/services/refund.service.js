@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const core_1 = require("@vendure/core");
 const typeorm_2 = require("typeorm");
+const db_columns_1 = require("./db-columns");
 /**
  * 退货退款服务：
  * - createRefund: 调用 OrderService.refundOrder 创建 Refund
@@ -127,10 +128,8 @@ let RefundService = class RefundService {
      * 返回的 Refund 已加载 payment 关系，供 GraphQL Refund.payment 解析。
      */
     async findRefundsBySession(sessionId) {
-        var _a;
-        // 查找 order 表的 posSessionId 列名
-        const orderColumns = (await this.connection.query('PRAGMA table_info("order")'));
-        const sessionCol = (_a = orderColumns.find(c => c.name.toLowerCase().replace(/_/g, '').includes('possessionid'))) === null || _a === void 0 ? void 0 : _a.name;
+        // 查找 order 表的 posSessionId 列名（SQLite/PostgreSQL 通用）
+        const sessionCol = await (0, db_columns_1.findDbColumn)(this.connection, 'order', 'posSessionId');
         if (!sessionCol)
             return [];
         // 查找属于该班次的 Order IDs

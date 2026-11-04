@@ -15,6 +15,7 @@ import { Connection } from 'typeorm';
 import { AGGREGATE_PAY_STATUS } from '../constants';
 import { PosSession } from '../entities/pos-session.entity';
 import { PosOrderService } from './pos-order.service';
+import { findDbColumn } from './db-columns';
 
 /**
  * 聚合码支付服务：
@@ -235,16 +236,9 @@ export class AggregatePayService {
     sessionId: number,
   ): Promise<number> {
     // 查找班次内所有 aggregatePayStatus='confirmed' 的 Payment
-    // Payment.customFields 是 embedded entity，需用 PRAGMA 查找列名
-    const columns = (await this.connection.query(
-      'PRAGMA table_info("payment")',
-    )) as Array<{ name: string }>;
-    const statusCol = columns.find(c =>
-      c.name.toLowerCase().replace(/_/g, '').includes('aggregatepaystatus'),
-    )?.name;
-    const sessionCol = columns.find(c =>
-      c.name.toLowerCase().replace(/_/g, '').includes('possessionid'),
-    )?.name;
+    // Payment.customFields 是 embedded entity，动态查找实际列名
+    const statusCol = await findDbColumn(this.connection, 'payment', 'aggregatePayStatus');
+    const sessionCol = await findDbColumn(this.connection, 'payment', 'posSessionId');
 
     if (!statusCol || !sessionCol) {
       return 0;
@@ -277,12 +271,7 @@ export class AggregatePayService {
    */
   async findByCode(aggregatePayCode: string): Promise<Payment | null> {
     // 查找 customFields.aggregatePayCode = code 的 Payment
-    const columns = (await this.connection.query(
-      'PRAGMA table_info("payment")',
-    )) as Array<{ name: string }>;
-    const codeCol = columns.find(c =>
-      c.name.toLowerCase().replace(/_/g, '').includes('aggregatepaycode'),
-    )?.name;
+    const codeCol = await findDbColumn(this.connection, 'payment', 'aggregatePayCode');
 
     if (!codeCol) return null;
 
