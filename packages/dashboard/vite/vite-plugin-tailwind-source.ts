@@ -43,8 +43,8 @@ export interface DashboardTailwindSourcePluginOptions {
      */
     packageRoot?: string;
     /**
-     * When true, also emit a `@source` directive pointing at the dashboard's
-     * pre-built JS bundle so Tailwind picks up the dashboard's own utility
+     * When true, also emit a `@source` directive into `styles.css` pointing at
+     * the dashboard's pre-built JS bundle so Tailwind picks up the dashboard's own utility
      * classes (which are otherwise invisible to consumer-side scanning since
      * the bundle lives in node_modules).
      */
@@ -68,9 +68,7 @@ export function dashboardTailwindSourcePlugin(options: DashboardTailwindSourcePl
             configLoaderApi = getConfigLoaderApi(plugins);
         },
         async transform(src, id) {
-            const isMainStyles = /app\/styles.css$/.test(id);
-            const isExtensionStyles = /app\/extension-tailwind.css$/.test(id);
-            if (isMainStyles || isExtensionStyles) {
+            if (/app\/styles.css$/.test(id)) {
                 if (!loadVendureConfigResult) {
                     loadVendureConfigResult = await configLoaderApi.getVendureConfig();
                 }
@@ -83,11 +81,11 @@ export function dashboardTailwindSourcePlugin(options: DashboardTailwindSourcePl
                     dashboardExtensionDirs.push(vendureUiSrcPath);
                 }
 
-                if (isExtensionStyles && useExperimentalBundle && packageRoot) {
+                if (useExperimentalBundle && packageRoot) {
                     // In bundle mode the dashboard's own utility classes live
-                    // inside the published JS chunks rather than the readable
-                    // src files. Point Tailwind at the bundle so those classes
-                    // are also generated.
+                    // inside the published JS chunks rather than the src files
+                    // that are part of the module graph. Point Tailwind at the
+                    // bundle so those classes are also generated.
                     dashboardExtensionDirs.push(path.join(packageRoot, 'dist/bundle'));
                 }
 
