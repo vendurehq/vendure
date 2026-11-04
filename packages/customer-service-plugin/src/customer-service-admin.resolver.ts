@@ -6,7 +6,7 @@
 // 原因：CsOrderDetail.afterSalesRequests 引用 AfterSalesRequest 实体，但该实体没有 @ObjectType 装饰器
 // （after-sales-plugin 用纯 schema-first 模式）。为保持一致性和避免修改 after-sales-plugin，本插件也用 schema-first。
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Allow, Ctx, ID, Permission, RequestContext } from '@vendure/core';
+import { Allow, Ctx, ID, Permission, RequestContext, UserInputError } from '@vendure/core';
 
 import { CustomerServicePermissions } from './constants';
 import { CustomerServiceService } from './customer-service.service';
@@ -40,6 +40,12 @@ export class CustomerServiceAdminResolver {
         @Args({ name: 'page', type: () => Number, nullable: true, defaultValue: 1 }) page?: number,
         @Args({ name: 'pageSize', type: () => Number, nullable: true, defaultValue: 20 }) pageSize?: number,
     ) {
+        if (startDate && isNaN(new Date(startDate).getTime())) {
+            throw new UserInputError('startDate 必须是合法日期');
+        }
+        if (endDate && isNaN(new Date(endDate).getTime())) {
+            throw new UserInputError('endDate 必须是合法日期');
+        }
         return this.csService.findAllOrders(ctx, {
             state,
             customerEmail,

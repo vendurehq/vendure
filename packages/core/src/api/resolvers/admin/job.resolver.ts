@@ -11,6 +11,7 @@ import {
     QueryJobsByIdArgs,
 } from '@vendure/common/lib/generated-types';
 
+import { EntityNotFoundError } from '../../../common/error/errors';
 import { ConfigService, InspectableJobQueueStrategy, isInspectableJobQueueStrategy } from '../../../config';
 import { JobQueueService } from '../../../job-queue';
 import { JobBufferService } from '../../../job-queue/job-buffer/job-buffer.service';
@@ -80,7 +81,11 @@ export class JobResolver {
         if (!strategy) {
             return;
         }
-        return strategy.cancelJob(args.jobId);
+        const job = await strategy.cancelJob(args.jobId);
+        if (!job) {
+            throw new EntityNotFoundError('Job', args.jobId);
+        }
+        return job;
     }
 
     @Query()

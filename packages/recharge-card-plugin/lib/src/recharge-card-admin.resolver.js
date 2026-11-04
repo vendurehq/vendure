@@ -20,10 +20,10 @@ let RechargeCardAdminResolver = class RechargeCardAdminResolver {
     constructor(rechargeCardService) {
         this.rechargeCardService = rechargeCardService;
     }
-    async rechargeCards(ctx, options) {
+    async rechargeCards(ctx, options = { take: 20 }) {
         return this.rechargeCardService.findAll(ctx, options);
     }
-    async rechargeCardBatches(ctx, options) {
+    async rechargeCardBatches(ctx, options = { take: 20 }) {
         return this.rechargeCardService.findAllBatches(ctx, options);
     }
     async createRechargeCardBatch(ctx, input) {

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.JobResolver = void 0;
 const graphql_1 = require("@nestjs/graphql");
 const generated_types_1 = require("@vendure/common/lib/generated-types");
+const errors_1 = require("../../../common/error/errors");
 const config_1 = require("../../../config");
 const job_queue_1 = require("../../../job-queue");
 const job_buffer_service_1 = require("../../../job-queue/job-buffer/job-buffer.service");
@@ -64,7 +65,11 @@ let JobResolver = class JobResolver {
         if (!strategy) {
             return;
         }
-        return strategy.cancelJob(args.jobId);
+        const job = await strategy.cancelJob(args.jobId);
+        if (!job) {
+            throw new errors_1.EntityNotFoundError('Job', args.jobId);
+        }
+        return job;
     }
     async jobBufferSize(args) {
         const bufferSizes = await this.jobBufferService.bufferSize(args.bufferIds);

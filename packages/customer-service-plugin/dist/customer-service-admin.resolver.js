@@ -42,6 +42,12 @@ let CustomerServiceAdminResolver = class CustomerServiceAdminResolver {
     }
     // ===== 订单查询 =====
     async csAllOrders(ctx, state, customerEmail, startDate, endDate, page, pageSize) {
+        if (startDate && isNaN(new Date(startDate).getTime())) {
+            throw new core_1.UserInputError('startDate 必须是合法日期');
+        }
+        if (endDate && isNaN(new Date(endDate).getTime())) {
+            throw new core_1.UserInputError('endDate 必须是合法日期');
+        }
         return this.csService.findAllOrders(ctx, {
             state,
             customerEmail,

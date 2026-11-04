@@ -9,6 +9,7 @@ import {
   Order,
   Permission,
   RequestContext,
+  UserInputError,
 } from '@vendure/core';
 import { SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 
@@ -21,6 +22,18 @@ export class SalesAdminResolver {
     private salesService: SalesService,
     private administratorService: AdministratorService,
   ) {}
+
+  /**
+   * 校验报表日期范围，避免把 Invalid Date 传进 SQL
+   */
+  private parseRange(start: string, end: string): { start: Date; end: Date } {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new UserInputError('start/end 必须是合法日期');
+    }
+    return { start: startDate, end: endDate };
+  }
 
   /**
    * 销售员判断是否为 manager+（可查全部）
@@ -111,11 +124,9 @@ export class SalesAdminResolver {
     @Args({ name: 'start', type: () => String }) start: string,
     @Args({ name: 'end', type: () => String }) end: string,
   ) {
-    if (!ctx.activeUserId) return this.salesService.buildReport(ctx, undefined, { start: new Date(start), end: new Date(end) });
-    return this.salesService.buildReport(ctx, String(ctx.activeUserId), {
-      start: new Date(start),
-      end: new Date(end),
-    });
+    const range = this.parseRange(start, end);
+    if (!ctx.activeUserId) return this.salesService.buildReport(ctx, undefined, range);
+    return this.salesService.buildReport(ctx, String(ctx.activeUserId), range);
   }
 
   @Query(() => SalesReportResult)
@@ -126,14 +137,12 @@ export class SalesAdminResolver {
     @Args({ name: 'end', type: () => String }) end: string,
     @Args({ name: 'staffId', type: () => String, nullable: true }) staffId?: string,
   ) {
+    const range = this.parseRange(start, end);
     const isManager = await this.isManager(ctx);
     const targetStaffId = isManager ? staffId : String(ctx.activeUserId);
     if (!isManager && staffId && staffId !== String(ctx.activeUserId)) {
       throw new ForbiddenError();
     }
-    return this.salesService.buildReport(ctx, targetStaffId, {
-      start: new Date(start),
-      end: new Date(end),
-    });
+    return this.salesService.buildReport(ctx, targetStaffId, range);
   }
 }

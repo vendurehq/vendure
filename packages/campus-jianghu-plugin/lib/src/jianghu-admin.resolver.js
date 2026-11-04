@@ -22,6 +22,9 @@ let JianghuAdminResolver = class JianghuAdminResolver {
         this.service = service;
     }
     jianghuListProfiles(ctx, args) {
+        if (args.cursor != null && !/^\d+$/.test(String(args.cursor))) {
+            throw new core_1.UserInputError('cursor 必须是整数');
+        }
         return this.service.listProfiles(ctx, args.cursor, args.limit);
     }
     jianghuListTasks(ctx, args) {

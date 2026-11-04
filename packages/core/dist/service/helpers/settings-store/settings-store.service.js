@@ -243,7 +243,8 @@ let SettingsStoreService = class SettingsStoreService {
     getFieldConfig(key) {
         const config = this.fieldRegistry.get(key);
         if (!config) {
-            throw new errors_1.InternalServerError(`Settings store field not registered: ${key}`);
+            // 未注册的 key 属于调用方入参错误，应返回 BAD_USER_INPUT 而非 500
+            throw new errors_1.UserInputError(`Settings store field not registered: ${key}`);
         }
         return config;
     }

@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Allow, Ctx, RequestContext } from '@vendure/core';
+import { Allow, Ctx, RequestContext, UserInputError } from '@vendure/core';
 import { CAMPUS_JIANGHU_PERMISSION } from './permissions';
 import { JianghuService, TaskInput, EventInput } from './jianghu.service';
 
@@ -10,6 +10,9 @@ export class JianghuAdminResolver {
     @Query()
     @Allow(CAMPUS_JIANGHU_PERMISSION.Permission)
     jianghuListProfiles(@Ctx() ctx: RequestContext, @Args() args: { cursor?: string; limit?: number }) {
+        if (args.cursor != null && !/^\d+$/.test(String(args.cursor))) {
+            throw new UserInputError('cursor 必须是整数');
+        }
         return this.service.listProfiles(ctx, args.cursor, args.limit);
     }
 

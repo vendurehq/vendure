@@ -5,6 +5,10 @@ export declare class SalesAdminResolver {
     private administratorService;
     constructor(salesService: SalesService, administratorService: AdministratorService);
     /**
+     * 校验报表日期范围，避免把 Invalid Date 传进 SQL
+     */
+    private parseRange;
+    /**
      * 销售员判断是否为 manager+（可查全部）
      */
     private isManager;

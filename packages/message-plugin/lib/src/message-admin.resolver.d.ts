@@ -5,7 +5,7 @@ export declare class MessageAdminResolver {
     private messageService;
     private messageJob;
     constructor(messageService: MessageService, messageJob: MessageJob);
-    messages(ctx: RequestContext, options: any): Promise<import("@vendure/core").PaginatedList<import("..").Message>>;
+    messages(ctx: RequestContext, options?: any): Promise<import("@vendure/core").PaginatedList<import("..").Message>>;
     message(ctx: RequestContext, id: ID): Promise<import("..").Message | null>;
     messageDeliveryStats(ctx: RequestContext, id: ID): Promise<any>;
     createMessage(ctx: RequestContext, input: any): Promise<import("..").Message>;

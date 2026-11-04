@@ -10,6 +10,7 @@ import {
     TagList,
 } from '@vendure/common/lib/generated-types';
 
+import { EntityNotFoundError } from '../../../common/error/errors';
 import { Tag } from '../../../entity/tag/tag.entity';
 import { TagService } from '../../../service/services/tag.service';
 import { RequestContext } from '../../common/request-context';
@@ -29,8 +30,12 @@ export class TagResolver {
 
     @Query()
     @Allow(Permission.ReadSettings, Permission.ReadTag, Permission.ReadAsset)
-    async tag(@Ctx() ctx: RequestContext, @Args() args: QueryTagArgs): Promise<Tag | undefined> {
-        return this.tagService.findOne(ctx, args.id);
+    async tag(@Ctx() ctx: RequestContext, @Args() args: QueryTagArgs): Promise<Tag> {
+        const tag = await this.tagService.findOne(ctx, args.id);
+        if (!tag) {
+            throw new EntityNotFoundError('Tag', args.id);
+        }
+        return tag;
     }
 
     @Transaction()

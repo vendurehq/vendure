@@ -23,7 +23,7 @@ let MessageAdminResolver = class MessageAdminResolver {
         this.messageService = messageService;
         this.messageJob = messageJob;
     }
-    async messages(ctx, options) {
+    async messages(ctx, options = { take: 20 }) {
         return this.messageService.findAll(ctx, options);
     }
     async message(ctx, id) {

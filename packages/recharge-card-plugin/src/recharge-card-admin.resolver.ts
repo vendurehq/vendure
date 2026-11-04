@@ -15,7 +15,7 @@ export class RechargeCardAdminResolver {
     @Allow(Permission.ReadSettings)
     async rechargeCards(
         @Ctx() ctx: RequestContext,
-        @Args('options', { nullable: true }) options: ListQueryOptions<RechargeCard>,
+        @Args('options', { nullable: true }) options: ListQueryOptions<RechargeCard> = { take: 20 },
     ): Promise<PaginatedList<RechargeCard>> {
         return this.rechargeCardService.findAll(ctx, options);
     }
@@ -24,7 +24,7 @@ export class RechargeCardAdminResolver {
     @Allow(Permission.ReadSettings)
     async rechargeCardBatches(
         @Ctx() ctx: RequestContext,
-        @Args('options', { nullable: true }) options: ListQueryOptions<RechargeCardBatch>,
+        @Args('options', { nullable: true }) options: ListQueryOptions<RechargeCardBatch> = { take: 20 },
     ): Promise<PaginatedList<RechargeCardBatch>> {
         return this.rechargeCardService.findAllBatches(ctx, options);
     }

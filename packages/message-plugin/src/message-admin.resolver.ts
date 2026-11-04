@@ -14,7 +14,10 @@ export class MessageAdminResolver {
 
     @Query()
     @Allow(DeliveryPermissions.ManageMessage as any)
-    async messages(@Ctx() ctx: RequestContext, @Args('options', { nullable: true }) options: any) {
+    async messages(
+        @Ctx() ctx: RequestContext,
+        @Args('options', { nullable: true }) options: any = { take: 20 },
+    ) {
         return this.messageService.findAll(ctx, options);
     }
 

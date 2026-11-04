@@ -5,7 +5,7 @@ import { JsonCompatible } from '@vendure/common/lib/shared-types';
 import ms, { type StringValue } from 'ms';
 
 import { RequestContext } from '../../../api/common/request-context';
-import { InternalServerError, UserInputError } from '../../../common/error/errors';
+import { UserInputError } from '../../../common/error/errors';
 import { Injector } from '../../../common/injector';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
@@ -357,7 +357,8 @@ export class SettingsStoreService implements OnModuleInit {
     private getFieldConfig(key: string): SettingsStoreFieldConfig {
         const config = this.fieldRegistry.get(key);
         if (!config) {
-            throw new InternalServerError(`Settings store field not registered: ${key}`);
+            // 未注册的 key 属于调用方入参错误，应返回 BAD_USER_INPUT 而非 500
+            throw new UserInputError(`Settings store field not registered: ${key}`);
         }
         return config;
     }
