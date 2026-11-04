@@ -24,6 +24,24 @@ export class ConsoleTokenRefusedError extends Error {
     }
 }
 
+/**
+ * The signed-in user is not an active member of the Customer Account that was
+ * asked for. `organizations` are the accounts the user is a member of.
+ */
+export class OrganizationNotFoundError extends Error {
+    constructor(
+        readonly requested: string,
+        readonly organizations: AuthOrganization[],
+    ) {
+        super(
+            organizations.length
+                ? `You are not an active member of a Customer Account "${requested}". Your Customer Accounts:\n${describeOrganizations(organizations)}`
+                : 'You are not an active member of any Vendure Console Customer Account.',
+        );
+        this.name = 'OrganizationNotFoundError';
+    }
+}
+
 const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -188,18 +206,14 @@ export function resolveOrganization(organizations: AuthOrganization[], input: st
     }
     if (matches.length > 1) {
         throw new Error(
-            `More than one of your organizations is named "${wanted}". ` +
+            `More than one of your Customer Accounts is named "${wanted}". ` +
                 `Pass its Account identifier instead:\n${describeOrganizations(matches)}`,
         );
     }
-    throw new Error(
-        organizations.length
-            ? `You are not an active member of an organization "${wanted}". Your organizations:\n${describeOrganizations(organizations)}`
-            : 'You are not an active member of any Vendure Console organization.',
-    );
+    throw new OrganizationNotFoundError(wanted, organizations);
 }
 
-function describeOrganizations(organizations: AuthOrganization[]): string {
+export function describeOrganizations(organizations: AuthOrganization[]): string {
     return organizations.map(org => `  ${org.name} (${org.customerAccountId})`).join('\n');
 }
 

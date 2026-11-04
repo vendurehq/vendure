@@ -78,6 +78,7 @@ export type {
     ConsoleLinkHookRegistration,
     ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
+    ConsoleSessionUnavailableReason,
 } from './commands/console/console-link-hook';
 export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins';
 export type { ConsoleReporter } from './commands/console/console-reporter';
