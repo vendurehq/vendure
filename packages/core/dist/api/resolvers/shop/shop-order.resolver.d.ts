@@ -1,9 +1,10 @@
 import { ActiveOrderResult, AddPaymentToOrderResult, ApplyCouponCodeResult, MutationAddItemsToOrderArgs, MutationAddItemToOrderArgs, MutationAddPaymentToOrderArgs, MutationAdjustOrderLineArgs, MutationApplyCouponCodeArgs, MutationRemoveOrderLineArgs, MutationSetCurrencyCodeForOrderArgs, MutationSetCustomerForOrderArgs, MutationSetOrderBillingAddressArgs, MutationSetOrderCustomFieldsArgs, MutationSetOrderShippingAddressArgs, MutationSetOrderShippingMethodArgs, MutationTransitionOrderToStateArgs, PaymentMethodQuote, QueryOrderArgs, QueryOrderByCodeArgs, RemoveOrderItemsResult, SetCustomerForOrderResult, SetOrderShippingMethodResult, ShippingMethodQuote, TransitionOrderToStateResult, UpdateMultipleOrderItemsResult, UpdateOrderItemsResult } from '@vendure/common/lib/generated-shop-types';
-import { QueryCountriesArgs } from '@vendure/common/lib/generated-types';
+import { CancelPaymentResult, MutationCancelPaymentArgs, QueryCountriesArgs } from '@vendure/common/lib/generated-types';
 import { ErrorResultUnion } from '../../../common/error/error-result';
 import { Translated } from '../../../common/types/locale-types';
 import { ACTIVE_ORDER_INPUT_FIELD_NAME, ConfigService } from '../../../config';
-import { Country } from '../../../entity';
+import { TransactionalConnection } from '../../../connection/transactional-connection';
+import { Country, Payment } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
 import { ActiveOrderService, CountryService } from '../../../service';
 import { CustomerService } from '../../../service/services/customer.service';
@@ -21,11 +22,17 @@ export declare class ShopOrderResolver {
     private countryService;
     private activeOrderService;
     private configService;
-    constructor(orderService: OrderService, customerService: CustomerService, sessionService: SessionService, countryService: CountryService, activeOrderService: ActiveOrderService, configService: ConfigService);
+    private connection;
+    constructor(orderService: OrderService, customerService: CustomerService, sessionService: SessionService, countryService: CountryService, activeOrderService: ActiveOrderService, configService: ConfigService, connection: TransactionalConnection);
     availableCountries(ctx: RequestContext, args: QueryCountriesArgs): Promise<Array<Translated<Country>>>;
     order(ctx: RequestContext, args: QueryOrderArgs, relations: RelationPaths<Order>): Promise<Order | undefined>;
     activeOrder(ctx: RequestContext, relations: RelationPaths<Order>, args: ActiveOrderArgs): Promise<Order | undefined>;
     orderByCode(ctx: RequestContext, args: QueryOrderByCodeArgs, relations: RelationPaths<Order>): Promise<Order | undefined>;
+    /**
+     * 取消支付单。仅允许取消当前登录 Customer 自己的订单下的支付单，
+     * 语义与 Admin API 的 cancelPayment 一致（走 PaymentMethodHandler.cancelPayment）。
+     */
+    cancelPayment(ctx: RequestContext, args: MutationCancelPaymentArgs): Promise<ErrorResultUnion<CancelPaymentResult, Payment>>;
     setOrderShippingAddress(ctx: RequestContext, args: MutationSetOrderShippingAddressArgs & ActiveOrderArgs): Promise<ErrorResultUnion<ActiveOrderResult, Order>>;
     setOrderBillingAddress(ctx: RequestContext, args: MutationSetOrderBillingAddressArgs & ActiveOrderArgs): Promise<ErrorResultUnion<ActiveOrderResult, Order>>;
     unsetOrderShippingAddress(ctx: RequestContext, args: ActiveOrderArgs): Promise<ErrorResultUnion<ActiveOrderResult, Order>>;

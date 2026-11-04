@@ -46,6 +46,8 @@ import { groupBuyCheckTask } from './group-buy-scheduled-task';
                 leaderRewardType: String!
                 autoConfirm: Boolean!
                 allowJoinAfterComplete: Boolean!
+                productId: ID!
+                variantId: ID!
                 createdAt: DateTime!
                 updatedAt: DateTime!
             }

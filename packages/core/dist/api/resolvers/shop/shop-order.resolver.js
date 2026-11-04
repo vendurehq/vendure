@@ -21,6 +21,8 @@ const errors_1 = require("../../../common/error/errors");
 const generated_graphql_shop_errors_1 = require("../../../common/error/generated-graphql-shop-errors");
 const utils_1 = require("../../../common/utils");
 const config_1 = require("../../../config");
+const transactional_connection_1 = require("../../../connection/transactional-connection");
+const entity_1 = require("../../../entity");
 const order_entity_1 = require("../../../entity/order/order.entity");
 const service_1 = require("../../../service");
 const customer_service_1 = require("../../../service/services/customer.service");
@@ -32,13 +34,14 @@ const relations_decorator_1 = require("../../decorators/relations.decorator");
 const request_context_decorator_1 = require("../../decorators/request-context.decorator");
 const transaction_decorator_1 = require("../../decorators/transaction.decorator");
 let ShopOrderResolver = class ShopOrderResolver {
-    constructor(orderService, customerService, sessionService, countryService, activeOrderService, configService) {
+    constructor(orderService, customerService, sessionService, countryService, activeOrderService, configService, connection) {
         this.orderService = orderService;
         this.customerService = customerService;
         this.sessionService = sessionService;
         this.countryService = countryService;
         this.activeOrderService = activeOrderService;
         this.configService = configService;
+        this.connection = connection;
     }
     availableCountries(ctx, args) {
         return this.countryService.findAllAvailable(ctx);
@@ -79,6 +82,28 @@ let ShopOrderResolver = class ShopOrderResolver {
             // opens the door to an enumeration attack to find valid order codes.
             throw new errors_1.ForbiddenError(config_1.LogLevel.Verbose);
         }
+    }
+    /**
+     * 取消支付单。仅允许取消当前登录 Customer 自己的订单下的支付单，
+     * 语义与 Admin API 的 cancelPayment 一致（走 PaymentMethodHandler.cancelPayment）。
+     */
+    async cancelPayment(ctx, args) {
+        var _a, _b;
+        if (!ctx.activeUserId) {
+            throw new errors_1.ForbiddenError(config_1.LogLevel.Verbose);
+        }
+        const payment = await this.connection.getRepository(ctx, entity_1.Payment).findOne({
+            where: { id: args.id },
+            relations: ['order', 'order.customer'],
+        });
+        if (!payment || !payment.order) {
+            throw new errors_1.EntityNotFoundError('Payment', args.id);
+        }
+        const ownerId = (_b = (_a = payment.order.customer) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.id;
+        if (!ownerId || !(0, utils_1.idsAreEqual)(ownerId, ctx.activeUserId)) {
+            throw new errors_1.ForbiddenError(config_1.LogLevel.Verbose);
+        }
+        return this.orderService.cancelPayment(ctx, args.id);
     }
     async setOrderShippingAddress(ctx, args) {
         if (ctx.authorizedAsOwnerOnly) {
@@ -287,6 +312,16 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [request_context_1.RequestContext, Object]),
     __metadata("design:returntype", Promise)
+], ShopOrderResolver.prototype, "cancelPayment", null);
+__decorate([
+    (0, transaction_decorator_1.Transaction)(),
+    (0, graphql_1.Mutation)(),
+    (0, allow_decorator_1.Allow)(generated_shop_types_1.Permission.Owner),
+    __param(0, (0, request_context_decorator_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_context_1.RequestContext, Object]),
+    __metadata("design:returntype", Promise)
 ], ShopOrderResolver.prototype, "setOrderShippingAddress", null);
 __decorate([
     (0, transaction_decorator_1.Transaction)(),
@@ -486,6 +521,7 @@ exports.ShopOrderResolver = ShopOrderResolver = __decorate([
         session_service_1.SessionService,
         service_1.CountryService,
         service_1.ActiveOrderService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        transactional_connection_1.TransactionalConnection])
 ], ShopOrderResolver);
 //# sourceMappingURL=shop-order.resolver.js.map

@@ -105,6 +105,11 @@ type Mutation {
     setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
     "Add a Payment to the Order"
     addPaymentToOrder(input: PaymentInput!): AddPaymentToOrderResult!
+    """
+    Cancels the Payment with the given id. Only Payments belonging to Orders of the
+    currently-authenticated Customer may be cancelled.
+    """
+    cancelPayment(id: ID!): CancelPaymentResult!
     "Set the Customer for the Order. Required only if the Customer is not currently logged in"
     setCustomerForOrder(input: CreateCustomerInput!): SetCustomerForOrderResult!
     """
@@ -238,6 +243,21 @@ union AddPaymentToOrderResult =
     | PaymentDeclinedError
     | OrderStateTransitionError
     | NoActiveOrderError
+"Returned if the Payment cancellation fails"
+type CancelPaymentError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    paymentErrorMessage: String!
+}
+"Returned when there is an error in transitioning the Payment state"
+type PaymentStateTransitionError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    transitionError: String!
+    fromState: String!
+    toState: String!
+}
+union CancelPaymentResult = Payment | CancelPaymentError | PaymentStateTransitionError
 union TransitionOrderToStateResult = Order | OrderStateTransitionError
 union SetCustomerForOrderResult =
     | Order

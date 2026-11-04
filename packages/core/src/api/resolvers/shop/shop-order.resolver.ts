@@ -28,16 +28,17 @@ import {
     UpdateMultipleOrderItemsResult,
     UpdateOrderItemsResult,
 } from '@vendure/common/lib/generated-shop-types';
-import { QueryCountriesArgs } from '@vendure/common/lib/generated-types';
+import { CancelPaymentResult, MutationCancelPaymentArgs, QueryCountriesArgs } from '@vendure/common/lib/generated-types';
 import { unique } from '@vendure/common/lib/unique';
 
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../../common/error/error-result';
-import { ForbiddenError } from '../../../common/error/errors';
+import { EntityNotFoundError, ForbiddenError } from '../../../common/error/errors';
 import { NoActiveOrderError } from '../../../common/error/generated-graphql-shop-errors';
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { ACTIVE_ORDER_INPUT_FIELD_NAME, ConfigService, LogLevel } from '../../../config';
-import { Country } from '../../../entity';
+import { TransactionalConnection } from '../../../connection/transactional-connection';
+import { Country, Payment } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
 import { ActiveOrderService, CountryService } from '../../../service';
 import { OrderState } from '../../../service/helpers/order-state-machine/order-state';
@@ -61,6 +62,7 @@ export class ShopOrderResolver {
         private countryService: CountryService,
         private activeOrderService: ActiveOrderService,
         private configService: ConfigService,
+        private connection: TransactionalConnection,
     ) {}
 
     @Query()
@@ -142,6 +144,34 @@ export class ShopOrderResolver {
             // opens the door to an enumeration attack to find valid order codes.
             throw new ForbiddenError(LogLevel.Verbose);
         }
+    }
+
+    /**
+     * 取消支付单。仅允许取消当前登录 Customer 自己的订单下的支付单，
+     * 语义与 Admin API 的 cancelPayment 一致（走 PaymentMethodHandler.cancelPayment）。
+     */
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.Owner)
+    async cancelPayment(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationCancelPaymentArgs,
+    ): Promise<ErrorResultUnion<CancelPaymentResult, Payment>> {
+        if (!ctx.activeUserId) {
+            throw new ForbiddenError(LogLevel.Verbose);
+        }
+        const payment = await this.connection.getRepository(ctx, Payment).findOne({
+            where: { id: args.id },
+            relations: ['order', 'order.customer'],
+        });
+        if (!payment || !payment.order) {
+            throw new EntityNotFoundError('Payment', args.id);
+        }
+        const ownerId = payment.order.customer?.user?.id;
+        if (!ownerId || !idsAreEqual(ownerId, ctx.activeUserId)) {
+            throw new ForbiddenError(LogLevel.Verbose);
+        }
+        return this.orderService.cancelPayment(ctx, args.id);
     }
 
     @Transaction()

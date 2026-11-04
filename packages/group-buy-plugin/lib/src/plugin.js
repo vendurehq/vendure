@@ -103,6 +103,8 @@ exports.GroupBuyPlugin = GroupBuyPlugin = GroupBuyPlugin_1 = __decorate([
                 leaderRewardType: String!
                 autoConfirm: Boolean!
                 allowJoinAfterComplete: Boolean!
+                productId: ID!
+                variantId: ID!
                 createdAt: DateTime!
                 updatedAt: DateTime!
             }
