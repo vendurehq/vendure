@@ -42,7 +42,6 @@ const VENDURE_PACKAGES = [
     'packages/common',
     'packages/email-plugin',
     'packages/asset-server-plugin',
-    'packages/admin-ui-plugin',
     'packages/telemetry-plugin',
     'packages/harden-plugin',
     'packages/job-queue-plugin',
@@ -52,8 +51,6 @@ const VENDURE_PACKAGES = [
     'packages/cli',
     'packages/create',
     'packages/dashboard',
-    'packages/ui-devkit',
-    'packages/admin-ui',
 ];
 
 // --- Lockfile walker -------------------------------------------------------

@@ -157,8 +157,8 @@ jobs:
       # Publish to npm with appropriate dist-tag.
       # Note: we do not use `lerna publish` because at the time of writing, it fails to publish
       # using the Trusted Publishing workflow for some reason.
-      # We use a custom script to handle publishConfig.directory for packages like @vendure/admin-ui
-      # that need to publish from a nested directory.
+      # The script honours `publishConfig.directory` in case a package needs to publish from a
+      # nested directory.
       #
       # Release publishes use `npm stage publish` — the version lands in npm's staging area and
       # requires manual maintainer approval (with 2FA) before going live on the public registry.

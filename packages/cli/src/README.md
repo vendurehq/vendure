@@ -182,8 +182,8 @@ npx vendure add -c MyPlugin
 # Add API extension to a plugin
 npx vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
 
-# Add UI extensions to a plugin
-npx vendure add -u MyPlugin
+# Add Dashboard extensions to a plugin
+npx vendure add -d MyPlugin
 ```
 
 ### Migrate Command

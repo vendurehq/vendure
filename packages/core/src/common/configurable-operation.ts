@@ -26,7 +26,7 @@ import { InjectableStrategy } from './types/injectable-strategy';
 /**
  * @description
  * An array of string values in a given {@link LanguageCode}, used to define human-readable string values.
- * The `ui` property can be used in conjunction with the Vendure Admin UI to specify a custom form input
+ * The `ui` property can be used in conjunction with the Vendure Dashboard to specify a custom form input
  * component.
  *
  * @example
@@ -104,10 +104,10 @@ export type ConfigArgDef<T extends ConfigArgType> = T extends 'string'
  *   },
  * }
  *```
- * In the Admin UI, this will be rendered as an orderable list of string inputs.
+ * In the Dashboard, this will be rendered as an orderable list of string inputs.
  *
  * ## UI Component
- * The `ui` field allows you to specify a specific input component to be used in the Admin UI.
+ * The `ui` field allows you to specify a specific input component to be used in the Dashboard.
  * When not set, a default input component is used appropriate to the data type.
  *
  * @example
@@ -132,8 +132,8 @@ export type ConfigArgDef<T extends ConfigArgType> = T extends 'string'
  * }
  * ```
  * The available components as well as their configuration options can be found in the {@link DefaultFormConfigHash} docs.
- * Custom UI components may also be defined via an Admin UI extension using the `registerFormInputComponent()` function
- * which is exported from `@vendure/admin-ui/core`.
+ * Custom UI components may also be defined via a Dashboard extension. See the
+ * [Custom Form Components guide](/extending-the-dashboard/custom-form-components/).
  *
  * @docsCategory ConfigurableOperationDef
  */
@@ -236,7 +236,7 @@ export interface ConfigurableOperationDefOptions<T extends ConfigArgs> extends I
     /**
      * @description
      * Optional provider-specific arguments which, when specified, are
-     * editable in the admin-ui. For example, args could be used to store an API key
+     * editable in the Dashboard. For example, args could be used to store an API key
      * for a payment provider service.
      *
      * @example
@@ -281,7 +281,7 @@ export interface ConfigurableOperationDefOptions<T extends ConfigArgs> extends I
  * ## The `args` property
  *
  * The key feature of the ConfigurableOperationDef is the `args` property. This is where we define those
- * arguments that are exposed via the Admin UI as data input components. This allows their values to
+ * arguments that are exposed via the Dashboard as data input components. This allows their values to
  * be set at run-time by the Administrator. Those values can then be accessed in the business logic
  * of the operation.
  *

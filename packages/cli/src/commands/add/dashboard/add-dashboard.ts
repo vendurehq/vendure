@@ -51,7 +51,7 @@ export async function addDashboard(options?: AddDashboardOptions): Promise<CliCo
     if (isNonInteractive && !vendurePlugin) {
         throw new Error('Plugin must be specified when running in non-interactive mode');
     }
-    vendurePlugin = vendurePlugin ?? (await selectPlugin(project, 'Add UI extensions cancelled'));
+    vendurePlugin = vendurePlugin ?? (await selectPlugin(project, 'Add Dashboard extensions cancelled'));
 
     try {
         vendurePlugin.addMetadataProperty('dashboard', './dashboard/index.tsx');

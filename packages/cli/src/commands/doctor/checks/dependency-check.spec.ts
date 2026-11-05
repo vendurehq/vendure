@@ -14,6 +14,20 @@ vi.mock('fs-extra', () => ({
 
 import fs from 'fs-extra';
 
+const REMOVED_PACKAGES = ['@vendure/admin-ui', '@vendure/admin-ui-plugin', '@vendure/ui-devkit'];
+
+/**
+ * Reports every path as existing, except the package.json files of the packages removed
+ * in v4, which a v4 project does not have installed.
+ */
+function existsExceptRemovedPackages(installed: string[] = []) {
+    return (p: any) => {
+        const pathStr = String(p);
+        const removed = REMOVED_PACKAGES.find(pkg => pathStr.endsWith(`/${pkg}/package.json`));
+        return !removed || installed.includes(removed);
+    };
+}
+
 describe('dependency-check', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -33,7 +47,7 @@ describe('dependency-check', () => {
     });
 
     it('returns pass when all @vendure/* packages are same version', async () => {
-        vi.mocked(fs.existsSync).mockReturnValue(true);
+        vi.mocked(fs.existsSync).mockImplementation(existsExceptRemovedPackages());
         vi.mocked(fs.readJsonSync).mockReturnValue({ version: '3.6.3' });
         vi.mocked(fs.readdirSync).mockReturnValue([]);
         vi.mocked(fs.readFileSync).mockReturnValue('');
@@ -45,7 +59,7 @@ describe('dependency-check', () => {
     });
 
     it('returns warn when @vendure/* patch versions are mismatched', async () => {
-        vi.mocked(fs.existsSync).mockReturnValue(true);
+        vi.mocked(fs.existsSync).mockImplementation(existsExceptRemovedPackages());
         vi.mocked(fs.readdirSync).mockReturnValue([]);
         vi.mocked(fs.readFileSync).mockReturnValue('');
 
@@ -66,7 +80,7 @@ describe('dependency-check', () => {
     });
 
     it('returns fail when @vendure/* minor versions are mismatched', async () => {
-        vi.mocked(fs.existsSync).mockReturnValue(true);
+        vi.mocked(fs.existsSync).mockImplementation(existsExceptRemovedPackages());
         vi.mocked(fs.readdirSync).mockReturnValue([]);
         vi.mocked(fs.readFileSync).mockReturnValue('');
 
@@ -91,8 +105,8 @@ describe('dependency-check', () => {
             const pathStr = String(p);
             // node_modules exists
             if (pathStr === '/fake/node_modules') return true;
-            // @vendure dir exists
-            if (pathStr.includes('@vendure')) return true;
+            // installed @vendure packages exist
+            if (pathStr.includes('@vendure')) return existsExceptRemovedPackages()(pathStr);
             // root graphql exists
             if (pathStr === '/fake/node_modules/graphql/package.json') return true;
             // nested graphql exists
@@ -123,7 +137,7 @@ describe('dependency-check', () => {
     });
 
     it('returns pass with no duplicate singleton dependencies', async () => {
-        vi.mocked(fs.existsSync).mockReturnValue(true);
+        vi.mocked(fs.existsSync).mockImplementation(existsExceptRemovedPackages());
         vi.mocked(fs.readJsonSync).mockReturnValue({ version: '3.6.3' });
         vi.mocked(fs.readdirSync).mockReturnValue([]);
         vi.mocked(fs.readFileSync).mockReturnValue('');
@@ -131,5 +145,41 @@ describe('dependency-check', () => {
         const result = await runDependencyCheck('/fake/node_modules');
 
         expect(result.details?.some(d => d.includes('No duplicate singleton dependencies'))).toBe(true);
+    });
+
+    it('returns pass with exact details when no removed packages are installed', async () => {
+        vi.mocked(fs.existsSync).mockImplementation(existsExceptRemovedPackages());
+        vi.mocked(fs.readJsonSync).mockReturnValue({ version: '4.0.0' });
+        vi.mocked(fs.readdirSync).mockReturnValue([]);
+        vi.mocked(fs.readFileSync).mockReturnValue('');
+
+        const result = await runDependencyCheck('/fake/node_modules');
+
+        expect(result.status).toBe('pass');
+        expect(result.details).toEqual([
+            'All @vendure/* packages at 4.0.0',
+            'No duplicate singleton dependencies',
+        ]);
+    });
+
+    it('warns about each Angular admin UI package that was removed in v4', async () => {
+        vi.mocked(fs.existsSync).mockImplementation(
+            existsExceptRemovedPackages(['@vendure/admin-ui-plugin']),
+        );
+        vi.mocked(fs.readJsonSync).mockImplementation((p: any) =>
+            String(p).includes('/@vendure/admin-ui-plugin/') ? { version: '3.8.1' } : { version: '4.0.0' },
+        );
+        vi.mocked(fs.readdirSync).mockReturnValue([]);
+        vi.mocked(fs.readFileSync).mockReturnValue('');
+
+        const result = await runDependencyCheck('/fake/node_modules');
+
+        expect(result.status).toBe('warn');
+        expect(result.details).toEqual([
+            'All @vendure/* packages at 4.0.0',
+            'No duplicate singleton dependencies',
+            '@vendure/admin-ui-plugin@3.8.1 is not supported in Vendure v4: ' +
+                'replace AdminUiPlugin with DashboardPlugin from @vendure/dashboard',
+        ]);
     });
 });

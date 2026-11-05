@@ -25,7 +25,6 @@ module.exports = {
         '**/generated*',
         '**/*.js',
         '**/*.d.ts',
-        '/packages/ui-devkit/scaffold/**/*',
         '/packages/dev-server/load-testing/**/*',
         '/docs/layouts/**/*',
     ],
@@ -41,22 +40,6 @@ module.exports = {
         '@typescript-eslint',
     ],
     root: true,
-    overrides: [
-        {
-            files: ['./packages/ui-devkit/src/client/**/*'],
-            parserOptions: {
-                project: './packages/ui-devkit/tsconfig.json',
-                sourceType: 'module',
-            },
-        },
-        {
-            files: ['./packages/ui-devkit/src/compiler/**/*'],
-            parserOptions: {
-                project: './packages/ui-devkit/tsconfig.compiler.json',
-                sourceType: 'module',
-            },
-        },
-    ],
     rules: {
         '@typescript-eslint/adjacent-overload-signatures': 'error',
         '@typescript-eslint/array-type': [

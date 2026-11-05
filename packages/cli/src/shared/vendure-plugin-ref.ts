@@ -8,8 +8,6 @@ import {
     VariableDeclaration,
 } from 'ts-morph';
 
-import { AdminUiExtensionTypeName } from '../constants';
-
 import { EntityRef } from './entity-ref';
 
 export class VendurePluginRef {
@@ -216,12 +214,6 @@ export class VendurePluginRef {
             )
             .flat()
             .map(classDeclaration => new EntityRef(classDeclaration));
-    }
-
-    hasUiExtensions(): boolean {
-        return !!this.classDeclaration
-            .getStaticProperties()
-            .find(prop => prop.getType().getSymbol()?.getName() === AdminUiExtensionTypeName);
     }
 
     /**

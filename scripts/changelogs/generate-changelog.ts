@@ -19,8 +19,6 @@ const VALID_TYPES = ['feat', 'fix', 'perf'];
  * Define which packages to create changelog entries for.
  */
 const VALID_SCOPES: string[] = [
-    'admin-ui-plugin',
-    'admin-ui',
     'asset-server',
     'asset-server-plugin',
     'cli',
@@ -32,7 +30,6 @@ const VALID_SCOPES: string[] = [
     'email',
     'job-queue-plugin',
     'testing',
-    'ui-devkit',
     'harden-plugin',
     'graphiql-plugin',
     'telemetry-plugin',

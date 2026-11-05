@@ -1,7 +1,7 @@
 ---
 title: "GraphQL Code Generation"
 metaTitle: "GraphQL Code Generation for Vendure Plugins"
-metaDescription: "Configure GraphQL Code Generator to produce TypeScript types from your Vendure schema, enabling type-safe resolvers, services, and Admin UI extensions."
+metaDescription: "Configure GraphQL Code Generator to produce TypeScript types from your Vendure schema, enabling type-safe resolvers and services."
 ---
 
 Code generation means the automatic generation of TypeScript types based on your GraphQL schema and your GraphQL operations.
@@ -147,122 +147,10 @@ export class OrganizationService {
 }
 ```
 
-## Codegen for Admin UI extensions
+## Dashboard extensions
 
-:::warning[Deprecated]
-This section refers to the deprecated Angular-based Admin UI. The new React-based Dashboard has built-in graphql type safety
-and does not require additional setup.
-:::
-
-When you create Admin UI extensions, very often those UI components will be making API calls to the Admin API. In this case, you can use codegen to generate the types for those API calls.
-
-To do this, we will use the ["client preset" plugin](https://the-guild.dev/graphql/codegen/plugins/presets/preset-client). Assuming you have already completed the setup above, you'll need to install the following additional dependency:
-
-```bash
-npm install -D @graphql-codegen/client-preset
-```
-
-Then add the following to your `codegen.ts` file:
-
-```ts title="codegen.ts"
-import type { CodegenConfig } from '@graphql-codegen/cli';
-
-const config: CodegenConfig = {
-    overwrite: true,
-    schema: 'http://localhost:3000/admin-api',
-    config: {
-        scalars: { Money: 'number' },
-        namingConvention: { enumValues: 'keep' },
-    },
-    generates: {
-        'apps/marketplace/src/plugins/marketplace/ui/gql/': { // [!code highlight]
-            preset: 'client', // [!code highlight]
-            documents: 'apps/marketplace/src/plugins/marketplace/ui/**/*.ts', // [!code highlight]
-            // This disables the "fragment masking" feature. Fragment masking // [!code highlight]
-            // can improve component isolation but introduces some additional // [!code highlight]
-            // complexity that we will avoid for now. // [!code highlight]
-            presetConfig: { // [!code highlight]
-                fragmentMasking: false, // [!code highlight]
-            }, // [!code highlight]
-        }, // [!code highlight]
-        'apps/marketplace/src/plugins/marketplace/gql/generated.ts': {
-            plugins: ['typescript'],
-        },
-    },
-};
-
-export default config;
-```
-
-For the client preset plugin, we need to specify a _directory_ (`.../ui/gql/`) because a number of files will get generated.
-
-### Use the `graphql()` function
-
-In your Admin UI components, you can now use the `graphql()` function exported from the generated file to define your
-GraphQL operations. For example:
-
-```ts title="apps/marketplace/src/plugins/marketplace/ui/components/organization-list/organization-list.component.ts"
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { SharedModule, TypedBaseListComponent } from '@vendure/admin-ui/core';
-import { graphql } from '../../gql';
-
-const getOrganizationListDocument = graphql(` // [!code highlight]
-    query GetOrganizationList($options: OrganizationListOptions) { // [!code highlight]
-        organizations(options: $options) { // [!code highlight]
-            items { // [!code highlight]
-                id // [!code highlight]
-                createdAt // [!code highlight]
-                updatedAt // [!code highlight]
-                name // [!code highlight]
-                invoiceEmailAddresses // [!code highlight]
-            } // [!code highlight]
-            totalItems // [!code highlight]
-        } // [!code highlight]
-    } // [!code highlight]
-`); // [!code highlight]
-
-@Component({
-    selector: 'organization-list',
-    templateUrl: './organization-list.component.html',
-    styleUrls: ['./organization-list.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true,
-    imports: [SharedModule],
-})
-export class OrganizationListComponent extends TypedBaseListComponent<
-    typeof getOrganizationListDocument, // [!code highlight]
-    'organizations' // [!code highlight]
-> {
-    
-    // Sort & filter definitions omitted for brevity.
-    // For a complete ListComponent example, see the 
-    // "Creating List Views" guide.
-
-    constructor() {
-        super();
-        super.configure({
-            document: getOrganizationListDocument, // [!code highlight]
-            getItems: (data) => data.organizations,
-            setVariables: (skip, take) => ({
-                options: {
-                    skip,
-                    take,
-                    filter: {
-                        name: {
-                            contains: this.searchTermControl.value,
-                        },
-                        ...this.filters.createFilterInput(),
-                    },
-                    sort: this.sorts.createSortInput(),
-                },
-            }),
-            refreshListOnChanges: [this.filters.valueChanges, this.sorts.valueChanges],
-        });
-    }
-}
-```
-
-Whenever you write a new GraphQL operation, or change an existing one, you will need to re-run the codegen script to generate the types for that operation.
+You do not need to set up codegen for your [Dashboard extensions](/extending-the-dashboard/extending-overview/). The Dashboard
+has built-in GraphQL type safety for the operations you define in your extension code, and requires no additional setup.
 
 ## Codegen watch mode
 

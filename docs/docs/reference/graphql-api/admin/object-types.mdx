@@ -2487,46 +2487,6 @@ type ManualPaymentStateError {
 }`}
 </GraphQLDoc>
 
-<a name="metricsummary"></a>
-
-## MetricSummary
-
-<GraphQLDoc
-  type="type"
-  typeName="MetricSummary"
-  typeLinks={{
-    MetricInterval: '/reference/graphql-api/admin/enums#metricinterval',
-    MetricType: '/reference/graphql-api/admin/enums#metrictype',
-    String: '/reference/graphql-api/admin/object-types#string',
-    MetricSummaryEntry: '/reference/graphql-api/admin/object-types#metricsummaryentry',
-  }}
->
-{`type MetricSummary {
-  interval: MetricInterval!
-  type: MetricType!
-  title: String!
-  entries: [MetricSummaryEntry!]!
-}`}
-</GraphQLDoc>
-
-<a name="metricsummaryentry"></a>
-
-## MetricSummaryEntry
-
-<GraphQLDoc
-  type="type"
-  typeName="MetricSummaryEntry"
-  typeLinks={{
-    String: '/reference/graphql-api/admin/object-types#string',
-    Float: '/reference/graphql-api/admin/object-types#float',
-  }}
->
-{`type MetricSummaryEntry {
-  label: String!
-  value: Float!
-}`}
-</GraphQLDoc>
-
 <a name="mimetypeerror"></a>
 
 ## MimeTypeError

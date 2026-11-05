@@ -103,7 +103,7 @@
           "title": "Fulfillment",
           "slug": "fulfillment",
           "file": "docs/guides/core-concepts/fulfillment/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Inventory",
@@ -121,7 +121,7 @@
           "title": "Zones",
           "slug": "zones",
           "file": "docs/guides/core-concepts/zones/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Language",
@@ -169,7 +169,7 @@
           "title": "Auth",
           "slug": "auth",
           "file": "docs/guides/core-concepts/auth/index.mdx",
-          "lastModified": "2026-06-26T15:49:47+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Channels",
@@ -236,7 +236,7 @@
           "title": "Custom Fields",
           "slug": "custom-fields",
           "file": "docs/guides/developer-guide/custom-fields/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Error Handling",
@@ -266,7 +266,7 @@
           "title": "Security",
           "slug": "security",
           "file": "docs/guides/developer-guide/security/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "API Keys",
@@ -398,7 +398,7 @@
           "title": "Translations",
           "slug": "translations",
           "file": "docs/guides/developer-guide/translations/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Uploading Files",
@@ -434,7 +434,7 @@
           "title": "Codegen",
           "slug": "codegen",
           "file": "docs/guides/how-to/codegen/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Configurable Products",
@@ -476,7 +476,7 @@
           "title": "Publish Plugin",
           "slug": "publish-plugin",
           "file": "docs/guides/how-to/publish-plugin/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "S3 Asset Storage",
@@ -500,13 +500,13 @@
           "title": "Getting Started",
           "slug": "getting-started",
           "file": "docs/guides/extending-the-dashboard/getting-started/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Extending Overview",
           "slug": "extending-overview",
           "file": "docs/guides/extending-the-dashboard/extending-overview/index.mdx",
-          "lastModified": "2026-06-24T13:43:54+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Public API & Imports",
@@ -644,19 +644,19 @@
           "title": "Theming",
           "slug": "theming",
           "file": "docs/guides/extending-the-dashboard/theming/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Localization",
           "slug": "localization",
           "file": "docs/guides/extending-the-dashboard/localization/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Deployment",
           "slug": "deployment",
           "file": "docs/guides/extending-the-dashboard/deployment/index.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Tech Stack",
@@ -668,7 +668,7 @@
           "title": "Migration",
           "slug": "migration",
           "file": "docs/guides/extending-the-dashboard/migration/index.mdx",
-          "lastModified": "2026-07-01T14:03:28+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Custom Providers",
@@ -774,22 +774,16 @@
           "lastModified": "2026-02-12T16:47:03+01:00"
         },
         {
-          "title": "Deploying Admin UI",
-          "slug": "deploying-admin-ui",
-          "file": "docs/guides/deployment/deploying-admin-ui.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
-        },
-        {
           "title": "Deploy to Northflank",
           "slug": "deploy-to-northflank",
           "file": "docs/guides/deployment/deploy-to-northflank/index.mdx",
-          "lastModified": "2026-06-19T16:37:02+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Deploy to Digital Ocean App Platform",
           "slug": "deploy-to-digital-ocean-app-platform",
           "file": "docs/guides/deployment/deploy-to-digital-ocean-app-platform/index.mdx",
-          "lastModified": "2026-06-19T16:37:02+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Deploy to Railway",
@@ -801,7 +795,7 @@
           "title": "Deploy to Render",
           "slug": "deploy-to-render",
           "file": "docs/guides/deployment/deploy-to-render/index.mdx",
-          "lastModified": "2026-06-19T16:37:02+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Deploy to Google Cloud Run",
@@ -810,126 +804,12 @@
           "lastModified": "2026-06-19T16:37:02+02:00"
         }
       ],
-      "lastModified": "2026-05-26T10:57:06+02:00"
+      "lastModified": "2026-11-05T11:25:41Z"
     },
     {
       "title": "Legacy APIs",
       "slug": "legacy-apis",
       "children": [
-        {
-          "title": "Angular Admin UI",
-          "slug": "extending-the-admin-ui",
-          "children": [
-            {
-              "title": "Getting Started",
-              "slug": "getting-started",
-              "file": "docs/guides/extending-the-admin-ui/getting-started/index.mdx",
-              "lastModified": "2026-06-24T21:52:53+02:00"
-            },
-            {
-              "title": "UI Library",
-              "slug": "ui-library",
-              "file": "docs/guides/extending-the-admin-ui/ui-library/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Admin UI Theming & Branding",
-              "slug": "admin-ui-theming-branding",
-              "file": "docs/guides/extending-the-admin-ui/admin-ui-theming-branding/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Adding UI Translations",
-              "slug": "adding-ui-translations",
-              "file": "docs/guides/extending-the-admin-ui/adding-ui-translations/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Using Other Frameworks",
-              "slug": "using-other-frameworks",
-              "file": "docs/guides/extending-the-admin-ui/using-other-frameworks/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Nav Menu",
-              "slug": "nav-menu",
-              "file": "docs/guides/extending-the-admin-ui/nav-menu/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Alerts",
-              "slug": "alerts",
-              "file": "docs/guides/extending-the-admin-ui/alerts/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Add Actions to Pages",
-              "slug": "add-actions-to-pages",
-              "file": "docs/guides/extending-the-admin-ui/add-actions-to-pages/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Page Tabs",
-              "slug": "page-tabs",
-              "file": "docs/guides/extending-the-admin-ui/page-tabs/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Custom Form Inputs",
-              "slug": "custom-form-inputs",
-              "file": "docs/guides/extending-the-admin-ui/custom-form-inputs/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Custom Data Table Components",
-              "slug": "custom-data-table-components",
-              "file": "docs/guides/extending-the-admin-ui/custom-data-table-components/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Custom Detail Components",
-              "slug": "custom-detail-components",
-              "file": "docs/guides/extending-the-admin-ui/custom-detail-components/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Bulk Actions",
-              "slug": "bulk-actions",
-              "file": "docs/guides/extending-the-admin-ui/bulk-actions/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Dashboard Widgets",
-              "slug": "dashboard-widgets",
-              "file": "docs/guides/extending-the-admin-ui/dashboard-widgets/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Custom Timeline Components",
-              "slug": "custom-timeline-components",
-              "file": "docs/guides/extending-the-admin-ui/custom-timeline-components/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Defining Routes",
-              "slug": "defining-routes",
-              "file": "docs/guides/extending-the-admin-ui/defining-routes/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Creating List Views",
-              "slug": "creating-list-views",
-              "file": "docs/guides/extending-the-admin-ui/creating-list-views/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            },
-            {
-              "title": "Creating Detail Views",
-              "slug": "creating-detail-views",
-              "file": "docs/guides/extending-the-admin-ui/creating-detail-views/index.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
-            }
-          ]
-        },
         {
           "title": "Migrating from v1",
           "slug": "migrating-from-v1",
@@ -1264,7 +1144,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1283,35 +1163,9 @@
                   "slug": "vendure_version",
                   "file": "docs/reference/typescript-api/common/vendure_version.mdx",
                   "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "Admin Ui",
-                  "slug": "admin-ui",
-                  "file": "docs/reference/typescript-api/common/admin-ui/index.mdx",
-                  "children": [
-                    {
-                      "title": "AdminUiAppConfig",
-                      "slug": "admin-ui-app-config",
-                      "file": "docs/reference/typescript-api/common/admin-ui/admin-ui-app-config.mdx",
-                      "lastModified": "2026-01-28T14:49:21+01:00"
-                    },
-                    {
-                      "title": "AdminUiAppDevModeConfig",
-                      "slug": "admin-ui-app-dev-mode-config",
-                      "file": "docs/reference/typescript-api/common/admin-ui/admin-ui-app-dev-mode-config.mdx",
-                      "lastModified": "2026-01-28T14:49:21+01:00"
-                    },
-                    {
-                      "title": "AdminUiConfig",
-                      "slug": "admin-ui-config",
-                      "file": "docs/reference/typescript-api/common/admin-ui/admin-ui-config.mdx",
-                      "lastModified": "2026-01-28T14:49:21+01:00"
-                    }
-                  ],
-                  "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
+              "lastModified": "2026-11-05T11:31:55Z"
             },
             {
               "title": "ConfigurableOperationDef",
@@ -1322,19 +1176,19 @@
                   "title": "ConfigArgs",
                   "slug": "config-args",
                   "file": "docs/reference/typescript-api/configurable-operation-def/config-args.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "ConfigArgType",
                   "slug": "config-arg-type",
                   "file": "docs/reference/typescript-api/configurable-operation-def/config-arg-type.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "ConfigurableOperationDefOptions",
                   "slug": "configurable-operation-def-options",
                   "file": "docs/reference/typescript-api/configurable-operation-def/configurable-operation-def-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "DefaultFormComponentId",
@@ -1352,10 +1206,10 @@
                   "title": "LocalizedStringArray",
                   "slug": "localized-string-array",
                   "file": "docs/reference/typescript-api/configurable-operation-def/localized-string-array.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 }
               ],
-              "lastModified": "2026-04-20T16:08:16+02:00"
+              "lastModified": "2026-11-05T11:25:41Z"
             },
             {
               "title": "Configuration",
@@ -2976,7 +2830,7 @@
                   "title": "HistoryService",
                   "slug": "history-service",
                   "file": "docs/reference/typescript-api/services/history-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "InitializerService",
@@ -3478,20 +3332,6 @@
           "file": "docs/reference/core-plugins/index.mdx",
           "children": [
             {
-              "title": "AdminUiPlugin",
-              "slug": "admin-ui-plugin",
-              "file": "docs/reference/core-plugins/admin-ui-plugin/index.mdx",
-              "children": [
-                {
-                  "title": "AdminUiPluginOptions",
-                  "slug": "admin-ui-plugin-options",
-                  "file": "docs/reference/core-plugins/admin-ui-plugin/admin-ui-plugin-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-04-20T16:08:16+02:00"
-            },
-            {
               "title": "AssetServerPlugin",
               "slug": "asset-server-plugin",
               "file": "docs/reference/core-plugins/asset-server-plugin/index.mdx",
@@ -3548,7 +3388,7 @@
                   "title": "S3AssetStorageStrategy",
                   "slug": "s3asset-storage-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-05T11:31:55Z"
                 },
                 {
                   "title": "SharpAssetPreviewStrategy",
@@ -3733,7 +3573,7 @@
               "lastModified": "2026-04-20T16:08:16+02:00"
             }
           ],
-          "lastModified": "2026-03-30T21:48:02+02:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "GraphQL API",
@@ -3748,13 +3588,13 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "Mutations",
@@ -3766,13 +3606,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-11-05T11:25:41Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4278,810 +4118,6 @@
             }
           ],
           "lastModified": "2026-01-28T14:49:21+01:00"
-        },
-        {
-          "title": "Admin UI API",
-          "slug": "admin-ui-api",
-          "file": "docs/reference/admin-ui-api/index.mdx",
-          "children": [
-            {
-              "title": "Action Bar",
-              "slug": "action-bar",
-              "file": "docs/reference/admin-ui-api/action-bar/index.mdx",
-              "children": [
-                {
-                  "title": "ActionBarContext",
-                  "slug": "action-bar-context",
-                  "file": "docs/reference/admin-ui-api/action-bar/action-bar-context.mdx",
-                  "lastModified": "2026-02-02T15:16:59+01:00"
-                },
-                {
-                  "title": "ActionBarDropdownMenuItem",
-                  "slug": "action-bar-dropdown-menu-item",
-                  "file": "docs/reference/admin-ui-api/action-bar/action-bar-dropdown-menu-item.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                },
-                {
-                  "title": "ActionBarItem",
-                  "slug": "action-bar-item",
-                  "file": "docs/reference/admin-ui-api/action-bar/action-bar-item.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                },
-                {
-                  "title": "ActionBarLocationId",
-                  "slug": "action-bar-location-id",
-                  "file": "docs/reference/admin-ui-api/action-bar/action-bar-location-id.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "AddActionBarDropdownMenuItem",
-                  "slug": "add-action-bar-dropdown-menu-item",
-                  "file": "docs/reference/admin-ui-api/action-bar/add-action-bar-dropdown-menu-item.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "AddActionBarItem",
-                  "slug": "add-action-bar-item",
-                  "file": "docs/reference/admin-ui-api/action-bar/add-action-bar-item.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "PageLocationId",
-                  "slug": "page-location-id",
-                  "file": "docs/reference/admin-ui-api/action-bar/page-location-id.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RouterLinkDefinition",
-                  "slug": "router-link-definition",
-                  "file": "docs/reference/admin-ui-api/action-bar/router-link-definition.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Alerts",
-              "slug": "alerts",
-              "file": "docs/reference/admin-ui-api/alerts/index.mdx",
-              "children": [
-                {
-                  "title": "AlertConfig",
-                  "slug": "alert-config",
-                  "file": "docs/reference/admin-ui-api/alerts/alert-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "AlertContext",
-                  "slug": "alert-context",
-                  "file": "docs/reference/admin-ui-api/alerts/alert-context.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterAlert",
-                  "slug": "register-alert",
-                  "file": "docs/reference/admin-ui-api/alerts/register-alert.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Bulk Actions",
-              "slug": "bulk-actions",
-              "file": "docs/reference/admin-ui-api/bulk-actions/index.mdx",
-              "children": [
-                {
-                  "title": "BulkAction",
-                  "slug": "bulk-action",
-                  "file": "docs/reference/admin-ui-api/bulk-actions/bulk-action.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "RegisterBulkAction",
-                  "slug": "register-bulk-action",
-                  "file": "docs/reference/admin-ui-api/bulk-actions/register-bulk-action.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Components",
-              "slug": "components",
-              "file": "docs/reference/admin-ui-api/components/index.mdx",
-              "children": [
-                {
-                  "title": "AssetPickerDialogComponent",
-                  "slug": "asset-picker-dialog-component",
-                  "file": "docs/reference/admin-ui-api/components/asset-picker-dialog-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "ChipComponent",
-                  "slug": "chip-component",
-                  "file": "docs/reference/admin-ui-api/components/chip-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "CurrencyInputComponent",
-                  "slug": "currency-input-component",
-                  "file": "docs/reference/admin-ui-api/components/currency-input-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "DataTable2Component",
-                  "slug": "data-table2component",
-                  "file": "docs/reference/admin-ui-api/components/data-table2component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "DataTableComponent",
-                  "slug": "data-table-component",
-                  "file": "docs/reference/admin-ui-api/components/data-table-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "DatetimePickerComponent",
-                  "slug": "datetime-picker-component",
-                  "file": "docs/reference/admin-ui-api/components/datetime-picker-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "DropdownComponent",
-                  "slug": "dropdown-component",
-                  "file": "docs/reference/admin-ui-api/components/dropdown-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "FacetValueSelectorComponent",
-                  "slug": "facet-value-selector-component",
-                  "file": "docs/reference/admin-ui-api/components/facet-value-selector-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "ObjectTreeComponent",
-                  "slug": "object-tree-component",
-                  "file": "docs/reference/admin-ui-api/components/object-tree-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "OrderStateLabelComponent",
-                  "slug": "order-state-label-component",
-                  "file": "docs/reference/admin-ui-api/components/order-state-label-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "ProductVariantSelectorComponent",
-                  "slug": "product-variant-selector-component",
-                  "file": "docs/reference/admin-ui-api/components/product-variant-selector-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "RichTextEditorComponent",
-                  "slug": "rich-text-editor-component",
-                  "file": "docs/reference/admin-ui-api/components/rich-text-editor-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "ZoneSelectorComponent",
-                  "slug": "zone-selector-component",
-                  "file": "docs/reference/admin-ui-api/components/zone-selector-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Custom Detail Components",
-              "slug": "custom-detail-components",
-              "file": "docs/reference/admin-ui-api/custom-detail-components/index.mdx",
-              "children": [
-                {
-                  "title": "CustomDetailComponent",
-                  "slug": "custom-detail-component",
-                  "file": "docs/reference/admin-ui-api/custom-detail-components/custom-detail-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "CustomDetailComponentConfig",
-                  "slug": "custom-detail-component-config",
-                  "file": "docs/reference/admin-ui-api/custom-detail-components/custom-detail-component-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "CustomDetailComponentLocationId",
-                  "slug": "custom-detail-component-location-id",
-                  "file": "docs/reference/admin-ui-api/custom-detail-components/custom-detail-component-location-id.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterCustomDetailComponent",
-                  "slug": "register-custom-detail-component",
-                  "file": "docs/reference/admin-ui-api/custom-detail-components/register-custom-detail-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Custom History Entry Components",
-              "slug": "custom-history-entry-components",
-              "file": "docs/reference/admin-ui-api/custom-history-entry-components/index.mdx",
-              "children": [
-                {
-                  "title": "CustomerHistoryEntryComponent",
-                  "slug": "customer-history-entry-component",
-                  "file": "docs/reference/admin-ui-api/custom-history-entry-components/customer-history-entry-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "HistoryEntryComponent",
-                  "slug": "history-entry-component",
-                  "file": "docs/reference/admin-ui-api/custom-history-entry-components/history-entry-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "HistoryEntryConfig",
-                  "slug": "history-entry-config",
-                  "file": "docs/reference/admin-ui-api/custom-history-entry-components/history-entry-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "OrderHistoryEntryComponent",
-                  "slug": "order-history-entry-component",
-                  "file": "docs/reference/admin-ui-api/custom-history-entry-components/order-history-entry-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterHistoryEntryComponent",
-                  "slug": "register-history-entry-component",
-                  "file": "docs/reference/admin-ui-api/custom-history-entry-components/register-history-entry-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Custom Input Components",
-              "slug": "custom-input-components",
-              "file": "docs/reference/admin-ui-api/custom-input-components/index.mdx",
-              "children": [
-                {
-                  "title": "Default Inputs",
-                  "slug": "default-inputs",
-                  "file": "docs/reference/admin-ui-api/custom-input-components/default-inputs.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "FormInputComponent",
-                  "slug": "form-input-component",
-                  "file": "docs/reference/admin-ui-api/custom-input-components/form-input-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterFormInputComponent",
-                  "slug": "register-form-input-component",
-                  "file": "docs/reference/admin-ui-api/custom-input-components/register-form-input-component.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Custom Table Components",
-              "slug": "custom-table-components",
-              "file": "docs/reference/admin-ui-api/custom-table-components/index.mdx",
-              "children": [
-                {
-                  "title": "CustomColumnComponent",
-                  "slug": "custom-column-component",
-                  "file": "docs/reference/admin-ui-api/custom-table-components/custom-column-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "DataTableComponentConfig",
-                  "slug": "data-table-component-config",
-                  "file": "docs/reference/admin-ui-api/custom-table-components/data-table-component-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterDataTableComponent",
-                  "slug": "register-data-table-component",
-                  "file": "docs/reference/admin-ui-api/custom-table-components/register-data-table-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Dashboard Widgets",
-              "slug": "dashboard-widgets",
-              "file": "docs/reference/admin-ui-api/dashboard-widgets/index.mdx",
-              "children": [
-                {
-                  "title": "DashboardWidgetConfig",
-                  "slug": "dashboard-widget-config",
-                  "file": "docs/reference/admin-ui-api/dashboard-widgets/dashboard-widget-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterDashboardWidget",
-                  "slug": "register-dashboard-widget",
-                  "file": "docs/reference/admin-ui-api/dashboard-widgets/register-dashboard-widget.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "SetDashboardWidgetLayout",
-                  "slug": "set-dashboard-widget-layout",
-                  "file": "docs/reference/admin-ui-api/dashboard-widgets/set-dashboard-widget-layout.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "WidgetLayoutDefinition",
-                  "slug": "widget-layout-definition",
-                  "file": "docs/reference/admin-ui-api/dashboard-widgets/widget-layout-definition.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Directives",
-              "slug": "directives",
-              "file": "docs/reference/admin-ui-api/directives/index.mdx",
-              "children": [
-                {
-                  "title": "IfMultichannelDirective",
-                  "slug": "if-multichannel-directive",
-                  "file": "docs/reference/admin-ui-api/directives/if-multichannel-directive.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "IfPermissionsDirective",
-                  "slug": "if-permissions-directive",
-                  "file": "docs/reference/admin-ui-api/directives/if-permissions-directive.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "List Detail Views",
-              "slug": "list-detail-views",
-              "file": "docs/reference/admin-ui-api/list-detail-views/index.mdx",
-              "children": [
-                {
-                  "title": "BaseDetailComponent",
-                  "slug": "base-detail-component",
-                  "file": "docs/reference/admin-ui-api/list-detail-views/base-detail-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "BaseEntityResolver",
-                  "slug": "base-entity-resolver",
-                  "file": "docs/reference/admin-ui-api/list-detail-views/base-entity-resolver.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "BaseListComponent",
-                  "slug": "base-list-component",
-                  "file": "docs/reference/admin-ui-api/list-detail-views/base-list-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "DetailComponentWithResolver",
-                  "slug": "detail-component-with-resolver",
-                  "file": "docs/reference/admin-ui-api/list-detail-views/detail-component-with-resolver.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "TypedBaseDetailComponent",
-                  "slug": "typed-base-detail-component",
-                  "file": "docs/reference/admin-ui-api/list-detail-views/typed-base-detail-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "TypedBaseListComponent",
-                  "slug": "typed-base-list-component",
-                  "file": "docs/reference/admin-ui-api/list-detail-views/typed-base-list-component.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Nav Menu",
-              "slug": "nav-menu",
-              "file": "docs/reference/admin-ui-api/nav-menu/index.mdx",
-              "children": [
-                {
-                  "title": "AddNavMenuItem",
-                  "slug": "add-nav-menu-item",
-                  "file": "docs/reference/admin-ui-api/nav-menu/add-nav-menu-item.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "AddNavMenuSection",
-                  "slug": "add-nav-menu-section",
-                  "file": "docs/reference/admin-ui-api/nav-menu/add-nav-menu-section.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "Navigation Types",
-                  "slug": "navigation-types",
-                  "file": "docs/reference/admin-ui-api/nav-menu/navigation-types.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "NavMenuItem",
-                  "slug": "nav-menu-item",
-                  "file": "docs/reference/admin-ui-api/nav-menu/nav-menu-item.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "NavMenuSection",
-                  "slug": "nav-menu-section",
-                  "file": "docs/reference/admin-ui-api/nav-menu/nav-menu-section.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Pipes",
-              "slug": "pipes",
-              "file": "docs/reference/admin-ui-api/pipes/index.mdx",
-              "children": [
-                {
-                  "title": "AssetPreviewPipe",
-                  "slug": "asset-preview-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/asset-preview-pipe.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "DurationPipe",
-                  "slug": "duration-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/duration-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "FileSizePipe",
-                  "slug": "file-size-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/file-size-pipe.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "HasPermissionPipe",
-                  "slug": "has-permission-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/has-permission-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "LocaleCurrencyNamePipe",
-                  "slug": "locale-currency-name-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/locale-currency-name-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "LocaleCurrencyPipe",
-                  "slug": "locale-currency-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/locale-currency-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "LocaleDatePipe",
-                  "slug": "locale-date-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/locale-date-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "LocaleLanguageNamePipe",
-                  "slug": "locale-language-name-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/locale-language-name-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "LocaleRegionNamePipe",
-                  "slug": "locale-region-name-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/locale-region-name-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "TimeAgoPipe",
-                  "slug": "time-ago-pipe",
-                  "file": "docs/reference/admin-ui-api/pipes/time-ago-pipe.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "React Components",
-              "slug": "react-components",
-              "file": "docs/reference/admin-ui-api/react-components/index.mdx",
-              "children": [
-                {
-                  "title": "ActionBar",
-                  "slug": "action-bar",
-                  "file": "docs/reference/admin-ui-api/react-components/action-bar.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "Card",
-                  "slug": "card",
-                  "file": "docs/reference/admin-ui-api/react-components/card.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "CdsIcon",
-                  "slug": "cds-icon",
-                  "file": "docs/reference/admin-ui-api/react-components/cds-icon.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "FormField",
-                  "slug": "form-field",
-                  "file": "docs/reference/admin-ui-api/react-components/form-field.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "Link",
-                  "slug": "link",
-                  "file": "docs/reference/admin-ui-api/react-components/link.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "PageBlock",
-                  "slug": "page-block",
-                  "file": "docs/reference/admin-ui-api/react-components/page-block.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "PageDetailLayout",
-                  "slug": "page-detail-layout",
-                  "file": "docs/reference/admin-ui-api/react-components/page-detail-layout.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RichTextEditor",
-                  "slug": "rich-text-editor",
-                  "file": "docs/reference/admin-ui-api/react-components/rich-text-editor.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "React Extensions",
-              "slug": "react-extensions",
-              "file": "docs/reference/admin-ui-api/react-extensions/index.mdx",
-              "children": [
-                {
-                  "title": "ReactCustomDetailComponentConfig",
-                  "slug": "react-custom-detail-component-config",
-                  "file": "docs/reference/admin-ui-api/react-extensions/react-custom-detail-component-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "ReactDataTableComponentConfig",
-                  "slug": "react-data-table-component-config",
-                  "file": "docs/reference/admin-ui-api/react-extensions/react-data-table-component-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterReactCustomDetailComponent",
-                  "slug": "register-react-custom-detail-component",
-                  "file": "docs/reference/admin-ui-api/react-extensions/register-react-custom-detail-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterReactDataTableComponent",
-                  "slug": "register-react-data-table-component",
-                  "file": "docs/reference/admin-ui-api/react-extensions/register-react-data-table-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterReactFormInputComponent",
-                  "slug": "register-react-form-input-component",
-                  "file": "docs/reference/admin-ui-api/react-extensions/register-react-form-input-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterReactRouteComponent",
-                  "slug": "register-react-route-component",
-                  "file": "docs/reference/admin-ui-api/react-extensions/register-react-route-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterReactRouteComponentOptions",
-                  "slug": "register-react-route-component-options",
-                  "file": "docs/reference/admin-ui-api/react-extensions/register-react-route-component-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "React Hooks",
-              "slug": "react-hooks",
-              "file": "docs/reference/admin-ui-api/react-hooks/index.mdx",
-              "children": [
-                {
-                  "title": "UseDetailComponentData",
-                  "slug": "use-detail-component-data",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-detail-component-data.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseFormControl",
-                  "slug": "use-form-control",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-form-control.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseInjector",
-                  "slug": "use-injector",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-injector.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseLazyQuery",
-                  "slug": "use-lazy-query",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-lazy-query.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseMutation",
-                  "slug": "use-mutation",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-mutation.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UsePageMetadata",
-                  "slug": "use-page-metadata",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-page-metadata.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseQuery",
-                  "slug": "use-query",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-query.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseRichTextEditor",
-                  "slug": "use-rich-text-editor",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-rich-text-editor.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UseRouteParams",
-                  "slug": "use-route-params",
-                  "file": "docs/reference/admin-ui-api/react-hooks/use-route-params.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Routes",
-              "slug": "routes",
-              "file": "docs/reference/admin-ui-api/routes/index.mdx",
-              "children": [
-                {
-                  "title": "RegisterRouteComponent",
-                  "slug": "register-route-component",
-                  "file": "docs/reference/admin-ui-api/routes/register-route-component.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterRouteComponentOptions",
-                  "slug": "register-route-component-options",
-                  "file": "docs/reference/admin-ui-api/routes/register-route-component-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Services",
-              "slug": "services",
-              "file": "docs/reference/admin-ui-api/services/index.mdx",
-              "children": [
-                {
-                  "title": "DataService",
-                  "slug": "data-service",
-                  "file": "docs/reference/admin-ui-api/services/data-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "ModalService",
-                  "slug": "modal-service",
-                  "file": "docs/reference/admin-ui-api/services/modal-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "NotificationService",
-                  "slug": "notification-service",
-                  "file": "docs/reference/admin-ui-api/services/notification-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Tabs",
-              "slug": "tabs",
-              "file": "docs/reference/admin-ui-api/tabs/index.mdx",
-              "children": [
-                {
-                  "title": "PageTabConfig",
-                  "slug": "page-tab-config",
-                  "file": "docs/reference/admin-ui-api/tabs/page-tab-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "RegisterPageTab",
-                  "slug": "register-page-tab",
-                  "file": "docs/reference/admin-ui-api/tabs/register-page-tab.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            },
-            {
-              "title": "Ui Devkit",
-              "slug": "ui-devkit",
-              "file": "docs/reference/admin-ui-api/ui-devkit/index.mdx",
-              "children": [
-                {
-                  "title": "AdminUiExtension",
-                  "slug": "admin-ui-extension",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/admin-ui-extension.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "CompileUiExtensions",
-                  "slug": "compile-ui-extensions",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/compile-ui-extensions.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "Helpers",
-                  "slug": "helpers",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/helpers.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
-                },
-                {
-                  "title": "UiDevkitClient",
-                  "slug": "ui-devkit-client",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/ui-devkit-client.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
-                },
-                {
-                  "title": "UiExtensionBuildCommand",
-                  "slug": "ui-extension-build-command",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/ui-extension-build-command.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                },
-                {
-                  "title": "UiExtensionCompilerOptions",
-                  "slug": "ui-extension-compiler-options",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/ui-extension-compiler-options.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                },
-                {
-                  "title": "UiExtensionCompilerProcessArgument",
-                  "slug": "ui-extension-compiler-process-argument",
-                  "file": "docs/reference/admin-ui-api/ui-devkit/ui-extension-compiler-process-argument.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
-                }
-              ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
-            }
-          ],
-          "lastModified": "2026-01-28T14:49:21+01:00"
         }
       ],
       "lastModified": "2026-01-28T14:49:21+01:00"
@@ -5132,7 +4168,7 @@
               "title": "Draft Orders",
               "slug": "draft-orders",
               "file": "docs/user-guide/orders/draft-orders.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-11-05T11:25:41Z"
             }
           ],
           "lastModified": "2026-02-12T16:47:03+01:00"
@@ -5141,7 +4177,7 @@
           "title": "Customers",
           "slug": "customers",
           "file": "docs/user-guide/customers/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         },
         {
           "title": "Promotions",
@@ -5164,7 +4200,7 @@
               "title": "Administrators & Roles",
               "slug": "administrators-roles",
               "file": "docs/user-guide/settings/administrators-roles.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-11-05T11:25:41Z"
             },
             {
               "title": "Channels",
@@ -5188,7 +4224,7 @@
               "title": "Shipping Methods",
               "slug": "shipping-methods",
               "file": "docs/user-guide/settings/shipping-methods.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-11-05T11:25:41Z"
             },
             {
               "title": "Taxes",
@@ -5203,11 +4239,11 @@
           "title": "Localization",
           "slug": "localization",
           "file": "docs/user-guide/localization/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-05T11:25:41Z"
         }
       ],
       "hidden": true,
-      "lastModified": "2026-02-12T16:47:03+01:00"
+      "lastModified": "2026-11-05T11:25:41Z"
     }
   ],
   "github": {

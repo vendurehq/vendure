@@ -12,7 +12,6 @@ import { addEntity } from './entity/add-entity';
 import { addJobQueue } from './job-queue/add-job-queue';
 import { createNewPlugin } from './plugin/create-new-plugin';
 import { addService } from './service/add-service';
-import { addUiExtensions } from './ui-extensions/add-ui-extensions';
 
 const cancelledMessage = 'Add feature cancelled.';
 
@@ -29,8 +28,6 @@ export interface AddOptions {
     codegen?: string | boolean;
     /** Add an API extension scaffold to the specified plugin */
     apiExtension?: string | boolean;
-    /** Add Admin-UI extensions to the specified plugin */
-    uiExtensions?: string | boolean;
     /** Add Dashboard UI extensions to the specified plugin */
     dashboard?: string | boolean;
     /** Specify the path to a custom Vendure config file */
@@ -206,26 +203,11 @@ async function handleNonInteractiveMode(options: AddOptions) {
                 selectedService: options.selectedService,
             });
             log.success('API extension scaffold added successfully');
-        } else if (options.uiExtensions) {
-            const pluginName = typeof options.uiExtensions === 'string' ? options.uiExtensions : undefined;
-            // For UI extensions, if a boolean true is passed, plugin selection will be handled interactively
-            // If a string is passed, it should be a valid plugin name
-            if (typeof options.uiExtensions === 'string' && !options.uiExtensions.trim()) {
-                throw new Error(
-                    'Plugin name cannot be empty when specified. Usage: vendure add --ui-extensions [plugin-name]',
-                );
-            }
-            await addUiExtensions({
-                isNonInteractive: true,
-                config: options.config,
-                pluginName,
-            });
-            log.success('UI extensions added successfully');
         } else if (options.dashboard) {
             const pluginName = typeof options.dashboard === 'string' ? options.dashboard : undefined;
-            // For UI extensions, if a boolean true is passed, plugin selection will be handled interactively
+            // For Dashboard extensions, if a boolean true is passed, plugin selection will be handled interactively
             // If a string is passed, it should be a valid plugin name
-            if (typeof options.uiExtensions === 'string' && !options.uiExtensions.trim()) {
+            if (typeof options.dashboard === 'string' && !options.dashboard.trim()) {
                 throw new Error(
                     'Plugin name cannot be empty when specified. Usage: vendure add --dashboard [plugin-name]',
                 );
