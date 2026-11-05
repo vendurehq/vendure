@@ -4,6 +4,7 @@ import {
     CreateApiKeyResult,
     DeletionResponse,
     DeletionResult,
+    Permission,
     RotateApiKeyResult,
     UpdateApiKeyInput,
 } from '@vendure/common/lib/generated-types';
@@ -116,6 +117,11 @@ export class ApiKeyService {
             [];
         // Checked before anything is written, so a denied grant leaves no User or ApiKey
         // behind even for callers outside a transaction. RoleAssignmentService.assign checks again.
+        this.roleAssignmentService.assertActiveUserHasPermissionOnChannels(
+            ctx,
+            Permission.CreateApiKey,
+            roleAssignments.map(pair => pair.channelId),
+        );
         await this.roleService.assertActiveUserCanGrantRoles(ctx, roleAssignments);
 
         const ownerUser = await this.connection.getEntityOrThrow(ctx, User, userIdOwner);

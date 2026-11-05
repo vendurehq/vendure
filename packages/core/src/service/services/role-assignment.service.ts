@@ -3,7 +3,7 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { CUSTOMER_ROLE_CODE, DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull } from 'typeorm';
+import { IsNull, NotBrackets } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -20,8 +20,8 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
-import { Role } from '../../entity/role/role.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
+import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
@@ -85,10 +85,12 @@ export class RoleAssignmentService {
 
     /**
      * @description
-     * Returns a paginated list of the RoleAssignments the active user may grant or remove
-     * ({@link RoleService.canGrant}). Assignments outside that set are neither returned nor
-     * counted, so for an actor who does not hold every permission on every Channel the list
-     * is partial: it is the set of grants they may change, not the full set of a User's grants.
+     * Returns a paginated list of the RoleAssignments the active user may grant or remove: the
+     * assignments of the Users they have authority over ({@link activeUserCanManageUser}).
+     * Since that authority means the active user may grant every assignment the User holds
+     * ({@link RoleService.canGrant}), a User's assignments are either all listed or none.
+     * Assignments outside that set are neither returned nor counted, so for an actor who does
+     * not hold every permission on every Channel the list is partial.
      */
     async findAll(
         ctx: RequestContext,
@@ -108,13 +110,26 @@ export class RoleAssignmentService {
         const grantsEverything =
             grantable.length === roleCount && grantable.every(g => g.channelIds.length === channelCount);
         if (!grantsEverything) {
-            // One disjunct per grantable Role, narrowed to its grantable Channels unless the
-            // Role is grantable on every Channel.
-            qb.andWhere(
-                grantable.map(({ roleId, channelIds }) =>
-                    channelIds.length === channelCount ? { roleId } : { roleId, channelId: In(channelIds) },
-                ),
-            );
+            // Excludes every assignment of a User who holds a single assignment the active user
+            // may not grant. A User's remaining assignments are then grantable by construction.
+            qb.andWhere(outerQb => {
+                const ungrantableQuery = outerQb
+                    .subQuery()
+                    .select('ungrantable.userId')
+                    .from(RoleAssignment, 'ungrantable')
+                    .where(
+                        new NotBrackets(grantableQb => {
+                            grantable.forEach(({ roleId, channelIds }, i) => {
+                                grantableQb.orWhere(
+                                    `(ungrantable.roleId = :grantableRole${i} AND ungrantable.channelId IN (:...grantableChannels${i}))`,
+                                    { [`grantableRole${i}`]: roleId, [`grantableChannels${i}`]: channelIds },
+                                );
+                            });
+                        }),
+                    );
+                const userId = `${outerQb.escape(outerQb.alias)}.${outerQb.escape('userId')}`;
+                return `${userId} NOT IN ${ungrantableQuery.getQuery()}`;
+            });
         }
         return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
     }
@@ -131,20 +146,20 @@ export class RoleAssignmentService {
     /**
      * @description
      * Returns the RoleAssignments of the given User which the active user may grant or
-     * remove ({@link RoleService.canGrant}). This is what `User.roleAssignments` resolves to
-     * in the Admin API.
+     * remove: all of them if the active user has authority over the User
+     * ({@link activeUserCanManageUser}), none otherwise, as in {@link findAll}. This is what
+     * `User.roleAssignments` resolves to in the Admin API.
      *
      * @since 4.0.0
      */
     async getGrantableAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<RoleAssignment[]> {
         const assignments = await this.getAssignmentsForUser(ctx, userId);
-        const grantable: RoleAssignment[] = [];
         for (const assignment of assignments) {
-            if (await this.roleService.canGrant(ctx, assignment.roleId, assignment.channelId)) {
-                grantable.push(assignment);
+            if (!(await this.roleService.canGrant(ctx, assignment.roleId, assignment.channelId))) {
+                return [];
             }
         }
-        return grantable;
+        return assignments;
     }
 
     /**
@@ -318,27 +333,77 @@ export class RoleAssignmentService {
 
     /**
      * @description
-     * Asserts that the User may be the target of an actor-made {@link assign} or {@link remove}.
-     * The target must be a non-deleted Administrator, or the User of a non-deleted ApiKey which
-     * belongs to the active Channel, in which case the active user must also hold
-     * `UpdateApiKey` there. Any other User, a Customer's User included, is reported as not
-     * found, so that admin Roles cannot be granted to it and its existence is not disclosed.
+     * Asserts that the active user may change the given `(roleId, channelId)` pairs of the
+     * User through an actor-made {@link assign} or {@link remove}:
+     *
+     * - The User must be a non-deleted Administrator, or the User of a non-deleted ApiKey which
+     *   belongs to the active Channel. Any other User, a Customer's User included, is reported
+     *   as not found, so that admin Roles cannot be granted to it and its existence is not
+     *   disclosed.
+     * - The active user must have authority over the User ({@link activeUserCanManageUser}):
+     *   they may change the assignments only of a User whose every assignment they could
+     *   grant themselves. This is the same rule which decides which Administrators they may
+     *   see, so a User outside it is reported as not found too.
+     * - The active user must hold `UpdateAdministrator` (for an Administrator) or
+     *   `UpdateApiKey` (for an ApiKey) on the Channel of every pair, not just on the active
+     *   Channel which the `@Allow()` decorator checks.
      *
      * {@link assign} and {@link remove} do not call this themselves: the services which create
      * Administrators and ApiKeys assign Roles to a User whose entity they are still writing.
+     * They check the pairs' Channels with {@link assertActiveUserHasPermissionOnChannels}.
      *
      * @throws {EntityNotFoundError} if the User is neither a non-deleted Administrator nor the
-     * User of a non-deleted ApiKey on the active Channel
-     * @throws {ForbiddenError} if the User belongs to an ApiKey and the active user does not
-     * hold `UpdateApiKey` on the active Channel
+     * User of a non-deleted ApiKey on the active Channel, or the active user has no authority
+     * over it
+     * @throws {ForbiddenError} if the active user lacks the update permission on the active
+     * Channel or on the Channel of one of the pairs
      * @since 4.0.0
      */
-    async assertManageableSubject(ctx: RequestContext, userId: ID): Promise<void> {
+    async assertManageableSubject(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
+        const permission = await this.getSubjectUpdatePermission(ctx, userId);
+        if (!(await this.activeUserCanManageUser(ctx, userId))) {
+            throw new EntityNotFoundError('User', userId);
+        }
+        this.assertActiveUserHasPermissionOnChannels(ctx, permission, [
+            ctx.channelId,
+            ...pairs.map(pair => pair.channelId),
+        ]);
+    }
+
+    /**
+     * @description
+     * Asserts that the active user holds the permission on every one of the given Channels,
+     * typically the Channels of the `(roleId, channelId)` pairs an actor-made write names. The
+     * `@Allow()` decorator checks a mutation's permission on the active Channel only, while a
+     * pair may name any Channel: without this check an actor holding `UpdateAdministrator` on
+     * one Channel and a Role's permissions on another could change that other Channel's
+     * assignments.
+     *
+     * @throws {ForbiddenError} if the active user lacks the permission on one of the Channels
+     * @since 4.0.0
+     */
+    assertActiveUserHasPermissionOnChannels(
+        ctx: RequestContext,
+        permission: Permission,
+        channelIds: ID[],
+    ): void {
+        for (const channelId of unique(channelIds)) {
+            if (!ctx.userHasPermissions([permission], channelId)) {
+                throw new ForbiddenError();
+            }
+        }
+    }
+
+    /**
+     * The permission which guards changing the assignments of the User: `UpdateAdministrator`
+     * for an Administrator, `UpdateApiKey` for the User of an ApiKey on the active Channel.
+     */
+    private async getSubjectUpdatePermission(ctx: RequestContext, userId: ID): Promise<Permission> {
         const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
             where: { user: { id: userId }, deletedAt: IsNull() },
         });
         if (administrator) {
-            return;
+            return Permission.UpdateAdministrator;
         }
         const apiKey = await this.connection.getRepository(ctx, ApiKey).findOne({
             where: { userId, deletedAt: IsNull() },
@@ -348,9 +413,7 @@ export class RoleAssignmentService {
         if (!apiKeyOnChannel) {
             throw new EntityNotFoundError('User', userId);
         }
-        if (!ctx.userHasPermissions([Permission.UpdateApiKey])) {
-            throw new ForbiddenError();
-        }
+        return Permission.UpdateApiKey;
     }
 
     /**

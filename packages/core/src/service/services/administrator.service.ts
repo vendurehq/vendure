@@ -151,6 +151,11 @@ export class AdministratorService {
             [];
         // Checked before anything is written, so a denied grant leaves no Administrator behind
         // even for callers outside a transaction. RoleAssignmentService.assign checks again.
+        this.roleAssignmentService.assertActiveUserHasPermissionOnChannels(
+            ctx,
+            Permission.CreateAdministrator,
+            roleAssignments.map(pair => pair.channelId),
+        );
         await this.roleService.assertActiveUserCanGrantRoles(ctx, roleAssignments);
         const normalizedEmail = normalizeEmailAddress(input.emailAddress);
         await this.checkForDuplicateEmailAddress(ctx, normalizedEmail);

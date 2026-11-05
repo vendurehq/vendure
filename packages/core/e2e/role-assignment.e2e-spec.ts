@@ -695,13 +695,15 @@ describe('RoleAssignment', () => {
             expect(administrator).toBeNull();
         });
 
+        // The subject is outside the actor's authority, so none of its assignments is listed,
+        // not even the one the actor could grant: the actor could not change it either.
         it('the roleAssignments list is filtered and counts only visible assignments', async () => {
             const { roleAssignments } = await adminClient.query(roleAssignmentsOfUserDocument, {
                 userId: subject.user.id,
             });
 
-            expect(roleAssignments.totalItems).toBe(1);
-            expect(roleAssignments.items.map(a => a.role.code)).toEqual([adminManagerRole.code]);
+            expect(roleAssignments.totalItems).toBe(0);
+            expect(roleAssignments.items).toEqual([]);
 
             const { roleAssignments: all } = await adminClient.query(allRoleAssignmentsDocument);
             const visibleRoleCodes = all.items.map(a => a.role.code);
@@ -725,14 +727,33 @@ describe('RoleAssignment', () => {
 
         it('a hidden assignment cannot be removed', async () => {
             await asChannelAdminOnSecondChannel();
-            await assertThrowsWithMessage(async () => {
-                await adminClient.query(removeRolesFromUserDocument, {
-                    input: {
-                        userId: subject.user.id,
-                        assignments: [{ roleId: hiddenRole.id, channelId: secondChannel.id }],
-                    },
-                });
-            }, 'Active user does not have sufficient permissions')();
+            await assertThrowsWithMessage(
+                async () => {
+                    await adminClient.query(removeRolesFromUserDocument, {
+                        input: {
+                            userId: subject.user.id,
+                            assignments: [{ roleId: hiddenRole.id, channelId: secondChannel.id }],
+                        },
+                    });
+                },
+                `No User with the id "${subject.user.id.replace('T_', '')}" could be found`,
+            )();
+        });
+
+        // Removing the pair the actor could grant is refused too: the subject is outside the
+        // actor's authority, as for every other change to it.
+        it('a visible-looking assignment of an Administrator outside the actor authority cannot be removed', async () => {
+            await assertThrowsWithMessage(
+                async () => {
+                    await adminClient.query(removeRolesFromUserDocument, {
+                        input: {
+                            userId: subject.user.id,
+                            assignments: [{ roleId: adminManagerRole.id, channelId: secondChannel.id }],
+                        },
+                    });
+                },
+                `No User with the id "${subject.user.id.replace('T_', '')}" could be found`,
+            )();
         });
 
         // The deprecated roleIds replace-set fails closed: omitting a pair the actor cannot
@@ -755,16 +776,28 @@ describe('RoleAssignment', () => {
 
         // The invariant behind the whole design, checked over a matrix of actors × roles ×
         // channels rather than per scenario: a pair is in the actor's filtered read iff the
-        // actor's assignRolesToUser of that pair is accepted. The subject holds every pair of
-        // the matrix beforehand, so an accepted assign is a no-op and the matrix stays put.
+        // actor's assignRolesToUser of that pair is accepted. Each pair is held by its own
+        // subject, so that the actor's authority over the subject is decided by that pair
+        // alone. An accepted assign is then a no-op and the matrix stays put.
         it('a pair is visible to an actor iff the actor may assign it', async () => {
             await asSuperAdminOnDefaultChannel();
             const roleIds = [adminManagerRole.id, roleEditorRoleId, hiddenRole.id, superAdminRoleId];
             const channelIds = [DEFAULT_CHANNEL_ID, secondChannel.id];
-            const matrix = roleIds.flatMap(roleId => channelIds.map(channelId => ({ roleId, channelId })));
-            await adminClient.query(assignRolesToUserDocument, {
-                input: { userId: subject.user.id, assignments: matrix },
-            });
+            const matrix: Array<{ roleId: string; channelId: string; userId: string }> = [];
+            for (const roleId of roleIds) {
+                for (const channelId of channelIds) {
+                    const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
+                        input: {
+                            firstName: 'Matrix',
+                            lastName: 'Subject',
+                            emailAddress: `matrix-${roleId}-${channelId}@test.com`,
+                            password: 'test',
+                            roleAssignments: [{ roleId, channelId }],
+                        },
+                    });
+                    matrix.push({ roleId, channelId, userId: createAdministrator.user.id });
+                }
+            }
 
             const actors = [
                 { emailAddress: channelAdmin.emailAddress, channelToken: secondChannel.token },
@@ -774,14 +807,16 @@ describe('RoleAssignment', () => {
             for (const actor of actors) {
                 adminClient.setChannelToken(actor.channelToken);
                 await adminClient.asUserWithCredentials(actor.emailAddress, 'test');
-                const { roleAssignments } = await adminClient.query(roleAssignmentsOfUserDocument, {
-                    userId: subject.user.id,
-                });
-                const visiblePairs = roleAssignments.items.map(a => `${a.roleId}|${a.channelId}`);
-                for (const pair of matrix) {
+                for (const { roleId, channelId, userId } of matrix) {
+                    const { roleAssignments } = await adminClient.query(roleAssignmentsOfUserDocument, {
+                        userId,
+                    });
+                    const visible = roleAssignments.items.some(
+                        a => a.roleId === roleId && a.channelId === channelId,
+                    );
                     const accepted = await adminClient
                         .query(assignRolesToUserDocument, {
-                            input: { userId: subject.user.id, assignments: [pair] },
+                            input: { userId, assignments: [{ roleId, channelId }] },
                         })
                         .then(
                             () => true,
@@ -789,8 +824,8 @@ describe('RoleAssignment', () => {
                         );
                     outcomes.push({
                         actor: actor.emailAddress,
-                        pair: `${pair.roleId}|${pair.channelId}`,
-                        visible: visiblePairs.includes(`${pair.roleId}|${pair.channelId}`),
+                        pair: `${roleId}|${channelId}`,
+                        visible,
                         accepted,
                     });
                 }
@@ -803,21 +838,7 @@ describe('RoleAssignment', () => {
                 expect.arrayContaining([channelAdmin.emailAddress, defaultChannelManager.emailAddress]),
             );
             expect(outcomes.some(o => !o.accepted)).toBe(true);
-
-            // The SuperAdmin holds every permission everywhere, so every stored row is visible.
-            // The SuperAdmin pairs of the matrix collapse into the single default-channel row.
             await asSuperAdminOnDefaultChannel();
-            const { roleAssignments: superAdminView } = await adminClient.query(
-                roleAssignmentsOfUserDocument,
-                {
-                    userId: subject.user.id,
-                },
-            );
-            const storedRowCount = matrix.filter(
-                pair => pair.roleId !== superAdminRoleId || pair.channelId === DEFAULT_CHANNEL_ID,
-            ).length;
-            expect(storedRowCount).toBe(matrix.length - 1);
-            expect(superAdminView.totalItems).toBe(storedRowCount);
         });
     });
 

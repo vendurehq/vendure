@@ -2949,8 +2949,11 @@ export type Mutation = {
    * every permission of each Role on its Channel. Pairs the User already holds are left as-is.
    * The SuperAdmin Role is held on every Channel or not at all, so a SuperAdmin pair on any
    * Channel is stored as a single assignment on the default Channel.
-   * The User must be an Administrator, or the User of an ApiKey on the active Channel, in which
-   * case the active user also needs `UpdateApiKey`. Any other User is reported as not found.
+   * The User must be an Administrator, or the User of an ApiKey on the active Channel, and the
+   * active user must have authority over it: they must be able to grant every assignment the
+   * User holds. Any other User is reported as not found. The active user needs
+   * `UpdateAdministrator` (for an ApiKey's User, `UpdateApiKey`) on the active Channel and on
+   * the Channel of every pair.
    */
   assignRolesToUser: User;
   /** Assigns ShippingMethods to the specified Channel */
@@ -5569,9 +5572,10 @@ export type Query = {
   role?: Maybe<Role>;
   /**
    * Get a paginated list of RoleAssignments, filtered to those the active user may grant or
-   * remove: the active user must hold every permission of the assignment's Role on its
-   * Channel. For an actor who does not hold every permission on every Channel the list is
-   * partial, and `totalItems` counts only the visible assignments.
+   * remove: the assignments of the Users the active user has authority over, that is, Users
+   * whose every assignment the active user could grant. For an actor who does not hold every
+   * permission on every Channel the list is partial, and `totalItems` counts only the visible
+   * assignments.
    */
   roleAssignments: RoleAssignmentList;
   roles: RoleList;
@@ -6160,7 +6164,8 @@ export type Role = Node & {
 
 /**
  * A RoleAssignment grants a User the permissions of a Role on a specific Channel.
- * A Role is a channel-agnostic template; the RoleAssignment supplies the channel scope.
+ * The Role defines the permissions; the RoleAssignment supplies the channel scope. A Role owned by
+ * the default Channel can be assigned on any Channel, any other Role only on its owning Channel.
  * The SuperAdmin Role is the exception: it is stored as a single assignment on the default
  * Channel, which stands for every Channel.
  */
@@ -7387,8 +7392,9 @@ export type User = Node & {
   identifier: Scalars['String']['output'];
   lastLogin?: Maybe<Scalars['DateTime']['output']>;
   /**
-   * The RoleAssignments of this User which the active user may grant or remove. An actor who
-   * does not hold every permission on every Channel sees a partial list.
+   * The RoleAssignments of this User which the active user may grant or remove: all of them
+   * if the active user has authority over the User (may grant every one of its assignments),
+   * none otherwise.
    */
   roleAssignments: Array<RoleAssignment>;
   roles: Array<Role>;

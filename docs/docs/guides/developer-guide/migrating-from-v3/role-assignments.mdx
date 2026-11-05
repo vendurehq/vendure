@@ -293,7 +293,9 @@ input RoleAssignmentInput { roleId: ID!  channelId: ID! }
 
 - `assignRolesToUser` adds pairs, and `removeRolesFromUser` removes them. Both skip pairs that need no change.
 - The active user must hold every permission of a Role on a Channel to grant or revoke it there. A Role owned by a Channel other than the default one can only be granted on that Channel, even by a SuperAdmin.
-- `roleAssignments` and `User.roleAssignments` return only the pairs the active user may grant or revoke, so the list can be partial.
+- The active user must have authority over the User: they must be able to grant every assignment the User holds. This is the rule that decides which Administrators they can see, so for any other User both mutations return a not-found error.
+- The active user must hold `UpdateAdministrator` (or `UpdateApiKey` for an API key's User) on the Channel of every pair, not only on the active Channel. The `roleAssignments` input of `createAdministrator` and `createApiKey` needs `CreateAdministrator` or `CreateApiKey` on the Channel of every pair.
+- `roleAssignments` and `User.roleAssignments` return the assignments of the Users the active user has authority over, all of them, and nothing for other Users. So the list shows exactly the assignments the active user may change.
 - `createAdministrator` and `createApiKey` accept a `roleAssignments` input.
 - `Role.channel` returns the owning Channel.
 

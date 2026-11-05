@@ -312,7 +312,9 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
                 grant(admins.adminB.userId, [{ roleId: roles.R1.id, channelId: B }]),
             );
             record(S, 'cross-channel grant', 'deny', r);
-            if (!r.ok) expect(r.message).toContain(INSUFFICIENT);
+            // adminB holds R2 on B, which adminA may not grant, so adminA has no authority over
+            // adminB and it is reported as not found
+            if (!r.ok) expect(r.message).toContain('No User with the id');
         });
 
         it('adminA grants R2 on A to lowA (holds R2 on A)', async () => {
@@ -673,6 +675,7 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
                 { roleId: roleEditorRoleId, channelId: B },
                 { roleId: roles.R1.id, channelId: B },
             ]);
+            await createAdmin('lowB', [{ roleId: roles.R1.id, channelId: B }]);
         });
 
         it('roleEditorB creates RB on B', async () => {
@@ -686,7 +689,7 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
 
         it('adminB assigns RB on B', async () => {
             await as('adminB', B_TOKEN);
-            const r = await attempt(() => grant(admins.lowA.userId, [{ roleId: rb.id, channelId: B }]));
+            const r = await attempt(() => grant(admins.lowB.userId, [{ roleId: rb.id, channelId: B }]));
             record(S, 'assign owned role on its channel', 'allow', r);
         });
 
@@ -750,7 +753,81 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             );
             record(S, 'edit owned role', 'allow', r);
             await asSuper();
-            await revoke(admins.lowA.userId, [{ roleId: rb.id, channelId: B }]);
+            await revoke(admins.lowB.userId, [{ roleId: rb.id, channelId: B }]);
+        });
+    });
+
+    // ------------------------------------------------------------------------------------
+    // assignRolesToUser / removeRolesFromUser need authority over the target (the actor may
+    // grant every assignment it holds, the rule which also decides which Administrators the
+    // actor may see), and the admin permission on the Channel of every pair, not only on the
+    // active Channel which @Allow checks.
+    describe('3c. target authority and pair channels', () => {
+        const S = '3c-authority';
+
+        beforeAll(async () => {
+            await asSuper();
+            // Holds R2 (incl. UpdateAdministrator) on A, and R1's permissions but no admin
+            // permissions on B
+            await createAdmin('splitA', [
+                { roleId: roles.R2.id, channelId: A },
+                { roleId: roles.R1.id, channelId: B },
+            ]);
+            await createAdmin('emptyTarget', []);
+        });
+
+        it('adminA strips R1 on A from mixed, an admin it cannot see', async () => {
+            await as('adminA');
+            // mixed holds RMISC on B, which adminA may not grant
+            const r = await attempt(() => revoke(admins.mixed.userId, [{ roleId: roles.R1.id, channelId: A }]));
+            record(S, 'remove a pair from an admin outside the actor\'s authority', 'deny', r);
+            if (!r.ok) expect(r.message).toContain('No User with the id');
+            expect(await assignmentsOf(admins.mixed.userId)).toContain(`R1@${A}`);
+        });
+
+        it('adminA adds R1 on A to mixed, an admin it cannot see', async () => {
+            const r = await attempt(() => grant(admins.mixed.userId, [{ roleId: roles.R1.id, channelId: A }]));
+            record(S, 'assign a pair to an admin outside the actor\'s authority', 'deny', r);
+        });
+
+        it('adminA reads the assignments of mixed', async () => {
+            const { roleAssignments } = await adminClient.query(roleAssignmentsDocument, {
+                options: { filter: { userId: { eq: admins.mixed.userId } } },
+            });
+            const r: Attempt = roleAssignments.totalItems
+                ? { ok: true, value: roleAssignments.items }
+                : { ok: false, message: 'hidden' };
+            record(S, 'read assignments of an admin outside the actor\'s authority', 'deny', r);
+        });
+
+        it('splitA grants R1 on B from token A', async () => {
+            await as('splitA');
+            const r = await attempt(() => grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: B }]));
+            record(S, 'grant on a channel without UpdateAdministrator', 'deny', r);
+            if (!r.ok) expect(r.message).toContain(FORBIDDEN);
+            expect(await assignmentsOf(admins.emptyTarget.userId)).toEqual([]);
+        });
+
+        it('splitA creates an administrator with R1 on B from token A', async () => {
+            const r = await attempt(() =>
+                adminClient.query(createAdministratorDocument, {
+                    input: {
+                        firstName: 'split',
+                        lastName: 'Sec',
+                        emailAddress: 'split-created@sec.test',
+                        password: PASSWORD,
+                        roleAssignments: [{ roleId: roles.R1.id, channelId: B }],
+                    },
+                }),
+            );
+            record(S, 'create with a pair on a channel without CreateAdministrator', 'deny', r);
+            if (!r.ok) expect(r.message).toContain(FORBIDDEN);
+        });
+
+        it('splitA grants R1 on A', async () => {
+            const r = await attempt(() => grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]));
+            record(S, 'grant on the active channel with UpdateAdministrator', 'allow', r);
+            await revoke(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]);
         });
     });
 
@@ -807,27 +884,26 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
 
         it('adminA sees apiKeyB user in roleAssignments', async () => {
             await as('adminA');
-            const r = await attempt(async () => {
-                const { roleAssignments } = await adminClient.query(roleAssignmentsDocument, {
-                    options: { filter: { userId: { eq: apiKeyB.userId } } },
-                });
-                return roleAssignments.items.map(x => `${x.role.code}@${x.channelId}`);
+            const { roleAssignments } = await adminClient.query(roleAssignmentsDocument, {
+                options: { filter: { userId: { eq: apiKeyB.userId } } },
             });
+            const pairs = roleAssignments.items.map(x => `${x.role.code}@${x.channelId}`);
+            // apiKeyB holds R1 on B, which adminA may not grant: outside its authority
             record(
                 S,
                 'roleAssignments leaks foreign api-key user',
-                'observe',
-                r,
-                r.ok ? JSON.stringify(r.value) : undefined,
+                'deny',
+                pairs.length ? { ok: true, value: pairs } : { ok: false, message: 'hidden' },
+                JSON.stringify(pairs),
             );
         });
 
         it('adminA adds assignment to apiKeyB user without UpdateApiKey on B', async () => {
             const r = await attempt(() => grant(apiKeyB.userId, [{ roleId: roles.R1.id, channelId: A }]));
             // Every ApiKey is also attached to the default channel, and A is the default channel,
-            // so apiKeyB is reachable here, as it is for updateApiKey on master.
-            record(S, 'assign to api-key user of B from the default channel', 'observe', r);
-            if (r.ok) await revoke(apiKeyB.userId, [{ roleId: roles.R1.id, channelId: A }]);
+            // so apiKeyB is reachable here, but it holds R1 on B, which adminA may not grant.
+            record(S, 'assign to api-key user of B from the default channel', 'deny', r);
+            if (!r.ok) expect(r.message).toContain('No User with the id');
         });
 
         it('adminB (UpdateApiKey on B) changes apiKeyA user roles from B', async () => {
@@ -850,7 +926,9 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             await as('updA');
             const r = await attempt(() => revoke(apiKeyA.userId, [{ roleId: roles.R1.id, channelId: A }]));
             record(S, 'api-key target without UpdateApiKey', 'deny', r);
-            if (!r.ok) expect(r.message).toContain(FORBIDDEN);
+            // updA may not grant apiKeyA's R1 (it lacks UpdateCatalog), so the key's User is
+            // outside its authority and reported as not found before UpdateApiKey is checked
+            if (!r.ok) expect(r.message).toContain('No User with the id');
         });
 
         it('adminA assigns to a soft-deleted administrator', async () => {

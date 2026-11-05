@@ -775,6 +775,7 @@ describe('Role resolver', () => {
         let spanningRole: ResultOf<typeof createRoleDocument>['createRole'];
         let unheldSpanningRole: ResultOf<typeof createRoleDocument>['createRole'];
         let holder: FragmentOf<typeof administratorFragment>;
+        let grantee: FragmentOf<typeof administratorFragment>;
 
         beforeAll(async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
@@ -813,6 +814,20 @@ describe('Role resolver', () => {
                 },
             });
             holder = createAdministrator;
+            // The actor has no authority over holder, who holds Roles it may not grant, so
+            // grants go to an Administrator holding nothing yet
+            const { createAdministrator: createGrantee } = await adminClient.query(
+                createAdministratorDocument,
+                {
+                    input: {
+                        firstName: 'Spanning',
+                        lastName: 'Grantee',
+                        emailAddress: 'spanning-grantee@test.com',
+                        password: 'test',
+                    },
+                },
+            );
+            grantee = createGrantee;
 
             adminClient.setChannelToken(secondChannel.token);
             await adminClient.asUserWithCredentials('no-role-editor@test.com', 'test');
@@ -829,7 +844,7 @@ describe('Role resolver', () => {
         it('and the actor may grant it on their channel', async () => {
             const { assignRolesToUser } = await adminClient.query(assignRolesToUserDocument, {
                 input: {
-                    userId: holder.user.id,
+                    userId: grantee.user.id,
                     assignments: [{ roleId: spanningRole.id, channelId: secondChannel.id }],
                 },
             });
@@ -845,11 +860,12 @@ describe('Role resolver', () => {
             assertThrowsWithMessage(async () => {
                 await adminClient.query(assignRolesToUserDocument, {
                     input: {
-                        userId: holder.user.id,
+                        userId: grantee.user.id,
                         assignments: [{ roleId: spanningRole.id, channelId: DEFAULT_CHANNEL_ID }],
                     },
                 });
-            }, 'Active user does not have sufficient permissions'),
+                // The actor lacks UpdateAdministrator on the default channel
+            }, 'You are not currently authorized to perform this action'),
         );
 
         it('a Role whose permissions the actor holds nowhere stays hidden', async () => {

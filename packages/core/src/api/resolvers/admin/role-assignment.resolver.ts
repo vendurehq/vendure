@@ -42,7 +42,7 @@ export class RoleAssignmentResolver {
         @Ctx() ctx: RequestContext,
         @Args() { input }: MutationAssignRolesToUserArgs,
     ): Promise<User> {
-        await this.roleAssignmentService.assertManageableSubject(ctx, input.userId);
+        await this.roleAssignmentService.assertManageableSubject(ctx, input.userId, input.assignments);
         await this.roleAssignmentService.assign(ctx, input.userId, input.assignments);
         return assertFound(this.userService.getUserById(ctx, input.userId));
     }
@@ -54,7 +54,7 @@ export class RoleAssignmentResolver {
         @Ctx() ctx: RequestContext,
         @Args() { input }: MutationRemoveRolesFromUserArgs,
     ): Promise<User> {
-        await this.roleAssignmentService.assertManageableSubject(ctx, input.userId);
+        await this.roleAssignmentService.assertManageableSubject(ctx, input.userId, input.assignments);
         await this.roleAssignmentService.remove(ctx, input.userId, input.assignments);
         return assertFound(this.userService.getUserById(ctx, input.userId));
     }
