@@ -70,6 +70,21 @@ export class SimpleGraphQLClient {
 
     /**
      * @description
+     * Sets an arbitrary header to be sent with each subsequent request, or removes it when passed
+     * `null`. Useful for headers the server reads directly, such as `Accept-Language`.
+     *
+     * @since 3.8.0
+     */
+    setHeader(key: string, value: string | null) {
+        if (value === null) {
+            delete this.headers[key];
+        } else {
+            this.headers[key] = value;
+        }
+    }
+
+    /**
+     * @description
      * Returns the authToken currently being used.
      */
     getAuthToken(): string {

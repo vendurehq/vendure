@@ -21,11 +21,18 @@ type SellerList implements PaginatedList {
 
 input SellerListOptions
 
+input SellerTranslationInput {
+    id: ID
+    languageCode: LanguageCode!
+}
+
 input CreateSellerInput {
     name: String!
+    translations: [SellerTranslationInput!]
 }
 
 input UpdateSellerInput {
     id: ID!
     name: String
+    translations: [SellerTranslationInput!]
 }

@@ -103,7 +103,15 @@ test.describe('Global Settings', () => {
         await trackSwitch.click();
 
         // Click Update
-        await page.getByRole('button', { name: 'Update' }).click();
+        await Promise.all([
+            page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.request().postData()?.includes('UpdateGlobalSettings') === true &&
+                    response.status() === 200,
+            ),
+            page.getByRole('button', { name: 'Update' }).click(),
+        ]);
         await expect(
             page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
         ).toBeVisible({ timeout: 10_000 });
@@ -130,7 +138,15 @@ test.describe('Global Settings', () => {
 
         // Reset to original state
         await reloadedSwitch.click();
-        await page.getByRole('button', { name: 'Update' }).click();
+        await Promise.all([
+            page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.request().postData()?.includes('UpdateGlobalSettings') === true &&
+                    response.status() === 200,
+            ),
+            page.getByRole('button', { name: 'Update' }).click(),
+        ]);
         await expect(
             page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
         ).toBeVisible({ timeout: 10_000 });

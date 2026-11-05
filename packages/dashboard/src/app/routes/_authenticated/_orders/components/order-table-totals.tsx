@@ -2,7 +2,9 @@ import { Badge } from '@/vdb/components/ui/badge.js';
 import { TableCell, TableRow } from '@/vdb/components/ui/table.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
+
 import { Order } from '../utils/order-types.js';
+
 import { MoneyGrossNet } from './money-gross-net.js';
 
 export interface OrderTableTotalsProps {
@@ -17,7 +19,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
         <>
             {order.surcharges?.length > 0
                 ? order.surcharges.map((surcharge, index) => (
-                      <TableRow key={`${surcharge.description}-${index}`}>
+                      <TableRow key={`${surcharge.description}-${index}`} className="hover:bg-transparent">
                           <TableCell colSpan={columnCount - 1} className="h-12">
                               <Trans>Surcharge</Trans>: {surcharge.description}
                           </TableCell>
@@ -33,7 +35,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                 : null}
             {order.discounts?.length > 0
                 ? order.discounts.map((discount, index) => (
-                      <TableRow key={`${discount.description}-${index}`}>
+                      <TableRow key={`${discount.description}-${index}`} className="hover:bg-transparent">
                           <TableCell colSpan={columnCount - 1} className="h-12">
                               <Trans>Discount</Trans>: {discount.description}
                           </TableCell>
@@ -47,7 +49,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                       </TableRow>
                   ))
                 : null}
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={columnCount - 1} className="h-12">
                     <Trans>Sub total</Trans>
                 </TableCell>
@@ -59,7 +61,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                     />
                 </TableCell>
             </TableRow>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={columnCount - 1} className="h-12">
                     <div className="flex flex-wrap gap-1">
                         <div>
@@ -83,7 +85,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                     />
                 </TableCell>
             </TableRow>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={columnCount - 1} className="h-12 font-bold">
                     <Trans>Total</Trans>
                 </TableCell>

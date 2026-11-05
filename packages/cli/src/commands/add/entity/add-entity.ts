@@ -1,10 +1,11 @@
 import { cancel, isCancel, multiselect, spinner, text } from '@clack/prompts';
-import { kebabCase, pascalCase } from '../../../utilities/case-utils';
 import path from 'path';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
+import { kebabCase, pascalCase } from '../../../utilities/case-utils';
 
 import { pascalCaseRegex } from '../../../constants';
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { EntityRef } from '../../../shared/entity-ref';
 import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
@@ -149,7 +150,7 @@ async function getFeatures(options?: Partial<AddEntityOptions>): Promise<AddEnti
 
     if (isCancel(features)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     return {
         customFields: features.includes('customFields'),
@@ -242,7 +243,7 @@ export async function getCustomEntityName(_cancelledMessage: string) {
     });
     if (isCancel(entityName)) {
         cancel(_cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     return pascalCase(entityName);
 }

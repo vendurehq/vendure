@@ -690,5 +690,195 @@ describe('ConfigCollector', () => {
                 expect(result.hasCustomFulfillmentProcess).toBe(false);
             });
         });
+
+        describe('API / security posture', () => {
+            beforeEach(() => {
+                mockConfigService.apiOptions = {
+                    introspection: false,
+                    adminApiPlayground: true,
+                    shopApiPlayground: false,
+                    adminApiDebug: false,
+                    shopApiDebug: false,
+                    trustProxy: true,
+                    cors: { origin: '*', credentials: true },
+                } as any;
+                mockConfigService.authOptions = {
+                    ...mockConfigService.authOptions,
+                    tokenMethod: ['cookie', 'bearer'],
+                    requireVerification: false,
+                    disableAuth: true,
+                    superadminCredentials: { identifier: 'superadmin', password: 'superadmin' },
+                    cookieOptions: { secure: true, sameSite: 'strict' },
+                };
+                mockConfigService.settingsStoreFields = {
+                    dashboard: [{ name: 'a' }, { name: 'b' }],
+                    theme: [{ name: 'c' }],
+                } as any;
+            });
+
+            it('reduces api/auth posture to booleans and short enums', () => {
+                const result = collector.collect();
+
+                expect(result.apiIntrospectionEnabled).toBe(false);
+                expect(result.apiPlaygroundEnabled).toBe(true);
+                expect(result.apiDebugEnabled).toBe(false);
+                expect(result.trustProxyEnabled).toBe(true);
+                expect(result.corsWildcardOrigin).toBe(true);
+                expect(result.tokenMethods).toEqual(['cookie', 'bearer']);
+                expect(result.requireVerification).toBe(false);
+                expect(result.authDisabled).toBe(true);
+                expect(result.cookieSecure).toBe(true);
+                expect(result.cookieSameSite).toBe('strict');
+                expect(result.settingsStoreFieldCount).toBe(3);
+            });
+
+            it('introspection defaults to enabled when not explicitly disabled', () => {
+                mockConfigService.apiOptions = {} as any;
+                expect(collector.collect().apiIntrospectionEnabled).toBe(true);
+            });
+
+            it('treats cors: true as a wildcard origin', () => {
+                mockConfigService.apiOptions = { cors: true } as any;
+                expect(collector.collect().corsWildcardOrigin).toBe(true);
+            });
+
+            it('reports corsWildcardOrigin false when cors is disabled', () => {
+                mockConfigService.apiOptions = { cors: false } as any;
+                expect(collector.collect().corsWildcardOrigin).toBe(false);
+            });
+
+            it('reports corsWildcardOrigin false for a specific origin', () => {
+                mockConfigService.apiOptions = {
+                    cors: { origin: 'https://example.com' },
+                } as any;
+                expect(collector.collect().corsWildcardOrigin).toBe(false);
+            });
+
+            it('normalizes a single tokenMethod string to an array', () => {
+                mockConfigService.authOptions = { tokenMethod: 'bearer' } as any;
+                expect(collector.collect().tokenMethods).toEqual(['bearer']);
+            });
+
+            it('detects the default superadmin credentials', () => {
+                expect(collector.collect().defaultSuperadminCredentials).toBe(true);
+            });
+
+            it('returns false and never reads the actual values for changed credentials', () => {
+                mockConfigService.authOptions = {
+                    ...mockConfigService.authOptions,
+                    superadminCredentials: { identifier: 'admin', password: 'hunter2' },
+                };
+                expect(collector.collect().defaultSuperadminCredentials).toBe(false);
+            });
+        });
+
+        describe('customizedStrategies', () => {
+            it('flags only single-strategy fields that differ from the default config', () => {
+                mockConfigService.assetOptions = {
+                    // Differs from the default NoAssetStorageStrategy
+                    assetStorageStrategy: { constructor: { name: 'S3AssetStorageStrategy' } },
+                    // Matches the default
+                    assetNamingStrategy: { constructor: { name: 'DefaultAssetNamingStrategy' } },
+                    assetPreviewStrategy: { constructor: { name: 'NoAssetPreviewStrategy' } },
+                } as any;
+
+                const result = collector.collect();
+
+                expect(result.customizedStrategies).toContain('assetOptions.assetStorageStrategy');
+                expect(result.customizedStrategies).not.toContain('assetOptions.assetNamingStrategy');
+                expect(result.customizedStrategies).not.toContain('assetOptions.assetPreviewStrategy');
+            });
+
+            it('emits dotted paths, never strategy class names', () => {
+                mockConfigService.assetOptions = {
+                    assetStorageStrategy: { constructor: { name: 'SecretInternalStorageStrategy' } },
+                } as any;
+
+                const paths = collector.collect().customizedStrategies ?? [];
+
+                expect(paths).toContain('assetOptions.assetStorageStrategy');
+                for (const path of paths) {
+                    expect(path).not.toContain('SecretInternalStorageStrategy');
+                }
+            });
+
+            it('detects a customized entity access control strategy', () => {
+                mockConfigService.authOptions = {
+                    ...mockConfigService.authOptions,
+                    entityAccessControlStrategy: {
+                        constructor: { name: 'CustomEntityAccessControlStrategy' },
+                    },
+                };
+
+                expect(collector.collect().customizedStrategies).toContain(
+                    'authOptions.entityAccessControlStrategy',
+                );
+            });
+
+            it('detects a customized active order strategy array', () => {
+                mockConfigService.orderOptions = {
+                    ...mockConfigService.orderOptions,
+                    activeOrderStrategy: [
+                        { constructor: { name: 'DefaultActiveOrderStrategy' } },
+                        { constructor: { name: 'CustomActiveOrderStrategy' } },
+                    ],
+                };
+
+                expect(collector.collect().customizedStrategies).toContain(
+                    'orderOptions.activeOrderStrategy',
+                );
+            });
+
+            it('treats a default-equivalent active order strategy array as unchanged', () => {
+                mockConfigService.orderOptions = {
+                    ...mockConfigService.orderOptions,
+                    activeOrderStrategy: [{ constructor: { name: 'DefaultActiveOrderStrategy' } }],
+                };
+
+                expect(collector.collect().customizedStrategies).not.toContain(
+                    'orderOptions.activeOrderStrategy',
+                );
+            });
+
+            it('detects a customized strategy set via the deprecated root-level entityIdStrategy', () => {
+                // entityOptions.entityIdStrategy is unset; the project configured the
+                // deprecated root-level entityIdStrategy instead. The fallback should
+                // still surface it as customized against the default.
+                mockConfigService.entityOptions = { moneyStrategy: undefined } as any;
+                (mockConfigService as any).entityIdStrategy = {
+                    constructor: { name: 'CustomEntityIdStrategy' },
+                };
+
+                expect(collector.collect().customizedStrategies).toContain('entityOptions.entityIdStrategy');
+            });
+
+            it('does not flag entityIdStrategy when the root-level fallback matches the default', () => {
+                mockConfigService.entityOptions = {} as any;
+                (mockConfigService as any).entityIdStrategy = {
+                    constructor: { name: 'AutoIncrementIdStrategy' },
+                };
+
+                expect(collector.collect().customizedStrategies).not.toContain(
+                    'entityOptions.entityIdStrategy',
+                );
+            });
+
+            it('returns an empty array when no strategies are customized', () => {
+                // The base mock uses default-equivalent strategies for the fields it defines
+                mockConfigService.assetOptions = {
+                    assetStorageStrategy: { constructor: { name: 'NoAssetStorageStrategy' } },
+                } as any;
+                mockConfigService.entityOptions = {
+                    entityIdStrategy: { constructor: { name: 'AutoIncrementIdStrategy' } },
+                    moneyStrategy: { constructor: { name: 'DefaultMoneyStrategy' } },
+                } as any;
+                mockConfigService.orderOptions = { orderSellerStrategy: undefined, process: [] } as any;
+                mockConfigService.taxOptions = {} as any;
+                mockConfigService.systemOptions = {} as any;
+                mockConfigService.jobQueueOptions = {} as any;
+
+                expect(collector.collect().customizedStrategies).toEqual([]);
+            });
+        });
     });
 });

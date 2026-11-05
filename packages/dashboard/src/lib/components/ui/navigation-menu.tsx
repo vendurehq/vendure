@@ -8,4 +8,4 @@ export {
     NavigationMenuPositioner,
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
-} from '@vendure-io/ui/components/ui/navigation-menu';
+} from '@vendure-io/ui/components/atoms/navigation-menu';

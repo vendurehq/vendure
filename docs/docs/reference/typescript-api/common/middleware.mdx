@@ -2,7 +2,7 @@
 title: "Middleware"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/common/types/common-types.ts" sourceLine="213" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/types/common-types.ts" sourceLine="228" packageName="@vendure/core" />
 
 Defines API middleware, set in the [ApiOptions](/reference/typescript-api/configuration/api-options#apioptions). Middleware can be either
 [Express middleware](https://expressjs.com/en/guide/using-middleware.html) or [NestJS middleware](https://docs.nestjs.com/middleware).
@@ -30,6 +30,22 @@ export const config: VendureConfig = {
     }],
   },
 };
+```
+
+The `route` may also be scoped to a single API path if you only want to raise the limit (or
+otherwise customize body parsing) for that route, leaving the default parser in place everywhere
+else:
+
+*Example*
+
+```ts
+apiOptions: {
+  middleware: [{
+    handler: json({ limit: '10mb' }),
+    route: '/admin-api',
+    beforeListen: true,
+  }],
+},
 ```
 
 ```ts title="Signature"

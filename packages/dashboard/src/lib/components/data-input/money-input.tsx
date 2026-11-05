@@ -1,11 +1,13 @@
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AffixedInput } from './affixed-input.js';
+import { formatMoneyInputValue, getMoneyInputStep } from './money-input-utils.js';
 
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isFieldDisabled } from '@/vdb/framework/form-engine/utils.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
+import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 
 export interface MoneyInputProps extends DashboardFormComponentProps {
     currency?: string;
@@ -25,16 +27,18 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
     const activeCurrency = currency ?? activeChannel?.defaultCurrencyCode;
     const readOnly = isFieldDisabled(props.disabled, props.fieldDef);
     const { bcp47Tag } = useDisplayLocale();
-    const { toMajorUnits, toMinorUnits } = useLocalFormat();
-    const [displayValue, setDisplayValue] = useState(toMajorUnits(value).toFixed(2));
+    const { toMinorUnits } = useLocalFormat();
+    const precision = useServerConfig()?.moneyStrategyPrecision ?? 2;
+    const step = getMoneyInputStep(precision);
+    const [displayValue, setDisplayValue] = useState(formatMoneyInputValue(value, precision));
     const isFocused = useRef(false);
 
     // Update display value when prop value changes externally (but not while the user is typing)
     useEffect(() => {
         if (!isFocused.current) {
-            setDisplayValue(toMajorUnits(value).toFixed(2));
+            setDisplayValue(formatMoneyInputValue(value, precision));
         }
-    }, [value, toMajorUnits]);
+    }, [value, precision]);
 
     // Determine if the currency symbol should be a prefix based on locale
     const shouldPrefix = useMemo(() => {
@@ -69,7 +73,6 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
     return (
         <AffixedInput
             type="text"
-            className="bg-background"
             value={displayValue}
             disabled={readOnly}
             {...rest}
@@ -98,11 +101,11 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     const currentValue = parseFloat(displayValue) || 0;
-                    const step = e.key === 'ArrowUp' ? 0.01 : -0.01;
-                    const newValue = currentValue + step;
+                    const newValue = currentValue + (e.key === 'ArrowUp' ? step : -step);
                     if (newValue >= 0) {
-                        onChange(toMinorUnits(newValue));
-                        setDisplayValue(newValue.toString());
+                        const newMinorUnits = toMinorUnits(newValue);
+                        onChange(newMinorUnits);
+                        setDisplayValue(formatMoneyInputValue(newMinorUnits, precision));
                     }
                 }
             }}
@@ -111,16 +114,17 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
                 const inputValue = displayValue;
                 if (inputValue === '') {
                     onChange(0);
-                    setDisplayValue('0.00');
+                    setDisplayValue(formatMoneyInputValue(0, precision));
                     return;
                 }
                 const newValue = parseFloat(inputValue);
                 if (!isNaN(newValue)) {
-                    onChange(toMinorUnits(newValue));
-                    setDisplayValue(newValue.toFixed(2));
+                    const newMinorUnits = toMinorUnits(newValue);
+                    onChange(newMinorUnits);
+                    setDisplayValue(formatMoneyInputValue(newMinorUnits, precision));
                 }
             }}
-            step="0.01"
+            step={step}
             min="0"
             prefix={shouldPrefix ? currencySymbol : undefined}
             suffix={!shouldPrefix ? currencySymbol : undefined}

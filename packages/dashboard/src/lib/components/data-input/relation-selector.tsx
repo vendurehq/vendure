@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
@@ -11,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/pop
 import { getQueryName } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import { api } from '@/vdb/graphql/api.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import type { DocumentNode } from 'graphql';
@@ -195,6 +196,8 @@ export function RelationSelector<T>({
     className,
     selectorLabel,
 }: Readonly<RelationSelectorProps<T>>) {
+    const { t } = useLingui();
+
     const [open, setOpen] = useState(false);
     const [selectedItemsCache, setSelectedItemsCache] = useState<T[]>([]);
     const fetchedIdsRef = React.useRef<Set<string>>(new Set());
@@ -401,20 +404,18 @@ export function RelationSelector<T>({
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={disabled} className="gap-2" />}>
                         <Plus className="h-4 w-4" />
-                        <Trans>
-                            {isMultiple
-                                ? selectedItems.length > 0
-                                    ? `Add more (${selectedItems.length} selected)`
-                                    : (selectorLabel ?? <Trans>Select items</Trans>)
-                                : selectedItems.length > 0
-                                  ? 'Change selection'
-                                  : (selectorLabel ?? <Trans>Select item</Trans>)}
-                        </Trans>
+                        {isMultiple
+                            ? selectedItems.length > 0
+                                ? <Trans>Add more ({selectedItems.length} selected)</Trans>
+                                : (selectorLabel ?? <Trans>Select items</Trans>)
+                            : selectedItems.length > 0
+                                ? <Trans>Change selection</Trans>
+                                : (selectorLabel ?? <Trans>Select item</Trans>)}
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-[400px]" align="start">
                     <Command shouldFilter={false}>
                         <CommandInput
-                            placeholder={config.placeholder ?? 'Search...'}
+                            placeholder={config.placeholder ?? t`Search...`}
                             value={searchTerm}
                             onValueChange={setSearchTerm}
                             disabled={disabled}
@@ -422,10 +423,7 @@ export function RelationSelector<T>({
                         <CommandList className="h-[300px] overflow-y-auto" onScroll={handleScroll}>
                             <CommandEmpty>
                                 {isLoading ? (
-                                    <div className="flex items-center justify-center py-6">
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        <Trans>Loading...</Trans>
-                                    </div>
+                                    <LoadingState variant="spinner" className="py-6" />
                                 ) : (
                                     <Trans>No results found</Trans>
                                 )}

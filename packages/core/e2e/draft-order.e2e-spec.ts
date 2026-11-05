@@ -168,6 +168,23 @@ describe('Draft Orders resolver', () => {
         expect(adjustDraftOrderLine.lines[0].quantity).toBe(2);
     });
 
+    // GHSA-hc75-2v4j-x372 — adjustDraftOrderLine must reject unauthenticated callers
+    it('adjustDraftOrderLine is not accessible to anonymous users', async () => {
+        const firstLine = draftOrder.lines[0];
+        if (!firstLine) throw new Error('Expected first line to exist');
+        await adminClient.asAnonymousUser();
+        await expect(
+            adminClient.query(adjustDraftOrderLineDocument, {
+                orderId: draftOrder.id,
+                input: {
+                    orderLineId: firstLine.id,
+                    quantity: 99,
+                },
+            }),
+        ).rejects.toThrow('not currently authorized to perform this action');
+        await adminClient.asSuperAdmin();
+    });
+
     it('removeDraftOrderLine', async () => {
         const firstLine = draftOrder.lines[0];
         if (!firstLine) throw new Error('Expected first line to exist');

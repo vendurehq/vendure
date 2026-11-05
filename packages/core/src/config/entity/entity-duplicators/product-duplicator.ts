@@ -48,6 +48,7 @@ export const productDuplicator = new EntityDuplicator({
     },
     async duplicate({ ctx, id, args }) {
         const product = await connection.getEntityOrThrow(ctx, Product, id, {
+            channelId: ctx.channelId,
             relations: {
                 featuredAsset: true,
                 assets: true,
@@ -85,6 +86,10 @@ export const productDuplicator = new EntityDuplicator({
                 where: {
                     productId: id,
                     deletedAt: IsNull(),
+                    // A Product can be assigned to a channel without all of its variants
+                    // being assigned too, so the variants are scoped to the active channel
+                    // as well as the parent Product.
+                    channels: { id: ctx.channelId },
                 },
                 relations: {
                     options: {

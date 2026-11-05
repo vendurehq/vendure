@@ -6,7 +6,13 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
 "Language: de\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
 
-#: test-plugins/reviews/dashboard/review-list.tsx:51
+#: test-plugins/reviews/dashboard/review-list.tsx
 msgid "Product Reviews"
 msgstr "Produkt Bewertungen"

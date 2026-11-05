@@ -2,8 +2,11 @@ import path from 'path';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
+import { sharedTestConfig } from '../../vitest.shared.mjs';
+
 export default defineConfig({
     test: {
+        ...sharedTestConfig,
         // Type-level tests (`*.spec-d.ts`) are run via `vitest --typecheck`.
         // `tsconfig.spec-d.json` deliberately scopes the type-check program to the
         // `*.spec-d.ts` files (and their transitive imports) only — it does NOT type-check

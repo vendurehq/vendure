@@ -17,8 +17,9 @@ import {
 import { assertNever } from '@vendure/common/lib/shared-utils';
 
 import { RequestContext } from '../api/common/request-context';
+import type { EncryptionStrategy } from '../config/system/encryption-strategy';
 
-import { DEFAULT_LANGUAGE_CODE } from './constants';
+import { CONFIGURABLE_OPERATION_TRANSLATOR, DEFAULT_LANGUAGE_CODE } from './constants';
 import { InternalServerError } from './error/errors';
 import { Injector } from './injector';
 import { InjectableStrategy } from './types/injectable-strategy';
@@ -42,6 +43,68 @@ import { InjectableStrategy } from './types/injectable-strategy';
  */
 export type LocalizedStringArray = Array<Omit<LocalizedString, '__typename'>>;
 
+/**
+ * @description
+ * The registries into which a {@link ConfigurableOperationDef} may be placed. A `code` is only
+ * unique within a single registry — `buy_x_get_y_free`, for instance, is used by both a
+ * PromotionCondition and a PromotionAction — so the registry name forms part of the key under
+ * which translated strings are looked up.
+ *
+ * @docsCategory ConfigurableOperationDef
+ * @since 3.8.0
+ */
+export type ConfigurableOperationDefType =
+    | 'CollectionFilter'
+    | 'EntityDuplicator'
+    | 'FulfillmentHandler'
+    | 'PaymentMethodEligibilityChecker'
+    | 'PaymentMethodHandler'
+    | 'PromotionAction'
+    | 'PromotionCondition'
+    | 'ShippingCalculator'
+    | 'ShippingEligibilityChecker';
+
+/**
+ * @description
+ * Supplies translations for {@link ConfigurableOperationDef} descriptions and arg labels from the
+ * server-side message catalogs. Implemented by the `I18nService` and provided under the
+ * `CONFIGURABLE_OPERATION_TRANSLATOR` token.
+ *
+ * @docsCategory ConfigurableOperationDef
+ * @since 3.8.0
+ */
+export interface ConfigurableOperationTranslator {
+    /**
+     * @description
+     * Returns the string stored at the given path within the `configurableOperation` namespace of
+     * the catalog for `languageCode`, or `undefined` if there is no entry there. The value is
+     * returned verbatim, without ICU formatting, since operation descriptions contain
+     * `{ argName }` placeholders which are interpolated by the client.
+     */
+    getConfigurableOperationTranslation(languageCode: string, keyPath: string[]): string | undefined;
+}
+
+/**
+ * @description
+ * A single translatable string belonging to a {@link ConfigurableOperationDef}, as returned by
+ * {@link ConfigurableOperationDef.getTranslationKeys}.
+ *
+ * @docsCategory ConfigurableOperationDef
+ * @since 3.8.0
+ */
+export interface ConfigurableOperationTranslationKey {
+    /**
+     * @description
+     * The path to this string within the `configurableOperation` namespace of a message catalog.
+     */
+    keyPath: string[];
+    /**
+     * @description
+     * The string as defined inline on the operation, in the default (English) language.
+     */
+    sourceValue?: string;
+}
+
 export interface ConfigArgCommonDef<T extends ConfigArgType> {
     type: T;
     required?: boolean;
@@ -50,6 +113,17 @@ export interface ConfigArgCommonDef<T extends ConfigArgType> {
     label?: LocalizedStringArray;
     description?: LocalizedStringArray;
     ui?: UiComponentConfig<string>;
+    /**
+     * @description
+     * If set to `true`, the value of this arg is encrypted at rest using the configured
+     * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
+     * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
+     * permission). Other users receive a redaction placeholder. Only supported on `string` args.
+     *
+     * @since 3.8.0
+     * @default false
+     */
+    secret?: boolean;
 }
 
 export type ConfigArgListDef<
@@ -330,9 +404,38 @@ export interface ConfigurableOperationDefOptions<T extends ConfigArgs> extends I
  * });
  * ```
  *
+ * ## Translations
+ *
+ * The `description` of the operation, plus the `label` and `description` of each arg, may be
+ * defined inline as a {@link LocalizedStringArray}. They may also be supplied from the server-side
+ * message catalogs, under the `configurableOperation` namespace, using keys of the form:
+ *
+ * ```text
+ * configurableOperation.<type>.<code>.description
+ * configurableOperation.<type>.<code>.args.<argName>.label
+ * configurableOperation.<type>.<code>.args.<argName>.description
+ * configurableOperation.<type>.<code>.args.<argName>.options.<optionValue>.label
+ * ```
+ *
+ * where `<type>` is one of {@link ConfigurableOperationDefType}. Call
+ * {@link ConfigurableOperationDef.getTranslationKeys} to see the exact keys for a given operation.
+ * Catalog entries take precedence over the inline arrays for the same language, which means the
+ * strings of a third-party operation can be overridden by registering translations for its keys
+ * via `I18nService.addTranslation()`. A key which does not match any operation is simply never
+ * read, so a typo produces no error — the inline string is used instead.
+ *
+ * The description and the arg labels are resolved to a single string before being sent, in the
+ * language requested by the client. Select option labels are the exception: they are sent as a
+ * full {@link LocalizedStringArray} with the catalog translation merged in, because the Admin UI
+ * resolves them against the administrator's display language, which is a separate setting from the
+ * content language sent with the request.
+ *
  * @docsCategory ConfigurableOperationDef
  */
 export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
+    private defType?: ConfigurableOperationDefType;
+    private translator?: ConfigurableOperationTranslator;
+
     get code(): string {
         return this.options.code;
     }
@@ -342,12 +445,36 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     get description(): LocalizedStringArray {
         return this.options.description;
     }
+    protected encryptionStrategy?: EncryptionStrategy;
+
     constructor(protected options: ConfigurableOperationDefOptions<T>) {}
 
     async init(injector: Injector) {
+        this.translator = injector.get<ConfigurableOperationTranslator>(CONFIGURABLE_OPERATION_TRANSLATOR);
         if (typeof this.options.init === 'function') {
             await this.options.init(injector);
         }
+    }
+
+    /**
+     * @internal
+     * Sets the registry this operation is part of, which together with the `code` forms the key
+     * prefix under which its translated strings are looked up. Called during bootstrap by the
+     * ConfigModule, which holds the registries. An operation with no defType resolves its strings
+     * from the inline arrays only.
+     */
+    setDefType(defType: ConfigurableOperationDefType) {
+        this.defType = defType;
+    }
+
+    /**
+     * @internal
+     * Sets the EncryptionStrategy used to decrypt the values of any `secret` args. Called during
+     * bootstrap by the ConfigModule, where the ConfigService is available (avoiding a circular
+     * dependency in this module).
+     */
+    setEncryptionStrategy(encryptionStrategy: EncryptionStrategy | undefined) {
+        this.encryptionStrategy = encryptionStrategy;
     }
     async destroy() {
         if (typeof this.options.destroy === 'function') {
@@ -363,7 +490,7 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     toGraphQlType(ctx: RequestContext): ConfigurableOperationDefinition {
         return {
             code: this.code,
-            description: localizeString(this.description, ctx.languageCode, ctx.channel.defaultLanguageCode),
+            description: this.localizeString(this.description, ctx, ['description']) ?? '',
             args: Object.entries(this.args).map(
                 ([name, arg]) =>
                     ({
@@ -372,20 +499,162 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
                         list: arg.list ?? false,
                         required: arg.required ?? true,
                         defaultValue: arg.defaultValue,
-                        ui: arg.ui,
-                        label:
-                            arg.label &&
-                            localizeString(arg.label, ctx.languageCode, ctx.channel.defaultLanguageCode),
-                        description:
-                            arg.description &&
-                            localizeString(
-                                arg.description,
-                                ctx.languageCode,
-                                ctx.channel.defaultLanguageCode,
-                            ),
+                        ui: this.localizeUiOptions(arg.ui, ctx, name),
+                        secret: arg.secret ?? false,
+                        label: this.localizeString(arg.label, ctx, ['args', name, 'label']),
+                        description: this.localizeString(arg.description, ctx, [
+                            'args',
+                            name,
+                            'description',
+                        ]),
                     } as Required<ConfigArgDefinition>),
             ),
         };
+    }
+
+    /**
+     * @description
+     * Lists every string on this operation which can be translated via the message catalogs,
+     * along with the paths under which the translations must be stored in the
+     * `configurableOperation` namespace. Intended for translation tooling and for plugin authors
+     * checking which keys they need to define.
+     *
+     * @since 3.8.0
+     */
+    getTranslationKeys(): ConfigurableOperationTranslationKey[] {
+        if (!this.defType) {
+            return [];
+        }
+        const prefix = [this.defType, this.code];
+        const sourceOf = (strings: LocalizedStringArray | undefined) =>
+            strings?.find(x => x.languageCode === DEFAULT_LANGUAGE_CODE)?.value;
+        const keys: ConfigurableOperationTranslationKey[] = [
+            { keyPath: [...prefix, 'description'], sourceValue: sourceOf(this.description) },
+        ];
+        for (const [name, arg] of Object.entries(this.args)) {
+            keys.push({ keyPath: [...prefix, 'args', name, 'label'], sourceValue: sourceOf(arg.label) });
+            keys.push({
+                keyPath: [...prefix, 'args', name, 'description'],
+                sourceValue: sourceOf(arg.description),
+            });
+            for (const option of getUiOptions(arg.ui)) {
+                keys.push({
+                    keyPath: [...prefix, 'args', name, 'options', option.value, 'label'],
+                    sourceValue: sourceOf(option.label),
+                });
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * Resolves a single localized string, checking the message catalogs before the inline
+     * definition for each language in turn. Preferring the catalog allows a user to override the
+     * strings of a third-party operation without forking it, while checking both sources per
+     * language (rather than exhausting the catalogs first) means an operation which ships only
+     * inline translations still resolves to its own language rather than to the English catalog.
+     */
+    private localizeString(
+        inline: LocalizedStringArray | undefined,
+        ctx: RequestContext,
+        keyPath: string[],
+    ): string | undefined {
+        for (const languageCode of this.languagePreference(ctx)) {
+            // Truthiness, not a null check: an empty catalog entry means "not translated yet", the
+            // same as it does in the .po catalogs, so it falls through rather than blanking the
+            // string. A catalog therefore cannot be used to remove an inline string.
+            const fromCatalog = this.lookupCatalog(languageCode, keyPath);
+            if (fromCatalog) {
+                return fromCatalog;
+            }
+            const fromInline = inline?.find(x => x.languageCode === languageCode);
+            if (fromInline) {
+                return fromInline.value;
+            }
+        }
+        return inline?.[0]?.value;
+    }
+
+    /**
+     * The languages to try, in order, when resolving a string which the administrator reads.
+     *
+     * These strings describe the operation itself rather than the data it acts on, so they follow
+     * the language the client asked to read in its `Accept-Language` header. `ctx.languageCode`
+     * selects a translation of the data, so it comes after that, and is what a client which sends
+     * no header resolves against.
+     */
+    private languagePreference(ctx: RequestContext): LanguageCode[] {
+        return [
+            // Defensive: a hand-rolled RequestContext, as plugin tests often use, has no such field.
+            ...(ctx.acceptedLanguageCodes ?? []),
+            ctx.languageCode,
+            ctx.channel.defaultLanguageCode,
+            DEFAULT_LANGUAGE_CODE,
+        ];
+    }
+
+    /** Reads a single string out of the message catalogs, or undefined if the key is not set. */
+    private lookupCatalog(languageCode: LanguageCode, keyPath: string[]): string | undefined {
+        if (!this.defType) {
+            return undefined;
+        }
+        return this.translator?.getConfigurableOperationTranslation(languageCode, [
+            this.defType,
+            this.code,
+            ...keyPath,
+        ]);
+    }
+
+    /**
+     * Merges any catalog translation of a select option's label into the arg's `ui` config.
+     *
+     * Option labels stay as a full LocalizedStringArray rather than being resolved to one string
+     * like the operation description and the arg labels are, because the Admin UI picks the option
+     * label itself.
+     *
+     * The merged entry carries the language code the client asked for. Every client looks up its
+     * own display language and falls back to the first entry in the array when it finds no exact
+     * match, so a match reached by truncating `pt_BR` to `pt`, or one taken from the channel
+     * default or English further down the list, would be passed over if it were filed under the
+     * code the catalog entry was found for.
+     *
+     * The result is a copy, and the original is returned untouched when there is nothing to merge.
+     * `ui` belongs to the long-lived config object shared by every request, so merging in place
+     * would leak one request's translations into all the requests that follow it.
+     */
+    private localizeUiOptions(
+        ui: UiComponentConfig<string> | undefined,
+        ctx: RequestContext,
+        argName: string,
+    ): UiComponentConfig<string> | undefined {
+        const options = getUiOptions(ui);
+        if (!options.length) {
+            return ui;
+        }
+        const requestedLanguage = ctx.acceptedLanguageCodes?.[0] ?? ctx.languageCode;
+        let merged = false;
+        const localized = options.map(option => {
+            for (const languageCode of this.languagePreference(ctx)) {
+                const fromCatalog = this.lookupCatalog(languageCode, [
+                    'args',
+                    argName,
+                    'options',
+                    option.value,
+                    'label',
+                ]);
+                if (!fromCatalog) {
+                    continue;
+                }
+                merged = true;
+                const others = (option.label ?? []).filter(x => x.languageCode !== requestedLanguage);
+                return {
+                    ...option,
+                    label: [...others, { languageCode: requestedLanguage, value: fromCatalog }],
+                };
+            }
+            return option;
+        });
+        return merged ? { ...(ui as any), options: localized } : ui;
     }
 
     /**
@@ -402,10 +671,17 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         const output: ConfigArgValues<T> = {} as any;
         for (const arg of args) {
             if (arg && arg.value != null && this.args[arg.name] != null) {
+                const argDef = this.args[arg.name];
+                // Only values produced by encrypt() may be passed to decrypt(); a legacy plaintext
+                // secret value is used as-is.
+                const value =
+                    argDef.secret && this.encryptionStrategy?.isEncrypted(arg.value)
+                        ? this.encryptionStrategy.decrypt(arg.value)
+                        : arg.value;
                 output[arg.name as keyof ConfigArgValues<T>] = coerceValueToType<T>(
-                    arg.value,
-                    this.args[arg.name].type,
-                    this.args[arg.name].list || false,
+                    value,
+                    argDef.type,
+                    argDef.list || false,
                 );
             }
         }
@@ -413,22 +689,15 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     }
 }
 
-function localizeString(
-    stringArray: LocalizedStringArray,
-    languageCode: LanguageCode,
-    channelLanguageCode: LanguageCode,
-): string {
-    let match = stringArray.find(x => x.languageCode === languageCode);
-    if (!match) {
-        match = stringArray.find(x => x.languageCode === channelLanguageCode);
-    }
-    if (!match) {
-        match = stringArray.find(x => x.languageCode === DEFAULT_LANGUAGE_CODE);
-    }
-    if (!match) {
-        match = stringArray[0];
-    }
-    return match.value;
+/**
+ * The `select-form-input` component is the only one which defines localizable option labels, but
+ * the `ui` config of a custom component is untyped, so the options are read defensively.
+ */
+function getUiOptions(
+    ui: UiComponentConfig<string> | undefined,
+): Array<{ value: string; label?: LocalizedStringArray }> {
+    const options = (ui as any)?.options;
+    return Array.isArray(options) ? options : [];
 }
 
 function coerceValueToType<T extends ConfigArgs>(

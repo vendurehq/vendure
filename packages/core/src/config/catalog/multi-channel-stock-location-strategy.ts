@@ -1,5 +1,3 @@
-import type { GlobalSettingsService } from '../../service/index';
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import ms from 'ms';
 import { filter } from 'rxjs/operators';
@@ -11,10 +9,13 @@ import { ProductVariant } from '../../entity/index';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
-import { EventBus, StockLocationEvent } from '../../event-bus/index';
+import { ChangeChannelEvent, EventBus, StockLocationEvent } from '../../event-bus/index';
+import { Logger } from '../logger/vendure-logger';
 
 import { BaseStockLocationStrategy } from './default-stock-location-strategy';
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
+
+const loggerCtx = 'MultiChannelStockLocationStrategy';
 
 /**
  * @description
@@ -37,20 +38,14 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
     /** @internal */
     protected eventBus: EventBus;
     /** @internal */
-    protected globalSettingsService: GlobalSettingsService;
-    /** @internal */
     protected requestContextCache: RequestContextCacheService;
 
     /** @internal */
     async init(injector: Injector) {
-        super.init(injector);
+        await super.init(injector);
         this.eventBus = injector.get(EventBus);
         this.cacheService = injector.get(CacheService);
         this.requestContextCache = injector.get(RequestContextCacheService);
-        // Dynamically import the GlobalSettingsService to avoid circular dependency
-        const GlobalSettingsService = (await import('../../service/services/global-settings.service.js'))
-            .GlobalSettingsService;
-        this.globalSettingsService = injector.get(GlobalSettingsService);
         this.channelIdCache = this.cacheService.createCache({
             options: {
                 ttl: ms('7 days'),
@@ -59,11 +54,21 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
             getKey: id => this.getCacheKey(id),
         });
 
-        // When a StockLocation is updated, we need to invalidate the cache
+        // When a StockLocation is updated, we need to invalidate the cache.
+        // Note: `Cache.delete()` applies the configured `getKey` function itself,
+        // so it must be passed the raw id, not the result of `getCacheKey()`.
         this.eventBus
             .ofType(StockLocationEvent)
             .pipe(filter(event => event.type !== 'created'))
-            .subscribe(({ entity }) => this.channelIdCache.delete(this.getCacheKey(entity.id)));
+            .subscribe(({ entity }) => this.invalidateChannelIdCache(entity.id));
+
+        // Assigning a StockLocation to a Channel (or removing it) does not emit a
+        // StockLocationEvent, so we also need to invalidate the cache on ChangeChannelEvents
+        // which relate to StockLocations.
+        this.eventBus
+            .ofType(ChangeChannelEvent)
+            .pipe(filter(event => event.entityType === StockLocation))
+            .subscribe(({ entity }) => this.invalidateChannelIdCache(entity.id));
     }
 
     /**
@@ -100,7 +105,6 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const stockLevels = await this.getStockLevelsForVariant(ctx, orderLine.productVariantId);
         const variant = await this.connection.getEntityOrThrow(
             ctx,
             ProductVariant,
@@ -113,6 +117,20 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
             ctx,
             variant,
         );
+        // Only a tracked variant's figures decide how much is allocated, so only those need the lock.
+        let stockLevels: StockLevel[];
+        if (inventoryNotTracked) {
+            stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
+                where: { productVariantId: orderLine.productVariantId },
+                loadEagerRelations: false,
+            });
+        } else {
+            const stockLevelService = await this.getStockLevelService();
+            stockLevels = await stockLevelService.getLockedStockLevelsForVariant(
+                ctx,
+                orderLine.productVariantId,
+            );
+        }
         for (const stockLocation of stockLocations) {
             const stockLevel = stockLevels.find(sl => sl.stockLocationId === stockLocation.id);
             if (stockLevel && (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
@@ -144,53 +162,48 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         ctx: RequestContext,
         stockLevel: StockLevel,
     ): Promise<boolean> {
-        const channelIds = await this.channelIdCache.get(stockLevel.stockLocationId, async () => {
-            const stockLocation = await this.connection.getEntityOrThrow(
-                ctx,
-                StockLocation,
-                stockLevel.stockLocationId,
-                {
-                    relations: {
-                        channels: true,
-                    },
-                },
-            );
-            return stockLocation.channels.map(c => c.id);
-        });
+        const channelIds = await this.getChannelIdsForStockLocation(ctx, stockLevel.stockLocationId);
         return channelIds.includes(ctx.channelId);
     }
 
+    private getChannelIdsForStockLocation(ctx: RequestContext, stockLocationId: ID): Promise<ID[]> {
+        return this.requestContextCache.get(ctx, this.getCacheKey(stockLocationId), () =>
+            this.channelIdCache.get(stockLocationId, async () => {
+                const stockLocation = await this.connection.getEntityOrThrow(
+                    ctx,
+                    StockLocation,
+                    stockLocationId,
+                    {
+                        relations: {
+                            channels: true,
+                        },
+                    },
+                );
+                return stockLocation.channels.map(c => c.id);
+            }),
+        );
+    }
+
+    // Shared by both caches. They are separate stores, so the key does not collide in either.
     private getCacheKey(stockLocationId: ID) {
         return `MultiChannelStockLocationStrategy:StockLocationChannelIds:${stockLocationId}`;
     }
 
-    private getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID): Promise<StockLevel[]> {
-        return this.requestContextCache.get(
-            ctx,
-            `MultiChannelStockLocationStrategy.stockLevels.${productVariantId}`,
-            () =>
-                this.connection.getRepository(ctx, StockLevel).find({
-                    where: {
-                        productVariantId,
-                    },
-                    loadEagerRelations: false,
-                }),
-        );
-    }
-
-    private async getVariantStockSettings(ctx: RequestContext, variant: ProductVariant) {
-        const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
-
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
-        const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
-            ? outOfStockThreshold
-            : variant.outOfStockThreshold;
-
-        return {
-            inventoryNotTracked,
-            effectiveOutOfStockThreshold,
-        };
+    /**
+     * Invalidation runs in an event subscriber, so there is nothing to await the returned
+     * promise. A rejection here would otherwise be silent, leaving the stale channel id list
+     * to live out its full TTL.
+     */
+    private invalidateChannelIdCache(stockLocationId: ID) {
+        void this.channelIdCache
+            .delete(stockLocationId)
+            .catch(err =>
+                Logger.error(
+                    `Failed to invalidate StockLocation channel id cache for id ${stockLocationId}: ${
+                        err instanceof Error ? err.message : String(err)
+                    }`,
+                    loggerCtx,
+                ),
+            );
     }
 }

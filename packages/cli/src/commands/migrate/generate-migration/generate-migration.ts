@@ -1,10 +1,12 @@
 import { cancel, isCancel, log, select, spinner, text } from '@clack/prompts';
 import { unique } from '@vendure/common/lib/unique';
-import { generateMigration, VendureConfig } from '@vendure/core';
+import type { VendureConfig } from '@vendure/core';
 import path from 'path';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
+import { requireProjectCore } from '../../../shared/project-core';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 import { withInteractiveTimeout } from '../../../utilities/utils';
@@ -38,7 +40,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
     if (isCancel(name)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     const config = await loadVendureConfigFile(vendureConfig, tsConfigPath);
 
@@ -63,7 +65,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
         if (isCancel(migrationDirSelect)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         migrationDir = migrationDirSelect as string;
     }
@@ -79,14 +81,17 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
         if (isCancel(confirmation)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         migrationDir = confirmation;
     }
 
     const migrationSpinner = spinner();
     migrationSpinner.start('Generating migration...');
-    const migrationName = await generateMigration(config, { name, outputDir: migrationDir });
+    const migrationName = await requireProjectCore().generateMigration(config, {
+        name,
+        outputDir: migrationDir,
+    });
     const report =
         typeof migrationName === 'string'
             ? `New migration generated: ${migrationName}`

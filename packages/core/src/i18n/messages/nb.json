@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtrer etter fasettverdier",
+        "args": {
+          "facetValueIds": {
+            "label": "Fasettverdier"
+          },
+          "containsAny": {
+            "label": "Inneholder minst én",
+            "description": "Hvis dette er avkrysset, må produktvarianter ha minst én av de valgte fasettverdiene. Hvis det ikke er avkrysset, må varianten ha alle de valgte verdiene."
+          },
+          "combineWithAnd": {
+            "label": "Kombinasjonsmodus",
+            "description": "Hvis dette filteret kombineres med andre filtre, må alle betingelsene være oppfylt (AND), eller holder det med én av dem (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtrer etter produktvariantnavn",
+        "args": {
+          "combineWithAnd": {
+            "label": "Kombinasjonsmodus",
+            "description": "Hvis dette filteret kombineres med andre filtre, må alle betingelsene være oppfylt (AND), eller holder det med én av dem (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Velg produktvarianter manuelt",
+        "args": {
+          "variantIds": {
+            "label": "Produktvarianter"
+          },
+          "combineWithAnd": {
+            "label": "Kombinasjonsmodus",
+            "description": "Hvis dette filteret kombineres med andre filtre, må alle betingelsene være oppfylt (AND), eller holder det med én av dem (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Velg produkter manuelt",
+        "args": {
+          "productIds": {
+            "label": "Produkter"
+          },
+          "combineWithAnd": {
+            "label": "Kombinasjonsmodus",
+            "description": "Hvis dette filteret kombineres med andre filtre, må alle betingelsene være oppfylt (AND), eller holder det med én av dem (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Standard duplikator for produkter",
+        "args": {
+          "includeVariants": {
+            "label": "Inkluder varianter"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Standard duplikator for samlinger"
+      },
+      "facet-duplicator": {
+        "description": "Standard duplikator for fasetter",
+        "args": {
+          "includeFacetValues": {
+            "label": "Inkluder fasettverdier"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Standard duplikator for kampanjer"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Angi leveringsdetaljer manuelt"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "En dummy-betalingsleverandør beregnet kun for testing og utvikling.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autoriser og gjør opp i ett trinn",
+            "description": "Hvis dette er aktivert, opprettes betalinger med statusen \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Eksempel på betalingsleverandør"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Gi rabatt på bestillingen med et fast beløp"
+      },
+      "order_line_fixed_discount": {
+        "description": "Gi rabatt på orderLine med et fast beløp"
+      },
+      "order_percentage_discount": {
+        "description": "Gi { discount }% rabatt på bestillingen"
+      },
+      "facet_based_discount": {
+        "description": "Gi { discount }% rabatt på produkter med disse fasettene"
+      },
+      "products_percentage_discount": {
+        "description": "Gi { discount }% rabatt på de angitte produktene",
+        "args": {
+          "productVariantIds": {
+            "label": "Produktvarianter"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Gratis frakt"
+      },
+      "buy_x_get_y_free": {
+        "description": "Kjøp X produkter, få Y produkter gratis"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Hvis bestillingens totalbeløp er større enn { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Kjøp minst { minimum } produkter med de angitte fasettene"
+      },
+      "contains_products": {
+        "description": "Kjøp minst { minimum } av de angitte produktene",
+        "args": {
+          "productVariantIds": {
+            "label": "Produktvarianter"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Kunden er medlem av den angitte gruppen",
+        "args": {
+          "customerGroupId": {
+            "label": "Kundegruppe"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Kjøp X produkter, få Y produkter gratis",
+        "args": {
+          "variantIdsX": {
+            "label": "Kjøp amountX av disse variantene"
+          },
+          "variantIdsY": {
+            "label": "Få amountY av disse variantene gratis"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Standard fraktkalkulator med fast pris",
+        "args": {
+          "rate": {
+            "label": "Fraktpris"
+          },
+          "includesTax": {
+            "label": "Prisen inkluderer skatt",
+            "options": {
+              "include": {
+                "label": "Inkluderer skatt"
+              },
+              "exclude": {
+                "label": "Ekskluderer skatt"
+              },
+              "auto": {
+                "label": "Automatisk (basert på kanal)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Skattesats"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Standard kontroll av fraktberettigelse",
+        "args": {
+          "orderMinimum": {
+            "label": "Minste ordreverdi",
+            "description": "Bestillingen er kun berettiget hvis totalbeløpet er større enn eller lik denne verdien"
+          }
+        }
+      }
+    }
+  }
+}

@@ -5,4 +5,4 @@ export {
     AvatarGroup,
     AvatarGroupCount,
     AvatarImage,
-} from '@vendure-io/ui/components/ui/avatar';
+} from '@vendure-io/ui/components/atoms/avatar';

@@ -6,4 +6,4 @@ export {
     PaginationLink,
     PaginationNext,
     PaginationPrevious,
-} from '@vendure-io/ui/components/ui/pagination';
+} from '@vendure-io/ui/components/atoms/pagination';

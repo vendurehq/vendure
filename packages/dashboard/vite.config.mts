@@ -4,6 +4,8 @@ import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { vendureDashboardPlugin } from './vite/vite-plugin-vendure-dashboard.js';
 
+import { sharedTestConfig } from '../../vitest.shared.mjs';
+
 /**
  * This config is used for local development
  */
@@ -14,6 +16,10 @@ export default ({ mode }: { mode: string }) => {
     const adminApiPort = process.env.VITE_ADMIN_API_PORT ? +process.env.VITE_ADMIN_API_PORT : 'auto';
 
     process.env.IS_LOCAL_DEV = adminApiHost.includes('localhost') ? 'true' : 'false';
+    if (process.env.VITEST) {
+        // Unit tests never fetch the Platform catalog from api.vendure.io.
+        process.env.VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH = 'true';
+    }
 
     const vendureConfigPath = process.env.VENDURE_CONFIG_PATH
         ?? (process.env.VITEST
@@ -27,9 +33,10 @@ export default ({ mode }: { mode: string }) => {
             include: ['lodash/get', 'lodash/isString', 'lodash/isNaN'],
         },
         test: {
+            ...sharedTestConfig,
             globals: true,
             environment: 'jsdom',
-            exclude: ['./e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
+            exclude: ['./dist/**/*', './e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
             environmentMatchGlobs: [
                 ['vite/tests/**', 'node'],
             ],
@@ -39,6 +46,8 @@ export default ({ mode }: { mode: string }) => {
                 vendureConfigPath: pathToFileURL(vendureConfigPath),
                 api: { host: adminApiHost, port: adminApiPort },
                 tempCompilationDir: path.resolve(__dirname, './.temp'),
+                // Opt into the pre-built bundle for the bundle-mode e2e run.
+                useExperimentalBundle: process.env.VITE_USE_EXPERIMENTAL_BUNDLE === 'true',
             }) as any,
         ],
     });

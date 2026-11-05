@@ -13,6 +13,7 @@ import * as entityModule from '../src/commands/add/entity/add-entity';
 import * as jobQueueModule from '../src/commands/add/job-queue/add-job-queue';
 import * as pluginModule from '../src/commands/add/plugin/create-new-plugin';
 import * as serviceModule from '../src/commands/add/service/add-service';
+import { runCliCommand } from '../src/shared/cli-command-exit';
 
 const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -106,14 +107,9 @@ describe('Add Command E2E', () => {
         });
 
         it('throws when the plugin name is empty', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-            await addCommand({ plugin: '   ' });
+            await expect(runCliCommand(() => addCommand({ plugin: '   ' }))).resolves.toBe(1);
 
             expect(pluginRunSpy).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('adds an entity to the specified plugin', async () => {
@@ -134,14 +130,9 @@ describe('Add Command E2E', () => {
         });
 
         it('fails when adding an entity without specifying a plugin in non-interactive mode', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-            await addCommand({ entity: 'MyEntity' });
+            await expect(runCliCommand(() => addCommand({ entity: 'MyEntity' }))).resolves.toBe(1);
 
             expect(entityRunSpy).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('adds a service to the specified plugin', async () => {
@@ -174,14 +165,11 @@ describe('Add Command E2E', () => {
         });
 
         it('fails when job-queue parameters are incomplete', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-            await addCommand({ jobQueue: true, name: 'JobWithoutService' } as any);
+            await expect(
+                runCliCommand(() => addCommand({ jobQueue: true, name: 'JobWithoutService' } as any)),
+            ).resolves.toBe(1);
 
             expect(jobQueueRunSpy).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('adds codegen configuration with boolean flag (interactive plugin selection)', async () => {
@@ -213,27 +201,18 @@ describe('Add Command E2E', () => {
         });
 
         it('fails when neither queryName nor mutationName is provided for API extension', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-            await addCommand({ apiExtension: true } as any);
+            await expect(runCliCommand(() => addCommand({ apiExtension: true } as any))).resolves.toBe(1);
 
             expect(apiExtRunSpy).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('exits with error when no valid operation is specified', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+            // Empty options triggers interactive mode; mocked select returns an unknown id → exit 1
+            await expect(runCliCommand(() => addCommand({}))).resolves.toBe(1);
 
-            await addCommand({});
-
-            expect(exitSpy).not.toHaveBeenCalled(); // Empty options triggers interactive mode
             expect(pluginRunSpy).not.toHaveBeenCalled();
             expect(entityRunSpy).not.toHaveBeenCalled();
             expect(serviceRunSpy).not.toHaveBeenCalled();
-
-            exitSpy.mockRestore();
         });
     });
 });

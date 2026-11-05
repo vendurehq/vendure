@@ -1,0 +1,65 @@
+---
+title: "McpPlugin"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/plugin.ts" sourceLine="81" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Exposes Vendure's data and operations to AI agents via the [Model Context Protocol](https://modelcontextprotocol.io/).
+Tools decorated with `@McpTool` are automatically discovered and registered at bootstrap.
+
+*Example*
+
+```ts
+import { McpPlugin } from '@vendure/mcp-plugin';
+
+const config: VendureConfig = {
+    plugins: [
+        // Tools are exposed directly by default. Pass `toolExposure: 'discovery'`
+        // to expose a small set of search/execute meta-tools instead.
+        McpPlugin.init({}),
+    ],
+};
+```
+
+```ts title="Signature"
+class McpPlugin implements NestModule, OnApplicationBootstrap {
+    static options: ResolvedMcpPluginOptions;
+    constructor(processContext: ProcessContext, i18nService: I18nService)
+    configure(consumer: MiddlewareConsumer) => void;
+    init(options: McpPluginOptions = {}) => Type<McpPlugin>;
+    onApplicationBootstrap() => void;
+}
+```
+* Implements: NestModule, OnApplicationBootstrap
+
+
+
+<div className="members-wrapper">
+
+### options
+
+<MemberInfo kind="property" type={`ResolvedMcpPluginOptions`}   />
+
+The plugin options with every default applied. `init()` sets this, so it holds no value
+until the plugin is added to your Vendure config.
+### configure
+
+<MemberInfo kind="method" type={`(consumer: MiddlewareConsumer) => void`}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`(options: <a href='/reference/core-plugins/mcp-plugin/mcp-plugin-options#mcppluginoptions'>McpPluginOptions</a> = {}) => Type<<a href='/reference/core-plugins/mcp-plugin/#mcpplugin'>McpPlugin</a>>`}   />
+
+Sets the plugin options and returns the plugin class to add to your `plugins` array.
+Any option you leave out falls back to its default.
+### onApplicationBootstrap
+
+<MemberInfo kind="method" type={`() => void`}   />
+
+Builds the MCP message schemas up front, so the cost lands on startup rather than the
+first request, then checks the configured options for anything invalid or unsafe for a
+production server. Runs at startup, main server process only.
+
+
+</div>

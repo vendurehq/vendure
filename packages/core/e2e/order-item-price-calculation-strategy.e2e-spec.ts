@@ -1,4 +1,4 @@
-import { DefaultSearchPlugin, mergeConfig } from '@vendure/core';
+import { mergeConfig } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -7,16 +7,17 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { TestOrderItemPriceCalculationStrategy } from './fixtures/test-order-item-price-calculation-strategy';
-import { FragmentOf, ResultOf } from './graphql/graphql-shop';
+import { FragmentOf } from './graphql/graphql-shop';
+import { getProductWithVariantsDocument } from './graphql/shared-definitions';
 import {
     addItemToOrderCustomFieldsDocument,
     adjustOrderLineCustomFieldsDocument,
     orderWithLinesAndItemsFragment,
-    searchProductsShopDocument,
 } from './graphql/shop-definitions';
 
 describe('custom OrderItemPriceCalculationStrategy', () => {
-    let variants: ResultOf<typeof searchProductsShopDocument>['search']['items'];
+    let variantId: string;
+    let variantPrice: number;
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             customFields: {
@@ -25,7 +26,6 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
             orderOptions: {
                 orderItemPriceCalculationStrategy: new TestOrderItemPriceCalculationStrategy(),
             },
-            plugins: [DefaultSearchPlugin],
         }),
     );
 
@@ -40,10 +40,16 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 3,
         });
-        const { search } = await shopClient.query(searchProductsShopDocument, {
-            input: { take: 3, groupByProduct: false },
-        });
-        variants = search.items;
+        await adminClient.asSuperAdmin();
+        // Don't read prices via the `search` query here: the index may still be filling.
+        const { product } = await adminClient.query(getProductWithVariantsDocument, { id: 'T_1' });
+        const variant = product?.variants[0];
+        if (!variant) {
+            throw new Error('Could not find a product variant for test setup');
+        }
+        variantId = variant.id;
+        // `unitPrice` is the net price, so compare against the variant's net `price`
+        variantPrice = variant.price;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -53,11 +59,8 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
     let secondOrderLineId: string;
 
     it('does not add surcharge', async () => {
-        const variant0 = variants[0];
-        const variantPrice = 'value' in variant0.price ? variant0.price.value : variant0.price.min;
-
         const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
-            productVariantId: variant0.productVariantId,
+            productVariantId: variantId,
             quantity: 1,
             customFields: {
                 giftWrap: false,
@@ -69,11 +72,8 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
     });
 
     it('adds a surcharge', async () => {
-        const variant0 = variants[0];
-        const variantPrice = 'value' in variant0.price ? variant0.price.value : variant0.price.min;
-
         const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
-            productVariantId: variant0.productVariantId,
+            productVariantId: variantId,
             quantity: 1,
             customFields: {
                 giftWrap: true,
@@ -88,8 +88,6 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
     });
 
     it('re-calculates when customFields changes', async () => {
-        const variantPrice = 'value' in variants[0].price ? variants[0].price.value : variants[0].price.min;
-
         const { adjustOrderLine } = await shopClient.query(adjustOrderLineCustomFieldsDocument, {
             orderLineId: secondOrderLineId,
             quantity: 1,
@@ -105,8 +103,6 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
     });
 
     it('applies discount for quantity greater than 3', async () => {
-        const variantPrice = 'value' in variants[0].price ? variants[0].price.value : variants[0].price.min;
-
         const { adjustOrderLine } = await shopClient.query(adjustOrderLineCustomFieldsDocument, {
             orderLineId: secondOrderLineId,
             quantity: 4,

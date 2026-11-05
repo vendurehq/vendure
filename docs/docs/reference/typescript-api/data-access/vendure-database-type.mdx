@@ -1,0 +1,16 @@
+---
+title: "VendureDatabaseType"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/database-type.ts" sourceLine="15" packageName="@vendure/core" since="3.8.0" />
+
+The name of the TypeORM driver a Vendure project is configured with.
+
+This is TypeORM's own driver union widened with `sqlite`, which some TypeORM versions
+declare and others do not, even though a project may be configured with it either way.
+Switching on a driver name should use this type rather than `DataSourceOptions['type']`,
+so that the `sqlite` branches stay reachable.
+
+```ts title="Signature"
+type VendureDatabaseType = DataSourceOptions['type'] | 'sqlite'
+```
