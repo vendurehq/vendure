@@ -1868,13 +1868,13 @@
                   "title": "Role",
                   "slug": "role",
                   "file": "docs/reference/typescript-api/entities/role.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "RoleAssignment",
                   "slug": "role-assignment",
                   "file": "docs/reference/typescript-api/entities/role-assignment.mdx",
-                  "lastModified": "2026-09-14T07:29:57Z"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "Seller",
@@ -2364,7 +2364,7 @@
                   "title": "MigrateRoleAssignmentData",
                   "slug": "migrate-role-assignment-data",
                   "file": "docs/reference/typescript-api/migration/migrate-role-assignment-data.mdx",
-                  "lastModified": "2026-10-21T15:33:29+02:00"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "MigrationOptions",
@@ -2376,13 +2376,13 @@
                   "title": "PreviewRoleAssignmentMigration",
                   "slug": "preview-role-assignment-migration",
                   "file": "docs/reference/typescript-api/migration/preview-role-assignment-migration.mdx",
-                  "lastModified": "2026-10-14T14:44:40+02:00"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "RemoveLegacyRoleData",
                   "slug": "remove-legacy-role-data",
                   "file": "docs/reference/typescript-api/migration/remove-legacy-role-data.mdx",
-                  "lastModified": "2026-10-21T15:33:29+02:00"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "RevertLastMigration",
@@ -2984,7 +2984,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-10-01T15:45:00Z"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "CollectionService",
@@ -3122,13 +3122,13 @@
                   "title": "RoleAssignmentService",
                   "slug": "role-assignment-service",
                   "file": "docs/reference/typescript-api/services/role-assignment-service.mdx",
-                  "lastModified": "2026-10-21T15:33:29+02:00"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-09-10T15:41:07Z"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 },
                 {
                   "title": "SearchService",
@@ -3852,7 +3852,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-09-14T07:29:57Z"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3890,7 +3890,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-11-05T11:54:43Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
