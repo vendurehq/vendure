@@ -121,9 +121,6 @@ jobs:
                     'http://localhost:4873/-/user/org.couchdb.user:test')
                   TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
                   npm set //localhost:4873/:_authToken $TOKEN
-            - name: Windows dependencies
-              if: matrix.os == 'windows-latest'
-              run: npm install -g @angular/cli
             - name: Install via @vendure/create
               run: |
                   mkdir -p $HOME/install

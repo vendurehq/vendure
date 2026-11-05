@@ -7,11 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addCommand } from './add';
 import * as apiExtensionModule from './api-extension/add-api-extension';
 import * as codegenModule from './codegen/add-codegen';
+import * as dashboardModule from './dashboard/add-dashboard';
 import * as entityModule from './entity/add-entity';
 import * as jobQueueModule from './job-queue/add-job-queue';
 import * as pluginModule from './plugin/create-new-plugin';
 import * as serviceModule from './service/add-service';
-import * as uiExtensionsModule from './ui-extensions/add-ui-extensions';
 
 const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -62,8 +62,8 @@ vi.mock('./codegen/add-codegen', () => ({
 vi.mock('./api-extension/add-api-extension', () => ({
     addApiExtension: vi.fn(),
 }));
-vi.mock('./ui-extensions/add-ui-extensions', () => ({
-    addUiExtensions: vi.fn(),
+vi.mock('./dashboard/add-dashboard', () => ({
+    addDashboard: vi.fn(),
 }));
 
 // Mock clack prompts to prevent interactive prompts during tests
@@ -91,7 +91,7 @@ describe('add command', () => {
     const mockAddJobQueue = vi.mocked(jobQueueModule.addJobQueue);
     const mockAddCodegen = vi.mocked(codegenModule.addCodegen);
     const mockAddApiExtension = vi.mocked(apiExtensionModule.addApiExtension);
-    const mockAddUiExtensions = vi.mocked(uiExtensionsModule.addUiExtensions);
+    const mockAddDashboard = vi.mocked(dashboardModule.addDashboard);
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -110,7 +110,7 @@ describe('add command', () => {
         mockAddJobQueue.mockResolvedValue(defaultReturnValue as any);
         mockAddCodegen.mockResolvedValue(defaultReturnValue as any);
         mockAddApiExtension.mockResolvedValue(defaultReturnValue as any);
-        mockAddUiExtensions.mockResolvedValue(defaultReturnValue as any);
+        mockAddDashboard.mockResolvedValue(defaultReturnValue as any);
     });
 
     afterEach(() => {
@@ -191,13 +191,23 @@ describe('add command', () => {
             });
         });
 
-        it('detects non-interactive mode when uiExtensions option is provided', async () => {
-            await addCommand({ uiExtensions: 'TestPlugin' });
+        it('detects non-interactive mode when dashboard option is provided', async () => {
+            await addCommand({ dashboard: 'TestPlugin' });
 
-            expect(mockAddUiExtensions).toHaveBeenCalledWith({
+            expect(mockAddDashboard).toHaveBeenCalledWith({
                 isNonInteractive: true,
                 config: undefined,
                 pluginName: 'TestPlugin',
+            });
+        });
+
+        it('lets the dashboard plugin be selected when the dashboard flag has no value', async () => {
+            await addCommand({ dashboard: true });
+
+            expect(mockAddDashboard).toHaveBeenCalledWith({
+                isNonInteractive: true,
+                config: undefined,
+                pluginName: undefined,
             });
         });
 
@@ -211,12 +221,12 @@ describe('add command', () => {
         });
 
         it('treats false values as not triggering non-interactive mode', async () => {
-            await addCommand({ codegen: false, uiExtensions: false } as any);
+            await addCommand({ codegen: false, dashboard: false } as any);
 
             // Should NOT call any add functions (goes to interactive mode instead)
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
             expect(mockAddCodegen).not.toHaveBeenCalled();
-            expect(mockAddUiExtensions).not.toHaveBeenCalled();
+            expect(mockAddDashboard).not.toHaveBeenCalled();
         });
     });
 
@@ -261,6 +271,21 @@ describe('add command', () => {
             expect(log.error).toHaveBeenCalled();
             expect(exitSpy).toHaveBeenCalledWith(1);
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
+
+            exitSpy.mockRestore();
+        });
+
+        it('logs error and exits when the dashboard plugin name is blank', async () => {
+            const { log } = await import('@clack/prompts');
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+            await addCommand({ dashboard: '   ' });
+
+            expect(log.error).toHaveBeenCalledWith(
+                'Plugin name cannot be empty when specified. Usage: vendure add --dashboard [plugin-name]',
+            );
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mockAddDashboard).not.toHaveBeenCalled();
 
             exitSpy.mockRestore();
         });

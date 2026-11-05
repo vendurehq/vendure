@@ -1,6 +1,6 @@
 /*
  * This file contains constants which are shared between more than one sub-module
- * e.g. values required by both the server and admin-ui.
+ * e.g. values required by both the server and the Dashboard.
  */
 export const API_PORT = 3000;
 export const ADMIN_API_PATH = 'admin-api';

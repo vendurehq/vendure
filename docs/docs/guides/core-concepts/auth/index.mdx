@@ -379,7 +379,7 @@ Here's an example of an AuthenticationStrategy intended to be used on the Admin 
 
 This example uses [Keycloak](https://www.keycloak.org/), a popular open-source identity management server. To get your own Keycloak server up and running in minutes, follow the [Keycloak on Docker](https://www.keycloak.org/getting-started/getting-started-docker) guide.
 
-#### Configure a login page & Admin UI
+#### Configure a login page & Dashboard
 
 In this example, we'll assume the login page is hosted at `http://intranet/login`. We'll also assume that a "login to Vendure" button has been added to that page and that the page is using the [Keycloak JavaScript adapter](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter), which can be used to get the current user's authorization token:
 
@@ -401,31 +401,16 @@ vendureLoginButton.addEventListener('click', () => {
   )
   .then((result) => {
       if (result.data?.authenticate.user) {
-          // successfully authenticated - redirect to Vendure Admin UI
-          window.location.replace('http://localhost:3000/admin');
+          // successfully authenticated - redirect to the Vendure Dashboard
+          window.location.replace('http://localhost:3000/dashboard');
       }
   });
 });
 ```
 
-We also need to tell the Admin UI application about the custom login URL, since we have no need for the default "username/password" login form. This can be done by setting the [`loginUrl` property](/reference/typescript-api/common/admin-ui/admin-ui-config#loginurl) in the AdminUiConfig:
-
-```ts title="/src/vendure-config.ts"
-import { VendureConfig } from '@vendure/core';
-import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
-
-export const config: VendureConfig = {
-    // ...
-    plugins: [
-        AdminUiPlugin.init({
-            port: 5001,
-            adminUiConfig: {
-                loginUrl: 'http://intranet/login',
-            },
-        }),
-    ],
-};
-```
+If you'd also like users to be able to start this flow from the Dashboard's own login screen, you can add a
+"Login with Keycloak" button which links to your intranet login page using a
+[login page extension](/extending-the-dashboard/customizing-pages/customizing-login-page).
 
 #### Backend
 

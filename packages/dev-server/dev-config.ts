@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import { OnApplicationBootstrap } from '@nestjs/common';
-import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { ADMIN_API_PATH, API_PORT, SHOP_API_PATH } from '@vendure/common/lib/shared-constants';
 import {
@@ -151,54 +150,6 @@ export const devConfig: VendureConfig = {
             },
         }),
         ...(IS_INSTRUMENTED ? [TelemetryPlugin.init({})] : []),
-        // AdminUiPlugin.init({
-        //     route: 'admin',
-        //     port: 5001,
-        //     adminUiConfig: {},
-        //     // Un-comment to compile a custom admin ui
-        //     // app: compileUiExtensions({
-        //     //     outputPath: path.join(__dirname, './custom-admin-ui'),
-        //     //     extensions: [
-        //     //         {
-        //     //             id: 'ui-extensions-library',
-        //     //             extensionPath: path.join(__dirname, 'example-plugins/ui-extensions-library/ui'),
-        //     //             routes: [{ route: 'ui-library', filePath: 'routes.ts' }],
-        //     //             providers: ['providers.ts'],
-        //     //         },
-        //     //         {
-        //     //             globalStyles: path.join(
-        //     //                 __dirname,
-        //     //                 'test-plugins/with-ui-extension/ui/custom-theme.scss',
-        //     //             ),
-        //     //         },
-        //     //     ],
-        //     //     devMode: true,
-        //     // }),
-        // }),
-        AdminUiPlugin.init({
-            route: 'admin',
-            port: 5001,
-            adminUiConfig: {},
-            // Un-comment to compile a custom admin ui
-            // app: compileUiExtensions({
-            //     outputPath: path.join(__dirname, './custom-admin-ui'),
-            //     extensions: [
-            //         {
-            //             id: 'ui-extensions-library',
-            //             extensionPath: path.join(__dirname, 'example-plugins/ui-extensions-library/ui'),
-            //             routes: [{ route: 'ui-library', filePath: 'routes.ts' }],
-            //             providers: ['providers.ts'],
-            //         },
-            //         {
-            //             globalStyles: path.join(
-            //                 __dirname,
-            //                 'test-plugins/with-ui-extension/ui/custom-theme.scss',
-            //             ),
-            //         },
-            //     ],
-            //     devMode: true,
-            // }),
-        }),
         DashboardPlugin.init({
             route: 'dashboard',
             appDir: dashboardAppDir,

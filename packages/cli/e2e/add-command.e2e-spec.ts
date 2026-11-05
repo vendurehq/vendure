@@ -13,7 +13,6 @@ import * as entityModule from '../src/commands/add/entity/add-entity';
 import * as jobQueueModule from '../src/commands/add/job-queue/add-job-queue';
 import * as pluginModule from '../src/commands/add/plugin/create-new-plugin';
 import * as serviceModule from '../src/commands/add/service/add-service';
-import * as uiExtensionsModule from '../src/commands/add/ui-extensions/add-ui-extensions';
 
 const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -71,7 +70,6 @@ let serviceRunSpy: Spy;
 let jobQueueRunSpy: Spy;
 let codegenRunSpy: Spy;
 let apiExtRunSpy: Spy;
-let uiExtRunSpy: Spy;
 
 beforeEach(() => {
     vi.stubEnv('CI', 'false');
@@ -89,9 +87,6 @@ beforeEach(() => {
     codegenRunSpy = vi.spyOn(codegenModule, 'addCodegen').mockResolvedValue(defaultReturnValue as any);
     apiExtRunSpy = vi
         .spyOn(apiExtensionModule, 'addApiExtension')
-        .mockResolvedValue(defaultReturnValue as any);
-    uiExtRunSpy = vi
-        .spyOn(uiExtensionsModule, 'addUiExtensions')
         .mockResolvedValue(defaultReturnValue as any);
 });
 
@@ -226,13 +221,6 @@ describe('Add Command E2E', () => {
             expect(exitSpy).toHaveBeenCalledWith(1);
 
             exitSpy.mockRestore();
-        });
-
-        it('adds UI extensions when the uiExtensions flag is used', async () => {
-            await addCommand({ uiExtensions: 'MyPlugin' });
-
-            expect(uiExtRunSpy).toHaveBeenCalledOnce();
-            expect(uiExtRunSpy.mock.calls[0][0]).toMatchObject({ pluginName: 'MyPlugin' });
         });
 
         it('exits with error when no valid operation is specified', async () => {

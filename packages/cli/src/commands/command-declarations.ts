@@ -145,13 +145,6 @@ export const cliCommands: CliCommandDefinition[] = [
                 interactiveCategory: 'Plugin: Dashboard',
                 interactiveFn: addDashboard,
             },
-            {
-                short: '-u',
-                long: '--ui-extensions [plugin]',
-                description:
-                    'Add UI extensions to a plugin (deprecated: considering migrating to the new Dashboard)',
-                required: false,
-            },
         ],
         action: async options => {
             const { addCommand } = await import('./add/add');

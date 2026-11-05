@@ -19,8 +19,6 @@ const KNOWN_VENDURE_PLUGINS: Record<string, string> = {
     AssetServerPlugin: '@vendure/asset-server-plugin',
     // @vendure/email-plugin
     EmailPlugin: '@vendure/email-plugin',
-    // @vendure/admin-ui-plugin
-    AdminUiPlugin: '@vendure/admin-ui-plugin',
     // @vendure/dashboard
     DashboardPlugin: '@vendure/dashboard',
     // @vendure/job-queue-plugin
