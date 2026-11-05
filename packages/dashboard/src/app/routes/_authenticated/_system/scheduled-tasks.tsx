@@ -27,11 +27,9 @@ import { PayloadDialog } from './components/payload-dialog.js';
 
 // A scheduled task's enablement and execution status. `running` means the task
 // is executing right now (progress — renders a pulsing dot). Enabled is the
-// expected default and stays calm; disabled is the exception worth spotting
-// (critical, matching BooleanDisplayBadge). Keys are the local flag values,
-// not wire states.
+// expected default and shows no badge; disabled is the exception worth spotting
+// (critical). Keys are the local flag values, not wire states.
 const scheduledTaskStateDictionary = defineStateEntries({
-    enabled: { tone: 'neutral', defaultLabel: 'Enabled' },
     disabled: { tone: 'critical', defaultLabel: 'Disabled' },
     running: { tone: 'progress', defaultLabel: 'Running' },
     idle: { tone: 'neutral', defaultLabel: 'Not Running' },
@@ -130,17 +128,17 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('enabled', {
             header: t`Enabled`,
-            cell: ({ row }) => {
-                return (
-                    <StatusBadge
-                        tone={scheduledTaskStateDictionary.toneFor(
-                            row.original.enabled ? 'enabled' : 'disabled',
-                        )}
-                    >
-                        {row.original.enabled ? <Trans>Enabled</Trans> : <Trans>Disabled</Trans>}
+            // The column header already says "Enabled": only a disabled task gets a badge.
+            cell: ({ row }) =>
+                row.original.enabled ? (
+                    <span className="sr-only">
+                        <Trans>Enabled</Trans>
+                    </span>
+                ) : (
+                    <StatusBadge tone={scheduledTaskStateDictionary.toneFor('disabled')}>
+                        <Trans>Disabled</Trans>
                     </StatusBadge>
-                );
-            },
+                ),
         }),
         columnHelper.accessor('schedule', {
             header: t`Schedule Pattern`,

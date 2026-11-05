@@ -12,6 +12,11 @@ export function BooleanDisplayYesNoBadge({ value }: Readonly<{ value: boolean }>
     return <StatusBadge tone={value ? 'success' : 'neutral'}>{value ? t`Yes` : t`No`}</StatusBadge>;
 }
 
+/**
+ * A `false` value shows a badge ("Disabled" by default). A `true` value shows no badge, only a
+ * label for screen readers ("Enabled" by default). In a column named "Enabled", a visible
+ * "Enabled" badge in each row only repeats the header.
+ */
 export function BooleanDisplayBadge({
     value,
     labelTrue,
@@ -22,9 +27,8 @@ export function BooleanDisplayBadge({
     labelFalse?: string | React.ReactNode;
 }) {
     const { t } = useLingui();
-    return (
-        <StatusBadge tone={value ? 'success' : 'neutral'}>
-            {value ? (labelTrue ?? t`Enabled`) : (labelFalse ?? t`Disabled`)}
-        </StatusBadge>
-    );
+    if (value) {
+        return <span className="sr-only">{labelTrue ?? t`Enabled`}</span>;
+    }
+    return <StatusBadge tone="neutral">{labelFalse ?? t`Disabled`}</StatusBadge>;
 }
