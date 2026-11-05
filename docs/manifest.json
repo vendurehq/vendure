@@ -103,7 +103,7 @@
           "title": "Fulfillment",
           "slug": "fulfillment",
           "file": "docs/guides/core-concepts/fulfillment/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Inventory",
@@ -121,7 +121,7 @@
           "title": "Zones",
           "slug": "zones",
           "file": "docs/guides/core-concepts/zones/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Language",
@@ -169,7 +169,7 @@
           "title": "Auth",
           "slug": "auth",
           "file": "docs/guides/core-concepts/auth/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Channels",
@@ -236,7 +236,7 @@
           "title": "Custom Fields",
           "slug": "custom-fields",
           "file": "docs/guides/developer-guide/custom-fields/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Error Handling",
@@ -266,7 +266,7 @@
           "title": "Security",
           "slug": "security",
           "file": "docs/guides/developer-guide/security/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "API Keys",
@@ -398,7 +398,7 @@
           "title": "Translations",
           "slug": "translations",
           "file": "docs/guides/developer-guide/translations/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Uploading Files",
@@ -434,7 +434,7 @@
           "title": "Codegen",
           "slug": "codegen",
           "file": "docs/guides/how-to/codegen/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Configurable Products",
@@ -476,7 +476,7 @@
           "title": "Publish Plugin",
           "slug": "publish-plugin",
           "file": "docs/guides/how-to/publish-plugin/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "S3 Asset Storage",
@@ -500,13 +500,13 @@
           "title": "Getting Started",
           "slug": "getting-started",
           "file": "docs/guides/extending-the-dashboard/getting-started/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Extending Overview",
           "slug": "extending-overview",
           "file": "docs/guides/extending-the-dashboard/extending-overview/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Public API & Imports",
@@ -644,19 +644,19 @@
           "title": "Theming",
           "slug": "theming",
           "file": "docs/guides/extending-the-dashboard/theming/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Localization",
           "slug": "localization",
           "file": "docs/guides/extending-the-dashboard/localization/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Deployment",
           "slug": "deployment",
           "file": "docs/guides/extending-the-dashboard/deployment/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Tech Stack",
@@ -668,7 +668,7 @@
           "title": "Migration",
           "slug": "migration",
           "file": "docs/guides/extending-the-dashboard/migration/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Custom Providers",
@@ -777,13 +777,13 @@
           "title": "Deploy to Northflank",
           "slug": "deploy-to-northflank",
           "file": "docs/guides/deployment/deploy-to-northflank/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Deploy to Digital Ocean App Platform",
           "slug": "deploy-to-digital-ocean-app-platform",
           "file": "docs/guides/deployment/deploy-to-digital-ocean-app-platform/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Deploy to Railway",
@@ -795,7 +795,7 @@
           "title": "Deploy to Render",
           "slug": "deploy-to-render",
           "file": "docs/guides/deployment/deploy-to-render/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Deploy to Google Cloud Run",
@@ -804,7 +804,7 @@
           "lastModified": "2026-06-19T16:37:02+02:00"
         }
       ],
-      "lastModified": "2026-11-05T11:25:41Z"
+      "lastModified": "2026-11-05T13:13:02+01:00"
     },
     {
       "title": "Legacy APIs",
@@ -1144,7 +1144,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1165,7 +1165,7 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-11-05T11:31:55Z"
+              "lastModified": "2026-11-05T13:13:02+01:00"
             },
             {
               "title": "ConfigurableOperationDef",
@@ -1176,19 +1176,19 @@
                   "title": "ConfigArgs",
                   "slug": "config-args",
                   "file": "docs/reference/typescript-api/configurable-operation-def/config-args.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "ConfigArgType",
                   "slug": "config-arg-type",
                   "file": "docs/reference/typescript-api/configurable-operation-def/config-arg-type.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "ConfigurableOperationDefOptions",
                   "slug": "configurable-operation-def-options",
                   "file": "docs/reference/typescript-api/configurable-operation-def/configurable-operation-def-options.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "DefaultFormComponentId",
@@ -1206,10 +1206,10 @@
                   "title": "LocalizedStringArray",
                   "slug": "localized-string-array",
                   "file": "docs/reference/typescript-api/configurable-operation-def/localized-string-array.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 }
               ],
-              "lastModified": "2026-11-05T11:25:41Z"
+              "lastModified": "2026-11-05T13:13:02+01:00"
             },
             {
               "title": "Configuration",
@@ -2830,7 +2830,7 @@
                   "title": "HistoryService",
                   "slug": "history-service",
                   "file": "docs/reference/typescript-api/services/history-service.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "InitializerService",
@@ -3388,7 +3388,7 @@
                   "title": "S3AssetStorageStrategy",
                   "slug": "s3asset-storage-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy.mdx",
-                  "lastModified": "2026-11-05T11:31:55Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "SharpAssetPreviewStrategy",
@@ -3573,7 +3573,7 @@
               "lastModified": "2026-04-20T16:08:16+02:00"
             }
           ],
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "GraphQL API",
@@ -3588,13 +3588,13 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "Mutations",
@@ -3606,13 +3606,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-05T11:25:41Z"
+                  "lastModified": "2026-11-05T13:13:02+01:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4168,7 +4168,7 @@
               "title": "Draft Orders",
               "slug": "draft-orders",
               "file": "docs/user-guide/orders/draft-orders.mdx",
-              "lastModified": "2026-11-05T11:25:41Z"
+              "lastModified": "2026-11-05T13:13:02+01:00"
             }
           ],
           "lastModified": "2026-02-12T16:47:03+01:00"
@@ -4177,7 +4177,7 @@
           "title": "Customers",
           "slug": "customers",
           "file": "docs/user-guide/customers/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         },
         {
           "title": "Promotions",
@@ -4200,7 +4200,7 @@
               "title": "Administrators & Roles",
               "slug": "administrators-roles",
               "file": "docs/user-guide/settings/administrators-roles.mdx",
-              "lastModified": "2026-11-05T11:25:41Z"
+              "lastModified": "2026-11-05T13:13:02+01:00"
             },
             {
               "title": "Channels",
@@ -4224,7 +4224,7 @@
               "title": "Shipping Methods",
               "slug": "shipping-methods",
               "file": "docs/user-guide/settings/shipping-methods.mdx",
-              "lastModified": "2026-11-05T11:25:41Z"
+              "lastModified": "2026-11-05T13:13:02+01:00"
             },
             {
               "title": "Taxes",
@@ -4239,11 +4239,11 @@
           "title": "Localization",
           "slug": "localization",
           "file": "docs/user-guide/localization/index.mdx",
-          "lastModified": "2026-11-05T11:25:41Z"
+          "lastModified": "2026-11-05T13:13:02+01:00"
         }
       ],
       "hidden": true,
-      "lastModified": "2026-11-05T11:25:41Z"
+      "lastModified": "2026-11-05T13:13:02+01:00"
     }
   ],
   "github": {
