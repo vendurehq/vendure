@@ -47,8 +47,8 @@ msgstr "Nuova aliquota fiscale"
 msgid "Assign an existing option group or create a new one"
 msgstr "Assegna un gruppo di opzioni esistente o creane uno nuovo"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:35
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 msgid "New role"
 msgstr "Nuovo ruolo"
 
@@ -190,6 +190,10 @@ msgstr "Corrente"
 msgid "No fulfillments"
 msgstr "Nessuna evasione"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx:56
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Quando abilitato, i prezzi inseriti nel catalogo prodotti includeranno l'IVA per la zona fiscale predefinita."
@@ -282,7 +286,7 @@ msgstr "Ordini"
 #~ msgid "Select roles"
 #~ msgstr "Seleziona ruoli"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully created role"
 msgstr "Ruolo creato con successo"
 
@@ -388,7 +392,7 @@ msgstr "Impossibile creare canale"
 msgid "Dev Mode"
 msgstr "Modalità sviluppatore"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:68
+#: src/app/routes/_authenticated/_roles/roles.tsx:85
 msgid "New Role"
 msgstr "Nuovo ruolo"
 
@@ -606,9 +610,9 @@ msgstr "Sposta collezioni"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:16
-#: src/app/routes/_authenticated/_roles/roles.tsx:25
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
+#: src/app/routes/_authenticated/_roles/roles.tsx:17
+#: src/app/routes/_authenticated/_roles/roles.tsx:26
 msgid "Roles"
 msgstr "Ruoli"
 
@@ -981,7 +985,7 @@ msgstr "L'attività pianificata sarà eseguita"
 msgid "New stock location"
 msgstr "Nuova ubicazione magazzino"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:147
 msgid "Permissions"
 msgstr "Permessi"
 
@@ -1414,7 +1418,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {Impossibile annullare {rejected} processo} other {Impossibile annullare {rejected} processi}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:66
+#: src/lib/components/shared/channel-selector.tsx:69
 msgid "Select a channel"
 msgstr "Seleziona un canale"
 
@@ -1793,6 +1797,10 @@ msgstr "Impossibile rimuovere il gruppo di opzioni"
 msgid "Failed to update tax category"
 msgstr "Impossibile aggiornare categoria fiscale"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:134
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:90
 msgid "Refund settled successfully"
 msgstr "Rimborso completato con successo"
@@ -1818,7 +1826,7 @@ msgstr "Rimborso completato con successo"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1905,7 +1913,7 @@ msgstr "Impostazioni colonne"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2850,7 +2858,7 @@ msgstr "Elimina vista globale"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3117,6 +3125,10 @@ msgstr "Attiva/Disattiva colonna intestazione"
 msgid "New Promotion"
 msgstr "Nuova promozione"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:128
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
 msgstr "Nome valore opzione"
@@ -3376,7 +3388,7 @@ msgstr "Nuova finestra"
 msgid "Payment authorized"
 msgstr "Pagamento autorizzato"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully updated role"
 msgstr "Ruolo aggiornato con successo"
 
@@ -3520,6 +3532,10 @@ msgstr ""
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "Duplica {0}"
+
+#: src/app/routes/_authenticated/_roles/roles.tsx:48
+msgid "Owner"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3697,7 +3713,7 @@ msgstr "E"
 msgid "Failed to create customer group"
 msgstr "Impossibile creare gruppo clienti"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to create role"
 msgstr "Impossibile creare ruolo"
 
@@ -3898,7 +3914,7 @@ msgstr "Rimuovi gruppo di opzioni"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:103
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4332,7 +4348,7 @@ msgstr "Aggiungi canale"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Impossibile aggiornare il gruppo di opzioni prodotto"
 
-#: src/lib/components/shared/channel-selector.tsx:67
+#: src/lib/components/shared/channel-selector.tsx:70
 msgid "Search channels..."
 msgstr "Cerca canali..."
 
@@ -4476,7 +4492,7 @@ msgstr "Nuovo gruppo di opzioni"
 msgid "No global views have been created yet."
 msgstr "Non sono ancora state create viste globali."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to update role"
 msgstr "Impossibile aggiornare ruolo"
 
@@ -4765,7 +4781,7 @@ msgstr "Evasione #{0} creata"
 msgid "Running pending search index updates"
 msgstr "Esecuzione degli aggiornamenti dell'indice di ricerca in sospeso"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:50
+#: src/app/routes/_authenticated/_roles/roles.tsx:67
 msgid "This is a default Role and cannot be modified"
 msgstr "Questo è un ruolo predefinito e non può essere modificato"
 
@@ -5793,6 +5809,10 @@ msgstr "Modifica immagine"
 msgid "Manage Variants"
 msgstr "Gestisci varianti"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:117
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
+
 #: src/lib/components/shared/stock-level-label.tsx:18
 msgid "Stock allocated"
 msgstr "Scorta allocata"
@@ -5964,6 +5984,10 @@ msgstr "Nessun risultato ancora"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:61
 msgid "Payment settled"
 msgstr "Pagamento completato"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:122
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:27
 msgid "Active filters"

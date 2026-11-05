@@ -47,8 +47,8 @@ msgstr "नयाँ कर दर"
 msgid "Assign an existing option group or create a new one"
 msgstr "अवस्थित विकल्प समूह तोक्नुहोस् वा नयाँ सिर्जना गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:35
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 msgid "New role"
 msgstr "नयाँ भूमिका"
 
@@ -190,6 +190,10 @@ msgstr "हालको"
 msgid "No fulfillments"
 msgstr "कुनै पूर्तिहरू छैनन्"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx:56
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "यो सक्षम पारिएको बेला, उत्पादन सूचीमा प्रविष्ट गरिएका मूल्यहरू पूर्वनिर्धारित कर क्षेत्रको लागि करमा समावेश हुनेछन्।"
@@ -282,7 +286,7 @@ msgstr "अर्डरहरू"
 #~ msgid "Select roles"
 #~ msgstr "भूमिकाहरू चयन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully created role"
 msgstr "भूमिका सफलतापूर्वक सिर्जना गरियो"
 
@@ -388,7 +392,7 @@ msgstr "च्यानल सिर्जना गर्न असफल"
 msgid "Dev Mode"
 msgstr "विकास मोड"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:68
+#: src/app/routes/_authenticated/_roles/roles.tsx:85
 msgid "New Role"
 msgstr "नयाँ भूमिका"
 
@@ -606,9 +610,9 @@ msgstr "संग्रहहरू सार्नुहोस्"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:16
-#: src/app/routes/_authenticated/_roles/roles.tsx:25
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
+#: src/app/routes/_authenticated/_roles/roles.tsx:17
+#: src/app/routes/_authenticated/_roles/roles.tsx:26
 msgid "Roles"
 msgstr "भूमिकाहरू"
 
@@ -981,7 +985,7 @@ msgstr "अनुसूचित कार्य कार्यान्वय�
 msgid "New stock location"
 msgstr "नयाँ स्टक स्थान"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:147
 msgid "Permissions"
 msgstr "अनुमतिहरू"
 
@@ -1414,7 +1418,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {{rejected} कार्य रद्द गर्न असफल भयो} other {{rejected} कार्यहरू रद्द गर्न असफल भयो}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:66
+#: src/lib/components/shared/channel-selector.tsx:69
 msgid "Select a channel"
 msgstr "च्यानल चयन गर्नुहोस्"
 
@@ -1793,6 +1797,10 @@ msgstr "विकल्प समूह हटाउन सकिएन"
 msgid "Failed to update tax category"
 msgstr "कर वर्ग अपडेट गर्न असफल"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:134
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:90
 msgid "Refund settled successfully"
 msgstr "रिफन्ड सफलतापूर्वक सम्पन्न भयो"
@@ -1818,7 +1826,7 @@ msgstr "रिफन्ड सफलतापूर्वक सम्पन्�
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1905,7 +1913,7 @@ msgstr "स्तम्भ सेटिङहरू"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2850,7 +2858,7 @@ msgstr "ग्लोबल दृश्य मेट्नुहोस्"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3117,6 +3125,10 @@ msgstr "हेडर स्तम्भ टगल गर्नुहोस्"
 msgid "New Promotion"
 msgstr "नयाँ प्रमोशन"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:128
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
 msgstr "विकल्प मान नाम"
@@ -3376,7 +3388,7 @@ msgstr "नयाँ विन्डो"
 msgid "Payment authorized"
 msgstr "भुक्तानी अधिकृत गरियो"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully updated role"
 msgstr "भूमिका सफलतापूर्वक अपडेट गरियो"
 
@@ -3520,6 +3532,10 @@ msgstr ""
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "{0} नक्कल गर्नुहोस्"
+
+#: src/app/routes/_authenticated/_roles/roles.tsx:48
+msgid "Owner"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3697,7 +3713,7 @@ msgstr "र"
 msgid "Failed to create customer group"
 msgstr "ग्राहक समूह सिर्जना गर्न असफल"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to create role"
 msgstr "भूमिका सिर्जना गर्न असफल"
 
@@ -3898,7 +3914,7 @@ msgstr "विकल्प समूह हटाउनुहोस्"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:103
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4332,7 +4348,7 @@ msgstr "च्यानल थप्नुहोस्"
 #~ msgid "Failed to update product option group"
 #~ msgstr "उत्पादन विकल्प समूह अद्यावधिक गर्न असफल"
 
-#: src/lib/components/shared/channel-selector.tsx:67
+#: src/lib/components/shared/channel-selector.tsx:70
 msgid "Search channels..."
 msgstr "च्यानलहरू खोज्नुहोस्..."
 
@@ -4476,7 +4492,7 @@ msgstr "नयाँ विकल्प समूह"
 msgid "No global views have been created yet."
 msgstr "अझै कुनै ग्लोबल दृश्यहरू सिर्जना गरिएको छैन।"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to update role"
 msgstr "भूमिका अपडेट गर्न असफल"
 
@@ -4765,7 +4781,7 @@ msgstr "पूर्ति #{0} सिर्जना गरियो"
 msgid "Running pending search index updates"
 msgstr "पेन्डिङ खोज अनुक्रमणिका अद्यावधिकहरू चलाइँदै"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:50
+#: src/app/routes/_authenticated/_roles/roles.tsx:67
 msgid "This is a default Role and cannot be modified"
 msgstr "यो पूर्वनिर्धारित भूमिका हो र परिमार्जन गर्न सकिँदैन"
 
@@ -5793,6 +5809,10 @@ msgstr "छवि सम्पादन गर्नुहोस्"
 msgid "Manage Variants"
 msgstr "भेरियन्टहरू व्यवस्थापन गर्नुहोस्"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:117
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
+
 #: src/lib/components/shared/stock-level-label.tsx:18
 msgid "Stock allocated"
 msgstr "स्टक आवंटित गरियो"
@@ -5964,6 +5984,10 @@ msgstr "अझै कुनै परिणाम छैन"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:61
 msgid "Payment settled"
 msgstr "भुक्तानी सम्पन्न भयो"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:122
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:27
 msgid "Active filters"

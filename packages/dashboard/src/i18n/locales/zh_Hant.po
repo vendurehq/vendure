@@ -47,8 +47,8 @@ msgstr "新增稅率"
 msgid "Assign an existing option group or create a new one"
 msgstr "指派現有選項群組或建立新的選項群組"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:35
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 msgid "New role"
 msgstr "新增角色"
 
@@ -190,6 +190,10 @@ msgstr "目前"
 msgid "No fulfillments"
 msgstr "無履行"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx:56
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "啟用後，商品目錄中輸入的價格將包含預設稅務區域的稅金。"
@@ -282,7 +286,7 @@ msgstr "訂單"
 #~ msgid "Select roles"
 #~ msgstr "選擇角色"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully created role"
 msgstr "已成功建立角色"
 
@@ -388,7 +392,7 @@ msgstr "建立通路失敗"
 msgid "Dev Mode"
 msgstr "開發人員模式"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:68
+#: src/app/routes/_authenticated/_roles/roles.tsx:85
 msgid "New Role"
 msgstr "新增角色"
 
@@ -606,9 +610,9 @@ msgstr "移動集合"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:16
-#: src/app/routes/_authenticated/_roles/roles.tsx:25
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
+#: src/app/routes/_authenticated/_roles/roles.tsx:17
+#: src/app/routes/_authenticated/_roles/roles.tsx:26
 msgid "Roles"
 msgstr "角色"
 
@@ -981,7 +985,7 @@ msgstr "將執行排程任務"
 msgid "New stock location"
 msgstr "新增庫存位置"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:147
 msgid "Permissions"
 msgstr "權限"
 
@@ -1414,7 +1418,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, other {取消 {rejected} 個任務失敗}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:66
+#: src/lib/components/shared/channel-selector.tsx:69
 msgid "Select a channel"
 msgstr "選取一個通路"
 
@@ -1793,6 +1797,10 @@ msgstr "無法移除選項群組"
 msgid "Failed to update tax category"
 msgstr "更新稅務類別失敗"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:134
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:90
 msgid "Refund settled successfully"
 msgstr "退款已成功完成"
@@ -1818,7 +1826,7 @@ msgstr "退款已成功完成"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1905,7 +1913,7 @@ msgstr "欄設定"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2850,7 +2858,7 @@ msgstr "刪除全域檢視"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3117,6 +3125,10 @@ msgstr "切換標題欄"
 msgid "New Promotion"
 msgstr "新增促銷"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:128
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
 msgstr "選項值名稱"
@@ -3376,7 +3388,7 @@ msgstr "新視窗"
 msgid "Payment authorized"
 msgstr "付款已授權"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully updated role"
 msgstr "已成功更新角色"
 
@@ -3520,6 +3532,10 @@ msgstr ""
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "複製 {0}"
+
+#: src/app/routes/_authenticated/_roles/roles.tsx:48
+msgid "Owner"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3697,7 +3713,7 @@ msgstr "與"
 msgid "Failed to create customer group"
 msgstr "建立客戶群組失敗"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to create role"
 msgstr "建立角色失敗"
 
@@ -3898,7 +3914,7 @@ msgstr "移除選項群組"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:103
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4332,7 +4348,7 @@ msgstr "新增頻道"
 #~ msgid "Failed to update product option group"
 #~ msgstr "更新商品選項群組失敗"
 
-#: src/lib/components/shared/channel-selector.tsx:67
+#: src/lib/components/shared/channel-selector.tsx:70
 msgid "Search channels..."
 msgstr "搜尋通路..."
 
@@ -4476,7 +4492,7 @@ msgstr "新建選項群組"
 msgid "No global views have been created yet."
 msgstr "尚未建立全域檢視。"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to update role"
 msgstr "更新角色失敗"
 
@@ -4765,7 +4781,7 @@ msgstr "已建立履行 #{0}"
 msgid "Running pending search index updates"
 msgstr "正在執行待處理的搜尋索引更新"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:50
+#: src/app/routes/_authenticated/_roles/roles.tsx:67
 msgid "This is a default Role and cannot be modified"
 msgstr "這是預設角色，無法修改"
 
@@ -5793,6 +5809,10 @@ msgstr "編輯圖片"
 msgid "Manage Variants"
 msgstr "管理變體"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:117
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
+
 #: src/lib/components/shared/stock-level-label.tsx:18
 msgid "Stock allocated"
 msgstr "庫存已配置"
@@ -5964,6 +5984,10 @@ msgstr "尚無結果"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:61
 msgid "Payment settled"
 msgstr "付款已完成"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:122
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:27
 msgid "Active filters"

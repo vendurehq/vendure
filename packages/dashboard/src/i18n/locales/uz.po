@@ -47,8 +47,8 @@ msgstr "Yangi soliq stavkasi"
 msgid "Assign an existing option group or create a new one"
 msgstr "Mavjud optsiya guruhini biriktiring yoki yangisini yarating"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:35
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 msgid "New role"
 msgstr "Yangi rol"
 
@@ -186,6 +186,10 @@ msgstr "Joriy"
 msgid "No fulfillments"
 msgstr "Bajarishlar yo'q"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx:56
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Bu yoqilganda, mahsulot katalogidagi narxlar standart soliq hududi solig'iga kiritiladi."
@@ -262,7 +266,7 @@ msgstr "Buyurtmalar"
 #~ msgid "Select roles"
 #~ msgstr "Rollarni tanlang"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully created role"
 msgstr "Rol yaratildi"
 
@@ -364,7 +368,7 @@ msgstr "Kanal yaratib bo'lmadi"
 msgid "Dev Mode"
 msgstr "Dasturchi rejimi"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:68
+#: src/app/routes/_authenticated/_roles/roles.tsx:85
 msgid "New Role"
 msgstr "Yangi rol"
 
@@ -578,9 +582,9 @@ msgstr "To'plamlarni ko'chirish"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:16
-#: src/app/routes/_authenticated/_roles/roles.tsx:25
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
+#: src/app/routes/_authenticated/_roles/roles.tsx:17
+#: src/app/routes/_authenticated/_roles/roles.tsx:26
 msgid "Roles"
 msgstr "Rollar"
 
@@ -953,7 +957,7 @@ msgstr "Rejalashtirilgan vazifa bajariladi"
 msgid "New stock location"
 msgstr "Yangi zaxira joylashuvi"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:147
 msgid "Permissions"
 msgstr "Ruxsatlar"
 
@@ -1366,7 +1370,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {{rejected} ta vazifani bekor qilib bo'lmadi} other {{rejected} ta vazifani bekor qilib bo'lmadi}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:66
+#: src/lib/components/shared/channel-selector.tsx:69
 msgid "Select a channel"
 msgstr "Kanalni tanlang"
 
@@ -1732,6 +1736,10 @@ msgstr "Optsiya guruhini olib tashlab bo'lmadi"
 msgid "Failed to update tax category"
 msgstr "Soliq toifasini yangilab bo'lmadi"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:134
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:90
 msgid "Refund settled successfully"
 msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
@@ -1757,7 +1765,7 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1838,7 +1846,7 @@ msgstr "Ustun sozlamalari"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2766,7 +2774,7 @@ msgstr "Global koʻrinishni oʻchirish"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3024,6 +3032,10 @@ msgstr "Sarlavha ustunini almashtirish"
 #: src/app/routes/_authenticated/_promotions/promotions.tsx:90
 msgid "New Promotion"
 msgstr "Yangi aksiya"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:128
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
@@ -3284,7 +3296,7 @@ msgstr "Yangi oyna"
 msgid "Payment authorized"
 msgstr "To'lov tasdiqlandi"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:64
 msgid "Successfully updated role"
 msgstr "Rol yangilandi"
 
@@ -3416,6 +3428,10 @@ msgstr ""
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "{0} larni nusxalash"
+
+#: src/app/routes/_authenticated/_roles/roles.tsx:48
+msgid "Owner"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3586,7 +3602,7 @@ msgstr "VA"
 msgid "Failed to create customer group"
 msgstr "Mijozlar guruhini yaratib bo'lmadi"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to create role"
 msgstr "Rolni yaratib bo'lmadi"
 
@@ -3783,7 +3799,7 @@ msgstr "Optsiya guruhini olib tashlash"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:103
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4192,7 +4208,7 @@ msgstr "To'lov muvaffaqiyatsiz tugadi"
 msgid "Add channel"
 msgstr "Kanal qo'shish"
 
-#: src/lib/components/shared/channel-selector.tsx:67
+#: src/lib/components/shared/channel-selector.tsx:70
 msgid "Search channels..."
 msgstr "Kanallarni qidirish..."
 
@@ -4328,7 +4344,7 @@ msgstr "Yangi optsiya guruhi"
 msgid "No global views have been created yet."
 msgstr "Hali birorta global ko'rinish yaratilmagan."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:71
 msgid "Failed to update role"
 msgstr "Rolni yangilab bo'lmadi"
 
@@ -4609,7 +4625,7 @@ msgstr "Bajarish #{0} yaratildi"
 msgid "Running pending search index updates"
 msgstr "Kutilayotgan qidiruv indeksi yangilanishlari ishga tushirilmoqda"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:50
+#: src/app/routes/_authenticated/_roles/roles.tsx:67
 msgid "This is a default Role and cannot be modified"
 msgstr "Bu standart Rol va uni o'zgartirib bo'lmaydi"
 
@@ -5593,6 +5609,10 @@ msgstr "Rasmni tahrirlash"
 msgid "Manage Variants"
 msgstr "Variantlarni boshqarish"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:117
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
+
 #: src/lib/components/shared/stock-level-label.tsx:18
 msgid "Stock allocated"
 msgstr "Zaxira ajratildi"
@@ -5756,6 +5776,10 @@ msgstr "Hali natija yo'q"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:61
 msgid "Payment settled"
 msgstr "To'lov hisoblashildi"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:122
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:27
 msgid "Active filters"
