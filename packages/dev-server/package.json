@@ -34,6 +34,9 @@
     "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260515.1",
         "@vendure/cli": "3.7.0",
+        "@vendure/dashboard": "3.7.0",
+        "@vendure/graphiql-plugin": "3.7.0",
+        "@vendure/telemetry-plugin": "3.7.0",
         "@vendure/testing": "3.7.0",
         "commander": "^12.0.0",
         "concurrently": "^9.2.0",
