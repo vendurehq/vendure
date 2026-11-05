@@ -2435,6 +2435,12 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     createdAt: DateTime
                 }
 
+                """广告投放单分页（§122）：total 为当前筛选下的总数，items 为当前页"""
+                type CampusAdCampaignPage {
+                    total: Int!
+                    items: [CampusAdCampaign!]!
+                }
+
                 type CampusAdSlot {
                     code: String!
                     name: String!
@@ -2528,8 +2534,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusAdSlots: [CampusAdSlot!]!
                     """商家侧：本渠道广告投放单"""
                     campusMerchantAds: [CampusAdCampaign!]!
-                    """平台侧：按渠道/状态查投放单"""
-                    campusAdCampaigns(status: String, channelId: ID): [CampusAdCampaign!]!
+                    """平台侧：按渠道/状态分页查投放单（skip/take，默认 20、上限 100）"""
+                    campusAdCampaigns(status: String, channelId: ID, skip: Int, take: Int): CampusAdCampaignPage!
                     """智能取餐柜（P2-4）：本渠道站点（含停用）"""
                     campusLockerStations: [CampusLockerStation!]!
                     """无人配送通道（P2-4 接口占位）配置"""

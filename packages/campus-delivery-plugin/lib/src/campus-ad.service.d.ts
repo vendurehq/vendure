@@ -115,30 +115,15 @@ export declare class CampusAdService {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    /** 平台侧：按渠道/状态查询投放单 */
-    adminList(ctx: RequestContext, status?: string | null, channelId?: ID | null): Promise<{
-        status: string;
-        live: boolean;
-        channelId: ID;
-        slot: string;
-        title: string;
-        imageUrl: string | null;
-        linkUrl: string | null;
-        startDate: string;
-        endDate: string;
-        days: number;
-        unitPriceFen: number;
-        totalFen: number;
-        payRef: string | null;
-        paidAt: Date | null;
-        reviewNote: string | null;
-        reviewedBy: string | null;
-        reviewedAt: Date | null;
-        createdBy: string | null;
-        id: ID;
-        createdAt: Date;
-        updatedAt: Date;
-    }[]>;
+    /**
+     * 平台侧：按渠道/状态分页查询投放单（§122）。
+     * status 是视图态：finished 在库里仍是 running，按结束日反推，
+     * 保证「筛选口径 = 列表 pill 口径」；take 默认 20、上限 100。
+     */
+    adminList(ctx: RequestContext, status?: string | null, channelId?: ID | null, skip?: number, take?: number): Promise<{
+        total: number;
+        items: any[];
+    }>;
     /** 平台审核：通过 → running；驳回 → rejected（须填原因） */
     review(ctx: RequestContext, id: ID, approve: boolean, note?: string | null): Promise<{
         status: string;

@@ -44,8 +44,8 @@ let CampusAdAdminResolver = class CampusAdAdminResolver {
     async campusMerchantCancelAd(ctx, id) {
         return this.ads.cancel(ctx, id);
     }
-    async campusAdCampaigns(ctx, status, channelId) {
-        return this.ads.adminList(ctx, status, channelId);
+    async campusAdCampaigns(ctx, status, channelId, skip, take) {
+        return this.ads.adminList(ctx, status, channelId, skip !== null && skip !== void 0 ? skip : 0, take !== null && take !== void 0 ? take : 20);
     }
     async campusReviewAd(ctx, id, approve, note) {
         return this.ads.review(ctx, id, approve, note);
@@ -105,8 +105,10 @@ __decorate([
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)({ name: 'status', nullable: true })),
     __param(2, (0, graphql_1.Args)({ name: 'channelId', type: () => String, nullable: true })),
+    __param(3, (0, graphql_1.Args)({ name: 'skip', type: () => graphql_1.Int, nullable: true })),
+    __param(4, (0, graphql_1.Args)({ name: 'take', type: () => graphql_1.Int, nullable: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [core_1.RequestContext, Object, Object]),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], CampusAdAdminResolver.prototype, "campusAdCampaigns", null);
 __decorate([

@@ -108,29 +108,10 @@ export declare class CampusAdAdminResolver {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    campusAdCampaigns(ctx: RequestContext, status?: string | null, channelId?: string | null): Promise<{
-        status: string;
-        live: boolean;
-        channelId: ID;
-        slot: string;
-        title: string;
-        imageUrl: string | null;
-        linkUrl: string | null;
-        startDate: string;
-        endDate: string;
-        days: number;
-        unitPriceFen: number;
-        totalFen: number;
-        payRef: string | null;
-        paidAt: Date | null;
-        reviewNote: string | null;
-        reviewedBy: string | null;
-        reviewedAt: Date | null;
-        createdBy: string | null;
-        id: ID;
-        createdAt: Date;
-        updatedAt: Date;
-    }[]>;
+    campusAdCampaigns(ctx: RequestContext, status?: string | null, channelId?: string | null, skip?: number | null, take?: number | null): Promise<{
+        total: number;
+        items: any[];
+    }>;
     campusReviewAd(ctx: RequestContext, id: ID, approve: boolean, note?: string | null): Promise<{
         status: string;
         live: boolean;

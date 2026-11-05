@@ -16,6 +16,7 @@ exports.CampusAdService = void 0;
 // 已结束状态不落库，按投放结束日实时判定（避免额外定时任务）。
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
+const typeorm_1 = require("typeorm");
 const campus_ad_entity_1 = require("./campus-ad.entity");
 const ad_slots_1 = require("./ad-slots");
 const campus_time_1 = require("./campus-time");
@@ -101,17 +102,39 @@ let CampusAdService = class CampusAdService {
         await this.repo(ctx).save(row);
         return this.toView(row);
     }
-    /** 平台侧：按渠道/状态查询投放单 */
-    async adminList(ctx, status, channelId) {
+    /**
+     * 平台侧：按渠道/状态分页查询投放单（§122）。
+     * status 是视图态：finished 在库里仍是 running，按结束日反推，
+     * 保证「筛选口径 = 列表 pill 口径」；take 默认 20、上限 100。
+     */
+    async adminList(ctx, status, channelId, skip = 0, take = 20) {
         const where = {};
         if (channelId)
             where.channelId = channelId;
         else
             where.channelId = ctx.channelId;
-        const rows = await this.repo(ctx).find({ where, order: { createdAt: 'DESC' }, take: 200 });
-        const views = rows.map(r => this.toView(r));
         const st = String(status !== null && status !== void 0 ? status : '').trim();
-        return st ? views.filter(v => v.status === st) : views;
+        const today = this.today();
+        if (st === 'finished') {
+            where.status = 'running';
+            where.endDate = (0, typeorm_1.LessThan)(today);
+        }
+        else if (st === 'running') {
+            where.status = 'running';
+            where.endDate = (0, typeorm_1.MoreThanOrEqual)(today);
+        }
+        else if (st) {
+            where.status = st;
+        }
+        const safeTake = Math.min(100, Math.max(1, Math.floor(Number(take) || 20)));
+        const safeSkip = Math.max(0, Math.floor(Number(skip) || 0));
+        const [rows, total] = await this.repo(ctx).findAndCount({
+            where,
+            order: { createdAt: 'DESC', id: 'DESC' },
+            skip: safeSkip,
+            take: safeTake,
+        });
+        return { total, items: rows.map(r => this.toView(r)) };
     }
     /** 平台审核：通过 → running；驳回 → rejected（须填原因） */
     async review(ctx, id, approve, note) {
