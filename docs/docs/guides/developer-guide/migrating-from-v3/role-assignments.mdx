@@ -7,7 +7,7 @@ order: 5
 
 import { Callout } from '@vendure-io/docs-provider/components';
 
-In v3 a Role carried both its permissions and the Channels it applied to, and a User held Roles directly. In v4 a Role is only a set of permissions. A `RoleAssignment` grants a Role to a User on one Channel:
+In v3 a Role carried both its permissions and the Channels it applied to, and a User held Roles directly. In v4 a Role is a set of permissions owned by one Channel. A `RoleAssignment` grants a Role to a User on one Channel:
 
 ```text
 v3  role.permissions = [...]
@@ -15,16 +15,25 @@ v3  role.permissions = [...]
     user.roles       = [role]
 
 v4  role.permissions = [...]
+    role.channel     = default channel (shared) or channel B (private to B)
     role_assignment (user, role, channel B)
 ```
 
 The same Role can now be granted to different Users on different Channels, so a multi-vendor marketplace no longer needs a copy of each Role per seller.
 
+Where a Role may be assigned depends on the Channel that owns it:
+
+- A Role owned by the **default Channel** is a shared Role. It can be assigned on any Channel. Define the Roles every seller needs, such as "Order Fulfillment", once on the default Channel.
+- A Role owned by **any other Channel** is private to it. It can only be assigned there, and administrators of other Channels cannot see it.
+
+A Role is owned by the Channel it was created on, and keeps that owner. Deleting a Channel deletes the Roles it owns. On a single-channel store every Role is a shared Role, so nothing changes.
+
 What else changes with it:
 
 - `User.roles` and `Role.channels` are removed. A new `role_assignment` table replaces the `user_roles_role` and `role_channels_channel` join tables.
 - Customers no longer hold a Customer role. A Customer gets the `Authenticated` permission on each Channel they are a member of, and nowhere else.
-- Creating, editing and deleting Roles needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions, bundled in a new `RoleEditor` system Role.
+- Every Role is owned by a Channel, see above.
+- Creating, editing and deleting Roles needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions, bundled in a new `RoleEditor` system Role, on the Channel that owns the Role.
 - SuperAdmin is held once and applies on every Channel, including Channels created later.
 
 ## Previewing the migration
@@ -52,6 +61,7 @@ The report has these sections:
 - **Shop customers:** per Channel, how many Customers lose access because they are not a member of it, and how many gain access because they are a member of a Channel the Customer role did not cover. See [Storefront changes](#storefront-changes) for what this means for shoppers.
 - **Customer role permissions:** permissions that were added to the Customer role by hand. v4 has no Customer role and no replacement for this, so these are lost.
 - **Roles assigned to no channel:** Roles that will have no assignments. Assign them per Channel after migrating if they are still needed.
+- **Roles becoming shared:** Roles assigned to more than one Channel. They become shared Roles, owned by the default Channel. Every grant stays valid, but from v4 an administrator holding their permissions on any Channel can grant them there, and only administrators with `UpdateRole` on the default Channel can edit them. To keep a Role private to each Channel, create one Role per Channel after migrating.
 
 **Done when:** you have acted on the sections marked "action needed", and noted the "Users with role assignments" and "Role assignments to be written" counts to compare after migrating.
 
@@ -62,6 +72,8 @@ In v3 a User received each of their Roles' permissions on every Channel the Role
 - **Customer role:** no rows. Customers get `Authenticated` on the Channels they are a member of (the `customer_channels_channel` table), derived at check time.
 - **SuperAdmin role:** one row per holder, on the default Channel. That row grants every permission on every Channel.
 - **Roles assigned to no Channel:** no rows. These Roles granted nothing in v3, so nobody loses access. The Roles themselves stay.
+
+It gives every Role its owning Channel. A Role assigned to exactly one Channel is owned by that Channel. Every other Role, assigned to several Channels, to none or only to the default Channel, is owned by the default Channel. All existing grants stay valid under these owners.
 
 It also creates the `RoleEditor` Role, without granting it to anyone, and adds the new Role permissions to the SuperAdmin Role. It leaves the v3 tables `user_roles_role` and `role_channels_channel` in place, so v3 servers keep working until the last one is replaced. [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) then drops them and deletes the Customer role. The backup taken before the migration is the way back to v3, and holds the v3 grants should you need them later.
 
@@ -159,7 +171,7 @@ The names above use the default `namespace` of the `RedisCachePlugin`, the defau
 
 In v3 the Administrator permissions covered Role CRUD. In v4 Role CRUD needs `CreateRole`, `UpdateRole` and `DeleteRole`, bundled in the `RoleEditor` Role, which the migration grants to nobody. Until a SuperAdmin grants it, only SuperAdmins can create, edit or delete Roles.
 
-An Administrator can manage a Role only when they hold `RoleEditor` on every Channel where that Role is currently assigned.
+An Administrator can edit or delete a Role only when they hold `UpdateRole` or `DeleteRole` on the Channel that owns it. To add permissions to a Role, they must also hold those permissions on the owning Channel and on every Channel where the Role is assigned. Grant `RoleEditor` on the default Channel to the administrators who maintain the shared Roles, and on a seller's Channel to the administrators who maintain that seller's own Roles.
 
 ## Updating your code
 
@@ -200,6 +212,7 @@ You do not need to change:
   - To find where a Role is granted, query the `RoleAssignment` entity, for example `{ where: { roleId } }`.
   - Queries that join `user_roles_role` or `role_channels_channel` must join `role_assignment` instead.
 - `Role` is no longer `ChannelAware`. `ChannelService.assignToChannels()` and `removeFromChannels()` no longer accept a Role.
+- `Role` has a new `channel` / `channelId`: the owning Channel. `RoleService.create()` sets it to the active Channel. A Role saved directly through a repository without an owner cannot be granted until the next server start, which makes it a shared Role.
 - The new `RoleAssignment` entity has `userId`, `roleId` and `channelId`.
 
 ### Services
@@ -265,6 +278,8 @@ Removed:
 - `Role.channels`
 - `channelIds` on `CreateRoleInput` and `UpdateRoleInput`
 
+`createRole` creates the Role on the active Channel, the one in the `vendure-token` header. Send it with the default Channel's token to create a shared Role.
+
 Added:
 
 ```graphql
@@ -277,9 +292,10 @@ input RoleAssignmentInput { roleId: ID!  channelId: ID! }
 ```
 
 - `assignRolesToUser` adds pairs, and `removeRolesFromUser` removes them. Both skip pairs that need no change.
-- The active user must hold every permission of a Role on a Channel to grant or revoke it there.
+- The active user must hold every permission of a Role on a Channel to grant or revoke it there. A Role owned by a Channel other than the default one can only be granted on that Channel, even by a SuperAdmin.
 - `roleAssignments` and `User.roleAssignments` return only the pairs the active user may grant or revoke, so the list can be partial.
 - `createAdministrator` and `createApiKey` accept a `roleAssignments` input.
+- `Role.channel` returns the owning Channel.
 
 #### `roleIds` now applies to the active Channel only
 

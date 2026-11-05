@@ -87,6 +87,7 @@ describe('previewRoleAssignmentMigration()', () => {
             customerChannelChanges: [],
             customerRoleDroppedPermissions: [],
             rolesWithoutChannels: [],
+            rolesBecomingShared: [],
         });
         expect(formatRoleAssignmentMigrationPreview(preview)).toContain(
             '   No change: every customer is a member of exactly the channels they can use today.',
@@ -213,6 +214,25 @@ describe('previewRoleAssignmentMigration()', () => {
         expect(preview.rolesWithoutChannels).toEqual([{ roleId: '4', roleCode: 'orphan', holderCount: 2 }]);
         // their holders get no rows
         expect(preview.migration).toEqual({ userCount: 0, assignmentCount: 0 });
+    });
+
+    it('reports roles on several channels, which become shared roles', async () => {
+        await queryRunner.query(
+            `INSERT INTO "role" ("id", "code", "permissions") VALUES (5, 'fulfilment', 'ReadOrder')`,
+        );
+        await queryRunner.query(
+            `INSERT INTO "role_channels_channel" ("roleId", "channelId") VALUES (5, 3), (5, 2)`,
+        );
+
+        const preview = await previewRoleAssignmentMigration(queryRunner);
+
+        // The Customer and SuperAdmin roles are not listed; 'sales' is on one channel only
+        expect(preview.rolesBecomingShared).toEqual([
+            { roleId: '5', roleCode: 'fulfilment', channelCodes: ['programmatic', 'second'] },
+        ]);
+        expect(formatRoleAssignmentMigrationPreview(preview)).toMatch(
+            /Roles becoming shared[\s\S]*fulfilment +5 +programmatic, second/,
+        );
     });
 
     it('estimates the migration time from the number of rows', async () => {

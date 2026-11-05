@@ -32,9 +32,9 @@ export const Messages = {
         'RoleAssignmentService.resolveUserRoles(ctx, userId); grant or revoke them per Channel with ' +
         'RoleAssignmentService.assign() / remove().',
     RoleChannels:
-        'Role.channels was removed in v4: a Role is no longer bound to Channels. Find where a Role ' +
-        'is assigned through the RoleAssignment entity ({ where: { roleId } }); grant it per Channel ' +
-        'with RoleAssignmentService.assign().',
+        'Role.channels was removed in v4: a Role is owned by one Channel (Role.channel) and granted ' +
+        'per Channel. Find where a Role is assigned through the RoleAssignment entity ' +
+        '({ where: { roleId } }); grant it per Channel with RoleAssignmentService.assign().',
     RemovedJoin:
         'This joins a role table removed in v4 (user_roles_role or role_channels_channel). ' +
         'Join the RoleAssignment entity instead.',
@@ -45,8 +45,10 @@ export const Messages = {
         'If this joins User.roles or Role.channels, join the RoleAssignment entity instead: both ' +
         'relations were removed in v4.',
     RoleChannelIds:
-        'channelIds was removed from CreateRoleInput and UpdateRoleInput in v4: a Role is no longer ' +
-        'bound to Channels. Grant it to a User per Channel with RoleAssignmentService.assign().',
+        'channelIds was removed from CreateRoleInput and UpdateRoleInput in v4: a Role is owned by ' +
+        'the active Channel it is created on. One created on the default Channel can be assigned on ' +
+        'any Channel, any other only on its owning Channel. Grant it to a User per Channel with ' +
+        'RoleAssignmentService.assign().',
     GetChannelsForRole:
         'RoleService.getChannelsForRole() was removed in v4: a Role is no longer bound to Channels. ' +
         'Find where a Role is assigned through the RoleAssignment entity ({ where: { roleId } }).',

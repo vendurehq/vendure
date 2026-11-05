@@ -1,3 +1,4 @@
+import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
 import { useCallback, useMemo } from 'react';
 
 import { useAuth } from './use-auth.js';
@@ -6,8 +7,9 @@ import { useRoles } from './use-roles.js';
 /**
  * Determines which Roles the active user may grant on which Channels, to populate the role
  * and channel selectors for a new assignment. The rule mirrors the server's
- * `RoleService.canGrant`: a Role may be granted on a Channel only if the active user holds
- * every one of that Role's permissions on that Channel. The `me.channels` permissions
+ * `RoleService.canGrant`: a Role may be granted on a Channel only if it is a shared Role
+ * (owned by the default Channel) or owned by that Channel, and the active user holds every
+ * one of that Role's permissions on that Channel. The `me.channels` permissions
  * already have the active user's global permissions folded in, so a SuperAdmin needs no
  * special case here. Existing assignments need no client-side check: the server filters
  * `User.roleAssignments` through the same rule.
@@ -28,7 +30,10 @@ export function useGrantableRoles() {
         (roleId: string, channelId: string) => {
             const role = roles.find(r => r.id === roleId);
             const heldPermissions = permissionsByChannelId.get(channelId);
-            if (!role || !heldPermissions) {
+            if (!role?.channel || !heldPermissions) {
+                return false;
+            }
+            if (role.channel.code !== DEFAULT_CHANNEL_CODE && role.channel.id !== channelId) {
                 return false;
             }
             return role.permissions.every(permission => heldPermissions.has(permission));
@@ -43,9 +48,7 @@ export function useGrantableRoles() {
     const nonGrantableRoleIds = useCallback(
         (channelIds: string[]) =>
             roles
-                .filter(
-                    role => !channelIds.every(channelId => isRoleGrantableOnChannel(role.id, channelId)),
-                )
+                .filter(role => !channelIds.every(channelId => isRoleGrantableOnChannel(role.id, channelId)))
                 .map(role => role.id),
         [roles, isRoleGrantableOnChannel],
     );

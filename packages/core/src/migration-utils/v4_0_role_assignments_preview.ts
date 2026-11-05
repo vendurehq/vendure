@@ -95,6 +95,15 @@ export interface RoleAssignmentMigrationPreview {
      * holdings disappear.
      */
     rolesWithoutChannels: Array<{ roleId: string; roleCode: string; holderCount: number }>;
+    /**
+     * @description
+     * Roles assigned to more than one Channel. v4 makes them shared Roles, owned by the
+     * default Channel: their existing grants stay valid, but from v4 they may be granted on
+     * any Channel by an actor who holds their permissions there, and only an actor holding
+     * `UpdateRole` on the default Channel may edit them. A Role assigned to exactly one
+     * Channel stays private to it.
+     */
+    rolesBecomingShared: Array<{ roleId: string; roleCode: string; channelCodes: string[] }>;
 }
 
 /**
@@ -283,6 +292,36 @@ export async function previewRoleAssignmentMigration(
              GROUP BY r.${esc('id')}, r.${esc('code')}`,
     );
 
+    const multiChannelRoleRows: Array<{
+        roleId: string | number;
+        roleCode: string;
+        channelCode: string;
+    }> = await queryRunner.query(
+        `SELECT r.${esc('id')} AS ${esc('roleId')}, r.${esc('code')} AS ${esc('roleCode')},
+                    c.${esc('code')} AS ${esc('channelCode')}
+             FROM ${table('role')} r
+             INNER JOIN ${table('role_channels_channel')} rc ON rc.${esc('roleId')} = r.${esc('id')}
+             INNER JOIN ${table('channel')} c ON c.${esc('id')} = rc.${esc('channelId')}
+             WHERE r.${esc('code')} NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')
+             AND (
+                 SELECT COUNT(*) FROM ${table('role_channels_channel')} rc2
+                 WHERE rc2.${esc('roleId')} = r.${esc('id')}
+             ) > 1`,
+    );
+    const rolesBecomingShared = new Map<
+        string,
+        { roleId: string; roleCode: string; channelCodes: string[] }
+    >();
+    for (const row of multiChannelRoleRows) {
+        const entry = rolesBecomingShared.get(String(row.roleId)) ?? {
+            roleId: String(row.roleId),
+            roleCode: row.roleCode,
+            channelCodes: [],
+        };
+        entry.channelCodes.push(row.channelCode);
+        rolesBecomingShared.set(entry.roleId, entry);
+    }
+
     const holderCount = Number(holderCountRows[0].count);
     const covered = toCountMap(coveredRows);
     const losing = new Map(
@@ -340,6 +379,10 @@ export async function previewRoleAssignmentMigration(
             roleId: String(row.roleId),
             roleCode: row.roleCode,
             holderCount: Number(row.holderCount),
+        })),
+        rolesBecomingShared: [...rolesBecomingShared.values()].map(role => ({
+            ...role,
+            channelCodes: role.channelCodes.sort(),
         })),
     };
 }
@@ -478,6 +521,24 @@ export function formatRoleAssignmentMigrationPreview(preview: RoleAssignmentMigr
             ...formatTable(
                 ['Role', 'Id', 'Holders'],
                 roles.map(role => [role.roleCode, role.roleId, formatCount(role.holderCount)]),
+            ),
+        );
+    }
+
+    if (preview.rolesBecomingShared.length) {
+        const roles = [...preview.rolesBecomingShared].sort((a, b) => a.roleCode.localeCompare(b.roleCode));
+        lines.push(
+            '',
+            sectionHeader('Roles becoming shared', 'review'),
+            '   These roles are assigned to more than one channel. v4 makes them shared roles,',
+            '   owned by the default channel. Every existing grant stays valid, but from v4 they',
+            '   can be granted on any channel by an administrator holding their permissions there,',
+            '   and only administrators with UpdateRole on the default channel can edit them. To',
+            '   keep a role private to each channel, create one role per channel after migrating.',
+            '',
+            ...formatTable(
+                ['Role', 'Id', 'Channels'],
+                roles.map(role => [role.roleCode, role.roleId, role.channelCodes.join(', ')]),
             ),
         );
     }

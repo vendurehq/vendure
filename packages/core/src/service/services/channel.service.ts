@@ -48,6 +48,7 @@ import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleAssignmentService } from './role-assignment.service';
+import { RoleService } from './role.service';
 /**
  * @description
  * Contains methods relating to {@link Channel} entities.
@@ -67,6 +68,7 @@ export class ChannelService {
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
         private roleAssignmentService: RoleAssignmentService,
+        private roleService: RoleService,
     ) {}
 
     /**
@@ -487,7 +489,8 @@ export class ChannelService {
      * The RoleAssignments on the Channel are removed through
      * {@link RoleAssignmentService.removeAllAssignmentsOnChannel} before the Channel row goes,
      * so that a {@link RoleAssignmentEvent} is published and the affected Users' cached
-     * sessions are evicted.
+     * sessions are evicted. The Roles the Channel owns are deleted with it, each with a
+     * {@link RoleEvent}.
      */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         this.assertHasPermissionOnChannel(ctx, id, Permission.DeleteChannel);
@@ -501,6 +504,7 @@ export class ChannelService {
         const deletedChannel = new Channel(channel);
         await this.connection.getRepository(ctx, Session).delete({ activeChannelId: id });
         await this.roleAssignmentService.removeAllAssignmentsOnChannel(ctx, id);
+        await this.roleService.deleteRolesOwnedByChannel(ctx, id);
         await this.connection.getRepository(ctx, Channel).delete(id);
         await this.connection.getRepository(ctx, ProductVariantPrice).delete({
             channelId: id,

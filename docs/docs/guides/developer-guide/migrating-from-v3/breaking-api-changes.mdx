@@ -46,8 +46,9 @@ rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
 - Read a User's Roles with `RoleAssignmentService.resolveUserRoles()`, and grant or revoke them with `RoleAssignmentService.assign()` / `remove()`.
 - `RoleChangeEvent` is replaced by `RoleAssignmentEvent`. The codemod does not rewrite it.
 - `RoleService.getCustomerRole()` is removed. There is no Customer role.
-- In the Admin API, `Role.channels` and `channelIds` on the Role inputs are removed. The deprecated `roleIds` inputs now apply to the active Channel only. Use `assignRolesToUser` and `removeRolesFromUser` instead.
-- Role CRUD needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions.
+- Every Role is owned by the Channel it was created on. A Role owned by the default Channel can be assigned on any Channel; any other Role only on its owning Channel.
+- In the Admin API, `Role.channels` and `channelIds` on the Role inputs are removed, and `Role.channel` returns the owning Channel. `createRole` creates the Role on the active Channel. The deprecated `roleIds` inputs now apply to the active Channel only. Use `assignRolesToUser` and `removeRolesFromUser` instead.
+- Role CRUD needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions on the Channel that owns the Role.
 
 For the full list, and what stays the same, see [Updating your code](/developer-guide/migrating-from-v3/role-assignments#updating-your-code).
 

@@ -3,7 +3,7 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { CUSTOMER_ROLE_CODE, DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull, LockNotSupportedOnGivenDriverError, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
+import { In, IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -20,8 +20,8 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
@@ -30,6 +30,7 @@ import {
     ResolvedUserPermissions,
     RolePermissionResolver,
 } from '../helpers/role-permission-resolver/role-permission-resolver';
+import { withLockIfSupported } from '../helpers/utils/with-lock-if-supported';
 
 import { RoleService } from './role.service';
 
@@ -232,7 +233,7 @@ export class RoleAssignmentService {
      */
     async isSoleSuperAdminHolder(ctx: RequestContext, userId: ID): Promise<boolean> {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        await this.withLockIfSupported(
+        await withLockIfSupported(
             this.connection
                 .getRepository(ctx, Role)
                 .createQueryBuilder('role')
@@ -240,7 +241,7 @@ export class RoleAssignmentService {
             'pessimistic_write',
             qb => qb.getOne(),
         );
-        const holders = await this.withLockIfSupported(
+        const holders = await withLockIfSupported(
             this.connection
                 .getRepository(ctx, Administrator)
                 .createQueryBuilder('administrator')
@@ -254,21 +255,6 @@ export class RoleAssignmentService {
         );
         const holderIds = unique(holders.map(holder => holder.userId));
         return holderIds.length === 1 && idsAreEqual(holderIds[0], userId);
-    }
-
-    private async withLockIfSupported<E extends ObjectLiteral, T>(
-        qb: SelectQueryBuilder<E>,
-        lockMode: 'pessimistic_read' | 'pessimistic_write',
-        run: (qb: SelectQueryBuilder<E>) => Promise<T>,
-    ): Promise<T> {
-        try {
-            return await run(qb.clone().setLock(lockMode));
-        } catch (e) {
-            if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                throw e;
-            }
-            return run(qb);
-        }
     }
 
     /**

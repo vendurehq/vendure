@@ -10,10 +10,11 @@ import { User } from '../user/user.entity';
 /**
  * @description
  * A RoleAssignment grants a {@link User} the permissions of a {@link Role} on a specific
- * {@link Channel}. It is the source of truth for permission resolution: a Role is a
- * channel-agnostic template, and the RoleAssignment supplies the channel scope at the
- * moment the Role is granted to a User. This allows a single Role definition to be
- * shared across many Users, each scoped to their own Channels.
+ * {@link Channel}. It is the source of truth for permission resolution: a Role defines the
+ * permissions, and the RoleAssignment supplies the channel scope at the moment the Role is
+ * granted to a User. This allows a single shared Role (one owned by the default Channel) to
+ * be granted to many Users, each scoped to their own Channels. A Role owned by any other
+ * Channel can only be assigned on that Channel (see {@link Role}).
  *
  * The SuperAdmin Role is the one exception to the channel scope: it is held on every
  * Channel or not at all, so it is stored as a single row on the default Channel, which

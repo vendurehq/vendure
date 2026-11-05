@@ -29,7 +29,8 @@ describe('migrateRoleAssignmentData()', () => {
             `CREATE TABLE "role" ("id" integer PRIMARY KEY AUTOINCREMENT,
              "createdAt" datetime NOT NULL DEFAULT (datetime('now')),
              "updatedAt" datetime NOT NULL DEFAULT (datetime('now')),
-             "code" varchar NOT NULL, "description" varchar NOT NULL, "permissions" text NOT NULL)`,
+             "code" varchar NOT NULL, "description" varchar NOT NULL, "permissions" text NOT NULL,
+             "channelId" integer)`,
         );
         await queryRunner.query(
             `CREATE TABLE "channel" ("id" integer PRIMARY KEY AUTOINCREMENT, "code" varchar NOT NULL)`,
@@ -138,6 +139,59 @@ describe('migrateRoleAssignmentData()', () => {
             { userId: 2, roleId: 3, channelId: 2 },
             { userId: 4, roleId: 3, channelId: 2 },
         ]);
+    });
+
+    async function getRoleOwners(): Promise<Array<{ code: string; channelId: number | null }>> {
+        return queryRunner.query(`SELECT "code", "channelId" FROM "role" ORDER BY "id"`);
+    }
+
+    it('gives a Role on one Channel that Channel as its owner, and every other Role the default Channel', async () => {
+        await createSchema();
+        await seedData();
+        await queryRunner.query(
+            `INSERT INTO "role" ("id", "code", "description", "permissions") VALUES
+             (10, 'default-only', 'Default only', 'Authenticated,ReadOrder'),
+             (11, 'nowhere', 'Nowhere', 'Authenticated,ReadOrder')`,
+        );
+        await queryRunner.query(`INSERT INTO "role_channels_channel" ("roleId", "channelId") VALUES (10, 1)`);
+
+        await migrateRoleAssignmentData(queryRunner);
+
+        expect(await getRoleOwners()).toEqual([
+            // on channels 1 and 2: shared
+            { code: '__super_admin_role__', channelId: 1 },
+            { code: '__customer_role__', channelId: 1 },
+            // on channel 2 only: private to it
+            { code: 'sales', channelId: 2 },
+            { code: 'default-only', channelId: 1 },
+            // on no channel: shared
+            { code: 'nowhere', channelId: 1 },
+            // created by the migration
+            { code: '__role_editor_role__', channelId: 1 },
+        ]);
+    });
+
+    it('keeps an owner which is already set', async () => {
+        await createSchema();
+        await seedData();
+        await queryRunner.query(`UPDATE "role" SET "channelId" = 3 WHERE "code" = 'sales'`);
+
+        await migrateRoleAssignmentData(queryRunner);
+
+        expect((await getRoleOwners()).find(role => role.code === 'sales')).toEqual({
+            code: 'sales',
+            channelId: 3,
+        });
+    });
+
+    it('refuses to run before the role.channelId column has been added', async () => {
+        await createSchema();
+        await seedData();
+        await queryRunner.query(`ALTER TABLE "role" DROP COLUMN "channelId"`);
+
+        await expect(migrateRoleAssignmentData(queryRunner)).rejects.toThrow(
+            'The role table has no channelId column',
+        );
     });
 
     it('is idempotent', async () => {
@@ -436,6 +490,31 @@ describe('migrateRoleAssignmentData()', () => {
             log.mockRestore();
         });
 
+        it('gives the Roles created on v3 since the copy their owner before dropping the tables', async () => {
+            await createSchema();
+            await seedData();
+            await migrateRoleAssignmentData(queryRunner);
+            // On a v3 server, which does not know role.channelId: two Roles are created and
+            // assigned to channels
+            await queryRunner.query(
+                `INSERT INTO "role" ("id", "code", "description", "permissions") VALUES
+                 (20, 'v3-private', 'v3 private', 'Authenticated,ReadOrder'),
+                 (21, 'v3-multi', 'v3 multi', 'Authenticated,ReadOrder')`,
+            );
+            await queryRunner.query(
+                `INSERT INTO "role_channels_channel" ("roleId", "channelId") VALUES (20, 3), (21, 2), (21, 3)`,
+            );
+            const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+            await removeLegacyRoleData(queryRunner);
+
+            log.mockRestore();
+            const owners = await getRoleOwners();
+            expect(owners.find(role => role.code === 'v3-private')?.channelId).toBe(3);
+            expect(owners.find(role => role.code === 'v3-multi')?.channelId).toBe(1);
+            expect(owners.every(role => role.channelId != null)).toBe(true);
+        });
+
         it('reports the grants it cannot attribute and does not apply them', async () => {
             await createSchema();
             await seedData();
@@ -607,7 +686,8 @@ describe('migrateRoleAssignmentData() with an entityPrefix', () => {
             `CREATE TABLE "vdr_role" ("id" integer PRIMARY KEY AUTOINCREMENT,
              "createdAt" datetime NOT NULL DEFAULT (datetime('now')),
              "updatedAt" datetime NOT NULL DEFAULT (datetime('now')),
-             "code" varchar NOT NULL, "description" varchar NOT NULL, "permissions" text NOT NULL)`,
+             "code" varchar NOT NULL, "description" varchar NOT NULL, "permissions" text NOT NULL,
+             "channelId" integer)`,
         );
         await queryRunner.query(
             `CREATE TABLE "vdr_channel" ("id" integer PRIMARY KEY AUTOINCREMENT, "code" varchar NOT NULL)`,

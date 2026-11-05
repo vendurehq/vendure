@@ -1,7 +1,8 @@
+import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { RoleCodeLabel } from '@/vdb/components/shared/role-code-label.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { ROLE_EDITOR_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
+import { DEFAULT_CHANNEL_CODE, ROLE_EDITOR_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
@@ -28,6 +29,7 @@ function RoleListPage() {
             defaultVisibility={{
                 description: true,
                 code: true,
+                channel: true,
                 permissions: true,
             }}
             customizeColumns={{
@@ -39,6 +41,21 @@ function RoleListPage() {
                                 label={<RoleCodeLabel code={row.original.code} />}
                                 disabled={SYSTEM_ROLES.includes(row.original.code)}
                             />
+                        );
+                    },
+                },
+                channel: {
+                    header: () => <Trans>Owner</Trans>,
+                    cell: ({ row }) => {
+                        const channel = row.original.channel;
+                        if (!channel) {
+                            return null;
+                        }
+                        // A Role owned by the default channel can be assigned on every channel
+                        return channel.code === DEFAULT_CHANNEL_CODE ? (
+                            <Trans>Shared</Trans>
+                        ) : (
+                            <ChannelCodeLabel code={channel.code} />
                         );
                     },
                 },

@@ -197,13 +197,24 @@ describe('migrateRoleAssignmentData()', () => {
         return Number(rows[0].count);
     }
 
+    async function getRoleOwners(): Promise<Record<string, string | null>> {
+        const rows: Array<{ code: string; channelCode: string | null }> = await queryRunner.query(
+            `SELECT r.${esc('code')} AS ${esc('code')}, c.${esc('code')} AS ${esc('channelCode')}
+             FROM ${esc('role')} r
+             LEFT JOIN ${esc('channel')} c ON c.${esc('id')} = r.${esc('channelId')}`,
+        );
+        return Object.fromEntries(rows.map(row => [row.code, row.channelCode]));
+    }
+
     /**
      * Rebuilds the pre-v4 join tables from the current role_assignment rows, the way a v3
      * instance stored the same grants: each user's Roles in user_roles_role, each Role's
      * Channels in role_channels_channel, the SuperAdmin and Customer roles on every Channel
-     * and every customer holding the Customer role. Then empties role_assignment.
+     * and every customer holding the Customer role. Then empties role_assignment and clears
+     * the owning Channel of every Role, which v3 did not have.
      */
     async function createLegacyTables(): Promise<{ userRoles: number; roleChannels: number }> {
+        await queryRunner.query(`UPDATE ${esc('role')} SET ${esc('channelId')} = NULL`);
         await queryRunner.query(
             `INSERT INTO ${esc('role')} (${esc('createdAt')}, ${esc('updatedAt')}, ${esc('code')}, ${esc('description')}, ${esc('permissions')})
              VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '${CUSTOMER_ROLE_CODE}', 'Customer', 'Authenticated')`,
@@ -398,6 +409,19 @@ describe('migrateRoleAssignmentData()', () => {
         expect((await queryRunner.getTable('role_channels_channel'))?.foreignKeys).toHaveLength(2);
     });
 
+    it('gives a Role on one channel that channel as its owner, and every other Role the default channel', async () => {
+        expect(await getRoleOwners()).toEqual({
+            [SUPER_ADMIN_ROLE_CODE]: DEFAULT_CHANNEL_CODE,
+            [ROLE_EDITOR_ROLE_CODE]: DEFAULT_CHANNEL_CODE,
+            [CUSTOMER_ROLE_CODE]: DEFAULT_CHANNEL_CODE,
+            // on the default channel and channel-b: a shared Role
+            orders: DEFAULT_CHANNEL_CODE,
+            // on channel-c only: private to it
+            catalog: 'channel-c',
+            'role-crud': DEFAULT_CHANNEL_CODE,
+        });
+    });
+
     describe('while v3 and v4 servers run side by side', () => {
         it('starts with the same permissions as before for every administrator, the API key and every customer', async () => {
             await expect(assertRoleAssignmentDataMigrated(queryRunner)).resolves.toBeUndefined();
@@ -537,6 +561,8 @@ describe('migrateRoleAssignmentData()', () => {
 
         expect(await getTriples()).toEqual(expectedTriples);
         expect(await snapshotPermissions()).toEqual(expectedPermissions);
+        expect((await getRoleOwners()).catalog).toBe('channel-c');
+        expect(Object.values(await getRoleOwners())).not.toContain(null);
         await expect(assertRoleAssignmentDataMigrated(queryRunner)).resolves.toBeUndefined();
     });
 

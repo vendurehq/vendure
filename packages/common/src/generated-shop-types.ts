@@ -3196,6 +3196,13 @@ export type ResetPasswordResult = CurrentUser | NativeAuthStrategyError | NotVer
 
 export type Role = Node & {
   __typename?: 'Role';
+  /**
+   * The Channel which owns this Role. A Role owned by the default Channel is shared: it can be
+   * assigned on any Channel. A Role owned by any other Channel can only be assigned on that
+   * Channel. Null only for a Role created by a v3 server during a rolling upgrade, until the
+   * role assignment migration has completed.
+   */
+  channel?: Maybe<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
   description: Scalars['String']['output'];

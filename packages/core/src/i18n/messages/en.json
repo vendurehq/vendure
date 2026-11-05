@@ -1,6 +1,6 @@
 {
   "error": {
-    "active-user-cannot-manage-role": "Active user does not have permission to manage the role \"{ roleCode }\" on every channel where it is assigned",
+    "active-user-cannot-manage-role": "Active user does not have permission to manage the role \"{ roleCode }\" on the channel which owns it",
     "active-user-does-not-have-sufficient-permissions": "Active user does not have sufficient permissions",
     "api-key-impersonated-user-cannot-receive-roles": "Roles cannot be assigned through an ApiKey whose user is an existing user",
     "available-currency-codes-must-include-default": "availableCurrencyCodes must include the defaultCurrencyCode ({ defaultCurrencyCode })",

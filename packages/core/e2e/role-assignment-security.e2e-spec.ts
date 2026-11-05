@@ -584,10 +584,14 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
 
     // ------------------------------------------------------------------------------------
     describe('3. role edit ordering', () => {
+        // Channel A is the default channel, so R4, created there, is a shared Role owned by
+        // the default channel: roleEditorA, who holds RoleEditor on A, owns it.
         const S = '3-role-edit';
         let r4: { id: string; code: string };
+        let r4Deleted = false;
 
         afterAll(async () => {
+            if (r4Deleted) return;
             await asSuper();
             await revoke(admins.lowA.userId, [{ roleId: r4.id, channelId: A }]);
             await revoke(admins.adminB.userId, [{ roleId: r4.id, channelId: B }]);
@@ -607,19 +611,31 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             record(S, 'widen assigned role', 'deny', r);
         });
 
-        it('R4 assigned on B, roleEditorA (A only) edits it', async () => {
+        it('R4 assigned on B, roleEditorA (A only) widens it with a permission held on A only', async () => {
             await asSuper();
             await grant(admins.adminB.userId, [{ roleId: r4.id, channelId: B }]);
             await as('roleEditorA');
+            // roleEditorA holds UpdateCatalog on A but not on B, where R4 is now held too
+            const r = await attempt(() =>
+                adminClient.query(updateRoleDocument, {
+                    input: { id: r4.id, permissions: [Permission.ReadCatalog, Permission.UpdateCatalog] },
+                }),
+            );
+            record(S, 'widen shared role beyond a foreign holder channel', 'deny', r);
+        });
+
+        it('R4 assigned on B, roleEditorA (A only) edits it', async () => {
             const r = await attempt(() =>
                 adminClient.query(updateRoleDocument, { input: { id: r4.id, description: 'edited' } }),
             );
-            record(S, 'edit role assigned on foreign channel', 'deny', r);
+            record(S, 'edit shared role from its owning channel', 'allow', r);
         });
 
         it('roleEditorA deletes R4 (assigned on B)', async () => {
             const r = await attempt(() => adminClient.query(deleteRoleDocument, { id: r4.id }));
-            record(S, 'delete role assigned on foreign channel', 'deny', r);
+            record(S, 'delete shared role from its owning channel', 'allow', r);
+            r4Deleted = r.ok;
+            expect(await assignmentsOf(admins.adminB.userId)).toEqual([`R2@${B}`]);
         });
 
         it('roleEditorA creates role with SuperAdmin permission', async () => {
@@ -640,6 +656,101 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             );
             record(S, 'edit SuperAdmin role', 'deny', r1);
             record(S, 'edit RoleEditor role', 'deny', r2);
+        });
+    });
+
+    // ------------------------------------------------------------------------------------
+    // OSS-300: a Role created on a channel other than the default one is owned by it, and
+    // may only be assigned, read and edited there. Without ownership another vendor could
+    // assign the Role on their own channel and so lock its creator out of editing it.
+    describe('3b. channel-owned roles', () => {
+        const S = '3b-owned';
+        let rb: { id: string; code: string };
+
+        beforeAll(async () => {
+            await asSuper();
+            await createAdmin('roleEditorB', [
+                { roleId: roleEditorRoleId, channelId: B },
+                { roleId: roles.R1.id, channelId: B },
+            ]);
+        });
+
+        it('roleEditorB creates RB on B', async () => {
+            await as('roleEditorB', B_TOKEN);
+            const r = await attempt(() => createRole('RB', [Permission.ReadCatalog]));
+            record(S, 'create role on own channel', 'allow', r);
+            rb = roles.RB;
+            const { role } = await superClient.query(roleOwnerDocument, { id: rb.id });
+            expect(role?.channel?.id).toBe(B);
+        });
+
+        it('adminB assigns RB on B', async () => {
+            await as('adminB', B_TOKEN);
+            const r = await attempt(() => grant(admins.lowA.userId, [{ roleId: rb.id, channelId: B }]));
+            record(S, 'assign owned role on its channel', 'allow', r);
+        });
+
+        it('adminA assigns RB on A', async () => {
+            await as('adminA');
+            const r = await attempt(() => grant(admins.lowA.userId, [{ roleId: rb.id, channelId: A }]));
+            record(S, 'assign foreign-owned role on own channel', 'deny', r);
+            expect(await assignmentsOf(admins.lowA.userId)).not.toContain(`RB@${A}`);
+        });
+
+        it('a SuperAdmin assigns RB on A', async () => {
+            await asSuper();
+            const r = await attempt(() => grant(admins.lowA.userId, [{ roleId: rb.id, channelId: A }]));
+            record(S, 'SuperAdmin assigns owned role off its channel', 'deny', r);
+        });
+
+        it('adminA reads RB', async () => {
+            await as('adminA');
+            const { role } = await adminClient.query(roleOwnerDocument, { id: rb.id });
+            const { roles: list } = await adminClient.query(rolesDocument);
+            record(
+                S,
+                'read foreign-owned role',
+                'deny',
+                role || list.items.some(x => x.id === rb.id)
+                    ? { ok: true, value: role }
+                    : { ok: false, message: 'hidden' },
+            );
+        });
+
+        it('roleEditorA (RoleEditor on the default channel) edits and deletes RB', async () => {
+            await as('roleEditorA');
+            const r1 = await attempt(() =>
+                adminClient.query(updateRoleDocument, { input: { id: rb.id, description: 'hijacked' } }),
+            );
+            const r2 = await attempt(() => adminClient.query(deleteRoleDocument, { id: rb.id }));
+            record(S, 'edit foreign-owned role', 'deny', r1);
+            record(S, 'delete foreign-owned role', 'deny', r2);
+        });
+
+        it('roleEditorB edits shared role R1', async () => {
+            await as('roleEditorB', B_TOKEN);
+            const r = await attempt(() =>
+                adminClient.query(updateRoleDocument, { input: { id: roles.R1.id, description: 'hijacked' } }),
+            );
+            record(S, 'edit shared role from a vendor channel', 'deny', r);
+        });
+
+        it('roleEditorB widens RB with a permission not held on B', async () => {
+            const r = await attempt(() =>
+                adminClient.query(updateRoleDocument, {
+                    input: { id: rb.id, permissions: [Permission.ReadCatalog, Permission.ReadOrder] },
+                }),
+            );
+            record(S, 'widen owned role beyond own permissions', 'deny', r);
+        });
+
+        it('roleEditorB edits RB', async () => {
+            const r = await attempt(() =>
+                adminClient.query(updateRoleDocument, { input: { id: rb.id, description: 'edited' } }),
+            );
+            record(S, 'edit owned role', 'allow', r);
+            await asSuper();
+            await revoke(admins.lowA.userId, [{ roleId: rb.id, channelId: B }]);
         });
     });
 
@@ -1385,6 +1496,18 @@ const rolesDocument = graphql(`
             items {
                 id
                 code
+            }
+        }
+    }
+`);
+
+const roleOwnerDocument = graphql(`
+    query SecRoleOwner($id: ID!) {
+        role(id: $id) {
+            id
+            code
+            channel {
+                id
             }
         }
     }

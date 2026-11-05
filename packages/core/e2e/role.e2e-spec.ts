@@ -20,6 +20,7 @@ import {
     createAdministratorDocument,
     createChannelDocument,
     createRoleDocument,
+    deleteChannelDocument,
     updateAdministratorDocument,
     updateRoleDocument,
 } from './graphql/shared-definitions';
@@ -390,29 +391,21 @@ describe('Role resolver', () => {
             await adminClient.asUserWithCredentials(limitedAdmin.emailAddress, 'test');
         });
 
-        // A Role is visible iff the actor holds ReadRole on every channel where the Role
-        // currently has assignment rows (the RoleEditor gate, OSS-749), or may grant it,
-        // i.e. holds the Role's full permission list on at least one channel.
-        it('limited admin sees Roles according to the assigned-channels gate', async () => {
+        // A Role is visible iff the actor holds ReadRole on its owning channel, or may grant
+        // it somewhere. All Roles so far were created on the default channel, so they are
+        // shared Roles, and the limited admin holds RoleEditor on second-channel only.
+        it('limited admin sees the Roles it owns or may grant', async () => {
             const result = await adminClient.query(getRolesDocument);
 
-            // The limited admin holds RoleEditor on second-channel only, so:
-            // - second-channel-admin-manager: assigned on second-channel only -> visible
-            // - second-channel-order-manager: zero assignments -> vacuously visible
-            //   (accepted known issue, TODOs §7)
-            // - test & test2: zero assignments -> visible
+            // - second-channel-admin-manager: grantable on second-channel -> visible
+            // - test: carries only Authenticated, grantable anywhere -> visible
+            // - second-channel-order-manager, test2: permissions not held -> hidden, although
+            //   they have no assignments
             // - system roles (SuperAdmin, RoleEditor): bypass the gate since they
             //   cannot be modified or deleted anyway -> always visible
             const roleCodes = result.roles.items.map(r => r.code).sort();
             expect(roleCodes).toEqual(
-                [
-                    ROLE_EDITOR_ROLE_CODE,
-                    SUPER_ADMIN_ROLE_CODE,
-                    'second-channel-admin-manager',
-                    'second-channel-order-manager',
-                    'test',
-                    'test2',
-                ].sort(),
+                [ROLE_EDITOR_ROLE_CODE, SUPER_ADMIN_ROLE_CODE, 'second-channel-admin-manager', 'test'].sort(),
             );
         });
 
@@ -426,11 +419,12 @@ describe('Role resolver', () => {
             expect(result.role?.code).toBe(SUPER_ADMIN_ROLE_CODE);
         });
 
-        // A Role with no assignments passes the gate vacuously (accepted known issue, TODOs §7)
-        it('limited admin can view a Role with zero assignments', async () => {
+        // A Role owned by the default channel is not readable through RoleEditor on another
+        // channel, whether or not it has assignments.
+        it('limited admin cannot view a shared Role with zero assignments it may not grant', async () => {
             const result = await adminClient.query(getRoleDocument, { id: orderReaderRole.id });
 
-            expect(result.role?.code).toBe('second-channel-order-manager');
+            expect(result.role).toBeNull();
         });
 
         it(
@@ -521,11 +515,11 @@ describe('Role resolver', () => {
             adminCreatorAdministrator = createAdministrator;
         });
 
-        // The envelope rule on updateRole, for a Role the actor holds: second-channel-admin-manager
-        // is assigned only on second-channel, where the limited admin holds RoleEditor, so the
-        // RoleEditor gate passes. Adding a permission the actor does not hold is still refused.
+        // second-channel-admin-manager is a shared Role, owned by the default channel, so
+        // RoleEditor on second-channel does not let the limited admin edit it, although they
+        // hold it themselves.
         it(
-            'limited admin cannot add permissions it does not hold to a Role it holds itself',
+            'limited admin cannot edit a shared Role it holds itself',
             assertThrowsWithMessage(async () => {
                 await adminClient.query(updateRoleDocument, {
                     input: {
@@ -539,18 +533,32 @@ describe('Role resolver', () => {
                         ],
                     },
                 });
-            }, 'Active user does not have sufficient permissions'),
+            }, 'Active user does not have permission to manage the role "second-channel-admin-manager"'),
         );
 
-        // The same rule for a Role with zero assignments, where the RoleEditor gate passes
-        // vacuously.
+        // A shared Role with no assignments is out of reach too: it is not even readable.
         it(
-            'limited admin cannot update a Role with no assignments with permissions it does not hold',
+            'limited admin cannot update a shared Role with no assignments',
             assertThrowsWithMessage(async () => {
                 await adminClient.query(updateRoleDocument, {
                     input: {
                         id: orderReaderRole.id,
                         permissions: [Permission.ReadOrder, Permission.ReadCustomer],
+                    },
+                });
+            }, 'No Role with the id'),
+        );
+
+        // The envelope rule on updateRole, for a Role the actor owns: good-admin-creator was
+        // created on second-channel, so it is owned by it. Adding a permission the actor does
+        // not hold there is refused.
+        it(
+            'limited admin cannot add permissions it does not hold to a Role its channel owns',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(updateRoleDocument, {
+                    input: {
+                        id: adminCreatorRole.id,
+                        permissions: [Permission.CreateAdministrator, Permission.ReadOrder],
                     },
                 });
             }, 'Active user does not have sufficient permissions'),
@@ -732,7 +740,7 @@ describe('Role resolver', () => {
                 await adminClient.query(updateRoleDocument, {
                     input: { id: crossChannelRole.id, description: 'hijacked' },
                 });
-            }, 'Active user does not have permission to manage the role "cross-channel-role" ' + 'on every channel where it is assigned')();
+            }, 'Active user does not have permission to manage the role "cross-channel-role" ' + 'on the channel which owns it')();
         });
 
         it('can update and delete the Role once granted RoleEditor on the other channel', async () => {
@@ -853,6 +861,83 @@ describe('Role resolver', () => {
         });
     });
 
+    // OSS-300: every Role is owned by the channel it was created on.
+    describe('role ownership', () => {
+        let ownedChannel: ChannelFragment;
+        let ownedRole: ResultOf<typeof createRoleDocument>['createRole'];
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+            const { createChannel } = await adminClient.query(createChannelDocument, {
+                input: {
+                    code: 'owned-channel',
+                    token: 'owned-channel-token',
+                    defaultLanguageCode: LanguageCode.en,
+                    currencyCode: CurrencyCode.GBP,
+                    pricesIncludeTax: true,
+                    defaultShippingZoneId: 'T_1',
+                    defaultTaxZoneId: 'T_1',
+                },
+            });
+            channelGuard.assertSuccess(createChannel);
+            ownedChannel = createChannel;
+        });
+
+        it('a Role created on the default channel is a shared Role, owned by it', async () => {
+            const { role } = await adminClient.query(getRoleOwnerDocument, { id: adminManagerRole.id });
+            expect(role?.channel?.code).toBe('__default_channel__');
+        });
+
+        it('the system roles are owned by the default channel', async () => {
+            const superAdminRole = defaultRoles.find(r => r.code === SUPER_ADMIN_ROLE_CODE)!;
+            const { role } = await adminClient.query(getRoleOwnerDocument, { id: superAdminRole.id });
+            expect(role?.channel?.code).toBe('__default_channel__');
+        });
+
+        it('a Role created on another channel is owned by it', async () => {
+            adminClient.setChannelToken(ownedChannel.token);
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: { code: 'owned-role', description: '', permissions: [Permission.ReadOrder] },
+            });
+            ownedRole = createRole;
+            const { role } = await adminClient.query(getRoleOwnerDocument, { id: ownedRole.id });
+            expect(role?.channel?.id).toBe(ownedChannel.id);
+        });
+
+        it(
+            'a Role owned by a channel cannot be assigned on another channel, even by a SuperAdmin',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(assignRolesToUserDocument, {
+                    input: {
+                        userId: limitedAdmin.user.id,
+                        assignments: [{ roleId: ownedRole.id, channelId: secondChannel.id }],
+                    },
+                });
+            }, 'Active user does not have sufficient permissions'),
+        );
+
+        it('deleting a channel deletes the Roles it owns', async () => {
+            await adminClient.query(assignRolesToUserDocument, {
+                input: {
+                    userId: limitedAdmin.user.id,
+                    assignments: [{ roleId: ownedRole.id, channelId: ownedChannel.id }],
+                },
+            });
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { deleteChannel } = await adminClient.query(deleteChannelDocument, { id: ownedChannel.id });
+            expect(deleteChannel.result).toBe(DeletionResult.DELETED);
+
+            const { role } = await adminClient.query(getRoleOwnerDocument, { id: ownedRole.id });
+            expect(role).toBeNull();
+            // the shared Roles are untouched
+            const { role: shared } = await adminClient.query(getRoleOwnerDocument, {
+                id: adminManagerRole.id,
+            });
+            expect(shared?.id).toBe(adminManagerRole.id);
+        });
+    });
+
     describe('roles query', () => {
         let limitedChannelAdmin: FragmentOf<typeof administratorFragment>;
 
@@ -860,9 +945,6 @@ describe('Role resolver', () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.asSuperAdmin();
 
-            // A role with zero assignments would be vacuously visible (TODOs §7), so to be
-            // hidden from the limited admin it is assigned on second-channel, where the
-            // limited admin will hold no RoleEditor grant.
             const hiddenRole = await adminClient.query(createRoleDocument, {
                 input: {
                     code: 'hidden-role',
@@ -910,26 +992,25 @@ describe('Role resolver', () => {
             await adminClient.asUserWithCredentials(limitedChannelAdmin.emailAddress, 'test');
 
             // limited@test.com holds ReadRole (via RoleEditor) on the default channel only.
-            // Visible = roles whose assigned channels are a subset of {default channel}:
-            // - visible-role: assigned to limited@test.com on the default channel
-            // - role-reader: assigned to reader@test.com on the default channel (gate suite)
-            // - zero-assignment roles: test, test2, second-channel-order-manager, unheld-role
-            // - system roles (SuperAdmin, RoleEditor): bypass the gate
-            // Invisible: second-channel-admin-manager, good-admin-creator and hidden-role
-            // (all assigned on second-channel only).
+            // Visible = the shared roles, owned by the default channel, wherever they are
+            // assigned: every role created by the SuperAdmin on the default channel.
+            // Invisible: good-admin-creator, owned by second-channel.
             const allVisible = await adminClient.query(getRolesDocument);
-            expect(allVisible.roles.items.map(r => r.code).sort()).toEqual(
-                [
-                    ROLE_EDITOR_ROLE_CODE,
-                    SUPER_ADMIN_ROLE_CODE,
-                    'role-reader',
-                    'second-channel-order-manager',
-                    'test',
-                    'test2',
-                    'unheld-role',
-                    'visible-role',
-                ].sort(),
-            );
+            const expectedCodes = [
+                ROLE_EDITOR_ROLE_CODE,
+                SUPER_ADMIN_ROLE_CODE,
+                'hidden-role',
+                'role-reader',
+                'second-channel-admin-manager',
+                'second-channel-order-manager',
+                'spanning-admin-reader',
+                'spanning-order-reader',
+                'test',
+                'test2',
+                'unheld-role',
+                'visible-role',
+            ].sort();
+            expect(allVisible.roles.items.map(r => r.code).sort()).toEqual(expectedCodes);
 
             // Pagination and totals operate over the visible set only
             const result = await adminClient.query(getRolesDocument, {
@@ -938,9 +1019,9 @@ describe('Role resolver', () => {
                 },
             });
             expect(result.roles.items).toHaveLength(2);
-            expect(result.roles.totalItems).toBe(8);
+            expect(result.roles.totalItems).toBe(expectedCodes.length);
             const roleCodes = result.roles.items.map(r => r.code);
-            expect(roleCodes).not.toContain('hidden-role');
+            expect(roleCodes).not.toContain('good-admin-creator');
         });
 
         afterAll(async () => {
@@ -948,6 +1029,19 @@ describe('Role resolver', () => {
         });
     });
 });
+
+const getRoleOwnerDocument = graphql(`
+    query GetRoleOwner($id: ID!) {
+        role(id: $id) {
+            id
+            code
+            channel {
+                id
+                code
+            }
+        }
+    }
+`);
 
 export const getRolesDocument = graphql(
     `

@@ -41,6 +41,13 @@ const MIGRATION_GUIDE_URL =
  * review the intended behavior changes for your data before migrating, see
  * {@link previewRoleAssignmentMigration}.
  *
+ * Every Role is given its owning Channel (`role.channelId`, see `Role`): a Role assigned to
+ * exactly one Channel in `role_channels_channel` is owned by that Channel, so it stays private
+ * to it. Every other Role (assigned to several Channels, to none, or to the default Channel)
+ * is owned by the default Channel, which makes it a shared Role, assignable on any Channel.
+ * Its existing grants all stay valid. {@link previewRoleAssignmentMigration} lists the Roles
+ * which become shared although they were assigned to several Channels.
+ *
  * The RoleEditor system role (which bundles the Role CRUD permissions) is created if
  * absent. It is not granted to anyone. Pre-v4 versions gated Role CRUD on the Administrator
  * permissions, and `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` are new in v4, so
@@ -61,9 +68,9 @@ const MIGRATION_GUIDE_URL =
  * v3 server or worker is running, call {@link removeLegacyRoleData}, in the same migration
  * if you stop v3 before migrating, or in a later deployment otherwise.
  *
- * Call this from your migration's `up()` method **after** the `role_assignment` table
- * has been created. A generated migration does not touch the legacy tables, so nothing
- * else in it needs to change.
+ * Call this from your migration's `up()` method **after** the `role_assignment` table and
+ * the `role.channelId` column have been created. A generated migration does not touch the
+ * legacy tables, so nothing else in it needs to change.
  *
  * The helper is idempotent: once the copy has been recorded, it is skipped. It is safe to
  * re-run, e.g. after a partial failure on MySQL (where DDL is non-transactional).
@@ -77,7 +84,7 @@ const MIGRATION_GUIDE_URL =
  * export class V4Upgrade1234567890 implements MigrationInterface {
  *     public async up(queryRunner: QueryRunner): Promise<any> {
  *         // --- Auto-generated DDL ---
- *         // (Create role_assignment table and FK constraints)
+ *         // (Create role_assignment table, add role.channelId, FK constraints)
  *         // ...
  *
  *         // --- Copy the role grants, keep the legacy tables for v3 servers ---
@@ -126,7 +133,9 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
     const insertedCount = await copyRoleAssignmentGrants(queryRunner, LEGACY_SOURCES(t));
     // 3.-4. Create the RoleEditor role and update the SuperAdmin role.
     await updateSystemRoles(queryRunner);
-    // 5. Record the copy, which removeLegacyRoleData() needs to tell copied rows from rows
+    // 5. Give every Role its owning Channel.
+    await assignRoleOwners(queryRunner, LEGACY_SOURCES(t));
+    // 6. Record the copy, which removeLegacyRoleData() needs to tell copied rows from rows
     // written by v4 servers since.
     await recordCopy(queryRunner);
 
@@ -157,6 +166,9 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
  *   on a v4 server or granted on a v3 server after the copy. The two cannot be told apart,
  *   so it is logged and not applied. Grant it again with `assignRolesToUser` if needed.
  * - Rows written by v4 servers since the copy are left as they are.
+ *
+ * Roles created on v3 servers since the copy have no owning Channel yet. They are given one
+ * by the same rule as in {@link migrateRoleAssignmentData}.
  *
  * It then **drops** the legacy tables and the `role_assignment_migration` table, and
  * deletes the Customer role. The way back to v3 is the backup taken before the migration,
@@ -205,16 +217,19 @@ export async function removeLegacyRoleData(queryRunner: QueryRunner): Promise<vo
             // 2. Report the grants which cannot be attributed to v3 or v4.
             await reportUnappliedGrants(queryRunner, LEGACY_SOURCES(t));
         }
+        // 3. Give the Roles created on v3 servers since the copy their owning Channel, while
+        // role_channels_channel still records where they were assigned.
+        await assignRoleOwners(queryRunner, LEGACY_SOURCES(t));
     }
 
-    // 3. Drop the legacy tables, user_roles_role after role_channels_channel: a run which
+    // 4. Drop the legacy tables, user_roles_role after role_channels_channel: a run which
     // stopped in between is recognized by it and completed on the next run.
     for (const tableName of [t.roleChannels, t.userRoles, t.copyRecord]) {
         if (await queryRunner.hasTable(tableName)) {
             await queryRunner.dropTable(tableName);
         }
     }
-    // 4. Delete the Customer role, which v4 does not use. With the legacy tables gone,
+    // 5. Delete the Customer role, which v4 does not use. With the legacy tables gone,
     // nothing cascades from it.
     await deleteLegacyCustomerRole(queryRunner);
 
@@ -273,6 +288,61 @@ async function updateSystemRoles(queryRunner: QueryRunner): Promise<void> {
             );
         }
     }
+}
+
+/**
+ * Sets the owning Channel of every Role which has none yet: the single Channel a Role is
+ * assigned to in `role_channels_channel`, or the default Channel for every other Role,
+ * which makes it a shared Role. Roles which already have an owner are left as they are, so
+ * it is safe to call again, and owners set by v4 servers are kept.
+ *
+ * A Role confined to one Channel has its v3 grants on that Channel only, so all of them stay
+ * valid under the v4 rule that a Role owned by a Channel other than the default one may be
+ * assigned only there.
+ */
+async function assignRoleOwners(queryRunner: QueryRunner, sources: SourceTables): Promise<void> {
+    const t = getTableNames(queryRunner);
+    const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    const roleTable = await queryRunner.getTable(t.role);
+    if (!roleTable?.findColumnByName('channelId')) {
+        throw new Error(
+            `The ${t.role} table has no channelId column. Call the role assignment migration ` +
+                `helpers after the part of your migration which adds it. See ${MIGRATION_GUIDE_URL}`,
+        );
+    }
+    const roleId = `${esc(t.role)}.${esc('id')}`;
+    // A scalar subquery with LIMIT rather than MIN(): Postgres has no MIN() for uuid columns.
+    // The subqueries do not read the role table itself, which MySQL would refuse in an UPDATE.
+    await queryRunner.query(
+        `UPDATE ${esc(t.role)}
+         SET ${esc('channelId')} = (
+             SELECT rc.${esc('channelId')} FROM ${esc(sources.roleChannels)} rc
+             WHERE rc.${esc('roleId')} = ${roleId}
+             LIMIT 1
+         )
+         WHERE ${esc('channelId')} IS NULL
+         AND (
+             SELECT COUNT(*) FROM ${esc(sources.roleChannels)} rc
+             WHERE rc.${esc('roleId')} = ${roleId}
+         ) = 1`,
+    );
+    await assignDefaultChannelOwner(queryRunner);
+}
+
+/**
+ * Makes every Role which still has no owning Channel a shared Role, owned by the default
+ * Channel.
+ */
+async function assignDefaultChannelOwner(queryRunner: QueryRunner): Promise<void> {
+    const t = getTableNames(queryRunner);
+    const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    await queryRunner.query(
+        `UPDATE ${esc(t.role)}
+         SET ${esc('channelId')} = (
+             SELECT c.${esc('id')} FROM ${esc(t.channel)} c WHERE c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
+         )
+         WHERE ${esc('channelId')} IS NULL`,
+    );
 }
 
 /**
