@@ -7,6 +7,8 @@ export declare class WaimaiShopResolver {
     constructor(stores: WaimaiStoreService, assist: SearchAssistService);
     /** 公开只读：C 端首页店铺列表（跨渠道元数据聚合） */
     waimaiStoreList(ctx: RequestContext): Promise<import("./waimai-store.service").WaimaiStore[]>;
+    /** 公开只读：C 端进店换取单店渠道 token（按 channelId，服务端限流） */
+    campusStoreEntry(ctx: RequestContext, channelId: string): Promise<import("./waimai-store.service").CampusStoreEntry>;
     /** 公开只读：当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案 */
     campusStoreTrust(ctx: RequestContext): Promise<import("./waimai-store.service").CampusStoreTrust>;
     /**

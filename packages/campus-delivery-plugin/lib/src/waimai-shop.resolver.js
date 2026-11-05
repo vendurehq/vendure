@@ -26,6 +26,10 @@ let WaimaiShopResolver = class WaimaiShopResolver {
     async waimaiStoreList(ctx) {
         return this.stores.listStores(ctx);
     }
+    /** 公开只读：C 端进店换取单店渠道 token（按 channelId，服务端限流） */
+    async campusStoreEntry(ctx, channelId) {
+        return this.stores.storeEntry(ctx, Number(channelId));
+    }
     /** 公开只读：当前渠道信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案 */
     async campusStoreTrust(ctx) {
         return this.stores.trustCopy(ctx);
@@ -54,6 +58,15 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext]),
     __metadata("design:returntype", Promise)
 ], WaimaiShopResolver.prototype, "waimaiStoreList", null);
+__decorate([
+    (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.Public),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('channelId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, String]),
+    __metadata("design:returntype", Promise)
+], WaimaiShopResolver.prototype, "campusStoreEntry", null);
 __decorate([
     (0, graphql_1.Query)(),
     (0, core_1.Allow)(core_1.Permission.Public),

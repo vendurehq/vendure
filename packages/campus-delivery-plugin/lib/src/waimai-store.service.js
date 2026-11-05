@@ -84,6 +84,16 @@ function privacyProviderStatus(cfg) {
     }
     return { provider: 'mask', effective: 'mask', degraded: false, note: null };
 }
+/**
+ * L2：外卖准入行业判断——只有「显式配置为非餐饮」才剔除；
+ * industryType 未设置（存量未刷成功 / 新建渠道漏填）时按餐饮处理，
+ * 避免已有履约配置的店铺从 C 端列表与进店换取里静默消失。
+ */
+function isCateringIndustry(cf) {
+    var _a;
+    const industry = String((_a = cf === null || cf === void 0 ? void 0 : cf.industryType) !== null && _a !== void 0 ? _a : '').trim();
+    return !industry || industry === 'catering';
+}
 /** 食安量化分级：A/B/C（空=未评级） */
 const FOOD_GRADES = ['A', 'B', 'C'];
 /** 数值配置合法区间（金额=分，时长=分钟）：与 campus-config 另一写入口同口径，超界直接拒绝 */
@@ -110,9 +120,13 @@ const NOTIFY_TEMPLATE_FIELDS = [
     'notifyTemplatePaymentPending', 'notifyTemplateCancelled', 'notifyTemplateAfterSales',
     'notifyTemplateAddressChanged',
 ];
+/** 单店进店换取限流：每 IP 每分钟 120 次（首屏并发换 token 足够，抑制批量枚举） */
+const ENTRY_RATE_WINDOW_MS = 60000;
+const ENTRY_RATE_MAX = 120;
 let WaimaiStoreService = class WaimaiStoreService {
     constructor(connection) {
         this.connection = connection;
+        this.entryRate = new Map();
     }
     /**
      * 菜品每日限量/每人限购（§68）：当前渠道「有限量配置」的商品，返回当日已售与剩余。
@@ -238,6 +252,55 @@ let WaimaiStoreService = class WaimaiStoreService {
             });
         }
         return stores;
+    }
+    /**
+     * 单店进店换取渠道 token：仅对「有履约配置 + 非默认渠道 + 餐饮行业」的店铺下发，
+     * 避免 public 列表一次性批量暴露全部渠道 token；每 IP 每分钟限流。
+     */
+    async storeEntry(ctx, channelId) {
+        var _a;
+        if (!Number.isInteger(channelId) || channelId <= 0) {
+            throw new core_1.UserInputError('店铺不存在');
+        }
+        this.assertEntryRate(ctx);
+        const channel = await this.connection.getRepository(ctx, core_1.Channel).findOne({ where: { id: channelId } });
+        if (!channel || channel.code === '__default_channel__') {
+            throw new core_1.UserInputError('店铺不存在');
+        }
+        const cfg = await this.connection
+            .getRepository(ctx, campus_fulfillment_config_entity_1.CampusFulfillmentConfig)
+            .findOne({ where: { channelId } });
+        const cf = ((_a = channel.customFields) !== null && _a !== void 0 ? _a : {});
+        // L2：与列表同口径——只有显式非餐饮才拒绝，未设置行业按餐饮处理
+        if (!cfg || !isCateringIndustry(cf)) {
+            throw new core_1.UserInputError('店铺不存在');
+        }
+        return { channelId: Number(channel.id), channelToken: channel.token };
+    }
+    /** 单店换取的进程内滑动窗口限流（多实例时各实例独立计数） */
+    assertEntryRate(ctx) {
+        var _a, _b, _c, _d, _e;
+        const req = ctx.req;
+        const forwarded = (_a = req === null || req === void 0 ? void 0 : req.headers) === null || _a === void 0 ? void 0 : _a['x-forwarded-for'];
+        const ip = ((_e = (_d = (_c = (_b = (Array.isArray(forwarded) ? forwarded[0] : forwarded)) === null || _b === void 0 ? void 0 : _b.split) === null || _c === void 0 ? void 0 : _c.call(_b, ',')) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.trim())
+            || (req === null || req === void 0 ? void 0 : req.ip)
+            || 'unknown';
+        const now = Date.now();
+        const rec = this.entryRate.get(ip);
+        if (!rec || now - rec.start >= ENTRY_RATE_WINDOW_MS) {
+            this.entryRate.set(ip, { start: now, count: 1 });
+            if (this.entryRate.size > 10000) {
+                for (const [key, value] of this.entryRate) {
+                    if (now - value.start >= ENTRY_RATE_WINDOW_MS)
+                        this.entryRate.delete(key);
+                }
+            }
+            return;
+        }
+        if (rec.count >= ENTRY_RATE_MAX) {
+            throw new core_1.UserInputError('请求过于频繁，请稍后再试');
+        }
+        rec.count += 1;
     }
     /** admin：全店铺配置（跨渠道，join Channel 取店铺名/token；默认渠道是平台会话渠道，跳过） */
     async listStoreConfigs(ctx) {

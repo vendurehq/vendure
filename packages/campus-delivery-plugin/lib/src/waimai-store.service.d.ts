@@ -42,6 +42,11 @@ export interface WaimaiStore {
     packingFeeCap: number | null;
     packingFeeLabel: string | null;
 }
+/** 单店进店凭证：C 端按 channelId 单店换取渠道 token（限流），列表不下发 token */
+export interface CampusStoreEntry {
+    channelId: number;
+    channelToken: string;
+}
 /** §113 信任文案（店铺级）：enabled=false 该行不展示，text=null 回落 C 端默认文案 */
 export interface CampusStoreTrust {
     qualityEnabled: boolean;
@@ -207,6 +212,13 @@ export declare class WaimaiStoreService {
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。
      * C 端进入店铺后用 channelToken 作 vendure-token 切换渠道拉菜单/下单。 */
     listStores(ctx: RequestContext): Promise<WaimaiStore[]>;
+    /**
+     * 单店进店换取渠道 token：仅对「有履约配置 + 非默认渠道 + 餐饮行业」的店铺下发，
+     * 避免 public 列表一次性批量暴露全部渠道 token；每 IP 每分钟限流。
+     */
+    storeEntry(ctx: RequestContext, channelId: number): Promise<CampusStoreEntry>;
+    /** 单店换取的进程内滑动窗口限流（多实例时各实例独立计数） */
+    private assertEntryRate;
     /** admin：全店铺配置（跨渠道，join Channel 取店铺名/token；默认渠道是平台会话渠道，跳过） */
     listStoreConfigs(ctx: RequestContext): Promise<CampusStoreConfigWithChannel[]>;
     /** admin：按 channelId upsert（幂等），routesEnabled 白名单 R1-R5，负数金额拒绝 */
