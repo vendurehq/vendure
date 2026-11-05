@@ -19,6 +19,7 @@ const typeorm_1 = require("typeorm");
 const support_entities_1 = require("./support.entities");
 const rider_credit_service_1 = require("./rider-credit.service");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
+const privacy_number_service_1 = require("./privacy-number.service");
 const after_sales_duty_1 = require("./after-sales-duty");
 const loggerCtx = 'CampusSupport';
 exports.TICKET_CATEGORIES = ['order', 'delivery', 'refund', 'invoice', 'other'];
@@ -48,12 +49,24 @@ function normalizeImages(images) {
  * C 端（shop-api）只操作自己的记录；后台（admin-api）按当前渠道隔离处理。
  */
 let SupportService = SupportService_1 = class SupportService {
-    constructor(connection, customerService, credit, feishu, moduleRef) {
+    constructor(connection, customerService, credit, feishu, moduleRef, 
+    /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响工单主流程 */
+    privacy) {
         this.connection = connection;
         this.customerService = customerService;
         this.credit = credit;
         this.feishu = feishu;
         this.moduleRef = moduleRef;
+        this.privacy = privacy;
+    }
+    /** 展示号转换器：启用号码保护时脱敏，未启用/依赖缺失时退回原文 */
+    async phoneDisplayer(ctx) {
+        if (this.privacy)
+            return this.privacy.displayer(ctx, ctx.channelId);
+        return p => {
+            const raw = String(p !== null && p !== void 0 ? p : '').trim();
+            return raw || null;
+        };
     }
     /** vendure Injector 需由 ModuleRef 构造（Nest 不直接提供 Injector 作为可注入项） */
     getAfterSales() {
@@ -242,6 +255,9 @@ let SupportService = SupportService_1 = class SupportService {
         });
         // 运营提醒：新工单推当前店铺群（channel 定向；平台群始终接收），无群也不影响提交
         const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '-';
+        // H2：飞书群消息会长期留存，顾客号码按号码保护口径脱敏
+        const display = await this.phoneDisplayer(ctx);
+        const phoneText = display(customer.phoneNumber);
         void this.pushFeishu('support_ticket', '新客服工单', [
             `类型：${category}`,
             orderCode ? `订单：${orderCode}` : '',
@@ -250,7 +266,7 @@ let SupportService = SupportService_1 = class SupportService {
                 : category === 'refund'
                     ? '售后单：未关联（顾客尚未发起售后申请）'
                     : '',
-            `顾客：${name}${customer.phoneNumber ? `（${customer.phoneNumber}）` : ''}`,
+            `顾客：${name}${phoneText ? `（${phoneText}）` : ''}`,
             `内容：${content.slice(0, 120)}${content.length > 120 ? '…' : ''}`,
         ].filter(Boolean).join('\n'), orderCode, `ticket:${ticket.id}`, { channel: (_c = ctx.channel) === null || _c === void 0 ? void 0 : _c.code });
         // 自动关联成功时回显真实售后摘要（状态/金额），避免建单响应显示空状态
@@ -389,12 +405,14 @@ let SupportService = SupportService_1 = class SupportService {
         const byId = new Map(customers.map(c => [String(c.id), c]));
         // 工单与售后打通：列表直接回显关联售后单状态/金额，运营无需另开售后列表对照
         const { byId: asById, latestByOrderId } = await this.loadAfterSalesSummaries(ctx, items);
+        // H2：后台工单列表顾客号码按号码保护口径展示
+        const display = await this.phoneDisplayer(ctx);
         return {
             items: items.map(t => {
-                var _a, _b;
+                var _a;
                 const c = byId.get(String(t.customerId));
                 const view = this.withAfterSalesView(t, (_a = asById.get(Number(t.afterSalesRequestId))) !== null && _a !== void 0 ? _a : (t.orderId != null ? latestByOrderId.get(Number(t.orderId)) : null));
-                return Object.assign(Object.assign({}, view), { customerName: [c === null || c === void 0 ? void 0 : c.firstName, c === null || c === void 0 ? void 0 : c.lastName].filter(Boolean).join(' ') || '-', customerPhone: (_b = c === null || c === void 0 ? void 0 : c.phoneNumber) !== null && _b !== void 0 ? _b : null });
+                return Object.assign(Object.assign({}, view), { customerName: [c === null || c === void 0 ? void 0 : c.firstName, c === null || c === void 0 ? void 0 : c.lastName].filter(Boolean).join(' ') || '-', customerPhone: display(c === null || c === void 0 ? void 0 : c.phoneNumber) });
             }),
             total,
         };
@@ -803,6 +821,7 @@ exports.SupportService = SupportService = SupportService_1 = __decorate([
         core_2.CustomerService,
         rider_credit_service_1.RiderCreditService,
         feishu_notify_service_1.FeishuNotifyService,
-        core_1.ModuleRef])
+        core_1.ModuleRef,
+        privacy_number_service_1.PrivacyNumberService])
 ], SupportService);
 //# sourceMappingURL=support.service.js.map

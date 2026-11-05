@@ -26,6 +26,8 @@ let PrivacyNumberService = class PrivacyNumberService {
         this.connection = connection;
         /** mock 虚拟号池：同一渠道/订单/真实号在 TTL 内保持稳定 */
         this.mockPool = new Map();
+        /** 降级告警去重：`channelId:provider` 只提醒一次 */
+        this.degradedWarned = new Set();
     }
     /** 手机号脱敏：11 位保留前 3 后 4，其它保留首尾 */
     mask(phone) {
@@ -47,21 +49,36 @@ let PrivacyNumberService = class PrivacyNumberService {
         });
     }
     /**
+     * 展示号转换器（H2）：一次读取渠道配置，返回同步转换函数。
+     * 启用号码保护 → 脱敏号；未启用 → 原文。供列表/文案等 String 字段批量复用，避免逐条查配置。
+     */
+    async displayer(ctx, channelId) {
+        const cfg = await this.getConfig(ctx, channelId);
+        const enabled = !!(cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberEnabled);
+        return phone => {
+            const raw = String(phone !== null && phone !== void 0 ? phone : '').trim();
+            if (!raw)
+                return null;
+            return enabled ? this.mask(raw) : raw;
+        };
+    }
+    /**
      * 解析一个手机号在当前渠道下的展示方式。
      * 调用方：骑手任务联系人、商家工作台、客服台、运营侧工单。
      */
     async resolve(ctx, source) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d;
         const real = String((_a = source.phone) !== null && _a !== void 0 ? _a : '').trim();
         const cfg = await this.getConfig(ctx, source.channelId);
         if (!(cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberEnabled) || !real) {
             return { protected: false, display: real || null, callable: real || null, provider: 'off', expiresAt: null, note: null };
         }
-        const configured = String((_b = cfg.privacyNumberProvider) !== null && _b !== void 0 ? _b : 'mask');
-        const provider = waimai_store_service_1.PRIVACY_PROVIDERS.includes(configured) ? configured : 'mask';
-        if (provider === 'mock') {
-            const ttl = Math.max(1, Number((_c = cfg.privacyNumberTtlMinutes) !== null && _c !== void 0 ? _c : 60)) * 60000;
-            const key = `${source.channelId}:${(_d = source.orderCode) !== null && _d !== void 0 ? _d : ''}:${real}`;
+        const status = (0, waimai_store_service_1.privacyProviderStatus)(cfg);
+        if (status.degraded)
+            this.warnDegraded(source.channelId, status);
+        if (status.effective === 'mock') {
+            const ttl = Math.max(1, Number((_b = cfg.privacyNumberTtlMinutes) !== null && _b !== void 0 ? _b : 60)) * 60000;
+            const key = `${source.channelId}:${(_c = source.orderCode) !== null && _c !== void 0 ? _c : ''}:${real}`;
             const now = Date.now();
             const hit = this.mockPool.get(key);
             if (hit && hit.expiresAt.getTime() > now) {
@@ -69,12 +86,12 @@ let PrivacyNumberService = class PrivacyNumberService {
                     protected: true,
                     display: hit.number,
                     callable: hit.number,
-                    provider,
+                    provider: status.effective,
                     expiresAt: hit.expiresAt,
-                    note: 'mock 虚拟号仅本地演示，不会真实转接',
+                    note: status.note,
                 };
             }
-            const prefix = String((_e = cfg.privacyNumberPrefix) !== null && _e !== void 0 ? _e : '').replace(/\D/g, '') || '1700000';
+            const prefix = String((_d = cfg.privacyNumberPrefix) !== null && _d !== void 0 ? _d : '').replace(/\D/g, '') || '1700000';
             const seed = Array.from(real).reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) % 10000, 7);
             const number = `${prefix}${String(seed).padStart(4, '0')}`.slice(0, 11);
             const expiresAt = new Date(now + ttl);
@@ -83,34 +100,30 @@ let PrivacyNumberService = class PrivacyNumberService {
                 protected: true,
                 display: number,
                 callable: number,
-                provider,
+                provider: status.effective,
                 expiresAt,
-                note: 'mock 虚拟号仅本地演示，不会真实转接',
+                note: status.note,
             };
         }
-        if (provider === 'aliyun' || provider === 'tencent') {
-            const envKey = provider === 'aliyun' ? 'PRIVACY_ALIYUN_KEY' : 'PRIVACY_TENCENT_KEY';
-            if (!process.env[envKey]) {
-                return {
-                    protected: true,
-                    display: this.mask(real),
-                    callable: null,
-                    provider: 'mask',
-                    expiresAt: null,
-                    note: `${provider} 号池未配置凭证（${envKey}），已降级为脱敏号`,
-                };
-            }
-            // 号池接口按 provider 接入（AXB 绑定/解绑）；未接入前同样降级，避免给出打不通的号码
-            return {
-                protected: true,
-                display: this.mask(real),
-                callable: null,
-                provider: 'mask',
-                expiresAt: null,
-                note: `${provider} 号池接口待接入，暂以脱敏号兜底`,
-            };
-        }
-        return { protected: true, display: this.mask(real), callable: null, provider: 'mask', expiresAt: null, note: null };
+        // mask 兜底（含 aliyun/tencent 未接入的降级）：只给脱敏号，不给可拨号
+        return {
+            protected: true,
+            display: this.mask(real),
+            callable: null,
+            provider: status.effective,
+            expiresAt: null,
+            note: status.note,
+        };
+    }
+    /** 降级告警去重：同一渠道同一服务商只提醒一次（进程内，多实例各自一条） */
+    warnDegraded(channelId, status) {
+        const key = `${channelId}:${status.provider}`;
+        if (this.degradedWarned.has(key))
+            return;
+        if (this.degradedWarned.size >= 500)
+            this.degradedWarned.clear();
+        this.degradedWarned.add(key);
+        core_1.Logger.warn(`渠道 ${channelId} 隐私号配置为 ${status.provider}，实际回落 ${status.effective}：${status.note}`, 'PrivacyNumberService');
     }
 };
 exports.PrivacyNumberService = PrivacyNumberService;

@@ -1,6 +1,7 @@
 import { CustomerService, ID, RequestContext, TransactionalConnection } from '@vendure/core';
 import { CampusChatConversation, CampusChatMessage } from './chat.entities';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
+import { PrivacyNumberService } from './privacy-number.service';
 export declare const CHAT_STATUSES: string[];
 /**
  * 在线客服 IM（P0-3）：C 端顾客与后台运营/商家的一对多会话（按订单归集）。
@@ -11,7 +12,13 @@ export declare class ChatService {
     private connection;
     private customerService;
     private feishu;
-    constructor(connection: TransactionalConnection, customerService: CustomerService, feishu: FeishuNotifyService);
+    /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响会话主流程 */
+    private privacy?;
+    constructor(connection: TransactionalConnection, customerService: CustomerService, feishu: FeishuNotifyService, 
+    /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响会话主流程 */
+    privacy?: PrivacyNumberService | undefined);
+    /** 展示号转换器：启用号码保护时脱敏，未启用/依赖缺失时退回原文 */
+    private phoneDisplayer;
     private requireCustomer;
     /** 飞书提醒：仅记录日志、绝不阻塞会话（未启用时 pushEvent 直接返回 true） */
     private pushFeishu;

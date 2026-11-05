@@ -1823,7 +1823,7 @@ let MerchantAdminService = class MerchantAdminService {
      * 渠道隔离同列表；留言表缺失时降级为空列表，不影响详情可用。
      */
     async afterSalesDetail(ctx, id) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f, _g;
         const request = await this.assertChannelAfterSales(ctx, id, []);
         const counts = await this.afterSalesMessageCounts(ctx, [Number(request.id)]);
         const lastSender = await this.afterSalesLastSender([Number(request.id)]);
@@ -1838,6 +1838,8 @@ let MerchantAdminService = class MerchantAdminService {
         const escalatedMap = await this.afterSalesEscalatedMap(ctx, [Number(request.id)]);
         const reviewPending = await this.refundReviewPendingSet(ctx, [Number(request.id)]);
         const businessHours = await this.channelBusinessHours(ctx);
+        // H2：售后详情对商家侧统一走号码保护口径，启用后不再回显顾客明文手机号
+        const displayPhone = await this.privacy.displayer(ctx, ctx.channelId);
         return {
             request: this.toAfterSalesRow(request, counts, timeoutHours, Date.now(), lastSender, {
                 risks: riskMap,
@@ -1852,18 +1854,18 @@ let MerchantAdminService = class MerchantAdminService {
             refundError: (_c = request.refundError) !== null && _c !== void 0 ? _c : null,
             actualRefundAmount: request.actualRefundAmount == null ? null : Number(request.actualRefundAmount),
             timeoutHours,
-            customerPhone: (_d = customer === null || customer === void 0 ? void 0 : customer.phoneNumber) !== null && _d !== void 0 ? _d : null,
+            customerPhone: displayPhone(customer === null || customer === void 0 ? void 0 : customer.phoneNumber),
             shippingAddress: addr
                 ? {
-                    fullName: [addr.fullName, addr.company].filter(Boolean).join(' / ') || String((_e = addr.fullName) !== null && _e !== void 0 ? _e : ''),
-                    phoneNumber: String((_f = addr.phoneNumber) !== null && _f !== void 0 ? _f : ''),
+                    fullName: [addr.fullName, addr.company].filter(Boolean).join(' / ') || String((_d = addr.fullName) !== null && _d !== void 0 ? _d : ''),
+                    phoneNumber: (_e = displayPhone(addr.phoneNumber)) !== null && _e !== void 0 ? _e : '',
                     address: [addr.streetLine1, addr.streetLine2, addr.postalCode]
                         .filter(Boolean)
                         .join(' '),
                 }
                 : null,
-            orderItems: await this.afterSalesOrderItems(Number((_g = order === null || order === void 0 ? void 0 : order.id) !== null && _g !== void 0 ? _g : request.orderId)),
-            orderTotal: Number((_h = order === null || order === void 0 ? void 0 : order.totalWithTax) !== null && _h !== void 0 ? _h : 0),
+            orderItems: await this.afterSalesOrderItems(Number((_f = order === null || order === void 0 ? void 0 : order.id) !== null && _f !== void 0 ? _f : request.orderId)),
+            orderTotal: Number((_g = order === null || order === void 0 ? void 0 : order.totalWithTax) !== null && _g !== void 0 ? _g : 0),
             assignHistory: await this.afterSalesAssignLogs(Number(request.id)),
             followUps: await this.afterSalesFollowUps(Number(request.id)),
             slaPauses: await this.afterSalesSlaPauseLogs(Number(request.id)),

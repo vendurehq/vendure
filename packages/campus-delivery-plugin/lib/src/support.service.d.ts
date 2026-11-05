@@ -3,6 +3,7 @@ import { CustomerService, ID, RequestContext, TransactionalConnection } from '@v
 import { CampusRiderAppeal, CampusBlacklist, CampusSupportTicket } from './support.entities';
 import { RiderCreditService } from './rider-credit.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
+import { PrivacyNumberService } from './privacy-number.service';
 export declare const TICKET_CATEGORIES: string[];
 export declare const TICKET_STATUSES: string[];
 /** 工单来源：顾客提交 / 外部运单异常自动建单 */
@@ -18,9 +19,15 @@ export declare class SupportService {
     private credit;
     private feishu;
     private moduleRef?;
+    /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响工单主流程 */
+    private privacy?;
     /** 售后插件为可选依赖：未安装时工单仍可用，仅“工单↔售后”联动降级 */
     private afterSalesSvc?;
-    constructor(connection: TransactionalConnection, customerService: CustomerService, credit: RiderCreditService, feishu: FeishuNotifyService, moduleRef?: ModuleRef | undefined);
+    constructor(connection: TransactionalConnection, customerService: CustomerService, credit: RiderCreditService, feishu: FeishuNotifyService, moduleRef?: ModuleRef | undefined, 
+    /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响工单主流程 */
+    privacy?: PrivacyNumberService | undefined);
+    /** 展示号转换器：启用号码保护时脱敏，未启用/依赖缺失时退回原文 */
+    private phoneDisplayer;
     /** vendure Injector 需由 ModuleRef 构造（Nest 不直接提供 Injector 作为可注入项） */
     private getAfterSales;
     private requireCustomer;

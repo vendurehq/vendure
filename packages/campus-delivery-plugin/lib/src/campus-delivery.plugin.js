@@ -1884,6 +1884,11 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     privacyNumberEnabled: Boolean!
                     """隐私号服务商：mask / mock / aliyun / tencent"""
                     privacyNumberProvider: String!
+                    """实际生效的服务商（外部号池未接入时回落 mask）"""
+                    privacyNumberEffectiveProvider: String!
+                    """配置值≠生效值：号码保护未真正启用，后台需提示运营"""
+                    privacyNumberDegraded: Boolean!
+                    privacyNumberNote: String
                     privacyNumberTtlMinutes: Int!
                     privacyNumberPrefix: String
                     foodLicenseNo: String
@@ -2475,6 +2480,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     name: String!
                     needsEndpoint: Boolean!
                     needsKey: Boolean!
+                    """服务端是否已实现下发（mock=模拟实现，真实厂商暂未接入）"""
+                    integrated: Boolean!
                 }
 
                 """无人配送通道（P2-4 接口占位）：mock=模拟受理，真实厂商需 endpoint + key"""
@@ -2488,6 +2495,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     keyConfigured: Boolean!
                     needsEndpoint: Boolean!
                     needsKey: Boolean!
+                    """当前所选服务商是否已实现下发（false=调用返回 unsupported）"""
+                    integrated: Boolean!
                 }
 
                 input CampusUnmannedChannelInput {
@@ -3738,6 +3747,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     enabled: Boolean!
                     provider: String!
                     providerName: String!
+                    """当前服务商是否已实现下发（false=未接入，调用返回 unsupported）"""
+                    integrated: Boolean!
                 }
 
                 type CampusMyAddressChange {

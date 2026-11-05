@@ -108,11 +108,13 @@ export declare class CampusLockerService {
             name: string;
             needsEndpoint: boolean;
             needsKey: boolean;
+            integrated: boolean;
         }[];
         endpoint: string | null;
         keyConfigured: boolean;
         needsEndpoint: boolean;
         needsKey: boolean;
+        integrated: boolean;
     }>;
     /** 后台：保存通道配置（endpoint / key 传空串 = 清空） */
     updateChannel(ctx: RequestContext, input: UnmannedChannelInput): Promise<{
@@ -124,11 +126,13 @@ export declare class CampusLockerService {
             name: string;
             needsEndpoint: boolean;
             needsKey: boolean;
+            integrated: boolean;
         }[];
         endpoint: string | null;
         keyConfigured: boolean;
         needsEndpoint: boolean;
         needsKey: boolean;
+        integrated: boolean;
     }>;
     /**
      * 调用占位：校验通道配置后「受理」一次无人配送请求。

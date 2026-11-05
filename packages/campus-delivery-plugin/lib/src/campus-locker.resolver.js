@@ -129,7 +129,7 @@ let CampusLockerShopResolver = class CampusLockerShopResolver {
     }
     async campusUnmannedDeliveryChannel(ctx) {
         const ch = await this.lockers.channel(ctx);
-        return { enabled: ch.enabled, provider: ch.provider, providerName: ch.providerName };
+        return { enabled: ch.enabled, provider: ch.provider, providerName: ch.providerName, integrated: ch.integrated };
     }
 };
 exports.CampusLockerShopResolver = CampusLockerShopResolver;

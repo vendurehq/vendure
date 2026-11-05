@@ -72,11 +72,13 @@ export declare class CampusLockerAdminResolver {
             name: string;
             needsEndpoint: boolean;
             needsKey: boolean;
+            integrated: boolean;
         }[];
         endpoint: string | null;
         keyConfigured: boolean;
         needsEndpoint: boolean;
         needsKey: boolean;
+        integrated: boolean;
     }>;
     campusUpdateUnmannedChannel(ctx: RequestContext, input: UnmannedChannelInput): Promise<{
         enabled: boolean;
@@ -87,11 +89,13 @@ export declare class CampusLockerAdminResolver {
             name: string;
             needsEndpoint: boolean;
             needsKey: boolean;
+            integrated: boolean;
         }[];
         endpoint: string | null;
         keyConfigured: boolean;
         needsEndpoint: boolean;
         needsKey: boolean;
+        integrated: boolean;
     }>;
     /** 调用占位：真实厂商 SDK 未接，当前只做配置校验 + 模拟受理（返回单号） */
     campusRequestUnmannedDelivery(ctx: RequestContext, orderId: ID): Promise<import("./unmanned-delivery").UnmannedDeliveryResult>;
@@ -121,5 +125,6 @@ export declare class CampusLockerShopResolver {
         enabled: boolean;
         provider: string;
         providerName: string;
+        integrated: boolean;
     }>;
 }

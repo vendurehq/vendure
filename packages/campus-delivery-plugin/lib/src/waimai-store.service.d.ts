@@ -119,6 +119,11 @@ export interface CampusStoreConfigWithChannel {
     dynamicPricing: string | null;
     privacyNumberEnabled: boolean;
     privacyNumberProvider: string;
+    /** M3：实际生效的服务商（aliyun/tencent 未接入时回落 mask） */
+    privacyNumberEffectiveProvider: string;
+    /** M3：配置值 ≠ 生效值（后台应提示运营「号码保护未真正启用」） */
+    privacyNumberDegraded: boolean;
+    privacyNumberNote: string | null;
     privacyNumberTtlMinutes: number;
     privacyNumberPrefix: string | null;
     foodLicenseNo: string | null;
@@ -163,6 +168,24 @@ export declare const PRINT_PROVIDERS: readonly ["local", "feie", "yilianyun"];
 export declare function normalizePrintMode(v: unknown): PrintMode;
 /** 隐私号服务商白名单：mask=仅脱敏，mock=本地虚拟号，aliyun/tencent=外部号池（缺凭证自动降级为 mask） */
 export declare const PRIVACY_PROVIDERS: readonly ["mask", "mock", "aliyun", "tencent"];
+/** M3：隐私号服务商实际生效口径（配置值 ≠ 生效值即降级，后台可直接看到） */
+export interface PrivacyProviderStatus {
+    /** 配置里选的服务商 */
+    provider: string;
+    /** 实际生效的服务商（外部号池未接入时回落 mask） */
+    effective: 'mask' | 'mock' | 'aliyun' | 'tencent';
+    degraded: boolean;
+    note: string | null;
+}
+/**
+ * 服务商生效口径（M3）：aliyun/tencent 号池接口尚未接入，
+ * 即使配了凭证也只能回落脱敏号——统一算出「配置值 / 生效值 / 降级原因」，
+ * 供后台配置视图与运行时 resolve 共用，避免被静默降级误导。
+ */
+export declare function privacyProviderStatus(cfg: {
+    privacyNumberEnabled?: boolean | null;
+    privacyNumberProvider?: string | null;
+} | null | undefined): PrivacyProviderStatus;
 export declare class WaimaiStoreService {
     private connection;
     constructor(connection: TransactionalConnection);

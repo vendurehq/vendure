@@ -13,6 +13,7 @@ exports.WaimaiStoreService = exports.PRIVACY_PROVIDERS = exports.PRINT_PROVIDERS
 exports.mpListingMissing = mpListingMissing;
 exports.normalizeMpListingStatus = normalizeMpListingStatus;
 exports.normalizePrintMode = normalizePrintMode;
+exports.privacyProviderStatus = privacyProviderStatus;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
@@ -54,6 +55,35 @@ function normalizePrintMode(v) {
 const ROUTE_WHITELIST = ['R1', 'R2', 'R3', 'R4', 'R5'];
 /** 隐私号服务商白名单：mask=仅脱敏，mock=本地虚拟号，aliyun/tencent=外部号池（缺凭证自动降级为 mask） */
 exports.PRIVACY_PROVIDERS = ['mask', 'mock', 'aliyun', 'tencent'];
+/** 外部号池凭证环境变量：缺失即降级为脱敏号 */
+const PROVIDER_ENV = {
+    aliyun: 'PRIVACY_ALIYUN_KEY',
+    tencent: 'PRIVACY_TENCENT_KEY',
+};
+/**
+ * 服务商生效口径（M3）：aliyun/tencent 号池接口尚未接入，
+ * 即使配了凭证也只能回落脱敏号——统一算出「配置值 / 生效值 / 降级原因」，
+ * 供后台配置视图与运行时 resolve 共用，避免被静默降级误导。
+ */
+function privacyProviderStatus(cfg) {
+    var _a;
+    const configured = String((_a = cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberProvider) !== null && _a !== void 0 ? _a : 'mask');
+    const provider = exports.PRIVACY_PROVIDERS.includes(configured) ? configured : 'mask';
+    if (!(cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberEnabled)) {
+        return { provider, effective: provider, degraded: false, note: null };
+    }
+    if (provider === 'mock') {
+        return { provider, effective: 'mock', degraded: false, note: 'mock 虚拟号仅本地演示，不会真实转接' };
+    }
+    if (provider === 'aliyun' || provider === 'tencent') {
+        const envKey = PROVIDER_ENV[provider];
+        const note = process.env[envKey]
+            ? `${provider} 号池接口待接入，暂以脱敏号兜底`
+            : `${provider} 号池未配置凭证（${envKey}），已降级为脱敏号`;
+        return { provider, effective: 'mask', degraded: true, note };
+    }
+    return { provider: 'mask', effective: 'mask', degraded: false, note: null };
+}
 /** 食安量化分级：A/B/C（空=未评级） */
 const FOOD_GRADES = ['A', 'B', 'C'];
 /** 数值配置合法区间（金额=分，时长=分钟）：与 campus-config 另一写入口同口径，超界直接拒绝 */
@@ -640,6 +670,7 @@ let WaimaiStoreService = class WaimaiStoreService {
     }
     toConfigView(channelId, channelName, channelToken, cfg) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _33, _34, _35;
+        const privacyStatus = privacyProviderStatus(cfg);
         return {
             channelId,
             channelName,
@@ -701,6 +732,9 @@ let WaimaiStoreService = class WaimaiStoreService {
             dynamicPricing: (cfg === null || cfg === void 0 ? void 0 : cfg.dynamicPricing) ? JSON.stringify(cfg.dynamicPricing) : null,
             privacyNumberEnabled: (_16 = cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberEnabled) !== null && _16 !== void 0 ? _16 : false,
             privacyNumberProvider: (_17 = cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberProvider) !== null && _17 !== void 0 ? _17 : 'mask',
+            privacyNumberEffectiveProvider: privacyStatus.effective,
+            privacyNumberDegraded: privacyStatus.degraded,
+            privacyNumberNote: privacyStatus.note,
             privacyNumberTtlMinutes: (_18 = cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberTtlMinutes) !== null && _18 !== void 0 ? _18 : 60,
             privacyNumberPrefix: (_19 = cfg === null || cfg === void 0 ? void 0 : cfg.privacyNumberPrefix) !== null && _19 !== void 0 ? _19 : null,
             foodLicenseNo: (_20 = cfg === null || cfg === void 0 ? void 0 : cfg.foodLicenseNo) !== null && _20 !== void 0 ? _20 : null,

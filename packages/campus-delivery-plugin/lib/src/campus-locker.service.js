@@ -160,11 +160,12 @@ let CampusLockerService = class CampusLockerService {
             enabled: !!cfg.unmannedDeliveryEnabled,
             provider: provider.code,
             providerName: provider.name,
-            providers: unmanned_delivery_1.UNMANNED_PROVIDERS.map(p => ({ code: p.code, name: p.name, needsEndpoint: p.needsEndpoint, needsKey: p.needsKey })),
+            providers: unmanned_delivery_1.UNMANNED_PROVIDERS.map(p => ({ code: p.code, name: p.name, needsEndpoint: p.needsEndpoint, needsKey: p.needsKey, integrated: p.integrated })),
             endpoint: (_a = cfg.unmannedDeliveryEndpoint) !== null && _a !== void 0 ? _a : null,
             keyConfigured: !!cfg.unmannedDeliveryKey,
             needsEndpoint: provider.needsEndpoint,
             needsKey: provider.needsKey,
+            integrated: provider.integrated,
         };
     }
     /** 后台：保存通道配置（endpoint / key 传空串 = 清空） */
@@ -230,8 +231,13 @@ let CampusLockerService = class CampusLockerService {
         if (provider.needsKey && !cfg.unmannedDeliveryKey) {
             return Object.assign(Object.assign({}, base), { ok: false, status: 'unconfigured', message: '无人配送密钥未配置' });
         }
-        const requestNo = `UD-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
-        return Object.assign(Object.assign({}, base), { ok: true, status: 'accepted', requestNo, message: `${provider.name}已受理（占位通道，未真实下发运单）` });
+        // L1：只有 mock 允许「受理」；真实厂商未接入时必须明确失败，不伪造运单号，
+        // 否则商家会误以为已下发无人车，且该假单号可能被记录进履约链路。
+        if (provider.code !== 'mock') {
+            return Object.assign(Object.assign({}, base), { ok: false, status: 'unsupported', message: `${provider.name}通道尚未接入，未下发运单` });
+        }
+        const requestNo = `MOCK-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+        return Object.assign(Object.assign({}, base), { ok: true, status: 'accepted', requestNo, message: '模拟通道已受理（未真实下发运单，仅用于联调验证）' });
     }
 };
 exports.CampusLockerService = CampusLockerService;

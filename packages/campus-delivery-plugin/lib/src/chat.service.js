@@ -15,6 +15,7 @@ const core_1 = require("@vendure/core");
 const chat_entities_1 = require("./chat.entities");
 const typeorm_1 = require("typeorm");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
+const privacy_number_service_1 = require("./privacy-number.service");
 const loggerCtx = 'CampusChat';
 exports.CHAT_STATUSES = ['open', 'closed'];
 const MAX_CONTENT = 500;
@@ -51,10 +52,22 @@ function messageBrief(content, images) {
  * 轮询模型：C 端 5s 拉增量消息（afterId），无长连接/推送，部署形态与其它 job 一致。
  */
 let ChatService = class ChatService {
-    constructor(connection, customerService, feishu) {
+    constructor(connection, customerService, feishu, 
+    /** 号码保护（H2）：可选注入；缺失时（单测/独立装配）退回原文，不影响会话主流程 */
+    privacy) {
         this.connection = connection;
         this.customerService = customerService;
         this.feishu = feishu;
+        this.privacy = privacy;
+    }
+    /** 展示号转换器：启用号码保护时脱敏，未启用/依赖缺失时退回原文 */
+    async phoneDisplayer(ctx) {
+        if (this.privacy)
+            return this.privacy.displayer(ctx, ctx.channelId);
+        return p => {
+            const raw = String(p !== null && p !== void 0 ? p : '').trim();
+            return raw || null;
+        };
     }
     async requireCustomer(ctx) {
         if (!ctx.activeUserId)
@@ -186,8 +199,11 @@ let ChatService = class ChatService {
         // 仅新会话的首条消息提醒（后续消息靠后台会话列表未读角标，避免刷屏）
         if (firstMessage) {
             const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '-';
+            // H2：飞书群消息长期留存，顾客号码按号码保护口径脱敏
+            const display = await this.phoneDisplayer(ctx);
+            const phoneText = display(customer.phoneNumber);
             void this.pushFeishu(ctx, '新客服咨询', [
-                `顾客：${name}${customer.phoneNumber ? `（${customer.phoneNumber}）` : ''}`,
+                `顾客：${name}${phoneText ? `（${phoneText}）` : ''}`,
                 conversation.orderCode ? `订单：${conversation.orderCode}` : '订单：未关联',
                 `内容：${brief(text || messageBrief(null, imgs))}`,
             ].join('\n'), conversation.orderCode, `chat:${conversation.id}`);
@@ -233,11 +249,12 @@ let ChatService = class ChatService {
             ? await this.connection.getRepository(ctx, core_1.Customer).findByIds(items.map(i => String(i.customerId)))
             : [];
         const byId = new Map(customers.map(c => [String(c.id), c]));
+        // H2：后台会话列表顾客号码按号码保护口径展示
+        const display = await this.phoneDisplayer(ctx);
         return {
             items: items.map(c => {
-                var _a;
                 const customer = byId.get(String(c.customerId));
-                return Object.assign(Object.assign({}, c), { customerName: [customer === null || customer === void 0 ? void 0 : customer.firstName, customer === null || customer === void 0 ? void 0 : customer.lastName].filter(Boolean).join(' ') || '-', customerPhone: (_a = customer === null || customer === void 0 ? void 0 : customer.phoneNumber) !== null && _a !== void 0 ? _a : null });
+                return Object.assign(Object.assign({}, c), { customerName: [customer === null || customer === void 0 ? void 0 : customer.firstName, customer === null || customer === void 0 ? void 0 : customer.lastName].filter(Boolean).join(' ') || '-', customerPhone: display(customer === null || customer === void 0 ? void 0 : customer.phoneNumber) });
             }),
             total,
         };
@@ -348,6 +365,7 @@ exports.ChatService = ChatService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [core_1.TransactionalConnection,
         core_1.CustomerService,
-        feishu_notify_service_1.FeishuNotifyService])
+        feishu_notify_service_1.FeishuNotifyService,
+        privacy_number_service_1.PrivacyNumberService])
 ], ChatService);
 //# sourceMappingURL=chat.service.js.map
