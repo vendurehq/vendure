@@ -1314,7 +1314,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-10-01T13:11:37Z"
+                  "lastModified": "2026-11-05T12:12:25Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -3122,7 +3122,7 @@
                   "title": "RoleAssignmentService",
                   "slug": "role-assignment-service",
                   "file": "docs/reference/typescript-api/services/role-assignment-service.mdx",
-                  "lastModified": "2026-11-05T11:54:43Z"
+                  "lastModified": "2026-11-05T12:12:25Z"
                 },
                 {
                   "title": "RoleService",
@@ -3840,19 +3840,19 @@
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/admin/mutations.mdx",
-                  "lastModified": "2026-10-01T15:09:49+02:00"
+                  "lastModified": "2026-11-05T12:12:25Z"
                 },
                 {
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-09-10T15:41:07Z"
+                  "lastModified": "2026-11-05T12:12:25Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-05T11:54:43Z"
+                  "lastModified": "2026-11-05T12:12:25Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
