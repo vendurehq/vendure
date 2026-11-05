@@ -4,6 +4,7 @@ import { UserInputError } from '@vendure/core';
 import { Connection } from 'typeorm';
 
 import { PosTerminal, PosDeviceConfig } from '../entities/pos-terminal.entity';
+import { PosSession } from '../entities/pos-session.entity';
 
 @Injectable()
 export class PosTerminalService {
@@ -80,6 +81,21 @@ export class PosTerminalService {
   }
 
   async delete(id: number): Promise<boolean> {
+    const terminal = await this.findOne(id);
+    if (!terminal) return false;
+    // 历史班次与对账数据不可丢：无外键级联时直接删终端会被 pos_session 外键拒绝（或误删历史）。
+    // 这里先校验引用关系，有班次时给出可读错误并引导停用，无班次时保持原删除行为。
+    const sessionCount = await this.connection
+      .getRepository(PosSession)
+      .createQueryBuilder('session')
+      .where('session.terminalId = :id', { id })
+      .getCount();
+    if (sessionCount > 0) {
+      throw new UserInputError(
+        `终端 ${terminal.code} 已被 ${sessionCount} 个班次引用，删除会丢失对账数据。` +
+          `已阻止删除，请改用停用（active=false）。`,
+      );
+    }
     const result = await this.connection.getRepository(PosTerminal).delete(id);
     return (result.affected ?? 0) > 0;
   }

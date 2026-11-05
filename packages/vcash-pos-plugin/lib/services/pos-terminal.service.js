@@ -18,6 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const core_1 = require("@vendure/core");
 const typeorm_2 = require("typeorm");
 const pos_terminal_entity_1 = require("../entities/pos-terminal.entity");
+const pos_session_entity_1 = require("../entities/pos-session.entity");
 let PosTerminalService = class PosTerminalService {
     constructor(connection) {
         this.connection = connection;
@@ -85,6 +86,20 @@ let PosTerminalService = class PosTerminalService {
     }
     async delete(id) {
         var _a;
+        const terminal = await this.findOne(id);
+        if (!terminal)
+            return false;
+        // 历史班次与对账数据不可丢：无外键级联时直接删终端会被 pos_session 外键拒绝（或误删历史）。
+        // 这里先校验引用关系，有班次时给出可读错误并引导停用，无班次时保持原删除行为。
+        const sessionCount = await this.connection
+            .getRepository(pos_session_entity_1.PosSession)
+            .createQueryBuilder('session')
+            .where('session.terminalId = :id', { id })
+            .getCount();
+        if (sessionCount > 0) {
+            throw new core_1.UserInputError(`终端 ${terminal.code} 已被 ${sessionCount} 个班次引用，删除会丢失对账数据。` +
+                `已阻止删除，请改用停用（active=false）。`);
+        }
         const result = await this.connection.getRepository(pos_terminal_entity_1.PosTerminal).delete(id);
         return ((_a = result.affected) !== null && _a !== void 0 ? _a : 0) > 0;
     }

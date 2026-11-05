@@ -47,6 +47,12 @@ const DELETE_TERMINAL = gql`
   mutation DeleteTerminal($id: ID!) { deletePosTerminal(id: $id) }
 `;
 
+const OPEN_SESSION = gql`
+  mutation OpenSession($terminalCode: String!, $openingFloat: Int) {
+    openSession(input: { terminalCode: $terminalCode, openingFloat: $openingFloat }) { id code }
+  }
+`;
+
 describe('PosTerminal CRUD', () => {
   const { server, adminClient } = createTestEnvironment({
     ...testConfig,
@@ -142,5 +148,21 @@ describe('PosTerminal CRUD', () => {
     expect(t).toBeTruthy();
     expect(t.channel.code).toBeTruthy();
     expect(t.stockLocation.name).toBe('朝阳店');
+  });
+
+  it('有历史班次时删除应被阻止并保留终端', async () => {
+    const created = await adminClient.query(CREATE_TERMINAL, {
+      code: 'POS-HIST',
+      name: '历史台',
+      stockLocationId,
+    });
+    const id = created.createPosTerminal.id;
+
+    await adminClient.query(OPEN_SESSION, { terminalCode: 'POS-HIST', openingFloat: 0 });
+
+    await expect(adminClient.query(DELETE_TERMINAL, { id })).rejects.toThrow(/班次/);
+
+    const after = await adminClient.query(LIST_TERMINALS);
+    expect(after.posTerminals.some((x: any) => x.code === 'POS-HIST')).toBe(true);
   });
 });
