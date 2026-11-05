@@ -4345,7 +4345,8 @@ type RefundStateTransitionError {
 >
 {`"""
 A RoleAssignment grants a User the permissions of a Role on a specific Channel.
-A Role is a channel-agnostic template; the RoleAssignment supplies the channel scope.
+The Role defines the permissions; the RoleAssignment supplies the channel scope. A Role owned by
+the default Channel can be assigned on any Channel, any other Role only on its owning Channel.
 The SuperAdmin Role is the exception: it is stored as a single assignment on the default
 Channel, which stands for every Channel.
 """
@@ -5672,8 +5673,9 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
 >
 {`type User {
   """
-  The RoleAssignments of this User which the active user may grant or remove. An actor who
-  does not hold every permission on every Channel sees a partial list.
+  The RoleAssignments of this User which the active user may grant or remove: all of them
+  if the active user has authority over the User (may grant every one of its assignments),
+  none otherwise.
   """
   roleAssignments: [RoleAssignment!]!
   id: ID!

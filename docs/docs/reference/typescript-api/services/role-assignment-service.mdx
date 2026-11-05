@@ -68,7 +68,8 @@ class RoleAssignmentService {
     isSoleSuperAdminHolder(ctx: RequestContext, userId: ID) => Promise<boolean>;
     assign(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<RoleAssignment[]>;
     remove(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<RoleAssignment[]>;
-    assertManageableSubject(ctx: RequestContext, userId: ID) => Promise<void>;
+    assertManageableSubject(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<void>;
+    assertActiveUserHasPermissionOnChannels(ctx: RequestContext, permission: Permission, channelIds: ID[]) => void;
     replaceRolesOnChannel(ctx: RequestContext, userId: ID, roleIds: ID[], channelId: ID = ctx.channelId) => Promise<void>;
     createAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<void>;
     deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<void>;
@@ -83,10 +84,12 @@ class RoleAssignmentService {
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>>>`}   />
 
-Returns a paginated list of the RoleAssignments the active user may grant or remove
-(`RoleService.canGrant`). Assignments outside that set are neither returned nor
-counted, so for an actor who does not hold every permission on every Channel the list
-is partial: it is the set of grants they may change, not the full set of a User's grants.
+Returns a paginated list of the RoleAssignments the active user may grant or remove: the
+assignments of the Users they have authority over (`activeUserCanManageUser`).
+Since that authority means the active user may grant every assignment the User holds
+(`RoleService.canGrant`), a User's assignments are either all listed or none.
+Assignments outside that set are neither returned nor counted, so for an actor who does
+not hold every permission on every Channel the list is partial.
 ### getAssignmentsForUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}   />
@@ -98,8 +101,9 @@ what the active user may see of them, use `getGrantableAssignmentsForUser`.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}  since="4.0.0"  />
 
 Returns the RoleAssignments of the given User which the active user may grant or
-remove (`RoleService.canGrant`). This is what `User.roleAssignments` resolves to
-in the Admin API.
+remove: all of them if the active user has authority over the User
+(`activeUserCanManageUser`), none otherwise, as in `findAll`. This is what
+`User.roleAssignments` resolves to in the Admin API.
 ### activeUserCanManageUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
@@ -175,16 +179,36 @@ Publishes a `removed` [RoleAssignmentEvent](/reference/typescript-api/events/eve
 returns the User's assignments after the write.
 ### assertManageableSubject
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
 
-Asserts that the User may be the target of an actor-made `assign` or `remove`.
-The target must be a non-deleted Administrator, or the User of a non-deleted ApiKey which
-belongs to the active Channel, in which case the active user must also hold
-`UpdateApiKey` there. Any other User, a Customer's User included, is reported as not
-found, so that admin Roles cannot be granted to it and its existence is not disclosed.
+Asserts that the active user may change the given `(roleId, channelId)` pairs of the
+User through an actor-made `assign` or `remove`:
+
+- The User must be a non-deleted Administrator, or the User of a non-deleted ApiKey which
+  belongs to the active Channel. Any other User, a Customer's User included, is reported
+  as not found, so that admin Roles cannot be granted to it and its existence is not
+  disclosed.
+- The active user must have authority over the User (`activeUserCanManageUser`):
+  they may change the assignments only of a User whose every assignment they could
+  grant themselves. This is the same rule which decides which Administrators they may
+  see, so a User outside it is reported as not found too.
+- The active user must hold `UpdateAdministrator` (for an Administrator) or
+  `UpdateApiKey` (for an ApiKey) on the Channel of every pair, not just on the active
+  Channel which the `@Allow()` decorator checks.
 
 `assign` and `remove` do not call this themselves: the services which create
 Administrators and ApiKeys assign Roles to a User whose entity they are still writing.
+They check the pairs' Channels with `assertActiveUserHasPermissionOnChannels`.
+### assertActiveUserHasPermissionOnChannels
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, permission: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => void`}  since="4.0.0"  />
+
+Asserts that the active user holds the permission on every one of the given Channels,
+typically the Channels of the `(roleId, channelId)` pairs an actor-made write names. The
+`@Allow()` decorator checks a mutation's permission on the active Channel only, while a
+pair may name any Channel: without this check an actor holding `UpdateAdministrator` on
+one Channel and a Role's permissions on another could change that other Channel's
+assignments.
 ### replaceRolesOnChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, roleIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> = ctx.channelId) => Promise<void>`}   />
