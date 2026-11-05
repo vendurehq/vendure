@@ -109,7 +109,8 @@ let ThirdPartyDeliveryService = class ThirdPartyDeliveryService {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1;
         const order = await this.orderRepo(ctx).findOne({
             where: { id: orderId },
-            relations: ['channels', 'lines', 'lines.productVariant', 'customer', 'shippingAddress'],
+            // shippingAddress 是 simple-json 列，不可作为 relation 加载；列本身随查询返回
+            relations: ['channels', 'lines', 'lines.productVariant', 'customer'],
         });
         if (!order)
             throw new core_2.UserInputError('订单不存在');

@@ -99,9 +99,10 @@ let HallService = HallService_1 = class HallService {
         // 支付事件（Authorized → Settled）可能连发两次：以 DB 当前值为准做幂等闸，
         // 事件里的实体快照不含上一次订阅写入的 customFields。
         // 读不到时退回事件实体（正常流程订单必然存在，兜底避免事件对象为空导致漏入厅）。
+        // shippingAddress 在本 fork 中被改为 simple-json 列（非 relation），
+        // 放进 relations 会抛 EntityPropertyNotFoundError；普通列默认随查询返回，直接读即可。
         const fresh = await this.connection.getRepository(ctx, core_2.Order).findOne({
             where: { id: orderInput.id },
-            relations: ['shippingAddress'],
         });
         const order = fresh !== null && fresh !== void 0 ? fresh : orderInput;
         if (order.state === 'Cancelled')

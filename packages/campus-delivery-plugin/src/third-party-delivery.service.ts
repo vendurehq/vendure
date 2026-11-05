@@ -117,7 +117,8 @@ export class ThirdPartyDeliveryService implements OnApplicationBootstrap {
     private async doDispatchExternal(ctx: RequestContext, orderId: number, provider: ExternalProviderCode) {
         const order = await this.orderRepo(ctx).findOne({
             where: { id: orderId as any },
-            relations: ['channels', 'lines', 'lines.productVariant', 'customer', 'shippingAddress'],
+            // shippingAddress 是 simple-json 列，不可作为 relation 加载；列本身随查询返回
+            relations: ['channels', 'lines', 'lines.productVariant', 'customer'],
         });
         if (!order) throw new UserInputError('订单不存在');
         const cf = order.customFields as any;
