@@ -18,7 +18,7 @@ export const mcpOverviewRoute: DashboardRouteDefinition = {
         sectionId: 'mcp-server',
         id: 'mcp-server-overview',
         url: '/mcp-server/overview',
-        title: 'Overview',
+        title: /* i18n*/ 'Overview',
         order: 100,
         requiresPermission: 'ReadMcpServer',
     },
