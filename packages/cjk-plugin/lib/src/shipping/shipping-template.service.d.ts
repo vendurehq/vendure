@@ -6,6 +6,11 @@ export declare class ShippingTemplateService {
     private configService;
     constructor(connection: TransactionalConnection, shippingMethodService: ShippingMethodService, configService: ConfigService);
     /**
+     * 校验 checker/calculator 入参结构：{ code: string, arguments: { name, value }[] }
+     * 兼容旧前端传参（ConfigArg 形态会被 GraphQL 拒绝，此处兜底给出可读错误）
+     */
+    private assertTemplateOperation;
+    /**
      * 查询模板列表（可见规则：全局模板 + 本租户模板）
      */
     findAll(ctx: RequestContext, options?: ListQueryOptions<ShippingTemplate>): Promise<PaginatedList<ShippingTemplate>>;

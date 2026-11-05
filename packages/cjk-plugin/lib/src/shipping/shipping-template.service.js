@@ -32,6 +32,36 @@ let ShippingTemplateService = class ShippingTemplateService {
         this.configService = configService;
     }
     /**
+     * 校验 checker/calculator 入参结构：{ code: string, arguments: { name, value }[] }
+     * 兼容旧前端传参（ConfigArg 形态会被 GraphQL 拒绝，此处兜底给出可读错误）
+     */
+    assertTemplateOperation(label, value, required) {
+        if (value === undefined) {
+            if (required) {
+                throw new core_1.UserInputError(`Shipping template "${label}" is required`);
+            }
+            return;
+        }
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+            throw new core_1.UserInputError(`Shipping template "${label}" must be an object with "code" and "arguments"`);
+        }
+        const { code, arguments: args } = value;
+        if (typeof code !== 'string' || code.trim() === '') {
+            throw new core_1.UserInputError(`Shipping template "${label}" requires a non-empty "code"`);
+        }
+        if (!Array.isArray(args)) {
+            throw new core_1.UserInputError(`Shipping template "${label}" "arguments" must be an array`);
+        }
+        for (const arg of args) {
+            const item = arg;
+            if (!item ||
+                typeof item.name !== 'string' ||
+                typeof item.value !== 'string') {
+                throw new core_1.UserInputError(`Shipping template "${label}" "arguments" items must be { name: String!, value: String! }`);
+            }
+        }
+    }
+    /**
      * 查询模板列表（可见规则：全局模板 + 本租户模板）
      */
     async findAll(ctx, options) {
@@ -72,6 +102,8 @@ let ShippingTemplateService = class ShippingTemplateService {
      */
     async create(ctx, input) {
         var _a;
+        this.assertTemplateOperation('checker', input === null || input === void 0 ? void 0 : input.checker, true);
+        this.assertTemplateOperation('calculator', input === null || input === void 0 ? void 0 : input.calculator, true);
         const repo = this.connection.getRepository(ctx, shipping_template_entity_1.ShippingTemplate);
         const template = new shipping_template_entity_1.ShippingTemplate(input);
         template.channels = [ctx.channel];
@@ -83,6 +115,8 @@ let ShippingTemplateService = class ShippingTemplateService {
      * 更新模板（租户只能更新自己的模板，不能更新全局模板）
      */
     async update(ctx, input) {
+        this.assertTemplateOperation('checker', input === null || input === void 0 ? void 0 : input.checker, false);
+        this.assertTemplateOperation('calculator', input === null || input === void 0 ? void 0 : input.calculator, false);
         const repo = this.connection.getRepository(ctx, shipping_template_entity_1.ShippingTemplate);
         const template = await repo.findOne({ where: { id: input.id } });
         if (!template) {

@@ -858,13 +858,19 @@ exports.CjkPlugin = CjkPlugin = CjkPlugin_1 = __decorate([
                     filter: JSON
                 }
 
+                # checker/calculator 入参形态与 TemplateOperation 一致：code + arguments
+                input ShippingTemplateConfigInput {
+                    code: String!
+                    arguments: [ConfigArgInput!]!
+                }
+
                 input CreateShippingTemplateInput {
                     name: String!
                     description: String!
                     code: String!
                     fulfillmentHandler: String!
-                    checker: ConfigArgInput!
-                    calculator: ConfigArgInput!
+                    checker: ShippingTemplateConfigInput!
+                    calculator: ShippingTemplateConfigInput!
                     isGlobal: Boolean
                 }
 
@@ -874,8 +880,8 @@ exports.CjkPlugin = CjkPlugin = CjkPlugin_1 = __decorate([
                     description: String
                     code: String
                     fulfillmentHandler: String
-                    checker: ConfigArgInput
-                    calculator: ConfigArgInput
+                    checker: ShippingTemplateConfigInput
+                    calculator: ShippingTemplateConfigInput
                 }
 
                 extend type Query {

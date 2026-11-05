@@ -24,6 +24,43 @@ export class ShippingTemplateService {
     ) {}
 
     /**
+     * 校验 checker/calculator 入参结构：{ code: string, arguments: { name, value }[] }
+     * 兼容旧前端传参（ConfigArg 形态会被 GraphQL 拒绝，此处兜底给出可读错误）
+     */
+    private assertTemplateOperation(label: string, value: unknown, required: boolean): void {
+        if (value === undefined) {
+            if (required) {
+                throw new UserInputError(`Shipping template "${label}" is required`);
+            }
+            return;
+        }
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+            throw new UserInputError(
+                `Shipping template "${label}" must be an object with "code" and "arguments"`,
+            );
+        }
+        const { code, arguments: args } = value as { code?: unknown; arguments?: unknown };
+        if (typeof code !== 'string' || code.trim() === '') {
+            throw new UserInputError(`Shipping template "${label}" requires a non-empty "code"`);
+        }
+        if (!Array.isArray(args)) {
+            throw new UserInputError(`Shipping template "${label}" "arguments" must be an array`);
+        }
+        for (const arg of args) {
+            const item = arg as { name?: unknown; value?: unknown } | null;
+            if (
+                !item ||
+                typeof item.name !== 'string' ||
+                typeof item.value !== 'string'
+            ) {
+                throw new UserInputError(
+                    `Shipping template "${label}" "arguments" items must be { name: String!, value: String! }`,
+                );
+            }
+        }
+    }
+
+    /**
      * 查询模板列表（可见规则：全局模板 + 本租户模板）
      */
     async findAll(
@@ -70,6 +107,8 @@ export class ShippingTemplateService {
      * - 租户管理员：isGlobal=false，ownerChannelId=当前channelId
      */
     async create(ctx: RequestContext, input: any): Promise<ShippingTemplate> {
+        this.assertTemplateOperation('checker', input?.checker, true);
+        this.assertTemplateOperation('calculator', input?.calculator, true);
         const repo = this.connection.getRepository(ctx, ShippingTemplate);
         const template = new ShippingTemplate(input);
         template.channels = [ctx.channel];
@@ -82,6 +121,8 @@ export class ShippingTemplateService {
      * 更新模板（租户只能更新自己的模板，不能更新全局模板）
      */
     async update(ctx: RequestContext, input: any): Promise<ShippingTemplate> {
+        this.assertTemplateOperation('checker', input?.checker, false);
+        this.assertTemplateOperation('calculator', input?.calculator, false);
         const repo = this.connection.getRepository(ctx, ShippingTemplate);
         const template = await repo.findOne({ where: { id: input.id } });
         if (!template) {

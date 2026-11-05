@@ -591,13 +591,19 @@ function mergeCustomFields<T extends { name: string }>(
                     filter: JSON
                 }
 
+                # checker/calculator 入参形态与 TemplateOperation 一致：code + arguments
+                input ShippingTemplateConfigInput {
+                    code: String!
+                    arguments: [ConfigArgInput!]!
+                }
+
                 input CreateShippingTemplateInput {
                     name: String!
                     description: String!
                     code: String!
                     fulfillmentHandler: String!
-                    checker: ConfigArgInput!
-                    calculator: ConfigArgInput!
+                    checker: ShippingTemplateConfigInput!
+                    calculator: ShippingTemplateConfigInput!
                     isGlobal: Boolean
                 }
 
@@ -607,8 +613,8 @@ function mergeCustomFields<T extends { name: string }>(
                     description: String
                     code: String
                     fulfillmentHandler: String
-                    checker: ConfigArgInput
-                    calculator: ConfigArgInput
+                    checker: ShippingTemplateConfigInput
+                    calculator: ShippingTemplateConfigInput
                 }
 
                 extend type Query {
