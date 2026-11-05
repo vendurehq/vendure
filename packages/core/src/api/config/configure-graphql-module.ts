@@ -85,6 +85,7 @@ async function createGraphQLOptions(
         new AssetInterceptorPlugin(configService),
         ...configService.apiOptions.apolloServerPlugins,
     ];
+
     // We only need to add the IdCodecPlugin if the user has configured
     // a non-default EntityIdStrategy. This is a performance optimization
     // that prevents unnecessary traversal of each response when no
@@ -113,6 +114,7 @@ async function createGraphQLOptions(
         context: (req: any) => req,
         // This is handled by the Express cors plugin
         cors: false,
+        cache: configService.apiOptions.cache,
         plugins: apolloServerPlugins,
         validationRules: options.validationRules,
         introspection: configService.apiOptions.introspection ?? true,
