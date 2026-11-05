@@ -4308,6 +4308,7 @@ type RefundStateTransitionError {
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
+    Channel: '/reference/graphql-api/admin/object-types#channel',
   }}
 >
 {`type Role {
@@ -4317,6 +4318,13 @@ type RefundStateTransitionError {
   code: String!
   description: String!
   permissions: [Permission!]!
+  """
+  The Channel which owns this Role. A Role owned by the default Channel is shared: it can be
+  assigned on any Channel. A Role owned by any other Channel can only be assigned on that
+  Channel. Null only for a Role created by a v3 server during a rolling upgrade, until the
+  role assignment migration has completed.
+  """
+  channel: Channel
 }`}
 </GraphQLDoc>
 

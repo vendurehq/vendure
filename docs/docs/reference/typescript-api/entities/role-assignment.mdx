@@ -2,13 +2,14 @@
 title: "RoleAssignment"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/role-assignment/role-assignment.entity.ts" sourceLine="27" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/role-assignment/role-assignment.entity.ts" sourceLine="28" packageName="@vendure/core" />
 
 A RoleAssignment grants a [User](/reference/typescript-api/entities/user#user) the permissions of a [Role](/reference/typescript-api/entities/role#role) on a specific
-[Channel](/reference/typescript-api/entities/channel#channel). It is the source of truth for permission resolution: a Role is a
-channel-agnostic template, and the RoleAssignment supplies the channel scope at the
-moment the Role is granted to a User. This allows a single Role definition to be
-shared across many Users, each scoped to their own Channels.
+[Channel](/reference/typescript-api/entities/channel#channel). It is the source of truth for permission resolution: a Role defines the
+permissions, and the RoleAssignment supplies the channel scope at the moment the Role is
+granted to a User. This allows a single shared Role (one owned by the default Channel) to
+be granted to many Users, each scoped to their own Channels. A Role owned by any other
+Channel can only be assigned on that Channel (see [Role](/reference/typescript-api/entities/role#role)).
 
 The SuperAdmin Role is the one exception to the channel scope: it is held on every
 Channel or not at all, so it is stored as a single row on the default Channel, which

@@ -4,7 +4,7 @@ generated: true
 ---
 ## previewRoleAssignmentMigration
 
-<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="124" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="133" packageName="@vendure/core" since="4.0.0" />
 
 Reports, without writing anything, how the v4 role-assignment migration will change
 effective permissions for the Users of this database. Run it after upgrading the Vendure
@@ -76,6 +76,7 @@ interface RoleAssignmentMigrationPreview {
     }>;
     customerRoleDroppedPermissions: string[];
     rolesWithoutChannels: Array<{ roleId: string; roleCode: string; holderCount: number }>;
+    rolesBecomingShared: Array<{ roleId: string; roleCode: string; channelCodes: string[] }>;
 }
 ```
 
@@ -134,12 +135,21 @@ Customer role, so Customers lose these on every Channel.
 Roles which are held by Users but assigned to no Channel. They granted nothing
 pre-v4 and produce no assignment rows, so their holders lose nothing, but the
 holdings disappear.
+### rolesBecomingShared
+
+<MemberInfo kind="property" type={`Array<{ roleId: string; roleCode: string; channelCodes: string[] }>`}   />
+
+Roles assigned to more than one Channel. v4 makes them shared Roles, owned by the
+default Channel: their existing grants stay valid, but from v4 they may be granted on
+any Channel by an actor who holds their permissions there, and only an actor holding
+`UpdateRole` on the default Channel may edit them. A Role assigned to exactly one
+Channel stays private to it.
 
 
 </div>
 ## formatRoleAssignmentMigrationPreview
 
-<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="355" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments_preview.ts" sourceLine="398" packageName="@vendure/core" since="4.0.0" />
 
 Renders a [RoleAssignmentMigrationPreview](/reference/typescript-api/migration/preview-role-assignment-migration#roleassignmentmigrationpreview) as a human-readable report.
 

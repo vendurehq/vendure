@@ -2,7 +2,7 @@
 title: "MigrateRoleAssignmentData"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="99" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="106" packageName="@vendure/core" since="4.0.0" />
 
 The first step of the role assignment migration. Populates the new `role_assignment` table
 from the pre-v4 `user_roles_role` and `role_channels_channel` join tables. In the old model
@@ -30,6 +30,13 @@ legacy tables describe under these rules, and throws if any row is missing or ex
 review the intended behavior changes for your data before migrating, see
 [previewRoleAssignmentMigration](/reference/typescript-api/migration/preview-role-assignment-migration#previewroleassignmentmigration).
 
+Every Role is given its owning Channel (`role.channelId`, see `Role`): a Role assigned to
+exactly one Channel in `role_channels_channel` is owned by that Channel, so it stays private
+to it. Every other Role (assigned to several Channels, to none, or to the default Channel)
+is owned by the default Channel, which makes it a shared Role, assignable on any Channel.
+Its existing grants all stay valid. [previewRoleAssignmentMigration](/reference/typescript-api/migration/preview-role-assignment-migration#previewroleassignmentmigration) lists the Roles
+which become shared although they were assigned to several Channels.
+
 The RoleEditor system role (which bundles the Role CRUD permissions) is created if
 absent. It is not granted to anyone. Pre-v4 versions gated Role CRUD on the Administrator
 permissions, and `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` are new in v4, so
@@ -50,9 +57,9 @@ deployment, and v4 servers can change role assignments straight away. Once no
 v3 server or worker is running, call [removeLegacyRoleData](/reference/typescript-api/migration/remove-legacy-role-data#removelegacyroledata), in the same migration
 if you stop v3 before migrating, or in a later deployment otherwise.
 
-Call this from your migration's `up()` method **after** the `role_assignment` table
-has been created. A generated migration does not touch the legacy tables, so nothing
-else in it needs to change.
+Call this from your migration's `up()` method **after** the `role_assignment` table and
+the `role.channelId` column have been created. A generated migration does not touch the
+legacy tables, so nothing else in it needs to change.
 
 The helper is idempotent: once the copy has been recorded, it is skipped. It is safe to
 re-run, e.g. after a partial failure on MySQL (where DDL is non-transactional).
@@ -66,7 +73,7 @@ import { migrateRoleAssignmentData, removeLegacyRoleData } from '@vendure/core';
 export class V4Upgrade1234567890 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
         // --- Auto-generated DDL ---
-        // (Create role_assignment table and FK constraints)
+        // (Create role_assignment table, add role.channelId, FK constraints)
         // ...
 
         // --- Copy the role grants, keep the legacy tables for v3 servers ---

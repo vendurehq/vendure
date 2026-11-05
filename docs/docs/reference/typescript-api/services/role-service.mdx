@@ -2,7 +2,7 @@
 title: "RoleService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="50" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="54" packageName="@vendure/core" />
 
 Contains methods relating to [Role](/reference/typescript-api/entities/role#role) entities.
 
@@ -18,6 +18,7 @@ class RoleService {
     userHasPermissionOnChannel(ctx: RequestContext, channelId: ID, permission: Permission) => Promise<boolean>;
     userHasAnyPermissionsOnChannel(ctx: RequestContext, channelId: ID, permissions: Permission[]) => Promise<boolean>;
     userHasAllPermissionsOnChannel(ctx: RequestContext, channelId: ID, permissions: Permission[]) => Promise<boolean>;
+    isSharedRole(ctx: RequestContext, role: Role) => Promise<boolean>;
     activeUserHoldsPermissionsOnAnyChannel(ctx: RequestContext, permissions: Permission[]) => Promise<boolean>;
     canGrant(ctx: RequestContext, roleId: ID, channelId: ID) => Promise<boolean>;
     assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleChannelPair[]) => Promise<void>;
@@ -25,6 +26,7 @@ class RoleService {
     create(ctx: RequestContext, input: CreateRoleInput) => Promise<Role>;
     update(ctx: RequestContext, input: UpdateRoleInput) => Promise<Role>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    deleteRolesOwnedByChannel(ctx: RequestContext, channelId: ID) => Promise<void>;
 }
 ```
 
@@ -78,28 +80,33 @@ Returns true if the User has any of the specified permissions on that Channel
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => Promise<boolean>`}   />
 
 Returns true if the User has all the specified permissions on that Channel
+### isSharedRole
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, role: <a href='/reference/typescript-api/entities/role#role'>Role</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+Whether the Role is a shared Role: owned by the default Channel, and so assignable on
+every Channel. See [Role](/reference/typescript-api/entities/role#role).
 ### activeUserHoldsPermissionsOnAnyChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => Promise<boolean>`}  since="4.0.0"  />
 
 Returns true if the active user holds all of the specified permissions on at least one
 Channel.
-
-This is the fail-closed floor beneath the Role permission guards: a Role is a
-channel-agnostic template carrying no channel scope of its own, so where no Channel
-is given the only meaningful question about the actor is whether they could grant the
-Role's permissions somewhere. An actor with no permissions anywhere is always denied.
-Where the Channel is known, `canGrant` is the rule.
 ### canGrant
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
 
 The grant predicate: whether the active user may grant the Role on the Channel, or
-take it away again. True iff the active user holds every permission of the Role on
-that Channel. The Role's permission list is the ceiling, so an actor can only hand out
-what they hold themselves: a holder of `UpdateAdministrator` cannot grant themselves
-the strongest Role present on their Channel, and only a SuperAdmin can grant the
-SuperAdmin Role. An unknown Role is never grantable.
+take it away again. True iff
+
+- the Role may be assigned on that Channel at all: it is a shared Role (owned by the
+  default Channel), or the Channel is the Role's owning Channel, and
+- the active user holds every permission of the Role on that Channel. The Role's
+  permission list is the ceiling, so an actor can only hand out what they hold
+  themselves: a holder of `UpdateAdministrator` cannot grant themselves the strongest
+  Role present on their Channel, and only a SuperAdmin can grant the SuperAdmin Role.
+
+An unknown Role, and a Role without an owner (see [Role](/reference/typescript-api/entities/role#role)), is never grantable.
 
 The same predicate decides every assignment write (`RoleAssignmentService.assign`,
 `RoleAssignmentService.remove`) and filters every assignment read
@@ -110,6 +117,12 @@ actor sees are exactly the ones they may change.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
 
 Asserts `canGrant` for every one of the given `(roleId, channelId)` pairs.
+
+The Roles are read with a shared lock held until the surrounding transaction commits.
+`update` takes an exclusive lock on the Role before checking the Channels it is
+assigned on, so a Role's permissions cannot widen between this check and the write of
+the assignment, nor the assignment slip past the permission check of a concurrent
+update. Call it inside the transaction which writes the assignments.
 ### getGrantableChannelIdsByRole
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<{ roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>; channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[] }>>`}  since="4.0.0"  />
@@ -122,17 +135,38 @@ the filtered assignment list (`RoleAssignmentService.findAll`).
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateRoleInput) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>>`}   />
 
+Creates a Role owned by the active Channel. A Role created on the default Channel is a
+shared Role, which may be assigned on any Channel; a Role created on any other Channel
+may only be assigned on that Channel. See [Role](/reference/typescript-api/entities/role#role).
 
+The active user must hold `CreateRole` and every permission of the new Role on the
+active Channel.
 ### update
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateRoleInput) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>>`}   />
 
+Updates a Role. The active user must hold `UpdateRole` on the Role's owning Channel.
+When the permissions change, the active user must also hold every permission of the
+new list on the owning Channel and on every Channel where the Role is assigned:
+otherwise an actor could add permissions they do not hold to a Role they hold
+themselves, or to one held on a Channel where they lack them, and so widen what its
+holders may do.
 
+The Role is locked until the surrounding transaction commits, see
+`assertActiveUserCanGrantRoles`.
 ### delete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
 
+Deletes a Role. The active user must hold `DeleteRole` on the Role's owning Channel.
+### deleteRolesOwnedByChannel
 
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="4.0.0"  />
+
+Deletes every Role owned by the given Channel and publishes a `deleted` [RoleEvent](/reference/typescript-api/events/event-types#roleevent)for each. Performs no authorization: this is the primitive behind the Channel delete,
+which calls it after removing the Channel's assignments. A Role owned by a Channel
+other than the default one can only be assigned there, so no Role deleted here is held
+on another Channel.
 
 
 </div>
