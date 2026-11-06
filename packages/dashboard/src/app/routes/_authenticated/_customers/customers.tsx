@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
@@ -41,6 +42,7 @@ function CustomerListPage() {
             customizeColumns={{
                 user: {
                     header: () => <Trans>Status</Trans>,
+                    meta: { contentInset: columnContentInset.statusBadge },
                     cell: ({ row }) => {
                         const value = row.original.user;
                         return <CustomerStatusBadge user={value} />;

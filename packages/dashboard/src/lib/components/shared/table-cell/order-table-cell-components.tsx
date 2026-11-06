@@ -1,10 +1,10 @@
 import { Money } from '@/vdb/components/data-display/money.js';
 import { DataTableCellComponent } from '@/vdb/components/data-table/types.js';
+import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
-import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -22,9 +22,7 @@ export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) 
         return null;
     }
     return (
-        <Button render={<Link to={`/customers/${value.id}`} />} variant="ghost">
-                {value.firstName} {value.lastName}
-        </Button>
+        <DetailPageButton href={`/customers/${value.id}`} label={`${value.firstName} ${value.lastName}`} />
     );
 };
 

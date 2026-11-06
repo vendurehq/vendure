@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
@@ -52,6 +53,7 @@ function PromotionListPage() {
                     cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,
                 },
                 enabled: {
+                    meta: { contentInset: columnContentInset.statusBadge },
                     cell: ({ row }) => <BooleanDisplayBadge value={row.original.enabled} />,
                 },
                 description: {

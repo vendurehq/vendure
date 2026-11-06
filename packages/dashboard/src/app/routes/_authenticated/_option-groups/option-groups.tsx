@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -38,6 +39,7 @@ function OptionGroupListPage() {
                 },
                 options: {
                     header: () => <Trans>Options</Trans>,
+                    meta: { contentInset: columnContentInset.badge },
                     cell: ({ row }) => {
                         const options = row.original.options ?? [];
                         const maxDisplay = 5;

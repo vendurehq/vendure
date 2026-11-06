@@ -58,6 +58,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '../ui/dropdown-menu.js';
+import { columnContentInset } from './column-content-inset.js';
 import { DataTableColumnHeader } from './data-table-column-header.js';
 
 /**
@@ -177,7 +178,15 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
 
             return columnHelper.accessor(fieldInfo.name as any, {
                 id: fieldInfo.name,
-                meta: { fieldInfo, isCustomField, ...(meta ?? {}) },
+                meta: {
+                    fieldInfo,
+                    isCustomField,
+                    // The default display of a Boolean field is a status chip.
+                    ...(fieldInfo.type === 'Boolean' && !customCell && !registeredDisplayComponent
+                        ? { contentInset: columnContentInset.statusBadge }
+                        : {}),
+                    ...(meta ?? {}),
+                },
                 enableColumnFilter,
                 enableSorting: fieldInfo.isScalar && fieldInfo.type !== 'Boolean' && enableSorting,
                 // Filtering is done on the server side, but we set this to 'equalsString' because
@@ -368,6 +377,9 @@ function getRowActions(
     };
 }
 
+// String fields that hold an identifier a user copies into other places.
+const IDENTIFIER_FIELD_NAMES = new Set(['code', 'slug', 'sku', 'couponCode']);
+
 function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: FieldInfo }) {
     if (fieldInfo.list && Array.isArray(value) && fieldInfo.isScalar) {
         return value.join(', ');
@@ -381,6 +393,9 @@ function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: 
         } else {
             return <DisplayComponent id="vendure:booleanYesNoBadge" value={value} />;
         }
+    }
+    if (fieldInfo.type === 'String' && IDENTIFIER_FIELD_NAMES.has(fieldInfo.name)) {
+        return <DisplayComponent id="vendure:identifier" value={value} />;
     }
     if (fieldInfo.type === 'Asset') {
         return <DisplayComponent id="vendure:asset" value={value} />;
