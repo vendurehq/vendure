@@ -11,6 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WithdrawReconcileJob = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@vendure/core");
+const advisory_lock_1 = require("./advisory-lock");
 const periodic_fallback_1 = require("./periodic-fallback");
 const rider_wallet_service_1 = require("./rider-wallet.service");
 /**
@@ -18,8 +20,9 @@ const rider_wallet_service_1 = require("./rider-wallet.service");
  * 申请会停在 intent。本任务按余额流水 remark=withdraw:<id> 还原真实扣款结果并自动收敛。
  */
 let WithdrawReconcileJob = class WithdrawReconcileJob {
-    constructor(wallet) {
+    constructor(wallet, connection) {
         this.wallet = wallet;
+        this.connection = connection;
         this.fallback = null;
     }
     start(intervalMs = 5 * 60000) {
@@ -31,7 +34,8 @@ let WithdrawReconcileJob = class WithdrawReconcileJob {
             loggerCtx: 'CampusWallet',
         });
         this.fallback.start(async () => {
-            await this.wallet.reconcileWithdrawIntents();
+            // 多实例互斥：拿不到锁说明其他实例正在对账，本轮直接跳过（避免同一 intent 被并发重复收敛）
+            await (0, advisory_lock_1.withAdvisoryLock)(this.connection, 'campus:withdraw-reconcile', () => this.wallet.reconcileWithdrawIntents());
         });
     }
     onApplicationShutdown() {
@@ -43,6 +47,6 @@ let WithdrawReconcileJob = class WithdrawReconcileJob {
 exports.WithdrawReconcileJob = WithdrawReconcileJob;
 exports.WithdrawReconcileJob = WithdrawReconcileJob = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [rider_wallet_service_1.RiderWalletService])
+    __metadata("design:paramtypes", [rider_wallet_service_1.RiderWalletService, core_1.TransactionalConnection])
 ], WithdrawReconcileJob);
 //# sourceMappingURL=withdraw-reconcile.job.js.map

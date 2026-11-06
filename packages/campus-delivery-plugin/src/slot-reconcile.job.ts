@@ -31,7 +31,7 @@ SELECT s.id,
        COUNT(o.id) FILTER (WHERE COALESCE(o."customFieldsSlotlocked", false)
                           AND o."state" = 'Cancelled')::int AS "cancelledLocked"
 FROM delivery_slot s
-LEFT JOIN "order" o ON o."customFieldsDeliveryslotid" = s.id
+LEFT JOIN "order" o ON o."customFieldsDeliveryslotid" = s.id::text
 WHERE s."slotDate" BETWEEN current_date - 7 AND current_date + 7
 GROUP BY s.id
 HAVING s."lockedCount" <> COUNT(o.id) FILTER (WHERE COALESCE(o."customFieldsSlotlocked", false))

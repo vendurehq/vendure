@@ -127,6 +127,12 @@ export declare class AddressChangeService {
     /** 部分退款（fork 无 core RefundService，走 OrderService.refundOrder/settleRefund，与 dispatch-admin 同源）。
      * refund 表 shipping/adjustment 列 NOT NULL 必须显式传 0；超额退款抛错。 */
     private refundAmount;
+    /**
+     * H4：自助改址前的未结清补差闸门。
+     * 只统计「其它订单」的待补收差额（本单连续改址允许，顾客改错后仍可纠正），
+     * 累计金额或笔数超限时要求先结清，防止反复改到高价分区后一直欠费。
+     */
+    private assertNoUnpaidDiff;
     private loadOrder;
     private assertNotCancelledOrDelivered;
     private resolveTarget;

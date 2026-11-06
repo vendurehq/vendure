@@ -6,8 +6,8 @@ exports.normalizeTrackEventBatch = normalizeTrackEventBatch;
 exports.sanitizeErrorReport = sanitizeErrorReport;
 exports.buildTrend = buildTrend;
 exports.rowsToDayCounts = rowsToDayCounts;
-const campus_time_1 = require("./campus-time");
 const core_1 = require("@vendure/core");
+const campus_time_1 = require("./campus-time");
 /** 单次批量上报事件上限（端侧 10 条/5s，服务端再兜一层） */
 exports.TRACK_BATCH_MAX = 20;
 exports.TRACK_EVENT_NAME_MAX = 64;

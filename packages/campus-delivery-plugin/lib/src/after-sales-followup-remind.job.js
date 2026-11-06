@@ -13,6 +13,7 @@ exports.AfterSalesFollowUpRemindJob = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const after_sales_plugin_1 = require("@vendure/after-sales-plugin");
+const advisory_lock_1 = require("./advisory-lock");
 const periodic_fallback_1 = require("./periodic-fallback");
 const loggerCtx = 'CampusAfterSalesFollowUp';
 /** 启动后首跑延迟：等迁移补列 / DB 连接稳定 */
@@ -42,7 +43,9 @@ let AfterSalesFollowUpRemindJob = class AfterSalesFollowUpRemindJob {
             bootDelayMs: BOOT_DELAY_MS,
             loggerCtx,
         });
-        this.fallback.start(() => this.runOnce());
+        this.fallback.start(() => 
+        // 多实例互斥：拿不到锁说明其他实例正在扫描，本轮直接跳过（避免回访提醒重复推送）
+        (0, advisory_lock_1.withAdvisoryLock)(this.connection, 'campus:after-sales-followup-remind', () => this.runOnce()));
     }
     stop() {
         var _a;

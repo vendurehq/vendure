@@ -5,7 +5,7 @@ export declare class WaimaiShopResolver {
     private stores;
     private assist;
     constructor(stores: WaimaiStoreService, assist: SearchAssistService);
-    /** 公开只读：C 端首页店铺列表（跨渠道元数据聚合） */
+    /** 公开只读：C 端首页店铺列表（跨渠道元数据聚合；不下发渠道 token） */
     waimaiStoreList(ctx: RequestContext): Promise<import("./waimai-store.service").WaimaiStore[]>;
     /** 公开只读：C 端进店换取单店渠道 token（按 channelId，服务端限流） */
     campusStoreEntry(ctx: RequestContext, channelId: string): Promise<import("./waimai-store.service").CampusStoreEntry>;

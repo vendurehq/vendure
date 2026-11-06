@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.decryptFeishuPayload = decryptFeishuPayload;
 exports.feishuSignature = feishuSignature;
+exports.signatureEquals = signatureEquals;
 const crypto_1 = require("crypto");
 /**
  * 飞书事件订阅加密解密：AES-256-CBC。
@@ -28,5 +29,13 @@ function decryptFeishuPayload(encrypt, encryptKey) {
 /** 飞书回调签名：sha256(timestamp + nonce + encryptKey + rawBody)，rawBody 拿不到时用 JSON.stringify(body) */
 function feishuSignature(timestamp, nonce, encryptKey, rawBody) {
     return (0, crypto_1.createHash)('sha256').update(`${timestamp}${nonce}${encryptKey}${rawBody}`).digest('hex');
+}
+/** 定时安全比较两个 hex 签名：长度不等直接 false，避免 timingSafeEqual 抛错 */
+function signatureEquals(expected, given) {
+    if (!expected || !given)
+        return false;
+    const a = Buffer.from(expected, 'utf8');
+    const b = Buffer.from(given, 'utf8');
+    return a.length === b.length && (0, crypto_1.timingSafeEqual)(a, b);
 }
 //# sourceMappingURL=feishu.crypto.js.map

@@ -31,7 +31,8 @@ export declare class HallGrabService {
     /**
      * F5 聚合大厅：一次带回全部营业中店铺渠道的 open 单（替代骑手端「店铺列表 + N 渠道逐请求」的 N+1 轮询）。
      * 范围与骑手端 activeChannels 对齐：有履约配置、非默认渠道、未暂停。
-     * 返回 plain object：每单附加 channelId/channelToken/channelName（抢单 mutation 须带同渠道 token 回传）。
+     * 返回 plain object：每单附加 channelId/channelName（M1：不再下发 channelToken，
+     * 骑手端按 channelId 从店铺列表换取 token 后再回传抢单 mutation）。
      * 排序与单渠道 hall() 一致（跨渠道合并后统一排）；超 HALL_ALL_LIMIT 截断 + 告警。
      */
     hallAll(ctx: RequestContext): Promise<{
@@ -41,7 +42,6 @@ export declare class HallGrabService {
         shipping: number;
         createdAt: Date;
         channelId: string;
-        channelToken: string;
         channelName: string;
         customFields: any;
     }[]>;

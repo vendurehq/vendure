@@ -32,6 +32,12 @@ const third_party_delivery_service_1 = require("./third-party-delivery.service")
 const loggerCtx = 'CampusAddressChange';
 /** 外部配送已接单/取货后不可改址 */
 const THIRD_PARTY_LOCKED = ['accepted', 'pickup', 'delivered'];
+/**
+ * H4 未结清补差闸门：自助改址不阻断当前订单履约（先服务后补差），
+ * 但「其它订单」累计未结清补差达到上限后必须先结清，避免反复改到高价分区后欠费累积。
+ */
+const MAX_UNPAID_DIFF_CENTS = 1000; // ¥10
+const MAX_UNPAID_DIFF_ROWS = 3;
 let AddressChangeService = class AddressChangeService {
     constructor(connection, orderService, customerService, capacity, notify, thirdParty, moduleRef, hall, feishu) {
         this.connection = connection;
@@ -63,6 +69,7 @@ let AddressChangeService = class AddressChangeService {
                 throw new core_2.UserInputError('骑手已取货，无法自助改址，请联系客服');
             if (THIRD_PARTY_LOCKED.includes(cf.thirdPartyState))
                 throw new core_2.UserInputError('外部配送已接单，无法自助改址');
+            await this.assertNoUnpaidDiff(ctx, customer.id, Number(order.id));
             const { zone, building } = await this.resolveTarget(ctx, input.zoneId, input.buildingId);
             return this.applyChange(ctx, order, zone, building, input.detail, {
                 source: 'customer',
@@ -374,6 +381,25 @@ let AddressChangeService = class AddressChangeService {
         // 否则该 Pending 单仍占已退额度，后续重试/拒单退款会少退。
         await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, this.orderService, ctx, created.id);
         return created;
+    }
+    /**
+     * H4：自助改址前的未结清补差闸门。
+     * 只统计「其它订单」的待补收差额（本单连续改址允许，顾客改错后仍可纠正），
+     * 累计金额或笔数超限时要求先结清，防止反复改到高价分区后一直欠费。
+     */
+    async assertNoUnpaidDiff(ctx, customerId, orderId) {
+        const rows = await this.connection.getRepository(ctx, campus_address_change_entity_1.CampusAddressChange).find({
+            where: {
+                channelId: ctx.channelId,
+                customerId: customerId,
+                status: 'pending',
+            },
+        });
+        const owed = rows.filter(r => { var _a; return Number(r.orderId) !== orderId && Number((_a = r.diff) !== null && _a !== void 0 ? _a : 0) > 0; });
+        const owedSum = owed.reduce((sum, r) => { var _a; return sum + Number((_a = r.diff) !== null && _a !== void 0 ? _a : 0); }, 0);
+        if (owedSum >= MAX_UNPAID_DIFF_CENTS || owed.length >= MAX_UNPAID_DIFF_ROWS) {
+            throw new core_2.UserInputError('有未结清的改址差价，请先联系客服结清后再修改地址');
+        }
     }
     async loadOrder(ctx, orderId) {
         const order = await this.connection

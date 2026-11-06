@@ -64,6 +64,7 @@ const p12_daily_limit_1 = require("./migrations/p12-daily-limit");
 const soldout_auto_restore_job_1 = require("./soldout-auto-restore.job");
 const after_sales_sla_alert_job_1 = require("./after-sales-sla-alert.job");
 const after_sales_followup_remind_job_1 = require("./after-sales-followup-remind.job");
+const rider_compliance_reminder_job_1 = require("./rider-compliance-reminder.job");
 const after_sales_monthly_push_job_1 = require("./after-sales-monthly-push.job");
 const after_sales_auto_assign_job_1 = require("./after-sales-auto-assign.job");
 const after_sales_auto_rule_job_1 = require("./after-sales-auto-rule.job");
@@ -156,6 +157,7 @@ const telemetry_entities_1 = require("./telemetry.entities");
 const telemetry_resolver_1 = require("./telemetry.resolver");
 const resume_payment_shop_resolver_1 = require("./resume-payment-shop.resolver");
 const telemetry_service_1 = require("./telemetry.service");
+const telemetry_retention_job_1 = require("./telemetry-retention.job");
 const p17_after_sales_note_1 = require("./migrations/p17-after-sales-note");
 const p18_reply_template_1 = require("./migrations/p18-reply-template");
 const p19_after_sales_tag_1 = require("./migrations/p19-after-sales-tag");
@@ -181,6 +183,7 @@ const p38_support_assignee_dedupe_1 = require("./migrations/p38-support-assignee
 const p39_trust_copy_1 = require("./migrations/p39-trust-copy");
 const p40_review_gift_choice_1 = require("./migrations/p40-review-gift-choice");
 const p41_review_gift_channel_columns_1 = require("./migrations/p41-review-gift-channel-columns");
+const p42_channel_aftersales_rule_columns_1 = require("./migrations/p42-channel-aftersales-rule-columns");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -234,6 +237,8 @@ let CampusDeliveryPlugin = class CampusDeliveryPlugin {
         this.injector.get(daily_report_push_job_1.DailyReportPushJob).start();
         // 回访到期提醒（§95）：10 分钟扫描到期回访，向商家发站内信（同一条只提醒一次）
         this.injector.get(after_sales_followup_remind_job_1.AfterSalesFollowUpRemindJob).start();
+        // 骑手合规到期提醒（§54.6）：60 分钟扫描 30 天内到期/已过期的健康证与保险，向骑手发站内信（每人每天一条）
+        this.injector.get(rider_compliance_reminder_job_1.RiderComplianceReminderJob).start();
         // 售后月度摘要推送（§95）：每月指定日把上月售后汇总推到店铺群（同月只推一条）
         this.injector.get(after_sales_monthly_push_job_1.AfterSalesMonthlyPushJob).start();
         // 售后自动分配（§96）：5 分钟把未指派售后单派给未完结量最少的处理人
@@ -326,6 +331,8 @@ let CampusDeliveryPlugin = class CampusDeliveryPlugin {
         this.injector.get(ops_check_job_1.OpsCheckJob).start();
         // R3 锁位对账：容量与实际占位偏差告警（只读，先观测不自动修复）
         this.injector.get(slot_reconcile_job_1.SlotReconcileJob).start();
+        // 埋点/错误报告过期清理：保留 90 天，分批删除避免影响上报写入
+        this.injector.get(telemetry_retention_job_1.TelemetryRetentionJob).start();
         // 管理消息推送：notification 发布 AdminNotifyEvent（新订单/售后），本插件订阅后转飞书群
         this.eventBus.ofType(notification_plugin_1.AdminNotifyEvent).subscribe(event => {
             void this.injector.get(feishu_notify_service_1.FeishuNotifyService).onAdminNotify(event);
@@ -420,6 +427,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p39_trust_copy_1.P39TrustCopyMigration,
             p40_review_gift_choice_1.P40ReviewGiftChoiceMigration,
             p41_review_gift_channel_columns_1.P41ReviewGiftChannelColumnsMigration,
+            p42_channel_aftersales_rule_columns_1.P42ChannelAfterSalesRuleColumnsMigration,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,
@@ -440,6 +448,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             soldout_auto_restore_job_1.SoldOutAutoRestoreJob,
             after_sales_sla_alert_job_1.AfterSalesSlaAlertJob,
             after_sales_followup_remind_job_1.AfterSalesFollowUpRemindJob,
+            rider_compliance_reminder_job_1.RiderComplianceReminderJob,
             after_sales_monthly_push_job_1.AfterSalesMonthlyPushJob,
             after_sales_auto_assign_job_1.AfterSalesAutoAssignJob,
             after_sales_auto_rule_job_1.AfterSalesAutoRuleJob,
@@ -470,6 +479,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             delivery_stats_service_1.DeliveryStatsService,
             sales_stats_service_1.SalesStatsService,
             telemetry_service_1.TelemetryService,
+            telemetry_retention_job_1.TelemetryRetentionJob,
             errand_service_1.ErrandService,
             r2_mark_service_1.R2MarkService,
             r4_tag_service_1.R4TagService,
@@ -2516,7 +2526,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     ok: Boolean!
                     provider: String!
                     providerName: String!
-                    """disabled / unconfigured / rejected / accepted"""
+                    """disabled / unconfigured / unsupported / rejected / accepted（accepted 仅 mock 模拟通道）"""
                     status: String!
                     requestNo: String
                     message: String!
@@ -2907,7 +2917,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusDeleteLockerStation(id: ID!): Boolean!
                     """无人配送通道：保存配置（endpoint/key 传空串 = 清空）"""
                     campusUpdateUnmannedChannel(input: CampusUnmannedChannelInput!): CampusUnmannedChannel!
-                    """无人配送调用占位：配置校验通过后模拟受理，返回模拟单号"""
+                    """无人配送调用占位：mock 模拟受理并返回 MOCK 单号；真实厂商未接入返回 unsupported，不下发运单"""
                     campusRequestUnmannedDelivery(orderId: ID!): CampusUnmannedDeliveryResult!
                     campusSettleAddressChange(id: ID!, action: String!, note: String): CampusAddressChangeRow!
                     """运营代客改址：取货后也可代改，必须填写原因"""
@@ -3536,7 +3546,6 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     shipping: Int!
                     createdAt: DateTime!
                     channelId: ID!
-                    channelToken: String!
                     channelName: String!
                     customFields: CampusHallOrderCustomFields
                 }

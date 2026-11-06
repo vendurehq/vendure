@@ -14,6 +14,7 @@ exports.mpListingMissing = mpListingMissing;
 exports.normalizeMpListingStatus = normalizeMpListingStatus;
 exports.normalizePrintMode = normalizePrintMode;
 exports.privacyProviderStatus = privacyProviderStatus;
+exports.isCateringIndustry = isCateringIndustry;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
@@ -190,7 +191,7 @@ let WaimaiStoreService = class WaimaiStoreService {
         };
     }
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。
-     * C 端进入店铺后用 channelToken 作 vendure-token 切换渠道拉菜单/下单。 */
+     * 不再下发 channelToken；C 端进店时按 channelId 调 campusStoreEntry 单店换取。 */
     async listStores(ctx) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2;
         const configs = await this.connection.getRepository(ctx, campus_fulfillment_config_entity_1.CampusFulfillmentConfig).find();
@@ -207,13 +208,13 @@ let WaimaiStoreService = class WaimaiStoreService {
             const cf = ((_a = ch.customFields) !== null && _a !== void 0 ? _a : {});
             // 外卖准入：仅餐饮行业租户展示（设计文档 2026-10-09 §4.2；存量由 BackfillWaimaiIndustryMigration 刷数）。
             // 仅过滤 C 端列表；listStoreConfigs（admin 配置视图）不过滤，避免管理员看不到已配履约的非餐饮渠道。
-            if (cf.industryType !== 'catering')
+            // L2：未设置行业按餐饮处理（只有显式非餐饮才剔除）。
+            if (!isCateringIndustry(cf))
                 continue;
             // 营业日历（§70）：今日在休业名单中则整店休业（优先于营业时间判断）
             const closure = (0, closure_calendar_1.closedToday)((0, closure_calendar_1.safeClosureDates)(cfg.closureDates, now), now);
             stores.push({
                 channelId: Number(ch.id),
-                channelToken: ch.token,
                 name: ch.code,
                 logo: (_b = cf.waimaiLogo) !== null && _b !== void 0 ? _b : null,
                 tags: typeof cf.waimaiTags === 'string' && cf.waimaiTags.length

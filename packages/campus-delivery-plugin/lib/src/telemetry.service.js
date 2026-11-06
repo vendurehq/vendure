@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TelemetryService = void 0;
+exports.TelemetryService = exports.ERROR_DAILY_MAX_PER_CHANNEL = exports.TRACK_DAILY_MAX_PER_CHANNEL = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const typeorm_1 = require("typeorm");
@@ -23,6 +23,16 @@ const RATE_WINDOW_MS = 60000;
 const TRACK_CALLS_PER_WINDOW = 40;
 const ERROR_CALLS_PER_WINDOW = 10;
 const RATE_MAP_MAX = 5000;
+/**
+ * 每日每渠道写入预算（M2）：进程内限流可被轮换 IP / 多实例放大绕过，
+ * 这里按「当日已入库行数」加一道跨实例兜底，超限后匿名写入直接丢弃。
+ * 各实例每 60s 与 DB 对齐一次，窗口内独立累加，故实际上限约为 实例数×预算。
+ */
+const TRACK_DAILY_MAX_PER_CHANNEL = 50000;
+exports.TRACK_DAILY_MAX_PER_CHANNEL = TRACK_DAILY_MAX_PER_CHANNEL;
+const ERROR_DAILY_MAX_PER_CHANNEL = 2000;
+exports.ERROR_DAILY_MAX_PER_CHANNEL = ERROR_DAILY_MAX_PER_CHANNEL;
+const BUDGET_REFRESH_MS = 60000;
 function pageSize(take) {
     const n = Number(take !== null && take !== void 0 ? take : 20);
     if (!Number.isFinite(n) || n <= 0)
@@ -38,6 +48,8 @@ let TelemetryService = class TelemetryService {
         this.connection = connection;
         /** 限流窗口：clientKey → {count, resetAt} */
         this.rateWindows = new Map();
+        /** 每日预算：`kind:channelId:dayStart` → {used, refreshedAt, warned} */
+        this.dailyBudgets = new Map();
     }
     /** C 端批量埋点上报（匿名可用），返回实际入库条数。 */
     async trackEvents(ctx, input) {
@@ -48,21 +60,15 @@ let TelemetryService = class TelemetryService {
         const events = (0, telemetry_1.normalizeTrackEventBatch)(input === null || input === void 0 ? void 0 : input.events);
         if (!events.length)
             return 0;
+        // 每日预算兜底（跨实例 + 轮换 IP 上限），超限丢弃不抛错
+        if (!(await this.allowDailyBudget(ctx, 'track', TRACK_DAILY_MAX_PER_CHANNEL, events.length)))
+            return 0;
         const channelId = ctx.channelId;
         const customerId = await this.resolveCustomerId(ctx);
         const meta = requestMeta(ctx);
         const repo = this.connection.getRepository(ctx, telemetry_entities_1.CampusTrackEvent);
-        const rows = events.map(ev => new telemetry_entities_1.CampusTrackEvent({
-            channelId,
-            customerId,
-            sessionId: ev.sessionId,
-            eventName: ev.eventName,
-            page: ev.page,
-            props: ev.props,
-            ua: meta.ua,
-            ip: meta.ip,
-            ...(ev.createdAt ? { createdAt: ev.createdAt } : {}),
-        }));
+        const rows = events.map(ev => new telemetry_entities_1.CampusTrackEvent(Object.assign({ channelId,
+            customerId, sessionId: ev.sessionId, eventName: ev.eventName, page: ev.page, props: ev.props, ua: meta.ua, ip: meta.ip }, (ev.createdAt ? { createdAt: ev.createdAt } : {}))));
         await repo.save(rows, { chunk: 50 });
         return rows.length;
     }
@@ -76,6 +82,8 @@ let TelemetryService = class TelemetryService {
             return false;
         const report = (0, telemetry_1.sanitizeErrorReport)(input);
         if (!report)
+            return false;
+        if (!(await this.allowDailyBudget(ctx, 'error', ERROR_DAILY_MAX_PER_CHANNEL, 1)))
             return false;
         const channelId = ctx.channelId;
         const customerId = await this.resolveCustomerId(ctx);
@@ -213,6 +221,47 @@ let TelemetryService = class TelemetryService {
         for (const [key, w] of this.rateWindows) {
             if (w.resetAt <= now)
                 this.rateWindows.delete(key);
+        }
+    }
+    /**
+     * 每日写入预算（M2）：首次/每 60s 从 DB 对齐当日已入库行数，
+     * 返回 false 时调用方丢弃本次写入（不抛错，避免端侧上报链路被限流错误打断）。
+     */
+    async allowDailyBudget(ctx, kind, limit, amount) {
+        const channelId = ctx.channelId;
+        const dayStart = (0, campus_time_1.startOfCampusDay)(Date.now());
+        const key = `${kind}:${channelId}:${dayStart}`;
+        const now = Date.now();
+        let b = this.dailyBudgets.get(key);
+        if (!b) {
+            if (this.dailyBudgets.size >= RATE_MAP_MAX)
+                this.pruneDailyBudgets(dayStart);
+            b = { dayStart, used: 0, refreshedAt: 0, warned: false };
+            this.dailyBudgets.set(key, b);
+        }
+        if (now - b.refreshedAt >= BUDGET_REFRESH_MS) {
+            const repo = this.connection.getRepository(ctx, kind === 'track' ? telemetry_entities_1.CampusTrackEvent : telemetry_entities_1.CampusErrorReport);
+            const used = await repo.count({
+                where: { channelId, createdAt: (0, typeorm_1.MoreThanOrEqual)(new Date(dayStart)) },
+            });
+            b.used = Math.max(b.used, used);
+            b.refreshedAt = now;
+        }
+        if (b.used >= limit) {
+            if (!b.warned) {
+                b.warned = true;
+                core_1.Logger.warn(`渠道 ${channelId} 今日${kind === 'track' ? '埋点' : '错误上报'}已达上限 ${limit}，后续匿名写入将被丢弃`
+                    + `（多实例按 60s 对齐独立计数，实际总量约为实例数×上限）`, 'TelemetryService');
+            }
+            return false;
+        }
+        b.used += amount;
+        return true;
+    }
+    pruneDailyBudgets(dayStart) {
+        for (const [key, b] of this.dailyBudgets) {
+            if (b.dayStart < dayStart)
+                this.dailyBudgets.delete(key);
         }
     }
     /** 已登录顾客 id（游客返回 null）；失败不阻断上报。 */

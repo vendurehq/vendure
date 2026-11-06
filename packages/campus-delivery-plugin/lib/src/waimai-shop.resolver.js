@@ -22,7 +22,7 @@ let WaimaiShopResolver = class WaimaiShopResolver {
         this.stores = stores;
         this.assist = assist;
     }
-    /** 公开只读：C 端首页店铺列表（跨渠道元数据聚合） */
+    /** 公开只读：C 端首页店铺列表（跨渠道元数据聚合；不下发渠道 token） */
     async waimaiStoreList(ctx) {
         return this.stores.listStores(ctx);
     }

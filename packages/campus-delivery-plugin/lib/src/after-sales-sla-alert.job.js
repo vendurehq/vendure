@@ -13,6 +13,7 @@ exports.AfterSalesSlaAlertJob = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const after_sales_plugin_1 = require("@vendure/after-sales-plugin");
+const advisory_lock_1 = require("./advisory-lock");
 const periodic_fallback_1 = require("./periodic-fallback");
 const loggerCtx = 'CampusAfterSalesSlaAlert';
 /** 启动后首跑延迟：等迁移建表 / DB 连接稳定 */
@@ -46,7 +47,9 @@ let AfterSalesSlaAlertJob = class AfterSalesSlaAlertJob {
             bootDelayMs: BOOT_DELAY_MS,
             loggerCtx,
         });
-        this.fallback.start(() => this.runOnce());
+        this.fallback.start(() => 
+        // 多实例互斥：拿不到锁说明其他实例正在扫描，本轮直接跳过（避免同一售后单并发提醒）
+        (0, advisory_lock_1.withAdvisoryLock)(this.connection, 'campus:after-sales-sla-alert', () => this.runOnce()));
     }
     stop() {
         var _a;
@@ -57,19 +60,16 @@ let AfterSalesSlaAlertJob = class AfterSalesSlaAlertJob {
         this.stop();
     }
     async runOnce() {
-        var _a, _b;
+        var _a, _b, _c, _d, _e;
         const raw = this.connection.rawConnection;
         let rows;
         try {
             rows = await raw.query(`SELECT a.id AS "requestId", oc."channelId" AS "channelId",
                         a."createdAt" AS "createdAt",
-                        COALESCE(a."slaPausedMs", 0) AS "slaPausedMs",
-                        COALESCE(ch."customFieldsAfterSalesTimeoutHours", ${DEFAULT_TIMEOUT_HOURS}) AS "timeoutHours",
-                        COALESCE(ch."customFieldsAfterSalesDueSoonHours", ${DEFAULT_DUE_SOON_HOURS}) AS "dueSoonHours"
+                        COALESCE(a."slaPausedMs", 0) AS "slaPausedMs"
                    FROM after_sales_request a
                    JOIN "order" o ON o.id = a."orderId"
                    JOIN order_channels_channel oc ON oc."orderId" = o.id
-                   JOIN channel ch ON ch.id = oc."channelId"
                   WHERE a.state = 'Pending' AND a."slaPausedAt" IS NULL AND o."customFieldsHallstatus" IS NOT NULL
                   ORDER BY a."createdAt" ASC
                   LIMIT ${MAX_PER_RUN}`);
@@ -83,29 +83,37 @@ let AfterSalesSlaAlertJob = class AfterSalesSlaAlertJob {
         if (!Array.isArray(list) || !list.length)
             return;
         const now = Date.now();
+        const channelCache = new Map();
         let sent = 0;
         for (const r of list) {
-            const createdAt = new Date(r.createdAt).getTime();
-            const timeoutHours = Number(r.timeoutHours) || DEFAULT_TIMEOUT_HOURS;
-            const dueSoonHours = Number(r.dueSoonHours) || 0;
-            // §95：已累计暂停时长顺延截止时间
-            const deadline = createdAt + timeoutHours * 3600000 + (Number(r.slaPausedMs) || 0);
-            const kind = now >= deadline
-                ? 'overdue'
-                : (dueSoonHours > 0 && deadline - now <= dueSoonHours * 3600000 ? 'dueSoon' : null);
-            if (!kind)
-                continue;
             try {
+                // 阈值改从渠道实体读（原裸 SQL 拼 channel 自定义字段列名，生产列名大小写与预期不符导致整轮查询失败）
+                const channelId = Number(r.channelId);
+                if (!channelCache.has(channelId)) {
+                    channelCache.set(channelId, await raw.getRepository(core_1.Channel).findOne({ where: { id: channelId } }));
+                }
+                const channel = channelCache.get(channelId);
+                if (!channel)
+                    continue;
+                const cf = ((_b = channel.customFields) !== null && _b !== void 0 ? _b : {});
+                // 与商家端「售后规则」同源：未配置按 48h / 12h；0 = 关闭该类提醒
+                const timeoutHours = Number((_c = cf.afterSalesTimeoutHours) !== null && _c !== void 0 ? _c : DEFAULT_TIMEOUT_HOURS) || DEFAULT_TIMEOUT_HOURS;
+                const dueSoonHours = Number((_d = cf.afterSalesDueSoonHours) !== null && _d !== void 0 ? _d : DEFAULT_DUE_SOON_HOURS) || 0;
+                const createdAt = new Date(r.createdAt).getTime();
+                // §95：已累计暂停时长顺延截止时间
+                const deadline = createdAt + timeoutHours * 3600000 + (Number(r.slaPausedMs) || 0);
+                const kind = now >= deadline
+                    ? 'overdue'
+                    : (dueSoonHours > 0 && deadline - now <= dueSoonHours * 3600000 ? 'dueSoon' : null);
+                if (!kind)
+                    continue;
                 const claimed = await raw.query(`INSERT INTO campus_after_sales_sla_alert ("channelId", "requestId", "kind", "alertedAt")
                      VALUES ($1, $2, $3, now())
                      ON CONFLICT ("requestId", "kind") DO UPDATE SET "alertedAt" = now()
                       WHERE campus_after_sales_sla_alert."alertedAt" < now() - interval '${Math.floor(RENOTIFY_MS / 3600000)} hours'
-                     RETURNING "requestId"`, [Number(r.channelId), Number(r.requestId), kind]);
+                     RETURNING "requestId"`, [channelId, Number(r.requestId), kind]);
                 const claimedList = Array.isArray(claimed) && Array.isArray(claimed[0]) ? claimed[0] : claimed;
                 if (!Array.isArray(claimedList) || !claimedList.length)
-                    continue;
-                const channel = await raw.getRepository(core_1.Channel).findOne({ where: { id: Number(r.channelId) } });
-                if (!channel)
                     continue;
                 const ctx = new core_1.RequestContext({
                     apiType: 'admin',
@@ -121,7 +129,7 @@ let AfterSalesSlaAlertJob = class AfterSalesSlaAlertJob {
                 sent += 1;
             }
             catch (e) {
-                core_1.Logger.warn(`alert request ${r.requestId} failed: ${String((_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : e)}`, loggerCtx);
+                core_1.Logger.warn(`alert request ${r.requestId} failed: ${String((_e = e === null || e === void 0 ? void 0 : e.message) !== null && _e !== void 0 ? _e : e)}`, loggerCtx);
             }
         }
         if (sent > 0)

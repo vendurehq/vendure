@@ -52,7 +52,6 @@ export declare class HallShopResolver {
         shipping: number;
         createdAt: Date;
         channelId: string;
-        channelToken: string;
         channelName: string;
         customFields: any;
     }[]>;

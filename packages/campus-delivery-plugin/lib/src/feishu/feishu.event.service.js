@@ -18,6 +18,8 @@ const feishu_config_1 = require("./feishu.config");
 const feishu_crypto_1 = require("./feishu.crypto");
 const loggerCtx = 'Feishu';
 const EVENT_DEDUPE_MS = 10 * 60000;
+/** 签名时间戳容忍窗口：飞书建议 1 小时内；重放由 event_id 去重兜底 */
+const SIGNATURE_TOLERANCE_SECONDS = 60 * 60;
 /**
  * 飞书事件订阅入口：URL 验证（challenge）→ 可选解密 → token 校验 → event_id 去重 → 异步执行指令。
  * 先返回 200 再处理业务：飞书 3 秒超时会重试，重试叠加接单/退款很难看；真正的幂等由领域层保证。
@@ -31,10 +33,13 @@ let FeishuEventService = class FeishuEventService {
         this.dedupe = dedupe;
         this.seen = new Map();
     }
-    async handle(raw) {
+    async handle(raw, headers) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
         if (!this.cfg.enabled)
             return { status: 200, body: {} };
+        // H3：配置 Encrypt Key 时飞书会带签名头，必须先验签再解密，避免伪造/重放回调绕过 verifyToken
+        if (!this.verifySignature(raw, headers))
+            return { status: 403, body: {} };
         const payload = await this.decode(raw);
         if (!payload)
             return { status: 400, body: { error: 'invalid payload' } };
@@ -107,6 +112,33 @@ let FeishuEventService = class FeishuEventService {
             .handleCardAction({ chatId, openId, value, messageId })
             .catch(e => { var _a; return core_1.Logger.error(`飞书卡片操作失败 chat=${chatId}: ${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}`, loggerCtx); });
         return { status: 200, body: {} };
+    }
+    /**
+     * 签名校验（H3）：仅当配置了 FEISHU_ENCRYPT_KEY 时启用（飞书只在该模式下下发签名头）。
+     * 该模式下请求体是 { encrypt: base64 }，JSON.stringify 可稳定复现签名原文。
+     * 未配置 Encrypt Key 时飞书不下发签名，只能依赖 verifyToken（残余风险：token 泄露即可伪造回调）。
+     */
+    verifySignature(raw, headers) {
+        var _a, _b;
+        const encryptKey = this.cfg.settings.encryptKey;
+        if (!encryptKey)
+            return true;
+        const { timestamp, nonce, signature } = headers !== null && headers !== void 0 ? headers : {};
+        if (!timestamp || !nonce || !signature) {
+            core_1.Logger.warn('已配置 FEISHU_ENCRYPT_KEY 但回调缺少签名头，拒绝（请确认飞书控制台已启用 Encrypt Key）', loggerCtx);
+            return false;
+        }
+        const ts = Number(timestamp);
+        if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > SIGNATURE_TOLERANCE_SECONDS) {
+            core_1.Logger.warn('飞书回调时间戳超出容忍窗口，拒绝', loggerCtx);
+            return false;
+        }
+        const expected = (0, feishu_crypto_1.feishuSignature)(timestamp, nonce, encryptKey, JSON.stringify(raw));
+        if (!(0, feishu_crypto_1.signatureEquals)(expected, signature)) {
+            core_1.Logger.warn(`飞书回调签名校验失败 type=${(_b = (_a = raw === null || raw === void 0 ? void 0 : raw.header) === null || _a === void 0 ? void 0 : _a.event_type) !== null && _b !== void 0 ? _b : '-'}`, loggerCtx);
+            return false;
+        }
+        return true;
     }
     async decode(raw) {
         if (!raw)

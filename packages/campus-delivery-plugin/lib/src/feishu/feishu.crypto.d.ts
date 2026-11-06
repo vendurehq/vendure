@@ -6,3 +6,5 @@
 export declare function decryptFeishuPayload(encrypt: string, encryptKey: string): any | null;
 /** 飞书回调签名：sha256(timestamp + nonce + encryptKey + rawBody)，rawBody 拿不到时用 JSON.stringify(body) */
 export declare function feishuSignature(timestamp: string, nonce: string, encryptKey: string, rawBody: string): string;
+/** 定时安全比较两个 hex 签名：长度不等直接 false，避免 timingSafeEqual 抛错 */
+export declare function signatureEquals(expected: string, given: string): boolean;

@@ -1,4 +1,5 @@
 import { OnApplicationShutdown } from '@nestjs/common';
+import { TransactionalConnection } from '@vendure/core';
 import { RiderWalletService } from './rider-wallet.service';
 /**
  * R1 提现意图对账任务：提现申请先落库（intent）再扣款，若进程在扣款/确认之间中断，
@@ -6,8 +7,9 @@ import { RiderWalletService } from './rider-wallet.service';
  */
 export declare class WithdrawReconcileJob implements OnApplicationShutdown {
     private wallet;
+    private connection;
     private fallback;
-    constructor(wallet: RiderWalletService);
+    constructor(wallet: RiderWalletService, connection: TransactionalConnection);
     start(intervalMs?: number): void;
     onApplicationShutdown(): void;
 }

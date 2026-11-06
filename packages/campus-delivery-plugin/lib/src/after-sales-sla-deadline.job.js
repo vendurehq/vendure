@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const after_sales_sla_1 = require("./after-sales-sla");
 const closure_calendar_1 = require("./closure-calendar");
+const advisory_lock_1 = require("./advisory-lock");
 const campus_config_service_1 = require("./campus-config.service");
 const periodic_fallback_1 = require("./periodic-fallback");
 const loggerCtx = 'CampusAfterSalesSla';
@@ -25,7 +26,7 @@ const INTERVAL_MS = 5 * 60000;
  * 售后 SLA 截止时间重算（§99）：把「申请时间 + 处理时限」换算成营业时段感知的截止时间，
  * 写入 after_sales_request.slaDeadlineAt，供列表筛选、工作台统计、处理人负载、报表统一使用。
  * - 未配置营业时间（或配置无法解析）时等价于申请时间 + 时限 + 暂停累计。
- * - 幂等重算，多实例并发写同一值，无需咨询锁。
+ * - 重算本身幂等，但多实例同跑会放大读写压力并重复读渠道配置，故仍以咨询锁串行化。
  */
 let AfterSalesSlaDeadlineJob = class AfterSalesSlaDeadlineJob {
     constructor(connection, config) {
@@ -42,7 +43,9 @@ let AfterSalesSlaDeadlineJob = class AfterSalesSlaDeadlineJob {
             bootDelayMs: BOOT_DELAY_MS,
             loggerCtx,
         });
-        this.fallback.start(() => this.run());
+        this.fallback.start(() => 
+        // 多实例互斥：拿不到锁说明其他实例正在重算，本轮直接跳过
+        (0, advisory_lock_1.withAdvisoryLock)(this.connection, 'campus:after-sales-sla-deadline', () => this.run()));
     }
     stop() {
         var _a;

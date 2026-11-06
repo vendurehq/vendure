@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { FeishuEventService } from './feishu.event.service';
 /**
  * 飞书开放平台回调（事件订阅）。
@@ -7,5 +7,5 @@ import { FeishuEventService } from './feishu.event.service';
 export declare class FeishuController {
     private events;
     constructor(events: FeishuEventService);
-    event(body: any, res: Response): Promise<void>;
+    event(body: any, req: Request, res: Response): Promise<void>;
 }

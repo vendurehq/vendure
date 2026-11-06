@@ -2,7 +2,6 @@ import { RequestContext, TransactionalConnection } from '@vendure/core';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
 export interface WaimaiStore {
     channelId: number;
-    channelToken: string;
     name: string;
     logo: string | null;
     tags: string[];
@@ -42,7 +41,7 @@ export interface WaimaiStore {
     packingFeeCap: number | null;
     packingFeeLabel: string | null;
 }
-/** 单店进店凭证：C 端按 channelId 单店换取渠道 token（限流），列表不下发 token */
+/** 单店进店凭证：列表不再批量下发 token，C 端按 channelId 单店换取（限流） */
 export interface CampusStoreEntry {
     channelId: number;
     channelToken: string;
@@ -191,8 +190,15 @@ export declare function privacyProviderStatus(cfg: {
     privacyNumberEnabled?: boolean | null;
     privacyNumberProvider?: string | null;
 } | null | undefined): PrivacyProviderStatus;
+/**
+ * L2：外卖准入行业判断——只有「显式配置为非餐饮」才剔除；
+ * industryType 未设置（存量未刷成功 / 新建渠道漏填）时按餐饮处理，
+ * 避免已有履约配置的店铺从 C 端列表与进店换取里静默消失。
+ */
+export declare function isCateringIndustry(cf: any): boolean;
 export declare class WaimaiStoreService {
     private connection;
+    private readonly entryRate;
     constructor(connection: TransactionalConnection);
     /**
      * 菜品每日限量/每人限购（§68）：当前渠道「有限量配置」的商品，返回当日已售与剩余。
@@ -210,7 +216,7 @@ export declare class WaimaiStoreService {
     /** §113 公开只读：当前渠道的信任文案（评价页信任签名卡三行），空文案/无配置即回默认开启 + 空串 */
     trustCopy(ctx: RequestContext): Promise<CampusStoreTrust>;
     /** 店铺列表：有履约配置的渠道即外卖店铺（跨渠道公开元数据聚合，供 C 端首页）。
-     * C 端进入店铺后用 channelToken 作 vendure-token 切换渠道拉菜单/下单。 */
+     * 不再下发 channelToken；C 端进店时按 channelId 调 campusStoreEntry 单店换取。 */
     listStores(ctx: RequestContext): Promise<WaimaiStore[]>;
     /**
      * 单店进店换取渠道 token：仅对「有履约配置 + 非默认渠道 + 餐饮行业」的店铺下发，
