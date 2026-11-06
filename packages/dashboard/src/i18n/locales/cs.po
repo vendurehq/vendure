@@ -660,6 +660,7 @@ msgid "Go to next page"
 msgstr "Přejít na další stránku"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 msgid "Add role"
 msgstr ""
 
@@ -721,6 +722,11 @@ msgstr "Spravovat globální uložené pohledy viditelné pro všechny uživatel
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "Hledat způsoby platby..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -786,11 +792,9 @@ msgstr "Přidávání..."
 msgid "Move Collections"
 msgstr "Přesunout kolekce"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -865,6 +869,10 @@ msgstr "Spustit test"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "Daňová sazba: {taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Pro spuštění testu přidejte produkty a vyplňte doručovací adresu."
@@ -897,6 +905,11 @@ msgstr "Vymazat formátování"
 msgid "Order draft is ready to be completed"
 msgstr "Koncept objednávky je připraven k dokončení"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -907,6 +920,7 @@ msgstr "Metadata"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "Nepodařilo se nastavit způsob dopravy pro objednávku: {0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "Filtrovat..."
@@ -1441,6 +1455,11 @@ msgstr "Soubory"
 msgid "Email address"
 msgstr "E-mailová adresa"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1544,6 +1563,10 @@ msgstr "Otestujte vaše způsoby dopravy simulací nové objednávky."
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "No items selected"
 msgstr "Nejsou vybrány žádné položky"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
 
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -1959,6 +1982,12 @@ msgstr "Vytvořeno"
 msgid "Loading addresses..."
 msgstr "Načítání adres..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "Vyberte cílovou kolekci pro přesunutí {0}."
@@ -2004,6 +2033,8 @@ msgid "Insert {row} by {col} table"
 msgstr "Vložit tabulku {row} × {col}"
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
@@ -2050,6 +2081,12 @@ msgstr "Varianta produktu úspěšně vytvořena"
 msgid "Refund from this method"
 msgstr "Refund z tohoto způsobu"
 
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Postal Code"
@@ -2094,10 +2131,9 @@ msgstr "Smazat variantu"
 msgid "No modifications made"
 msgstr "Nebyly provedeny žádné úpravy"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2295,6 +2331,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2974,6 +3014,11 @@ msgstr "Končí"
 msgid "Page {0} of {1}"
 msgstr "Stránka {0} z {1}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "Sazba"
@@ -3140,6 +3185,9 @@ msgstr "Toto jsou zákazníci ve skupině zákazníků <0>{customerGroupName}</0
 msgid "Manage global views"
 msgstr "Spravovat globální pohledy"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "Výchozí kanál"
@@ -3249,10 +3297,9 @@ msgstr "Použit pohled \"{viewName}\""
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "Úspěšně odebráno {successCount} vlastností z kanálu"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3379,7 +3426,6 @@ msgstr "Přidat hodnoty vlastností"
 msgid "after"
 msgstr "po"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Channel"
 msgstr "Kanál"
@@ -3636,6 +3682,11 @@ msgstr "Historie objednávky"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "Přepsat"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3934,10 +3985,9 @@ msgstr "Včetně daně {taxRate}%"
 msgid "Order metrics"
 msgstr "Metriky objednávek"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
 
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
@@ -4048,6 +4098,10 @@ msgstr "Prodejce úspěšně vytvořen"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4299,6 +4353,7 @@ msgid "Settle payment"
 msgstr "Vypořádat platbu"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
@@ -4332,6 +4387,10 @@ msgstr "Nový sklad"
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
 msgstr "Vybrat položku"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
@@ -5529,6 +5588,10 @@ msgstr "např. Červená, Velká, Bavlna"
 msgid "Failed to update profile"
 msgstr "Nepodařilo se aktualizovat profil"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5601,6 +5664,10 @@ msgstr "Kolekce úspěšně aktualizována"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "Způsob platby úspěšně aktualizován"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5683,6 +5750,10 @@ msgstr "Rozšíření dotazu je neplatné: musí obsahovat alespoň jedno pole n
 #: src/lib/hooks/use-extended-list-query.ts
 msgid "Query extension mismatch: "
 msgstr "Nesoulad rozšíření dotazu:"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
@@ -5923,6 +5994,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Stát / Kraj"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
@@ -6203,6 +6278,7 @@ msgstr "Systém"
 msgid "Variant name"
 msgstr "Název varianty"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6281,10 +6357,9 @@ msgstr "Náhled úprav objednávky"
 #~ msgid "Successfully updated product option group"
 #~ msgstr "Skupina možností produktu byla úspěšně aktualizována"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -7117,6 +7192,7 @@ msgid "Move to the top level"
 msgstr "Přesunout na nejvyšší úroveň"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "Vymazat"
 

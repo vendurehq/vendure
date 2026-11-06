@@ -660,6 +660,7 @@ msgid "Go to next page"
 msgstr "رفتن به صفحه بعدی"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 msgid "Add role"
 msgstr ""
 
@@ -721,6 +722,11 @@ msgstr "مدیریت نماهای ذخیره شده عمومی که برای ه�
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "جستجوی روش‌های پرداخت..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -786,11 +792,9 @@ msgstr "در حال افزودن..."
 msgid "Move Collections"
 msgstr "جابجایی مجموعه‌ها"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -865,6 +869,10 @@ msgstr "اجرای آزمون"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "نرخ مالیات: {taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "لطفا برای اجرای آزمون محصولات اضافه کنید و آدرس ارسال را تکمیل کنید."
@@ -897,6 +905,11 @@ msgstr "پاک کردن قالب‌بندی"
 msgid "Order draft is ready to be completed"
 msgstr "پیش‌نویس سفارش آماده تکمیل است"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -907,6 +920,7 @@ msgstr "فراداده"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "تنظیم روش ارسال برای سفارش ناموفق بود: {0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "فیلتر..."
@@ -1441,6 +1455,11 @@ msgstr "فایل‌ها"
 msgid "Email address"
 msgstr "آدرس ایمیل"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1544,6 +1563,10 @@ msgstr "روش‌های ارسال خود را با شبیه‌سازی یک س�
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "No items selected"
 msgstr "هیچ موردی انتخاب نشده است"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
 
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -1959,6 +1982,12 @@ msgstr "ایجاد شد"
 msgid "Loading addresses..."
 msgstr "در حال بارگذاری آدرس‌ها..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "یک مجموعه هدف برای جابجایی {0} انتخاب کنید."
@@ -2004,6 +2033,8 @@ msgid "Insert {row} by {col} table"
 msgstr "درج جدول {row} در {col}"
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
@@ -2050,6 +2081,12 @@ msgstr "نوع محصول با موفقیت ایجاد شد"
 msgid "Refund from this method"
 msgstr "بازپرداخت از این روش"
 
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Postal Code"
@@ -2094,10 +2131,9 @@ msgstr "حذف گونه"
 msgid "No modifications made"
 msgstr "هیچ تغییری انجام نشد"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2295,6 +2331,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2974,6 +3014,11 @@ msgstr "پایان در"
 msgid "Page {0} of {1}"
 msgstr "صفحه {0} از {1}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "نرخ"
@@ -3140,6 +3185,9 @@ msgstr "اینها مشتریان در گروه مشتری <0>{customerGroupName
 msgid "Manage global views"
 msgstr "مدیریت نماهای عمومی"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "کانال پیش‌فرض"
@@ -3249,10 +3297,9 @@ msgstr "نمای \"{viewName}\" اعمال شد"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} ویژگی با موفقیت از کانال حذف شد"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3379,7 +3426,6 @@ msgstr "افزودن مقادیر ویژگی"
 msgid "after"
 msgstr "بعد از"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Channel"
 msgstr "کانال"
@@ -3636,6 +3682,11 @@ msgstr "تاریخچه سفارش"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "بازنویسی"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3934,10 +3985,9 @@ msgstr "شامل مالیات {taxRate}%"
 msgid "Order metrics"
 msgstr "معیارهای سفارش"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
 
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
@@ -4048,6 +4098,10 @@ msgstr "فروشنده با موفقیت ایجاد شد"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4299,6 +4353,7 @@ msgid "Settle payment"
 msgstr "تسویه پرداخت"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
@@ -4332,6 +4387,10 @@ msgstr "محل انبار جدید"
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
 msgstr "انتخاب مورد"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
@@ -5529,6 +5588,10 @@ msgstr "مثلا قرمز، بزرگ، پنبه"
 msgid "Failed to update profile"
 msgstr "به‌روزرسانی پروفایل ناموفق بود"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5601,6 +5664,10 @@ msgstr "مجموعه با موفقیت به‌روزرسانی شد"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "روش پرداخت با موفقیت به‌روزرسانی شد"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5683,6 +5750,10 @@ msgstr "گسترش پرس‌وجو نامعتبر است: باید حداقل ی
 #: src/lib/hooks/use-extended-list-query.ts
 msgid "Query extension mismatch: "
 msgstr "عدم تطابق گسترش پرس‌وجو:"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
@@ -5923,6 +5994,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "ایالت / استان"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
@@ -6203,6 +6278,7 @@ msgstr "سیستم"
 msgid "Variant name"
 msgstr "نام نوع"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6281,10 +6357,9 @@ msgstr "پیش‌نمایش تغییرات سفارش"
 #~ msgid "Successfully updated product option group"
 #~ msgstr "گروه گزینه‌های محصول با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -7117,6 +7192,7 @@ msgid "Move to the top level"
 msgstr "جابجایی به سطح بالا"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "پاک کردن"
 
