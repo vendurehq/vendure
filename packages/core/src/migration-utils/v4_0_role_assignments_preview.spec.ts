@@ -43,6 +43,12 @@ describe('previewRoleAssignmentMigration()', () => {
              "channelId" integer NOT NULL, PRIMARY KEY ("customerId", "channelId"))`,
         );
         await queryRunner.query(
+            `CREATE TABLE "user" ("id" integer PRIMARY KEY AUTOINCREMENT, "deletedAt" datetime)`,
+        );
+        await queryRunner.query(
+            `INSERT INTO "user" ("id") VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10)`,
+        );
+        await queryRunner.query(
             `CREATE TABLE "user_roles_role" ("userId" integer NOT NULL, "roleId" integer NOT NULL,
              PRIMARY KEY ("userId", "roleId"))`,
         );
@@ -235,6 +241,20 @@ describe('previewRoleAssignmentMigration()', () => {
         );
     });
 
+    it('leaves out soft-deleted users', async () => {
+        await queryRunner.query(
+            `INSERT INTO "user_roles_role" ("userId", "roleId") VALUES (1, 1), (2, 3), (7, 3)`,
+        );
+        await queryRunner.query(`INSERT INTO "administrator" ("id", "userId") VALUES (1, 1), (2, 2), (7, 7)`);
+        await queryRunner.query(`UPDATE "user" SET "deletedAt" = datetime('now') WHERE "id" = 7`);
+
+        const preview = await previewRoleAssignmentMigration(queryRunner);
+
+        // user 7 is soft-deleted: neither counted nor given rows
+        expect(preview.administrators).toEqual({ userCount: 2, superAdminCount: 1, assignmentCount: 2 });
+        expect(preview.migration).toEqual({ userCount: 2, assignmentCount: 2 });
+    });
+
     it('estimates the migration time from the number of rows', async () => {
         await queryRunner.query(`INSERT INTO "user_roles_role" ("userId", "roleId") VALUES (1, 1)`);
         const preview = await previewRoleAssignmentMigration(queryRunner);
@@ -283,6 +303,8 @@ describe('previewRoleAssignmentMigration() with an entityPrefix', () => {
         await queryRunner.query(
             `CREATE TABLE "vdr_administrator" ("id" integer PRIMARY KEY, "deletedAt" datetime, "userId" integer)`,
         );
+        await queryRunner.query(`CREATE TABLE "vdr_user" ("id" integer PRIMARY KEY, "deletedAt" datetime)`);
+        await queryRunner.query(`INSERT INTO "vdr_user" ("id") VALUES (1), (2), (3), (4), (5)`);
         await queryRunner.query(`CREATE TABLE "vdr_user_roles_role" ("userId" integer, "roleId" integer)`);
         await queryRunner.query(
             `CREATE TABLE "vdr_role_channels_channel" ("roleId" integer, "channelId" integer)`,

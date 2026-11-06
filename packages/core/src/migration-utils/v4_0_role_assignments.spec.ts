@@ -36,7 +36,8 @@ describe('migrateRoleAssignmentData()', () => {
             `CREATE TABLE "channel" ("id" integer PRIMARY KEY AUTOINCREMENT, "code" varchar NOT NULL)`,
         );
         await queryRunner.query(
-            `CREATE TABLE "user" ("id" integer PRIMARY KEY AUTOINCREMENT, "identifier" varchar NOT NULL)`,
+            `CREATE TABLE "user" ("id" integer PRIMARY KEY AUTOINCREMENT, "identifier" varchar NOT NULL,
+             "deletedAt" datetime)`,
         );
         await queryRunner.query(
             `CREATE TABLE "administrator" ("id" integer PRIMARY KEY AUTOINCREMENT,
@@ -192,6 +193,17 @@ describe('migrateRoleAssignmentData()', () => {
         await expect(migrateRoleAssignmentData(queryRunner)).rejects.toThrow(
             'The role table has no channelId column',
         );
+    });
+
+    it('writes no rows for soft-deleted users', async () => {
+        await createSchema();
+        await seedData();
+        await queryRunner.query(`UPDATE "user" SET "deletedAt" = datetime('now') WHERE "id" IN (1, 2)`);
+
+        await migrateRoleAssignmentData(queryRunner);
+
+        // users 1 (SuperAdmin) and 2 (sales admin) are soft-deleted
+        expect(await getAssignments()).toEqual([{ userId: 4, roleId: 3, channelId: 2 }]);
     });
 
     it('is idempotent', async () => {
@@ -515,6 +527,20 @@ describe('migrateRoleAssignmentData()', () => {
             expect(owners.every(role => role.channelId != null)).toBe(true);
         });
 
+        it('deletes the copied rows of a user soft-deleted on v3 since the copy', async () => {
+            await createSchema();
+            await seedData();
+            await migrateRoleAssignmentData(queryRunner);
+            // On a v3 server: the sales admin is deleted, and v3 keeps their user_roles_role rows
+            await queryRunner.query(`UPDATE "user" SET "deletedAt" = datetime('now') WHERE "id" = 2`);
+            const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+            await removeLegacyRoleData(queryRunner);
+
+            log.mockRestore();
+            expect((await getAssignments()).filter(a => a.userId === 2)).toEqual([]);
+        });
+
         it('reports the grants it cannot attribute and does not apply them', async () => {
             await createSchema();
             await seedData();
@@ -691,6 +717,12 @@ describe('migrateRoleAssignmentData() with an entityPrefix', () => {
         );
         await queryRunner.query(
             `CREATE TABLE "vdr_channel" ("id" integer PRIMARY KEY AUTOINCREMENT, "code" varchar NOT NULL)`,
+        );
+        await queryRunner.query(
+            `CREATE TABLE "vdr_user" ("id" integer PRIMARY KEY, "identifier" varchar, "deletedAt" datetime)`,
+        );
+        await queryRunner.query(
+            `INSERT INTO "vdr_user" ("id", "identifier") VALUES (1, 'superadmin'), (2, 'sales')`,
         );
         await queryRunner.query(`CREATE TABLE "vdr_user_roles_role" ("userId" integer, "roleId" integer)`);
         await queryRunner.query(

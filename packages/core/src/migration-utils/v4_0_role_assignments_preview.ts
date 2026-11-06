@@ -146,15 +146,21 @@ export async function previewRoleAssignmentMigration(
     }
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const table = (name: string) => esc(`${prefix}${name}`);
+    // The Roles held by Users which are not soft-deleted: the migration writes no rows for a
+    // soft-deleted User, whose login fails anyway, so the preview leaves them out too.
+    const userRoles = `(SELECT ur0.${esc('userId')} AS ${esc('userId')}, ur0.${esc('roleId')} AS ${esc('roleId')}
+         FROM ${table('user_roles_role')} ur0
+         INNER JOIN ${table('user')} u0 ON u0.${esc('id')} = ur0.${esc('userId')}
+         WHERE u0.${esc('deletedAt')} IS NULL)`;
     const customerRoleId = `(SELECT ${esc('id')} FROM ${table('role')} WHERE ${esc('code')} = '${CUSTOMER_ROLE_CODE}')`;
 
     // Counted from set sizes rather than per (customer, channel) pair: the Customer role
     // usually sits on every channel, so the pairs are |customers| x |channels|.
-    const superAdminUserIds = `SELECT sa.${esc('userId')} FROM ${table('user_roles_role')} sa
+    const superAdminUserIds = `SELECT sa.${esc('userId')} FROM ${userRoles} sa
          INNER JOIN ${table('role')} sar ON sar.${esc('id')} = sa.${esc('roleId')}
          WHERE sar.${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'`;
     // Customer role holders, minus SuperAdmins, who keep access everywhere
-    const holderUserIds = `SELECT h.${esc('userId')} FROM ${table('user_roles_role')} h
+    const holderUserIds = `SELECT h.${esc('userId')} FROM ${userRoles} h
          WHERE h.${esc('roleId')} = ${customerRoleId}
          AND h.${esc('userId')} NOT IN (${superAdminUserIds})`;
     const customerRoleChannelIds = `SELECT crc.${esc('channelId')} AS ${esc('channelId')} FROM ${table('role_channels_channel')} crc
@@ -169,7 +175,7 @@ export async function previewRoleAssignmentMigration(
          AND ccc.${esc('channelId')} IN (${customerRoleChannelIds})
          UNION
          SELECT ur2.${esc('userId')} AS ${esc('userId')}, rc2.${esc('channelId')} AS ${esc('channelId')}
-         FROM ${table('user_roles_role')} ur2
+         FROM ${userRoles} ur2
          INNER JOIN ${table('role_channels_channel')} rc2 ON rc2.${esc('roleId')} = ur2.${esc('roleId')}
          WHERE ur2.${esc('roleId')} <> ${customerRoleId}
          AND ur2.${esc('userId')} IN (${holderUserIds})
@@ -188,7 +194,7 @@ export async function previewRoleAssignmentMigration(
     // The rows migrateRoleAssignmentData() writes for every Role except the Customer and
     // SuperAdmin roles; the SuperAdmin role adds one default-channel row per holder
     const copiedGrants = `SELECT ur.${esc('userId')} AS ${esc('userId')}, ur.${esc('roleId')} AS ${esc('roleId')}
-         FROM ${table('user_roles_role')} ur
+         FROM ${userRoles} ur
          INNER JOIN ${table('role_channels_channel')} rc ON rc.${esc('roleId')} = ur.${esc('roleId')}
          INNER JOIN ${table('role')} r ON r.${esc('id')} = ur.${esc('roleId')}
          WHERE r.${esc('code')} NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')`;
@@ -226,7 +232,7 @@ export async function previewRoleAssignmentMigration(
          )
          AND cu.${esc('userId')} NOT IN (${superAdminUserIds})
          AND NOT EXISTS (
-             SELECT 1 FROM ${table('user_roles_role')} ur2
+             SELECT 1 FROM ${userRoles} ur2
              INNER JOIN ${table('role_channels_channel')} rc2 ON rc2.${esc('roleId')} = ur2.${esc('roleId')}
              WHERE ur2.${esc('userId')} = cu.${esc('userId')}
              AND ur2.${esc('roleId')} <> ${customerRoleId}
@@ -236,14 +242,14 @@ export async function previewRoleAssignmentMigration(
     );
     const adminUserRows: CountRow[] = await queryRunner.query(
         `SELECT COUNT(DISTINCT ur.${esc('userId')}) AS ${esc('count')}
-         FROM ${table('user_roles_role')} ur
+         FROM ${userRoles} ur
          INNER JOIN ${table('role')} r ON r.${esc('id')} = ur.${esc('roleId')}
          WHERE r.${esc('code')} <> '${CUSTOMER_ROLE_CODE}'
          AND ur.${esc('userId')} NOT IN (${customerWithRolesUserIds})`,
     );
     const superAdminRows: CountRow[] = await queryRunner.query(
         `SELECT COUNT(DISTINCT ur.${esc('userId')}) AS ${esc('count')}
-         FROM ${table('user_roles_role')} ur
+         FROM ${userRoles} ur
          INNER JOIN ${table('role')} r ON r.${esc('id')} = ur.${esc('roleId')}
          WHERE r.${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'`,
     );
@@ -284,7 +290,7 @@ export async function previewRoleAssignmentMigration(
         `SELECT r.${esc('id')} AS ${esc('roleId')}, r.${esc('code')} AS ${esc('roleCode')},
                     COUNT(*) AS ${esc('holderCount')}
              FROM ${table('role')} r
-             INNER JOIN ${table('user_roles_role')} ur ON ur.${esc('roleId')} = r.${esc('id')}
+             INNER JOIN ${userRoles} ur ON ur.${esc('roleId')} = r.${esc('id')}
              WHERE r.${esc('code')} NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')
              AND NOT EXISTS (
                  SELECT 1 FROM ${table('role_channels_channel')} rc WHERE rc.${esc('roleId')} = r.${esc('id')}

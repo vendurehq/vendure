@@ -21,7 +21,7 @@ const MIGRATION_GUIDE_URL =
  * so the effective grants are the cross product of the two join tables, which this helper
  * writes out as explicit `(user, role, channel)` rows.
  *
- * Two Roles are treated specially:
+ * Some grants are treated specially:
  *
  * - **Customer role**: no rows are written. v4 has no Customer role: Customer permissions
  *   are derived at check time from the Customer's channel memberships (`Authenticated` on
@@ -31,6 +31,9 @@ const MIGRATION_GUIDE_URL =
  *   {@link removeLegacyRoleData}. If your instance broadened the Customer role's permissions
  *   via a direct repository write, be aware that this customization has no v4 equivalent:
  *   customers hold exactly `Authenticated` on their member Channels.
+ * - **Soft-deleted Users**: no rows. v4 removes a User's assignments when it soft-deletes the
+ *   Administrator or API key, so a deleted User holds none. Their login already fails, so no
+ *   access is lost.
  * - **SuperAdmin role**: holders receive exactly one row, on the default Channel, whatever
  *   `role_channels_channel` records for the role. In v4 the SuperAdmin Role is held on every
  *   Channel or not at all: access is derived at check time from that single row, which
@@ -711,13 +714,17 @@ function getPendingGrantQueries(
              FROM ${esc(sources.userRoles)} ur
              INNER JOIN ${esc(sources.roleChannels)} rc ON rc.${esc('roleId')} = ur.${esc('roleId')}
              INNER JOIN ${esc(t.role)} r ON r.${esc('id')} = ur.${esc('roleId')}
+             INNER JOIN ${esc(t.user)} u ON u.${esc('id')} = ur.${esc('userId')}
              WHERE r.${esc('code')} NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')
+             AND u.${esc('deletedAt')} IS NULL
              AND ${notYetAssigned(`ur.${esc('userId')}`, `ur.${esc('roleId')}`, `rc.${esc('channelId')}`)}`,
         superAdminGrants: `SELECT ${idSelect}ur.${esc('userId')} AS ${esc('userId')}, ur.${esc('roleId')} AS ${esc('roleId')}, c.${esc('id')} AS ${esc('channelId')}
              FROM ${esc(sources.userRoles)} ur
              INNER JOIN ${esc(t.role)} r ON r.${esc('id')} = ur.${esc('roleId')}
              INNER JOIN ${esc(t.channel)} c ON c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
+             INNER JOIN ${esc(t.user)} u ON u.${esc('id')} = ur.${esc('userId')}
              WHERE r.${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'
+             AND u.${esc('deletedAt')} IS NULL
              AND ${notYetAssigned(`ur.${esc('userId')}`, `ur.${esc('roleId')}`, `c.${esc('id')}`)}`,
     };
 }
@@ -727,8 +734,10 @@ const MAX_FETCHED_MISMATCHES = 500;
 
 /**
  * The SELECT yielding the `role_assignment` rows the legacy tables do not grant under the
- * v4 rules: every legacy triple except the Customer role's, and one default-channel row
- * per SuperAdmin holder. With `copiedOnly`, only the rows the recorded copy wrote.
+ * v4 rules: every legacy triple of a User which is not soft-deleted, except the Customer
+ * role's, and one default-channel row per such SuperAdmin holder. With `copiedOnly`, only the
+ * rows the recorded copy wrote, so that a User soft-deleted on a v3 server since the copy
+ * loses the copied rows.
  */
 function getExtraGrantsQuery(
     queryRunner: QueryRunner,
@@ -744,8 +753,9 @@ function getExtraGrantsQuery(
                 ra.${esc('roleId')} AS ${esc('roleId')}, ra.${esc('channelId')} AS ${esc('channelId')}
          FROM ${esc(t.roleAssignment)} ra
          LEFT JOIN ${esc(t.role)} r ON r.${esc('id')} = ra.${esc('roleId')}
+         LEFT JOIN ${esc(t.user)} u ON u.${esc('id')} = ra.${esc('userId')}
          ${copiedOnlyJoin}
-         WHERE NOT (
+         WHERE u.${esc('deletedAt')} IS NOT NULL OR NOT (
              (COALESCE(r.${esc('code')}, '') NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')
                  AND EXISTS (
                      SELECT 1 FROM ${esc(sources.userRoles)} ur
