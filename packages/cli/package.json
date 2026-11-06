@@ -47,7 +47,6 @@
         "cross-spawn": "^7.0.6",
         "dotenv": "^16.4.5",
         "fs-extra": "^11.2.0",
-        "graphql": "^16.11.0",
         "picocolors": "^1.0.0",
         "semver": "^7.7.2",
         "strip-json-comments": "^5.0.3",
@@ -60,6 +59,7 @@
     "devDependencies": {
         "@vendure/core": "3.8.1",
         "@vendure/testing": "3.8.1",
-        "cross-env": "^7.0.3"
+        "cross-env": "^7.0.3",
+        "graphql": "^16.11.0"
     }
 }

@@ -1,17 +1,22 @@
 import { log } from '@clack/prompts';
 import fs from 'fs-extra';
-import {
-    DocumentNode,
-    FieldNode,
-    Kind,
-    OperationDefinitionNode,
-    parse,
-    SelectionSetNode,
-    visit,
-} from 'graphql';
+import type * as GraphQL from 'graphql';
+import type { DocumentNode, FieldNode, OperationDefinitionNode, SelectionSetNode } from 'graphql';
 import { Node, SourceFile, SyntaxKind, TemplateLiteral } from 'ts-morph';
 
+import { requireFromProject } from '../../../../shared/project-core';
 import { Messages } from '../core-entities';
+
+let graphqlModule: typeof GraphQL | undefined;
+
+/**
+ * The project's `graphql` package. It is not a dependency of the CLI, so a globally installed
+ * CLI does not have it (see {@link requireFromProject}); every Vendure project does.
+ */
+function graphql(): typeof GraphQL {
+    graphqlModule ??= requireFromProject<typeof GraphQL>('graphql');
+    return graphqlModule;
+}
 
 type SelectionType = 'Role' | 'RoleList' | 'other';
 
@@ -54,7 +59,7 @@ export function stripRoleChannelsFromGraphql(
 ): GraphqlStripResult | undefined {
     let document: DocumentNode;
     try {
-        document = parse(masked);
+        document = graphql().parse(masked);
     } catch {
         return undefined;
     }
@@ -71,7 +76,8 @@ export function stripRoleChannelsFromGraphql(
         const removable =
             type === 'Role'
                 ? selectionSet.selections.filter(
-                      selection => selection.kind === Kind.FIELD && selection.name.value === 'channels',
+                      selection =>
+                          selection.kind === graphql().Kind.FIELD && selection.name.value === 'channels',
                   )
                 : [];
         if (removable.length > 0 && removable.length === selectionSet.selections.length) {
@@ -91,14 +97,14 @@ export function stripRoleChannelsFromGraphql(
             if (removable.includes(selection)) {
                 continue;
             }
-            if (selection.kind === Kind.FIELD) {
+            if (selection.kind === graphql().Kind.FIELD) {
                 if (ROLE_MUTATIONS.has(selection.name.value)) {
                     stripChannelIdsArgument(selection, operation);
                 }
                 if (selection.selectionSet) {
                     walkSelectionSet(selection.selectionSet, getChildType(type, selection), operation);
                 }
-            } else if (selection.kind === Kind.INLINE_FRAGMENT) {
+            } else if (selection.kind === graphql().Kind.INLINE_FRAGMENT) {
                 const childType = selection.typeCondition
                     ? toSelectionType(selection.typeCondition.name.value)
                     : type;
@@ -109,7 +115,7 @@ export function stripRoleChannelsFromGraphql(
 
     const stripChannelIdsArgument = (field: FieldNode, operation: OperationDefinitionNode | undefined) => {
         for (const argument of field.arguments ?? []) {
-            if (argument.value.kind !== Kind.OBJECT) {
+            if (argument.value.kind !== graphql().Kind.OBJECT) {
                 continue;
             }
             for (const objectField of argument.value.fields) {
@@ -120,7 +126,7 @@ export function stripRoleChannelsFromGraphql(
                 notes.push({ offset: objectField.loc?.start ?? 0, message: Messages.RoleChannelIds });
                 if (operation) {
                     const names = removedVariables.get(operation) ?? new Set<string>();
-                    visit(objectField.value, {
+                    graphql().visit(objectField.value, {
                         Variable: node => {
                             names.add(node.name.value);
                         },
@@ -132,9 +138,9 @@ export function stripRoleChannelsFromGraphql(
     };
 
     for (const definition of document.definitions) {
-        if (definition.kind === Kind.OPERATION_DEFINITION) {
+        if (definition.kind === graphql().Kind.OPERATION_DEFINITION) {
             walkSelectionSet(definition.selectionSet, 'other', definition);
-        } else if (definition.kind === Kind.FRAGMENT_DEFINITION) {
+        } else if (definition.kind === graphql().Kind.FRAGMENT_DEFINITION) {
             walkSelectionSet(
                 definition.selectionSet,
                 toSelectionType(definition.typeCondition.name.value),
@@ -145,7 +151,7 @@ export function stripRoleChannelsFromGraphql(
 
     for (const [operation, names] of removedVariables) {
         const stillUsed = new Set<string>();
-        visit(operation, {
+        graphql().visit(operation, {
             VariableDefinition: () => false,
             Variable: node => {
                 const start = node.loc?.start ?? 0;
@@ -191,7 +197,7 @@ export function stripRoleChannelsFromGraphql(
     }
 
     try {
-        parse(maskedOutput);
+        graphql().parse(maskedOutput);
     } catch {
         notes.push({
             offset: 0,
@@ -315,7 +321,7 @@ function getChildType(parentType: SelectionType, field: FieldNode): SelectionTyp
     if (name === 'roles') {
         // The `roles` query returns a RoleList; `User.roles` returns Roles
         const selectsItems = field.selectionSet?.selections.some(
-            selection => selection.kind === Kind.FIELD && selection.name.value === 'items',
+            selection => selection.kind === graphql().Kind.FIELD && selection.name.value === 'items',
         );
         return selectsItems ? 'RoleList' : 'Role';
     }
