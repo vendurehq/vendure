@@ -121,6 +121,14 @@ const devServerDir = path.basename(__dirname) === 'dist' ? path.dirname(__dirnam
 
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
 
+// 会话 Cookie 签名密钥必须由环境变量注入：缺失或过短直接拒绝启动，绝不回落到字面量
+const COOKIE_SECRET = process.env.COOKIE_SECRET;
+if (!COOKIE_SECRET || COOKIE_SECRET.length < 32) {
+    throw new Error(
+        '[config] COOKIE_SECRET 缺失或长度不足 32 字符，拒绝启动。请通过环境变量注入随机密钥（例如 openssl rand -base64 32）。',
+    );
+}
+
 /**
  * 生产硬门禁：devBypass 类开关（微信/支付宝/抖音支付、短信、微信登录、SSO mock）
  * 一律以进程模式为准，不能只靠 `.env` 里的 DEV_BYPASS_* 值。
@@ -293,8 +301,15 @@ export const devConfig: VendureConfig = {
             }),
         ],
         cookieOptions: {
+            // Admin 与 Shop 分用不同 Cookie 名，避免两端互相覆盖会话
+            name: {
+                shop: 'vshop_sid',
+                admin: 'vadmin_sid',
+            },
+            // 与 authOptions.sessionDuration 默认值 1y 对齐（不缩短现有有效期）
+            maxAge: 365 * 24 * 60 * 60 * 1000,
             // 会话 Cookie 签名密钥从环境变量注入，避免源码内置固定 secret 导致会话伪造
-            secret: process.env.COOKIE_SECRET || 'abc',
+            secret: COOKIE_SECRET,
         },
     },
     dbConnectionOptions: {

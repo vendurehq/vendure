@@ -101,6 +101,10 @@ const devOnlyPlugins = IS_PROD
     })();
 const devServerDir = path_1.default.basename(__dirname) === 'dist' ? path_1.default.dirname(__dirname) : __dirname;
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
+const COOKIE_SECRET = process.env.COOKIE_SECRET;
+if (!COOKIE_SECRET || COOKIE_SECRET.length < 32) {
+    throw new Error('[config] COOKIE_SECRET 缺失或长度不足 32 字符，拒绝启动。请通过环境变量注入随机密钥（例如 openssl rand -base64 32）。');
+}
 const IS_NODE_PROD = process.env.NODE_ENV === 'production';
 const ALLOW_DEV_BYPASS = !IS_PROD && !IS_NODE_PROD;
 const devBypassEnabled = (envName) => ALLOW_DEV_BYPASS && process.env[envName] === 'true';
@@ -239,7 +243,12 @@ exports.devConfig = {
             }),
         ],
         cookieOptions: {
-            secret: process.env.COOKIE_SECRET || 'abc',
+            name: {
+                shop: 'vshop_sid',
+                admin: 'vadmin_sid',
+            },
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+            secret: COOKIE_SECRET,
         },
     },
     dbConnectionOptions: Object.assign({ synchronize: false, logging: process.env.SQL_LOG === '1' ? ['query', 'error'] : false, logger: process.env.SQL_LOG === '1' ? 'simple-console' : undefined, migrations: [path_1.default.join(devServerDir, 'migrations/*.ts')] }, getDbConfig()),
