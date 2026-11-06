@@ -69,6 +69,8 @@ import { PointsMallPlugin } from '@vendure/points-mall-plugin';
 import { ReviewPlugin } from '@vendure/review-plugin';
 import { WechatSubscribeMessagePlugin } from '@vendure/wechat-subscribe-message-plugin';
 import { CouponPlugin } from '@vendure/coupon-plugin';
+import { VoucherPlugin } from '@vendure/voucher-plugin';
+import { SubscriptionPlugin } from '@vendure/subscription-plugin';
 import { MerchantPlugin } from '@vendure/merchant-plugin';
 import { BillPayPlugin } from '@vendure/bill-pay-plugin';
 import { CampusDeliveryPlugin } from '@vendure/campus-delivery-plugin';
@@ -600,6 +602,8 @@ export const devConfig: VendureConfig = {
         FavoritePlugin.init(),
         WechatSubscribeMessagePlugin.init(),
         CouponPlugin.init(),
+        // 服务型商品券包：支付成功自动发券 + C 端 myVouchers（首次上线，启动幂等建表）
+        VoucherPlugin.init({}),
         MerchantPlugin.init(),
         // t3 代买单（委托单模式）：BP- 微信回调结算 / bill_pay_* 独立表，纯增量不触碰既有业务
         BillPayPlugin.init(),
@@ -669,6 +673,8 @@ export const devConfig: VendureConfig = {
         // 预售/定金预售：两阶段支付（定金→尾款）+ 全款预售 + 分档定价 + 到货释放库存
         PreSalePlugin.init({}),
         PaymentSchedulePlugin.init({}),
+        // 周期购订阅：套餐/订阅/期次 + 每日调度（首次上线，启动幂等建表）
+        SubscriptionPlugin.init({}),
         InstallmentPlugin.init({}),
         RentalPlugin.init({}),
         // MeiliSearch 统一知识库：商品域直推 kb-zh/kb-en（索引前缀 kb，语言拆索引）。

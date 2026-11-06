@@ -18,6 +18,7 @@ import { SubscriptionCustomerResolver } from './subscription-customer.resolver';
 import { SubscriptionOwnerResolver } from './subscription-owner.resolver';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionPluginOptions } from './types';
+import { SubscriptionTablesMigration } from './migrations/migrate-subscription-tables';
 
 const { gql } = require('graphql-tag');
 
@@ -114,6 +115,8 @@ const adminSchema = () => gql`
     providers: [
         { provide: SUBSCRIPTION_PLUGIN_OPTIONS, useFactory: () => SubscriptionPlugin.options },
         SubscriptionService,
+        // 首次上线：随启动幂等补建表（IF NOT EXISTS），synchronize 关闭时同样可用
+        SubscriptionTablesMigration,
     ],
     shopApiExtensions: {
         schema: customerSchema,

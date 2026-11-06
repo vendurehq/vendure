@@ -24,6 +24,7 @@ const subscription_admin_resolver_1 = require("./subscription-admin.resolver");
 const subscription_customer_resolver_1 = require("./subscription-customer.resolver");
 const subscription_owner_resolver_1 = require("./subscription-owner.resolver");
 const subscription_service_1 = require("./subscription.service");
+const migrate_subscription_tables_1 = require("./migrations/migrate-subscription-tables");
 const { gql } = require('graphql-tag');
 /** shop/admin 共用类型（各 API schema 各自内联声明，避免跨 schema 冲突）。 */
 const subscriptionTypeDefs = `
@@ -188,6 +189,8 @@ exports.SubscriptionPlugin = SubscriptionPlugin = SubscriptionPlugin_1 = __decor
         providers: [
             { provide: constants_1.SUBSCRIPTION_PLUGIN_OPTIONS, useFactory: () => SubscriptionPlugin.options },
             subscription_service_1.SubscriptionService,
+            // 首次上线：随启动幂等补建表（IF NOT EXISTS），synchronize 关闭时同样可用
+            migrate_subscription_tables_1.SubscriptionTablesMigration,
         ],
         shopApiExtensions: {
             schema: customerSchema,

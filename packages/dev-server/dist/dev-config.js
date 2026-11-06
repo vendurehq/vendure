@@ -59,6 +59,8 @@ const points_mall_plugin_1 = require("@vendure/points-mall-plugin");
 const review_plugin_1 = require("@vendure/review-plugin");
 const wechat_subscribe_message_plugin_1 = require("@vendure/wechat-subscribe-message-plugin");
 const coupon_plugin_1 = require("@vendure/coupon-plugin");
+const voucher_plugin_1 = require("@vendure/voucher-plugin");
+const subscription_plugin_1 = require("@vendure/subscription-plugin");
 const merchant_plugin_1 = require("@vendure/merchant-plugin");
 const bill_pay_plugin_1 = require("@vendure/bill-pay-plugin");
 const campus_delivery_plugin_1 = require("@vendure/campus-delivery-plugin");
@@ -487,6 +489,7 @@ exports.devConfig = {
         favorite_plugin_1.FavoritePlugin.init(),
         wechat_subscribe_message_plugin_1.WechatSubscribeMessagePlugin.init(),
         coupon_plugin_1.CouponPlugin.init(),
+        voucher_plugin_1.VoucherPlugin.init({}),
         merchant_plugin_1.MerchantPlugin.init(),
         bill_pay_plugin_1.BillPayPlugin.init(),
         live_streaming_plugin_1.LiveStreamingPlugin.init({
@@ -542,6 +545,7 @@ exports.devConfig = {
         notification_plugin_1.NotificationPlugin.init(),
         pre_sale_plugin_1.PreSalePlugin.init({}),
         payment_schedule_plugin_1.PaymentSchedulePlugin.init({}),
+        subscription_plugin_1.SubscriptionPlugin.init({}),
         installment_plugin_1.InstallmentPlugin.init({}),
         rental_plugin_1.RentalPlugin.init({}),
         meilisearch_plugin_1.MeiliSearchPlugin.init({

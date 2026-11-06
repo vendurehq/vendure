@@ -19,6 +19,7 @@ const voucher_options_1 = require("./voucher.options");
 const voucher_service_1 = require("./voucher.service");
 const voucher_admin_resolver_1 = require("./voucher.admin.resolver");
 const voucher_shop_resolver_1 = require("./voucher.shop.resolver");
+const migrate_voucher_tables_1 = require("./migrations/migrate-voucher-tables");
 const { gql } = require('graphql-tag');
 const loggerCtx = 'voucher-plugin';
 /** 服务型商品标记：Product.serviceType 非空即视为到店服务券商品（下单免配送/免库存）。 */
@@ -124,6 +125,8 @@ exports.VoucherPlugin = VoucherPlugin = VoucherPlugin_1 = __decorate([
         providers: [
             { provide: voucher_options_1.VOUCHER_PLUGIN_OPTIONS, useFactory: () => VoucherPlugin.options },
             voucher_service_1.VoucherService,
+            // 首次上线：随启动幂等补建表（IF NOT EXISTS），synchronize 关闭时同样可用
+            migrate_voucher_tables_1.VoucherTablesMigration,
         ],
         entities: [service_voucher_entity_1.ServiceVoucher, voucher_booking_entity_1.VoucherBooking],
         adminApiExtensions: {

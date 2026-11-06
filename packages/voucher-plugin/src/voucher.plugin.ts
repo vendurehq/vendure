@@ -15,6 +15,7 @@ import { VOUCHER_PLUGIN_OPTIONS, VoucherPluginOptions } from './voucher.options'
 import { VoucherService } from './voucher.service';
 import { VoucherAdminResolver } from './voucher.admin.resolver';
 import { VoucherShopResolver } from './voucher.shop.resolver';
+import { VoucherTablesMigration } from './migrations/migrate-voucher-tables';
 
 const { gql } = require('graphql-tag');
 
@@ -94,6 +95,8 @@ const shopSchema = gql`
     providers: [
         { provide: VOUCHER_PLUGIN_OPTIONS, useFactory: () => VoucherPlugin.options },
         VoucherService,
+        // 首次上线：随启动幂等补建表（IF NOT EXISTS），synchronize 关闭时同样可用
+        VoucherTablesMigration,
     ],
     entities: [ServiceVoucher, VoucherBooking],
     adminApiExtensions: {
