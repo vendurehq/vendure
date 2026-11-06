@@ -172,8 +172,8 @@ describe('Administrator visibility', () => {
             { roleId: staffRole.id, channelId: channelAId },
             { roleId: staffRole.id, channelId: channelBId },
         ]);
-        // An Administrator with no RoleAssignments at all. There is nothing to check them against,
-        // so they are visible to any holder of ReadAdministrator.
+        // An Administrator with no RoleAssignments at all belongs to no Channel, so only an actor
+        // holding ReadAdministrator on every Channel sees them. None of the actors below does.
         noRolesAdminId = await createTestAdministrator('no-roles-admin@test.com', 'Erin', []);
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -204,17 +204,25 @@ describe('Administrator visibility', () => {
             expect(administrators.items.map(a => a.id)).not.toContain(bothChannelsStaffId);
         });
 
-        it('administrators includes an Administrator with no assignments', async () => {
+        it('administrators omits an Administrator with no assignments', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.items.map(a => a.id)).toContain(noRolesAdminId);
+            expect(administrators.items.map(a => a.id)).not.toContain(noRolesAdminId);
+        });
+
+        it('administrator returns null for an Administrator with no assignments', async () => {
+            const { administrator } = await adminClient.query(getAdministratorDocument, {
+                id: noRolesAdminId,
+            });
+
+            expect(administrator).toBeNull();
         });
 
         it('totalItems counts only visible Administrators', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.totalItems).toBe(3);
-            expect(administrators.items.length).toBe(3);
+            expect(administrators.totalItems).toBe(2);
+            expect(administrators.items.length).toBe(2);
         });
 
         it('administrator returns null for an Administrator of another Channel', async () => {
@@ -325,10 +333,8 @@ describe('Administrator visibility', () => {
         it('administrators omits the colleague with broader permissions', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.items.map(a => a.id).sort()).toEqual(
-                [channelAStaffId, noRolesAdminId].sort(),
-            );
-            expect(administrators.totalItems).toBe(2);
+            expect(administrators.items.map(a => a.id)).toEqual([channelAStaffId]);
+            expect(administrators.totalItems).toBe(1);
         });
 
         it('administrator returns null for the colleague with broader permissions', async () => {
@@ -362,11 +368,12 @@ describe('Administrator visibility', () => {
                     channelAStaffId,
                     channelBStaffId,
                     bothChannelsStaffId,
-                    noRolesAdminId,
                 ]),
             );
             expect(visibleIds).not.toContain(superAdminId);
-            expect(administrators.totalItems).toBe(7);
+            // Not on the default Channel, so not authorized over an Administrator of no Channel
+            expect(visibleIds).not.toContain(noRolesAdminId);
+            expect(administrators.totalItems).toBe(6);
         });
 
         it('administrator returns an Administrator of the other Channel', async () => {
@@ -385,7 +392,7 @@ describe('Administrator visibility', () => {
                 },
             });
 
-            expect(administrators.totalItems).toBe(7);
+            expect(administrators.totalItems).toBe(6);
             expect(administrators.items.map(a => a.emailAddress)).toEqual([
                 bothChannelsAdmin.emailAddress,
                 bothChannelsStaff.emailAddress,

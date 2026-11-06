@@ -184,7 +184,12 @@ export class AdministratorService {
         });
         // Restricted to the Administrators the active user has authority over, in the query so that
         // totalItems, sorting, filtering and pagination operate over the visible ones only.
-        await this.roleAssignmentService.restrictToManageableUsers(ctx, qb, 'userId');
+        await this.roleAssignmentService.restrictToManageableUsers(
+            ctx,
+            qb,
+            'userId',
+            Permission.ReadAdministrator,
+        );
         const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
     }
@@ -343,7 +348,7 @@ export class AdministratorService {
      * Update an existing Administrator.
      */
     async update(ctx: RequestContext, input: UpdateAdministratorInput): Promise<Administrator> {
-        const administrator = await this.findOne(ctx, input.id);
+        const administrator = await this.findManageable(ctx, input.id, Permission.UpdateAdministrator);
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', input.id);
         }
@@ -466,7 +471,11 @@ export class AdministratorService {
      * grant the Role on the active Channel and a {@link RoleAssignmentEvent} is published.
      */
     async assignRole(ctx: RequestContext, administratorId: ID, roleId: ID): Promise<Administrator> {
-        const administrator = await this.findOne(ctx, administratorId);
+        const administrator = await this.findManageable(
+            ctx,
+            administratorId,
+            Permission.UpdateAdministrator,
+        );
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', administratorId);
         }
@@ -486,7 +495,7 @@ export class AdministratorService {
      * ({@link RoleAssignmentService.removeAllAssignmentsForUser}).
      */
     async softDelete(ctx: RequestContext, id: ID) {
-        const administrator = await this.findOne(ctx, id);
+        const administrator = await this.findManageable(ctx, id, Permission.DeleteAdministrator);
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', id);
         }
@@ -504,6 +513,25 @@ export class AdministratorService {
         return {
             result: DeletionResult.DELETED,
         };
+    }
+
+    /**
+     * {@link findOne}, where an Administrator holding no RoleAssignments also requires the given
+     * permission on every Channel ({@link RoleAssignmentService.activeUserCanManageUser}).
+     */
+    private async findManageable(
+        ctx: RequestContext,
+        id: ID,
+        permission: Permission,
+    ): Promise<Administrator | undefined> {
+        const administrator = await this.findOne(ctx, id);
+        if (
+            administrator &&
+            (await this.roleAssignmentService.activeUserCanManageUser(ctx, administrator.user.id, permission))
+        ) {
+            return administrator;
+        }
+        return undefined;
     }
 
     private async checkForDuplicateEmailAddress(ctx: RequestContext, emailAddress: string, excludeId?: ID) {

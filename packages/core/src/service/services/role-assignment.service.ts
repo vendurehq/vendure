@@ -95,16 +95,35 @@ export class RoleAssignmentService {
      * rather than to its result, so that `totalItems`, sorting, filtering and pagination all
      * operate over the visible rows only.
      *
+     * With `unassignedAdministratorPermission`, an Administrator holding no assignments is
+     * kept only if the active user holds that permission on every Channel (see
+     * {@link activeUserCanManageUser}).
+     *
      * @param userIdProperty the property of the query's main alias which holds the User id
      */
     async restrictToManageableUsers<E extends ObjectLiteral>(
         ctx: RequestContext,
         qb: SelectQueryBuilder<E>,
         userIdProperty = 'userId',
+        unassignedAdministratorPermission?: Permission,
     ): Promise<void> {
         // A SuperAdmin may grant every assignment. This early return only saves the query.
         if (ctx.userHasPermissions([Permission.SuperAdmin])) {
             return;
+        }
+        if (
+            unassignedAdministratorPermission &&
+            !(await this.activeUserHoldsPermissionOnEveryChannel(ctx, unassignedAdministratorPermission))
+        ) {
+            qb.andWhere(outerQb => {
+                const assignedQuery = outerQb
+                    .subQuery()
+                    .select('assigned.userId')
+                    .from(RoleAssignment, 'assigned')
+                    .getQuery();
+                const userId = `${outerQb.escape(outerQb.alias)}.${outerQb.escape(userIdProperty)}`;
+                return `${userId} IN ${assignedQuery}`;
+            });
         }
         const grantable = await this.roleService.getGrantableChannelIdsByRole(ctx);
         const roleCount = await this.connection.getRepository(ctx, Role).count();
@@ -172,12 +191,32 @@ export class RoleAssignmentService {
     /**
      * @description
      * Whether the active user has authority over the given User: true iff they may grant
-     * ({@link RoleService.canGrant}) every RoleAssignment the User holds. A User holding no
-     * assignments is in anyone's authority, and a SuperAdmin target is in a SuperAdmin's only.
-     * This decides which Administrators the active user may see, update and delete.
+     * ({@link RoleService.canGrant}) every RoleAssignment the User holds. A SuperAdmin target is
+     * therefore in a SuperAdmin's authority only. This decides which Administrators the active
+     * user may see, update and delete.
+     *
+     * An Administrator holding no assignments belongs to no Channel, for instance after all of
+     * their Roles were removed to suspend them. Such an Administrator is in the authority of an
+     * active user holding `unassignedAdministratorPermission` on every Channel only, so that an
+     * Administrator of one Channel cannot take over a suspended Administrator of another. The
+     * User of an ApiKey holding no assignments is in anyone's authority: ApiKeys are looked up
+     * on the active Channel, which already scopes them.
      */
-    async activeUserCanManageUser(ctx: RequestContext, userId: ID): Promise<boolean> {
+    async activeUserCanManageUser(
+        ctx: RequestContext,
+        userId: ID,
+        unassignedAdministratorPermission: Permission = Permission.ReadAdministrator,
+    ): Promise<boolean> {
         const assignments = await this.getAssignmentsForUser(ctx, userId);
+        if (assignments.length === 0) {
+            const isAdministrator = await this.connection
+                .getRepository(ctx, Administrator)
+                .exists({ where: { user: { id: userId } } });
+            return (
+                !isAdministrator ||
+                this.activeUserHoldsPermissionOnEveryChannel(ctx, unassignedAdministratorPermission)
+            );
+        }
         for (const assignment of assignments) {
             if (!(await this.roleService.canGrant(ctx, assignment.roleId, assignment.channelId))) {
                 return false;
@@ -357,7 +396,7 @@ export class RoleAssignmentService {
         pairs: RoleAssignmentInput[],
     ): Promise<void> {
         const permission = await this.getSubjectUpdatePermission(ctx, userId);
-        if (!(await this.activeUserCanManageUser(ctx, userId))) {
+        if (!(await this.activeUserCanManageUser(ctx, userId, permission))) {
             throw new EntityNotFoundError('User', userId);
         }
         this.assertActiveUserHasPermissionOnChannels(ctx, permission, [
@@ -393,6 +432,17 @@ export class RoleAssignmentService {
      * The permission which guards changing the assignments of the User: `UpdateAdministrator`
      * for an Administrator, `UpdateApiKey` for the User of an ApiKey on the active Channel.
      */
+    private async activeUserHoldsPermissionOnEveryChannel(
+        ctx: RequestContext,
+        permission: Permission,
+    ): Promise<boolean> {
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            return true;
+        }
+        const channels = await this.connection.getRepository(ctx, Channel).find({ select: { id: true } });
+        return channels.every(channel => ctx.userHasPermissions([permission], channel.id));
+    }
+
     private async getSubjectUpdatePermission(ctx: RequestContext, userId: ID): Promise<Permission> {
         const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
             where: { user: { id: userId }, deletedAt: IsNull() },
@@ -489,10 +539,13 @@ export class RoleAssignmentService {
      * which have no actor to check against, such as granting a User created by an
      * authentication strategy the Roles that strategy resolved. Actor-made changes go through
      * {@link assign}. A SuperAdmin pair on any Channel is stored as the single default-channel
-     * row, as in {@link assign}, so no write path can create a SuperAdmin row elsewhere.
+     * row, as in {@link assign}, so no write path can create a SuperAdmin row elsewhere. Role
+     * ownership still applies ({@link RoleService.roleIsAssignableOnChannel}): no write path
+     * can assign a Role owned by one Channel on another.
      *
-     * @throws {EntityNotFoundError} if the User does not exist
+     * @throws {EntityNotFoundError} if the User or a Role does not exist
      * @throws {IllegalOperationError} if a pair names the legacy Customer role
+     * @throws {UserInputError} if a Role may not be assigned on the pair's Channel
      */
     async createAssignments(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]): Promise<void> {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
@@ -505,6 +558,12 @@ export class RoleAssignmentService {
             return;
         }
         await this.assertNoLegacyCustomerRole(ctx, toAdd);
+        for (const { roleId, channelId } of toAdd) {
+            const role = await this.connection.getEntityOrThrow(ctx, Role, roleId);
+            if (!(await this.roleService.roleIsAssignableOnChannel(ctx, role, channelId))) {
+                throw new UserInputError('error.role-not-assignable-on-channel', { roleCode: role.code });
+            }
+        }
         await repository.save(
             toAdd.map(({ roleId, channelId }) => new RoleAssignment({ userId, roleId, channelId })),
         );

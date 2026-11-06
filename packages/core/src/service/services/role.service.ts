@@ -9,6 +9,7 @@ import {
     UpdateRoleInput,
 } from '@vendure/common/lib/generated-types';
 import {
+    CUSTOMER_ROLE_CODE,
     DEFAULT_CHANNEL_CODE,
     ROLE_EDITOR_ROLE_CODE,
     ROLE_EDITOR_ROLE_DESCRIPTION,
@@ -487,11 +488,22 @@ export class RoleService {
         return result;
     }
 
-    private async roleIsGrantableOnChannel(ctx: RequestContext, role: Role, channelId: ID): Promise<boolean> {
+    /**
+     * @description
+     * Whether the Role may be assigned on the Channel at all, whoever assigns it: a shared Role
+     * on any Channel, any other Role on its owning Channel only. See {@link Role}.
+     *
+     * @since 4.0.0
+     */
+    async roleIsAssignableOnChannel(ctx: RequestContext, role: Role, channelId: ID): Promise<boolean> {
         if (role.channelId == null) {
             return false;
         }
-        if (!idsAreEqual(role.channelId, channelId) && !(await this.isSharedRole(ctx, role))) {
+        return idsAreEqual(role.channelId, channelId) || this.isSharedRole(ctx, role);
+    }
+
+    private async roleIsGrantableOnChannel(ctx: RequestContext, role: Role, channelId: ID): Promise<boolean> {
+        if (!(await this.roleIsAssignableOnChannel(ctx, role, channelId))) {
             return false;
         }
         return this.userHasAllPermissionsOnChannel(ctx, channelId, role.permissions);
@@ -528,6 +540,7 @@ export class RoleService {
      */
     async create(ctx: RequestContext, input: CreateRoleInput): Promise<Role> {
         this.checkPermissionsAreValid(input.permissions);
+        this.checkCodeIsNotReserved(input.code);
         const permissions = unique([Permission.Authenticated, ...input.permissions]);
         if (
             !(await this.userHasPermissionOnChannel(ctx, ctx.channelId, Permission.CreateRole)) ||
@@ -554,6 +567,7 @@ export class RoleService {
      */
     async update(ctx: RequestContext, input: UpdateRoleInput): Promise<Role> {
         this.checkPermissionsAreValid(input.permissions);
+        this.checkCodeIsNotReserved(input.code);
         const visibleRole = await this.findOne(ctx, input.id);
         if (!visibleRole) {
             throw new EntityNotFoundError('Role', input.id);
@@ -678,14 +692,33 @@ export class RoleService {
         return role.code === SUPER_ADMIN_ROLE_CODE || role.code === ROLE_EDITOR_ROLE_CODE;
     }
 
+    /**
+     * Role codes are not unique, so a system Role is looked up among the Roles owned by the
+     * default Channel, or owned by none while a rolling upgrade has not set the owners yet. A
+     * Role with the same code on another Channel is never taken for it.
+     */
     private getRoleByCode(ctx: RequestContext | undefined, code: string) {
         const repository = ctx
             ? this.connection.getRepository(ctx, Role)
             : this.connection.rawConnection.getRepository(Role);
 
         return repository.findOne({
-            where: { code },
+            where: [
+                { code, channel: { code: DEFAULT_CHANNEL_CODE } },
+                { code, channelId: IsNull() },
+            ],
         });
+    }
+
+    /**
+     * The codes of the system Roles, and of the pre-v4 Customer role, cannot be taken by
+     * another Role: they would be shown on every Channel as system Roles, which nobody may
+     * modify or delete.
+     */
+    private checkCodeIsNotReserved(code: string | null | undefined) {
+        if (code && [SUPER_ADMIN_ROLE_CODE, ROLE_EDITOR_ROLE_CODE, CUSTOMER_ROLE_CODE].includes(code)) {
+            throw new UserInputError('error.role-code-is-reserved', { roleCode: code });
+        }
     }
 
     /**

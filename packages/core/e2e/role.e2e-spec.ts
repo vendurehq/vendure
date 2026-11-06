@@ -815,7 +815,9 @@ describe('Role resolver', () => {
             });
             holder = createAdministrator;
             // The actor has no authority over holder, who holds Roles it may not grant, so
-            // grants go to an Administrator holding nothing yet
+            // grants go to an Administrator holding only a Role the actor may grant. One holding
+            // nothing would be outside the actor's authority, which lacks UpdateAdministrator on
+            // the default channel.
             const { createAdministrator: createGrantee } = await adminClient.query(
                 createAdministratorDocument,
                 {
@@ -824,6 +826,7 @@ describe('Role resolver', () => {
                         lastName: 'Grantee',
                         emailAddress: 'spanning-grantee@test.com',
                         password: 'test',
+                        roleAssignments: [{ roleId: adminManagerRole.id, channelId: secondChannel.id }],
                     },
                 },
             );

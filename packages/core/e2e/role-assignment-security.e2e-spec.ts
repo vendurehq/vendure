@@ -4,7 +4,17 @@ import {
     ROLE_EDITOR_ROLE_CODE,
     SUPER_ADMIN_ROLE_CODE,
 } from '@vendure/common/lib/shared-constants';
-import { Administrator, RoleAssignment, TransactionalConnection } from '@vendure/core';
+import {
+    Administrator,
+    AuthenticationStrategy,
+    ExternalAuthenticationService,
+    Injector,
+    RequestContext,
+    Role,
+    RoleAssignment,
+    TransactionalConnection,
+    User,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -13,6 +23,7 @@ import {
     SimpleGraphQLClient,
 } from '@vendure/testing';
 import fs from 'fs';
+import gql from 'graphql-tag';
 import path from 'path';
 import { In, IsNull } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -90,12 +101,79 @@ function mustFind<T>(items: T[], predicate: (item: T) => boolean, what: string):
     return found;
 }
 
+/**
+ * An SSO strategy which, as a strategy author would, grants the Role it resolved for the
+ * identity: here the Role named in the input.
+ */
+class RoleGrantingSsoStrategy implements AuthenticationStrategy<{ email: string; roleCode: string }> {
+    readonly name = 'sec_sso';
+    private externalAuthenticationService: ExternalAuthenticationService;
+    private connection: TransactionalConnection;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+        this.connection = injector.get(TransactionalConnection);
+    }
+
+    defineInputType() {
+        return gql`
+            input SecSsoInput {
+                email: String!
+                roleCode: String!
+            }
+        `;
+    }
+
+    async authenticate(ctx: RequestContext, data: { email: string; roleCode: string }): Promise<User> {
+        const user = await this.externalAuthenticationService.findAdministratorUser(
+            ctx,
+            this.name,
+            data.email,
+        );
+        if (user) {
+            return user;
+        }
+        const role = await this.connection
+            .getRepository(ctx, Role)
+            .findOneOrFail({ where: { code: data.roleCode } });
+        return this.externalAuthenticationService.createAdministratorAndUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: data.email,
+            identifier: data.email,
+            emailAddress: data.email,
+            firstName: 'Sso',
+            lastName: 'Sec',
+            roles: [role],
+        });
+    }
+}
+
+const ssoAuthenticateDocument = gql`
+    mutation SecSsoAuthenticate($email: String!, $roleCode: String!) {
+        authenticate(input: { sec_sso: { email: $email, roleCode: $roleCode } }) {
+            ... on CurrentUser {
+                channels {
+                    id
+                    permissions
+                }
+            }
+            ... on ErrorResult {
+                message
+            }
+        }
+    }
+`;
+
 const FORBIDDEN = 'You are not currently authorized to perform this action';
 const INSUFFICIENT = 'Active user does not have sufficient permissions';
 
 describe('RoleAssignment security matrix (OSS-792)', () => {
     const config = testConfig();
     config.authOptions.tokenMethod = ['bearer', 'api-key'];
+    config.authOptions.adminAuthenticationStrategy = [
+        ...(config.authOptions.adminAuthenticationStrategy ?? []),
+        new RoleGrantingSsoStrategy(),
+    ];
     const { server, adminClient, shopClient } = createTestEnvironment(config);
     const adminApiUrl = `http://localhost:${config.apiOptions.port}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
     // A second, independently authenticated admin client so one actor can hold a live session
@@ -784,7 +862,9 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
                 { roleId: roles.R2.id, channelId: A },
                 { roleId: roles.R1.id, channelId: B },
             ]);
-            await createAdmin('emptyTarget', []);
+            // Holds a Role splitA may grant, so it is in splitA's authority. An Administrator
+            // holding nothing would be outside it (section 12).
+            await createAdmin('emptyTarget', [{ roleId: roles.R1.id, channelId: A }]);
         });
 
         it('adminA strips R1 on A from mixed, an admin it cannot see', async () => {
@@ -822,7 +902,7 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             );
             record(S, 'grant on a channel without UpdateAdministrator', 'deny', r);
             if (!r.ok) expect(r.message).toContain(FORBIDDEN);
-            expect(await assignmentsOf(admins.emptyTarget.userId)).toEqual([]);
+            expect(await assignmentsOf(admins.emptyTarget.userId)).toEqual([`R1@${A}`]);
         });
 
         it('splitA creates an administrator with R1 on B from token A', async () => {
@@ -841,12 +921,12 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             if (!r.ok) expect(r.message).toContain(FORBIDDEN);
         });
 
-        it('splitA grants R1 on A', async () => {
+        it('splitA grants R2 on A', async () => {
             const r = await attempt(() =>
-                grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]),
+                grant(admins.emptyTarget.userId, [{ roleId: roles.R2.id, channelId: A }]),
             );
             record(S, 'grant on the active channel with UpdateAdministrator', 'allow', r);
-            await revoke(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]);
+            await revoke(admins.emptyTarget.userId, [{ roleId: roles.R2.id, channelId: A }]);
         });
     });
 
@@ -1327,6 +1407,98 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
     });
 
     // ------------------------------------------------------------------------------------
+    describe('12. unassigned administrators, SSO grants and reserved codes', () => {
+        const S = '12-review';
+        const ssoClient = new SimpleGraphQLClient(config as any, adminApiUrl);
+
+        beforeAll(async () => {
+            await asSuper(B_TOKEN);
+            await createRole('RBOWN', [Permission.ReadCatalog, Permission.UpdateCatalog]);
+            await asSuper();
+            // Holds ReadAdministrator and UpdateAdministrator on every Channel
+            const { channels } = await adminClient.query(channelIdsDocument);
+            await createAdmin(
+                'platform',
+                channels.items.map(channel => ({ roleId: roles.R2.id, channelId: channel.id })),
+            );
+            // Suspended by channel B: all of its Roles removed
+            await createAdmin('suspended', [{ roleId: roles.R1.id, channelId: B }]);
+            await revoke(admins.suspended.userId, [{ roleId: roles.R1.id, channelId: B }]);
+        });
+
+        // A Role owned by B, granted by an SSO strategy, must not land on the Channel the
+        // unauthenticated client names in its vendure-token header
+        it('SSO login naming another Channel grants a B-owned Role on B only', async () => {
+            ssoClient.setChannelToken(A_TOKEN);
+            const r = await attempt(() =>
+                ssoClient.query(ssoAuthenticateDocument, { email: 'sso-b@sec.test', roleCode: 'RBOWN' }),
+            );
+            record(S, 'SSO grant follows Role ownership', 'allow', r);
+            if (r.ok) {
+                const channelIds = r.value.authenticate.channels.map((c: { id: string }) => c.id);
+                expect(channelIds).toEqual([B]);
+            }
+        });
+
+        it('a vendor admin does not see an Administrator suspended on another Channel', async () => {
+            const { administrators: seenBySuperAdmin } = await superClient.query(getAdministratorsDocument, {
+                options: { filter: { emailAddress: { eq: admins.suspended.email } } },
+            });
+            expect(seenBySuperAdmin.totalItems).toBe(1);
+            await as('adminA');
+            const { administrators } = await adminClient.query(getAdministratorsDocument, {
+                options: { filter: { emailAddress: { eq: admins.suspended.email } } },
+            });
+            record(
+                S,
+                'list unassigned admin from another Channel',
+                'deny',
+                administrators.totalItems ? { ok: true, value: 0 } : { ok: false, message: 'not listed' },
+            );
+        });
+
+        it('a vendor admin cannot take over an Administrator suspended on another Channel', async () => {
+            await as('adminA');
+            const r = await attempt(() =>
+                adminClient.query(updateAdministratorDocument, {
+                    input: { id: admins.suspended.id, password: 'taken-over' },
+                }),
+            );
+            record(S, 'update unassigned admin from another Channel', 'deny', r);
+            if (!r.ok) expect(r.message).toContain('No Administrator with the id');
+        });
+
+        it('an Administrator holding ReadAdministrator on every Channel manages them', async () => {
+            await as('platform');
+            const { administrators } = await adminClient.query(getAdministratorsDocument, {
+                options: { filter: { emailAddress: { eq: admins.suspended.email } } },
+            });
+            expect(administrators.totalItems).toBe(1);
+            const r = await attempt(() =>
+                adminClient.query(updateAdministratorDocument, {
+                    input: { id: admins.suspended.id, firstName: 'Suspended' },
+                }),
+            );
+            record(S, 'update unassigned admin with the permission everywhere', 'allow', r);
+        });
+
+        it('a Role cannot take a system Role code', async () => {
+            await as('roleEditorA');
+            const created = await attempt(() => createRole(ROLE_EDITOR_ROLE_CODE, [Permission.ReadCatalog]));
+            record(S, 'create Role with a system code', 'deny', created);
+            if (!created.ok) expect(created.message).toContain('is reserved');
+            await asSuper();
+            const updated = await attempt(() =>
+                adminClient.query(updateRoleDocument, {
+                    input: { id: roles.R1.id, code: SUPER_ADMIN_ROLE_CODE },
+                }),
+            );
+            record(S, 'rename Role to a system code', 'deny', updated);
+            if (!updated.ok) expect(updated.message).toContain('is reserved');
+        });
+    });
+
+    // ------------------------------------------------------------------------------------
     describe('2c. sole SuperAdmin (last)', () => {
         const S = '2-removals';
         it('superadmin strips the sole SuperAdmin', async () => {
@@ -1588,6 +1760,16 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
 });
 
 // ----------------------------------------------------------------------------------------
+const channelIdsDocument = graphql(`
+    query SecChannelIds {
+        channels {
+            items {
+                id
+            }
+        }
+    }
+`);
+
 const rolesDocument = graphql(`
     query SecRoles {
         roles {

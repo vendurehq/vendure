@@ -152,7 +152,11 @@ export class ApiKeyService {
         // written.
         if (
             existingUser &&
-            !(await this.roleAssignmentService.activeUserCanManageUser(ctx, existingUser.id))
+            !(await this.roleAssignmentService.activeUserCanManageUser(
+                ctx,
+                existingUser.id,
+                Permission.UpdateAdministrator,
+            ))
         ) {
             throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
         }

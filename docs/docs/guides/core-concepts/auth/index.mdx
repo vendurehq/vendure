@@ -508,7 +508,10 @@ export class KeycloakAuthenticationStrategy implements AuthenticationStrategy<Ke
             emailAddress: userInfo.email,
             firstName: userInfo.given_name,
             lastName: userInfo.family_name,
-            roles: [merchantRole],
+            // Name the Channel of each grant. The active Channel comes from the client's
+            // vendure-token header, so it is not a safe choice for a Role shared by all Channels.
+            // Here the Role is owned by the merchant's Channel, and granted there.
+            roleAssignments: [{ role: merchantRole, channelId: merchantRole.channelId! }],
         });
     }
 }

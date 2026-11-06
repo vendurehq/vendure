@@ -25,6 +25,7 @@ import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event';
 import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
+import { RoleEvent } from '../../event-bus/events/role-event';
 import { JobQueue } from '../../job-queue/job-queue';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
@@ -64,6 +65,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         this.eventBus.ofType(RoleAssignmentEvent).subscribe(event => {
             void this.clearSessionCacheForUser(event.user.id);
         });
+        // The same applies to a Role whose permissions changed, which the entity subscriber
+        // below answers by clearing the whole cache before commit. RoleEvent is also delivered
+        // after the transaction has committed.
+        this.eventBus
+            .ofType(RoleEvent)
+            .pipe(filter(event => event.type === 'updated' || event.type === 'deleted'))
+            .subscribe(() => {
+                void this.withTimeout(this.sessionCacheStrategy.clear());
+            });
         // A Customer holds Authenticated on the Channels it is a member of, so leaving a Channel
         // removes a permission. Channel membership is a join table, which the entity subscriber
         // below does not observe, so the Customer's cached sessions are evicted here.

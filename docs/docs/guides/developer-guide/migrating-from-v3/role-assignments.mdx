@@ -134,6 +134,8 @@ Between `migrateRoleAssignmentData` and `removeLegacyRoleData`, v3 and v4 server
 
 Do not change Roles, Administrators, API keys or Channels while both run. v4 logs a warning on startup until `removeLegacyRoleData` has run.
 
+Retiring the v3 servers is also a security step. Every v3 server still applies the v3 rules, for instance Role changes under `UpdateAdministrator`, against the `role` table which v4 reads too. A permission added to a shared Role on a v3 server reaches its v4 holders on every Channel where v4 assigned it, which the v3 check never sees. Keep the rolling window short, and do not give Administrators access to a v3 server once v4 serves traffic.
+
 <Callout type="info">
 A Customer who registers on a v4 server while v3 servers still run gets no v3 Customer role, so v3 servers refuse their customer-scoped requests, such as `activeCustomer`, with a `ForbiddenError`. Requests which reach a v4 server work. Once the last v3 server is replaced, everything works again without the Customer logging in anew. Existing Customers and guest checkouts are not affected. To avoid it, replace the v3 servers at a quiet time, or route each session to one server (sticky sessions).
 </Callout>
@@ -239,7 +241,7 @@ To grant or revoke a Role on a Channel, use [`RoleAssignmentService.assign()`](/
 | `RoleService.getCustomerRole()` | Removed. There is no Customer role. |
 | `RoleService.assertActiveUserCanGrantRoles(ctx, roleIds)` | Takes `(roleId, channelId)` pairs. |
 | `UserService.createApiKeyUser(ctx, identifier, roles)` | `createApiKeyUser(ctx, identifier)`, then `RoleAssignmentService.assign()`. |
-| `ExternalAuthenticationService.createAdministratorAndUser()` | Grants `config.roles` on the active Channel only. In v3 the Roles applied on their own Channels. |
+| `ExternalAuthenticationService.createAdministratorAndUser()` | Pass `roleAssignments: [{ role, channelId }]` to name the Channel of each grant. The deprecated `roles` grants a Role owned by a non-default Channel on that Channel, and a shared Role on the active Channel, which the client chooses with the `vendure-token` header. A Role is never granted on a Channel where it may not be assigned. In v3 the Roles applied on their own Channels. |
 
 ### Events
 
@@ -307,6 +309,8 @@ input RoleAssignmentInput { roleId: ID!  channelId: ID! }
 - `Role.channel` returns the owning Channel.
 - An API key cannot be granted the SuperAdmin Role, and can only be granted Roles on the Channels it belongs to: the Channel it was created on and the default Channel. Keys which hold SuperAdmin after migrating keep it until you remove it; replace them with keys holding the permissions they need.
 - An Administrator cannot remove their own last role assignment or delete themselves. Both would lock them out with no way back through the API.
+- An Administrator who holds no role assignments, for example one suspended by removing all their Roles, belongs to no Channel. Only an actor holding `ReadAdministrator` on every Channel can see them, and `UpdateAdministrator` (or `DeleteAdministrator`) on every Channel to change them, assign them Roles or delete them. Otherwise an Administrator of one Channel could take over a suspended Administrator of another.
+- `createRole` and `updateRole` refuse the codes of the system Roles (`__super_admin_role__`, `__role_editor_role__`) and of the v3 Customer role.
 
 #### `roleIds` now applies to the active Channel only
 
