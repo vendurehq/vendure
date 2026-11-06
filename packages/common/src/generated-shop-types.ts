@@ -141,6 +141,7 @@ export type AuthenticationMethod = Node & {
 export type AuthenticationResult = CurrentUser | InvalidCredentialsError | NotVerifiedError;
 
 export type BooleanCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'BooleanCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -797,6 +798,7 @@ export type CurrentUserChannel = {
 };
 
 export type CustomField = {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
     description?: Maybe<Array<LocalizedString>>;
@@ -925,6 +927,7 @@ export type DateRange = {
  * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local#Additional_attributes
  */
 export type DateTimeCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'DateTimeCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -1183,6 +1186,7 @@ export type FacetValueTranslation = {
 };
 
 export type FloatCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'FloatCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -1384,6 +1388,7 @@ export type InsufficientStockError = ErrorResult & {
 };
 
 export type IntCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'IntCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -1751,6 +1756,7 @@ export enum LanguageCode {
 }
 
 export type LocaleStringCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'LocaleStringCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -1770,6 +1776,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
 };
 
 export type LocaleTextCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'LocaleTextCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -3211,6 +3218,7 @@ export type RegisterCustomerInput = {
 };
 
 export type RelationCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'RelationCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -3436,6 +3444,7 @@ export enum SortOrder {
 }
 
 export type StringCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'StringCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -3492,6 +3501,7 @@ export type StringStructFieldConfig = StructField & {
 };
 
 export type StructCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'StructCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
@@ -3596,6 +3606,7 @@ export type TaxRateList = PaginatedList & {
 };
 
 export type TextCustomFieldConfig = CustomField & {
+  defaultValue?: Maybe<Scalars['JSON']['output']>;
     __typename?: 'TextCustomFieldConfig';
     deprecated?: Maybe<Scalars['Boolean']['output']>;
     deprecationReason?: Maybe<Scalars['String']['output']>;
