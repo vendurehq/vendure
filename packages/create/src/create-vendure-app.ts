@@ -38,6 +38,7 @@ import {
     cleanUpDockerResources,
     createProjectRequire,
     detectPackageManager,
+    DOCKER_NOT_RESPONDING_MESSAGE,
     downloadAndExtractStorefront,
     findAvailablePort,
     getDependencies,
@@ -49,6 +50,7 @@ import {
     getYarnRcYml,
     installPackages,
     isSafeToCreateProjectIn,
+    probeDockerDaemon,
     registerTemplateHelpers,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
@@ -461,6 +463,12 @@ export async function createVendureApp(
     // Manual mode is excluded: there the user supplies their own database connection,
     // so no Docker container is started on their behalf.
     if ((mode === 'quick' || mode === 'ci') && dbType === 'postgres') {
+        // --ci skips the Docker check in the prompts, and in quick start the daemon can
+        // stop answering while the scaffold is written. Every later step calls `docker`.
+        if ((await probeDockerDaemon()) !== 'running') {
+            outro(pc.red(DOCKER_NOT_RESPONDING_MESSAGE));
+            process.exit(1);
+        }
         // appName (the resolved directory basename) is what the docker-compose labels are
         // keyed off — the raw CLI argument may be a nested path like `apps/my-shop`.
         cleanUpDockerResources(appName);
