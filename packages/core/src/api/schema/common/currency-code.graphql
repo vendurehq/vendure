@@ -252,6 +252,8 @@ enum CurrencyCode {
     "Saint Helena pound"
     SHP
     "Sierra Leonean leone"
+    SLE
+    "Sierra Leonean leone (1964–2022)"
     SLL
     "Somali shilling"
     SOS
@@ -307,6 +309,8 @@ enum CurrencyCode {
     XAF
     "East Caribbean dollar"
     XCD
+    "Caribbean guilder"
+    XCG
     "CFA franc BCEAO"
     XOF
     "CFP franc (franc Pacifique)"
@@ -317,6 +321,8 @@ enum CurrencyCode {
     ZAR
     "Zambian kwacha"
     ZMW
+    "Zimbabwean gold"
+    ZWG
     "Zimbabwean dollar"
     ZWL
 }
