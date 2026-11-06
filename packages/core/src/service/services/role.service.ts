@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
     CreateRoleInput,
     DeletionResponse,
@@ -30,17 +31,17 @@ import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
-import { Role } from '../../entity/role/role.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
+import { Role } from '../../entity/role/role.entity';
 import { EventBus } from '../../event-bus';
 import { RoleEvent } from '../../event-bus/events/role-event';
 import { hasLegacyRoleTables } from '../../migration-utils/v4_0_role_assignments';
+import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import {
     ResolvedUserPermissions,
     RolePermissionResolver,
 } from '../helpers/role-permission-resolver/role-permission-resolver';
-import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { withLockIfSupported } from '../helpers/utils/with-lock-if-supported';
 
@@ -72,6 +73,7 @@ export class RoleService {
         private cacheService: CacheService,
         private rolePermissionResolver: RolePermissionResolver,
         private customFieldRelationService: CustomFieldRelationService,
+        private moduleRef: ModuleRef,
     ) {
         // When a Role is created, updated or deleted, we need to invalidate the roles cache
         this.eventBus.ofType(RoleEvent).subscribe(event => {
@@ -593,6 +595,7 @@ export class RoleService {
             throw new UserInputError('error.active-user-cannot-manage-role', { roleCode: role.code });
         }
         const deletedRole = new Role(role);
+        await this.removeAssignmentsOfRole(ctx, role.id);
         await this.connection.getRepository(ctx, Role).remove(role);
         await this.eventBus.publish(new RoleEvent(ctx, deletedRole, 'deleted', id));
         return {
@@ -614,9 +617,20 @@ export class RoleService {
         const roles = await this.connection.getRepository(ctx, Role).find({ where: { channelId } });
         for (const role of roles) {
             const deletedRole = new Role(role);
+            await this.removeAssignmentsOfRole(ctx, role.id);
             await this.connection.getRepository(ctx, Role).remove(role);
             await this.eventBus.publish(new RoleEvent(ctx, deletedRole, 'deleted', deletedRole.id));
         }
+    }
+
+    /**
+     * Removes the Role's assignments with a RoleAssignmentEvent per affected User before the Role
+     * row goes, since the foreign key would otherwise cascade them away silently. The
+     * RoleAssignmentService depends on this service, so it is resolved lazily.
+     */
+    private async removeAssignmentsOfRole(ctx: RequestContext, roleId: ID): Promise<void> {
+        const { RoleAssignmentService } = await import('./role-assignment.service.js');
+        await this.moduleRef.get(RoleAssignmentService).removeAllAssignmentsOfRole(ctx, roleId);
     }
 
     private checkPermissionsAreValid(permissions?: Permission[] | null) {

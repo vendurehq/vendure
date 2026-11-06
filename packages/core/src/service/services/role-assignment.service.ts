@@ -570,6 +570,28 @@ export class RoleAssignmentService {
         const rows = await this.connection
             .getRepository(ctx, RoleAssignment)
             .find({ where: { channelId }, relations: { user: true } });
+        await this.removeRowsPerUser(ctx, rows);
+    }
+
+    /**
+     * @description
+     * Deletes every RoleAssignment of the given Role, and publishes one `removed`
+     * {@link RoleAssignmentEvent} per affected User. Call it before the Role row is deleted:
+     * the foreign key would otherwise cascade the rows away with no event.
+     *
+     * Performs no authorization and no sole-SuperAdmin guard: this is the primitive behind the
+     * Role delete, which refuses the system Roles.
+     *
+     * @since 4.0.0
+     */
+    async removeAllAssignmentsOfRole(ctx: RequestContext, roleId: ID): Promise<void> {
+        const rows = await this.connection
+            .getRepository(ctx, RoleAssignment)
+            .find({ where: { roleId }, relations: { user: true } });
+        await this.removeRowsPerUser(ctx, rows);
+    }
+
+    private async removeRowsPerUser(ctx: RequestContext, rows: RoleAssignment[]): Promise<void> {
         for (const userId of unique(rows.map(row => row.userId))) {
             const userRows = rows.filter(row => idsAreEqual(row.userId, userId));
             await this.removeRows(ctx, userRows[0].user, userRows);

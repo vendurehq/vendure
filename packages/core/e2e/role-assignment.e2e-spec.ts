@@ -1188,6 +1188,45 @@ describe('RoleAssignment', () => {
             expect(events[0].assignments).toEqual([{ roleId: roleA.id, channelId: DEFAULT_CHANNEL_ID }]);
         });
 
+        // The role_assignment foreign key would cascade the rows away silently, so the delete
+        // removes them first, reporting each holder's revocation like any other.
+        it('deleteRole emits RoleAssignmentEvent removed for each holder of the Role', async () => {
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: { code: 'event-role-deleted', description: '', permissions: [] },
+            });
+            await adminClient.query(assignRolesToUserDocument, {
+                input: {
+                    userId: legacyAdmin.user.id,
+                    assignments: [
+                        { roleId: createRole.id, channelId: DEFAULT_CHANNEL_ID },
+                        { roleId: createRole.id, channelId: secondChannel.id },
+                    ],
+                },
+            });
+            await adminClient.query(assignRolesToUserDocument, {
+                input: {
+                    userId: eventAdmin.user.id,
+                    assignments: [{ roleId: createRole.id, channelId: DEFAULT_CHANNEL_ID }],
+                },
+            });
+            await collectEvents();
+
+            await adminClient.query(deleteRoleDocument, { id: createRole.id });
+
+            const events = (await collectEvents()).filter(e => e.kind === 'RoleAssignmentEvent');
+            expect(kindsOf(events)).toEqual(['RoleAssignmentEvent:removed', 'RoleAssignmentEvent:removed']);
+            const legacyEvent = events.find(e => e.userId === legacyAdmin.user.id);
+            expect(legacyEvent?.assignments?.sort(byRoleAndChannel)).toEqual(
+                [
+                    { roleId: createRole.id, channelId: DEFAULT_CHANNEL_ID },
+                    { roleId: createRole.id, channelId: secondChannel.id },
+                ].sort(byRoleAndChannel),
+            );
+            expect(events.find(e => e.userId === eventAdmin.user.id)?.assignments).toEqual([
+                { roleId: createRole.id, channelId: DEFAULT_CHANNEL_ID },
+            ]);
+        });
+
         it('assigning a pair already held emits nothing', async () => {
             await adminClient.query(assignRolesToUserDocument, {
                 input: {
@@ -1501,6 +1540,14 @@ const apiKeyUserDocument = graphql(`
 const deleteApiKeysDocument = graphql(`
     mutation DeleteApiKeysForEventContract($ids: [ID!]!) {
         deleteApiKeys(ids: $ids) {
+            result
+        }
+    }
+`);
+
+const deleteRoleDocument = graphql(`
+    mutation DeleteRoleForEvents($id: ID!) {
+        deleteRole(id: $id) {
             result
         }
     }
