@@ -111,7 +111,16 @@ export class ShippingLine extends VendureEntity implements HasCustomFields {
     }
 
     addAdjustment(adjustment: Adjustment) {
-        this.adjustments = this.adjustments.concat(adjustment);
+        // We should not allow adding adjustments which would
+        // result in a negative shipping price
+        const maxDiscount = -(this.listPrice + this.getAdjustmentsTotal());
+        const limitedAdjustment: Adjustment = {
+            ...adjustment,
+            amount: Math.max(Math.min(maxDiscount, 0), adjustment.amount),
+        };
+        if (limitedAdjustment.amount !== 0) {
+            this.adjustments = this.adjustments.concat(limitedAdjustment);
+        }
     }
 
     clearAdjustments() {
