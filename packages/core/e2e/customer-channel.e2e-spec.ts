@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import { ChannelService, Customer, RequestContextService } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -271,6 +272,39 @@ describe('ChannelAware Customers', () => {
             expect(customers.items.map(customer => customer.emailAddress)).toContain(
                 secondCustomer.emailAddress,
             );
+        });
+
+        // A Customer holds Authenticated on the Channels it is a member of, so removing the
+        // membership must reach the Customer's cached session, not wait for sessionCacheTTL.
+        it('evicts the cached session when the customer is removed from a channel', async () => {
+            const THIRD_CHANNEL_TOKEN = 'third_channel_token';
+            await shopClient.asUserWithCredentials(secondCustomer.emailAddress, 'test');
+            shopClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+            const { me } = await shopClient.query(MeDocument);
+            expect(me?.identifier).toBe(secondCustomer.emailAddress);
+
+            // No API mutation removes a Customer from a Channel; plugins do it through the service
+            const requestContextService = server.app.get(RequestContextService);
+            const channelService = server.app.get(ChannelService);
+            const ctx = await requestContextService.create({ apiType: 'admin' });
+            const thirdChannel = await channelService.getChannelFromToken(THIRD_CHANNEL_TOKEN);
+            await channelService.removeFromChannels(ctx, Customer, secondCustomer.id.replace('T_', ''), [
+                thirdChannel.id,
+            ]);
+
+            // The eviction runs after the transaction commits, so allow it a moment
+            let denied = false;
+            for (let attempt = 0; attempt < 20 && !denied; attempt++) {
+                denied = await shopClient.query(MeDocument).then(
+                    () => false,
+                    (e: Error) => e.message.includes('You are not currently authorized'),
+                );
+                if (!denied) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            expect(denied).toBe(true);
+            shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         });
     });
 

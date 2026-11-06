@@ -103,7 +103,7 @@ export class BaseAuthResolver {
             }
         }
         const user = userId && (await this.userService.getUserById(ctx, userId));
-        return user ? await this.publiclyAccessibleUser(user) : null;
+        return user ? await this.publiclyAccessibleUser(ctx, user) : null;
     }
 
     /**
@@ -134,7 +134,7 @@ export class BaseAuthResolver {
             rememberMe: args.rememberMe || false,
             sessionToken: session.token,
         });
-        return await this.publiclyAccessibleUser(session.user);
+        return await this.publiclyAccessibleUser(ctx, session.user);
     }
 
     /**
@@ -155,11 +155,13 @@ export class BaseAuthResolver {
     /**
      * Exposes a subset of the User properties which we want to expose to the public API.
      * `channels` lists every Channel the user holds permissions on, so a SuperAdmin's
-     * global permissions are expanded across all Channels here.
+     * global permissions are expanded across all Channels here. They are read within the
+     * request's transaction, so that a Customer created by this request (e.g. on a first login
+     * through an external authentication strategy) is listed on its Channels.
      */
-    protected async publiclyAccessibleUser(user: User): Promise<CurrentUser> {
-        const resolved = await this.rolePermissionResolver.resolvePermissions(user.id);
-        const channels = await this.rolePermissionResolver.expandGlobalPermissions(resolved);
+    protected async publiclyAccessibleUser(ctx: RequestContext, user: User): Promise<CurrentUser> {
+        const resolved = await this.rolePermissionResolver.resolvePermissions(user.id, ctx);
+        const channels = await this.rolePermissionResolver.expandGlobalPermissions(resolved, ctx);
         return {
             id: user.id,
             identifier: user.identifier,

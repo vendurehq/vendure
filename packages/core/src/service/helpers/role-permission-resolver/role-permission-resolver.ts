@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { Permission } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { IsNull } from 'typeorm';
+import { IsNull, ObjectLiteral, ObjectType } from 'typeorm';
 
+import { RequestContext } from '../../../api/common/request-context';
 import { getAllPermissionsMetadata } from '../../../common/constants';
 import { ConfigService } from '../../../config/config.service';
 import { UserChannelPermissions } from '../../../config/session-cache/session-cache-strategy';
@@ -79,11 +80,17 @@ export class RolePermissionResolver {
 
     /**
      * @description
-     * Resolves the effective permissions of the given User. Uses the raw connection since
-     * permissions are global truth, independent of any request-scoped transaction.
+     * Resolves the effective permissions of the given User.
+     *
+     * Without a `ctx` this reads through the raw connection, outside any request-scoped
+     * transaction, so only committed data counts. That is what a cached session needs: reading
+     * inside a transaction which later rolls back would cache permissions that never existed.
+     * Pass the `ctx` where the result only describes the current request, such as the
+     * `CurrentUser` a login returns, so that a Customer created in the same transaction (e.g. on
+     * a first login through an external authentication strategy) is taken into account.
      */
-    async resolvePermissions(userId: ID): Promise<ResolvedUserPermissions> {
-        const assignments = await this.connection.rawConnection.getRepository(RoleAssignment).find({
+    async resolvePermissions(userId: ID, ctx?: RequestContext): Promise<ResolvedUserPermissions> {
+        const assignments = await this.getRepository(ctx, RoleAssignment).find({
             where: { userId },
             relations: { role: true, channel: true },
         });
@@ -109,7 +116,7 @@ export class RolePermissionResolver {
                 isSuperAdmin = true;
             }
         }
-        const customer = await this.connection.rawConnection.getRepository(Customer).findOne({
+        const customer = await this.getRepository(ctx, Customer).findOne({
             where: { user: { id: userId }, deletedAt: IsNull() },
             relations: { channels: true },
         });
@@ -131,11 +138,14 @@ export class RolePermissionResolver {
      * Used where an explicit channel list is part of the API contract (`me`/`login`'s
      * `CurrentUser.channels`); the session cache stores the compact form instead.
      */
-    async expandGlobalPermissions(resolved: ResolvedUserPermissions): Promise<UserChannelPermissions[]> {
+    async expandGlobalPermissions(
+        resolved: ResolvedUserPermissions,
+        ctx?: RequestContext,
+    ): Promise<UserChannelPermissions[]> {
         if (resolved.globalPermissions.length === 0) {
             return resolved.channels;
         }
-        const allChannels = await this.connection.rawConnection.getRepository(Channel).find();
+        const allChannels = await this.getRepository(ctx, Channel).find();
         return allChannels
             .map(channel => {
                 const entry = resolved.channels.find(c => c.id === channel.id);
@@ -147,6 +157,12 @@ export class RolePermissionResolver {
                 };
             })
             .sort((a, b) => (a.id < b.id ? -1 : 1));
+    }
+
+    private getRepository<T extends ObjectLiteral>(ctx: RequestContext | undefined, target: ObjectType<T>) {
+        return ctx
+            ? this.connection.getRepository(ctx, target)
+            : this.connection.rawConnection.getRepository(target);
     }
 
     private getAllAssignablePermissions(): Permission[] {

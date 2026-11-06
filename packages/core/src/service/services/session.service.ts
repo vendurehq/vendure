@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
+import { filter } from 'rxjs/operators';
 import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
 
 import { ApiType } from '../../api/common/get-api-type';
@@ -13,14 +14,16 @@ import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
+import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
-import { Role } from '../../entity/role/role.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
+import { Role } from '../../entity/role/role.entity';
 import { AnonymousSession } from '../../entity/session/anonymous-session.entity';
 import { AuthenticatedSession } from '../../entity/session/authenticated-session.entity';
 import { Session } from '../../entity/session/session.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
+import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event';
 import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
 import { JobQueue } from '../../job-queue/job-queue';
 import { JobQueueService } from '../../job-queue/job-queue.service';
@@ -61,6 +64,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         this.eventBus.ofType(RoleAssignmentEvent).subscribe(event => {
             void this.clearSessionCacheForUser(event.user.id);
         });
+        // A Customer holds Authenticated on the Channels it is a member of, so leaving a Channel
+        // removes a permission. Channel membership is a join table, which the entity subscriber
+        // below does not observe, so the Customer's cached sessions are evicted here.
+        this.eventBus
+            .ofType(ChangeChannelEvent)
+            .pipe(filter(event => event.type === 'removed' && event.entityType === Customer))
+            .subscribe(event => {
+                void this.clearSessionCacheForCustomer(event.entity.id);
+            });
 
         const { sessionDuration } = this.configService.authOptions;
         this.sessionDurationInMs =
@@ -395,6 +407,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
      *
      * @since 4.0.0
      */
+    private async clearSessionCacheForCustomer(customerId: ID): Promise<void> {
+        const customer = await this.connection.rawConnection
+            .getRepository(Customer)
+            .findOne({ where: { id: customerId }, relations: { user: true } });
+        if (customer?.user) {
+            await this.clearSessionCacheForUser(customer.user.id);
+        }
+    }
+
     async clearSessionCacheForUser(userId: ID): Promise<void> {
         const userSessions = await this.connection.rawConnection
             .getRepository(AuthenticatedSession)
