@@ -1,4 +1,4 @@
-import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
+import { BooleanDisplayBadge, rowRevealClassName } from '@/vdb/components/data-display/boolean.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -168,12 +168,14 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('isRunning', {
             header: t`Running`,
+            // A task is idle most of the time: "Not Running" shows only on row hover.
             cell: ({ row }) => {
                 return (
                     <StatusBadge
                         tone={scheduledTaskStateDictionary.toneFor(
                             row.original.isRunning ? 'running' : 'idle',
                         )}
+                        className={row.original.isRunning ? undefined : rowRevealClassName}
                     >
                         {row.original.isRunning ? <Trans>Running</Trans> : <Trans>Not Running</Trans>}
                     </StatusBadge>

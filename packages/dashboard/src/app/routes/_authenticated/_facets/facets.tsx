@@ -1,3 +1,4 @@
+import { rowRevealClassName } from '@/vdb/components/data-display/boolean.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { FacetValueChip } from '@/vdb/components/shared/facet-value-chip.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
@@ -41,10 +42,13 @@ function FacetListPage() {
                     header: () => <Trans>Visibility</Trans>,
                     cell: ({ row }) => {
                         const isPrivate = row.original.isPrivate;
-                        // Public is the default; private is the deliberate config
-                        // choice worth spotting — info, not warning (nothing is wrong).
+                        // Public is the default and shows only on row hover; private is the
+                        // deliberate config choice worth spotting — info, not warning.
                         return (
-                            <StatusBadge tone={isPrivate ? 'info' : 'neutral'}>
+                            <StatusBadge
+                                tone={isPrivate ? 'info' : 'neutral'}
+                                className={isPrivate ? undefined : rowRevealClassName}
+                            >
                                 {isPrivate ? <Trans>private</Trans> : <Trans>public</Trans>}
                             </StatusBadge>
                         );

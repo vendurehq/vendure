@@ -30,7 +30,7 @@ export function BooleanDisplayBadge({
     const { t } = useLingui();
     if (value) {
         return (
-            <StatusBadge tone={commonStates.toneFor('enabled')} className={ROW_REVEAL_CLASS}>
+            <StatusBadge tone={commonStates.toneFor('enabled')} className={rowRevealClassName}>
                 {labelTrue ?? t`Enabled`}
             </StatusBadge>
         );
@@ -38,6 +38,14 @@ export function BooleanDisplayBadge({
     return <StatusBadge tone={commonStates.toneFor('disabled')}>{labelFalse ?? t`Disabled`}</StatusBadge>;
 }
 
-// Hidden until the table row (`group/row`) is hovered or holds focus.
-const ROW_REVEAL_CLASS =
+/**
+ * @description
+ * Classes that hide a table cell's content until its row (`group/row`) is hovered or holds
+ * keyboard focus. Use them for the normal state of a status column, so that only the
+ * exceptions show at rest. The content stays in the layout and in the accessibility tree.
+ *
+ * @docsCategory components
+ * @since 3.8.2
+ */
+export const rowRevealClassName =
     'opacity-0 transition-opacity duration-fast ease-out group-hover/row:opacity-100 group-focus-within/row:opacity-100 motion-reduce:transition-none';
