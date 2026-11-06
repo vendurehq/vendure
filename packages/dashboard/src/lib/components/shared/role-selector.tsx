@@ -20,10 +20,11 @@ export function RoleSelector<T extends boolean>(props: RoleSelectorProps<T>) {
 
     const items = roles
         .filter(role => !excludeIds?.includes(role.id))
+        // The label is what the closed picker and the search show, so it is the same name the
+        // options and the role assignment tables show.
         .map(role => ({
             value: role.id,
-            label: role.code,
-            display: role.description ? role.description : role.code,
+            label: role.description || role.code,
         }));
 
     return (

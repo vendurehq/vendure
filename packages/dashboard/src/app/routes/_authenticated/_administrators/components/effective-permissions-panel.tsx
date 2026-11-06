@@ -1,8 +1,8 @@
-import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
+import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useRoles } from '@/vdb/hooks/use-roles.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { ReactNode, useState } from 'react';
 
 import { RolePermissionsDisplay } from './role-permissions-display.js';
@@ -36,6 +36,7 @@ export function EffectivePermissionsPanel({
     assignments,
     description,
 }: Readonly<EffectivePermissionsPanelProps>) {
+    const { t } = useLingui();
     const { channels, activeChannel } = useChannel();
     const { roles } = useRoles();
     const [pickedChannelId, setPickedChannelId] = useState<string | undefined>();
@@ -76,7 +77,9 @@ export function EffectivePermissionsPanel({
             channels.find(channel => channel.id === channelId)?.code ??
             completeAssignments.find(assignment => assignment.channelId === channelId)?.channel?.code ??
             channelId;
-        return { value: channelId, label: code, display: <ChannelCodeLabel code={code} /> };
+        // The label is what the closed picker shows, so it names the default channel as the
+        // channel pickers do
+        return { value: channelId, label: code === DEFAULT_CHANNEL_CODE ? t`Default channel` : code };
     });
 
     return (
