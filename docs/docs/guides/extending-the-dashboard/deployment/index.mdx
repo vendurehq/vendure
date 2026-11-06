@@ -37,7 +37,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     base: '/dashboard', // [!code highlight]
     build: {
-        outDir: join(__dirname, 'dist/dashboard'), // [!code highlight]
+        outDir: join(import.meta.dirname, 'dist/dashboard'), // [!code highlight]
     },
     plugins: [
         vendureDashboardPlugin({
@@ -52,7 +52,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '@/gql': resolve(__dirname, './src/gql/graphql.ts'),
+            '@/gql': resolve(import.meta.dirname, './src/gql/graphql.ts'),
         },
     },
 });
@@ -157,7 +157,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     build: {
-        outDir: path.join(__dirname, 'dist/dashboard'),
+        outDir: path.join(import.meta.dirname, 'dist/dashboard'),
     },
     plugins: [
         vendureDashboardPlugin({

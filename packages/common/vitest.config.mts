@@ -8,7 +8,7 @@ export default defineConfig({
     test: {
         ...sharedTestConfig,
         typecheck: {
-            tsconfig: path.join(__dirname, 'tsconfig.e2e.json'),
+            tsconfig: path.join(import.meta.dirname, 'tsconfig.e2e.json'),
         },
     },
     plugins: [

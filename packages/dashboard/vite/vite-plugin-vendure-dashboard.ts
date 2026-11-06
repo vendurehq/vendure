@@ -61,7 +61,7 @@ export type VitePluginVendureDashboardOptions = {
      * @example
      * ```ts
      * vendureDashboardPlugin({
-     *     tempCompilationDir: join(__dirname, './__vendure-dashboard-temp'),
+     *     tempCompilationDir: join(import.meta.dirname, './__vendure-dashboard-temp'),
      *     pathAdapter: {
      *         getCompiledConfigPath: ({ inputRootDir, outputPath, configFileName }) => {
      *             const projectName = inputRootDir.split('/libs/')[1].split('/')[0];
@@ -222,7 +222,7 @@ export type VitePluginVendureDashboardOptions = {
      * vendureDashboardPlugin({
      *     theme: {
      *         light: { brand: '#1a1a1a' },
-     *         additionalStylesheets: [resolve(__dirname, 'src/dashboard.css')],
+     *         additionalStylesheets: [resolve(import.meta.dirname, 'src/dashboard.css')],
      *     },
      * })
      * ```

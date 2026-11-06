@@ -15,7 +15,7 @@ other versions are in the checks.
 
 Do them in this order. Use the context from `context.md`.
 
-1. **Node.js version.** Vendure supports Node.js v20, v22 and v24.
+1. **Node.js version.** Vendure requires Node.js 22.12 or newer and supports v22, v24 and v26.
    Doc: `getting-started/installation#requirements`
 2. **doctor result.** Read the first `fail` in the report. A failed `project`
    check means the command did not run in a Vendure project, or no config file
@@ -57,7 +57,7 @@ Do them in this order. Use the context from `context.md`.
 
 | Cause                                   | Remedy                                                                                           | Reference                                                    |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| Unsupported Node.js version             | Use Node.js v20, v22 or v24                                                                      | `getting-started/installation#requirements`                  |
+| Unsupported Node.js version             | Use Node.js 22.12 or newer (v22, v24 or v26)                                                     | `getting-started/installation#requirements`                  |
 | Missing database driver                 | Install the driver package that doctor names                                                     | `developer-guide/configuration#connecting-to-the-database`   |
 | Config does not load                    | Fix the error in the doctor `details`, then run `vendure doctor --check config` again            | `developer-guide/configuration`                              |
 | GraphQL schema does not build           | Fix the plugin's schema extension, then run `vendure doctor --check config schema`               | `developer-guide/extend-graphql-api`                         |
