@@ -8,10 +8,10 @@ import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+    NESTJS_GRAPHQL_TYPESCRIPT_PEER_RANGE,
     NESTJS_GRAPHQL_VERSION,
     REQUIRED_NODE_VERSION,
     TYPEORM_VERSION,
-    TYPESCRIPT_VERSION,
 } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
@@ -830,10 +830,24 @@ describe('getDependencies', () => {
 
     it("overrides @nestjs/graphql's TypeScript peer for npm projects only", () => {
         expect(getNpmOverrides(getPackageManagerInfo('npm'))).toEqual({
-            overrides: { '@nestjs/graphql': { typescript: TYPESCRIPT_VERSION } },
+            overrides: { '@nestjs/graphql': { typescript: '^5.5.0 || ^6.0.0 || 7.1.0-beta || ~7.1.0' } },
         });
         for (const pm of ['pnpm', 'yarn', 'bun'] as const) {
             expect(getNpmOverrides(getPackageManagerInfo(pm))).toEqual({});
+        }
+    });
+
+    // The override extends @nestjs/graphql's own TypeScript peer range, so it must match the
+    // @nestjs/graphql version that @vendure/core installs. Only 14.0.1 and later declare a
+    // TypeScript peer, and the repo's lockfile may pin an earlier 14.0.x release.
+    it("extends the TypeScript peer range of @vendure/core's @nestjs/graphql", () => {
+        const corePackageJson = require.resolve('@vendure/core/package.json');
+        const nestGraphqlPkg = fs.readJsonSync(
+            require.resolve('@nestjs/graphql/package.json', { paths: [path.dirname(corePackageJson)] }),
+        );
+        const typescriptPeer: string | undefined = nestGraphqlPkg.peerDependencies?.typescript;
+        if (typescriptPeer) {
+            expect(NESTJS_GRAPHQL_TYPESCRIPT_PEER_RANGE).toBe(typescriptPeer);
         }
     });
 });

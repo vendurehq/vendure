@@ -33,6 +33,12 @@ export const TYPEORM_VERSION = '^0.3.21';
  */
 export const NESTJS_GRAPHQL_VERSION = '~14.0.0';
 /**
+ * The TypeScript peer dependency range that `@nestjs/graphql` declares. npm projects override it
+ * with this range plus TYPESCRIPT_VERSION (see `getNpmOverrides()`). Must stay equal to the range
+ * in the `@nestjs/graphql` version that `@vendure/core` uses, which a test enforces.
+ */
+export const NESTJS_GRAPHQL_TYPESCRIPT_PEER_RANGE = '^5.5.0 || ^6.0.0';
+/**
  * Vite must be a direct dependency of the scaffolded project because the
  * generated vite.config.mts imports `vite` directly, and strict
  * (non-hoisting) package managers like pnpm don't expose transitive deps.

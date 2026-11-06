@@ -132,6 +132,9 @@ This adds about 32 MB to your install, unless your project uses the same TypeScr
    its TypeScript peer dependency. `@nestjs/graphql` declares an optional peer dependency on TypeScript 5 or 6, so
    with TypeScript 7 in your project npm installs it under `node_modules/@vendure/core/node_modules`, where the
    Dashboard plugin and your own GraphQL resolvers can no longer import it (`Cannot find module '@nestjs/graphql'`).
+   The override keeps the TypeScript versions that `@nestjs/graphql` accepts and adds TypeScript 7, so it also
+   works in workspaces where another package (such as a storefront) uses TypeScript 6. `@nestjs/graphql` only uses
+   TypeScript for its optional compiler plugin.
    New projects created with npm include this. pnpm, Yarn and Bun are not affected.
 
    ```diff title="package.json"
@@ -142,7 +145,7 @@ This adds about 32 MB to your install, unless your project uses the same TypeScr
      },
    + "overrides": {
    +   "@nestjs/graphql": {
-   +     "typescript": "7.1.0-beta || ~7.1.0"
+   +     "typescript": "^5.5.0 || ^6.0.0 || 7.1.0-beta || ~7.1.0"
    +   }
    + }
    }

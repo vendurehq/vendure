@@ -19,6 +19,7 @@ import * as tar from 'tar';
 import {
     CONCURRENTLY_VERSION,
     DEFAULT_PROJECT_VERSION,
+    NESTJS_GRAPHQL_TYPESCRIPT_PEER_RANGE,
     NESTJS_GRAPHQL_VERSION,
     OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
@@ -412,16 +413,26 @@ export function getSingleProjectPackageJson(
  * Returns the `overrides` field for npm projects. `@nestjs/graphql` declares an optional peer
  * dependency on `typescript@^5.5.0 || ^6.0.0`, so with TypeScript 7 in the project, npm either
  * refuses to install it as a direct dependency (ERESOLVE) or nests it out of reach of the
- * project's plugins. Overriding its TypeScript peer with the project's TypeScript range lets npm
- * keep a single copy at the top of node_modules. The range is a literal rather than a
- * `$typescript` reference, as TypeScript is only installed after the dependencies.
- * See NESTJS_GRAPHQL_VERSION.
+ * project's plugins. Overriding its TypeScript peer lets npm keep a single copy at the top of
+ * node_modules. See NESTJS_GRAPHQL_VERSION.
+ *
+ * The override adds the project's TypeScript range to the original one, rather than replacing
+ * it: in a monorepo with the storefront, which uses TypeScript 6, npm may hoist the storefront's
+ * TypeScript to the root, and a TypeScript 7-only peer would then nest `@nestjs/graphql` under
+ * apps/server, out of reach of `@vendure/dashboard` at the root. A `*` range is not an option,
+ * as it makes npm's dependency resolution hang.
  */
 export function getNpmOverrides(pmInfo: PackageManagerInfo): Record<string, unknown> {
     if (pmInfo.name !== 'npm') {
         return {};
     }
-    return { overrides: { '@nestjs/graphql': { typescript: TYPESCRIPT_VERSION } } };
+    return {
+        overrides: {
+            '@nestjs/graphql': {
+                typescript: `${NESTJS_GRAPHQL_TYPESCRIPT_PEER_RANGE} || ${TYPESCRIPT_VERSION}`,
+            },
+        },
+    };
 }
 
 /**
