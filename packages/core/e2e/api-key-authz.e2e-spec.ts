@@ -45,7 +45,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
 
     const manager = { emailAddress: 'apikey-manager@test.com', password: 'test-password' };
 
-    // A privileged key whose user holds the SuperAdmin role.
+    // A privileged key whose user holds a broad Role the manager does not hold.
     let highPrivKeyId: string;
     // Low-privileged keys whose user holds only ReadCatalog, a subset of the manager's permissions.
     let lowPrivKeyIdForRotate: string;
@@ -53,6 +53,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
     let lowPrivKeyIdForDelete: string;
     // Captured as SuperAdmin so the strip test does not need a Role query the manager cannot run.
     let catalogRoleId: string;
+    let highPrivRoleId: string;
 
     /**
      * Runs a query against the Admin API authenticated by a raw API key, bypassing the client's
@@ -74,9 +75,33 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
         });
         await adminClient.asSuperAdmin();
 
+        // API keys cannot hold the SuperAdmin Role, so the higher-privileged key holds a broad
+        // Role whose permissions the manager below does not have.
+        const { createRole: highPrivRole } = await adminClient.query(CREATE_ROLE, {
+            input: {
+                code: 'high-priv',
+                description: 'High privileges',
+                permissions: [
+                    Permission.ReadCatalog,
+                    Permission.UpdateCatalog,
+                    Permission.DeleteCatalog,
+                    Permission.ReadAdministrator,
+                    Permission.UpdateAdministrator,
+                    Permission.ReadCustomer,
+                    Permission.UpdateCustomer,
+                    // A superset of the manager's Role, so that the key can see the manager
+                    Permission.ReadApiKey,
+                    Permission.CreateApiKey,
+                    Permission.UpdateApiKey,
+                    Permission.DeleteApiKey,
+                ],
+            },
+        });
+        highPrivRoleId = highPrivRole.id;
+
         const { createApiKey: high } = await adminClient.query(CREATE_API_KEY, {
             input: {
-                roleIds: ['1'],
+                roleIds: [highPrivRoleId],
                 translations: [{ languageCode: 'en' as any, name: 'High-priv key' }],
             },
         });
@@ -207,7 +232,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
             await adminClient.asSuperAdmin();
             const { apiKey } = await adminClient.query(GET_API_KEY_WITH_ROLES, { id: highPrivKeyId });
             expect(apiKey?.name).toBe('High-priv key');
-            expect(apiKey?.user.roles.some(r => r.code === '__super_admin_role__')).toBe(true);
+            expect(apiKey?.user.roles.some(r => r.code === 'high-priv')).toBe(true);
         });
 
         it('still allows updating a key whose permissions the caller fully holds', async () => {
@@ -226,9 +251,9 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
             assertThrowsWithMessage(async () => {
                 await adminClient.asUserWithCredentials(manager.emailAddress, manager.password);
                 // The manager may manage this ReadCatalog-only key, so only the incoming-roleIds check
-                // stands between them and a key holding the SuperAdmin role.
+                // stands between them and a key holding the high-privilege role.
                 await adminClient.query(UPDATE_API_KEY, {
-                    input: { id: lowPrivKeyIdForUpdate, roleIds: ['1'] },
+                    input: { id: lowPrivKeyIdForUpdate, roleIds: [highPrivRoleId] },
                 });
             }, 'sufficient permissions'),
         );
@@ -376,7 +401,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
             await adminClient.asSuperAdmin();
             const { createApiKey: mixed } = await adminClient.query(CREATE_API_KEY, {
                 input: {
-                    roleIds: [catalogRoleId, '1'],
+                    roleIds: [catalogRoleId, highPrivRoleId],
                     translations: [{ languageCode: 'en' as any, name: 'Mixed-role key' }],
                 },
             });

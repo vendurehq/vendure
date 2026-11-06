@@ -31,6 +31,12 @@ export interface RoleAssignmentsTableProps {
      * server has already filtered to the pairs the active user may grant or remove.
      */
     assignments: RoleAssignmentRow[];
+    /**
+     * Set for the User of an API key: the Channels the key belongs to. The server refuses
+     * grants of the SuperAdmin Role and grants on other Channels for an API key, so they are
+     * not offered.
+     */
+    apiKeyChannelIds?: string[];
 }
 
 /**
@@ -43,7 +49,11 @@ export interface RoleAssignmentsTableProps {
  * The SuperAdmin Role is stored as a single assignment on the default Channel which stands
  * for every Channel, so its row reads "All channels" and its assign row offers no Channel.
  */
-export function RoleAssignmentsTable({ userId, assignments }: Readonly<RoleAssignmentsTableProps>) {
+export function RoleAssignmentsTable({
+    userId,
+    assignments,
+    apiKeyChannelIds,
+}: Readonly<RoleAssignmentsTableProps>) {
     const { t } = useLingui();
     const { activeChannel } = useChannel();
     const { hasPermissions } = usePermissions();
@@ -166,7 +176,12 @@ export function RoleAssignmentsTable({ userId, assignments }: Readonly<RoleAssig
                             multiple={false}
                             value={newRoleId}
                             onChange={setNewRoleId}
-                            excludeIds={nonGrantableRoleIds(newChannelIds)}
+                            excludeIds={[
+                                ...nonGrantableRoleIds(newChannelIds),
+                                ...(apiKeyChannelIds
+                                    ? roles.filter(role => isSuperAdminRole(role)).map(role => role.id)
+                                    : []),
+                            ]}
                         />
                     </div>
                     <div className="flex-[2]">
@@ -179,7 +194,9 @@ export function RoleAssignmentsTable({ userId, assignments }: Readonly<RoleAssig
                                 multiple={true}
                                 value={newChannelIds}
                                 onChange={setPickedChannelIds}
-                                includeIds={grantableChannelIds(newRoleId || undefined)}
+                                includeIds={grantableChannelIds(newRoleId || undefined).filter(
+                                    id => !apiKeyChannelIds || apiKeyChannelIds.includes(id),
+                                )}
                                 ownChannelsOnly
                             />
                         )}

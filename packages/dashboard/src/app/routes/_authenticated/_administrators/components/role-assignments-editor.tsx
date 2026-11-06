@@ -24,6 +24,12 @@ interface EditorRow {
 export interface RoleAssignmentsEditorProps {
     value: RoleAssignmentPair[];
     onChange: (value: RoleAssignmentPair[]) => void;
+    /**
+     * Set for the User of an API key: the Channels the key belongs to. The server refuses
+     * grants of the SuperAdmin Role and grants on other Channels for an API key, so they are
+     * not offered.
+     */
+    apiKeyChannelIds?: string[];
 }
 
 let nextRowKey = 0;
@@ -101,7 +107,11 @@ function pairsAreEqual(a: RoleAssignmentPair[], b: RoleAssignmentPair[]): boolea
  * The SuperAdmin Role has no channel scope (the server stores it as a single assignment on
  * the default Channel), so its row reads "All channels" and offers no Channel to pick.
  */
-export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignmentsEditorProps>) {
+export function RoleAssignmentsEditor({
+    value,
+    onChange,
+    apiKeyChannelIds,
+}: Readonly<RoleAssignmentsEditorProps>) {
     const { activeChannel } = useChannel();
     const { t } = useLingui();
     const { roles } = useRoles();
@@ -199,6 +209,9 @@ export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignme
                             excludeIds={[
                                 ...rows.filter(r => r !== row && r.roleId).map(r => r.roleId),
                                 ...nonGrantableRoleIds(row.channelIds),
+                                ...(apiKeyChannelIds
+                                    ? roles.filter(role => isSuperAdminRole(role)).map(role => role.id)
+                                    : []),
                             ]}
                         />
                     </div>
@@ -214,7 +227,9 @@ export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignme
                                 onChange={channelIds =>
                                     emit(rows.map(r => (r === row ? { ...r, channelIds } : r)))
                                 }
-                                includeIds={grantableChannelIds(row.roleId || undefined)}
+                                includeIds={grantableChannelIds(row.roleId || undefined).filter(
+                                    id => !apiKeyChannelIds || apiKeyChannelIds.includes(id),
+                                )}
                                 ownChannelsOnly
                             />
                         )}

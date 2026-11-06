@@ -2,6 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { expectPopupClosed } from '../../utils/base-ui-popups.js';
 
 // API keys have a role assignment builder and a one-time secret dialog on create,
 // so they don't fit the standard CRUD factory.
@@ -40,9 +41,15 @@ test.describe('API keys', () => {
         await dp.fillInput('Name', API_KEY_NAME);
 
         // The role assignment editor starts with one row on the active channel,
-        // so only the role itself needs picking
+        // so only the role itself needs picking. The SuperAdmin role cannot be granted to an
+        // API key, so it is not offered.
         const roleCombobox = page.getByRole('combobox').first();
-        await dp.selectPopoverOption(roleCombobox, 'SuperAdmin');
+        await roleCombobox.click();
+        await expect(page.getByRole('option', { name: 'RoleEditor', exact: true })).toBeVisible();
+        await expect(page.getByRole('option', { name: 'SuperAdmin', exact: true })).toHaveCount(0);
+        // Picking an option closes this single-select popup
+        await page.getByRole('option', { name: 'RoleEditor', exact: true }).click();
+        await expectPopupClosed(roleCombobox);
 
         await dp.clickCreate();
         await dp.expectSuccessToast(/Successfully created API key/);
@@ -63,6 +70,6 @@ test.describe('API keys', () => {
         await lp.clickEntity(API_KEY_NAME);
         await expect(page).toHaveURL(/\/api-keys\/[^/]+$/);
 
-        await expect(page.getByRole('row').filter({ hasText: 'SuperAdmin' })).toBeVisible();
+        await expect(page.getByRole('row').filter({ hasText: 'RoleEditor' })).toBeVisible();
     });
 });

@@ -9,6 +9,7 @@ import {
     UpdateApiKeyInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
+import { unique } from '@vendure/common/lib/unique';
 import { IsNull, UpdateResult } from 'typeorm';
 
 import { ApiType, RelationPaths, RequestContext } from '../../api';
@@ -134,6 +135,13 @@ export class ApiKeyService {
             roleAssignments.map(pair => pair.channelId),
         );
         await this.roleService.assertActiveUserCanGrantRoles(ctx, roleAssignments);
+        // The key is created on the active and the default Channel (assignToCurrentChannel)
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+        await this.roleAssignmentService.assertValidApiKeyGrants(
+            ctx,
+            unique([ctx.channelId, defaultChannel.id]),
+            roleAssignments,
+        );
 
         const ownerUser = await this.connection.getEntityOrThrow(ctx, User, userIdOwner);
         const apiType = this.getApiTypeForNewApiKey(ctx);

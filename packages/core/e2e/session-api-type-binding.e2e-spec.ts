@@ -1,4 +1,4 @@
-import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import {
     DEFAULT_APIKEY_HEADER_KEY,
     SUPER_ADMIN_USER_IDENTIFIER,
@@ -31,7 +31,6 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 const SSO_ADMIN_EMAIL = 'sso-admin@test.com';
 // The SuperAdmin Role in the e2e seed data.
-const SUPER_ADMIN_ROLE_ID = '1';
 
 const ADMINISTRATORS_QUERY = '{ administrators { totalItems items { emailAddress } } }';
 const GET_ADMINISTRATORS = gql(ADMINISTRATORS_QUERY);
@@ -124,6 +123,23 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
         plugins: [SessionApiTypeTestPlugin],
     });
     const { server, adminClient, shopClient } = createTestEnvironment(config);
+
+    // API keys cannot hold the SuperAdmin Role. The keys created here hold ReadAdministrator,
+    // which is all the Admin API checks need.
+    let adminReaderRole: string | undefined;
+    async function adminReaderRoleId(): Promise<string> {
+        if (!adminReaderRole) {
+            const { createRole } = await adminClient.query(CREATE_KEY_ROLE, {
+                input: {
+                    code: 'key-admin-reader',
+                    description: '',
+                    permissions: [Permission.ReadAdministrator],
+                },
+            });
+            adminReaderRole = createRole.id as string;
+        }
+        return adminReaderRole;
+    }
     const baseUrl = `http://localhost:${config.apiOptions.port}`;
     const adminApiUrl = `${baseUrl}/${String(config.apiOptions.adminApiPath)}`;
     const shopApiUrl = `${baseUrl}/${String(config.apiOptions.shopApiPath)}`;
@@ -253,7 +269,7 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
             await adminClient.asSuperAdmin();
             const result = await adminClient.query(CREATE_API_KEY, {
                 input: {
-                    roleIds: [SUPER_ADMIN_ROLE_ID],
+                    roleIds: [await adminReaderRoleId()],
                     translations: [{ languageCode: LanguageCode.en, name: 'Session API type test key' }],
                 },
             });
@@ -267,9 +283,10 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
                 { [DEFAULT_APIKEY_HEADER_KEY]: apiKey },
                 ADMINISTRATORS_QUERY,
             );
+            // API keys cannot hold SuperAdmin, so the key sees no SuperAdmin; being let through is
+            // what this asserts.
             expect(result.errors).toBeUndefined();
-            expect(emailsOf(result)).toContain(SUPER_ADMIN_USER_IDENTIFIER);
-            expect(emailsOf(result)).toContain(SSO_ADMIN_EMAIL);
+            expect(result.data?.administrators).toBeDefined();
         });
 
         it('is still usable on the Shop API', async () => {
@@ -313,7 +330,7 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
                 ADMINISTRATORS_QUERY,
             );
             expect(result.errors).toBeUndefined();
-            expect(emailsOf(result)).toContain(SUPER_ADMIN_USER_IDENTIFIER);
+            expect(result.data?.administrators).toBeDefined();
         });
     });
 
@@ -555,7 +572,7 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
             await adminClient.asSuperAdmin();
             const { createApiKey } = await adminClient.query(CREATE_API_KEY, {
                 input: {
-                    roleIds: [SUPER_ADMIN_ROLE_ID],
+                    roleIds: [await adminReaderRoleId()],
                     translations: [{ languageCode: LanguageCode.en, name: 'Recovery test key' }],
                 },
             });
@@ -586,7 +603,7 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
                 ADMINISTRATORS_QUERY,
             );
             expect(adminResult.errors).toBeUndefined();
-            expect(emailsOf(adminResult)).toContain(SUPER_ADMIN_USER_IDENTIFIER);
+            expect(adminResult.data?.administrators).toBeDefined();
         });
     });
 
@@ -774,3 +791,11 @@ describe('session API type binding (GHSA-5fpx-9m35-w745)', () => {
         });
     });
 });
+
+const CREATE_KEY_ROLE = gql`
+    mutation CreateKeyRole($input: CreateRoleInput!) {
+        createRole(input: $input) {
+            id
+        }
+    }
+`;

@@ -4,7 +4,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
+import { DEFAULT_CHANNEL_CODE, NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
@@ -17,6 +17,7 @@ import {
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -122,6 +123,12 @@ function ApiKeyDetailPage() {
     // input only: once the API key exists, assignments are edited through their own
     // mutations (RoleAssignmentsTable), not through updateApiKey.
     const createForm = form as unknown as UseFormReturn<{ roleAssignments: RoleAssignmentPair[] }>;
+    // An API key belongs to the Channel it was created on and to the default Channel, and it is
+    // read here through one of them, so these two are always among its Channels. A key created on
+    // another Channel and read from the default Channel gets its grants there by switching to it.
+    const { activeChannel, channels } = useChannel();
+    const defaultChannelId = channels.find(channel => channel.code === DEFAULT_CHANNEL_CODE)?.id;
+    const apiKeyChannelIds = [activeChannel?.id, defaultChannelId].filter((id): id is string => !!id);
     const formAssignments = creatingNewEntity ? createForm.watch('roleAssignments') : undefined;
 
     const handleRotateSuccess = (newApiKey: string) => {
@@ -168,7 +175,11 @@ function ApiKeyDetailPage() {
                             control={createForm.control}
                             name="roleAssignments"
                             render={({ field }) => (
-                                <RoleAssignmentsEditor value={field.value ?? []} onChange={field.onChange} />
+                                <RoleAssignmentsEditor
+                                    value={field.value ?? []}
+                                    onChange={field.onChange}
+                                    apiKeyChannelIds={apiKeyChannelIds}
+                                />
                             )}
                         />
                         <p className="text-xs text-muted-foreground mt-2">
@@ -193,6 +204,7 @@ function ApiKeyDetailPage() {
                             <RoleAssignmentsTable
                                 userId={entity.user.id}
                                 assignments={entity.user.roleAssignments}
+                                apiKeyChannelIds={apiKeyChannelIds}
                             />
                             <p className="text-xs text-muted-foreground mt-2">
                                 <Trans>

@@ -2,6 +2,8 @@
   "error": {
     "active-user-cannot-manage-role": "Active user does not have permission to manage the role \"{ roleCode }\" on the channel which owns it",
     "active-user-does-not-have-sufficient-permissions": "Active user does not have sufficient permissions",
+    "api-key-cannot-hold-superadmin-role": "The SuperAdmin role cannot be granted to an API key",
+    "api-key-role-channel-not-assigned": "An API key can only be granted roles on the channels it belongs to",
     "api-key-impersonated-user-cannot-receive-roles": "Roles cannot be assigned through an ApiKey whose user is an existing user",
     "available-currency-codes-must-include-default": "availableCurrencyCodes must include the defaultCurrencyCode ({ defaultCurrencyCode })",
     "cannot-assign-legacy-customer-role": "The pre-v4 Customer role cannot be assigned. Customers hold the Authenticated permission on the Channels they are a member of",

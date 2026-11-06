@@ -619,30 +619,69 @@ describe('RoleAssignment', () => {
         // (Questions d10). The key's User gets the anchor row, but the sole-SuperAdmin guard
         // counts Administrators only, so the key does not stand in for the last SuperAdmin
         // Administrator. A SuperAdmin key acting as SuperAdmin is covered by api-key.e2e-spec.
-        it('an API key can hold SuperAdmin but does not count as a SuperAdmin holder', async () => {
+        // A key holding SuperAdmin would be a credential with every permission on every channel,
+        // outside the guard which keeps an Administrator a SuperAdmin.
+        it('an API key cannot be created with the SuperAdmin role', async () => {
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(createApiKeyDocument, {
+                    input: {
+                        roleAssignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                        translations: [{ languageCode: LanguageCode.en, name: 'SuperAdmin key' }],
+                    },
+                });
+            }, 'The SuperAdmin role cannot be granted to an API key')();
+        });
+
+        it('the SuperAdmin role cannot be granted to the User of an existing API key', async () => {
             const { createApiKey } = await adminClient.query(createApiKeyDocument, {
                 input: {
-                    roleAssignments: [{ roleId: superAdminRoleId, channelId: secondChannel.id }],
-                    translations: [{ languageCode: LanguageCode.en, name: 'SuperAdmin key' }],
+                    roleAssignments: [{ roleId: roleEditorRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                    translations: [{ languageCode: LanguageCode.en, name: 'RoleEditor key' }],
                 },
             });
             const { apiKey } = await adminClient.query(apiKeyUserDocument, { id: createApiKey.entityId });
-            if (!apiKey) throw new Error('Expected the SuperAdmin API key to exist');
+            if (!apiKey) throw new Error('Expected the API key to exist');
 
-            const { roleAssignments } = await adminClient.query(roleAssignmentsOfUserDocument, {
-                userId: apiKey.user.id,
-            });
-            expect(roleAssignments.items.map(item => `${item.role.code}@${item.channelId}`)).toEqual([
-                `${SUPER_ADMIN_ROLE_CODE}@${DEFAULT_CHANNEL_ID}`,
-            ]);
-
-            const { activeAdministrator } = await adminClient.query(getActiveAdministratorDocument);
-            if (!activeAdministrator) {
-                throw new Error('Expected the SuperAdmin to be logged in');
-            }
             await assertThrowsWithMessage(async () => {
-                await adminClient.query(deleteAdministratorDocument, { id: activeAdministrator.id });
-            }, 'The sole SuperAdmin cannot be deleted')();
+                await adminClient.query(assignRolesToUserDocument, {
+                    input: {
+                        userId: apiKey.user.id,
+                        assignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                    },
+                });
+            }, 'The SuperAdmin role cannot be granted to an API key')();
+
+            await adminClient.query(deleteApiKeysDocument, { ids: [createApiKey.entityId] });
+        });
+
+        // An API key authenticates only on the channels it belongs to (the active and the default
+        // channel at creation), so a grant on another channel could never be used.
+        it('an API key cannot be granted a role on a channel it does not belong to', async () => {
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(createApiKeyDocument, {
+                    input: {
+                        roleAssignments: [{ roleId: roleEditorRoleId, channelId: secondChannel.id }],
+                        translations: [{ languageCode: LanguageCode.en, name: 'Off-channel key' }],
+                    },
+                });
+            }, 'An API key can only be granted roles on the channels it belongs to')();
+
+            const { createApiKey } = await adminClient.query(createApiKeyDocument, {
+                input: {
+                    roleAssignments: [{ roleId: roleEditorRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                    translations: [{ languageCode: LanguageCode.en, name: 'Default channel key' }],
+                },
+            });
+            const { apiKey } = await adminClient.query(apiKeyUserDocument, { id: createApiKey.entityId });
+            if (!apiKey) throw new Error('Expected the API key to exist');
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(assignRolesToUserDocument, {
+                    input: {
+                        userId: apiKey.user.id,
+                        assignments: [{ roleId: roleEditorRoleId, channelId: secondChannel.id }],
+                    },
+                });
+            }, 'An API key can only be granted roles on the channels it belongs to')();
 
             await adminClient.query(deleteApiKeysDocument, { ids: [createApiKey.entityId] });
         });

@@ -12,6 +12,7 @@ import {
     ForbiddenError,
     IllegalOperationError,
     InternalServerError,
+    UserInputError,
 } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
@@ -310,6 +311,17 @@ export class RoleAssignmentService {
         const allChannels = await this.connection.getRepository(ctx, Channel).find();
         const target = await this.anchorSuperAdminPairs(ctx, pairs, allChannels);
         await this.roleService.assertActiveUserCanGrantRoles(ctx, target);
+        const apiKey = await this.connection.getRepository(ctx, ApiKey).findOne({
+            where: { userId, deletedAt: IsNull() },
+            relations: { channels: true },
+        });
+        if (apiKey) {
+            await this.assertValidApiKeyGrants(
+                ctx,
+                apiKey.channels.map(channel => channel.id),
+                pairs,
+            );
+        }
         for (const channelId of unique(pairs.map(pair => pair.channelId))) {
             if (!allChannels.some(channel => idsAreEqual(channel.id, channelId))) {
                 throw new EntityNotFoundError('Channel', channelId);
@@ -432,6 +444,39 @@ export class RoleAssignmentService {
             throw new EntityNotFoundError('User', userId);
         }
         return Permission.UpdateApiKey;
+    }
+
+    /**
+     * @description
+     * Asserts that the given `(roleId, channelId)` pairs may be granted to the User of an API key
+     * which belongs to the given Channels:
+     *
+     * - The SuperAdmin Role cannot be granted to an API key. A key holding it would be a
+     *   credential with every permission on every Channel, outside the guard which keeps at
+     *   least one Administrator a SuperAdmin. Keys which already hold it, e.g. after migrating
+     *   from v3, keep it until it is removed.
+     * - A Role can only be granted on a Channel the key belongs to. An API key authenticates
+     *   only on its own Channels, so a grant elsewhere could never be used.
+     *
+     * {@link assign} applies this to the User of an existing API key. Call it directly for a
+     * key which is still being created.
+     *
+     * @throws {UserInputError} if a pair names the SuperAdmin Role or a Channel the key does not
+     * belong to
+     * @since 4.0.0
+     */
+    async assertValidApiKeyGrants(
+        ctx: RequestContext,
+        apiKeyChannelIds: ID[],
+        pairs: RoleChannelPair[],
+    ): Promise<void> {
+        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
+        if (pairs.some(pair => idsAreEqual(pair.roleId, superAdminRole.id))) {
+            throw new UserInputError('error.api-key-cannot-hold-superadmin-role');
+        }
+        if (pairs.some(pair => !apiKeyChannelIds.some(channelId => idsAreEqual(channelId, pair.channelId)))) {
+            throw new UserInputError('error.api-key-role-channel-not-assigned');
+        }
     }
 
     /**
