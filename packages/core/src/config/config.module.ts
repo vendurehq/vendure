@@ -162,6 +162,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             this.configService.assetOptions;
         const {
             productVariantPriceCalculationStrategy,
+            productVariantPriceLoadingStrategy,
             productVariantPriceSelectionStrategy,
             productVariantPriceUpdateStrategy,
             stockDisplayStrategy,
@@ -257,6 +258,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             orderSellerStrategy,
             shippingLineAssignmentStrategy,
             stockLocationStrategy,
+            productVariantPriceLoadingStrategy,
             productVariantPriceSelectionStrategy,
             guestCheckoutStrategy,
             ...refundProcess,

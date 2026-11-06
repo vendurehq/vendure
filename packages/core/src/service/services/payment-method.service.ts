@@ -292,13 +292,14 @@ export class PaymentMethodService {
     }
 
     async getEligiblePaymentMethods(ctx: RequestContext, order: Order): Promise<PaymentMethodQuote[]> {
-        const paymentMethods = await this.connection
-            .getRepository(ctx, PaymentMethod)
-            .find({ where: { enabled: true }, relations: { channels: true } });
+        // Only the methods of the active Channel, each with only that Channel joined: loading
+        // every enabled method with every Channel grows with the number of Channels.
+        const paymentMethods = await this.connection.getRepository(ctx, PaymentMethod).find({
+            where: { enabled: true, channels: { id: ctx.channelId } },
+            relations: { channels: true },
+        });
         const results: PaymentMethodQuote[] = [];
-        const paymentMethodsInChannel = paymentMethods
-            .filter(p => p.channels.find(pc => idsAreEqual(pc.id, ctx.channelId)))
-            .map(p => this.translator.translate(p, ctx));
+        const paymentMethodsInChannel = paymentMethods.map(p => this.translator.translate(p, ctx));
         for (const method of paymentMethodsInChannel) {
             let isEligible = true;
             let eligibilityMessage: string | undefined;
