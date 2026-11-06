@@ -29,3 +29,12 @@ input UpdateRoleInput {
     description: String
     permissions: [Permission!]
 }
+
+extend type Role {
+    """
+    The Channel which owns this Role. A Role owned by the default Channel can be assigned on any
+    Channel, any other Role only on its owner. Null only for a Role created by a v3 server during
+    a rolling upgrade, until the role assignment migration has completed.
+    """
+    channel: Channel
+}

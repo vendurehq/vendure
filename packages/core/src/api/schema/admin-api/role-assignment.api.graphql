@@ -1,53 +1,38 @@
 type Query {
     """
-    Get a paginated list of RoleAssignments, filtered to those the active user may grant or
-    remove: the assignments of the Users the active user has authority over, that is, Users
-    whose every assignment the active user could grant. For an actor who does not hold every
-    permission on every Channel the list is partial, and `totalItems` counts only the visible
-    assignments.
+    Get a paginated list of the RoleAssignments of the Users the active user may manage: those
+    whose every assignment the active user could grant.
     """
     roleAssignments(options: RoleAssignmentListOptions): RoleAssignmentList!
 }
 
 type Mutation {
     """
-    Grants the User each of the given `(roleId, channelId)` pairs. The active user must hold
-    every permission of each Role on its Channel. Pairs the User already holds are left as-is.
-    The SuperAdmin Role is held on every Channel or not at all, so a SuperAdmin pair on any
-    Channel is stored as a single assignment on the default Channel.
-    The User must be an Administrator, or the User of an ApiKey on the active Channel, and the
-    active user must have authority over it: they must be able to grant every assignment the
-    User holds. Any other User is reported as not found. The active user needs
-    `UpdateAdministrator` (for an ApiKey's User, `UpdateApiKey`) on the active Channel and on
-    the Channel of every pair.
+    Grants the User each Role on the given Channel. The active user must hold every permission
+    of the Role on that Channel, be able to grant every assignment the User already holds, and
+    have UpdateAdministrator (UpdateApiKey for an ApiKey's User) on each Channel involved.
+    A SuperAdmin grant applies on every Channel.
     """
     assignRolesToUser(input: AssignRolesToUserInput!): User!
     """
-    Revokes each of the given `(roleId, channelId)` pairs from the User, under the same rule
-    as `assignRolesToUser`: the active user must hold every permission of each Role on its
-    Channel. Pairs the User does not hold are left as-is. A SuperAdmin pair on any Channel
-    removes the single default-channel SuperAdmin assignment, and with it SuperAdmin access on
-    every Channel; the sole SuperAdmin cannot lose it. The same Users may be targeted as for
-    `assignRolesToUser`.
+    Revokes each Role on the given Channel from the User, under the same rules as
+    assignRolesToUser. Revoking SuperAdmin removes it on every Channel; the sole SuperAdmin
+    cannot lose it.
     """
     removeRolesFromUser(input: RemoveRolesFromUserInput!): User!
 }
 
 extend type User {
     """
-    The RoleAssignments of this User which the active user may grant or remove: all of them
-    if the active user has authority over the User (may grant every one of its assignments),
+    The RoleAssignments of this User: all of them if the active user could grant every one,
     none otherwise.
     """
     roleAssignments: [RoleAssignment!]!
 }
 
 """
-A RoleAssignment grants a User the permissions of a Role on a specific Channel.
-The Role defines the permissions; the RoleAssignment supplies the channel scope. A Role owned by
-the default Channel can be assigned on any Channel, any other Role only on its owning Channel.
-The SuperAdmin Role is the exception: it is stored as a single assignment on the default
-Channel, which stands for every Channel.
+Grants a User the permissions of a Role on a Channel. A SuperAdmin assignment is stored on the
+default Channel and applies on every Channel.
 """
 type RoleAssignment implements Node {
     id: ID!
