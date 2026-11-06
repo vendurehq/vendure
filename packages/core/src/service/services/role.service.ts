@@ -130,7 +130,7 @@ export class RoleService {
             ctx,
             `RoleService.getVisibleRoleIds.user(${String(ctx.activeUserId)})`,
             async () => {
-                // TODO (OSS-755): this materializes the full role list per request and builds
+                // TODO: this materializes the full role list per request and builds
                 // IN clauses proportional to the role count; rework the gate into a SQL
                 // predicate on the list query (role.channelId makes that possible) for
                 // instances with thousands of Roles.
@@ -295,7 +295,14 @@ export class RoleService {
         return role.channelId ?? (await this.getDefaultChannelId(ctx));
     }
 
-    private getDefaultChannelId(ctx: RequestContext): Promise<ID> {
+    /**
+     * @description
+     * The id of the default Channel, which owns the shared Roles and holds the SuperAdmin
+     * assignment rows. Cached for the request.
+     *
+     * @internal
+     */
+    getDefaultChannelId(ctx: RequestContext): Promise<ID> {
         return this.requestContextCache.get(ctx, 'RoleService.getDefaultChannelId', async () => {
             const channel = await this.connection
                 .getRepository(ctx, Channel)

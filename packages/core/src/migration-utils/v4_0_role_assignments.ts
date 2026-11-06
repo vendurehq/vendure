@@ -1,6 +1,9 @@
 /* eslint-disable no-console */
-// TODO: Remove this file once v4.0 has been stable for a while. It is a one-time
-// migration helper and will not be needed after all users have upgraded past v4.0.
+// This one-time v4.0 migration helper must remain exported indefinitely: user migrations
+// import it directly, so removing the export would break compilation of any committed
+// migration that calls it. The guards against the already-migrated state make it a safe no-op
+// once the migration has run. The InitializerService and RoleService also run its checks on
+// bootstrap, to refuse to start on a database which still holds unmigrated grants.
 import {
     CUSTOMER_ROLE_CODE,
     DEFAULT_CHANNEL_CODE,

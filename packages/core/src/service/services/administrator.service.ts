@@ -39,10 +39,11 @@ import { RequestContextService } from '../helpers/request-context/request-contex
 import { StoredMediaUpload } from '../helpers/stored-media/stored-media.service';
 import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
 import { patchEntity } from '../helpers/utils/patch-entity';
+import { getRequestedRoleAssignments } from '../helpers/utils/requested-role-assignments';
 
 import { AssetService } from './asset.service';
 import { ChannelService } from './channel.service';
-import { RoleAssignmentService, RoleChannelPair } from './role-assignment.service';
+import { RoleAssignmentService } from './role-assignment.service';
 import { RoleService } from './role.service';
 import { UserService } from './user.service';
 
@@ -306,13 +307,7 @@ export class AdministratorService {
      * Create a new Administrator.
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
-        this.assertRoleInputsAreExclusive(input);
-        // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active Channel.
-        // Remove the roleIds alternative in v5.0.0.
-        const roleAssignments: RoleChannelPair[] =
-            input.roleAssignments ??
-            input.roleIds?.map(roleId => ({ roleId, channelId: ctx.channelId })) ??
-            [];
+        const roleAssignments = getRequestedRoleAssignments(ctx, input);
         // Checked before anything is written, so a denied grant leaves no Administrator behind
         // even for callers outside a transaction. RoleAssignmentService.assign checks again.
         this.roleAssignmentService.assertActiveUserHasPermissionOnChannels(
@@ -509,16 +504,6 @@ export class AdministratorService {
         return {
             result: DeletionResult.DELETED,
         };
-    }
-
-    /**
-     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`
-     * on creation. Remove in v5.0.0 together with the `roleIds` inputs.
-     */
-    private assertRoleInputsAreExclusive(input: CreateAdministratorInput) {
-        if (input.roleIds && input.roleAssignments) {
-            throw new UserInputError('error.role-ids-and-role-assignments-are-mutually-exclusive');
-        }
     }
 
     private async checkForDuplicateEmailAddress(ctx: RequestContext, emailAddress: string, excludeId?: ID) {

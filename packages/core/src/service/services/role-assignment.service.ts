@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Permission } from '@vendure/common/lib/generated-types';
-import { CUSTOMER_ROLE_CODE, DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { IsNull, NotBrackets, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
@@ -27,10 +27,6 @@ import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
-import {
-    ResolvedUserPermissions,
-    RolePermissionResolver,
-} from '../helpers/role-permission-resolver/role-permission-resolver';
 import { withLockIfSupported } from '../helpers/utils/with-lock-if-supported';
 
 import { RoleService } from './role.service';
@@ -78,7 +74,6 @@ export interface RoleChannelPair {
 export class RoleAssignmentService {
     constructor(
         private connection: TransactionalConnection,
-        private rolePermissionResolver: RolePermissionResolver,
         private listQueryBuilder: ListQueryBuilder,
         private eventBus: EventBus,
         private roleService: RoleService,
@@ -212,14 +207,6 @@ export class RoleAssignmentService {
 
     /**
      * @description
-     * Resolves the effective permissions of the given User. See {@link RolePermissionResolver}.
-     */
-    resolvePermissions(userId: ID): Promise<ResolvedUserPermissions> {
-        return this.rolePermissionResolver.resolvePermissions(userId);
-    }
-
-    /**
-     * @description
      * Returns the distinct Roles assigned to the given User across all Channels.
      */
     async resolveUserRoles(ctx: RequestContext, userId: ID): Promise<Role[]> {
@@ -232,29 +219,6 @@ export class RoleAssignmentService {
         // customer User holds no Roles here.
         // The same Role assigned on several Channels yields one row per Channel.
         return unique(roles, 'id');
-    }
-
-    /**
-     * @description
-     * Returns the ids of all Users holding the given Role on any Channel. Soft-deleted Users
-     * hold no rows (see {@link removeAllAssignmentsForUser}), so none are returned.
-     */
-    async resolveUserIdsWithRole(ctx: RequestContext, roleId: ID): Promise<ID[]> {
-        const assignments = await this.connection.getRepository(ctx, RoleAssignment).find({
-            where: { roleId },
-        });
-        return unique(assignments.map(assignment => assignment.userId));
-    }
-
-    /**
-     * @description
-     * Returns the ids of the Roles assigned to the given User on the given Channel.
-     */
-    async getAssignedRoleIdsOnChannel(ctx: RequestContext, userId: ID, channelId: ID): Promise<ID[]> {
-        const assignments = await this.connection.getRepository(ctx, RoleAssignment).find({
-            where: { userId, channelId },
-        });
-        return unique(assignments.map(a => a.roleId));
     }
 
     /**
@@ -319,7 +283,7 @@ export class RoleAssignmentService {
      */
     async assign(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<RoleAssignment[]> {
         const allChannels = await this.connection.getRepository(ctx, Channel).find();
-        const target = await this.anchorSuperAdminPairs(ctx, pairs, allChannels);
+        const target = await this.anchorSuperAdminPairs(ctx, pairs);
         await this.roleService.assertActiveUserCanGrantRoles(ctx, target);
         const apiKey = await this.connection.getRepository(ctx, ApiKey).findOne({
             where: { userId, deletedAt: IsNull() },
@@ -724,21 +688,16 @@ export class RoleAssignmentService {
     private async anchorSuperAdminPairs(
         ctx: RequestContext,
         pairs: RoleChannelPair[],
-        channels?: Channel[],
     ): Promise<RoleChannelPair[]> {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         if (!pairs.some(pair => idsAreEqual(pair.roleId, superAdminRole.id))) {
             return this.dedupePairs(pairs);
         }
-        const allChannels = channels ?? (await this.connection.getRepository(ctx, Channel).find());
-        const defaultChannel = allChannels.find(channel => channel.code === DEFAULT_CHANNEL_CODE);
-        if (!defaultChannel) {
-            throw new InternalServerError('error.default-channel-not-found');
-        }
+        const defaultChannelId = await this.roleService.getDefaultChannelId(ctx);
         return this.dedupePairs(
             pairs.map(pair =>
                 idsAreEqual(pair.roleId, superAdminRole.id)
-                    ? { roleId: pair.roleId, channelId: defaultChannel.id }
+                    ? { roleId: pair.roleId, channelId: defaultChannelId }
                     : pair,
             ),
         );

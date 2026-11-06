@@ -34,6 +34,7 @@ import { CustomFieldRelationService } from '../helpers/custom-field-relation/cus
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
+import { getRequestedRoleAssignments } from '../helpers/utils/requested-role-assignments';
 
 import { ChannelService } from './channel.service';
 import { RoleAssignmentService, RoleChannelPair } from './role-assignment.service';
@@ -117,16 +118,10 @@ export class ApiKeyService {
          */
         userIdApiKeyUser?: ID,
     ): Promise<CreateApiKeyResult> {
-        this.assertRoleInputsAreExclusive(input);
+        const roleAssignments = getRequestedRoleAssignments(ctx, input);
         if (userIdApiKeyUser) {
             this.assertNoRoleInputsForImpersonatedUser(input);
         }
-        // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active Channel.
-        // Remove the roleIds alternative in v5.0.0.
-        const roleAssignments: RoleChannelPair[] =
-            input.roleAssignments ??
-            input.roleIds?.map(roleId => ({ roleId, channelId: ctx.channelId })) ??
-            [];
         // Checked before anything is written, so a denied grant leaves no User or ApiKey
         // behind even for callers outside a transaction. RoleAssignmentService.assign checks again.
         this.roleAssignmentService.assertActiveUserHasPermissionOnChannels(
@@ -291,16 +286,6 @@ export class ApiKeyService {
     }) {
         if (input.roleIds || input.roleAssignments) {
             throw new UserInputError('error.api-key-impersonated-user-cannot-receive-roles');
-        }
-    }
-
-    /**
-     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`
-     * on creation. Remove in v5.0.0 together with the `roleIds` inputs.
-     */
-    private assertRoleInputsAreExclusive(input: CreateApiKeyInput) {
-        if (input.roleIds && input.roleAssignments) {
-            throw new UserInputError('error.role-ids-and-role-assignments-are-mutually-exclusive');
         }
     }
 

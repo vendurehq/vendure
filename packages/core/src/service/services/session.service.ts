@@ -399,13 +399,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     }
 
     /**
-     * @description
-     * Evicts all cached sessions of the given user from the session cache without deleting
-     * the sessions themselves, so the user stays logged in. The next request on each session
-     * re-serializes it via {@link SessionService.serializeSession}, resolving fresh per-channel
-     * permissions. Use after changing data which affects a user's permissions.
-     *
-     * @since 4.0.0
+     * Evicts the cached sessions of the Customer's User, if it has one.
      */
     private async clearSessionCacheForCustomer(customerId: ID): Promise<void> {
         const customer = await this.connection.rawConnection
@@ -416,6 +410,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         }
     }
 
+    /**
+     * @description
+     * Evicts all cached sessions of the given user from the session cache without deleting
+     * the sessions themselves, so the user stays logged in. The next request on each session
+     * re-serializes it via {@link SessionService.serializeSession}, resolving fresh per-channel
+     * permissions. Use after changing data which affects a user's permissions.
+     *
+     * @since 4.0.0
+     */
     async clearSessionCacheForUser(userId: ID): Promise<void> {
         const userSessions = await this.connection.rawConnection
             .getRepository(AuthenticatedSession)

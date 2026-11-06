@@ -1,5 +1,5 @@
-// TODO: Remove this file once v4.0 has been stable for a while. It is a one-time
-// migration helper and will not be needed after all users have upgraded past v4.0.
+// This v4.0 migration preview must remain exported indefinitely, like the migration helpers in
+// v4_0_role_assignments.ts: user scripts import it directly. It only reads the database.
 import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { QueryRunner } from 'typeorm';
 
