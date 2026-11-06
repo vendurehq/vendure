@@ -2,6 +2,7 @@
 
 export * from './components/data-display/boolean.js';
 export * from './components/data-display/date-time.js';
+export * from './components/data-display/identifier.js';
 export * from './components/data-display/json-viewer.js';
 export * from './components/data-display/json.js';
 export * from './components/data-display/money.js';
