@@ -1222,7 +1222,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-10-16T14:35:27Z"
+                  "lastModified": "2026-11-06T07:33:30Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1316,7 +1316,7 @@
                   "title": "ApiOptions",
                   "slug": "api-options",
                   "file": "docs/reference/typescript-api/configuration/api-options.mdx",
-                  "lastModified": "2026-10-22T11:25:13Z"
+                  "lastModified": "2026-11-06T07:33:30Z"
                 },
                 {
                   "title": "CollectionFilter",
