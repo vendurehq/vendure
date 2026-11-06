@@ -75,6 +75,10 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
 
 **Done when:** the migration command succeeds, each helper logs its result (see the helper's guide), and Vendure v4 starts.
 
+<Callout type="warning">
+On MySQL and MariaDB every DDL statement commits on its own. If the migration stops partway, for example because the process is killed, the statements which already ran stay applied while the migration is not recorded, and running it again fails, e.g. on "Table 'role_assignment' already exists". Restore the backup, or undo what the generated statements already created (drop the `role_assignment` table and the `channelId` column of `role`) and run the migration again. The data-migration helpers themselves can be re-run safely: they skip work which is already done.
+</Callout>
+
 ### With `synchronize: true`
 
 If `dbConnectionOptions.synchronize` is enabled, there is no migration to call the helpers from. Vendure runs `migrateRoleAssignmentData` and `removeLegacyRoleData` on the first v4 startup instead, in one transaction. Stop every v3 server and worker before you start v4.

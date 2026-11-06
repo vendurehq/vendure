@@ -57,7 +57,7 @@ The report has these sections:
 
 - **Migration:** how many Users get rows and how many rows the migration writes, with an estimated run time. The estimate comes from measurements on PostgreSQL. Time the migration on a copy of your production database before you plan the [migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration).
 - **Administrators and API keys:** no change in access.
-- **Customers holding other roles:** Customers who also hold another Role, for example as an Administrator. The migration copies those Roles like any other.
+- **Customers holding other roles:** Customers who are not Administrators but hold a Role besides the Customer role, for example to unlock B2B features. The migration copies those grants like any other. See [Customers holding Roles](#customers-holding-roles).
 - **Shop customers:** per Channel, how many Customers lose access because they are not a member of it, and how many gain access because they are a member of a Channel the Customer role did not cover. See [Storefront changes](#storefront-changes) for what this means for shoppers.
 - **Customer role permissions:** permissions that were added to the Customer role by hand. v4 has no Customer role and no replacement for this, so these are lost.
 - **Roles assigned to no channel:** Roles that will have no assignments. Assign them per Channel after migrating if they are still needed.
@@ -72,6 +72,7 @@ In v3 a User received each of their Roles' permissions on every Channel the Role
 - **Customer role:** no rows. Customers get `Authenticated` on the Channels they are a member of (the `customer_channels_channel` table), derived at check time.
 - **SuperAdmin role:** one row per holder, on the default Channel. That row grants every permission on every Channel.
 - **Roles assigned to no Channel:** no rows. These Roles granted nothing in v3, so nobody loses access. The Roles themselves stay.
+- **Soft-deleted Users:** no rows. Their login already fails, so no access is lost. In v4 a deleted Administrator or API key holds no assignments.
 
 It gives every Role its owning Channel. A Role assigned to exactly one Channel is owned by that Channel. Every other Role, assigned to several Channels, to none or only to the default Channel, is owned by the default Channel. All existing grants stay valid under these owners.
 
@@ -172,6 +173,12 @@ The names above use the default `namespace` of the `RedisCachePlugin`, the defau
 In v3 the Administrator permissions covered Role CRUD. In v4 Role CRUD needs `CreateRole`, `UpdateRole` and `DeleteRole`, bundled in the `RoleEditor` Role, which the migration grants to nobody. Until a SuperAdmin grants it, only SuperAdmins can create, edit or delete Roles.
 
 An Administrator can edit or delete a Role only when they hold `UpdateRole` or `DeleteRole` on the Channel that owns it. To add permissions to a Role, they must also hold those permissions on the owning Channel and on every Channel where the Role is assigned. Grant `RoleEditor` on the default Channel to the administrators who maintain the shared Roles, and on a seller's Channel to the administrators who maintain that seller's own Roles.
+
+### Customers holding Roles
+
+A v3 Customer could hold a Role besides the Customer role, for example to unlock features of a B2B plugin. The migration copies those grants. They keep working for plugin operations which check them on the Shop API. They do not reach the Admin API: since GHSA-5fpx-9m35-w745 (v3.8.x) the Admin API refuses a session created on the Shop API.
+
+`assignRolesToUser` and `removeRolesFromUser` accept only Administrators and API keys, so these grants cannot be changed through the Admin API. Change them in code with `RoleAssignmentService.createAssignments()` and `deleteAssignments()`, which perform no authorization and so belong in trusted plugin code only.
 
 ## Updating your code
 
@@ -298,6 +305,8 @@ input RoleAssignmentInput { roleId: ID!  channelId: ID! }
 - `roleAssignments` and `User.roleAssignments` return the assignments of the Users the active user has authority over, all of them, and nothing for other Users. So the list shows exactly the assignments the active user may change.
 - `createAdministrator` and `createApiKey` accept a `roleAssignments` input.
 - `Role.channel` returns the owning Channel.
+- An API key cannot be granted the SuperAdmin Role, and can only be granted Roles on the Channels it belongs to: the Channel it was created on and the default Channel. Keys which hold SuperAdmin after migrating keep it until you remove it; replace them with keys holding the permissions they need.
+- An Administrator cannot remove their own last role assignment or delete themselves. Both would lock them out with no way back through the API.
 
 #### `roleIds` now applies to the active Channel only
 

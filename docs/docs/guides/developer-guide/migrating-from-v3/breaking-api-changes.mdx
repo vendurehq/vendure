@@ -49,6 +49,9 @@ rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
 - Every Role is owned by the Channel it was created on. A Role owned by the default Channel can be assigned on any Channel; any other Role only on its owning Channel.
 - In the Admin API, `Role.channels` and `channelIds` on the Role inputs are removed, and `Role.channel` returns the owning Channel. `createRole` creates the Role on the active Channel. The deprecated `roleIds` inputs now apply to the active Channel only. Use `assignRolesToUser` and `removeRolesFromUser` instead.
 - Role CRUD needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions on the Channel that owns the Role.
+- An API key cannot be granted the SuperAdmin Role, or Roles on Channels it does not belong to.
+- An Administrator cannot delete themselves or remove their own last role assignment.
+- `BaseAuthResolver.publiclyAccessibleUser()` takes the `RequestContext` as its first argument. Only relevant if you extend the auth resolvers.
 
 For the full list, and what stays the same, see [Updating your code](/developer-guide/migrating-from-v3/role-assignments#updating-your-code).
 
