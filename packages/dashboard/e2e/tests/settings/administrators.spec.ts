@@ -2,6 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { expectPopupClosed } from '../../utils/base-ui-popups.js';
 
 // Administrators have a password field and a role assignment builder
 // that don't fit the standard CRUD factory, so we use custom tests.
@@ -56,8 +57,11 @@ test.describe('Administrators', () => {
 
         // The role assignment editor starts with one row on the active channel,
         // so only the role itself needs picking
+        // The role picker is a single select, which closes itself on selection
         const roleCombobox = page.getByRole('combobox').first();
-        await dp.selectPopoverOption(roleCombobox, 'SuperAdmin');
+        await roleCombobox.click();
+        await page.getByRole('option', { name: 'SuperAdmin', exact: true }).click();
+        await expectPopupClosed(roleCombobox);
 
         await dp.clickCreate();
         await dp.expectSuccessToast(/Successfully created administrator/);
