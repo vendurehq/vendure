@@ -887,7 +887,7 @@ async function copyEmailTemplates(root: string) {
     } catch (err: any) {
         log(pc.red('Failed to copy email templates.'));
         log(err);
-        process.exit(0);
+        process.exit(1);
     }
 }
 
