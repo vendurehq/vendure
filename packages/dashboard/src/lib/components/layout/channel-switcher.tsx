@@ -16,21 +16,30 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { Input } from '@/vdb/components/ui/input.js';
 import { ScrollArea } from '@/vdb/components/ui/scroll-area.js';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/vdb/components/ui/sidebar.js';
+import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
 import { useChannelColors } from '@/vdb/hooks/use-channel-colors.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { useSortedLanguages } from '@/vdb/hooks/use-sorted-languages.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { ManageLanguagesDialog } from './manage-languages-dialog.js';
 
+/**
+ * From this many Channels on, the switcher gets a filter input.
+ */
+const CHANNEL_FILTER_THRESHOLD = 10;
+
 export function ChannelSwitcher() {
+    const { t } = useLingui();
     const { isMobile } = useSidebar();
+    const [channelFilter, setChannelFilter] = useState('');
     const { channels, activeChannel, setActiveChannel } = useChannel();
     const serverConfig = useServerConfig();
     const { formatLanguageName } = useLocalFormat();
@@ -48,7 +57,16 @@ export function ChannelSwitcher() {
     const hasMultipleLanguages = availableLanguages.length > 1;
 
     // Currently selected channel is displayed separately so filter it out of the list
-    const orderedChannels = displayChannel ? channels.filter(ch => ch.id !== displayChannel.id) : channels;
+    const otherChannels = displayChannel ? channels.filter(ch => ch.id !== displayChannel.id) : channels;
+    const showChannelFilter = channels.length > CHANNEL_FILTER_THRESHOLD;
+    const filterTerm = channelFilter.trim().toLowerCase();
+    const orderedChannels = filterTerm
+        ? otherChannels.filter(ch =>
+              (ch.code === DEFAULT_CHANNEL_CODE ? t`Default channel` : ch.code)
+                  .toLowerCase()
+                  .includes(filterTerm),
+          )
+        : otherChannels;
 
     // Sort language codes by their formatted names and map to code and label
     const sortedLanguages = useSortedLanguages(displayChannel?.availableLanguageCodes);
@@ -81,7 +99,7 @@ export function ChannelSwitcher() {
         <>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <DropdownMenu>
+                    <DropdownMenu onOpenChange={open => !open && setChannelFilter('')}>
                         <DropdownMenuTrigger
                             render={
                                 <SidebarMenuButton
@@ -167,11 +185,34 @@ export function ChannelSwitcher() {
                                                 </DropdownMenuSubContent>
                                             </DropdownMenuSub>
                                             {/* Add separator after the current channel group */}
-                                            {orderedChannels.length > 0 && <DropdownMenuSeparator />}
+                                            {otherChannels.length > 0 && <DropdownMenuSeparator />}
                                         </>
+                                    )}
+                                    {showChannelFilter && (
+                                        <div className="px-1 pb-1">
+                                            <Input
+                                                value={channelFilter}
+                                                onChange={event => setChannelFilter(event.target.value)}
+                                                // The menu's typeahead and arrow-key handling would
+                                                // otherwise take the keystrokes meant for the input.
+                                                onKeyDown={event => {
+                                                    if (event.key !== 'Escape') {
+                                                        event.stopPropagation();
+                                                    }
+                                                }}
+                                                placeholder={t`Filter channels...`}
+                                                aria-label={t`Filter channels`}
+                                                className="h-8"
+                                            />
+                                        </div>
                                     )}
                                 </div>
                                 {orderedChannels.map(renderChannel)}
+                                {filterTerm && orderedChannels.length === 0 && (
+                                    <div className="p-2 text-sm text-muted-foreground">
+                                        <Trans>No matches</Trans>
+                                    </div>
+                                )}
                                 {isAvailable && canEdit ? (
                                     <>
                                         <DropdownMenuSeparator />

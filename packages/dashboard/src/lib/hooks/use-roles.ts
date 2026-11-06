@@ -1,10 +1,11 @@
 import { api } from '@/vdb/graphql/api.js';
-import { graphql } from '@/vdb/graphql/graphql.js';
+import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
 import { useQuery } from '@tanstack/react-query';
 
 export const rolesDocument = graphql(`
     query Roles($options: RoleListOptions) {
         roles(options: $options) {
+            totalItems
             items {
                 id
                 code
@@ -28,17 +29,34 @@ export const rolesDocument = graphql(`
 export function useRoles() {
     const { data } = useQuery({
         queryKey: ['roles'],
-        queryFn: () =>
-            api.query(rolesDocument, {
-                options: {
-                    // TODO: an instance with more than 100 Roles silently loses the rest here,
-                    // affecting every consumer (RoleSelector, useGrantableRoles). Paginate or
-                    // switch the selectors to server-side search.
-                    take: 100,
-                },
-            }),
-        select: data => data.roles.items,
+        queryFn: fetchAllRoles,
     });
 
     return { roles: data ?? [] };
 }
+
+type RoleItem = ResultOf<typeof rolesDocument>['roles']['items'][number];
+
+/**
+ * Every consumer (RoleSelector, useGrantableRoles, the effective permissions panel) needs the
+ * complete set: a Role missing from the list is treated as not grantable and not readable,
+ * with no error. A marketplace with one Role per vendor passes 100 Roles quickly, so the list
+ * is read in pages rather than with a single `take`.
+ */
+async function fetchAllRoles(): Promise<RoleItem[]> {
+    const roles: RoleItem[] = [];
+    let totalItems = Infinity;
+    while (roles.length < totalItems) {
+        const { roles: page } = await api.query(rolesDocument, {
+            options: { skip: roles.length, take: ROLES_PAGE_SIZE, sort: { id: 'ASC' } },
+        });
+        totalItems = page.totalItems;
+        if (page.items.length === 0) {
+            break;
+        }
+        roles.push(...page.items);
+    }
+    return roles;
+}
+
+const ROLES_PAGE_SIZE = 100;

@@ -1,6 +1,7 @@
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { PageBlock } from '@/vdb/framework/layout-engine/page-layout.js';
 import { Trans } from '@lingui/react/macro';
+import { useRef, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 
 import { EffectivePermissionsPanel } from './effective-permissions-panel.js';
@@ -9,10 +10,6 @@ import { RoleAssignmentRow, RoleAssignmentsTable } from './role-assignments-tabl
 
 export interface RolesPageBlockProps {
     column: 'main' | 'side';
-    /**
-     * Whose roles the block shows, which only changes the wording.
-     */
-    subject: 'administrator' | 'apiKey';
     /**
      * Set on creation: the form whose `roleAssignments` field collects the grants, which are
      * sent with the create mutation.
@@ -39,26 +36,19 @@ export interface RolesPageBlockProps {
  */
 export function RolesPageBlock({
     column,
-    subject,
     createForm,
     user,
     onChange,
     apiKeyChannelIds,
 }: Readonly<RolesPageBlockProps>) {
     const formAssignments = createForm?.watch('roleAssignments');
-    const description =
-        subject === 'administrator' ? (
-            <Trans>
-                What this administrator can do on the selected channel, derived from the roles assigned above.
-                Edit the roles to change it.
-            </Trans>
-        ) : (
-            <Trans>
-                What this API key can do on the selected channel, derived from the roles assigned above. Edit
-                the roles to change it.
-            </Trans>
-        );
-
+    const [permissionsChannelId, setPermissionsChannelId] = useState<string | undefined>();
+    const permissionsRef = useRef<HTMLDivElement>(null);
+    // A Channel clicked in the assignments table: show what the User can do there.
+    const showPermissionsOn = (channelId: string) => {
+        setPermissionsChannelId(channelId);
+        permissionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
     if (createForm) {
         return (
             <PageBlock column={column} blockId="roles" title={<Trans>Roles</Trans>}>
@@ -74,12 +64,9 @@ export function RolesPageBlock({
                     )}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                    <Trans>
-                        You can only grant a role on a channel where you hold all of that role's permissions
-                        yourself.
-                    </Trans>
+                    <Trans>Only roles you hold are shown.</Trans>
                 </p>
-                <EffectivePermissionsPanel assignments={formAssignments ?? []} description={description} />
+                <EffectivePermissionsPanel assignments={formAssignments ?? []} />
             </PageBlock>
         );
     }
@@ -93,14 +80,18 @@ export function RolesPageBlock({
                 assignments={user.roleAssignments}
                 apiKeyChannelIds={apiKeyChannelIds}
                 onChange={onChange}
+                onChannelSelect={showPermissionsOn}
             />
             <p className="text-xs text-muted-foreground mt-2">
-                <Trans>
-                    Changes to roles are saved immediately. You can only see and change assignments of roles
-                    whose permissions you hold yourself on that channel.
-                </Trans>
+                <Trans>Changes save immediately.</Trans>
             </p>
-            <EffectivePermissionsPanel assignments={user.roleAssignments} description={description} />
+            <div ref={permissionsRef} className="scroll-mt-4">
+                <EffectivePermissionsPanel
+                    assignments={user.roleAssignments}
+                    channelId={permissionsChannelId}
+                    onChannelChange={setPermissionsChannelId}
+                />
+            </div>
         </PageBlock>
     );
 }

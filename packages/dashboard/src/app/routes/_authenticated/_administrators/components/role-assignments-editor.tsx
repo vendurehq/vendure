@@ -231,6 +231,7 @@ export function RoleAssignmentsEditor({
                                     id => !apiKeyChannelIds || apiKeyChannelIds.includes(id),
                                 )}
                                 ownChannelsOnly
+                                showSelectAll
                             />
                         )}
                     </div>
