@@ -65,6 +65,51 @@ html[dir="rtl"] * {
     }
 }
 
+/* Whole-row link. A table row with a DetailPageButton opens its detail page from any
+   point of the row: the link's ::after stretches over the row, and the row's own controls
+   stack above it. The link stays the row's only tab stop. Only the first link of a row
+   stretches. */
+@layer components {
+    [data-slot='table-row']:has([data-row-link]) {
+        position: relative;
+        cursor: pointer;
+    }
+
+    [data-slot='table-row'] [data-row-link]::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+    }
+
+    [data-slot='table-row'] [data-row-link]:focus-visible::after {
+        @apply ring-2 ring-ring ring-inset;
+    }
+
+    [data-slot='table-row']:has([data-row-link])
+        :is(button, a, input, select, textarea, [role='checkbox'], [role='button'], [data-slot='id-chip']):not(
+            [data-row-link]
+        ),
+    [data-slot='table-row'] td:has([data-row-link]) ~ td [data-row-link] {
+        position: relative;
+        z-index: 10;
+    }
+}
+
+/* Overrides of the stretched link's button utilities, so they sit in the utilities layer.
+   - The link is hovered wherever the row is, so its ghost fill would stack on the row's fill.
+   - A press scale makes the link the containing block of its ::after, which then shrinks to
+     the button mid-click, and the click no longer reaches the link. */
+@layer utilities {
+    [data-slot='table-row'] [data-row-link]:hover {
+        background-color: transparent;
+    }
+
+    [data-slot='table-row'] [data-row-link]:active {
+        scale: none;
+        transform: none;
+    }
+}
+
 @utility col-main {
     grid-column: span 3 / span 3;
 }
