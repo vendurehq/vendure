@@ -42,24 +42,26 @@ describe('BooleanDisplayYesNoBadge', () => {
 });
 
 describe('BooleanDisplayBadge', () => {
-    it('renders only a screen-reader label for a true value', () => {
+    it('renders a success badge for a true value that shows only on row hover or focus', () => {
         const markup = render(<BooleanDisplayBadge value={true} />);
 
-        expect(markup).toBe('<span class="sr-only">Enabled</span>');
+        expect(markup).toContain('Enabled');
+        expect(markup).toContain('data-tone="success"');
+        expect(markup).toContain('opacity-0');
+        expect(markup).toContain('group-hover/row:opacity-100');
+        expect(markup).toContain('group-focus-within/row:opacity-100');
     });
 
-    it('renders a Disabled badge with the neutral tone for a false value', () => {
+    it('renders an always-visible Disabled badge with the state dictionary tone for a false value', () => {
         const markup = render(<BooleanDisplayBadge value={false} />);
 
         expect(markup).toContain('Disabled');
         expect(markup).toContain('data-tone="neutral"');
-        expect(markup).not.toContain('sr-only');
+        expect(markup).not.toContain('opacity-0');
     });
 
     it('uses the custom labels', () => {
-        expect(render(<BooleanDisplayBadge value={true} labelTrue="Active" />)).toBe(
-            '<span class="sr-only">Active</span>',
-        );
+        expect(render(<BooleanDisplayBadge value={true} labelTrue="Active" />)).toContain('Active');
         expect(render(<BooleanDisplayBadge value={false} labelFalse="Inactive" />)).toContain('Inactive');
     });
 });

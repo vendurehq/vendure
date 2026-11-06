@@ -1,7 +1,7 @@
 import { useLingui } from '@lingui/react/macro';
 import { CheckIcon, XIcon } from 'lucide-react';
 import React from 'react';
-import { StatusBadge } from '../ui/status-badge.js';
+import { commonStates, StatusBadge } from '../ui/status-badge.js';
 
 export function BooleanDisplayCheckbox({ value }: Readonly<{ value: boolean }>) {
     return value ? <CheckIcon className="opacity-70" /> : <XIcon className="opacity-70" />;
@@ -13,9 +13,10 @@ export function BooleanDisplayYesNoBadge({ value }: Readonly<{ value: boolean }>
 }
 
 /**
- * A `false` value shows a badge ("Disabled" by default). A `true` value shows no badge, only a
- * label for screen readers ("Enabled" by default). In a column named "Enabled", a visible
- * "Enabled" badge in each row only repeats the header.
+ * The normal state is quiet and the exception is loud. A `false` value shows a badge
+ * ("Disabled" by default) at all times. A `true` value ("Enabled" by default) shows its badge
+ * only while the table row is hovered or holds keyboard focus. At rest the badge is
+ * transparent, so it takes no new space when it appears and screen readers still read it.
  */
 export function BooleanDisplayBadge({
     value,
@@ -28,7 +29,15 @@ export function BooleanDisplayBadge({
 }) {
     const { t } = useLingui();
     if (value) {
-        return <span className="sr-only">{labelTrue ?? t`Enabled`}</span>;
+        return (
+            <StatusBadge tone={commonStates.toneFor('enabled')} className={ROW_REVEAL_CLASS}>
+                {labelTrue ?? t`Enabled`}
+            </StatusBadge>
+        );
     }
-    return <StatusBadge tone="neutral">{labelFalse ?? t`Disabled`}</StatusBadge>;
+    return <StatusBadge tone={commonStates.toneFor('disabled')}>{labelFalse ?? t`Disabled`}</StatusBadge>;
 }
+
+// Hidden until the table row (`group/row`) is hovered or holds focus.
+const ROW_REVEAL_CLASS =
+    'opacity-0 transition-opacity duration-fast ease-out group-hover/row:opacity-100 group-focus-within/row:opacity-100 motion-reduce:transition-none';
