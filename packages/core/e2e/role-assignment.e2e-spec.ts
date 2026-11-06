@@ -491,13 +491,17 @@ describe('RoleAssignment', () => {
             expect(removeRolesFromUser.roleAssignments).toEqual([]);
         });
 
-        // Pins current behaviour. Removing one's own SuperAdmin passes while another SuperAdmin
-        // exists; whether self may be the target of a removal is still open (Questions d7).
+        // Removing one's own SuperAdmin passes while another SuperAdmin exists, as long as it is
+        // not one's last assignment (which would lock the Administrator out).
         it('a SuperAdmin can revoke their own SuperAdmin while another SuperAdmin exists', async () => {
             await adminClient.query(assignRolesToUserDocument, {
                 input: {
                     userId: secondSuperAdmin.user.id,
-                    assignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                    // A second assignment, granting nothing on the default channel
+                    assignments: [
+                        { roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID },
+                        { roleId: adminManagerRole.id, channelId: secondChannel.id },
+                    ],
                 },
             });
 
@@ -509,7 +513,7 @@ describe('RoleAssignment', () => {
                     assignments: [{ roleId: superAdminRoleId, channelId: secondChannel.id }],
                 },
             });
-            expect(removeRolesFromUser.roleAssignments).toEqual([]);
+            expect(removeRolesFromUser.roleAssignments.map(a => a.roleId)).toEqual([adminManagerRole.id]);
 
             // The revocation is effective on the next request of the same session
             await assertThrowsWithMessage(async () => {
@@ -519,6 +523,53 @@ describe('RoleAssignment', () => {
             }, 'You are not currently authorized to perform this action')();
 
             await asSuperAdminOnDefaultChannel();
+            await adminClient.query(removeRolesFromUserDocument, {
+                input: {
+                    userId: secondSuperAdmin.user.id,
+                    assignments: [{ roleId: adminManagerRole.id, channelId: secondChannel.id }],
+                },
+            });
+        });
+
+        // An Administrator cannot lock themselves out: removing their own last assignment and
+        // deleting themselves are refused, since neither can be undone through the API.
+        it('an Administrator cannot remove their own last assignment', async () => {
+            await adminClient.query(assignRolesToUserDocument, {
+                input: {
+                    userId: secondSuperAdmin.user.id,
+                    assignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                },
+            });
+            await adminClient.asUserWithCredentials(secondSuperAdmin.emailAddress, 'test');
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(removeRolesFromUserDocument, {
+                    input: {
+                        userId: secondSuperAdmin.user.id,
+                        assignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                    },
+                });
+            }, 'Removing your own last role assignment would lock you out')();
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(updateAdministratorDocument, {
+                    input: { id: secondSuperAdmin.id, roleIds: [] },
+                });
+            }, 'Removing your own last role assignment would lock you out')();
+        });
+
+        it('an Administrator cannot delete themselves', async () => {
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(deleteAdministratorDocument, { id: secondSuperAdmin.id });
+            }, 'An Administrator cannot delete themselves')();
+
+            await asSuperAdminOnDefaultChannel();
+            await adminClient.query(removeRolesFromUserDocument, {
+                input: {
+                    userId: secondSuperAdmin.user.id,
+                    assignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                },
+            });
         });
 
         // An authentication strategy grants the Roles it resolved through createAssignments, on

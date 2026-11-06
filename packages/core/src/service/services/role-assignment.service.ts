@@ -367,6 +367,18 @@ export class RoleAssignmentService {
         if (removesSuperAdmin && (await this.isSoleSuperAdminHolder(ctx, userId))) {
             throw new InternalServerError('error.superadmin-must-have-superadmin-role');
         }
+        if (ctx.activeUserId != null && idsAreEqual(userId, ctx.activeUserId)) {
+            // Removing one's own last assignment locks the active user out with no way back
+            // through the API, so it is refused. Other changes to one's own Roles cannot escalate,
+            // since the grant rule still applies.
+            const existing = await this.getAssignmentsForUser(ctx, userId);
+            const remaining = existing.filter(
+                assignment => !this.selectRows([assignment], target, superAdminRole.id).length,
+            );
+            if (existing.length && !remaining.length) {
+                throw new UserInputError('error.cannot-remove-own-last-role-assignment');
+            }
+        }
         await this.deleteAssignments(ctx, userId, target);
         return this.getAssignmentsForUser(ctx, userId);
     }
@@ -575,17 +587,22 @@ export class RoleAssignmentService {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const existing = await this.getAssignmentsForUser(ctx, userId);
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        const target = this.dedupePairs(pairs);
-        const removesSuperAdmin = target.some(pair => idsAreEqual(pair.roleId, superAdminRole.id));
-        // A SuperAdmin pair names the SuperAdmin Role on every Channel, so it removes the User's
-        // SuperAdmin row wherever it is stored. Rows which predate anchoring in this method may
-        // name another Channel than the default one.
-        const toRemove = existing.filter(
+        await this.removeRows(ctx, user, this.selectRows(existing, pairs, superAdminRole.id));
+    }
+
+    /**
+     * The rows among `rows` which the pairs address. A SuperAdmin pair names the SuperAdmin Role
+     * on every Channel, so it addresses the User's SuperAdmin row wherever it is stored: rows which
+     * predate the anchoring in {@link createAssignments} may name another Channel than the
+     * default one.
+     */
+    private selectRows(rows: RoleAssignment[], pairs: RoleChannelPair[], superAdminRoleId: ID) {
+        const removesSuperAdmin = pairs.some(pair => idsAreEqual(pair.roleId, superAdminRoleId));
+        return rows.filter(
             assignment =>
-                target.some(pair => this.matches(assignment, pair)) ||
-                (removesSuperAdmin && idsAreEqual(assignment.roleId, superAdminRole.id)),
+                pairs.some(pair => this.matches(assignment, pair)) ||
+                (removesSuperAdmin && idsAreEqual(assignment.roleId, superAdminRoleId)),
         );
-        await this.removeRows(ctx, user, toRemove);
     }
 
     /**

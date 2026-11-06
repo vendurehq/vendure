@@ -411,11 +411,20 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
                 }),
             );
             const after = await assignmentsOf(admins.adminB.userId);
-            record(S, 'legacy assignRoleToAdministrator to a B-only admin', 'observe', r, `after=${after.join(',')}`);
+            record(
+                S,
+                'legacy assignRoleToAdministrator to a B-only admin',
+                'observe',
+                r,
+                `after=${after.join(',')}`,
+            );
             if (r.ok) {
                 expect(after).toEqual([`R1@${A}`, `R2@${B}`].sort());
                 await superClient.query(removeRolesFromUserDocument, {
-                    input: { userId: admins.adminB.userId, assignments: [{ roleId: roles.R1.id, channelId: A }] },
+                    input: {
+                        userId: admins.adminB.userId,
+                        assignments: [{ roleId: roles.R1.id, channelId: A }],
+                    },
                 });
             }
         });
@@ -733,7 +742,9 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
         it('roleEditorB edits shared role R1', async () => {
             await as('roleEditorB', B_TOKEN);
             const r = await attempt(() =>
-                adminClient.query(updateRoleDocument, { input: { id: roles.R1.id, description: 'hijacked' } }),
+                adminClient.query(updateRoleDocument, {
+                    input: { id: roles.R1.id, description: 'hijacked' },
+                }),
             );
             record(S, 'edit shared role from a vendor channel', 'deny', r);
         });
@@ -779,15 +790,19 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
         it('adminA strips R1 on A from mixed, an admin it cannot see', async () => {
             await as('adminA');
             // mixed holds RMISC on B, which adminA may not grant
-            const r = await attempt(() => revoke(admins.mixed.userId, [{ roleId: roles.R1.id, channelId: A }]));
-            record(S, 'remove a pair from an admin outside the actor\'s authority', 'deny', r);
+            const r = await attempt(() =>
+                revoke(admins.mixed.userId, [{ roleId: roles.R1.id, channelId: A }]),
+            );
+            record(S, "remove a pair from an admin outside the actor's authority", 'deny', r);
             if (!r.ok) expect(r.message).toContain('No User with the id');
             expect(await assignmentsOf(admins.mixed.userId)).toContain(`R1@${A}`);
         });
 
         it('adminA adds R1 on A to mixed, an admin it cannot see', async () => {
-            const r = await attempt(() => grant(admins.mixed.userId, [{ roleId: roles.R1.id, channelId: A }]));
-            record(S, 'assign a pair to an admin outside the actor\'s authority', 'deny', r);
+            const r = await attempt(() =>
+                grant(admins.mixed.userId, [{ roleId: roles.R1.id, channelId: A }]),
+            );
+            record(S, "assign a pair to an admin outside the actor's authority", 'deny', r);
         });
 
         it('adminA reads the assignments of mixed', async () => {
@@ -797,12 +812,14 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             const r: Attempt = roleAssignments.totalItems
                 ? { ok: true, value: roleAssignments.items }
                 : { ok: false, message: 'hidden' };
-            record(S, 'read assignments of an admin outside the actor\'s authority', 'deny', r);
+            record(S, "read assignments of an admin outside the actor's authority", 'deny', r);
         });
 
         it('splitA grants R1 on B from token A', async () => {
             await as('splitA');
-            const r = await attempt(() => grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: B }]));
+            const r = await attempt(() =>
+                grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: B }]),
+            );
             record(S, 'grant on a channel without UpdateAdministrator', 'deny', r);
             if (!r.ok) expect(r.message).toContain(FORBIDDEN);
             expect(await assignmentsOf(admins.emptyTarget.userId)).toEqual([]);
@@ -825,7 +842,9 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
         });
 
         it('splitA grants R1 on A', async () => {
-            const r = await attempt(() => grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]));
+            const r = await attempt(() =>
+                grant(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]),
+            );
             record(S, 'grant on the active channel with UpdateAdministrator', 'allow', r);
             await revoke(admins.emptyTarget.userId, [{ roleId: roles.R1.id, channelId: A }]);
         });
@@ -1332,7 +1351,8 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
                 revoke(admins.adminA.userId, [{ roleId: roles.R2.id, channelId: A }]),
             );
             const after = await attempt(() => adminClient.query(getAdministratorsDocument, {}));
-            record(S, 'self lockout', 'observe', r, `subsequent admin query ok=${String(after.ok)}`);
+            record(S, 'self lockout', 'deny', r, `subsequent admin query ok=${String(after.ok)}`);
+            expect(after.ok).toBe(true);
         });
     });
 

@@ -498,6 +498,10 @@ export class AdministratorService {
         if (await this.roleAssignmentService.isSoleSuperAdminHolder(ctx, administrator.user.id)) {
             throw new InternalServerError('error.cannot-delete-sole-superadmin');
         }
+        // Deleting oneself ends the active session and leaves no way back through the API
+        if (ctx.activeUserId != null && idsAreEqual(administrator.user.id, ctx.activeUserId)) {
+            throw new UserInputError('error.cannot-delete-own-administrator');
+        }
         await this.connection.getRepository(ctx, Administrator).update({ id }, { deletedAt: new Date() });
         await this.roleAssignmentService.removeAllAssignmentsForUser(ctx, administrator.user.id);
         await this.userService.softDelete(ctx, administrator.user.id);
