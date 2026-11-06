@@ -20,14 +20,14 @@ class ProductVariantService {
     getOptionsForVariant(ctx: RequestContext, variantId: ID) => Promise<Array<Translated<ProductOption>>>;
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID) => Promise<Array<Translated<FacetValue>>>;
     getProductForVariant(ctx: RequestContext, variant: ProductVariant) => Promise<Translated<Product>>;
-    getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<number>;
+    getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant, options?: StockLevelReadOptions) => Promise<number>;
     getDisplayStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<string>;
     getFulfillableStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<number>;
     create(ctx: RequestContext, input: CreateProductVariantInput[]) => Promise<Array<Translated<ProductVariant>>>;
     update(ctx: RequestContext, input: UpdateProductVariantInput[]) => Promise<Array<Translated<ProductVariant>>>;
     createOrUpdateProductVariantPrice(ctx: RequestContext, productVariantId: ID, price: number, channelId: ID, currencyCode?: CurrencyCode, customFields?: CustomFieldsObject) => Promise<ProductVariantPrice>;
     deleteProductVariantPrice(ctx: RequestContext, variantId: ID, channelId: ID, currencyCode: CurrencyCode) => ;
-    softDelete(ctx: RequestContext, id: ID | ID[]) => Promise<DeletionResponse>;
+    softDelete(ctx: RequestContext, id: ID | ID[], checkChannel: boolean = true) => Promise<DeletionResponse>;
     hydratePriceFields(ctx: RequestContext, variant: ProductVariant, priceField: F) => Promise<ProductVariant[F]>;
     applyChannelPriceAndTax(variant: ProductVariant, ctx: RequestContext, order?: Order, throwIfNoPriceFound:  = false) => Promise<ProductVariant>;
     assignProductVariantsToChannel(ctx: RequestContext, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<ProductVariant>>>;
@@ -96,11 +96,16 @@ method performs a large multi-table join with all the typical data needed for a 
 page, this method returns only the Product itself.
 ### getSaleableStockLevel
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<number>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, options?: <a href='/reference/typescript-api/services/stock-level-read-options#stocklevelreadoptions'>StockLevelReadOptions</a>) => Promise<number>`}  since="3.7.4 - Added the `options` parameter"  />
 
 Returns the number of saleable units of the ProductVariant, i.e. how many are available
 for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
 as well as the local and global `outOfStockThreshold` settings.
+
+Pass `{ lockStockLevels: true }` when the result is used to decide whether stock may be
+allocated. This holds a write lock on the StockLevel rows until the surrounding
+transaction commits, so that two concurrent checkouts cannot both pass the check and
+then both allocate the same units. See `StockLevelService.getAvailableStock`.
 ### getDisplayStockLevel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<string>`}   />
@@ -136,9 +141,13 @@ If the `currencyCode` is not specified, the default currency of the Channel will
 
 ### softDelete
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<DeletionResponse>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>[], checkChannel: boolean = true) => Promise<DeletionResponse>`}   />
 
+Soft-deletes the ProductVariant(s) with the given id(s).
 
+The lookup is scoped to the active Channel, so an id which does not belong to
+`ctx.channelId` throws an [EntityNotFoundError](/reference/typescript-api/errors/error-types#entitynotfounderror). Previously an unknown or
+out-of-channel id was silently reported as deleted.
 ### hydratePriceFields
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, priceField: F) => Promise<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[F]>`}   />
@@ -158,7 +167,8 @@ Populates the `price` field with the price for the specified channel.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
 
 Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
-[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product and any Assets to the Channel too.
+[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product, any Assets, and the variant's
+ProductOptions and their ProductOptionGroups to the Channel too.
 ### removeProductVariantsFromChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />

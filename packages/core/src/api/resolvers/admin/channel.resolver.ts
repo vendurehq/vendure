@@ -13,7 +13,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
-import { ErrorResultUnion, isGraphQlErrorResult } from '../../../common/error/error-result';
+import { ErrorResultUnion } from '../../../common/error/error-result';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { ChannelService } from '../../../service/services/channel.service';
 import { RequestContext } from '../../common/request-context';
@@ -53,11 +53,7 @@ export class ChannelResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: MutationCreateChannelArgs,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
-        const result = await this.channelService.create(ctx, args.input);
-        if (isGraphQlErrorResult(result)) {
-            return result;
-        }
-        return result;
+        return this.channelService.create(ctx, args.input);
     }
 
     @Transaction()

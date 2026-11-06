@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Szűrés tulajdonságértékek szerint",
+        "args": {
+          "facetValueIds": {
+            "label": "Tulajdonságértékek"
+          },
+          "containsAny": {
+            "label": "Bármelyiket tartalmazza",
+            "description": "Ha be van jelölve, a termékvariánsoknak legalább egy kiválasztott tulajdonságértékkel rendelkezniük kell. Ha nincs bejelölve, a variánsnak minden kiválasztott értékkel rendelkeznie kell."
+          },
+          "combineWithAnd": {
+            "label": "Kombinációs mód",
+            "description": "Ha ezt a szűrőt más szűrőkkel kombinálja, az összes feltételnek teljesülnie kell (AND), vagy elegendő csak az egyik (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Szűrés termékvariáns neve szerint",
+        "args": {
+          "combineWithAnd": {
+            "label": "Kombinációs mód",
+            "description": "Ha ezt a szűrőt más szűrőkkel kombinálja, az összes feltételnek teljesülnie kell (AND), vagy elegendő csak az egyik (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Termékvariánsok kézi kiválasztása",
+        "args": {
+          "variantIds": {
+            "label": "Termékvariánsok"
+          },
+          "combineWithAnd": {
+            "label": "Kombinációs mód",
+            "description": "Ha ezt a szűrőt más szűrőkkel kombinálja, az összes feltételnek teljesülnie kell (AND), vagy elegendő csak az egyik (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Termékek kézi kiválasztása",
+        "args": {
+          "productIds": {
+            "label": "Termékek"
+          },
+          "combineWithAnd": {
+            "label": "Kombinációs mód",
+            "description": "Ha ezt a szűrőt más szűrőkkel kombinálja, az összes feltételnek teljesülnie kell (AND), vagy elegendő csak az egyik (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Alapértelmezett duplikátor termékekhez",
+        "args": {
+          "includeVariants": {
+            "label": "Variánsok belefoglalása"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Alapértelmezett duplikátor gyűjteményekhez"
+      },
+      "facet-duplicator": {
+        "description": "Alapértelmezett duplikátor tulajdonságokhoz",
+        "args": {
+          "includeFacetValues": {
+            "label": "Tulajdonságértékek belefoglalása"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Alapértelmezett duplikátor promóciókhoz"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Teljesítési adatok kézi megadása"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Fiktív fizetési szolgáltató, amely kizárólag tesztelésre és fejlesztésre szolgál.",
+        "args": {
+          "automaticSettle": {
+            "label": "Engedélyezés és kiegyenlítés 1 lépésben",
+            "description": "Ha engedélyezve van, a fizetések \"Settled\" állapotban jönnek létre."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Példa fizetési szolgáltató"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Kedvezmény a megrendelésből fix összeggel"
+      },
+      "order_line_fixed_discount": {
+        "description": "Kedvezmény az orderLine tételből fix összeggel"
+      },
+      "order_percentage_discount": {
+        "description": "Kedvezmény a megrendelésből { discount }%-kal"
+      },
+      "facet_based_discount": {
+        "description": "Kedvezmény { discount }%-kal az ilyen tulajdonságú termékekre"
+      },
+      "products_percentage_discount": {
+        "description": "Kedvezmény { discount }%-kal a megadott termékekre",
+        "args": {
+          "productVariantIds": {
+            "label": "Termékvariánsok"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Ingyenes szállítás"
+      },
+      "buy_x_get_y_free": {
+        "description": "X termék vásárlása, Y termék ingyen"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Ha a megrendelés végösszege nagyobb, mint { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Legalább { minimum } termék vásárlása a megadott tulajdonságokkal"
+      },
+      "contains_products": {
+        "description": "Legalább { minimum } vásárlása a megadott termékekből",
+        "args": {
+          "productVariantIds": {
+            "label": "Termékvariánsok"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "A vásárló a megadott csoport tagja",
+        "args": {
+          "customerGroupId": {
+            "label": "Vásárlói csoport"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "X termék vásárlása, Y termék ingyen",
+        "args": {
+          "variantIdsX": {
+            "label": "amountX darab vásárlása ezekből a variánsokból"
+          },
+          "variantIdsY": {
+            "label": "amountY darab ingyen ezekből a variánsokból"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Alapértelmezett átalánydíjas szállítási kalkulátor",
+        "args": {
+          "rate": {
+            "label": "Szállítási díj"
+          },
+          "includesTax": {
+            "label": "Az ár tartalmazza az adót",
+            "options": {
+              "include": {
+                "label": "Adóval együtt"
+              },
+              "exclude": {
+                "label": "Adó nélkül"
+              },
+              "auto": {
+                "label": "Automatikus (csatorna alapján)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Adókulcs"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Alapértelmezett szállítási jogosultság-ellenőrző",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimális rendelési érték",
+            "description": "A megrendelés csak akkor jogosult, ha a végösszege nagyobb vagy egyenlő ennél az értéknél"
+          }
+        }
+      }
+    }
+  }
+}

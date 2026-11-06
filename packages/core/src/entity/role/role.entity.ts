@@ -2,8 +2,10 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
+import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
 import { Channel } from '../channel/channel.entity';
+import { CustomRoleFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 
 /**
@@ -27,7 +29,7 @@ import { EntityId } from '../entity-id.decorator';
  * @docsCategory entities
  */
 @Entity()
-export class Role extends VendureEntity {
+export class Role extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<Role>) {
         super(input);
     }
@@ -37,6 +39,9 @@ export class Role extends VendureEntity {
     @Column() description: string;
 
     @Column('simple-array') permissions: Permission[];
+
+    @Column(type => CustomRoleFields)
+    customFields: CustomRoleFields;
 
     /**
      * @description

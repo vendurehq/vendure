@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DefaultLogger, JobQueueService, Logger, VendureConfig } from '@vendure/core';
 import { preBootstrapConfig, configureSessionCookies } from '@vendure/core/dist/bootstrap';
+import { wrapEarlyMiddlewareHandler } from '@vendure/core/dist/wrap-early-middleware-handler';
 
 import { populateForTesting } from './data-population/populate-for-testing';
 import { getInitializerFor } from './initializers/initializers';
@@ -125,7 +126,7 @@ export class TestServer {
             }
             const earlyMiddlewares = config.apiOptions.middleware.filter(mid => mid.beforeListen);
             earlyMiddlewares.forEach(mid => {
-                app.use(mid.route, mid.handler);
+                app.use(mid.route, wrapEarlyMiddlewareHandler(mid));
             });
             await app.listen(config.apiOptions.port);
             await app.get(JobQueueService).start();

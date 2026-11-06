@@ -4,7 +4,7 @@ A CLI tool for rapidly scaffolding a new Vendure server application. Heavily ins
 
 ## Usage
 
-Vendure Create requires [Node.js](https://nodejs.org/en/) v18+ to be installed.
+Vendure Create requires [Node.js](https://nodejs.org/en/) `^20.19.0 || >=22.12.0` to be installed.
 
 ```sh
 npx @vendure/create my-app
@@ -12,13 +12,22 @@ npx @vendure/create my-app
 
 ## Options
 
+### `--storefront`
+
+Selects the storefront to scaffold in CI mode. Supported values are `tanstack` and `nextjs`.
+
+```sh
+npx @vendure/create my-app --ci --storefront tanstack
+```
+
+`--with-storefront` also selects the Next.js starter. Use `--storefront nextjs` instead.
+
 ### `--log-level`
 
 You can control how much output is generated during the installation and setup with this flag. Valid options are `silent`, `info` and `verbose`. The default is `info`
 
 Example:
 
-```sh 
+```sh
 npx @vendure/create my-app --log-level verbose
 ```
-

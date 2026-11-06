@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "סינון לפי ערכי מאפיינים",
+        "args": {
+          "facetValueIds": {
+            "label": "ערכי מאפיינים"
+          },
+          "containsAny": {
+            "label": "מכיל לפחות אחד",
+            "description": "אם מסומן, על גרסאות המוצר להכיל לפחות אחד מערכי המאפיינים שנבחרו. אם אינו מסומן, על הגרסה להכיל את כל הערכים שנבחרו."
+          },
+          "combineWithAnd": {
+            "label": "מצב שילוב",
+            "description": "אם מסנן זה משולב עם מסננים אחרים, האם כל התנאים צריכים להתקיים (AND) או שדי באחד מהם (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "סינון לפי שם גרסת המוצר",
+        "args": {
+          "combineWithAnd": {
+            "label": "מצב שילוב",
+            "description": "אם מסנן זה משולב עם מסננים אחרים, האם כל התנאים צריכים להתקיים (AND) או שדי באחד מהם (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "בחירה ידנית של גרסאות מוצר",
+        "args": {
+          "variantIds": {
+            "label": "גרסאות מוצר"
+          },
+          "combineWithAnd": {
+            "label": "מצב שילוב",
+            "description": "אם מסנן זה משולב עם מסננים אחרים, האם כל התנאים צריכים להתקיים (AND) או שדי באחד מהם (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "בחירה ידנית של מוצרים",
+        "args": {
+          "productIds": {
+            "label": "מוצרים"
+          },
+          "combineWithAnd": {
+            "label": "מצב שילוב",
+            "description": "אם מסנן זה משולב עם מסננים אחרים, האם כל התנאים צריכים להתקיים (AND) או שדי באחד מהם (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "משכפל ברירת המחדל למוצרים",
+        "args": {
+          "includeVariants": {
+            "label": "כלול גרסאות"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "משכפל ברירת המחדל לאוספים"
+      },
+      "facet-duplicator": {
+        "description": "משכפל ברירת המחדל למאפיינים",
+        "args": {
+          "includeFacetValues": {
+            "label": "כלול ערכי מאפיינים"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "משכפל ברירת המחדל למבצעים"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "הזנה ידנית של פרטי המשלוח"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "ספק תשלומים מדומה המיועד לבדיקות ולפיתוח בלבד.",
+        "args": {
+          "automaticSettle": {
+            "label": "אישור וסליקה בשלב אחד",
+            "description": "אם האפשרות מופעלת, תשלומים ייווצרו במצב \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "ספק תשלומים לדוגמה"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "הנחה בסכום קבוע על ההזמנה"
+      },
+      "order_line_fixed_discount": {
+        "description": "הנחה בסכום קבוע על orderLine"
+      },
+      "order_percentage_discount": {
+        "description": "הנחה של { discount }% על ההזמנה"
+      },
+      "facet_based_discount": {
+        "description": "הנחה של { discount }% על מוצרים בעלי מאפיינים אלה"
+      },
+      "products_percentage_discount": {
+        "description": "הנחה של { discount }% על המוצרים שצוינו",
+        "args": {
+          "productVariantIds": {
+            "label": "גרסאות מוצר"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "משלוח חינם"
+      },
+      "buy_x_get_y_free": {
+        "description": "קניית X מוצרים וקבלת Y מוצרים בחינם"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "אם סכום ההזמנה גדול מ-{ amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "קניית לפחות { minimum } מוצרים בעלי המאפיינים שצוינו"
+      },
+      "contains_products": {
+        "description": "קניית לפחות { minimum } מהמוצרים שצוינו",
+        "args": {
+          "productVariantIds": {
+            "label": "גרסאות מוצר"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "הלקוח חבר בקבוצה שצוינה",
+        "args": {
+          "customerGroupId": {
+            "label": "קבוצת לקוחות"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "קניית X מוצרים וקבלת Y מוצרים בחינם",
+        "args": {
+          "variantIdsX": {
+            "label": "קניית amountX מגרסאות אלה"
+          },
+          "variantIdsY": {
+            "label": "קבלת amountY מגרסאות אלה בחינם"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "מחשבון משלוח בתעריף אחיד כברירת מחדל",
+        "args": {
+          "rate": {
+            "label": "מחיר המשלוח"
+          },
+          "includesTax": {
+            "label": "המחיר כולל מס",
+            "options": {
+              "include": {
+                "label": "כולל מס"
+              },
+              "exclude": {
+                "label": "אינו כולל מס"
+              },
+              "auto": {
+                "label": "אוטומטי (לפי הערוץ)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "שיעור מס"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "בודק זכאות המשלוח כברירת מחדל",
+        "args": {
+          "orderMinimum": {
+            "label": "ערך הזמנה מינימלי",
+            "description": "ההזמנה זכאית רק אם סכומה גדול מערך זה או שווה לו"
+          }
+        }
+      }
+    }
+  }
+}

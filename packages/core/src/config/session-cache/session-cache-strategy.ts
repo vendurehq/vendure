@@ -1,6 +1,7 @@
 import { Permission } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
+import { ApiType } from '../../api/common/get-api-type';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 
 /**
@@ -64,6 +65,15 @@ export type CachedSession = {
     authenticationStrategy?: string;
     user?: CachedSessionUser;
     activeChannelId?: ID;
+    /**
+     * @description
+     * The API on which this session was created. Used by the AuthGuard to reject a session which is
+     * replayed against the Admin API. Undefined for anonymous sessions and for sessions created
+     * before this field existed.
+     *
+     * @since 3.8.0
+     */
+    apiType?: ApiType;
 };
 
 /**

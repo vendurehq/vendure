@@ -5,11 +5,6 @@ import path from 'path';
 
 import { downloadIntrospectionSchema } from './download-introspection-schema';
 
-const CLIENT_QUERY_FILES = [
-    path.join(__dirname, '../../packages/admin-ui/src/lib/core/src/data/definitions/**/*.ts'),
-    path.join(__dirname, '../../packages/admin-ui/src/lib/**/*.ts'),
-];
-
 const ADMIN_SCHEMA_OUTPUT_FILE = path.join(__dirname, '../../schema-admin.json');
 const SHOP_SCHEMA_OUTPUT_FILE = path.join(__dirname, '../../schema-shop.json');
 
@@ -40,7 +35,6 @@ Promise.all([downloadIntrospectionSchema('admin'), downloadIntrospectionSchema('
         const disableEsLintPlugin = { add: { content: '/* eslint-disable */' } };
         const graphQlErrorsPlugin = path.join(__dirname, './plugins/graphql-errors-plugin.js');
         const commonPlugins = [disableEsLintPlugin, 'typescript'];
-        const clientPlugins = [...commonPlugins, 'typescript-operations', 'typed-document-node'];
 
         const codegenConfig: Types.Config = {
             overwrite: true,
@@ -58,25 +52,6 @@ Promise.all([downloadIntrospectionSchema('admin'), downloadIntrospectionSchema('
                 )]: {
                     schema: [SHOP_SCHEMA_OUTPUT_FILE],
                     plugins: [disableEsLintPlugin, graphQlErrorsPlugin],
-                },
-                [path.join(__dirname, '../../packages/admin-ui/src/lib/core/src/common/generated-types.ts')]:
-                    {
-                        schema: [ADMIN_SCHEMA_OUTPUT_FILE, path.join(__dirname, 'client-schema.ts')],
-                        documents: CLIENT_QUERY_FILES,
-                        plugins: clientPlugins,
-                        config: {
-                            ...config,
-                            skipTypeNameForRoot: true,
-                        },
-                    },
-                [path.join(
-                    __dirname,
-                    '../../packages/admin-ui/src/lib/core/src/common/introspection-result.ts',
-                )]: {
-                    schema: [ADMIN_SCHEMA_OUTPUT_FILE, path.join(__dirname, 'client-schema.ts')],
-                    documents: CLIENT_QUERY_FILES,
-                    plugins: [disableEsLintPlugin, 'fragment-matcher'],
-                    config: { ...config, apolloClientVersion: 3 },
                 },
                 [path.join(__dirname, '../../packages/common/src/generated-types.ts')]: {
                     schema: [ADMIN_SCHEMA_OUTPUT_FILE],

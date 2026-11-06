@@ -46,7 +46,6 @@ export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T
         // by default), so an instance with more silently loses the rest here. An explicit
         // `take` above a lowered limit is rejected, so paginate or switch to server-side search.
         queryFn: () => api.query(channelsDocument, {}),
-        staleTime: 1000 * 60 * 5,
         enabled: !ownChannelsOnly,
     });
 

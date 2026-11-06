@@ -1,4 +1,4 @@
-import { VendurePluginMetadata } from '@vendure/core';
+import type { VendurePluginMetadata } from '@vendure/core';
 import {
     ClassDeclaration,
     InterfaceDeclaration,
@@ -7,8 +7,6 @@ import {
     SyntaxKind,
     VariableDeclaration,
 } from 'ts-morph';
-
-import { AdminUiExtensionTypeName } from '../constants';
 
 import { EntityRef } from './entity-ref';
 
@@ -216,12 +214,6 @@ export class VendurePluginRef {
             )
             .flat()
             .map(classDeclaration => new EntityRef(classDeclaration));
-    }
-
-    hasUiExtensions(): boolean {
-        return !!this.classDeclaration
-            .getStaticProperties()
-            .find(prop => prop.getType().getSymbol()?.getName() === AdminUiExtensionTypeName);
     }
 
     /**

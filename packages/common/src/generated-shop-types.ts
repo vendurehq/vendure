@@ -138,6 +138,7 @@ export type BooleanCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -304,6 +305,7 @@ export type ConfigArgDefinition = {
   list: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
   required: Scalars['Boolean']['output'];
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -791,6 +793,7 @@ export type CustomField = {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -913,6 +916,7 @@ export type DateTimeCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1171,6 +1175,7 @@ export type FloatCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Float']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1371,6 +1376,7 @@ export type IntCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1737,6 +1743,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1753,6 +1760,7 @@ export type LocaleTextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1805,7 +1813,7 @@ export type Mutation = {
   /** Regenerate and send a verification token for a new Customer registration. Only applicable if `authOptions.requireVerification` is set to true. */
   refreshCustomerVerification: RefreshCustomerVerificationResult;
   /**
-   * Register a Customer account with the given credentials. There are three possible registration flows:
+   * Register a Customer account with the given credentials. There are four possible registration flows:
    *
    * _If `authOptions.requireVerification` is set to `true`:_
    *
@@ -1819,6 +1827,19 @@ export type Mutation = {
    * _If `authOptions.requireVerification` is set to `false`:_
    *
    * 3. The Customer _must_ be registered _with_ a password. No further action is needed - the Customer is able to authenticate immediately.
+   *
+   * _Whatever the setting, if an account already exists for the email address through another authentication strategy
+   * (for example an SSO provider) and has no password yet:_
+   *
+   * 4. **The supplied password is never stored.** A verificationToken is created and emailed to the address, and this mutation
+   *    answers with a generic success so that it does not reveal whether the account exists. The password is set only when that
+   *    token is passed to the `verifyCustomerAccount` mutation _with_ the chosen password, which proves the caller controls the
+   *    mailbox. This holds even when `requireVerification` is `false`, so the Customer cannot be authenticated straight after
+   *    registering. Registering again issues a fresh token and sends the email again.
+   *
+   * In every flow the caller-supplied `firstName`, `lastName`, `phoneNumber` and custom fields are ignored whenever a User already
+   * exists for the email address, since the caller has not proven they own it. This includes an account an administrator created
+   * earlier. A Customer with no User, such as one left by a guest checkout, is not an account and its details are still filled in.
    */
   registerCustomerAccount: RegisterCustomerAccountResult;
   /** Remove all OrderLine from the Order */
@@ -1873,7 +1894,9 @@ export type Mutation = {
   /** Update the password of the active Customer */
   updateCustomerPassword: UpdateCustomerPasswordResult;
   /**
-   * Verify a Customer email address with the token sent to that address. Only applicable if `authOptions.requireVerification` is set to true.
+   * Verify a Customer email address with the token sent to that address. Applicable whenever a verificationToken was issued:
+   * that is when `authOptions.requireVerification` is set to true, and also when a password was registered against an account
+   * that already existed through another authentication strategy, whatever that setting is.
    *
    * If the Customer was not registered with a password in the `registerCustomerAccount` mutation, the password _must_ be
    * provided here.
@@ -2177,19 +2200,34 @@ export type OrderAddress = {
 export type OrderFilterParameter = {
   _and?: InputMaybe<Array<OrderFilterParameter>>;
   _or?: InputMaybe<Array<OrderFilterParameter>>;
+  /** An order is active as long as the payment process has not been completed */
   active?: InputMaybe<BooleanOperators>;
+  /** A unique code for the Order */
   code?: InputMaybe<StringOperators>;
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<DateOperators>;
   shipping?: InputMaybe<NumberOperators>;
   shippingWithTax?: InputMaybe<NumberOperators>;
   state?: InputMaybe<StringOperators>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<NumberOperators>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<NumberOperators>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<NumberOperators>;
   totalQuantity?: InputMaybe<NumberOperators>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<NumberOperators>;
   type?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
@@ -2309,17 +2347,31 @@ export type OrderPaymentStateError = ErrorResult & {
 };
 
 export type OrderSortParameter = {
+  /** A unique code for the Order */
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<SortOrder>;
   shipping?: InputMaybe<SortOrder>;
   shippingWithTax?: InputMaybe<SortOrder>;
   state?: InputMaybe<SortOrder>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<SortOrder>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<SortOrder>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<SortOrder>;
   totalQuantity?: InputMaybe<SortOrder>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -2640,6 +2692,8 @@ export enum Permission {
   ReadPromotion = 'ReadPromotion',
   /** Grants permission to read Role */
   ReadRole = 'ReadRole',
+  /** Grants permission to read the decrypted value of custom fields and config args marked as `secret` */
+  ReadSecret = 'ReadSecret',
   /** Grants permission to read Seller */
   ReadSeller = 'ReadSeller',
   /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -3111,6 +3165,11 @@ export type Refund = Node & {
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
+  /**
+   * The refund destination code, if a non-default destination was used.
+   * When null, the refund was directed to the original payment method.
+   */
+  destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
@@ -3182,6 +3241,7 @@ export type RelationCustomFieldConfig = CustomField & {
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
   scalarFields: Array<Scalars['String']['output']>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -3205,6 +3265,7 @@ export type Role = Node & {
   channel?: Maybe<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
+  customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   permissions: Array<Permission>;
@@ -3290,6 +3351,19 @@ export type Seller = Node & {
   customFields?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  translations: Array<SellerTranslation>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Holds a Seller's localized custom field values for one language.
+ * The Seller's own fields, such as `name`, are not translated.
+ */
+export type SellerTranslation = {
+  __typename?: 'SellerTranslation';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  languageCode: LanguageCode;
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -3380,6 +3454,7 @@ export type StringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -3433,6 +3508,7 @@ export type StructCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -3529,6 +3605,7 @@ export type TextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };

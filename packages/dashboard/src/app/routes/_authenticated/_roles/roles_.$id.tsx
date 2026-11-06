@@ -6,6 +6,7 @@ import { Input } from '@/vdb/components/ui/input.js';
 import { DEFAULT_CHANNEL_CODE, NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -36,7 +37,7 @@ export const Route = createFileRoute('/_authenticated/_roles/roles_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function RoleDetailPage() {
@@ -57,6 +58,7 @@ function RoleDetailPage() {
                 code: entity.code,
                 description: entity.description,
                 permissions: entity.permissions,
+                customFields: entity.customFields,
             };
         },
         params: { id: params.id },
@@ -140,6 +142,7 @@ function RoleDetailPage() {
                         </p>
                     )}
                 </PageBlock>
+                <CustomFieldsPageBlock column="main" entityType="Role" control={form.control} />
                 <PageBlock column="main" blockId="permissions">
                     <FormFieldWrapper
                         control={form.control}

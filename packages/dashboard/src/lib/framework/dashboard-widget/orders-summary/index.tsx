@@ -1,18 +1,30 @@
 import { AnimatedCurrency, AnimatedNumber } from '@/vdb/components/shared/animated-number.js';
 import { api } from '@/vdb/graphql/api.js';
+import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans } from '@lingui/react/macro';
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInDays, subDays } from 'date-fns';
 import { useMemo } from 'react';
 import { DashboardBaseWidget } from '../base-widget.js';
+import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
 import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { orderSummaryQuery } from './order-summary-widget.graphql.js';
 
 const WIDGET_ID = 'orders-summary-widget';
+const ORDER_COUNT_METRIC = 'OrderCount';
+const ORDER_TOTAL_METRIC = 'OrderTotal';
 
 interface PercentageChangeProps {
     value: number;
+}
+
+function getMetricTotal(
+    data: ResultOf<typeof orderSummaryQuery> | undefined,
+    type: typeof ORDER_COUNT_METRIC | typeof ORDER_TOTAL_METRIC,
+): number {
+    const entries = data?.dashboardMetricSummary.find(metric => metric.type === type)?.entries;
+    return entries?.reduce((total, entry) => total + entry.value, 0) ?? 0;
 }
 
 function PercentageChange({ value }: PercentageChangeProps) {
@@ -47,7 +59,7 @@ export function OrdersSummaryWidget() {
     }, [dateRange]);
 
     const { data } = useQuery({
-        queryKey: ['orders-summary', dateRange],
+        queryKey: [INSIGHTS_WIDGET_QUERY_KEY, 'orders-summary', dateRange],
         queryFn: () =>
             api.query(orderSummaryQuery, {
                 start: variables.start,
@@ -56,7 +68,7 @@ export function OrdersSummaryWidget() {
     });
 
     const { data: previousData } = useQuery({
-        queryKey: ['orders-summary', 'previous', dateRange],
+        queryKey: [INSIGHTS_WIDGET_QUERY_KEY, 'orders-summary', 'previous', dateRange],
         queryFn: () =>
             api.query(orderSummaryQuery, {
                 start: variables.previousStart,
@@ -69,11 +81,10 @@ export function OrdersSummaryWidget() {
         return ((current - previous) / previous) * 100;
     };
 
-    const currentTotalOrders = data?.orders.totalItems ?? 0;
-    const previousTotalOrders = previousData?.orders.totalItems ?? 0;
-    const currentRevenue = data?.orders.items.reduce((acc, order) => acc + order.totalWithTax, 0) ?? 0;
-    const previousRevenue =
-        previousData?.orders.items.reduce((acc, order) => acc + order.totalWithTax, 0) ?? 0;
+    const currentTotalOrders = getMetricTotal(data, ORDER_COUNT_METRIC);
+    const previousTotalOrders = getMetricTotal(previousData, ORDER_COUNT_METRIC);
+    const currentRevenue = getMetricTotal(data, ORDER_TOTAL_METRIC);
+    const previousRevenue = getMetricTotal(previousData, ORDER_TOTAL_METRIC);
 
     const orderChange = calculatePercentChange(currentTotalOrders, previousTotalOrders);
     const revenueChange = calculatePercentChange(currentRevenue, previousRevenue);

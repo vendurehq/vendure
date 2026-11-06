@@ -5,6 +5,7 @@ import { PasswordInput } from '@/vdb/components/ui/password-input.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { Link } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -34,7 +35,7 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
 
     React.useEffect(() => {
         if (loginError && !isVerifying) {
-            toast.error(loginError);
+            toast.error(loginError, { id: 'login-error' });
         }
     }, [loginError, isVerifying]);
 
@@ -51,10 +52,10 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
             {loginExtensions.logo ? (
                 <loginExtensions.logo.component />
             ) : (
-                <LogoMark className="text-primary h-8 w-auto" />
+                <LogoMark className="text-brand h-8 w-auto" />
             )}
             <Card className="w-full">
-                <CardContent className="pt-6">
+                <CardContent>
                     <Form {...form}>
                         <form
                             className="flex flex-col items-center gap-6"
@@ -65,7 +66,7 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
                                     <loginExtensions.beforeForm.component />
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center text-center gap-2">
+                                <div className="flex flex-col items-center text-center gap-1">
                                     <h1 className="text-2xl font-semibold tracking-tight">
                                         <Trans>Welcome to Vendure</Trans>
                                     </h1>
@@ -92,6 +93,14 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
                                         <Field data-invalid={fieldState.invalid || undefined}>
                                             <PasswordInput {...field} id="field-password" placeholder={t`Password`} aria-invalid={fieldState.invalid || undefined} />
                                             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            <div className="flex justify-end">
+                                                <Link
+                                                    to="/forgot-password"
+                                                    className="text-sm text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <Trans>Forgot password?</Trans>
+                                                </Link>
+                                            </div>
                                         </Field>
                                     )}
                                 />

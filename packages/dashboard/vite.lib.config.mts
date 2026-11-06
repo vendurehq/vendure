@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { defineConfig } from 'vite';
 
+import { dashboardBundleExternals } from './vite/lib-externals.js';
 import { themeVariablesPlugin } from './vite/vite-plugin-theme.js';
 
 /**
@@ -58,23 +59,9 @@ export default defineConfig({
             fileName: name => `${name}.js`,
         },
         rollupOptions: {
-            external: [
-                // React core (peer deps in user projects)
-                'react',
-                'react-dom',
-                'react-dom/client',
-                'react/jsx-runtime',
-                'react/jsx-dev-runtime',
-                // Lingui (we'll deal with macros separately; keep core as external for now)
-                /^@lingui\//,
-                // Virtual modules — resolved by the consumer's vendureDashboardPlugin
-                /^virtual:/,
-                // @vendure/common is a peer of every Vendure plugin
-                /^@vendure\/common(\/|$)/,
-                // The dashboard's own subpath exports
-                '@vendure/dashboard/plugin',
-                '@vendure/dashboard/vite',
-            ],
+            // Single source of truth shared with the duplication audit
+            // (vite/tests/bundle-singleton.spec.ts). See vite/lib-externals.ts.
+            external: dashboardBundleExternals,
             output: {
                 // Predictable entry names so index.html can reference them
                 entryFileNames: '[name].js',

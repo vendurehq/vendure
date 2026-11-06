@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Faset qiymatlari bo'yicha filtrlash",
+        "args": {
+          "facetValueIds": {
+            "label": "Faset qiymatlari"
+          },
+          "containsAny": {
+            "label": "Har qandayini o'z ichiga oladi",
+            "description": "Belgilangan bo'lsa, mahsulot variantlari tanlangan faset qiymatlaridan kamida bittasiga ega bo'lishi kerak. Belgilanmagan bo'lsa, variant barcha tanlangan qiymatlarga ega bo'lishi kerak."
+          },
+          "combineWithAnd": {
+            "label": "Birlashtirish rejimi",
+            "description": "Ushbu filtr boshqa filtrlar bilan birlashtirilganda barcha shartlar bajarilishi kerakmi (AND) yoki ulardan faqat bittasi yetarlimi (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Mahsulot varianti nomi bo'yicha filtrlash",
+        "args": {
+          "combineWithAnd": {
+            "label": "Birlashtirish rejimi",
+            "description": "Ushbu filtr boshqa filtrlar bilan birlashtirilganda barcha shartlar bajarilishi kerakmi (AND) yoki ulardan faqat bittasi yetarlimi (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Mahsulot variantlarini qo'lda tanlash",
+        "args": {
+          "variantIds": {
+            "label": "Mahsulot variantlari"
+          },
+          "combineWithAnd": {
+            "label": "Birlashtirish rejimi",
+            "description": "Ushbu filtr boshqa filtrlar bilan birlashtirilganda barcha shartlar bajarilishi kerakmi (AND) yoki ulardan faqat bittasi yetarlimi (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Mahsulotlarni qo'lda tanlash",
+        "args": {
+          "productIds": {
+            "label": "Mahsulotlar"
+          },
+          "combineWithAnd": {
+            "label": "Birlashtirish rejimi",
+            "description": "Ushbu filtr boshqa filtrlar bilan birlashtirilganda barcha shartlar bajarilishi kerakmi (AND) yoki ulardan faqat bittasi yetarlimi (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Mahsulotlar uchun standart nusxalagich",
+        "args": {
+          "includeVariants": {
+            "label": "Variantlarni qo'shish"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "To'plamlar uchun standart nusxalagich"
+      },
+      "facet-duplicator": {
+        "description": "Fasetlar uchun standart nusxalagich",
+        "args": {
+          "includeFacetValues": {
+            "label": "Faset qiymatlarini qo'shish"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Aksiyalar uchun standart nusxalagich"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Yetkazib berish ma'lumotlarini qo'lda kiritish"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Faqat sinov va ishlab chiqish uchun mo'ljallangan soxta to'lov provayderi.",
+        "args": {
+          "automaticSettle": {
+            "label": "Avtorizatsiya qilish va 1 bosqichda hisob-kitob qilish",
+            "description": "Yoqilgan bo'lsa, to'lovlar \"Settled\" holatida yaratiladi."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Namuna to'lov provayderi"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Buyurtmaga belgilangan miqdorda chegirma berish"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine uchun belgilangan miqdorda chegirma berish"
+      },
+      "order_percentage_discount": {
+        "description": "Buyurtmaga { discount }% chegirma berish"
+      },
+      "facet_based_discount": {
+        "description": "Ushbu fasetlarga ega mahsulotlarga { discount }% chegirma berish"
+      },
+      "products_percentage_discount": {
+        "description": "Ko'rsatilgan mahsulotlarga { discount }% chegirma berish",
+        "args": {
+          "productVariantIds": {
+            "label": "Mahsulot variantlari"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Bepul yetkazib berish"
+      },
+      "buy_x_get_y_free": {
+        "description": "X ta mahsulot sotib olish, Y ta mahsulotni bepul olish"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Agar buyurtma summasi { amount } dan katta bo'lsa"
+      },
+      "at_least_n_with_facets": {
+        "description": "Ko'rsatilgan fasetlarga ega kamida { minimum } ta mahsulot sotib olish"
+      },
+      "contains_products": {
+        "description": "Ko'rsatilgan mahsulotlardan kamida { minimum } tasini sotib olish",
+        "args": {
+          "productVariantIds": {
+            "label": "Mahsulot variantlari"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Mijoz ko'rsatilgan guruh a'zosi",
+        "args": {
+          "customerGroupId": {
+            "label": "Mijozlar guruhi"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "X ta mahsulot sotib olish, Y ta mahsulotni bepul olish",
+        "args": {
+          "variantIdsX": {
+            "label": "Ushbu variantlardan amountX ta sotib olish"
+          },
+          "variantIdsY": {
+            "label": "Ushbu variantlardan amountY tasini bepul olish"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Standart qat'iy tarifli yetkazib berish kalkulyatori",
+        "args": {
+          "rate": {
+            "label": "Yetkazib berish narxi"
+          },
+          "includesTax": {
+            "label": "Narx soliqni o'z ichiga oladi",
+            "options": {
+              "include": {
+                "label": "Soliq bilan"
+              },
+              "exclude": {
+                "label": "Soliqsiz"
+              },
+              "auto": {
+                "label": "Avtomatik (kanal asosida)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Soliq stavkasi"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Standart yetkazib berish muvofiqligi tekshiruvi",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimal buyurtma qiymati",
+            "description": "Buyurtma faqat uning umumiy summasi ushbu qiymatdan katta yoki unga teng bo'lsa mos keladi"
+          }
+        }
+      }
+    }
+  }
+}

@@ -75,7 +75,7 @@ export interface HardenPluginOptions {
      * When set to `'prod'`, the plugin will disable dev-mode features of the GraphQL APIs:
      *
      * - introspection
-     * - GraphQL playground
+     * - the GraphQL landing page served at the API paths
      *
      * @default 'prod'
      */

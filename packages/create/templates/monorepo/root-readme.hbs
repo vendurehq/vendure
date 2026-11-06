@@ -1,6 +1,6 @@
 # {{ name }}
 
-A full-stack e-commerce application built with [Vendure](https://www.vendure.io/) and [Next.js](https://nextjs.org/).
+A full-stack e-commerce application built with [Vendure](https://www.vendure.io/) and [{{ storefrontName }}]({{ storefrontDocumentationUrl }}).
 
 ## Project Structure
 
@@ -10,7 +10,7 @@ This is a monorepo using {{packageManager}} workspaces:
 {{ name }}/
 ├── apps/
 │   ├── server/       # Vendure backend (GraphQL API, Admin Dashboard)
-│   └── storefront/   # Next.js frontend
+│   └── storefront/   # {{ storefrontName }} frontend
 └── package.json      # Root workspace configuration
 ```
 
@@ -65,5 +65,5 @@ Start the production server:
 ## Learn More
 
 - [Vendure Documentation](https://docs.vendure.io)
-- [Next.js Documentation](https://nextjs.org/docs)
+- [{{ storefrontName }} Documentation]({{ storefrontDocumentationUrl }})
 - [Vendure Discord Community](https://vendure.io/community)

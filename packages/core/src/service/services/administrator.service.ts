@@ -12,24 +12,36 @@ import { IsNull, NotBrackets, SelectQueryBuilder } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { Instrument } from '../../common';
+import { isGraphQlErrorResult } from '../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
+import {
+    PasswordResetTokenExpiredError,
+    PasswordResetTokenInvalidError,
+    PasswordValidationError,
+} from '../../common/error/generated-graphql-admin-errors';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual, normalizeEmailAddress } from '../../common/utils';
-import { ConfigService } from '../../config';
+import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
+import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
+import { AdministratorPasswordResetEvent } from '../../event-bus/events/administrator-password-reset-event';
+import { PasswordResetVerifiedEvent } from '../../event-bus/events/password-reset-verified-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
+import { StoredMediaUpload } from '../helpers/stored-media/stored-media.service';
 import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { AssetService } from './asset.service';
 import { ChannelService } from './channel.service';
 import { RoleAssignmentService, RoleChannelPair } from './role-assignment.service';
 import { RoleService } from './role.service';
@@ -54,9 +66,101 @@ export class AdministratorService {
         private roleAssignmentService: RoleAssignmentService,
         private channelService: ChannelService,
         private customFieldRelationService: CustomFieldRelationService,
+        private assetService: AssetService,
         private eventBus: EventBus,
         private requestContextService: RequestContextService,
     ) {}
+
+    /**
+     * Replaces or removes profile-owned media for an Administrator.
+     *
+     * The Administrator is read through {@link AdministratorService.findOne}, so an Administrator
+     * which is not visible to the active user cannot have their avatar changed.
+     */
+    async setAvatar(
+        ctx: RequestContext,
+        administratorId: ID,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const administrator = await this.findOne(ctx, administratorId);
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', administratorId);
+        }
+        return this.writeAvatar(ctx, administrator, upload);
+    }
+
+    /**
+     * Replaces or removes profile-owned media for an Administrator without applying the visibility
+     * rule that {@link AdministratorService.setAvatar} applies.
+     *
+     * External authentication runs while the request is still anonymous: the session is minted only
+     * once the strategy has returned a User. An anonymous active user holds no permissions, so the
+     * visibility rule hides every Administrator from it, including the one the strategy has just
+     * created. A strategy which synchronizes a provider profile image therefore cannot go through
+     * the visibility-scoped read.
+     *
+     * The caller is responsible for establishing that it may write to this Administrator. Do not
+     * use this method to serve a request whose Administrator id comes from the client.
+     *
+     * @internal
+     */
+    async setAvatarWithoutVisibilityCheck(
+        ctx: RequestContext,
+        administratorId: ID,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
+            relations: { avatar: true },
+            where: {
+                id: administratorId,
+                deletedAt: IsNull(),
+            },
+        });
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', administratorId);
+        }
+        return this.writeAvatar(ctx, administrator, upload);
+    }
+
+    /**
+     * Writes the avatar of an already-loaded Administrator. The new files are persisted before the
+     * old files are deleted so a failed upload never destroys the currently-visible avatar.
+     */
+    private async writeAvatar(
+        ctx: RequestContext,
+        administrator: Administrator,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const previousAvatar = administrator.avatar;
+
+        if (upload == null) {
+            administrator.avatar = null;
+            await this.connection.getRepository(ctx, Administrator).save(administrator, { reload: false });
+            if (previousAvatar) {
+                await this.assetService.deleteSystemAsset(ctx, previousAvatar);
+            }
+            return administrator;
+        }
+
+        const avatar = await this.assetService.createSystemAsset(ctx, upload, { imageOnly: true });
+        if (isGraphQlErrorResult(avatar)) {
+            throw new UserInputError('error.mime-type-not-permitted', {
+                fileName: avatar.fileName,
+                mimeType: avatar.mimeType,
+            });
+        }
+        administrator.avatar = avatar;
+        try {
+            await this.connection.getRepository(ctx, Administrator).save(administrator, { reload: false });
+        } catch (error) {
+            await this.assetService.deleteSystemAsset(ctx, avatar);
+            throw error;
+        }
+        if (previousAvatar) {
+            await this.assetService.deleteSystemAsset(ctx, previousAvatar);
+        }
+        return administrator;
+    }
 
     /** @internal */
     async initAdministrators() {
@@ -74,7 +178,7 @@ export class AdministratorService {
         relations?: RelationPaths<Administrator>,
     ): Promise<PaginatedList<Administrator>> {
         const qb = this.listQueryBuilder.build(Administrator, options, {
-            relations: relations ?? ['user'],
+            relations: relations ?? ['avatar', 'user'],
             where: { deletedAt: IsNull() },
             ctx,
         });
@@ -100,7 +204,7 @@ export class AdministratorService {
     ): Promise<Administrator | undefined> {
         const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
             // The User is always loaded, since it is what the authority check is based on.
-            relations: unique([...(relations ?? []), 'user']),
+            relations: unique([...(relations ?? ['avatar']), 'user']),
             where: {
                 id: administratorId,
                 deletedAt: IsNull(),
@@ -128,13 +232,72 @@ export class AdministratorService {
         return this.connection
             .getRepository(ctx, Administrator)
             .findOne({
-                relations,
+                relations: findOptionsArrayToObject<Administrator>(relations ?? ['avatar']),
                 where: {
                     user: { id: userId },
                     deletedAt: IsNull(),
                 },
             })
             .then(result => result ?? undefined);
+    }
+
+    /**
+     * @description
+     * Resolves the Administrator to be credited as the actor of the current request when
+     * recording an audit trail, e.g. the `administrator` of a {@link HistoryEntry}.
+     *
+     * For a regular session this is the Administrator of the active User, exactly as returned by
+     * {@link AdministratorService.findOneByUserId}.
+     *
+     * An API-Key session authenticates as the synthetic "API-Key user" created alongside the key,
+     * which has no Administrator of its own. For those sessions we fall back to the Administrator
+     * of the {@link ApiKey}'s `owner`, so that actions performed with the key are attributed to the
+     * Administrator who created it. The owner is not required to be an Administrator — it may be a
+     * Customer's User — in which case `undefined` is returned and the entry stays unattributed.
+     *
+     * This is deliberately kept separate from {@link AdministratorService.findOneByUserId}, which
+     * answers the literal question "which Administrator belongs to this User id?".
+     *
+     * **Never use this method to make authorization decisions.** The Administrator it returns is not
+     * the authenticated principal of the request, and their permissions do not apply to it.
+     *
+     * @since 3.6.4
+     */
+    async resolveActorAdministrator(
+        ctx: RequestContext,
+        relations?: RelationPaths<Administrator>,
+    ): Promise<Administrator | undefined> {
+        if (!ctx.activeUserId) {
+            return undefined;
+        }
+        const activeAdministrator = await this.findOneByUserId(ctx, ctx.activeUserId, relations);
+        if (activeAdministrator) {
+            return activeAdministrator;
+        }
+        if (ctx.session?.authenticationStrategy !== API_KEY_AUTH_STRATEGY_NAME) {
+            return undefined;
+        }
+        // The ApiKey lookup is intentionally not Channel-scoped: the AuthGuard resolves the key
+        // via the Channel-aware ApiKeyService.findOneByLookupId() on every request, so a key which
+        // gets this far is by definition valid for the current Channel.
+        const apiKey = await this.connection.getRepository(ctx, ApiKey).findOne({
+            select: { id: true, ownerId: true },
+            where: {
+                userId: ctx.activeUserId,
+                deletedAt: IsNull(),
+            },
+        });
+        if (!apiKey) {
+            return undefined;
+        }
+        const ownerAdministrator = await this.findOneByUserId(ctx, apiKey.ownerId, relations);
+        if (!ownerAdministrator) {
+            Logger.verbose(
+                `The owner (User ${String(apiKey.ownerId)}) of ApiKey ${String(apiKey.id)} is not an ` +
+                    'Administrator, so the current request cannot be attributed to one.',
+            );
+        }
+        return ownerAdministrator;
     }
 
     /**
@@ -228,6 +391,76 @@ export class AdministratorService {
         );
         await this.eventBus.publish(new AdministratorEvent(ctx, updatedAdministrator, 'updated', input));
         return updatedAdministrator;
+    }
+
+    /**
+     * @description
+     * Publishes a new {@link AdministratorPasswordResetEvent} for the Administrator with the given
+     * email address. The event contains a token which can then be used in the `resetPassword()`
+     * method. If no Administrator exists with the given email address, no action is taken.
+     *
+     * @since 3.8.0
+     */
+    async requestPasswordReset(ctx: RequestContext, emailAddress: string): Promise<void> {
+        // Verify that a non-deleted Administrator exists for the email address *before*
+        // writing a reset token, so that this publicly-accessible mutation can never
+        // create or overwrite a token on a non-administrator User.
+        const user = await this.userService.getUserByEmailAddress(ctx, emailAddress, 'administrator');
+        if (!user) {
+            return;
+        }
+        const administrator = await this.findOneByUserId(ctx, user.id);
+        if (!administrator) {
+            return;
+        }
+        const userWithToken = await this.userService.setPasswordResetToken(ctx, emailAddress);
+        if (!userWithToken) {
+            return;
+        }
+        await this.eventBus.publish(new AdministratorPasswordResetEvent(ctx, administrator, userWithToken));
+    }
+
+    /**
+     * @description
+     * Given a valid password reset token created by a call to the `requestPasswordReset()` method,
+     * this method will change the Administrator's password to that given as the `password` argument.
+     *
+     * @since 3.8.0
+     */
+    async resetPassword(
+        ctx: RequestContext,
+        passwordResetToken: string,
+        password: string,
+    ): Promise<
+        User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
+    > {
+        const userForToken = await this.userService.getUserByPasswordResetToken(ctx, passwordResetToken);
+        if (!userForToken) {
+            return new PasswordResetTokenInvalidError();
+        }
+        const administrator = await this.findOneByUserId(ctx, userForToken.id);
+        if (!administrator) {
+            // The token belongs to a non-administrator User (e.g. a Customer), so
+            // it may not be used to reset a password via the Admin API.
+            return new PasswordResetTokenInvalidError();
+        }
+        const result = await this.userService.resetPasswordByToken(ctx, passwordResetToken, password);
+        if (isGraphQlErrorResult(result)) {
+            // The UserService is typed against the Shop API error results, so the
+            // structurally-identical Admin API equivalents are returned instead.
+            switch (result.__typename) {
+                case 'PasswordResetTokenExpiredError':
+                    return new PasswordResetTokenExpiredError();
+                case 'PasswordValidationError':
+                    return new PasswordValidationError({
+                        validationErrorMessage: result.validationErrorMessage,
+                    });
+                default:
+                    return new PasswordResetTokenInvalidError();
+            }
+        }
+        await this.eventBus.publish(new PasswordResetVerifiedEvent(ctx, result));
+        return result;
     }
 
     /**

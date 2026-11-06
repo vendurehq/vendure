@@ -4,6 +4,12 @@
 # In case you don't have any services running on the default ports, you can expose them by changing the
 # ports section in the services block. Please don't forget to update the ports in the .env file as well.
 
+# The explicit project name keeps this project's containers and volumes distinct from
+# those of other projects, even when this file lives in an identically-named directory
+# (e.g. apps/server in a monorepo). Quoted so that numeric-looking names (e.g. "123")
+# stay YAML strings — Compose rejects a non-string name.
+name: '{{ composeProjectName }}'
+
 services:
     postgres_db:
         image: postgres:16-alpine

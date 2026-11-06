@@ -34,6 +34,7 @@ export const roleDetailDocument = graphql(
         query RoleDetail($id: ID!) {
             role(id: $id) {
                 ...RoleItem
+                customFields
             }
         }
     `,

@@ -5,8 +5,6 @@
 # deprecated, otherwise the trust + approval scripts will skip it.
 
 VENDURE_PACKAGES=(
-  "@vendure/admin-ui"
-  "@vendure/admin-ui-plugin"
   "@vendure/asset-server-plugin"
   "@vendure/cli"
   "@vendure/common"
@@ -17,9 +15,10 @@ VENDURE_PACKAGES=(
   "@vendure/graphiql-plugin"
   "@vendure/harden-plugin"
   "@vendure/job-queue-plugin"
+  "@vendure/mcp-plugin"
+  "@vendure/mcp-sdk"
   "@vendure/telemetry-plugin"
   "@vendure/testing"
-  "@vendure/ui-devkit"
 )
 
 # --- Shared preflight helpers -------------------------------------------------

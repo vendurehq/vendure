@@ -8,6 +8,7 @@ import i18nextMiddleware from 'i18next-http-middleware';
 import ICU from 'i18next-icu';
 import path from 'path';
 
+import { ConfigurableOperationTranslator } from '../common/configurable-operation';
 import { GraphQLErrorResult } from '../common/error/error-result';
 import { Logger } from '../config';
 import { ConfigService } from '../config/config.service';
@@ -25,7 +26,13 @@ export interface VendureTranslationResources {
     error: any;
     errorResult: any;
     message: any;
+    configurableOperation?: any;
 }
+
+/**
+ * The namespace within the translation resources under which ConfigurableOperationDef strings live.
+ */
+const CONFIGURABLE_OPERATION_NAMESPACE = 'configurableOperation';
 
 export interface I18nRequest extends Request {
     t: TFunction;
@@ -42,7 +49,7 @@ export interface I18nRequest extends Request {
  * @docsWeight 0
  */
 @Injectable()
-export class I18nService implements OnModuleInit {
+export class I18nService implements OnModuleInit, ConfigurableOperationTranslator {
     /**
      * The set of language codes we have translation resources for. Used as the i18next
      * `supportedLngs` allow-list. Without this, `i18next-http-middleware` appends every
@@ -161,6 +168,32 @@ export class I18nService implements OnModuleInit {
     addTranslation(langKey: string, resources: VendureTranslationResources | any): void {
         this.registerSupportedLanguage(langKey);
         i18next.addResourceBundle(langKey, 'translation', resources, true, true);
+    }
+
+    /**
+     * @description
+     * Returns the string stored at the given path within the `configurableOperation` namespace of
+     * the catalog for `languageCode`, or `undefined` if there is no entry there.
+     *
+     * The resource is read straight out of the store rather than via `t()`, for two reasons. The
+     * values contain `{ argName }` placeholders which the Admin UI interpolates with the live
+     * argument values, so they must reach the client untouched by ICU formatting. And the keys may
+     * contain dots — a plugin is free to use a code such as `acme.shipping.handler` — which
+     * i18next would otherwise treat as path separators.
+     *
+     * @since 3.8.0
+     */
+    getConfigurableOperationTranslation(languageCode: string, keyPath: string[]): string | undefined {
+        let node: any = i18next.getResourceBundle(languageCode, 'translation')?.[
+            CONFIGURABLE_OPERATION_NAMESPACE
+        ];
+        for (const segment of keyPath) {
+            if (node == null || typeof node !== 'object') {
+                return undefined;
+            }
+            node = node[segment];
+        }
+        return typeof node === 'string' ? node : undefined;
     }
 
     /**

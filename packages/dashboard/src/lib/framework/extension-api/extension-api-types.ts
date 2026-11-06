@@ -9,9 +9,11 @@ import {
     DashboardDataTableExtensionDefinition,
     DashboardDetailFormExtensionDefinition,
     DashboardHistoryEntryComponent,
+    DashboardInsightsExtensionDefinition,
     DashboardLoginExtensions,
     DashboardNavSectionDefinition,
     DashboardPageBlockDefinition,
+    DashboardRefundDestinationDefinition,
     DashboardRouteDefinition,
     DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
@@ -69,6 +71,11 @@ export interface DashboardExtension {
      *             : s
      *     ),
      * })
+     *
+     * // Function form, deciding per user. The function itself still runs once, at
+     * // registration; the predicate it attaches is evaluated on every nav render.
+     * navSections: config =>
+     *     setNavVisibility(config, { sections: [BUILT_IN_NAV_SECTION_IDS.Catalog] }, ctx => !isFloorStaff(ctx)),
      * ```
      *
      * Note: modifier functions should return a **new** config object rather than
@@ -94,8 +101,29 @@ export interface DashboardExtension {
     /**
      * @description
      * Allows you to define custom widgets for the Insights page.
+     *
+     * @deprecated Use `insights.widgets` instead. This top-level option still works
+     * and is merged with `insights.widgets`, but will be removed in the next major version.
      */
     widgets?: DashboardWidgetDefinition[];
+    /**
+     * @description
+     * Groups all Insights page extension options, such as custom widgets and
+     * code-level widget exclusions.
+     *
+     * @example
+     * ```ts
+     * defineDashboardExtension({
+     *     insights: {
+     *         widgets: [myWidget],
+     *         excludeWidgets: ['latest-orders-widget'],
+     *     },
+     * });
+     * ```
+     *
+     * @since 3.8.0
+     */
+    insights?: DashboardInsightsExtensionDefinition;
     /**
      * @description
      * Registers custom input component IDs for custom fields and configurable operation arguments.
@@ -122,6 +150,15 @@ export interface DashboardExtension {
      * in the Order or Customer history lists.
      */
     historyEntries?: DashboardHistoryEntryComponent[];
+    /**
+     * @description
+     * Allows the presentation of a refund destination to be customised in the refund dialog,
+     * adding a label, an icon and an optional configuration component. The destination itself is
+     * defined on the backend by a `RefundDestinationStrategy`.
+     *
+     * @since 3.8.0
+     */
+    refundDestinations?: DashboardRefundDestinationDefinition[];
     /**
      * @description
      * Allows you to define custom toolbar items in the app shell header bar.

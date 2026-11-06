@@ -21,10 +21,24 @@ export const activeAdministratorDocument = graphql(`
     }
 `);
 
-export const updateAdministratorDocument = graphql(`
-    mutation UpdateAdministrator($input: UpdateAdministratorInput!) {
-        updateAdministrator(input: $input) {
+export const updateActiveAdministratorDocument = graphql(`
+    mutation UpdateActiveAdministrator($input: UpdateActiveAdministratorInput!) {
+        updateActiveAdministrator(input: $input) {
             id
         }
     }
 `);
+
+export const setActiveAdministratorAvatarDocument = `
+    mutation SetActiveAdministratorAvatar($file: Upload) {
+        setActiveAdministratorAvatar(file: $file) {
+            id
+            avatar {
+                preview
+                mimeType
+                width
+                height
+            }
+        }
+    }
+`;

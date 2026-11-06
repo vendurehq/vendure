@@ -164,7 +164,7 @@ class TestEntityAccessControlStrategy extends DefaultEntityAccessControlStrategy
         // role-based category access, or call an external permissions API.
         const products = await this.connection.rawConnection.getRepository(Product).find({
             where: { id: LessThanOrEqual(5) },
-            select: ['id'],
+            select: { id: true },
         });
         this.allowedProductIds.set(
             ctx,

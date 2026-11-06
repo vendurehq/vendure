@@ -69,8 +69,23 @@ async function runTests() {
     process.exit(0);
 }
 
-function gqlRequest(url, body) {
-    return request(url, 'POST', body).catch(e => console.log(e));
+/**
+ * The server can drop the first connections while it is still warming up (ECONNRESET),
+ * even after /health responds — so transient network errors are retried rather than
+ * surfacing as an undefined response.
+ */
+async function gqlRequest(url, body, attempts = 5) {
+    for (let i = 1; ; i++) {
+        try {
+            return await request(url, 'POST', body);
+        } catch (e) {
+            if (i >= attempts) {
+                throw e;
+            }
+            console.log(`Request to ${url} failed (${e.message}), retrying (${i}/${attempts})...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+    }
 }
 
 /**

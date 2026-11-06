@@ -13,7 +13,7 @@ const folder = (relativePath: string) => join(packageRoot, relativePath);
 
 const manifestInput: DocsPackageManifestInput = {
     id: 'core',
-    name: 'Vendure Core Documentation',
+    name: 'Vendure Framework Documentation',
     version: lernaJson.version,
     vendureVersion: 'v3',
     basePath: packageRoot,
@@ -225,6 +225,11 @@ const manifestInput: DocsPackageManifestInput = {
                     title: 'Custom Fields',
                     slug: 'custom-fields',
                     file: file('docs/guides/developer-guide/custom-fields/index.mdx'),
+                },
+                {
+                    title: 'Secret Fields',
+                    slug: 'secret-fields',
+                    file: file('docs/guides/developer-guide/secret-fields/index.mdx'),
                 },
                 {
                     title: 'Error Handling',
@@ -735,11 +740,6 @@ const manifestInput: DocsPackageManifestInput = {
                     slug: 'server-resource-requirements',
                     file: file('docs/guides/deployment/server-resource-requirements.mdx'),
                 },
-                {
-                    title: 'Deploying Admin UI',
-                    slug: 'deploying-admin-ui',
-                    file: file('docs/guides/deployment/deploying-admin-ui.mdx'),
-                },
                 // Deployment Guides
                 {
                     title: 'Deploy to Northflank',
@@ -775,115 +775,65 @@ const manifestInput: DocsPackageManifestInput = {
             hidden: true,
             children: [
                 {
-                    title: 'Angular Admin UI',
-                    slug: 'extending-the-admin-ui',
-                    children: [
-                        {
-                            title: 'Getting Started',
-                            slug: 'getting-started',
-                            file: file('docs/guides/extending-the-admin-ui/getting-started/index.mdx'),
-                        },
-                        {
-                            title: 'UI Library',
-                            slug: 'ui-library',
-                            file: file('docs/guides/extending-the-admin-ui/ui-library/index.mdx'),
-                        },
-                        {
-                            title: 'Admin UI Theming & Branding',
-                            slug: 'admin-ui-theming-branding',
-                            file: file(
-                                'docs/guides/extending-the-admin-ui/admin-ui-theming-branding/index.mdx',
-                            ),
-                        },
-                        {
-                            title: 'Adding UI Translations',
-                            slug: 'adding-ui-translations',
-                            file: file('docs/guides/extending-the-admin-ui/adding-ui-translations/index.mdx'),
-                        },
-                        {
-                            title: 'Using Other Frameworks',
-                            slug: 'using-other-frameworks',
-                            file: file('docs/guides/extending-the-admin-ui/using-other-frameworks/index.mdx'),
-                        },
-                        // Providers
-                        {
-                            title: 'Nav Menu',
-                            slug: 'nav-menu',
-                            file: file('docs/guides/extending-the-admin-ui/nav-menu/index.mdx'),
-                        },
-                        {
-                            title: 'Alerts',
-                            slug: 'alerts',
-                            file: file('docs/guides/extending-the-admin-ui/alerts/index.mdx'),
-                        },
-                        {
-                            title: 'Add Actions to Pages',
-                            slug: 'add-actions-to-pages',
-                            file: file('docs/guides/extending-the-admin-ui/add-actions-to-pages/index.mdx'),
-                        },
-                        {
-                            title: 'Page Tabs',
-                            slug: 'page-tabs',
-                            file: file('docs/guides/extending-the-admin-ui/page-tabs/index.mdx'),
-                        },
-                        {
-                            title: 'Custom Form Inputs',
-                            slug: 'custom-form-inputs',
-                            file: file('docs/guides/extending-the-admin-ui/custom-form-inputs/index.mdx'),
-                        },
-                        {
-                            title: 'Custom Data Table Components',
-                            slug: 'custom-data-table-components',
-                            file: file(
-                                'docs/guides/extending-the-admin-ui/custom-data-table-components/index.mdx',
-                            ),
-                        },
-                        {
-                            title: 'Custom Detail Components',
-                            slug: 'custom-detail-components',
-                            file: file(
-                                'docs/guides/extending-the-admin-ui/custom-detail-components/index.mdx',
-                            ),
-                        },
-                        {
-                            title: 'Bulk Actions',
-                            slug: 'bulk-actions',
-                            file: file('docs/guides/extending-the-admin-ui/bulk-actions/index.mdx'),
-                        },
-                        {
-                            title: 'Dashboard Widgets',
-                            slug: 'dashboard-widgets',
-                            file: file('docs/guides/extending-the-admin-ui/dashboard-widgets/index.mdx'),
-                        },
-                        {
-                            title: 'Custom Timeline Components',
-                            slug: 'custom-timeline-components',
-                            file: file(
-                                'docs/guides/extending-the-admin-ui/custom-timeline-components/index.mdx',
-                            ),
-                        },
-                        // Routes
-                        {
-                            title: 'Defining Routes',
-                            slug: 'defining-routes',
-                            file: file('docs/guides/extending-the-admin-ui/defining-routes/index.mdx'),
-                        },
-                        {
-                            title: 'Creating List Views',
-                            slug: 'creating-list-views',
-                            file: file('docs/guides/extending-the-admin-ui/creating-list-views/index.mdx'),
-                        },
-                        {
-                            title: 'Creating Detail Views',
-                            slug: 'creating-detail-views',
-                            file: file('docs/guides/extending-the-admin-ui/creating-detail-views/index.mdx'),
-                        },
-                    ],
-                },
-                {
                     title: 'Migrating from v1',
                     slug: 'migrating-from-v1',
                     file: file('docs/guides/developer-guide/migrating-from-v1/index.mdx'),
+                },
+            ],
+        },
+        {
+            title: 'MCP Server',
+            slug: 'mcp-server',
+            children: [
+                {
+                    title: 'Quick Start',
+                    slug: 'quick-start',
+                    file: file('docs/guides/mcp-server/quick-start/index.mdx'),
+                },
+                {
+                    title: 'OAuth & Consent',
+                    slug: 'oauth-consent',
+                    file: file('docs/guides/mcp-server/oauth-consent/index.mdx'),
+                },
+                {
+                    title: 'Assistant inside Vendure',
+                    slug: 'assistant-inside-vendure',
+                    file: file('docs/guides/mcp-server/assistant-inside-vendure/index.mdx'),
+                },
+                {
+                    title: 'Assistant outside Vendure',
+                    slug: 'assistant-outside-vendure',
+                    file: file('docs/guides/mcp-server/assistant-outside-vendure/index.mdx'),
+                },
+                {
+                    title: 'Registering Custom Tools',
+                    slug: 'custom-tools',
+                    file: file('docs/guides/mcp-server/custom-tools/index.mdx'),
+                },
+                {
+                    title: 'Production Hardening',
+                    slug: 'production',
+                    file: file('docs/guides/mcp-server/production/index.mdx'),
+                },
+                {
+                    title: 'Logging & Observability',
+                    slug: 'observability',
+                    file: file('docs/guides/mcp-server/observability/index.mdx'),
+                },
+                {
+                    title: 'Administration',
+                    slug: 'administration',
+                    file: file('docs/guides/mcp-server/administration/index.mdx'),
+                },
+                {
+                    title: 'Built-in Tool Reference',
+                    slug: 'built-in-tools',
+                    file: file('docs/guides/mcp-server/built-in-tools/index.mdx'),
+                },
+                {
+                    title: 'OAuth Protocol Reference',
+                    slug: 'oauth-reference',
+                    file: file('docs/guides/mcp-server/oauth-reference/index.mdx'),
                 },
             ],
         },
@@ -906,17 +856,6 @@ const manifestInput: DocsPackageManifestInput = {
                     slug: 'core-plugins',
                     file: file('docs/reference/core-plugins/index.mdx'),
                     children: [
-                        {
-                            title: 'AdminUiPlugin',
-                            slug: 'admin-ui-plugin',
-                            file: file('docs/reference/core-plugins/admin-ui-plugin/index.mdx'),
-                            children: createNestedNavigationFromFolder(
-                                folder('docs/reference/core-plugins/admin-ui-plugin'),
-                                {
-                                    filter: (info: FileInfo) => info.filename !== 'index.mdx',
-                                },
-                            ),
-                        },
                         {
                             title: 'AssetServerPlugin',
                             slug: 'asset-server-plugin',
@@ -984,6 +923,17 @@ const manifestInput: DocsPackageManifestInput = {
                             ),
                         },
                         {
+                            title: 'McpPlugin',
+                            slug: 'mcp-plugin',
+                            file: file('docs/reference/core-plugins/mcp-plugin/index.mdx'),
+                            children: createNestedNavigationFromFolder(
+                                folder('docs/reference/core-plugins/mcp-plugin'),
+                                {
+                                    filter: (info: FileInfo) => info.filename !== 'index.mdx',
+                                },
+                            ),
+                        },
+                        {
                             title: 'TelemetryPlugin',
                             slug: 'telemetry-plugin',
                             file: file('docs/reference/core-plugins/telemetry-plugin/index.mdx'),
@@ -995,6 +945,14 @@ const manifestInput: DocsPackageManifestInput = {
                             ),
                         },
                     ],
+                },
+                {
+                    title: 'MCP SDK',
+                    slug: 'mcp-sdk',
+                    file: file('docs/reference/mcp-sdk/index.mdx'),
+                    children: createNestedNavigationFromFolder(folder('docs/reference/mcp-sdk'), {
+                        filter: (info: FileInfo) => info.filename !== 'index.mdx',
+                    }),
                 },
                 {
                     title: 'GraphQL API',
@@ -1029,14 +987,6 @@ const manifestInput: DocsPackageManifestInput = {
                     slug: 'dashboard',
                     file: file('docs/reference/dashboard/index.mdx'),
                     children: createNestedNavigationFromFolder(folder('docs/reference/dashboard'), {
-                        filter: (info: FileInfo) => info.filename !== 'index.mdx',
-                    }),
-                },
-                {
-                    title: 'Admin UI API',
-                    slug: 'admin-ui-api',
-                    file: file('docs/reference/admin-ui-api/index.mdx'),
-                    children: createNestedNavigationFromFolder(folder('docs/reference/admin-ui-api'), {
                         filter: (info: FileInfo) => info.filename !== 'index.mdx',
                     }),
                 },

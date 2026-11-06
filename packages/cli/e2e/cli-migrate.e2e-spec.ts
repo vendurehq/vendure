@@ -111,7 +111,7 @@ describe('CLI Migrate Command E2E', () => {
 
             const result = await testProject.runCliCommand(['invalid-command'], { expectError: true });
             expect(result.exitCode).not.toBe(0);
-            expect(result.stderr).toContain('unknown command');
+            expect(result.stderr.toLowerCase()).toContain('unknown command');
         });
     });
 

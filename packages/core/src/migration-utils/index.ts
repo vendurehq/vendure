@@ -6,3 +6,12 @@ export {
     formatRoleAssignmentMigrationPreview,
     previewRoleAssignmentMigration,
 } from './v4_0_role_assignments_preview';
+export {
+    deduplicateTranslations,
+    TranslationTableColumnNames,
+    TranslationTableToDeduplicate,
+} from './translation-deduplication';
+export {
+    RescaleOrderLinePromotionAdjustmentsOptions,
+    rescaleOrderLinePromotionAdjustments,
+} from './v3_8_orderline_promotion_rescale';

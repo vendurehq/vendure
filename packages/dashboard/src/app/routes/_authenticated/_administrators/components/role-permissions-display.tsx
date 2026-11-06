@@ -204,7 +204,7 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
                                                         render={<span className="inline-flex" />}
                                                     >
                                                         <Badge
-                                                            variant="secondary"
+                                                            variant="default"
                                                             className="cursor-default"
                                                         >
                                                             {actionLabel(permission.name)}

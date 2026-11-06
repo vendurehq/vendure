@@ -40,6 +40,7 @@ import {
     ResolvedUserPermissions,
     RolePermissionResolver,
 } from '../helpers/role-permission-resolver/role-permission-resolver';
+import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { withLockIfSupported } from '../helpers/utils/with-lock-if-supported';
 
@@ -70,6 +71,7 @@ export class RoleService {
         private requestContextCache: RequestContextCacheService,
         private cacheService: CacheService,
         private rolePermissionResolver: RolePermissionResolver,
+        private customFieldRelationService: CustomFieldRelationService,
     ) {
         // When a Role is created, updated or deleted, we need to invalidate the roles cache
         this.eventBus.ofType(RoleEvent).subscribe(event => {
@@ -97,18 +99,7 @@ export class RoleService {
     ): Promise<PaginatedList<Role>> {
         // Compute the set of Role IDs the active user can read up front to ensure
         // sort/skip/take operate only over visible Roles.
-        // TODO (OSS-755): this materializes the full role list per request and builds
-        // IN clauses proportional to the role count; rework the gate into a SQL
-        // predicate on the list query (role.channelId makes that possible) for
-        // instances with thousands of Roles.
-        const allRoles = await this.getAllRoles(ctx);
-        const visibleRoleIds: ID[] = [];
-        for (const role of allRoles) {
-            if (await this.activeUserCanReadRole(ctx, role)) {
-                visibleRoleIds.push(role.id);
-            }
-        }
-
+        const visibleRoleIds = await this.getVisibleRoleIds(ctx);
         if (visibleRoleIds.length === 0) {
             return { items: [], totalItems: 0 };
         }
@@ -121,6 +112,36 @@ export class RoleService {
             .andWhere({ id: In(visibleRoleIds) })
             .getManyAndCount();
         return { items, totalItems };
+    }
+
+    /**
+     * @description
+     * Returns the ids of all the Roles which the active user may read: the system roles, the
+     * Roles owned by a Channel on which the active user holds `ReadRole`, and the Roles they may
+     * grant somewhere ({@link canGrant}). Cached for the duration of the request, since a single
+     * request may resolve it many times, e.g. once per User in a list query.
+     *
+     * @since 3.7.3
+     */
+    getVisibleRoleIds(ctx: RequestContext): Promise<ID[]> {
+        return this.requestContextCache.get(
+            ctx,
+            `RoleService.getVisibleRoleIds.user(${String(ctx.activeUserId)})`,
+            async () => {
+                // TODO (OSS-755): this materializes the full role list per request and builds
+                // IN clauses proportional to the role count; rework the gate into a SQL
+                // predicate on the list query (role.channelId makes that possible) for
+                // instances with thousands of Roles.
+                const allRoles = await this.getAllRoles(ctx);
+                const visibleRoleIds: ID[] = [];
+                for (const role of allRoles) {
+                    if (await this.activeUserCanReadRole(ctx, role)) {
+                        visibleRoleIds.push(role.id);
+                    }
+                }
+                return visibleRoleIds;
+            },
+        );
     }
 
     findOne(ctx: RequestContext, roleId: ID, relations?: RelationPaths<Role>): Promise<Role | undefined> {
@@ -489,7 +510,7 @@ export class RoleService {
         }
         const role = await this.createRoleEntity(ctx, input, ctx.channelId);
         await this.eventBus.publish(new RoleEvent(ctx, role, 'created', input));
-        return role;
+        return assertFound(this.findOne(ctx, role.id));
     }
 
     /**
@@ -546,8 +567,10 @@ export class RoleService {
             permissions: input.permissions
                 ? unique([Permission.Authenticated, ...input.permissions])
                 : undefined,
+            customFields: input.customFields,
         });
         await this.connection.getRepository(ctx, Role).save(role, { reload: false });
+        await this.customFieldRelationService.updateRelations(ctx, Role, input, role);
         const updatedRole = await assertFound(this.findOne(ctx, role.id));
         await this.eventBus.publish(new RoleEvent(ctx, updatedRole, 'updated', input));
         return updatedRole;
@@ -724,14 +747,17 @@ export class RoleService {
         }
     }
 
-    private createRoleEntity(ctx: RequestContext, input: CreateRoleInput, channelId: ID) {
+    private async createRoleEntity(ctx: RequestContext, input: CreateRoleInput, channelId: ID) {
         const role = new Role({
             code: input.code,
             description: input.description,
             permissions: unique([Permission.Authenticated, ...input.permissions]),
+            customFields: input.customFields,
             channelId,
         });
-        return this.connection.getRepository(ctx, Role).save(role);
+        const newRole = await this.connection.getRepository(ctx, Role).save(role);
+        await this.customFieldRelationService.updateRelations(ctx, Role, input, newRole);
+        return newRole;
     }
 
     private getAllAssignablePermissions(): Permission[] {

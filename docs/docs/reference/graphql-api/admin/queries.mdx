@@ -600,24 +600,6 @@ type Query {
 }`}
 </GraphQLDoc>
 
-<a name="metricsummary"></a>
-
-## metricSummary
-
-<GraphQLDoc
-  type="query"
-  typeName="metricSummary"
-  typeLinks={{
-    MetricSummary: '/reference/graphql-api/admin/object-types#metricsummary',
-    MetricSummaryInput: '/reference/graphql-api/admin/input-types#metricsummaryinput',
-  }}
->
-{`"""Get metrics for the given interval and metric types."""
-type Query {
-  metricSummary(input: MetricSummaryInput): [MetricSummary!]!
-}`}
-</GraphQLDoc>
-
 <a name="order"></a>
 
 ## order
@@ -993,6 +975,28 @@ type Query {
 >
 {`type Query {
   provinces(options: ProvinceListOptions): ProvinceList!
+}`}
+</GraphQLDoc>
+
+<a name="refunddestinations"></a>
+
+## refundDestinations
+
+<GraphQLDoc
+  type="query"
+  typeName="refundDestinations"
+  typeLinks={{
+    RefundDestination: '/reference/graphql-api/admin/object-types#refunddestination',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Returns the available refund destinations for the given order.
+This includes the default destination (original payment method) plus
+any custom destinations registered via RefundDestinationStrategy.
+"""
+type Query {
+  refundDestinations(orderId: ID!): [RefundDestination!]!
 }`}
 </GraphQLDoc>
 

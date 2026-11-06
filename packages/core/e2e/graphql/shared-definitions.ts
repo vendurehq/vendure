@@ -37,6 +37,7 @@ export const getTasksDocument = graphql(`
             description
             schedule
             scheduleDescription
+            timezone
             lastResult
             enabled
         }
@@ -128,6 +129,38 @@ export const updateActiveAdministratorDocument = graphql(
     `,
     [administratorFragment],
 );
+
+export const getActiveAdministratorAvatarDocument = graphql(`
+    query ActiveAdministratorAvatar {
+        activeAdministrator {
+            id
+            avatar {
+                id
+                source
+                preview
+                mimeType
+                width
+                height
+            }
+        }
+    }
+`);
+
+export const setActiveAdministratorAvatarDocument = graphql(`
+    mutation SetActiveAdministratorAvatar($file: Upload) {
+        setActiveAdministratorAvatar(file: $file) {
+            id
+            avatar {
+                id
+                source
+                preview
+                mimeType
+                width
+                height
+            }
+        }
+    }
+`);
 
 export const deleteAdministratorDocument = graphql(`
     mutation DeleteAdministrator($id: ID!) {
@@ -474,6 +507,38 @@ export const logoutDocument = graphql(`
     }
 `);
 
+export const requestAdminPasswordResetDocument = graphql(`
+    mutation RequestAdminPasswordReset($emailAddress: String!) {
+        requestPasswordReset(emailAddress: $emailAddress) {
+            ... on Success {
+                success
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+export const resetAdminPasswordDocument = graphql(
+    `
+        mutation ResetAdminPassword($token: String!, $password: String!) {
+            resetPassword(token: $token, password: $password) {
+                ...CurrentUser
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
+            }
+        }
+    `,
+    [currentUserFragment],
+);
+
 export const getCountryListDocument = graphql(`
     query GetCountryList($options: CountryListOptions) {
         countries(options: $options) {
@@ -666,6 +731,15 @@ export const createChannelDocument = graphql(
 export const deleteProductVariantDocument = graphql(`
     mutation DeleteProductVariant($id: ID!) {
         deleteProductVariant(id: $id) {
+            result
+            message
+        }
+    }
+`);
+
+export const deleteProductVariantsDocument = graphql(`
+    mutation DeleteProductVariants($ids: [ID!]!) {
+        deleteProductVariants(ids: $ids) {
             result
             message
         }
@@ -1099,6 +1173,24 @@ export const deleteCustomerNoteDocument = graphql(`
         }
     }
 `);
+
+export const verifyCustomerAccountDocument = graphql(
+    `
+        mutation VerifyCustomerAccount($id: ID!, $password: String) {
+            verifyCustomerAccount(id: $id, password: $password) {
+                ...Customer
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
+            }
+        }
+    `,
+    [customerFragment],
+);
 
 export const updateCustomerGroupDocument = graphql(
     `

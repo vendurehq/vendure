@@ -7,6 +7,7 @@ import {
     Permission,
 } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
+import { ChannelService, RequestContextService } from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -196,6 +197,85 @@ describe('Channels', () => {
         ]);
 
         shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+    });
+
+    // Channels created programmatically via channelService.create() (e.g. by a plugin
+    // during bootstrap or a migration) must not lock the SuperAdmin out. SuperAdmin access is
+    // global, so no assignment is needed for the new Channel.
+    it('superadmin has permissions on channel created via channelService.create()', async () => {
+        const channelService = server.app.get(ChannelService);
+        const requestContextService = server.app.get(RequestContextService);
+        const ctx = await requestContextService.create({ apiType: 'admin' });
+
+        const programmaticChannel = await channelService.create(ctx, {
+            code: 'programmatic-channel',
+            token: 'programmatic-channel-token',
+            defaultLanguageCode: LanguageCode.en,
+            defaultCurrencyCode: CurrencyCode.USD,
+            pricesIncludeTax: false,
+        });
+
+        expect('id' in programmaticChannel).toBe(true);
+        if (!('id' in programmaticChannel)) return;
+
+        await adminClient.asSuperAdmin();
+        const { me } = await adminClient.query(MeDocument);
+
+        const programmaticChannelData = me!.channels.find(c => c.token === 'programmatic-channel-token');
+        const nonOwnerPermissions = Object.values(Permission).filter(
+            p => p !== Permission.Owner && p !== Permission.Public,
+        );
+        expect(programmaticChannelData!.permissions.sort()).toEqual(nonOwnerPermissions);
+    });
+
+    // In v4 a Customer holds Authenticated only on the Channels they are a member of, so a
+    // Channel created programmatically grants nothing to existing Customers until they join it.
+    it('customer has no permissions on a channel created via channelService.create()', async () => {
+        await shopClient.asUserWithCredentials(customerUser.emailAddress, 'test');
+        const { me } = await shopClient.query(MeDocument);
+
+        const programmaticChannelData = me!.channels.find(c => c.token === 'programmatic-channel-token');
+        expect(programmaticChannelData).toBeUndefined();
+
+        // Clean up so subsequent tests are not affected by the extra channel
+        const channelService = server.app.get(ChannelService);
+        const requestContextService = server.app.get(RequestContextService);
+        const ctx = await requestContextService.create({ apiType: 'admin' });
+        const channel = await channelService.getChannelFromToken('programmatic-channel-token');
+        await channelService.delete(ctx, channel.id);
+    });
+
+    // #988 — Channels are cached per token, so create, update and delete must clear the cache
+    it('getChannelFromToken reflects created, updated and deleted Channels', async () => {
+        const channelService = server.app.get(ChannelService);
+        const requestContextService = server.app.get(RequestContextService);
+        const ctx = await requestContextService.create({ apiType: 'admin' });
+
+        await expect(channelService.getChannelFromToken('late-channel-token')).rejects.toThrow(
+            'error.channel-not-found',
+        );
+
+        await channelService.create(ctx, {
+            code: 'late-channel',
+            token: 'late-channel-token',
+            defaultLanguageCode: LanguageCode.en,
+            defaultCurrencyCode: CurrencyCode.USD,
+            pricesIncludeTax: false,
+        });
+        const channel = await channelService.getChannelFromToken('late-channel-token');
+        expect(channel.code).toBe('late-channel');
+
+        await channelService.update(ctx, { id: channel.id, token: 'renamed-channel-token' });
+        await expect(channelService.getChannelFromToken('late-channel-token')).rejects.toThrow(
+            'error.channel-not-found',
+        );
+        const renamed = await channelService.getChannelFromToken('renamed-channel-token');
+        expect(renamed.id).toBe(channel.id);
+
+        await channelService.delete(ctx, channel.id);
+        await expect(channelService.getChannelFromToken('renamed-channel-token')).rejects.toThrow(
+            'error.channel-not-found',
+        );
     });
 
     it('createAdministrator stores the role grant as an assignment on the second channel', async () => {
