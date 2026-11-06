@@ -432,9 +432,9 @@ export const devConfig: VendureConfig = {
         ReadonlySettingsTestPlugin,
         // FieldTestPlugin,
         // 生产：复杂度上限 + 关闭 introspection/debug；GraphiQL 调试台仅非生产启用
-        // 上限 3000：菜单/商品列表合法查询（take 100 + variants/optionGroups/collections 多层列表）实测约 1.9k，
-        // 1000 会直接 500（Query is too complex）；恶意深嵌套查询量级为 2.4M，仍被拦截
-        ...(IS_PROD ? [HardenPlugin.init({ maxQueryComplexity: 3000, apiMode: 'prod' })] : []),
+        // 上限 9500：临时放宽——分类/首页真实查询复杂度峰值 8788，3000 会误杀；
+        // 前端整包重建后按实测峰值回调。
+        ...(IS_PROD ? [HardenPlugin.init({ maxQueryComplexity: 9500, apiMode: 'prod' })] : []),
         ...devOnlyPlugins,
         ...(IS_PROD ? [] : [GraphiqlPlugin.init()]),
         AssetServerPlugin.init({
