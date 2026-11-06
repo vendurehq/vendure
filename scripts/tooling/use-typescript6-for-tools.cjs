@@ -7,9 +7,9 @@
  * - prettier-plugin-organize-imports
  *
  * Bun only supports top-level `overrides`, so we can't give just these packages a nested
- * TypeScript 6. Instead, this redirects `require('typescript')` to `@typescript/typescript6`
- * (Microsoft's side-by-side TS 6 API package), but only when it is required from one of
- * the packages above. Everything else keeps resolving TypeScript 7.
+ * TypeScript 6. Instead, this redirects `require('typescript')` to the TypeScript 6 copy installed
+ * by the private ./typescript6 workspace package, but only when it is required from one of the
+ * packages above. Everything else keeps resolving TypeScript 7.
  *
  * Loaded from `.eslintrc.js` and `scripts/tooling/prettier-plugin-organize-imports.cjs`.
  * Remove once these tools support TypeScript 7.
@@ -27,7 +27,7 @@ const TOOL_PACKAGES = [
 
 if (!globalThis[PATCHED]) {
     globalThis[PATCHED] = true;
-    const typescript6Path = require.resolve('@typescript/typescript6');
+    const typescript6Path = require.resolve('typescript', { paths: [path.join(__dirname, 'typescript6')] });
     const originalResolveFilename = Module._resolveFilename;
     Module._resolveFilename = function (request, parent, ...rest) {
         if (

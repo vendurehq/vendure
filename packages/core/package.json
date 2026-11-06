@@ -22,7 +22,7 @@
     "scripts": {
         "tsc:watch": "tsc -p ./build/tsconfig.build.json --watch",
         "copy:watch": "tsx build/copy-static.ts watch",
-        "build": "rimraf dist && tsc -p ./build/tsconfig.build.json && tsc -p ./build/tsconfig.cli.json && tsx build/copy-static.ts build",
+        "build": "node ../../scripts/tooling/assert-typescript-7.cjs && rimraf dist && tsc -p ./build/tsconfig.build.json && tsc -p ./build/tsconfig.cli.json && tsx build/copy-static.ts build",
         "watch": "concurrently npm:tsc:watch npm:copy:watch",
         "lint": "eslint --fix .",
         "test": "vitest --config vitest.config.mts --run --typecheck",

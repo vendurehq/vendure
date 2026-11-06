@@ -1,0 +1,10 @@
+{
+    "name": "@vendure-internal/typescript6",
+    "version": "0.0.0",
+    "private": true,
+    "description": "The TypeScript 6 JS API for dev tools that don't support TypeScript 7 yet. See ../use-typescript6-for-tools.cjs.",
+    "main": "index.js",
+    "dependencies": {
+        "typescript": "6.0.3"
+    }
+}

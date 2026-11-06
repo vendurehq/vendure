@@ -25,7 +25,7 @@
     "version": "bun install && bun run check-imports && bun run --cwd packages/common generate-platform-promotion-snapshot && bun run build && bun run check-core-type-defs && bun run generate-changelog && git add CHANGELOG* && git add */version.ts && git add bun.lock && git add packages/common/src/platform-promotion-snapshot.ts",
     "test": "lerna run test --stream --no-bail",
     "e2e": "lerna run e2e --stream --no-bail",
-    "build": "lerna run build",
+    "build": "node scripts/tooling/assert-typescript-7.cjs && lerna run build",
     "check-imports": "tsx scripts/check-imports.ts",
     "check-core-type-defs": "tsx scripts/check-core-type-defs.ts",
     "generate-changelog": "tsx scripts/changelogs/generate-changelog.ts",
@@ -46,7 +46,6 @@
     "@graphql-tools/schema": "^10.1.1",
     "@swc/core": "^1.4.6",
     "@types/node": "^20.11.19",
-    "@typescript/typescript6": "6.0.2",
     "@vendure-io/docs-generator": "^0.1.1",
     "concurrently": "^9.2.0",
     "conventional-changelog-core": "^7.0.0",
@@ -87,7 +86,8 @@
     "re2"
   ],
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "scripts/tooling/typescript6"
   ],
   "commitlint": {
     "extends": [
