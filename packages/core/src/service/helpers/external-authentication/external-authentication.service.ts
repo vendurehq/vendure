@@ -216,9 +216,9 @@ export class ExternalAuthenticationService {
             /**
              * Roles to grant. A Role owned by a Channel other than the default one is granted on
              * that Channel; a shared Role on the active Channel, which the client chooses with
-             * the `vendure-token` header. To name the Channel, use `roleAssignments`.
+             * the vendure-token header. To name the Channel, use roleAssignments.
              *
-             * @deprecated since 4.0.0, use `roleAssignments`
+             * @deprecated since 4.0.0, use roleAssignments
              */
             roles?: Role[];
             /**

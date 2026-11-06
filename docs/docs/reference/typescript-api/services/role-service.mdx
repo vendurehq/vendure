@@ -2,7 +2,7 @@
 title: "RoleService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="55" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="56" packageName="@vendure/core" />
 
 Contains methods relating to [Role](/reference/typescript-api/entities/role#role) entities.
 
@@ -24,6 +24,7 @@ class RoleService {
     canGrant(ctx: RequestContext, roleId: ID, channelId: ID) => Promise<boolean>;
     assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleAssignmentInput[]) => Promise<void>;
     getGrantableChannelIdsByRole(ctx: RequestContext) => Promise<Array<{ roleId: ID; channelIds: ID[]; everywhere: boolean }>>;
+    roleIsAssignableOnChannel(ctx: RequestContext, role: Role, channelId: ID) => Promise<boolean>;
     create(ctx: RequestContext, input: CreateRoleInput) => Promise<Role>;
     update(ctx: RequestContext, input: UpdateRoleInput) => Promise<Role>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
@@ -142,6 +143,12 @@ active user may grant nowhere are absent. `everywhere` is true when the Role is 
 on every Channel it may be assigned on, so that a query can match the Role without listing
 the Channels. This is the batch form of `canGrant` behind the filtered assignment list
 (`RoleAssignmentService.findAll`).
+### roleIsAssignableOnChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, role: <a href='/reference/typescript-api/entities/role#role'>Role</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+Whether the Role may be assigned on the Channel at all, whoever assigns it: a shared Role
+on any Channel, any other Role on its owning Channel only. See [Role](/reference/typescript-api/entities/role#role).
 ### create
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateRoleInput) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>>`}   />

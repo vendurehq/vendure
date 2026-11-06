@@ -27,10 +27,10 @@ changes therefore take effect on the User's next request.
 class RoleAssignmentService {
     constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, roleService: RoleService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<RoleAssignment>, relations?: RelationPaths<RoleAssignment>) => Promise<PaginatedList<RoleAssignment>>;
-    restrictToManageableUsers(ctx: RequestContext, qb: SelectQueryBuilder<E>, userIdProperty:  = 'userId') => Promise<void>;
+    restrictToManageableUsers(ctx: RequestContext, qb: SelectQueryBuilder<E>, userIdProperty:  = 'userId', unassignedAdministratorPermission?: Permission) => Promise<void>;
     getAssignmentsForUser(ctx: RequestContext, userId: ID) => Promise<RoleAssignment[]>;
     getGrantableAssignmentsForUser(ctx: RequestContext, userId: ID) => Promise<RoleAssignment[]>;
-    activeUserCanManageUser(ctx: RequestContext, userId: ID) => Promise<boolean>;
+    activeUserCanManageUser(ctx: RequestContext, userId: ID, unassignedAdministratorPermission: Permission = Permission.ReadAdministrator) => Promise<boolean>;
     resolveUserRoles(ctx: RequestContext, userId: ID) => Promise<Role[]>;
     isSoleSuperAdminHolder(ctx: RequestContext, userId: ID) => Promise<boolean>;
     assign(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]) => Promise<RoleAssignment[]>;
@@ -61,13 +61,17 @@ Assignments outside that set are neither returned nor counted, so for an actor w
 not hold every permission on every Channel the list is partial.
 ### restrictToManageableUsers
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, qb: SelectQueryBuilder<E>, userIdProperty:  = 'userId') => Promise<void>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, qb: SelectQueryBuilder<E>, userIdProperty:  = 'userId', unassignedAdministratorPermission?: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>) => Promise<void>`}   />
 
 Restricts a list query to the rows whose User the active user has authority over
 (`activeUserCanManageUser`): it excludes every row whose User holds a single
 RoleAssignment the active user may not grant. The restriction is applied to the query
 rather than to its result, so that `totalItems`, sorting, filtering and pagination all
 operate over the visible rows only.
+
+With `unassignedAdministratorPermission`, an Administrator holding no assignments is
+kept only if the active user holds that permission on every Channel (see
+`activeUserCanManageUser`).
 ### getAssignmentsForUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}   />
@@ -84,12 +88,19 @@ remove: all of them if the active user has authority over the User
 `User.roleAssignments` resolves to in the Admin API.
 ### activeUserCanManageUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, unassignedAdministratorPermission: <a href='/reference/typescript-api/common/permission#permission'>Permission</a> = Permission.ReadAdministrator) => Promise<boolean>`}   />
 
 Whether the active user has authority over the given User: true iff they may grant
-(`RoleService.canGrant`) every RoleAssignment the User holds. A User holding no
-assignments is in anyone's authority, and a SuperAdmin target is in a SuperAdmin's only.
-This decides which Administrators the active user may see, update and delete.
+(`RoleService.canGrant`) every RoleAssignment the User holds. A SuperAdmin target is
+therefore in a SuperAdmin's authority only. This decides which Administrators the active
+user may see, update and delete.
+
+An Administrator holding no assignments belongs to no Channel, for instance after all of
+their Roles were removed to suspend them. Such an Administrator is in the authority of an
+active user holding `unassignedAdministratorPermission` on every Channel only, so that an
+Administrator of one Channel cannot take over a suspended Administrator of another. The
+User of an ApiKey holding no assignments is in anyone's authority: ApiKeys are looked up
+on the active Channel, which already scopes them.
 ### resolveUserRoles
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>[]>`}   />
@@ -212,7 +223,9 @@ Performs no authorization: this is the row primitive beneath `assign`, for write
 which have no actor to check against, such as granting a User created by an
 authentication strategy the Roles that strategy resolved. Actor-made changes go through
 `assign`. A SuperAdmin pair on any Channel is stored as the single default-channel
-row, as in `assign`, so no write path can create a SuperAdmin row elsewhere.
+row, as in `assign`, so no write path can create a SuperAdmin row elsewhere. Role
+ownership still applies (`RoleService.roleIsAssignableOnChannel`): no write path
+can assign a Role owned by one Channel on another.
 ### deleteAssignments
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: RoleAssignmentInput[]) => Promise<void>`}   />
