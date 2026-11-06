@@ -14,7 +14,7 @@ export default defineConfig({
         // pre-existing type issue (accessing the private `EmailPlugin.options`) that is
         // unrelated to type tests and out of scope here. Project-wide `tsc` is unaffected.
         typecheck: {
-            tsconfig: path.join(__dirname, 'tsconfig.spec-d.json'),
+            tsconfig: path.join(import.meta.dirname, 'tsconfig.spec-d.json'),
         },
     },
     plugins: [

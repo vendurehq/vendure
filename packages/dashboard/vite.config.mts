@@ -35,17 +35,38 @@ export default ({ mode }: { mode: string }) => {
         test: {
             ...sharedTestConfig,
             globals: true,
-            environment: 'jsdom',
-            exclude: ['./dist/**/*', './e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
-            environmentMatchGlobs: [
-                ['vite/tests/**', 'node'],
+            // The Vite plugin tests run in Node, everything else in jsdom.
+            projects: [
+                {
+                    extends: true,
+                    test: {
+                        name: 'vite-plugin',
+                        environment: 'node',
+                        globalSetup: ['vite/tests/bundle-audit.global-setup.ts'],
+                        include: ['vite/tests/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+                    },
+                },
+                {
+                    extends: true,
+                    test: {
+                        name: 'dashboard',
+                        environment: 'jsdom',
+                        exclude: [
+                            './dist/**/*',
+                            './e2e/**/*',
+                            './plugin/**/*',
+                            './vite/tests/**/*',
+                            '**/node_modules/**/*',
+                        ],
+                    },
+                },
             ],
         },
         plugins: [
             vendureDashboardPlugin({
                 vendureConfigPath: pathToFileURL(vendureConfigPath),
                 api: { host: adminApiHost, port: adminApiPort },
-                tempCompilationDir: path.resolve(__dirname, './.temp'),
+                tempCompilationDir: path.resolve(import.meta.dirname, './.temp'),
                 // Opt into the pre-built bundle for the bundle-mode e2e run.
                 useExperimentalBundle: process.env.VITE_USE_EXPERIMENTAL_BUNDLE === 'true',
             }) as any,

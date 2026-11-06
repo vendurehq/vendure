@@ -11,7 +11,7 @@ export default defineConfig({
         // `tsconfig.spec-d.json` scopes the type-check program to the `*.spec-d.ts` files
         // and their imports, so the runtime specs are not type-checked.
         typecheck: {
-            tsconfig: path.join(__dirname, 'tsconfig.spec-d.json'),
+            tsconfig: path.join(import.meta.dirname, 'tsconfig.spec-d.json'),
         },
     },
     plugins: [

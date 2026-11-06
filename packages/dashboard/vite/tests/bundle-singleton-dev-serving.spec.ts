@@ -1,11 +1,9 @@
-import { execFile, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { SINGLETON_CANDIDATES } from './utils/bundle-singleton-audit.js';
 
-const execFileAsync = promisify(execFile);
 const packageRoot = join(__dirname, '..', '..');
 const fixtureConfig = join(packageRoot, 'e2e', 'fixtures', 'e2e-vendure-config.ts');
 const PORT = 5188;
@@ -32,10 +30,18 @@ describe.skipIf(process.env.RUN_BUNDLE_AUDIT !== 'true')('bundle singleton dev s
     let stopServer: () => void = () => undefined;
 
     beforeAll(async () => {
-        await execFileAsync('npm', ['run', 'build:lib'], { cwd: packageRoot });
+        // dist/bundle is built by bundle-audit.global-setup.ts before any test file starts.
         const server = await startDevServer();
         stopServer = server.stop;
-        libJs = await fetchWhenReady(`http://localhost:${server.port}/dist/bundle/lib.js`);
+        const baseUrl = `http://localhost:${server.port}`;
+        libJs = await fetchWhenReady(`${baseUrl}/dist/bundle/lib.js`);
+        // The bundler may reach an external through a shared chunk (e.g. lib.js ->
+        // chunks/common-operations.js -> sonner) rather than importing it from lib.js
+        // directly, so lib.js's static chunk imports are audited too.
+        const chunkPaths = new Set(libJs.match(/\/dist\/bundle\/chunks\/[^"'?]+\.js/g) ?? []);
+        for (const chunkPath of chunkPaths) {
+            libJs += await fetch(`${baseUrl}${chunkPath}`).then(res => res.text());
+        }
     }, 180_000);
 
     afterAll(() => stopServer());

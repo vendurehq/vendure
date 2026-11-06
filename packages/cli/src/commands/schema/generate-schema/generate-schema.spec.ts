@@ -21,7 +21,10 @@ vi.mock('../../../shared/shared-prompts', () => ({
 }));
 
 vi.mock('../../../shared/vendure-config-ref', () => ({
-    VendureConfigRef: vi.fn(() => ({ getPathRelativeToProjectRoot: () => 'vendure-config.ts' })),
+    // A `function` (not an arrow function) because the code under test calls it with `new`.
+    VendureConfigRef: vi.fn(function () {
+        return { getPathRelativeToProjectRoot: () => 'vendure-config.ts' };
+    }),
 }));
 
 vi.mock('../../../shared/load-vendure-config-file', () => ({

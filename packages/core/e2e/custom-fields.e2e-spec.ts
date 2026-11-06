@@ -14,7 +14,7 @@ import {
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'node:assert';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -1235,6 +1235,12 @@ describe('Custom fields', () => {
     });
 
     describe('setting custom fields directly via a service method', () => {
+        // vi.spyOn returns the existing spy when a method is already spied on, so restore
+        // between tests to keep the call counts of the "does not warn" cases independent.
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
         it('OrderService.addItemToOrder warns on unknown custom field', async () => {
             const orderService = server.app.get(OrderService);
             const requestContextService = server.app.get(RequestContextService);

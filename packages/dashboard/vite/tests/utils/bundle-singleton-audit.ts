@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { build, RollupOutput } from 'vite';
+import { build, esmExternalRequirePlugin, type Rolldown } from 'vite';
 
 import { dashboardBundleExternals, isExternalId, runtimePeers } from '../../lib-externals.js';
 import { viteConfigPlugin } from '../../vite-plugin-config.js';
@@ -85,6 +85,12 @@ export interface CandidateAudit {
 export interface BundleSingletonAudit {
     results: CandidateAudit[];
     offenders: CandidateAudit[];
+    /**
+     * Externals that `dist/bundle` still loads with a CommonJS `__require()` call. Such a call
+     * throws in the browser; `esmExternalRequirePlugin` in vite.lib.config.mts should have
+     * rewritten every one of them to an ESM import.
+     */
+    externalRequires: string[];
 }
 
 /**
@@ -123,7 +129,15 @@ export async function auditBundleSingletons(opts: {
         };
     });
 
-    return { results, offenders: results.filter(r => r.duplicated) };
+    const externalRequires = [
+        ...new Set(
+            [...bundleCode.matchAll(/__require\(\s*["']([^"']+)["']\s*\)/g)]
+                .map(match => match[1])
+                .filter(id => isExternalId(id, dashboardBundleExternals)),
+        ),
+    ];
+
+    return { results, offenders: results.filter(r => r.duplicated), externalRequires };
 }
 
 /**
@@ -153,16 +167,19 @@ async function buildExtensionCode(packageRoot: string, candidates: SingletonCand
                 // Provides the `@vendure/dashboard` → dist/bundle/lib.js alias
                 // that a consumer project uses in experimental-bundle mode.
                 viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+                // Externalises the runtime peers the way vite.lib.config.mts does, including
+                // CommonJS `require()` calls of them.
+                esmExternalRequirePlugin({ external: runtimePeers }),
             ],
             build: {
                 write: false,
                 minify: false,
                 lib: { entry, formats: ['es'], fileName: 'extension' },
                 // Extensions bundle their own copy of everything they import
-                // except the true runtime peers, which the consumer provides.
-                rollupOptions: { external: runtimePeers },
+                // except the true runtime peers (externalised by esmExternalRequirePlugin
+                // above), which the consumer provides.
             },
-        })) as RollupOutput | RollupOutput[];
+        })) as Rolldown.RolldownOutput | Rolldown.RolldownOutput[];
 
         const outputs = Array.isArray(result) ? result : [result];
         return outputs

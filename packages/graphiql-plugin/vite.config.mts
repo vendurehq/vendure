@@ -11,15 +11,10 @@ export default defineConfig({
         emptyOutDir: true,
         sourcemap: true,
         minify: true,
-        rollupOptions: {
-            output: {
-                manualChunks: undefined,
-            },
-        },
     },
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src/ui'),
+            '@': path.resolve(import.meta.dirname, './src/ui'),
         },
     },
     server: {
