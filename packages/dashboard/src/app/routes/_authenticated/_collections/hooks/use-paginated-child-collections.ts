@@ -1,4 +1,5 @@
-import { useQueries } from '@tanstack/react-query';
+import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 export interface ChildCollectionsPage<T> {
@@ -32,7 +33,29 @@ export function usePaginatedChildCollections<T>({
     );
     const [nextPageToFetch, setNextPageToFetch] = useState<Record<string, number>>({});
 
-    const childQueryKey = (parentId: string, page: number) => [queryKeyPrefix, parentId, 'page', page];
+    const queryClient = useQueryClient();
+    const {
+        settings: { contentLanguage },
+    } = useUserSettings();
+    const [childrenLanguage, setChildrenLanguage] = useState(contentLanguage);
+
+    const childQueryKey = (parentId: string, page: number) => [
+        queryKeyPrefix,
+        parentId,
+        'page',
+        page,
+        childrenLanguage,
+    ];
+
+    useEffect(() => {
+        if (contentLanguage === childrenLanguage) {
+            return;
+        }
+        queryClient.removeQueries({ queryKey: [queryKeyPrefix] });
+        setChildrenLanguage(contentLanguage);
+        setAccumulatedChildren({});
+        setNextPageToFetch({});
+    }, [contentLanguage]);
 
     // NOTE: queryFn must be pure (no setState side effects). With the global
     // `keepPreviousData`, a re-mounted component is served the cached data on its
