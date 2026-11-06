@@ -3,7 +3,7 @@ on:
   issue_comment:
     types: [created]
   pull_request_target:
-    types: [opened,closed,synchronize]
+    types: [opened,reopened,closed,synchronize]
 
 # explicitly configure permissions, in case your GITHUB_TOKEN workflow permissions are set to read-only in repository settings
 permissions:
@@ -53,3 +53,16 @@ jobs:
           #custom-notsigned-prcomment: 'pull request comment with Introductory message to ask new contributors to sign'
           #custom-pr-sign-comment: 'The signature to be committed in order to sign the CLA'
           #custom-allsigned-prcomment: 'pull request comment when all contributors has signed, defaults to **CLA Assistant Lite bot** All Contributors have signed the CLA.'
+
+  # Trial of our own CLA check (cla_check.yml) next to CLA Assistant. It reports a separate
+  # "cla (next)" commit status and posts no comments. It runs after CLA Assistant, so that two
+  # runs never write the signatures file at the same time. Once its results match, CLA Assistant
+  # is removed and this job takes over the "cla" status and the comment.
+  cla-next:
+    needs: CLAAssistant
+    if: always()
+    uses: ./.github/workflows/cla_check.yml
+    with:
+      status-context: cla (next)
+      post-comment: false
+    secrets: inherit
