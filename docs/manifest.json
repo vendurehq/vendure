@@ -12,7 +12,7 @@
           "title": "Installation",
           "slug": "installation",
           "file": "docs/guides/getting-started/installation/index.mdx",
-          "lastModified": "2026-10-23T13:20:29+02:00"
+          "lastModified": "2026-11-06T13:48:45Z"
         },
         {
           "title": "Introducing GraphQL",
@@ -290,13 +290,13 @@
           "title": "Testing",
           "slug": "testing",
           "file": "docs/guides/developer-guide/testing/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-06T13:48:45Z"
         },
         {
           "title": "Updating",
           "slug": "updating",
           "file": "docs/guides/developer-guide/updating/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-11-06T13:48:45Z"
         },
         {
           "title": "Worker & Job Queue",
@@ -506,7 +506,7 @@
           "title": "Getting Started",
           "slug": "getting-started",
           "file": "docs/guides/extending-the-dashboard/getting-started/index.mdx",
-          "lastModified": "2026-11-05T13:13:02+01:00"
+          "lastModified": "2026-11-06T13:48:45Z"
         },
         {
           "title": "Extending Overview",
@@ -662,13 +662,13 @@
           "title": "Deployment",
           "slug": "deployment",
           "file": "docs/guides/extending-the-dashboard/deployment/index.mdx",
-          "lastModified": "2026-11-05T14:55:16Z"
+          "lastModified": "2026-11-06T13:48:45Z"
         },
         {
           "title": "Tech Stack",
           "slug": "tech-stack",
           "file": "docs/guides/extending-the-dashboard/tech-stack/index.mdx",
-          "lastModified": "2026-03-23T10:11:25+01:00"
+          "lastModified": "2026-11-06T13:48:45Z"
         },
         {
           "title": "Migration",
