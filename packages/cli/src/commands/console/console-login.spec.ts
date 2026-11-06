@@ -363,7 +363,7 @@ describe('console link command line login', () => {
 
         expect(run.exitCode).toBe(1);
         expect(run.messages.join('\n')).toContain(
-            'WorkOS did not scope the login to Acme. The stored login is now scoped to Other.',
+            'The authentication service did not scope the login to Acme. The stored login is now scoped to Other.',
         );
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
         // The old refresh token is spent. Keeping the new pair keeps the login usable.
