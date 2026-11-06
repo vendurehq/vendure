@@ -109,6 +109,7 @@ generated: true
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
+    Asset: '/reference/graphql-api/admin/object-types#asset',
     User: '/reference/graphql-api/admin/object-types#user',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
@@ -120,6 +121,7 @@ generated: true
   firstName: String!
   lastName: String!
   emailAddress: String!
+  avatar: Asset
   user: User!
   customFields: JSON
 }`}
@@ -448,6 +450,7 @@ scalar Boolean`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -839,6 +842,7 @@ type CollectionResult {
   label: String
   description: String
   ui: JSON
+  secret: Boolean
 }`}
 </GraphQLDoc>
 
@@ -1076,9 +1080,10 @@ type CouponCodeLimitError {
   typeLinks={{
     Customer: '/reference/graphql-api/admin/object-types#customer',
     EmailAddressConflictError: '/reference/graphql-api/admin/object-types#emailaddressconflicterror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
   }}
 >
-{`union CreateCustomerResult = Customer | EmailAddressConflictError`}
+{`union CreateCustomerResult = Customer | EmailAddressConflictError | PasswordValidationError`}
 </GraphQLDoc>
 
 <a name="createfulfillmenterror"></a>
@@ -1221,6 +1226,7 @@ type CustomFields {
   Promotion: [CustomFieldConfig!]!
   Refund: [CustomFieldConfig!]!
   Region: [CustomFieldConfig!]!
+  Role: [CustomFieldConfig!]!
   Seller: [CustomFieldConfig!]!
   Session: [CustomFieldConfig!]!
   ShippingLine: [CustomFieldConfig!]!
@@ -1378,6 +1384,7 @@ type DateTimeCustomFieldConfig {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: String
@@ -1819,6 +1826,7 @@ scalar Float`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Float
@@ -2165,6 +2173,7 @@ scalar Int`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Int
@@ -2409,6 +2418,7 @@ type LanguageNotAvailableError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -2441,6 +2451,7 @@ type LanguageNotAvailableError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -2487,46 +2498,6 @@ type ManualPaymentStateError {
 }`}
 </GraphQLDoc>
 
-<a name="metricsummary"></a>
-
-## MetricSummary
-
-<GraphQLDoc
-  type="type"
-  typeName="MetricSummary"
-  typeLinks={{
-    MetricInterval: '/reference/graphql-api/admin/enums#metricinterval',
-    MetricType: '/reference/graphql-api/admin/enums#metrictype',
-    String: '/reference/graphql-api/admin/object-types#string',
-    MetricSummaryEntry: '/reference/graphql-api/admin/object-types#metricsummaryentry',
-  }}
->
-{`type MetricSummary {
-  interval: MetricInterval!
-  type: MetricType!
-  title: String!
-  entries: [MetricSummaryEntry!]!
-}`}
-</GraphQLDoc>
-
-<a name="metricsummaryentry"></a>
-
-## MetricSummaryEntry
-
-<GraphQLDoc
-  type="type"
-  typeName="MetricSummaryEntry"
-  typeLinks={{
-    String: '/reference/graphql-api/admin/object-types#string',
-    Float: '/reference/graphql-api/admin/object-types#float',
-  }}
->
-{`type MetricSummaryEntry {
-  label: String!
-  value: Float!
-}`}
-</GraphQLDoc>
-
 <a name="mimetypeerror"></a>
 
 ## MimeTypeError
@@ -2561,6 +2532,25 @@ type ManualPaymentStateError {
 >
 {`"""Returned if a PromotionCondition has neither a couponCode nor any conditions set"""
 type MissingConditionsError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="missingpassworderror"></a>
+
+## MissingPasswordError
+
+<GraphQLDoc
+  type="type"
+  typeName="MissingPasswordError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when attempting to register or verify a customer account without a password, when one is required."""
+type MissingPasswordError {
   errorCode: ErrorCode!
   message: String!
 }`}
@@ -3165,6 +3155,89 @@ type OrderTaxSummary {
   taxBase: Money!
   """The total tax being applied to the Order at this taxRate"""
   taxTotal: Money!
+}`}
+</GraphQLDoc>
+
+<a name="passwordalreadyseterror"></a>
+
+## PasswordAlreadySetError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordAlreadySetError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when attempting to verify a customer account with a password, when a password has already been set."""
+type PasswordAlreadySetError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokenexpirederror"></a>
+
+## PasswordResetTokenExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset an Administrator's password is valid, but has
+expired according to the \`verificationTokenDuration\` setting in the AuthOptions.
+"""
+type PasswordResetTokenExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokeninvaliderror"></a>
+
+## PasswordResetTokenInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset an Administrator's password is either
+invalid or does not match any expected tokens.
+"""
+type PasswordResetTokenInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordvalidationerror"></a>
+
+## PasswordValidationError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordValidationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when attempting to register or verify a customer account where the given password fails password validation."""
+type PasswordValidationError {
+  errorCode: ErrorCode!
+  message: String!
+  validationErrorMessage: String!
 }`}
 </GraphQLDoc>
 
@@ -3984,6 +4057,11 @@ type QuantityTooGreatError {
   adjustment: Money!
   total: Money!
   method: String
+  """
+  The refund destination code, if a non-default destination was used.
+  When null, the refund was directed to the original payment method.
+  """
+  destination: String
   state: String!
   transactionId: String
   reason: String
@@ -4012,6 +4090,81 @@ type RefundAmountError {
   errorCode: ErrorCode!
   message: String!
   maximumRefundable: Int!
+}`}
+</GraphQLDoc>
+
+<a name="refunddestination"></a>
+
+## RefundDestination
+
+<GraphQLDoc
+  type="type"
+  typeName="RefundDestination"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Represents an available refund destination for an order."""
+type RefundDestination {
+  code: String!
+  description: String!
+  """
+  The IDs of the Payments on this Order for which this destination is available, as
+  determined by the strategy's \`isAvailable()\` method. A refund to this destination must
+  draw its balance from one of these Payments.
+  """
+  availableForPaymentIds: [ID!]!
+}`}
+</GraphQLDoc>
+
+<a name="refunddestinationerror"></a>
+
+## RefundDestinationError
+
+<GraphQLDoc
+  type="type"
+  typeName="RefundDestinationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned if the specified refund destination does not exist, or is not available for the specified Payment"""
+type RefundDestinationError {
+  errorCode: ErrorCode!
+  message: String!
+  destinationCode: String!
+}`}
+</GraphQLDoc>
+
+<a name="refundincompleteerror"></a>
+
+## RefundIncompleteError
+
+<GraphQLDoc
+  type="type"
+  typeName="RefundIncompleteError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+    Refund: '/reference/graphql-api/admin/object-types#refund',
+    Int: '/reference/graphql-api/admin/object-types#int',
+  }}
+>
+{`"""
+Returned when a refund split over several \`targets\` fails after one or more of the earlier
+targets have already been refunded. The Refunds created before the failure are kept, since their
+funds may already have been moved, and are listed in \`refunds\`.
+"""
+type RefundIncompleteError {
+  errorCode: ErrorCode!
+  message: String!
+  """The Refunds created by this operation, including one whose state transition failed."""
+  refunds: [Refund!]!
+  """The zero-based index of the target in \`RefundOrderInput.targets\` which failed."""
+  failedTargetIndex: Int!
+  failureReason: String!
 }`}
 </GraphQLDoc>
 
@@ -4056,9 +4209,11 @@ type RefundAmountError {
     AlreadyRefundedError: '/reference/graphql-api/admin/object-types#alreadyrefundederror',
     RefundStateTransitionError: '/reference/graphql-api/admin/object-types#refundstatetransitionerror',
     RefundAmountError: '/reference/graphql-api/admin/object-types#refundamounterror',
+    RefundDestinationError: '/reference/graphql-api/admin/object-types#refunddestinationerror',
+    RefundIncompleteError: '/reference/graphql-api/admin/object-types#refundincompleteerror',
   }}
 >
-{`union RefundOrderResult = Refund | QuantityTooGreatError | NothingToRefundError | OrderStateTransitionError | MultipleOrderError | PaymentOrderMismatchError | RefundOrderStateError | AlreadyRefundedError | RefundStateTransitionError | RefundAmountError`}
+{`union RefundOrderResult = Refund | QuantityTooGreatError | NothingToRefundError | OrderStateTransitionError | MultipleOrderError | PaymentOrderMismatchError | RefundOrderStateError | AlreadyRefundedError | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError`}
 </GraphQLDoc>
 
 <a name="refundorderstateerror"></a>
@@ -4173,6 +4328,7 @@ type RefundStateTransitionError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   entity: String!
@@ -4269,6 +4425,39 @@ type RefundStateTransitionError {
 {`union RemoveProductOptionGroupFromChannelResult = ProductOptionGroup | ProductOptionGroupInUseError`}
 </GraphQLDoc>
 
+<a name="requestpasswordresetresult"></a>
+
+## RequestPasswordResetResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RequestPasswordResetResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    NativeAuthStrategyError: '/reference/graphql-api/admin/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RequestPasswordResetResult = Success | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="resetpasswordresult"></a>
+
+## ResetPasswordResult
+
+<GraphQLDoc
+  type="union"
+  typeName="ResetPasswordResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/admin/object-types#currentuser',
+    PasswordResetTokenInvalidError: '/reference/graphql-api/admin/object-types#passwordresettokeninvaliderror',
+    PasswordResetTokenExpiredError: '/reference/graphql-api/admin/object-types#passwordresettokenexpirederror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
+    NativeAuthStrategyError: '/reference/graphql-api/admin/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union ResetPasswordResult = CurrentUser | PasswordResetTokenInvalidError | PasswordResetTokenExpiredError | PasswordValidationError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
 <a name="return"></a>
 
 ## Return
@@ -4304,27 +4493,28 @@ type RefundStateTransitionError {
   type="type"
   typeName="Role"
   typeLinks={{
+    Channel: '/reference/graphql-api/admin/object-types#channel',
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
-    Channel: '/reference/graphql-api/admin/object-types#channel',
+    JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`type Role {
+  """
+  The Channel which owns this Role. A Role owned by the default Channel can be assigned on any
+  Channel, any other Role only on its owner. Null only for a Role created by a v3 server during
+  a rolling upgrade, until the role assignment migration has completed.
+  """
+  channel: Channel
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
   code: String!
   description: String!
   permissions: [Permission!]!
-  """
-  The Channel which owns this Role. A Role owned by the default Channel is shared: it can be
-  assigned on any Channel. A Role owned by any other Channel can only be assigned on that
-  Channel. Null only for a Role created by a v3 server during a rolling upgrade, until the
-  role assignment migration has completed.
-  """
-  channel: Channel
+  customFields: JSON
 }`}
 </GraphQLDoc>
 
@@ -4344,11 +4534,8 @@ type RefundStateTransitionError {
   }}
 >
 {`"""
-A RoleAssignment grants a User the permissions of a Role on a specific Channel.
-The Role defines the permissions; the RoleAssignment supplies the channel scope. A Role owned by
-the default Channel can be assigned on any Channel, any other Role only on its owning Channel.
-The SuperAdmin Role is the exception: it is stored as a single assignment on the default
-Channel, which stands for every Channel.
+Grants a User the permissions of a Role on a Channel. A SuperAdmin assignment is stored on the
+default Channel and applies on every Channel.
 """
 type RoleAssignment {
   id: ID!
@@ -4462,6 +4649,7 @@ type RoleAssignment {
   description: String!
   schedule: String!
   scheduleDescription: String!
+  timezone: String
   lastExecutedAt: DateTime
   nextExecutionAt: DateTime
   isRunning: Boolean!
@@ -4597,6 +4785,7 @@ union SearchResultPrice = PriceRange | SinglePrice`}
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
+    SellerTranslation: '/reference/graphql-api/admin/object-types#sellertranslation',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
@@ -4605,6 +4794,7 @@ union SearchResultPrice = PriceRange | SinglePrice`}
   createdAt: DateTime!
   updatedAt: DateTime!
   name: String!
+  translations: [SellerTranslation!]!
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -4624,6 +4814,31 @@ union SearchResultPrice = PriceRange | SinglePrice`}
 {`type SellerList {
   items: [Seller!]!
   totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="sellertranslation"></a>
+
+## SellerTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="SellerTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    DateTime: '/reference/graphql-api/admin/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+  }}
+>
+{`"""
+Holds a Seller's localized custom field values for one language.
+The Seller's own fields, such as \`name\`, are not translated.
+"""
+type SellerTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
 }`}
 </GraphQLDoc>
 
@@ -5102,6 +5317,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -5184,6 +5400,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -5468,6 +5685,7 @@ type Success {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -5673,8 +5891,7 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
 >
 {`type User {
   """
-  The RoleAssignments of this User which the active user may grant or remove: all of them
-  if the active user has authority over the User (may grant every one of its assignments),
+  The RoleAssignments of this User: all of them if the active user could grant every one,
   none otherwise.
   """
   roleAssignments: [RoleAssignment!]!
@@ -5688,6 +5905,23 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
   authenticationMethods: [AuthenticationMethod!]!
   customFields: JSON
 }`}
+</GraphQLDoc>
+
+<a name="verifycustomeraccountresult"></a>
+
+## VerifyCustomerAccountResult
+
+<GraphQLDoc
+  type="union"
+  typeName="VerifyCustomerAccountResult"
+  typeLinks={{
+    Customer: '/reference/graphql-api/admin/object-types#customer',
+    MissingPasswordError: '/reference/graphql-api/admin/object-types#missingpassworderror',
+    PasswordAlreadySetError: '/reference/graphql-api/admin/object-types#passwordalreadyseterror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
+  }}
+>
+{`union VerifyCustomerAccountResult = Customer | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError`}
 </GraphQLDoc>
 
 <a name="zone"></a>

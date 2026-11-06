@@ -2,7 +2,7 @@
 title: "RoleService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="56" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="55" packageName="@vendure/core" />
 
 Contains methods relating to [Role](/reference/typescript-api/entities/role#role) entities.
 
@@ -22,7 +22,7 @@ class RoleService {
     isSharedRole(ctx: RequestContext, role: Role) => Promise<boolean>;
     activeUserHoldsPermissionsOnAnyChannel(ctx: RequestContext, permissions: Permission[]) => Promise<boolean>;
     canGrant(ctx: RequestContext, roleId: ID, channelId: ID) => Promise<boolean>;
-    assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleChannelPair[]) => Promise<void>;
+    assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleAssignmentInput[]) => Promise<void>;
     getGrantableChannelIdsByRole(ctx: RequestContext) => Promise<Array<{ roleId: ID; channelIds: ID[]; everywhere: boolean }>>;
     create(ctx: RequestContext, input: CreateRoleInput) => Promise<Role>;
     update(ctx: RequestContext, input: UpdateRoleInput) => Promise<Role>;
@@ -123,7 +123,7 @@ The same predicate decides every assignment write (`RoleAssignmentService.assign
 actor sees are exactly the ones they may change.
 ### assertActiveUserCanGrantRoles
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, pairs: RoleAssignmentInput[]) => Promise<void>`}  since="4.0.0"  />
 
 Asserts `canGrant` for every one of the given `(roleId, channelId)` pairs.
 

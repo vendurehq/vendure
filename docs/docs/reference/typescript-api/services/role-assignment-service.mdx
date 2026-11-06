@@ -2,38 +2,7 @@
 title: "RoleAssignmentService"
 generated: true
 ---
-## RoleChannelPair
-
-<GenerationInfo sourceFile="packages/core/src/service/services/role-assignment.service.ts" sourceLine="43" packageName="@vendure/core" since="4.0.0" />
-
-A `(roleId, channelId)` pair identifying the grant of a Role on a Channel, as taken by
-`RoleAssignmentService.assign` and `RoleAssignmentService.remove`.
-
-```ts title="Signature"
-interface RoleChannelPair {
-    roleId: ID;
-    channelId: ID;
-}
-```
-
-<div className="members-wrapper">
-
-### roleId
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
-
-
-### channelId
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
-
-
-
-
-</div>
-## RoleAssignmentService
-
-<GenerationInfo sourceFile="packages/core/src/service/services/role-assignment.service.ts" sourceLine="72" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role-assignment.service.ts" sourceLine="58" packageName="@vendure/core" since="4.0.0" />
 
 Contains methods relating to [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) entities — the `(user, role, channel)`
 triples which grant a User a Role's permissions on a specific Channel.
@@ -64,14 +33,14 @@ class RoleAssignmentService {
     activeUserCanManageUser(ctx: RequestContext, userId: ID) => Promise<boolean>;
     resolveUserRoles(ctx: RequestContext, userId: ID) => Promise<Role[]>;
     isSoleSuperAdminHolder(ctx: RequestContext, userId: ID) => Promise<boolean>;
-    assign(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<RoleAssignment[]>;
-    remove(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<RoleAssignment[]>;
-    assertManageableSubject(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<void>;
+    assign(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]) => Promise<RoleAssignment[]>;
+    remove(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]) => Promise<RoleAssignment[]>;
+    assertManageableSubject(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]) => Promise<void>;
     assertActiveUserHasPermissionOnChannels(ctx: RequestContext, permission: Permission, channelIds: ID[]) => void;
-    assertValidApiKeyGrants(ctx: RequestContext, apiKeyChannelIds: ID[], pairs: RoleChannelPair[]) => Promise<void>;
+    assertValidApiKeyGrants(ctx: RequestContext, apiKeyChannelIds: ID[], pairs: RoleAssignmentInput[]) => Promise<void>;
     replaceRolesOnChannel(ctx: RequestContext, userId: ID, roleIds: ID[], channelId: ID = ctx.channelId) => Promise<void>;
-    createAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<void>;
-    deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]) => Promise<void>;
+    createAssignments(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]) => Promise<void>;
+    deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]) => Promise<void>;
     removeAllAssignmentsForUser(ctx: RequestContext, userId: ID) => Promise<void>;
     removeAllAssignmentsOnChannel(ctx: RequestContext, channelId: ID) => Promise<void>;
     removeAllAssignmentsOfRole(ctx: RequestContext, roleId: ID) => Promise<void>;
@@ -92,7 +61,7 @@ Assignments outside that set are neither returned nor counted, so for an actor w
 not hold every permission on every Channel the list is partial.
 ### restrictToManageableUsers
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, qb: SelectQueryBuilder<E>, userIdProperty:  = 'userId') => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, qb: SelectQueryBuilder<E>, userIdProperty:  = 'userId') => Promise<void>`}   />
 
 Restricts a list query to the rows whose User the active user has authority over
 (`activeUserCanManageUser`): it excludes every row whose User holds a single
@@ -107,7 +76,7 @@ Returns all RoleAssignments of the given User across all Channels, unfiltered. F
 what the active user may see of them, use `getGrantableAssignmentsForUser`.
 ### getGrantableAssignmentsForUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}   />
 
 Returns the RoleAssignments of the given User which the active user may grant or
 remove: all of them if the active user has authority over the User
@@ -115,7 +84,7 @@ remove: all of them if the active user has authority over the User
 `User.roleAssignments` resolves to in the Admin API.
 ### activeUserCanManageUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}   />
 
 Whether the active user has authority over the given User: true iff they may grant
 (`RoleService.canGrant`) every RoleAssignment the User holds. A User holding no
@@ -128,7 +97,7 @@ This decides which Administrators the active user may see, update and delete.
 Returns the distinct Roles assigned to the given User across all Channels.
 ### isSoleSuperAdminHolder
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}   />
 
 Whether the given User is the only non-deleted Administrator holding the SuperAdmin
 Role. There must always be one, otherwise full administration through the API is no
@@ -145,7 +114,7 @@ which performs the write. On SQLite locks are not supported; SQLite serializes w
 itself.
 ### assign
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: RoleAssignmentInput[]) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}   />
 
 Grants the User each of the given `(roleId, channelId)` pairs. The active user must be
 permitted to grant every pair (`RoleService.canGrant`), pairs the User already
@@ -158,7 +127,7 @@ Publishes an `assigned` [RoleAssignmentEvent](/reference/typescript-api/events/e
 returns the User's assignments after the write.
 ### remove
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: RoleAssignmentInput[]) => Promise<<a href='/reference/typescript-api/entities/role-assignment#roleassignment'>RoleAssignment</a>[]>`}   />
 
 Revokes each of the given `(roleId, channelId)` pairs from the User. The rule is the
 same as for `assign`: the active user must be permitted to grant every pair
@@ -172,7 +141,7 @@ Publishes a `removed` [RoleAssignmentEvent](/reference/typescript-api/events/eve
 returns the User's assignments after the write.
 ### assertManageableSubject
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: RoleAssignmentInput[]) => Promise<void>`}   />
 
 Asserts that the active user may change the given `(roleId, channelId)` pairs of the
 User through an actor-made `assign` or `remove`:
@@ -194,7 +163,7 @@ Administrators and ApiKeys assign Roles to a User whose entity they are still wr
 They check the pairs' Channels with `assertActiveUserHasPermissionOnChannels`.
 ### assertActiveUserHasPermissionOnChannels
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, permission: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => void`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, permission: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => void`}   />
 
 Asserts that the active user holds the permission on every one of the given Channels,
 typically the Channels of the `(roleId, channelId)` pairs an actor-made write names. The
@@ -204,7 +173,7 @@ one Channel and a Role's permissions on another could change that other Channel'
 assignments.
 ### assertValidApiKeyGrants
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, apiKeyChannelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, apiKeyChannelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], pairs: RoleAssignmentInput[]) => Promise<void>`}   />
 
 Asserts that the given `(roleId, channelId)` pairs may be granted to the User of an API key
 which belongs to the given Channels:
@@ -233,7 +202,7 @@ The `roleIds` inputs are deprecated since 4.0.0 in favor of the `assignRolesToUs
 `removeRolesFromUser` mutations. Remove this method in v5.0.0 together with them.
 ### createAssignments
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: RoleAssignmentInput[]) => Promise<void>`}   />
 
 Creates a RoleAssignment for each of the given `(roleId, channelId)` pairs the User does
 not already hold, and publishes one `assigned` [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) for the pairs
@@ -246,7 +215,7 @@ authentication strategy the Roles that strategy resolved. Actor-made changes go 
 row, as in `assign`, so no write path can create a SuperAdmin row elsewhere.
 ### deleteAssignments
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, pairs: RoleAssignmentInput[]) => Promise<void>`}   />
 
 Deletes the User's RoleAssignments matching the given `(roleId, channelId)` pairs, and
 publishes one `removed` [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) for the pairs removed. Pairs the User
@@ -257,7 +226,7 @@ Performs no authorization and no sole-SuperAdmin guard: this is the row primitiv
 Channel removes the User's SuperAdmin row, as in `remove`.
 ### removeAllAssignmentsForUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}   />
 
 Deletes every RoleAssignment of the User across all Channels, and publishes one
 `removed` [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) for them. Nothing is published for a User
@@ -269,7 +238,7 @@ User. Left in place, those rows would keep counting towards the Channels a Role 
 assigned on (see [RoleService](/reference/typescript-api/services/role-service#roleservice)) and so keep gating the Role for live administrators.
 ### removeAllAssignmentsOnChannel
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}   />
 
 Deletes every RoleAssignment on the given Channel, and publishes one `removed`
 [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) per affected User. Call it before the Channel row is
@@ -281,7 +250,7 @@ the Channel delete. The SuperAdmin row lives on the default Channel, which canno
 deleted.
 ### removeAllAssignmentsOfRole
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}   />
 
 Deletes every RoleAssignment of the given Role, and publishes one `removed`
 [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) per affected User. Call it before the Role row is deleted:

@@ -1086,7 +1086,7 @@ class RefundStateTransitionEvent extends VendureEvent {
 </div>
 ## RoleAssignmentEvent
 
-<GenerationInfo sourceFile="packages/core/src/event-bus/events/role-assignment-event.ts" sourceLine="29" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/role-assignment-event.ts" sourceLine="30" packageName="@vendure/core" since="4.0.0" />
 
 This event is fired whenever [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) rows of a [User](/reference/typescript-api/entities/user#user) change, i.e. when
 a Role is granted to or revoked from the User on a specific Channel. The `assignments` property
@@ -1107,7 +1107,7 @@ Administrator and could not express the Channel a Role was granted on.
 
 ```ts title="Signature"
 class RoleAssignmentEvent extends VendureEvent {
-    constructor(ctx: RequestContext, user: User, assignments: RoleChannelPair[], type: 'assigned' | 'removed')
+    constructor(ctx: RequestContext, user: User, assignments: RoleAssignmentInput[], type: 'assigned' | 'removed')
 }
 ```
 * Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)

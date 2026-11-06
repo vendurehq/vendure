@@ -1030,11 +1030,8 @@ type Query {
   }}
 >
 {`"""
-Get a paginated list of RoleAssignments, filtered to those the active user may grant or
-remove: the assignments of the Users the active user has authority over, that is, Users
-whose every assignment the active user could grant. For an actor who does not hold every
-permission on every Channel the list is partial, and \`totalItems\` counts only the visible
-assignments.
+Get a paginated list of the RoleAssignments of the Users the active user may manage: those
+whose every assignment the active user could grant.
 """
 type Query {
   roleAssignments(options: RoleAssignmentListOptions): RoleAssignmentList!
