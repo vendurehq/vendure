@@ -29,6 +29,7 @@ const singlyIndexedColumns = [
     ['search_index_item', 'productId'],
     ['authentication_method', 'type'],
     ['order_line_reference', 'discriminator'],
+    ['stock_level', 'productVariantId'],
 ] as const;
 
 describe('entity indexes', () => {
@@ -39,8 +40,8 @@ describe('entity indexes', () => {
         await ensureConfigLoaded();
         setEntityIdStrategy(new AutoIncrementIdStrategy(), entities);
         // sqljs stands in for the supported databases here: indices are resolved by
-        // EntityMetadataBuilder before any driver sees them, and none of the columns above is a
-        // relation, so no driver-specific foreign key indexes are in play.
+        // EntityMetadataBuilder before any driver sees them, and sqljs adds no foreign key indexes
+        // of its own.
         dataSource = new DataSource({ type: 'sqljs', entities, synchronize: true });
         await dataSource.initialize();
         const queryRunner = dataSource.createQueryRunner();

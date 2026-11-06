@@ -22,7 +22,6 @@ export class StockLevel extends VendureEntity implements HasCustomFields {
         super(input);
     }
 
-    @Index()
     @ManyToOne(type => ProductVariant, productVariant => productVariant.stockLevels, { onDelete: 'CASCADE' })
     productVariant: ProductVariant;
 
