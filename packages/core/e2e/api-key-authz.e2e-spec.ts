@@ -1,6 +1,6 @@
 import { Permission } from '@vendure/common/lib/generated-types';
 import { SUPER_ADMIN_USER_IDENTIFIER } from '@vendure/common/lib/shared-constants';
-import { ApiKeyService, RequestContextService, Role, TransactionalConnection, User } from '@vendure/core';
+import { ApiKeyService, RequestContextService, TransactionalConnection, User } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -299,14 +299,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
             return server.app
                 .get(TransactionalConnection)
                 .rawConnection.getRepository(User)
-                .findOneOrFail({ where: { identifier }, relations: { roles: { channels: true } } });
-        }
-
-        async function loadRole(code: string): Promise<Role> {
-            return server.app
-                .get(TransactionalConnection)
-                .rawConnection.getRepository(Role)
-                .findOneOrFail({ where: { code } });
+                .findOneOrFail({ where: { identifier } });
         }
 
         async function ctxAs(user: User) {
@@ -316,17 +309,16 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
         it('blocks binding a key to a higher-privileged existing User', async () => {
             const managerUser = await loadUser(manager.emailAddress);
             const superAdminUser = await loadUser(SUPER_ADMIN_USER_IDENTIFIER);
-            const catalogRole = await loadRole('catalog-reader');
             const ctx = await ctxAs(managerUser);
             const apiKeyService = server.app.get(ApiKeyService);
 
-            // roleIds is a role the manager may grant, so the existing incoming-roleIds check passes;
-            // the guard must still reject because the bound User holds SuperAdmin. A direct service
+            // An impersonated User keeps its own assignments, so no role input is passed (v4 refuses
+            // one). The guard must reject because the bound User holds SuperAdmin. A direct service
             // call surfaces the raw i18n key (the GraphQL layer is what translates it).
             await expect(
                 apiKeyService.create(
                     ctx,
-                    { roleIds: [catalogRole.id], translations: [{ languageCode: 'en' as any, name: 'x' }] },
+                    { translations: [{ languageCode: 'en' as any, name: 'x' }] },
                     managerUser.id,
                     superAdminUser.id,
                 ),
@@ -335,7 +327,6 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
 
         it('allows binding a key to a User whose permissions the caller fully holds', async () => {
             const managerUser = await loadUser(manager.emailAddress);
-            const catalogRole = await loadRole('catalog-reader');
             const ctx = await ctxAs(managerUser);
             const apiKeyService = server.app.get(ApiKeyService);
 
@@ -343,7 +334,6 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
             const result = await apiKeyService.create(
                 ctx,
                 {
-                    roleIds: [catalogRole.id],
                     translations: [{ languageCode: 'en' as any, name: 'self key' }],
                 },
                 managerUser.id,

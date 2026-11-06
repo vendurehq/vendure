@@ -3,7 +3,7 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { CUSTOMER_ROLE_CODE, DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { IsNull, NotBrackets } from 'typeorm';
+import { IsNull, NotBrackets, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -97,41 +97,59 @@ export class RoleAssignmentService {
         options?: ListQueryOptions<RoleAssignment>,
         relations?: RelationPaths<RoleAssignment>,
     ): Promise<PaginatedList<RoleAssignment>> {
-        const grantable = await this.roleService.getGrantableChannelIdsByRole(ctx);
-        if (grantable.length === 0) {
-            return { items: [], totalItems: 0 };
-        }
         const qb = this.listQueryBuilder.build(RoleAssignment, options, {
             relations: relations ?? [],
             ctx,
         });
+        await this.restrictToManageableUsers(ctx, qb);
+        return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
+    }
+
+    /**
+     * @description
+     * Restricts a list query to the rows whose User the active user has authority over
+     * ({@link activeUserCanManageUser}): it excludes every row whose User holds a single
+     * RoleAssignment the active user may not grant. The restriction is applied to the query
+     * rather than to its result, so that `totalItems`, sorting, filtering and pagination all
+     * operate over the visible rows only.
+     *
+     * @param userIdProperty the property of the query's main alias which holds the User id
+     * @since 4.0.0
+     */
+    async restrictToManageableUsers<E extends ObjectLiteral>(
+        ctx: RequestContext,
+        qb: SelectQueryBuilder<E>,
+        userIdProperty = 'userId',
+    ): Promise<void> {
+        const grantable = await this.roleService.getGrantableChannelIdsByRole(ctx);
         const roleCount = await this.connection.getRepository(ctx, Role).count();
         const channelCount = await this.connection.getRepository(ctx, Channel).count();
         const grantsEverything =
             grantable.length === roleCount && grantable.every(g => g.channelIds.length === channelCount);
-        if (!grantsEverything) {
-            // Excludes every assignment of a User who holds a single assignment the active user
-            // may not grant. A User's remaining assignments are then grantable by construction.
-            qb.andWhere(outerQb => {
-                const ungrantableQuery = outerQb
-                    .subQuery()
-                    .select('ungrantable.userId')
-                    .from(RoleAssignment, 'ungrantable')
-                    .where(
-                        new NotBrackets(grantableQb => {
-                            grantable.forEach(({ roleId, channelIds }, i) => {
-                                grantableQb.orWhere(
-                                    `(ungrantable.roleId = :grantableRole${i} AND ungrantable.channelId IN (:...grantableChannels${i}))`,
-                                    { [`grantableRole${i}`]: roleId, [`grantableChannels${i}`]: channelIds },
-                                );
-                            });
-                        }),
-                    );
-                const userId = `${outerQb.escape(outerQb.alias)}.${outerQb.escape('userId')}`;
-                return `${userId} NOT IN ${ungrantableQuery.getQuery()}`;
-            });
+        if (grantsEverything) {
+            return;
         }
-        return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
+        qb.andWhere(outerQb => {
+            const ungrantableQuery = outerQb
+                .subQuery()
+                .select('ungrantable.userId')
+                .from(RoleAssignment, 'ungrantable');
+            // With nothing grantable, every assignment is ungrantable, so no condition is needed.
+            if (grantable.length) {
+                ungrantableQuery.where(
+                    new NotBrackets(grantableQb => {
+                        grantable.forEach(({ roleId, channelIds }, i) => {
+                            grantableQb.orWhere(
+                                `(ungrantable.roleId = :grantableRole${i} AND ungrantable.channelId IN (:...grantableChannels${i}))`,
+                                { [`grantableRole${i}`]: roleId, [`grantableChannels${i}`]: channelIds },
+                            );
+                        });
+                    }),
+                );
+            }
+            const userId = `${outerQb.escape(outerQb.alias)}.${outerQb.escape(userIdProperty)}`;
+            return `${userId} NOT IN ${ungrantableQuery.getQuery()}`;
+        });
     }
 
     /**

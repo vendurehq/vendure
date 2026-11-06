@@ -23,13 +23,13 @@ import {
 import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
 import { ApiKeyStrategy } from '../../config/api-key-strategy/api-key-strategy';
 import { TransactionalConnection } from '../../connection';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { AuthenticationMethod, User } from '../../entity';
 import { ApiKeyTranslation } from '../../entity/api-key/api-key-translation.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { EventBus } from '../../event-bus';
 import { ApiKeyEvent } from '../../event-bus/events/api-key-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
-import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
@@ -139,9 +139,22 @@ export class ApiKeyService {
         const apiType = this.getApiTypeForNewApiKey(ctx);
         const strategy = this.getApiKeyStrategyByApiType(apiType);
         const lookupId = await strategy.generateLookupId(ctx);
-        const apiKeyUser = userIdApiKeyUser
+        const existingUser = userIdApiKeyUser
             ? await this.connection.getEntityOrThrow(ctx, User, userIdApiKeyUser)
-            : await this.userService.createApiKeyUser(ctx, this.generateApiKeyUserIdentifier(lookupId));
+            : undefined;
+        // The session binds to an existing User, whose assignments may exceed the caller's, so the
+        // returned secret would be a credential more powerful than the caller. The same authority
+        // rule as rotate, update and softDelete (GHSA-37xp-mjp8-6f9x), checked before anything is
+        // written.
+        if (
+            existingUser &&
+            !(await this.roleAssignmentService.activeUserCanManageUser(ctx, existingUser.id))
+        ) {
+            throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
+        }
+        const apiKeyUser =
+            existingUser ??
+            (await this.userService.createApiKeyUser(ctx, this.generateApiKeyUserIdentifier(lookupId)));
         // An impersonated existing User (userIdApiKeyUser) keeps their own assignments
         // instead of being granted new ones.
         if (!userIdApiKeyUser && roleAssignments.length) {
@@ -190,6 +203,28 @@ export class ApiKeyService {
     }
 
     /**
+     * Loads an API-Key in the active Channel, with its User, if the active user may manage it: they
+     * must have authority over the key's User, that is, be able to grant every RoleAssignment it
+     * holds ({@link RoleAssignmentService.activeUserCanManageUser}), the rule which also decides
+     * which Administrators they may see. A key they may not manage throws the same error as a key
+     * which does not exist, since {@link findOne} hides it and a different error would disclose
+     * that it exists (GHSA-37xp-mjp8-6f9x).
+     *
+     * @throws {EntityNotFoundError} If the API-Key does not exist or the active user may not manage it
+     */
+    private async getManageableApiKeyOrThrow(ctx: RequestContext, id: ID): Promise<ApiKey> {
+        const entity = await this.connection.getEntityOrThrow(ctx, ApiKey, id, {
+            channelId: ctx.channelId,
+            includeSoftDeleted: false,
+            relations: { user: true },
+        });
+        if (!(await this.roleAssignmentService.activeUserCanManageUser(ctx, entity.userId))) {
+            throw new EntityNotFoundError('ApiKey', id);
+        }
+        return entity;
+    }
+
+    /**
      * @description
      * Updates an API-Key. Is Channel-Aware.
      *
@@ -200,10 +235,10 @@ export class ApiKeyService {
         input: UpdateApiKeyInput,
         relations?: RelationPaths<ApiKey>,
     ): Promise<Translated<ApiKey>> {
-        const entity = await this.connection.getEntityOrThrow(ctx, ApiKey, input.id, {
-            channelId: ctx.channelId,
-            relations: ['user'],
-        });
+        // Without this an Administrator holding only UpdateApiKey could rename a higher-privileged
+        // key or strip its roles. The roleIds input is additionally checked pair by pair, which
+        // stops them raising a key's power.
+        const entity = await this.getManageableApiKeyOrThrow(ctx, input.id);
 
         if (entity.user.identifier !== this.generateApiKeyUserIdentifier(entity.lookupId)) {
             this.assertNoRoleInputsForImpersonatedUser(input);
@@ -272,9 +307,8 @@ export class ApiKeyService {
      * @throws {EntityNotFoundError} If API-Key cannot be found
      */
     async softDelete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
-        const apiKey = await this.connection.getEntityOrThrow(ctx, ApiKey, id, {
-            channelId: ctx.channelId,
-        });
+        // Without this an Administrator holding only DeleteApiKey could delete a higher-privileged key.
+        const apiKey = await this.getManageableApiKeyOrThrow(ctx, id);
 
         const hasAuthMethod = await this.connection.getRepository(ctx, AuthenticationMethod).existsBy({
             user: { id: apiKey.userId },
@@ -309,14 +343,15 @@ export class ApiKeyService {
      * This is a convenience method to invalidate an API-Key without
      * deleting the underlying roles and permissions.
      *
-     * @throws {EntityNotFoundError} If API-Key cannot be found
+     * @throws {EntityNotFoundError} If API-Key cannot be found, or the active User has no authority
+     * over the key's User
      */
     async rotate(ctx: RequestContext, id: ID): Promise<RotateApiKeyResult> {
-        const entity = await this.connection.getEntityOrThrow(ctx, ApiKey, id, {
-            channelId: ctx.channelId,
-            includeSoftDeleted: false,
-            relations: { user: true },
-        });
+        // The rotated secret authenticates as the key's User, whose assignments may exceed the
+        // caller's. Without this check an Administrator holding only UpdateApiKey could rotate a
+        // higher-privileged key and receive a working credential for it. Runs before any write, so
+        // a refused rotation leaves the existing secret intact.
+        const entity = await this.getManageableApiKeyOrThrow(ctx, id);
 
         // The API comes from the key, not from the caller who rotates it. Core exposes rotateApiKey on
         // the Admin API only, so taking it from the context would turn every rotated Shop API key into
@@ -360,6 +395,12 @@ export class ApiKeyService {
             where: { deletedAt: IsNull() },
         });
         if (!entity) return null;
+        // Hide a key the caller may not manage, so its metadata is not disclosed by id lookup to an
+        // Administrator who could not grant the key's assignments. The same rule as the mutations,
+        // so the read and write policies cannot drift apart (GHSA-37xp-mjp8-6f9x).
+        if (!(await this.roleAssignmentService.activeUserCanManageUser(ctx, entity.userId))) {
+            return null;
+        }
         return this.translator.translate(entity, ctx);
     }
 
@@ -378,6 +419,9 @@ export class ApiKeyService {
             channelId: ctx.channelId,
             where: { deletedAt: IsNull() },
         });
+        // Restricted to the keys the caller may manage, in the query so that pagination and
+        // totalItems stay correct (GHSA-37xp-mjp8-6f9x).
+        await this.roleAssignmentService.restrictToManageableUsers(ctx, qb);
         const [keys, totalItems] = await qb.getManyAndCount();
         const items = keys.map(key => this.translator.translate(key, ctx));
         return { items, totalItems };

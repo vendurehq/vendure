@@ -324,6 +324,7 @@ Other changes to these inputs:
 If you are upgrading from 3.7.3 or later, these already apply:
 
 - An actor can see, update or delete an Administrator only when the actor may grant every Role assignment that Administrator holds. For other Administrators the API returns a not-found error. Only SuperAdmins can see a SuperAdmin.
+- The same rule applies to API keys (GHSA-37xp-mjp8-6f9x, from 3.8.x): `apiKeys`, `apiKey`, `updateApiKey`, `rotateApiKey` and `deleteApiKeys` only see or change a key whose User holds role assignments the actor may grant. `ApiKeyService.create()` refuses to bind a key to an existing User outside the actor's authority.
 - `updateChannel` and `deleteChannel` check `UpdateChannel` / `DeleteChannel` on the target Channel, not the active one.
 
 ### Testing
