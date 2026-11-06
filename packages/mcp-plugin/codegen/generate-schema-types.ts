@@ -1,4 +1,3 @@
-import { generateOutput } from '@gql.tada/cli-utils';
 import { GraphQLTypesLoader } from '@nestjs/graphql';
 import {
     getConfig,
@@ -12,6 +11,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// The built (ESM) output, as the TypeScript source uses ESM-only `.js` import specifiers.
+// Requires the dashboard to be built (`bun run build`), like @vendure/core.
+import { writeGqlTadaIntrospectionFile } from '../../dashboard/dist/vite/utils/gql-tada-output.js';
 import { McpPlugin } from '../src/plugin';
 
 /**
@@ -43,27 +45,14 @@ async function generate() {
         output: 'sdl',
     })) as unknown as string;
 
-    // gql.tada reads the schema from a file named in a tsconfig, so hand it both in a temp dir.
+    // gql.tada reads the schema from a file, so write it to a temp dir.
     const tempDir = join(tmpdir(), 'mcp-plugin-schema');
     mkdirSync(tempDir, { recursive: true });
     const schemaPath = join(tempDir, 'schema.graphql');
     writeFileSync(schemaPath, sdl);
-    const tsConfigPath = join(tempDir, 'tsconfig.json');
-    writeFileSync(
-        tsConfigPath,
-        JSON.stringify({
-            compilerOptions: {
-                plugins: [{ name: 'gql.tada/ts-plugin', schema: './schema.graphql' }],
-            },
-        }),
-    );
 
     const outputDir = join(__dirname, 'generated');
-    mkdirSync(outputDir, { recursive: true });
-    await generateOutput({
-        output: join(outputDir, 'graphql-env.d.ts'),
-        tsconfig: tsConfigPath,
-    });
+    await writeGqlTadaIntrospectionFile({ schemaPath, outputPath: join(outputDir, 'graphql-env.d.ts') });
 
     /* eslint-disable no-console */
     console.log(`Schema written to ${schemaPath}`);

@@ -4,5 +4,5 @@
     "printWidth": 110,
     "tabWidth": 4,
     "arrowParens": "avoid",
-    "plugins": ["prettier-plugin-organize-imports"]
+    "plugins": ["./scripts/tooling/prettier-plugin-organize-imports.cjs"]
 }

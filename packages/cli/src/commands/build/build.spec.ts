@@ -186,17 +186,6 @@ describe('build command', () => {
             expect(definitions.dashboard.args).toEqual(['build', '--emptyOutDir', '--logLevel', 'warn']);
         });
 
-        it('uses tsgo when experimentalTsgo is enabled', () => {
-            const definitions = getBuildProcessDefinitions({
-                experimentalTsgo: true,
-                tsconfig: './tsconfig.server.json',
-            });
-
-            expect(definitions.server.packageName).toBe('@typescript/native-preview');
-            expect(definitions.server.binName).toBe('tsgo');
-            expect(definitions.server.args).toEqual(['-p', './tsconfig.server.json', '--noEmitOnError']);
-        });
-
         it('uses a custom worker TypeScript config for worker builds', () => {
             const definitions = getBuildProcessDefinitions({
                 tsconfig: './tsconfig.server.json',
@@ -547,6 +536,27 @@ describe('build command', () => {
                 expect(() => validateTsConfig(dir, './missing.json')).toThrow(
                     'Could not find TypeScript config file',
                 );
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('rejects a tsconfig using options removed in TypeScript 7', () => {
+            const dir = createTempDir();
+            try {
+                mkdirSync(path.join(dir, 'src'), { recursive: true });
+                writeFileSync(path.join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
+                writeFileSync(
+                    path.join(dir, 'tsconfig.json'),
+                    JSON.stringify({
+                        compilerOptions: { module: 'nodenext', baseUrl: './', outDir: './dist' },
+                        include: ['src/**/*.ts'],
+                    }),
+                );
+
+                expect(() => validateTsConfig(dir)).toThrow(/not compatible with TypeScript 7/);
+                expect(() => validateTsConfig(dir)).toThrow(/TS5102/);
+                expect(() => validateTsConfig(dir)).toThrow(/TS5011/);
             } finally {
                 rmSync(dir, { recursive: true, force: true });
             }

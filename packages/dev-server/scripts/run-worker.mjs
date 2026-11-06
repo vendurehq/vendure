@@ -18,11 +18,9 @@ try {
 const args = instrumented
     ? [
           '-r',
-          'ts-node/register',
+          '@vendure/cli/register',
           '-r',
           'dotenv/config',
-          '-r',
-          'tsconfig-paths/register',
           '-r',
           './instrumentation.ts',
           './index-worker.ts',

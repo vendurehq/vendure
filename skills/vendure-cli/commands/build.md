@@ -18,7 +18,7 @@ vendure build [target]
 | `--tsconfig <path>`        | Server TypeScript config (also used by the worker unless overridden) |
 | `--worker-tsconfig <path>` | Separate TypeScript config for the worker                            |
 | `--vite-config <path>`     | Vite config used by the dashboard build                              |
-| `--experimental-tsgo`      | Use the experimental native TypeScript compiler for server/worker    |
+| `--experimental-tsgo`      | Deprecated, no effect: TypeScript 7 (native compiler) is the default |
 | `--clean`                  | Delete build output directories before building                      |
 | `--watch`                  | Rebuild on source changes (long-running)                             |
 | `--no-progress`            | Disable spinner/progress rendering — use for stable CI logs          |

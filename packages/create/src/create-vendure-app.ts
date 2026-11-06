@@ -504,23 +504,19 @@ export async function createVendureApp(
 
     timer = setTimeout(displayTip, TIP_INTERVAL_MS);
 
-    // Change to serverRoot so that ts-node can correctly resolve modules.
-    // In monorepo mode, dependencies are hoisted to the root node_modules,
-    // but ts-node needs to be anchored in the server directory for proper
+    // Change to serverRoot so that TypeScript files are compiled with the project's
+    // tsconfig.json. In monorepo mode, dependencies are hoisted to the root node_modules,
+    // but the compiler needs to be anchored in the server directory for proper
     // module resolution and to find the tsconfig.json.
     process.chdir(serverRoot);
 
-    // register ts-node so that the config file can be loaded
-    // We use transpileOnly to skip type checking during bootstrap, as the
-    // complex module resolution with npm workspaces and ESM packages can
-    // cause false TypeScript errors. Type checking happens when users run
-    // their own build/dev commands.
-    // ts-node resolves its `typescript` peer from whichever package required it, so the
-    // generated project has to be the one that requires it.
-    createProjectRequire(serverRoot)('ts-node').register({
-        project: path.join(serverRoot, 'tsconfig.json'),
-        transpileOnly: true,
-    });
+    // Register the @vendure/cli TypeScript hook so that the config file can be loaded.
+    // It uses the nearest tsconfig.json to the cwd (serverRoot), and transpiles each file
+    // in isolation without type checking, as the complex module resolution with npm
+    // workspaces and ESM packages can cause false TypeScript errors. Type checking happens
+    // when users run their own build/dev commands. Requiring it from the generated project
+    // also finds @vendure/cli when it is hoisted to the monorepo root node_modules.
+    createProjectRequire(serverRoot)('@vendure/cli/register');
 
     let superAdminCredentials: { identifier: string; password: string } | undefined;
     try {

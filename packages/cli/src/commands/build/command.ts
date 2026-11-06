@@ -35,7 +35,7 @@ export const buildCommandDef: CliCommandDefinition = {
         {
             long: '--experimental-tsgo',
             description:
-                'Use the experimental native TypeScript compiler for server and worker builds (default: use tsc)',
+                'Deprecated: has no effect. TypeScript 7 (the native compiler) is now used by default',
             required: false,
         },
         {

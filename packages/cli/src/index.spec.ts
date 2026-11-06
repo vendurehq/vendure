@@ -8,7 +8,8 @@ describe('CLI package root', () => {
             process.execPath,
             [
                 '-r',
-                'ts-node/register/transpile-only',
+                // The @vendure/cli/register TypeScript hook, which requires the CLI to be built
+                path.join(__dirname, '../register.js'),
                 '-e',
                 `
             const assert = require('node:assert/strict');

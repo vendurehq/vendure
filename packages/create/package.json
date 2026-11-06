@@ -16,8 +16,8 @@
         "directory": "packages/create"
     },
     "scripts": {
-        "dev": "ts-node src/create-vendure-app.ts",
-        "copy-assets": "rimraf assets && ts-node ./build.ts",
+        "dev": "tsx src/create-vendure-app.ts",
+        "copy-assets": "rimraf assets && tsx ./build.ts",
         "build": "npm run copy-assets && rimraf lib && tsc -p ./tsconfig.build.json",
         "watch": "npm run copy-assets && rimraf lib && tsc -p ./tsconfig.build.json -w",
         "lint": "eslint --fix .",
@@ -35,8 +35,7 @@
         "@types/semver": "^7.5.8",
         "@vendure/core": "3.8.1",
         "rimraf": "^5.0.5",
-        "ts-node": "^10.9.2",
-        "typescript": "5.8.2",
+        "typescript": "7.1.0-beta",
         "vitest": "^4.1.12"
     },
     "dependencies": {

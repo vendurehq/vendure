@@ -13,7 +13,8 @@
     "sourceMap": false,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "baseUrl": "./"
+    "rootDir": "./src",
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": [
@@ -23,9 +24,6 @@
     "src/gql/*",
     "vite.*.*ts"
   ],
-  "ts-node": {
-    "files": true
-  },
   "references": [{
     "path": "./tsconfig.dashboard.json"
   }]

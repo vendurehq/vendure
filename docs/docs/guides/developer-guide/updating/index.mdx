@@ -125,3 +125,73 @@ If you are using Vendure providers (services, JobQueue, EventBus etc.) in your c
 
 The best way to check whether this is the case is to build your entire project after upgrading, to see if any new TypeScript compiler errors emerge.
 
+
+## Upgrading to v4: TypeScript 7
+
+Vendure v4 builds and runs projects with TypeScript 7, the native TypeScript compiler. New projects are set up for it
+automatically. To upgrade an existing v3 project:
+
+1. Update the `typescript` dev dependency to `"7.1.0-beta || ~7.1.0"`. This is the range that `@vendure/cli` and
+   `@vendure/dashboard` use, so your project only installs one copy of TypeScript. `@vendure/cli` and
+   `@vendure/dashboard` require Node.js 22.12 or later.
+2. Update your `tsconfig.json` files. TypeScript 7 no longer accepts some options that v3 projects commonly use,
+   and changes some defaults:
+   - **Remove `baseUrl`.** Entries in `paths` are now resolved relative to the tsconfig file that declares them, so
+     `"@plugins/*": ["./src/plugins/*"]` keeps working without it.
+   - **Set `rootDir`** whenever `outDir` is set and your source files are in a subdirectory, e.g.
+     `"rootDir": "./src"`. Without it, TypeScript 7 fails with error TS5011.
+   - **Replace `"moduleResolution": "node"`** with `"nodenext"` (and `"module": "nodenext"`) or `"bundler"`.
+   - **List the `@types` packages you rely on in `types`.** The `types` option now defaults to `[]`, so `@types`
+     packages are no longer included automatically. Without `"types": ["node"]`, globals such as `process` and
+     `__dirname` are errors (TS2591).
+   - **Keep `useDefineForClassFields` disabled.** If your tsconfig sets a `target` of ES2022 or later, or no
+     `target` at all (TypeScript 7 defaults to a newer target), add `"useDefineForClassFields": false`. Otherwise
+     fields declared on your entity classes are reset after the constructor runs, so e.g.
+     `new Product({ name: 'Laptop' })` loses its input.
+   - **Remove the `"ts-node"` section.** It is ignored, because ts-node is no longer used (see below).
+
+   ```diff title="tsconfig.json"
+   {
+     "compilerOptions": {
+       "module": "nodenext",
+       "moduleResolution": "nodenext",
+       "outDir": "./dist",
+   +   "rootDir": "./src",
+   +   "types": ["node"],
+   +   "useDefineForClassFields": false,
+   -   "baseUrl": "./",
+       // ...
+     },
+   -  "ts-node": {
+   -    "files": true
+   -  }
+   }
+   ```
+
+   Run `npx vendure doctor --check typescript` to list any remaining problems. `vendure build` also checks your
+   tsconfig files before compiling.
+3. **ts-node is no longer supported**, because it cannot run on TypeScript 7. Remove it from your dependencies.
+   `vendure dev`, `vendure migrate` and the other CLI commands now run your TypeScript files with a require hook
+   provided by `@vendure/cli`, which keeps decorator metadata (used by Vendure's dependency injection and entities)
+   and registers the `paths` from your tsconfig automatically, so you no longer need `tsconfig-paths/register`.
+   To run your own TypeScript scripts, replace `ts-node` with `node --require @vendure/cli/register`:
+
+   ```diff title="package.json"
+   {
+     "scripts": {
+   -   "migration:generate": "ts-node migration.ts generate",
+   +   "migration:generate": "node --require @vendure/cli/register migration.ts generate",
+   -   "my-script": "ts-node -r tsconfig-paths/register ./src/my-script.ts"
+   +   "my-script": "node --require @vendure/cli/register ./src/my-script.ts"
+     }
+   }
+   ```
+
+   The hook uses the nearest `tsconfig.json` to the current working directory. Set the `VENDURE_TSCONFIG`
+   environment variable to use a different one.
+4. **`vendure dev` no longer type-checks your code.** In v3 it ran your server with ts-node, which reported type
+   errors when the server started. The new hook compiles each file without type checking, like ts-node's
+   `transpileOnly` mode, so a type error no longer stops the server. Check types with your editor, with
+   `npx tsc --noEmit --watch` in a separate terminal, or with `vendure build`, which type-checks before emitting.
+5. The `--experimental-tsgo` option of `vendure build` is deprecated and has no effect, since TypeScript 7 is now
+   always used.

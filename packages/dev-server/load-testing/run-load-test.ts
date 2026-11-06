@@ -21,7 +21,7 @@ if (require.main === module) {
     console.log(`\n============= Vendure Load Test: ${count} products ============\n`);
 
     // Runs the init script to generate test data and populate the test database
-    const init = spawn('node', ['-r', 'ts-node/register', './init-load-test.ts', count.toString()], {
+    const init = spawn('node', ['-r', '@vendure/cli/register', './init-load-test.ts', count.toString()], {
         cwd: __dirname,
         stdio: 'inherit',
     });

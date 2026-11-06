@@ -1,3 +1,5 @@
+import { TYPESCRIPT_VERSION_RANGE } from '@vendure/common/lib/shared-constants';
+
 export const REQUIRED_NODE_VERSION = '>=22.12.0';
 /**
  * Oldest Node.js major release that has not reached end-of-life. Used to warn (not block)
@@ -8,10 +10,11 @@ export const OLDEST_NON_EOL_NODE_MAJOR = 22;
 export const SERVER_PORT = 3000;
 export const STOREFRONT_PORT = 3001;
 /**
- * The TypeScript version needs to pinned because minor versions often
- * introduce breaking changes.
+ * The TypeScript version range installed in new projects. It is shared with @vendure/cli and
+ * @vendure/dashboard, which use the TypeScript 7.1 API at runtime, so that projects only
+ * install a single copy of TypeScript. See TYPESCRIPT_VERSION_RANGE for which versions it accepts.
  */
-export const TYPESCRIPT_VERSION = '5.8.2';
+export const TYPESCRIPT_VERSION = TYPESCRIPT_VERSION_RANGE;
 /**
  * Generated migration files import `MigrationInterface`/`QueryRunner` directly from `typeorm`.
  * pnpm's strict, non-hoisting `node_modules` does not expose `typeorm` (a transitive dep of

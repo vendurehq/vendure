@@ -5,13 +5,33 @@ import fs from 'fs-extra';
 import { open } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import * as ts from 'typescript';
+import type {
+    Decorator,
+    Node,
+    NoSubstitutionTemplateLiteral,
+    ObjectLiteralExpression,
+    StringLiteral,
+} from 'typescript/ast';
+import {
+    isCallExpression,
+    isClassDeclaration,
+    isDecorator,
+    isExportDeclaration,
+    isIdentifier,
+    isImportDeclaration,
+    isNoSubstitutionTemplateLiteral,
+    isObjectLiteralExpression,
+    isPropertyAccessExpression,
+    isPropertyAssignment,
+    isStringLiteral,
+} from 'typescript/ast/is';
 
 import { Logger, PluginInfo, TransformTsConfigPathMappingsFn } from '../types.js';
 
 import { PackageScannerConfig } from './compiler.js';
 import { resolvePathAliasImports, resolveSourceFile } from './import-resolution.js';
 import { findTsConfigPaths } from './tsconfig-utils.js';
+import { withSourceFile } from './typescript-api.js';
 
 /**
  * Where a locally-discovered plugin's source lives, plus the dashboard entry
@@ -365,12 +385,10 @@ export async function analyzeSourceFiles(
             }
 
             const content = await fs.readFile(filePath, 'utf-8');
-            const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
-
             // Track imports to follow
             const importsToFollow: string[] = [];
 
-            async function visit(node: ts.Node) {
+            async function visit(node: Node) {
                 // Look for VendurePlugin decorator
                 const vendurePlugin = getVendurePluginInfo(node);
                 if (vendurePlugin) {
@@ -382,10 +400,10 @@ export async function analyzeSourceFiles(
                 }
 
                 // Handle both imports and exports
-                const isImportOrExport = ts.isImportDeclaration(node) || ts.isExportDeclaration(node);
+                const isImportOrExport = isImportDeclaration(node) || isExportDeclaration(node);
                 if (isImportOrExport) {
                     const moduleSpecifier = node.moduleSpecifier;
-                    if (moduleSpecifier && ts.isStringLiteral(moduleSpecifier)) {
+                    if (moduleSpecifier && isStringLiteral(moduleSpecifier)) {
                         const importPath = moduleSpecifier.text;
 
                         // Track non-local imports (packages)
@@ -421,13 +439,13 @@ export async function analyzeSourceFiles(
 
                 // Visit children
                 const promises: Array<Promise<void>> = [];
-                ts.forEachChild(node, child => {
+                node.forEachChild(child => {
                     promises.push(visit(child));
                 });
                 await Promise.all(promises);
             }
 
-            await visit(sourceFile);
+            await withSourceFile(filePath, content, visit);
 
             // Follow imports using shared resolution logic
             for (const importPath of importsToFollow) {
@@ -454,16 +472,21 @@ export async function analyzeSourceFiles(
  * we want to return that class name (and its declared dashboard entry path, if any),
  * as we have found a local Vendure plugin.
  */
-function getVendurePluginInfo(node: ts.Node): { name: string; dashboardPath?: string } | undefined {
-    if (!ts.isClassDeclaration(node)) {
+function getVendurePluginInfo(node: Node): { name: string; dashboardPath?: string } | undefined {
+    if (!isClassDeclaration(node)) {
         return undefined;
     }
     const className = node.name?.text;
     if (!className) {
         return undefined;
     }
-    const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
-    for (const decorator of decorators ?? []) {
+    const decorators: Decorator[] = [];
+    node.modifiers?.forEach(modifier => {
+        if (isDecorator(modifier)) {
+            decorators.push(modifier);
+        }
+    });
+    for (const decorator of decorators) {
         if (getDecoratorName(decorator) !== 'VendurePlugin') {
             continue;
         }
@@ -481,24 +504,24 @@ function getVendurePluginInfo(node: ts.Node): { name: string; dashboardPath?: st
  * the object form (`dashboard: { location: './x.tsx' }`), mirroring the
  * equivalent extraction from compiled `__decorate` calls in `discoverPlugins`.
  */
-function getDashboardPathFromVendurePluginDecorator(decorator: ts.Decorator): string | undefined {
-    if (!ts.isCallExpression(decorator.expression)) {
+function getDashboardPathFromVendurePluginDecorator(decorator: Decorator): string | undefined {
+    if (!isCallExpression(decorator.expression)) {
         return undefined;
     }
     const configArg = decorator.expression.arguments[0];
-    if (!configArg || !ts.isObjectLiteralExpression(configArg)) {
+    if (!configArg || !isObjectLiteralExpression(configArg)) {
         return undefined;
     }
     for (const prop of configArg.properties) {
-        if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name) || prop.name.text !== 'dashboard') {
+        if (!isPropertyAssignment(prop) || !isIdentifier(prop.name) || prop.name.text !== 'dashboard') {
             continue;
         }
         // String form: dashboard: './path/to/dashboard'
-        if (ts.isStringLiteralLike(prop.initializer)) {
+        if (isStringLiteralLike(prop.initializer)) {
             return prop.initializer.text;
         }
         // Object form: dashboard: { location: './path/to/dashboard' }
-        if (ts.isObjectLiteralExpression(prop.initializer)) {
+        if (isObjectLiteralExpression(prop.initializer)) {
             const location = getLocationFromDashboardObject(prop.initializer);
             if (location !== undefined) {
                 return location;
@@ -508,16 +531,20 @@ function getDashboardPathFromVendurePluginDecorator(decorator: ts.Decorator): st
     return undefined;
 }
 
-function getLocationFromDashboardObject(dashboardObject: ts.ObjectLiteralExpression): string | undefined {
+function getLocationFromDashboardObject(dashboardObject: ObjectLiteralExpression): string | undefined {
     for (const prop of dashboardObject.properties) {
-        if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name) || prop.name.text !== 'location') {
+        if (!isPropertyAssignment(prop) || !isIdentifier(prop.name) || prop.name.text !== 'location') {
             continue;
         }
-        if (ts.isStringLiteralLike(prop.initializer)) {
+        if (isStringLiteralLike(prop.initializer)) {
             return prop.initializer.text;
         }
     }
     return undefined;
+}
+
+function isStringLiteralLike(node: Node): node is StringLiteral | NoSubstitutionTemplateLiteral {
+    return isStringLiteral(node) || isNoSubstitutionTemplateLiteral(node);
 }
 
 function getNpmPackageNameFromImport(importPath: string): string | undefined {
@@ -530,15 +557,15 @@ function getNpmPackageNameFromImport(importPath: string): string | undefined {
     }
 }
 
-function getDecoratorName(decorator: ts.Decorator): string | undefined {
-    if (ts.isCallExpression(decorator.expression)) {
+function getDecoratorName(decorator: Decorator): string | undefined {
+    if (isCallExpression(decorator.expression)) {
         const expression = decorator.expression.expression;
         // Handle both direct usage and imported usage
-        if (ts.isIdentifier(expression)) {
+        if (isIdentifier(expression)) {
             return expression.text;
         }
         // Handle property access like `Decorators.VendurePlugin`
-        if (ts.isPropertyAccessExpression(expression)) {
+        if (isPropertyAccessExpression(expression)) {
             return expression.name.text;
         }
     }

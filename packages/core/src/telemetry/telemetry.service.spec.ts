@@ -325,12 +325,12 @@ describe('TelemetryService', () => {
                 expect(body.config.shippingMethodCount).toBe('1-100');
             });
 
-            it('sets schemaVersion to 2', async () => {
+            it('sets schemaVersion to 3', async () => {
                 service.onApplicationBootstrap();
                 await flushPromises();
 
                 const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-                expect(body.schemaVersion).toBe(2);
+                expect(body.schemaVersion).toBe(3);
             });
 
             it('tags the initial send with sendReason "startup"', async () => {

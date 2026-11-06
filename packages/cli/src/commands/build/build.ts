@@ -3,7 +3,6 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
-import ts from 'typescript';
 
 import {
     getProcessPrefix,
@@ -11,6 +10,12 @@ import {
     resolvePackageBin,
     signalToExitCode,
 } from '../../shared/cli-process-utils';
+import {
+    formatTsDiagnostics,
+    getTsConfigProgramErrors,
+    parseTsConfigFile,
+    TSCONFIG_MIGRATION_HINT,
+} from '../../shared/typescript-api';
 import { resolveVendureProjectDirectory } from '../dev/dev';
 
 export type BuildTarget = 'all' | 'server' | 'worker' | 'dashboard';
@@ -60,6 +65,9 @@ export interface BuildOptions {
     tsconfig?: string;
     workerTsconfig?: string;
     viteConfig?: string;
+    /**
+     * @deprecated Has no effect. TypeScript 7, which is the native compiler, is used by default.
+     */
     experimentalTsgo?: boolean;
     clean?: boolean;
     progress?: boolean;
@@ -82,6 +90,13 @@ export async function buildCommand(targetArg?: string, options: BuildOptions = {
         const target = normalizeBuildTarget(targetArg);
         const projectDir = resolveVendureProjectDirectory(process.cwd());
         const tsconfigs = resolveBuildTsConfigs(projectDir, options);
+
+        if (options.experimentalTsgo) {
+            log.warn(
+                'The --experimental-tsgo option is deprecated and has no effect. ' +
+                    'TypeScript 7, which is the native compiler, is now used by default.',
+            );
+        }
 
         for (const tsconfig of getBuildTsConfigsForTarget(target, tsconfigs)) {
             validateTsConfig(projectDir, tsconfig);
@@ -140,8 +155,8 @@ export function getBuildProcessDefinitions(
     options: BuildOptions = {},
     tsconfigs: BuildTsConfigPaths = resolveBuildTsConfigs(process.cwd(), options),
 ): Record<Exclude<BuildTarget, 'all'>, BuildProcessDefinition> {
-    const compilerPackageName = options.experimentalTsgo ? '@typescript/native-preview' : 'typescript';
-    const compilerBinName = options.experimentalTsgo ? 'tsgo' : 'tsc';
+    const compilerPackageName = 'typescript';
+    const compilerBinName = 'tsc';
     const dashboardArgs = ['build'];
     if (options.watch) {
         dashboardArgs.push('--watch');
@@ -310,32 +325,28 @@ export function normalizeBuildTarget(targetArg?: string): BuildTarget {
     throw new Error(`Unknown build target "${target}". Expected one of: ${validTargets.join(', ')}`);
 }
 
+/**
+ * Checks that the tsconfig file can be read, and that it does not use options which
+ * TypeScript 7 no longer supports (e.g. `baseUrl`, `moduleResolution: "node"`, or an
+ * implicit `rootDir`). Otherwise tsc would only fail once the build has started.
+ */
 export function validateTsConfig(projectDir: string, tsconfig: string = './tsconfig.json') {
     parseTsConfig(projectDir, tsconfig);
+    const errors = getTsConfigProgramErrors(path.resolve(projectDir, tsconfig));
+    if (errors.length) {
+        throw new Error(
+            `${tsconfig} is not compatible with TypeScript 7:\n\n${formatTsDiagnostics(errors)}\n` +
+                TSCONFIG_MIGRATION_HINT,
+        );
+    }
 }
 
-function parseTsConfig(projectDir: string, tsconfig: string = './tsconfig.json'): ts.ParsedCommandLine {
+function parseTsConfig(projectDir: string, tsconfig: string = './tsconfig.json') {
     const tsconfigPath = path.resolve(projectDir, tsconfig);
     if (!existsSync(tsconfigPath)) {
         throw new Error(`Could not find TypeScript config file: ${tsconfig}`);
     }
-
-    const readResult = ts.readConfigFile(tsconfigPath, fileName => ts.sys.readFile(fileName));
-    if (readResult.error) {
-        throw new Error(formatTsDiagnostics([readResult.error]));
-    }
-
-    const parsed = ts.parseJsonConfigFileContent(
-        readResult.config,
-        ts.sys,
-        path.dirname(tsconfigPath),
-        undefined,
-        tsconfigPath,
-    );
-    if (parsed.errors.length) {
-        throw new Error(formatTsDiagnostics(parsed.errors));
-    }
-    return parsed;
+    return parseTsConfigFile(tsconfigPath);
 }
 
 function discoverTsConfig(projectDir: string, candidates: string[]): string {
@@ -363,16 +374,7 @@ function startBuildProcess(
     processDefinition: BuildProcessDefinition,
     options: { prefixOutput: boolean; disableSpinner?: boolean; suppressStatus?: boolean },
 ): RunningBuildProcess {
-    const installHint =
-        processDefinition.packageName === '@typescript/native-preview'
-            ? 'Install @typescript/native-preview to use --experimental-tsgo.'
-            : undefined;
-    const binPath = resolvePackageBin(
-        processDefinition.packageName,
-        processDefinition.binName,
-        projectDir,
-        installHint,
-    );
+    const binPath = resolvePackageBin(processDefinition.packageName, processDefinition.binName, projectDir);
     const buildSpinner =
         !options.disableSpinner && shouldUseSpinner(processDefinition, options.prefixOutput)
             ? spinner()
@@ -746,12 +748,4 @@ function formatDuration(startedAt: number, finishedAt: number = Date.now()): str
         return `${duration}ms`;
     }
     return `${(duration / 1000).toFixed(1)}s`;
-}
-
-function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]) {
-    return ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-        getCanonicalFileName: fileName => fileName,
-        getCurrentDirectory: () => process.cwd(),
-        getNewLine: () => '\n',
-    });
 }

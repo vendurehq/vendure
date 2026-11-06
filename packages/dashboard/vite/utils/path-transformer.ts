@@ -1,5 +1,14 @@
 import * as path from 'node:path';
-import * as ts from 'typescript';
+import type { Node, StringLiteral } from 'typescript/ast';
+import { SyntaxKind } from 'typescript/ast';
+import {
+    isCallExpression,
+    isExportDeclaration,
+    isImportDeclaration,
+    isStringLiteral,
+} from 'typescript/ast/is';
+
+import { withSourceFileSync } from './typescript-api.js';
 
 export interface PathTransformerOptions {
     baseUrl: string;
@@ -14,11 +23,27 @@ interface PathMatcher {
 }
 
 /**
- * Creates a TypeScript custom transformer that rewrites import/export paths
- * from tsconfig path aliases to their resolved relative paths.
+ * Rewrites the module specifiers of compiled JavaScript output.
+ *
+ * @param outputText - the JavaScript emitted for a source file
+ * @param sourceFilePath - the path of the original `.ts` source file, used to compute
+ *   relative paths
+ */
+export type PathTransformer = (outputText: string, sourceFilePath: string) => string;
+
+/**
+ * Creates a function that rewrites import/export paths in emitted JavaScript from
+ * tsconfig path aliases to their resolved relative paths.
  *
  * This is necessary for ESM mode where tsconfig-paths.register() doesn't work
  * because it only hooks into CommonJS require(), not ESM import().
+ *
+ * The TypeScript 7 `transpileModule()` API does not support custom transformers, so
+ * instead of transforming the TypeScript AST, this parses the *emitted* JavaScript,
+ * locates the module specifier string literals of import/export declarations and
+ * dynamic `import()` calls, and splices in the rewritten specifiers. Everything else
+ * in the output is left byte-for-byte unchanged, and since this runs after
+ * TypeScript has elided type-only imports, only runtime imports are touched.
  *
  * The transformer uses the source file's location and the tsconfig baseUrl to
  * compute correct relative paths, even for files in nested directories.
@@ -27,7 +52,7 @@ interface PathMatcher {
  * - Only the first path target is used when multiple fallbacks are configured
  * - `require()` calls via `createRequire` are not transformed
  */
-export function createPathTransformer(options: PathTransformerOptions): ts.TransformerFactory<ts.SourceFile> {
+export function createPathTransformer(options: PathTransformerOptions): PathTransformer {
     const { baseUrl, paths } = options;
 
     // Compile the path patterns into matchers
@@ -45,86 +70,57 @@ export function createPathTransformer(options: PathTransformerOptions): ts.Trans
         return { pattern, regex, targets, hasWildcard };
     });
 
-    return context => {
-        return sourceFile => {
-            const sourceDir = path.dirname(sourceFile.fileName);
+    return (outputText, sourceFilePath) => {
+        // Cheap pre-check: skip parsing if no alias prefix occurs in the output at all
+        const aliasPrefixes = Object.keys(paths).map(pattern => pattern.split('*')[0]);
+        if (!aliasPrefixes.some(prefix => outputText.includes(prefix))) {
+            return outputText;
+        }
 
-            const visitor: ts.Visitor = node => {
-                // Handle import declarations: import { X } from 'module';
-                if (
-                    ts.isImportDeclaration(node) &&
-                    node.moduleSpecifier &&
-                    ts.isStringLiteral(node.moduleSpecifier)
-                ) {
-                    const resolvedPath = resolvePathAlias(
-                        node.moduleSpecifier.text,
-                        pathMatchers,
-                        baseUrl,
-                        sourceDir,
-                    );
-                    if (resolvedPath) {
-                        return context.factory.updateImportDeclaration(
-                            node,
-                            node.modifiers,
-                            node.importClause,
-                            context.factory.createStringLiteral(resolvedPath),
-                            node.attributes,
-                        );
-                    }
+        const sourceDir = path.dirname(sourceFilePath);
+        const jsFileName = sourceFilePath.replace(/\.[cm]?tsx?$/, '.js');
+        const edits: Array<{ start: number; end: number; text: string }> = [];
+
+        withSourceFileSync(jsFileName, outputText, sourceFile => {
+            const addEdit = (literal: StringLiteral) => {
+                const resolvedPath = resolvePathAlias(literal.text, pathMatchers, baseUrl, sourceDir);
+                if (resolvedPath) {
+                    const start = literal.getStart(sourceFile);
+                    // Preserve the original quote style
+                    const quote = outputText[start];
+                    edits.push({ start, end: literal.end, text: quote + resolvedPath + quote });
                 }
-
-                // Handle export declarations: export { X } from 'module';
-                if (
-                    ts.isExportDeclaration(node) &&
-                    node.moduleSpecifier &&
-                    ts.isStringLiteral(node.moduleSpecifier)
-                ) {
-                    const resolvedPath = resolvePathAlias(
-                        node.moduleSpecifier.text,
-                        pathMatchers,
-                        baseUrl,
-                        sourceDir,
-                    );
-                    if (resolvedPath) {
-                        return context.factory.updateExportDeclaration(
-                            node,
-                            node.modifiers,
-                            node.isTypeOnly,
-                            node.exportClause,
-                            context.factory.createStringLiteral(resolvedPath),
-                            node.attributes,
-                        );
-                    }
-                }
-
-                // Handle dynamic imports: import('module')
-                if (
-                    ts.isCallExpression(node) &&
-                    node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-                    node.arguments.length > 0 &&
-                    ts.isStringLiteral(node.arguments[0])
-                ) {
-                    const resolvedPath = resolvePathAlias(
-                        node.arguments[0].text,
-                        pathMatchers,
-                        baseUrl,
-                        sourceDir,
-                    );
-                    if (resolvedPath) {
-                        return context.factory.updateCallExpression(
-                            node,
-                            node.expression,
-                            node.typeArguments,
-                            [context.factory.createStringLiteral(resolvedPath), ...node.arguments.slice(1)],
-                        );
-                    }
-                }
-
-                return ts.visitEachChild(node, visitor, context);
             };
 
-            return ts.visitNode(sourceFile, visitor) as ts.SourceFile;
-        };
+            const visit = (node: Node) => {
+                // import { X } from 'module'; export { X } from 'module';
+                if (
+                    (isImportDeclaration(node) || isExportDeclaration(node)) &&
+                    node.moduleSpecifier &&
+                    isStringLiteral(node.moduleSpecifier)
+                ) {
+                    addEdit(node.moduleSpecifier);
+                }
+                // import('module')
+                if (
+                    isCallExpression(node) &&
+                    node.expression.kind === SyntaxKind.ImportKeyword &&
+                    node.arguments.length > 0 &&
+                    isStringLiteral(node.arguments[0])
+                ) {
+                    addEdit(node.arguments[0]);
+                }
+                node.forEachChild(visit);
+            };
+            visit(sourceFile);
+        });
+
+        // Apply edits from the end of the file so earlier offsets stay valid
+        let result = outputText;
+        for (const edit of edits.sort((a, b) => b.start - a.start)) {
+            result = result.slice(0, edit.start) + edit.text + result.slice(edit.end);
+        }
+        return result;
     };
 }
 

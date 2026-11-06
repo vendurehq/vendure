@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const { events, projectRequireStub } = vi.hoisted(() => {
     const hoistedEvents: string[] = [];
-    // One object stands in for everything the scaffold requires from the new project: ts-node,
+    // One object stands in for everything the scaffold requires from the new project: @vendure/cli/register,
     // @vendure/core's populate and bootstrap entry points, and the generated vendure-config.
     const stub = {
         register: () => undefined,

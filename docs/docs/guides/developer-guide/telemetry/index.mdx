@@ -36,6 +36,7 @@ A randomly generated UUID that identifies your Vendure installation. This ID is:
 - JavaScript runtime (`node`, `bun`, or `deno`)
 - Package manager used to launch the process (`npm`, `pnpm`, `yarn`, `bun`, or `unknown`)
 - Whether the process is running under `ts-node`
+- How TypeScript source is compiled on the fly, if it is: `ts-node`, the `@vendure/cli/register` hook used by `vendure dev`, or another loader such as tsx or Node.js type stripping
 - Number of logical CPUs and total system memory (rounded to whole gigabytes)
 
 ### Database Type

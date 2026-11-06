@@ -15,7 +15,8 @@ import { SendReason, TelemetryPayload } from './telemetry.types';
 
 const TELEMETRY_ENDPOINT = 'https://telemetry.vendure.io/api/v1/collect';
 const TELEMETRY_TIMEOUT_MS = 5000;
-const TELEMETRY_SCHEMA_VERSION = 2;
+// 3: added runtime.typescriptLoader
+const TELEMETRY_SCHEMA_VERSION = 3;
 const STARTUP_DELAY_MS = 5000;
 const HEARTBEAT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // Up to one hour of random jitter is added to each heartbeat delay so that a

@@ -1,8 +1,14 @@
 # vendure dev
 
 Runs Vendure in development mode. By default it starts three processes: the
-GraphQL **server** (`ts-node ./src/index.ts`), the **worker**
-(`ts-node ./src/index-worker.ts`), and the **dashboard** (a Vite dev server).
+GraphQL **server** (`node --require @vendure/cli/register ./src/index.ts`), the **worker**
+(`node --require @vendure/cli/register ./src/index-worker.ts`), and the **dashboard** (a Vite dev server).
+The `@vendure/cli/register` hook compiles TypeScript with TypeScript 7, keeping decorator metadata and
+registering the tsconfig `paths`.
+
+**`vendure dev` does not type-check.** The hook compiles each file without type checking (like ts-node's
+`transpileOnly` mode), so type errors do not stop the server. To find them, run `npx tsc --noEmit` (or
+`--watch` in a separate terminal), or `vendure build`, which type-checks before emitting.
 
 ## Usage
 

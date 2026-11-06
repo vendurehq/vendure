@@ -52,3 +52,17 @@ export function isForeignSecretPlaceholder(value: unknown): boolean {
 // to fit with the initial create task.
 export type CREATING_VENDURE_APP = 'CREATING_VENDURE_APP';
 export const CREATING_VENDURE_APP: CREATING_VENDURE_APP = 'CREATING_VENDURE_APP';
+
+/**
+ * The TypeScript versions supported by Vendure. @vendure/cli and @vendure/dashboard use the
+ * TypeScript 7.1 API at runtime, and new projects install TypeScript with this range, so
+ * that a project only installs a single copy of TypeScript.
+ *
+ * It accepts the 7.1 beta, 7.1.0 and later 7.1.x patch releases, but not the daily
+ * `7.1.0-dev.*` builds, release candidates or 7.2 prereleases, since TypeScript minor
+ * versions often introduce breaking changes.
+ *
+ * The `typescript` dependency ranges in the @vendure/cli and @vendure/dashboard package.json
+ * files must be identical. This is checked by a unit test in @vendure/cli.
+ */
+export const TYPESCRIPT_VERSION_RANGE = '7.1.0-beta || ~7.1.0';

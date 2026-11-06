@@ -122,6 +122,76 @@ describe('SystemInfoCollector', () => {
             }
         });
 
+        describe('typescriptLoader', () => {
+            const vendureRegisterKey = Symbol.for('vendure.typescript.register');
+            const tsNodeKey = Symbol.for('ts-node.register.instance');
+            const originalArgv = process.argv;
+            const originalExecArgv = process.execArgv;
+            const originalNodeOptions = process.env.NODE_OPTIONS;
+
+            beforeEach(() => {
+                // A compiled JavaScript entry point without any loader flags
+                process.argv = [process.execPath, '/app/dist/index.js'];
+                process.execArgv = [];
+                delete process.env.NODE_OPTIONS;
+            });
+
+            afterEach(() => {
+                process.argv = originalArgv;
+                process.execArgv = originalExecArgv;
+                if (originalNodeOptions === undefined) {
+                    delete process.env.NODE_OPTIONS;
+                } else {
+                    process.env.NODE_OPTIONS = originalNodeOptions;
+                }
+                delete (process as any)[vendureRegisterKey];
+                delete (process as any)[tsNodeKey];
+            });
+
+            it('is undefined when running compiled JavaScript', () => {
+                expect(collector.collect().runtime.typescriptLoader).toBeUndefined();
+            });
+
+            it('reports "vendure-register" for the @vendure/cli/register hook', () => {
+                (process as any)[vendureRegisterKey] = {};
+                process.argv = [process.execPath, '/app/src/index.ts'];
+                expect(collector.collect().runtime.typescriptLoader).toBe('vendure-register');
+            });
+
+            it('reports "ts-node" for the ts-node register hook', () => {
+                (process as any)[tsNodeKey] = {};
+                process.argv = [process.execPath, '/app/src/index.ts'];
+                expect(collector.collect().runtime.typescriptLoader).toBe('ts-node');
+                // tsNode keeps its own meaning
+                expect(collector.collect().runtime.tsNode).toBe(true);
+            });
+
+            it('does not report the @vendure/cli/register hook as ts-node', () => {
+                (process as any)[vendureRegisterKey] = {};
+                expect(collector.collect().runtime.tsNode).toBe(false);
+            });
+
+            it('reports "other" for tsx', () => {
+                process.execArgv = ['--require', '/app/node_modules/tsx/dist/preflight.cjs'];
+                expect(collector.collect().runtime.typescriptLoader).toBe('other');
+            });
+
+            it('reports "other" for tsx registered through NODE_OPTIONS', () => {
+                process.env.NODE_OPTIONS = '--import tsx';
+                expect(collector.collect().runtime.typescriptLoader).toBe('other');
+            });
+
+            it('reports "other" for a TypeScript entry file loaded by the runtime itself', () => {
+                process.argv = [process.execPath, '/app/src/index.ts'];
+                expect(collector.collect().runtime.typescriptLoader).toBe('other');
+            });
+
+            it('does not mistake other flags for tsx', () => {
+                process.execArgv = ['--require', '/app/node_modules/tsx-utils/index.js'];
+                expect(collector.collect().runtime.typescriptLoader).toBeUndefined();
+            });
+        });
+
         it('reports cpuCount from os.cpus()', () => {
             expect(collector.collect().runtime.cpuCount).toBe(8);
         });

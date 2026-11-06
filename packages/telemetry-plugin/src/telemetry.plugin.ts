@@ -95,10 +95,10 @@ import { TelemetryPluginOptions } from './types';
  * node --require ./dist/instrumentation.js ./dist/server.js
  * ```
  *
- * or for development with ts-node:
+ * or for development, using the TypeScript hook from `@vendure/cli`:
  *
  * ```bash
- * npx ts-node --require ./src/instrumentation.ts ./src/server.ts
+ * node --require @vendure/cli/register --require ./src/instrumentation.ts ./src/server.ts
  * ```
  *
  * @since 3.3.0

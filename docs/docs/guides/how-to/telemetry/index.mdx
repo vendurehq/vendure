@@ -195,8 +195,8 @@ You can do this by adding the following script to your `package.json`:
 ```json
 {
     "scripts": {
-        "dev:server": "OTEL_RESOURCE_ATTRIBUTES=service.name=vendure-server ts-node --require ./src/preload.ts ./src/index.ts", // [!code highlight]
-        "dev:worker": "OTEL_RESOURCE_ATTRIBUTES=service.name=vendure-worker ts-node --require ./src/preload.ts ./src/index-worker.ts", // [!code highlight]
+        "dev:server": "OTEL_RESOURCE_ATTRIBUTES=service.name=vendure-server node --require @vendure/cli/register --require ./src/preload.ts ./src/index.ts", // [!code highlight]
+        "dev:worker": "OTEL_RESOURCE_ATTRIBUTES=service.name=vendure-worker node --require @vendure/cli/register --require ./src/preload.ts ./src/index-worker.ts", // [!code highlight]
         "dev": "concurrently npm:dev:*",
         "build": "tsc",
         "start:server": "OTEL_RESOURCE_ATTRIBUTES=service.name=vendure-server node --require ./dist/preload.js ./dist/index.js", // [!code highlight]

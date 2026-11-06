@@ -11,11 +11,8 @@ if (fs.existsSync(dbFile)) {
     process.exit(0);
 }
 
-require('ts-node').register({
-    transpileOnly: true,
-    skipProject: true,
-    compilerOptions: { module: 'commonjs', target: 'es2021', esModuleInterop: true },
-});
+// Compiles the required .ts files (the mock data) on the fly. Requires @vendure/cli to be built.
+require('@vendure/cli/register');
 
 const core = require('@vendure/core');
 const { populate } = require('@vendure/core/cli');

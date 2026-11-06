@@ -1,6 +1,6 @@
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     discoverDashboardExtensionDirectories,
     getDevProcessDefinitions,
+    getRegisterHookPath,
     ManagedDevProcess,
     normalizeDevTarget,
     resolveVendureProjectDirectory,
@@ -43,13 +44,21 @@ class FakeChildProcess extends EventEmitter {
 
 describe('dev command', () => {
     describe('getDevProcessDefinitions()', () => {
+        it('runs the server and worker with the @vendure/cli/register hook', () => {
+            const registerHookPath = getRegisterHookPath();
+
+            expect(registerHookPath.endsWith(path.join('cli', 'dist', 'register.js'))).toBe(true);
+            // Requires the CLI to be built, as the hook must be plain JavaScript
+            expect(existsSync(registerHookPath)).toBe(true);
+        });
+
         it('uses default entrypoints', () => {
             const definitions = getDevProcessDefinitions();
 
-            expect(definitions.server.nodeArgs).toEqual([]);
+            expect(definitions.server.nodeArgs).toEqual(['--require', getRegisterHookPath()]);
             expect(definitions.server.args).toEqual(['./src/index.ts']);
             expect(definitions.server.reloadOnChange).toBe(true);
-            expect(definitions.worker.nodeArgs).toEqual([]);
+            expect(definitions.worker.nodeArgs).toEqual(['--require', getRegisterHookPath()]);
             expect(definitions.worker.args).toEqual(['./src/index-worker.ts']);
             expect(definitions.worker.reloadOnChange).toBe(true);
             expect(definitions.dashboard.args).toEqual(['--clearScreen', 'false']);
@@ -81,8 +90,16 @@ describe('dev command', () => {
                 'server',
             );
 
-            expect(definitions.server.nodeArgs).toEqual(['--inspect=127.0.0.1:9230']);
-            expect(definitions.worker.nodeArgs).toEqual(['--inspect=127.0.0.1:9230']);
+            expect(definitions.server.nodeArgs).toEqual([
+                '--inspect=127.0.0.1:9230',
+                '--require',
+                getRegisterHookPath(),
+            ]);
+            expect(definitions.worker.nodeArgs).toEqual([
+                '--inspect=127.0.0.1:9230',
+                '--require',
+                getRegisterHookPath(),
+            ]);
         });
 
         it('assigns adjacent inspector ports for dev all', () => {
@@ -93,8 +110,16 @@ describe('dev command', () => {
                 'all',
             );
 
-            expect(definitions.server.nodeArgs).toEqual(['--inspect=9229']);
-            expect(definitions.worker.nodeArgs).toEqual(['--inspect=9230']);
+            expect(definitions.server.nodeArgs).toEqual([
+                '--inspect=9229',
+                '--require',
+                getRegisterHookPath(),
+            ]);
+            expect(definitions.worker.nodeArgs).toEqual([
+                '--inspect=9230',
+                '--require',
+                getRegisterHookPath(),
+            ]);
         });
 
         it('increments a custom inspector port for the worker in dev all', () => {
@@ -105,8 +130,16 @@ describe('dev command', () => {
                 'all',
             );
 
-            expect(definitions.server.nodeArgs).toEqual(['--inspect-brk=127.0.0.1:9330']);
-            expect(definitions.worker.nodeArgs).toEqual(['--inspect-brk=127.0.0.1:9331']);
+            expect(definitions.server.nodeArgs).toEqual([
+                '--inspect-brk=127.0.0.1:9330',
+                '--require',
+                getRegisterHookPath(),
+            ]);
+            expect(definitions.worker.nodeArgs).toEqual([
+                '--inspect-brk=127.0.0.1:9331',
+                '--require',
+                getRegisterHookPath(),
+            ]);
         });
 
         it('rejects inspect for the dashboard target', () => {
@@ -429,7 +462,8 @@ describe('dev command', () => {
             const supervised = startSupervisedDevProcess(
                 projectDir,
                 getDevProcessDefinitions().server,
-                path.join(projectDir, 'node_modules', '.bin', 'ts-node'),
+                // The server runs the entry file directly with the @vendure/cli/register hook
+                undefined,
                 { prefixOutput: false, reloadIgnoredPaths: [], spawnChild },
             );
             startedProcesses.push(supervised);

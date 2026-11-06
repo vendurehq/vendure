@@ -33,7 +33,7 @@
         "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1",
         "rimraf": "^5.0.5",
-        "typescript": "5.8.2"
+        "typescript": "7.1.0-beta"
     },
     "dependencies": {
         "@types/express": "^5.0.1",

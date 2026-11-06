@@ -184,9 +184,6 @@ npx vendure build all --clean
 # Watch source files and rebuild
 npx vendure build all --watch
 
-# Use the experimental native TypeScript compiler
-npx vendure build server --experimental-tsgo
-
 # Show full output from the underlying build tools
 npx vendure build all --verbose
 

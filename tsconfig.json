@@ -5,6 +5,8 @@
     "noLib": false,
     "skipLibCheck": true,
     "lib": ["es2019", "esnext.asynciterable"],
+    // TypeScript 6+ no longer includes every @types package by default.
+    "types": ["node"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "emitDecoratorMetadata": true,

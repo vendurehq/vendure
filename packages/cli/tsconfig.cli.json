@@ -1,10 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "files": [
     "./src/cli.ts",
-    "./src/index.ts"
+    "./src/index.ts",
+    "./src/register.ts"
   ]
 }

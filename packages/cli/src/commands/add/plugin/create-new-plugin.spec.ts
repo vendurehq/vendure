@@ -36,7 +36,6 @@ vi.mock('../../../utilities/ast-utils', () => ({
 vi.mock('../../../utilities/utils', () => ({
     pauseForPromptDisplay: vi.fn().mockResolvedValue(undefined),
     withInteractiveTimeout: vi.fn((fn: () => Promise<any>) => fn()),
-    isRunningInTsNode: vi.fn(() => false),
 }));
 
 // Mock fs-extra

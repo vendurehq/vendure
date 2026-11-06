@@ -5,6 +5,7 @@
     "removeComments": false,
     "noLib": false,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node", "faker"]
   }
 }

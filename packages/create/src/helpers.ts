@@ -505,7 +505,7 @@ export function getPnpmWorkspaceYaml(dbType: DbType, packagesGlobs?: string[]): 
 }
 
 /**
- * Generates the .yarnrc.yml for yarn-created projects. The scaffold (ts-node registration,
+ * Generates the .yarnrc.yml for yarn-created projects. The scaffold (TypeScript hook registration,
  * the `vendure` CLI, the dashboard build) resolves packages from a physical node_modules
  * tree, so Plug'n'Play is disabled.
  */
@@ -605,7 +605,6 @@ export function getDependencies(
     ];
     const devDependencies = [
         `@vendure/cli${vendurePkgVersion}`,
-        'ts-node',
         `typescript@${TYPESCRIPT_VERSION}`,
         `vite@${VITE_VERSION}`,
     ];

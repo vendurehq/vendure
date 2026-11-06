@@ -22,6 +22,15 @@ export interface TelemetryRuntime {
     packageManager?: 'npm' | 'pnpm' | 'yarn' | 'bun' | 'unknown';
     /** Whether the process is running under ts-node */
     tsNode?: boolean;
+    /**
+     * How TypeScript source is compiled on the fly, if it is:
+     * - `ts-node`: the ts-node register hook
+     * - `vendure-register`: the `@vendure/cli/register` hook used by `vendure dev` since Vendure v4
+     * - `other`: another recognisable loader, such as tsx, Node.js type stripping or Bun
+     *
+     * Omitted when the process runs compiled JavaScript.
+     */
+    typescriptLoader?: 'ts-node' | 'vendure-register' | 'other';
     /** Number of logical CPUs */
     cpuCount?: number;
     /** Total system memory rounded to whole gigabytes */
