@@ -126,7 +126,10 @@ export class PromotionRuleService {
     const res = await this.connection
       .getRepository(PromotionRule)
       .delete({ id, channelId });
-    return (res.affected ?? 0) > 0;
+    if ((res.affected ?? 0) === 0) {
+      throw new UserInputError(`促销规则 ${id} 不存在或不属于当前渠道`);
+    }
+    return true;
   }
 
   /**

@@ -97,7 +97,10 @@ let MemberPriceRuleService = class MemberPriceRuleService {
         const res = await this.connection
             .getRepository(member_price_rule_entity_1.MemberPriceRule)
             .delete({ id, channelId });
-        return ((_a = res.affected) !== null && _a !== void 0 ? _a : 0) > 0;
+        if (((_a = res.affected) !== null && _a !== void 0 ? _a : 0) === 0) {
+            throw new core_1.UserInputError(`会员价规则 ${id} 不存在或不属于当前渠道`);
+        }
+        return true;
     }
     /**
      * 查询生效规则：先查 category（指定 categoryId + memberLevel），未命中则查 global。

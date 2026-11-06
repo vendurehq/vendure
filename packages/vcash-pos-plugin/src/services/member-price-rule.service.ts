@@ -95,7 +95,10 @@ export class MemberPriceRuleService {
     const res = await this.connection
       .getRepository(MemberPriceRule)
       .delete({ id, channelId });
-    return (res.affected ?? 0) > 0;
+    if ((res.affected ?? 0) === 0) {
+      throw new UserInputError(`会员价规则 ${id} 不存在或不属于当前渠道`);
+    }
+    return true;
   }
 
   /**

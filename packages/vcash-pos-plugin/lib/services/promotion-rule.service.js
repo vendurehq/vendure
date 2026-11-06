@@ -130,7 +130,10 @@ let PromotionRuleService = class PromotionRuleService {
         const res = await this.connection
             .getRepository(promotion_rule_entity_1.PromotionRule)
             .delete({ id, channelId });
-        return ((_a = res.affected) !== null && _a !== void 0 ? _a : 0) > 0;
+        if (((_a = res.affected) !== null && _a !== void 0 ? _a : 0) === 0) {
+            throw new core_1.UserInputError(`促销规则 ${id} 不存在或不属于当前渠道`);
+        }
+        return true;
     }
     /**
      * type-specific 校验：conditions/actions 必须与 type 匹配。
