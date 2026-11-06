@@ -2,7 +2,7 @@
 title: "RolePermissionResolver"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/role-permission-resolver/role-permission-resolver.ts" sourceLine="73" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/role-permission-resolver/role-permission-resolver.ts" sourceLine="74" packageName="@vendure/core" since="4.0.0" />
 
 Resolves a User's effective per-channel permissions from [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) rows.
 This is the single source of truth for permission resolution, used by the session cache,
@@ -25,8 +25,8 @@ Two cases are special-cased rather than materialized per channel:
 ```ts title="Signature"
 class RolePermissionResolver {
     constructor(connection: TransactionalConnection, configService: ConfigService)
-    resolvePermissions(userId: ID) => Promise<ResolvedUserPermissions>;
-    expandGlobalPermissions(resolved: ResolvedUserPermissions) => Promise<UserChannelPermissions[]>;
+    resolvePermissions(userId: ID, ctx?: RequestContext) => Promise<ResolvedUserPermissions>;
+    expandGlobalPermissions(resolved: ResolvedUserPermissions, ctx?: RequestContext) => Promise<UserChannelPermissions[]>;
 }
 ```
 
@@ -34,13 +34,19 @@ class RolePermissionResolver {
 
 ### resolvePermissions
 
-<MemberInfo kind="method" type={`(userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions'>ResolvedUserPermissions</a>>`}   />
+<MemberInfo kind="method" type={`(userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions'>ResolvedUserPermissions</a>>`}   />
 
-Resolves the effective permissions of the given User. Uses the raw connection since
-permissions are global truth, independent of any request-scoped transaction.
+Resolves the effective permissions of the given User.
+
+Without a `ctx` this reads through the raw connection, outside any request-scoped
+transaction, so only committed data counts. That is what a cached session needs: reading
+inside a transaction which later rolls back would cache permissions that never existed.
+Pass the `ctx` where the result only describes the current request, such as the
+`CurrentUser` a login returns, so that a Customer created in the same transaction (e.g. on
+a first login through an external authentication strategy) is taken into account.
 ### expandGlobalPermissions
 
-<MemberInfo kind="method" type={`(resolved: <a href='/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions'>ResolvedUserPermissions</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#userchannelpermissions'>UserChannelPermissions</a>[]>`}   />
+<MemberInfo kind="method" type={`(resolved: <a href='/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions'>ResolvedUserPermissions</a>, ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#userchannelpermissions'>UserChannelPermissions</a>[]>`}   />
 
 Expands [ResolvedUserPermissions](/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions) into a plain per-channel array covering every
 Channel the User has permissions on, with `globalPermissions` applied to all Channels.

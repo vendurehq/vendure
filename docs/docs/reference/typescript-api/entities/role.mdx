@@ -2,7 +2,7 @@
 title: "Role"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/role/role.entity.ts" sourceLine="29" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/role/role.entity.ts" sourceLine="31" packageName="@vendure/core" />
 
 A Role represents a collection of permissions which determine the authorization
 level of a [User](/reference/typescript-api/entities/user#user). The Channels on which a User holds a Role's permissions are
@@ -21,11 +21,13 @@ The owning Channel is set from the active Channel when the Role is created, and 
 not change afterwards. Deleting a Channel deletes the Roles it owns.
 
 ```ts title="Signature"
-class Role extends VendureEntity {
+class Role extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<Role>)
     @Column() code: string;
     @Column() description: string;
     @Column('simple-array') permissions: Permission[];
+    @Column(type => CustomRoleFields)
+    customFields: CustomRoleFields;
     @Index()
     @ManyToOne(type => Channel, { onDelete: 'CASCADE' })
     channel: Channel;
@@ -34,6 +36,9 @@ class Role extends VendureEntity {
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
 
 
 
@@ -52,6 +57,11 @@ class Role extends VendureEntity {
 ### permissions
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomRoleFields`}   />
 
 
 ### channel

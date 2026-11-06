@@ -2,15 +2,16 @@
 title: "RoleService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="54" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="56" packageName="@vendure/core" />
 
 Contains methods relating to [Role](/reference/typescript-api/entities/role#role) entities.
 
 ```ts title="Signature"
 class RoleService {
-    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, configService: ConfigService, eventBus: EventBus, requestContextCache: RequestContextCacheService, cacheService: CacheService, rolePermissionResolver: RolePermissionResolver)
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, configService: ConfigService, eventBus: EventBus, requestContextCache: RequestContextCacheService, cacheService: CacheService, rolePermissionResolver: RolePermissionResolver, customFieldRelationService: CustomFieldRelationService, moduleRef: ModuleRef)
     initRoles() => ;
     findAll(ctx: RequestContext, options?: ListQueryOptions<Role>, relations?: RelationPaths<Role>) => Promise<PaginatedList<Role>>;
+    getVisibleRoleIds(ctx: RequestContext) => Promise<ID[]>;
     findOne(ctx: RequestContext, roleId: ID, relations?: RelationPaths<Role>) => Promise<Role | undefined>;
     getSuperAdminRole(ctx?: RequestContext) => Promise<Role>;
     getRoleEditorRole(ctx?: RequestContext) => Promise<Role>;
@@ -22,7 +23,7 @@ class RoleService {
     activeUserHoldsPermissionsOnAnyChannel(ctx: RequestContext, permissions: Permission[]) => Promise<boolean>;
     canGrant(ctx: RequestContext, roleId: ID, channelId: ID) => Promise<boolean>;
     assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleChannelPair[]) => Promise<void>;
-    getGrantableChannelIdsByRole(ctx: RequestContext) => Promise<Array<{ roleId: ID; channelIds: ID[] }>>;
+    getGrantableChannelIdsByRole(ctx: RequestContext) => Promise<Array<{ roleId: ID; channelIds: ID[]; everywhere: boolean }>>;
     create(ctx: RequestContext, input: CreateRoleInput) => Promise<Role>;
     update(ctx: RequestContext, input: UpdateRoleInput) => Promise<Role>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
@@ -42,6 +43,14 @@ class RoleService {
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/role#role'>Role</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/role#role'>Role</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/role#role'>Role</a>>>`}   />
 
 
+### getVisibleRoleIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/common/id#id'>ID</a>[]>`}  since="3.7.3"  />
+
+Returns the ids of all the Roles which the active user may read: the system roles, the
+Roles owned by a Channel on which the active user holds `ReadRole`, and the Roles they may
+grant somewhere (`canGrant`). Cached for the duration of the request, since a single
+request may resolve it many times, e.g. once per User in a list query.
 ### findOne
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/role#role'>Role</a>>) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a> | undefined>`}   />
@@ -125,12 +134,14 @@ the assignment, nor the assignment slip past the permission check of a concurren
 update. Call it inside the transaction which writes the assignments.
 ### getGrantableChannelIdsByRole
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<{ roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>; channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[] }>>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<{ roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>; channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]; everywhere: boolean }>>`}  since="4.0.0"  />
 
 Evaluates `canGrant` over every Role and every Channel: for each Role the active
 user may grant somewhere, the ids of the Channels they may grant it on. Roles the
-active user may grant nowhere are absent. This is the batch form of `canGrant` behind
-the filtered assignment list (`RoleAssignmentService.findAll`).
+active user may grant nowhere are absent. `everywhere` is true when the Role is grantable
+on every Channel it may be assigned on, so that a query can match the Role without listing
+the Channels. This is the batch form of `canGrant` behind the filtered assignment list
+(`RoleAssignmentService.findAll`).
 ### create
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateRoleInput) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>>`}   />

@@ -2,7 +2,7 @@
 title: "MigrateRoleAssignmentData"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="106" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="113" packageName="@vendure/core" since="4.0.0" />
 
 The first step of the role assignment migration. Populates the new `role_assignment` table
 from the pre-v4 `user_roles_role` and `role_channels_channel` join tables. In the old model
@@ -10,7 +10,7 @@ a User received each of their Roles' permissions on every Channel the Role was a
 so the effective grants are the cross product of the two join tables, which this helper
 writes out as explicit `(user, role, channel)` rows.
 
-Two Roles are treated specially:
+Some grants are treated specially:
 
 - **Customer role**: no rows are written. v4 has no Customer role: Customer permissions
   are derived at check time from the Customer's channel memberships (`Authenticated` on
@@ -20,6 +20,9 @@ Two Roles are treated specially:
   [removeLegacyRoleData](/reference/typescript-api/migration/remove-legacy-role-data#removelegacyroledata). If your instance broadened the Customer role's permissions
   via a direct repository write, be aware that this customization has no v4 equivalent:
   customers hold exactly `Authenticated` on their member Channels.
+- **Soft-deleted Users**: no rows. v4 removes a User's assignments when it soft-deletes the
+  Administrator or API key, so a deleted User holds none. Their login already fails, so no
+  access is lost.
 - **SuperAdmin role**: holders receive exactly one row, on the default Channel, whatever
   `role_channels_channel` records for the role. In v4 the SuperAdmin Role is held on every
   Channel or not at all: access is derived at check time from that single row, which
@@ -64,7 +67,8 @@ legacy tables, so nothing else in it needs to change.
 The helper is idempotent: once the copy has been recorded, it is skipped. It is safe to
 re-run, e.g. after a partial failure on MySQL (where DDL is non-transactional).
 
-Table names honor the `entityPrefix` of the connection options.
+Table names honor the `entityPrefix` of the connection options, and on Postgres the
+`schema` option.
 
 ```ts
 import { MigrationInterface, QueryRunner } from 'typeorm';
