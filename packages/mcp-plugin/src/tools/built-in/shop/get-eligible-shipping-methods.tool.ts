@@ -38,6 +38,8 @@ export class GetEligibleShippingMethodsTool implements McpToolHandler<Record<str
         if (!order) return { methods: [], message: NO_CART_MESSAGE };
         const quotes = await this.orderService.getEligibleShippingMethods(ctx, order.id);
         // The currency comes from the order because a quote does not carry one.
-        return { methods: quotes.map(quote => this.serializer.shippingQuote(quote, order.currencyCode)) };
+        return {
+            methods: quotes.map(quote => this.serializer.shippingQuote(ctx, quote, order.currencyCode)),
+        };
     }
 }

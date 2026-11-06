@@ -39,6 +39,6 @@ export class GetMyAccountTool implements McpToolHandler<Record<string, never>> {
         }
 
         const addresses = await this.customerService.findAddressesByCustomerId(ctx, customer.id);
-        return { customer: this.serializer.customer(customer, addresses) };
+        return { customer: this.serializer.customer(ctx, customer, addresses) };
     }
 }

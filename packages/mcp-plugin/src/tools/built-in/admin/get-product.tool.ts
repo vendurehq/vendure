@@ -65,12 +65,12 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
         );
         const withStock = await this.catalog.withAvailableStock(ctx, variants.items);
         const variantsWithStock = withStock.map(({ variant, stockOnHand }) =>
-            this.serializer.adminVariant(variant, stockOnHand),
+            this.serializer.adminVariant(ctx, variant, stockOnHand),
         );
         const optionGroups = await this.productOptionGroupService.getOptionGroupsByProductId(ctx, product.id);
         return {
             product: {
-                ...this.serializer.product(product),
+                ...this.serializer.product(ctx, product),
                 variants: variantsWithStock,
                 ...variantPaging(offset, variants),
                 optionGroups: optionGroups.map(group => this.serializer.optionGroup(group)),

@@ -36,7 +36,10 @@ export class GetCustomerTool implements McpToolHandler<GetCustomerInput> {
 
     async execute(ctx: RequestContext, input: GetCustomerInput) {
         return {
-            customer: this.serializer.customer(await this.customerService.findOne(ctx, input.id, ['user'])),
+            customer: this.serializer.customer(
+                ctx,
+                await this.customerService.findOne(ctx, input.id, ['user']),
+            ),
         };
     }
 }

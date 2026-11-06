@@ -38,6 +38,7 @@ export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {
 
     async execute(ctx: RequestContext, input: CancelOrderToolInput) {
         return this.serializer.orderOrError(
+            ctx,
             await this.orderService.cancelOrder(ctx, {
                 orderId: input.id,
                 reason: input.reason,

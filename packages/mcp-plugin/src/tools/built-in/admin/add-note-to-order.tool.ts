@@ -49,6 +49,6 @@ export class AddNoteToOrderTool implements McpToolHandler<AddNoteToOrderToolInpu
             { ctx, orderId: order.id, type: HistoryEntryType.ORDER_NOTE, data: { note: input.note } },
             input.isPublic ?? false,
         );
-        return { order: this.serializer.order(order), note: this.serializer.orderNote(note) };
+        return { order: this.serializer.order(ctx, order), note: this.serializer.orderNote(note) };
     }
 }
