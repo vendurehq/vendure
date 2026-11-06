@@ -80,6 +80,7 @@ export class Populator {
             Logger.error(e, 'populator', e.stack);
             throw e;
         }
+        this.assertTaxRateZonesExist(data.taxRates, zoneMap);
         try {
             await this.populateTaxRates(ctx, data.taxRates, zoneMap);
         } catch (e: any) {
@@ -266,18 +267,26 @@ export class Populator {
         return zoneMap;
     }
 
-    private async populateTaxRates(
-        ctx: RequestContext,
-        taxRates: Array<{ name: string; percentage: number }>,
-        zoneMap: ZoneMap,
-    ) {
+    private assertTaxRateZonesExist(taxRates: InitialData['taxRates'], zoneMap: ZoneMap) {
+        for (const taxRate of taxRates) {
+            const unknownZones = Object.keys(taxRate.zones ?? {}).filter(zone => !zoneMap.has(zone));
+            if (unknownZones.length) {
+                throw new Error(
+                    `The taxRates entry "${taxRate.name}" sets a rate for unknown zones: ` +
+                        `${unknownZones.join(', ')}. Each key of "zones" must match a zone name in "countries" or an existing zone.`,
+                );
+            }
+        }
+    }
+
+    private async populateTaxRates(ctx: RequestContext, taxRates: InitialData['taxRates'], zoneMap: ZoneMap) {
         for (const taxRate of taxRates) {
             const category = await this.taxCategoryService.create(ctx, { name: taxRate.name });
 
             for (const { entity } of zoneMap.values()) {
                 await this.taxRateService.create(ctx, {
                     zoneId: entity.id,
-                    value: taxRate.percentage,
+                    value: taxRate.zones?.[entity.name] ?? taxRate.percentage,
                     categoryId: category.id,
                     name: `${taxRate.name} ${entity.name}`,
                     enabled: true,
