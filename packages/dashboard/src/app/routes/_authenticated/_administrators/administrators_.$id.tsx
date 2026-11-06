@@ -156,7 +156,6 @@ function AdministratorDetailPage() {
                 <CustomFieldsPageBlock column="main" entityType="Administrator" control={form.control} />
                 <RolesPageBlock
                     column="main"
-                    subject="administrator"
                     createForm={creatingNewEntity ? createForm : undefined}
                     user={entity?.user}
                     onChange={refreshEntity}

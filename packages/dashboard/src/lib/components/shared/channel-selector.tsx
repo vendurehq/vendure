@@ -1,7 +1,8 @@
+import { Button } from '@/vdb/components/ui/button.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { useLingui } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ChannelCodeLabel } from './channel-code-label.js';
 import { MultiSelect } from './multi-select.js';
@@ -33,10 +34,21 @@ export interface ChannelSelectorProps<T extends boolean> {
      * outside the user's own set.
      */
     ownChannelsOnly?: boolean;
+    /**
+     * For a multi-select: offer "Select all" and "Clear" under the picker, acting on the
+     * Channels the picker offers (after `includeIds`), so a Role can be granted on every
+     * grantable Channel in one step.
+     */
+    showSelectAll?: boolean;
 }
 
+/**
+ * Selected Channels shown as chips in a multi-select before the rest collapse into "+N more".
+ */
+const MAX_VISIBLE_CHANNEL_CHIPS = 8;
+
 export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T>) {
-    const { value, onChange, multiple, includeIds, ownChannelsOnly } = props;
+    const { value, onChange, multiple, includeIds, ownChannelsOnly, showSelectAll } = props;
     const { t } = useLingui();
     const { channels: userChannels } = useChannel();
 
@@ -59,7 +71,7 @@ export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T
             display: <ChannelCodeLabel code={channel.code} />,
         }));
 
-    return (
+    const picker = (
         <MultiSelect
             value={value}
             onChange={onChange}
@@ -67,6 +79,42 @@ export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T
             items={items}
             placeholder={t`Select a channel`}
             searchPlaceholder={t`Search channels...`}
+            maxVisibleChips={multiple ? MAX_VISIBLE_CHANNEL_CHIPS : undefined}
         />
+    );
+    if (!multiple || !showSelectAll || items.length < 2) {
+        return picker;
+    }
+    const selectedIds = value as string[];
+    const allSelected = items.every(item => selectedIds.includes(item.value));
+    const setSelection = (ids: string[]) => onChange(ids as T extends true ? string[] : string);
+    return (
+        <div className="flex flex-col gap-1">
+            {picker}
+            <div className="flex gap-1">
+                {!allSelected && (
+                    <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-auto px-0"
+                        onClick={() => setSelection(items.map(item => item.value))}
+                    >
+                        <Trans>Select all ({items.length})</Trans>
+                    </Button>
+                )}
+                {selectedIds.length > 0 && (
+                    <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-auto px-2 text-muted-foreground"
+                        onClick={() => setSelection([])}
+                    >
+                        <Trans>Clear</Trans>
+                    </Button>
+                )}
+            </div>
+        </div>
     );
 }

@@ -632,6 +632,7 @@ msgid "Go to next page"
 msgstr "Mergi la pagina următoare"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 msgid "Add role"
 msgstr ""
 
@@ -693,6 +694,11 @@ msgstr "Gestionează vizualizările globale salvate care sunt vizibile tuturor u
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "Caută metode de plată..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -758,11 +764,9 @@ msgstr "Se adaugă..."
 msgid "Move Collections"
 msgstr "Mută Colecții"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -837,6 +841,10 @@ msgstr "Rulează test"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "Cota de taxă: {taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Te rugăm să adaugi produse și să completezi adresa de livrare pentru a rula testul."
@@ -869,6 +877,11 @@ msgstr "Elimină formatarea"
 msgid "Order draft is ready to be completed"
 msgstr "Ciorna comenzii este gata pentru finalizare"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -879,6 +892,7 @@ msgstr "Metadate"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "Nu s-a putut seta metoda de livrare pentru comandă: {0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "Filtrează..."
@@ -1409,6 +1423,11 @@ msgstr "Resurse"
 msgid "Email address"
 msgstr "Adresă de email"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1508,6 +1527,10 @@ msgstr "Testați metodele de livrare simulând o comandă nouă."
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "No items selected"
 msgstr "Nu sunt selectate elemente"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
 
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -1906,6 +1929,12 @@ msgstr "Creat"
 msgid "Loading addresses..."
 msgstr "Se încarcă adresele..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "Selectează o colecție țintă pentru a muta {0}."
@@ -1951,6 +1980,8 @@ msgid "Insert {row} by {col} table"
 msgstr "Inserează tabel de {row} pe {col}"
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
@@ -1997,6 +2028,12 @@ msgstr "Varianta produsului a fost creată cu succes"
 msgid "Refund from this method"
 msgstr "Rambursare din această metodă"
 
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Postal Code"
@@ -2033,10 +2070,9 @@ msgstr "Șterge varianta"
 msgid "No modifications made"
 msgstr "Nu s-au făcut modificări"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2228,6 +2264,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2907,6 +2947,11 @@ msgstr "Se termină la"
 msgid "Page {0} of {1}"
 msgstr "Pagina {0} din {1}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "Cotă"
@@ -3073,6 +3118,9 @@ msgstr "Aceștia sunt clienții din grupul de clienți <0>{customerGroupName}</0
 msgid "Manage global views"
 msgstr "Gestionează vizualizări globale"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "Canal implicit"
@@ -3174,10 +3222,9 @@ msgstr "Vizualizare \"{viewName}\" aplicată"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "Au fost eliminate cu succes {successCount} atribute din canal"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3300,7 +3347,6 @@ msgstr "Adaugă valori atribute"
 msgid "after"
 msgstr "după"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Channel"
 msgstr "Canal"
@@ -3548,6 +3594,11 @@ msgstr "Istoric comandă"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "Suprascrie"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3842,10 +3893,9 @@ msgstr "Include taxa de {taxRate}%"
 msgid "Order metrics"
 msgstr "Metrici comenzi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
 
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
@@ -3956,6 +4006,10 @@ msgstr "Vânzătorul a fost creat cu succes"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4203,6 +4257,7 @@ msgid "Settle payment"
 msgstr "Finalizează plata"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
@@ -4236,6 +4291,10 @@ msgstr "Locație Stoc Nouă"
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
 msgstr "Selectează elementul"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
@@ -5389,6 +5448,10 @@ msgstr "ex., Roșu, Large, Bumbac"
 msgid "Failed to update profile"
 msgstr "Nu s-a putut actualiza profilul"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5457,6 +5520,10 @@ msgstr "Colecția a fost actualizată cu succes"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "Metoda de plată a fost actualizată cu succes"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5531,6 +5598,10 @@ msgstr "Extinderea query-ului este invalidă: trebuie să aibă cel puțin un c�
 #: src/lib/hooks/use-extended-list-query.ts
 msgid "Query extension mismatch: "
 msgstr "Neconcordanță în extinderea query-ului: "
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
@@ -5771,6 +5842,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Județ / Provincie"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
@@ -6039,6 +6114,7 @@ msgstr "Sistem"
 msgid "Variant name"
 msgstr "Nume variantă"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6109,10 +6185,9 @@ msgstr "Salvează"
 msgid "Preview order modifications"
 msgstr "Previzualizează modificările comenzii"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
-msgstr ""
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -6921,6 +6996,7 @@ msgid "Move to the top level"
 msgstr "Mută la nivel superior"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "Șterge"
 

@@ -167,7 +167,6 @@ function ApiKeyDetailPage() {
                 </PageBlock>
                 <RolesPageBlock
                     column="main"
-                    subject="apiKey"
                     createForm={creatingNewEntity ? createForm : undefined}
                     user={entity?.user}
                     onChange={refreshEntity}

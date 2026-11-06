@@ -3,7 +3,7 @@ import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useRoles } from '@/vdb/hooks/use-roles.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 import { RolePermissionsDisplay } from './role-permissions-display.js';
 
@@ -21,10 +21,11 @@ export interface EffectivePermissionsAssignment {
 export interface EffectivePermissionsPanelProps {
     assignments: EffectivePermissionsAssignment[];
     /**
-     * Caption under the heading, naming whose permissions are shown. Owned by the calling
-     * page, since the panel is shared between the administrator and API key detail pages.
+     * The Channel to show, when the calling page controls it (e.g. a Channel clicked in the
+     * assignments table). The picker still lets the user switch to another Channel.
      */
-    description: ReactNode;
+    channelId?: string;
+    onChannelChange?: (channelId: string) => void;
 }
 
 /**
@@ -34,12 +35,18 @@ export interface EffectivePermissionsPanelProps {
  */
 export function EffectivePermissionsPanel({
     assignments,
-    description,
+    channelId,
+    onChannelChange,
 }: Readonly<EffectivePermissionsPanelProps>) {
     const { t } = useLingui();
     const { channels, activeChannel } = useChannel();
     const { roles } = useRoles();
-    const [pickedChannelId, setPickedChannelId] = useState<string | undefined>();
+    const [localChannelId, setLocalChannelId] = useState<string | undefined>();
+    const pickedChannelId = channelId ?? localChannelId;
+    const setPickedChannelId = (id: string) => {
+        setLocalChannelId(id);
+        onChannelChange?.(id);
+    };
 
     // The create form can hold incomplete pairs (a row mid-edit).
     const completeAssignments = assignments.filter(
@@ -97,7 +104,6 @@ export function EffectivePermissionsPanel({
                     />
                 </div>
             </div>
-            <p className="text-sm text-muted-foreground">{description}</p>
             <RolePermissionsDisplay value={roleIds} />
         </div>
     );
