@@ -1,6 +1,5 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
-import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
@@ -24,13 +23,11 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
-import { EffectivePermissionsPanel } from '../_administrators/components/effective-permissions-panel.js';
 import {
     completeRoleAssignmentPairs,
     RoleAssignmentPair,
-    RoleAssignmentsEditor,
 } from '../_administrators/components/role-assignments-editor.js';
-import { RoleAssignmentsTable } from '../_administrators/components/role-assignments-table.js';
+import { RolesPageBlock } from '../_administrators/components/roles-page-block.js';
 import { apiKeyDetailDocument, createApiKeyDocument, updateApiKeyDocument } from './api-keys.graphql.js';
 import { ApiKeySecretDialog } from './components/api-key-secret-dialog.js';
 import { RotateApiKeyButton } from './components/rotate-api-key-button.js';
@@ -63,7 +60,7 @@ function ApiKeyDetailPage() {
     const [generatedApiKey, setGeneratedApiKey] = useState('');
     const [generatedLookupId, setGeneratedLookupId] = useState<string | undefined>();
 
-    const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
+    const { form, submitHandler, entity, isPending, resetForm, refreshEntity } = useDetailPage({
         pageId,
         queryDocument: apiKeyDetailDocument,
         createDocument: createApiKeyDocument,
@@ -121,7 +118,7 @@ function ApiKeyDetailPage() {
 
     // useDetailPage types the form on the update input, and roleAssignments is a creation
     // input only: once the API key exists, assignments are edited through their own
-    // mutations (RoleAssignmentsTable), not through updateApiKey.
+    // mutations (RolesPageBlock), not through updateApiKey.
     const createForm = form as unknown as UseFormReturn<{ roleAssignments: RoleAssignmentPair[] }>;
     // An API key belongs to the Channel it was created on and to the default Channel, and it is
     // read here through one of them, so these two are always among its Channels. A key created on
@@ -129,7 +126,6 @@ function ApiKeyDetailPage() {
     const { activeChannel, channels } = useChannel();
     const defaultChannelId = channels.find(channel => channel.code === DEFAULT_CHANNEL_CODE)?.id;
     const apiKeyChannelIds = [activeChannel?.id, defaultChannelId].filter((id): id is string => !!id);
-    const formAssignments = creatingNewEntity ? createForm.watch('roleAssignments') : undefined;
 
     const handleRotateSuccess = (newApiKey: string) => {
         setGeneratedApiKey(newApiKey);
@@ -169,61 +165,14 @@ function ApiKeyDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
-                {creatingNewEntity ? (
-                    <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
-                        <FormFieldWrapper
-                            control={createForm.control}
-                            name="roleAssignments"
-                            render={({ field }) => (
-                                <RoleAssignmentsEditor
-                                    value={field.value ?? []}
-                                    onChange={field.onChange}
-                                    apiKeyChannelIds={apiKeyChannelIds}
-                                />
-                            )}
-                        />
-                        <p className="text-xs text-muted-foreground mt-2">
-                            <Trans>
-                                You can only grant a role on a channel where you hold all of that role's
-                                permissions yourself.
-                            </Trans>
-                        </p>
-                        <EffectivePermissionsPanel
-                            assignments={formAssignments ?? []}
-                            description={
-                                <Trans>
-                                    What this API key can do on the selected channel, derived from the roles
-                                    assigned above. Edit the roles to change it.
-                                </Trans>
-                            }
-                        />
-                    </PageBlock>
-                ) : (
-                    entity && (
-                        <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
-                            <RoleAssignmentsTable
-                                userId={entity.user.id}
-                                assignments={entity.user.roleAssignments}
-                                apiKeyChannelIds={apiKeyChannelIds}
-                            />
-                            <p className="text-xs text-muted-foreground mt-2">
-                                <Trans>
-                                    Changes to roles are saved immediately. You can only see and change
-                                    assignments of roles whose permissions you hold yourself on that channel.
-                                </Trans>
-                            </p>
-                            <EffectivePermissionsPanel
-                                assignments={entity.user.roleAssignments}
-                                description={
-                                    <Trans>
-                                        What this API key can do on the selected channel, derived from the
-                                        roles assigned above. Edit the roles to change it.
-                                    </Trans>
-                                }
-                            />
-                        </PageBlock>
-                    )
-                )}
+                <RolesPageBlock
+                    column="main"
+                    subject="apiKey"
+                    createForm={creatingNewEntity ? createForm : undefined}
+                    user={entity?.user}
+                    onChange={refreshEntity}
+                    apiKeyChannelIds={apiKeyChannelIds}
+                />
                 <CustomFieldsPageBlock column="main" entityType="ApiKey" control={form.control} />
                 {!creatingNewEntity && entity && (
                     <PageBlock column="side" blockId="metadata" title={<Trans>Metadata</Trans>}>

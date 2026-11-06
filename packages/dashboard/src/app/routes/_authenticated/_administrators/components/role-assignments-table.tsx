@@ -10,7 +10,7 @@ import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { useRoles } from '@/vdb/hooks/use-roles.js';
 import { isSuperAdminRole } from '@/vdb/utils/is-super-admin-role.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -37,11 +37,15 @@ export interface RoleAssignmentsTableProps {
      * not offered.
      */
     apiKeyChannelIds?: string[];
+    /**
+     * Called after an assignment was added or removed, to refetch the User's assignments.
+     */
+    onChange: () => void;
 }
 
 /**
  * Lists a User's role assignments and edits them as memberships, outside the entity form:
- * adding or removing a pair fires its own mutation and refetches the detail page. Every row
+ * adding or removing a pair fires its own mutation, then calls `onChange` to refetch. Every row
  * shown is one the active user may remove, since the server filters `User.roleAssignments`
  * through the same rule that guards the write (`RoleService.canGrant`), so there is nothing
  * to lock or preserve. Pairs outside the active user's reach are simply not listed.
@@ -53,13 +57,13 @@ export function RoleAssignmentsTable({
     userId,
     assignments,
     apiKeyChannelIds,
+    onChange,
 }: Readonly<RoleAssignmentsTableProps>) {
     const { t } = useLingui();
     const { activeChannel } = useChannel();
     const { hasPermissions } = usePermissions();
     const { roles } = useRoles();
     const { nonGrantableRoleIds, grantableChannelIds } = useGrantableRoles();
-    const queryClient = useQueryClient();
     // The assign / remove mutations are guarded by UpdateAdministrator on the server,
     // for API-key Users too.
     const canEdit = hasPermissions(['UpdateAdministrator']);
@@ -75,15 +79,13 @@ export function RoleAssignmentsTable({
             ? [{ roleId: newRoleId, channelId: activeChannel.id }]
             : newChannelIds.map(channelId => ({ roleId: newRoleId, channelId }));
 
-    const refetchDetail = () => queryClient.invalidateQueries({ queryKey: ['DetailPage'] });
-
     const { mutate: assignRoles, isPending: assigning } = useMutation({
         mutationFn: api.mutate(assignRolesToUserDocument),
         onSuccess: () => {
             toast.success(t`Role assigned`);
             setNewRoleId('');
             setPickedChannelIds(undefined);
-            refetchDetail();
+            onChange();
         },
         onError: err => {
             toast.error(t`Failed to assign role`, {
@@ -96,7 +98,7 @@ export function RoleAssignmentsTable({
         mutationFn: api.mutate(removeRolesFromUserDocument),
         onSuccess: () => {
             toast.success(t`Role removed`);
-            refetchDetail();
+            onChange();
         },
         onError: err => {
             toast.error(t`Failed to remove role`, {

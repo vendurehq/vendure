@@ -24,13 +24,8 @@ import {
     createAdministratorDocument,
     updateAdministratorDocument,
 } from './administrators.graphql.js';
-import { EffectivePermissionsPanel } from './components/effective-permissions-panel.js';
-import {
-    completeRoleAssignmentPairs,
-    RoleAssignmentPair,
-    RoleAssignmentsEditor,
-} from './components/role-assignments-editor.js';
-import { RoleAssignmentsTable } from './components/role-assignments-table.js';
+import { completeRoleAssignmentPairs, RoleAssignmentPair } from './components/role-assignments-editor.js';
+import { RolesPageBlock } from './components/roles-page-block.js';
 
 const pageId = 'administrator-detail';
 
@@ -56,7 +51,7 @@ function AdministratorDetailPage() {
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
 
-    const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
+    const { form, submitHandler, entity, isPending, resetForm, refreshEntity } = useDetailPage({
         pageId,
         queryDocument: administratorDetailDocument,
         createDocument: createAdministratorDocument,
@@ -110,9 +105,8 @@ function AdministratorDetailPage() {
     });
     // useDetailPage types the form on the update input, and roleAssignments is a creation
     // input only: once the administrator exists, assignments are edited through their own
-    // mutations (RoleAssignmentsTable), not through updateAdministrator.
+    // mutations (RolesPageBlock), not through updateAdministrator.
     const createForm = form as unknown as UseFormReturn<{ roleAssignments: RoleAssignmentPair[] }>;
-    const formAssignments = creatingNewEntity ? createForm.watch('roleAssignments') : undefined;
 
     const name = `${entity?.firstName} ${entity?.lastName}`;
 
@@ -160,56 +154,13 @@ function AdministratorDetailPage() {
                     </div>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Administrator" control={form.control} />
-                {creatingNewEntity ? (
-                    <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
-                        <FormFieldWrapper
-                            control={createForm.control}
-                            name="roleAssignments"
-                            render={({ field }) => (
-                                <RoleAssignmentsEditor value={field.value ?? []} onChange={field.onChange} />
-                            )}
-                        />
-                        <p className="text-xs text-muted-foreground mt-2">
-                            <Trans>
-                                You can only grant a role on a channel where you hold all of that role's
-                                permissions yourself.
-                            </Trans>
-                        </p>
-                        <EffectivePermissionsPanel
-                            assignments={formAssignments ?? []}
-                            description={
-                                <Trans>
-                                    What this administrator can do on the selected channel, derived from the
-                                    roles assigned above. Edit the roles to change it.
-                                </Trans>
-                            }
-                        />
-                    </PageBlock>
-                ) : (
-                    entity && (
-                        <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
-                            <RoleAssignmentsTable
-                                userId={entity.user.id}
-                                assignments={entity.user.roleAssignments}
-                            />
-                            <p className="text-xs text-muted-foreground mt-2">
-                                <Trans>
-                                    Changes to roles are saved immediately. You can only see and change
-                                    assignments of roles whose permissions you hold yourself on that channel.
-                                </Trans>
-                            </p>
-                            <EffectivePermissionsPanel
-                                assignments={entity.user.roleAssignments}
-                                description={
-                                    <Trans>
-                                        What this administrator can do on the selected channel, derived from
-                                        the roles assigned above. Edit the roles to change it.
-                                    </Trans>
-                                }
-                            />
-                        </PageBlock>
-                    )
-                )}
+                <RolesPageBlock
+                    column="main"
+                    subject="administrator"
+                    createForm={creatingNewEntity ? createForm : undefined}
+                    user={entity?.user}
+                    onChange={refreshEntity}
+                />
             </PageLayout>
         </Page>
     );
