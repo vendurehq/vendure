@@ -72,6 +72,10 @@ let VoucherTablesMigration = class VoucherTablesMigration {
                 `ON ${Q('voucher_booking')} (${Q('voucherId')})`);
             await queryRunner.query(`CREATE INDEX IF NOT EXISTS ${Q('idx_voucher_booking_channel')} ` +
                 `ON ${Q('voucher_booking')} (${Q('channelId')})`);
+            // Product 自定义字段 serviceType（TypeORM 列名 customFieldsServicetype）
+            if (!(await queryRunner.hasColumn('product', 'customFieldsServicetype'))) {
+                await queryRunner.query(`ALTER TABLE ${Q('product')} ADD COLUMN ${Q('customFieldsServicetype')} varchar NULL`);
+            }
             // ManyToMany Channel 关联表（TypeORM 默认命名：<表>_channels_channel）
             for (const [joinTable, ownerCol] of [
                 ['service_voucher_channels_channel', 'serviceVoucherId'],
