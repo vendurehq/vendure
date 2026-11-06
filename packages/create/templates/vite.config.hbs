@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     base: '/dashboard',
     build: {
-        outDir: join(__dirname, 'dist/dashboard'),
+        outDir: join(import.meta.dirname, 'dist/dashboard'),
     },
     plugins: [
         vendureDashboardPlugin({
@@ -33,7 +33,7 @@ export default defineConfig({
         alias: {
             // This allows all plugins to reference a shared set of
             // GraphQL types.
-            '@/gql': resolve(__dirname, './src/gql/graphql.ts'),
+            '@/gql': resolve(import.meta.dirname, './src/gql/graphql.ts'),
         },
     },
 });

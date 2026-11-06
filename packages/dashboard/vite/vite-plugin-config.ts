@@ -86,7 +86,7 @@ export function viteConfigPlugin({
             // the dashboard's source files in node_modules (e.g. `await
             // import('virtual:plugin-translations')` inside load-i18n-messages),
             // which would otherwise fail because the virtual module isn't
-            // resolvable to esbuild.
+            // resolvable by the dependency scanner.
             config.optimizeDeps = {
                 ...config.optimizeDeps,
                 exclude: [

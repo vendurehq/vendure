@@ -23,10 +23,10 @@ For a working example of a Vendure plugin with e2e testing, see the [real-world-
 * [`graphql-tag`](https://www.npmjs.com/package/graphql-tag) This is not strictly required but makes it much easier to create the DocumentNodes needed to query your server.
 * We also need to install some packages to allow us to compile TypeScript code that uses decorators:
   - `@swc/core`
-  - `unplugin-swc`
+  - `unplugin-swc` v2 or newer (see [Upgrading to v4](/developer-guide/updating/#testing-with-vitest) for why)
 
 ```bash
-npm install --save-dev @vendure/testing vitest graphql-tag @swc/core unplugin-swc
+npm install --save-dev @vendure/testing vitest graphql-tag @swc/core unplugin-swc@^2
 ```
 
 ### Configure Vitest
@@ -42,7 +42,7 @@ export default defineConfig({
     test: {
         include: ['**/*.e2e-spec.ts'],
         typecheck: {
-            tsconfig: path.join(__dirname, 'tsconfig.e2e.json'),
+            tsconfig: path.join(import.meta.dirname, 'tsconfig.e2e.json'),
         },
     },
     plugins: [
