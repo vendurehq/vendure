@@ -918,6 +918,37 @@ describe('AuthenticationStrategy', () => {
             });
         });
     });
+
+    // https://github.com/vendurehq/vendure/issues/5621
+    describe('input naming no strategy', () => {
+        it('returns InvalidCredentialsError on the Shop API for an empty input', async () => {
+            const { authenticate } = await shopClient.query(authenticateDocument, { input: {} });
+
+            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+        });
+
+        it('returns InvalidCredentialsError on the Shop API for a strategy with null data', async () => {
+            const { authenticate } = await shopClient.query(authenticateDocument, {
+                input: { test_strategy: null },
+            });
+
+            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+        });
+
+        it('returns InvalidCredentialsError on the Admin API for an empty input', async () => {
+            const { authenticate } = await adminClient.query(authenticateDocument, { input: {} });
+
+            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+        });
+
+        it('returns InvalidCredentialsError on the Admin API for a strategy with null data', async () => {
+            const { authenticate } = await adminClient.query(authenticateDocument, {
+                input: { native: null },
+            });
+
+            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+        });
+    });
 });
 
 describe('No NativeAuthStrategy on Shop API', () => {
