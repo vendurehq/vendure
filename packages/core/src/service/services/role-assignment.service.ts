@@ -476,10 +476,11 @@ export class RoleAssignmentService {
      * not already hold, and publishes one `assigned` {@link RoleAssignmentEvent} for the pairs
      * added. Nothing is published when nothing changes.
      *
-     * Performs no authorization and no SuperAdmin anchoring: this is the row primitive beneath
-     * {@link assign}, for writes which have no actor to check against, such as granting a User
-     * created by an authentication strategy the Roles that strategy resolved. Actor-made
-     * changes go through {@link assign}.
+     * Performs no authorization: this is the row primitive beneath {@link assign}, for writes
+     * which have no actor to check against, such as granting a User created by an
+     * authentication strategy the Roles that strategy resolved. Actor-made changes go through
+     * {@link assign}. A SuperAdmin pair on any Channel is stored as the single default-channel
+     * row, as in {@link assign}, so no write path can create a SuperAdmin row elsewhere.
      *
      * @throws {EntityNotFoundError} if the User does not exist
      * @throws {IllegalOperationError} if a pair names the legacy Customer role
@@ -489,7 +490,7 @@ export class RoleAssignmentService {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const repository = this.connection.getRepository(ctx, RoleAssignment);
         const existing = await repository.find({ where: { userId } });
-        const toAdd = this.dedupePairs(pairs).filter(
+        const toAdd = (await this.anchorSuperAdminPairs(ctx, pairs)).filter(
             pair => !existing.some(assignment => this.matches(assignment, pair)),
         );
         if (!toAdd.length) {
@@ -508,8 +509,9 @@ export class RoleAssignmentService {
      * publishes one `removed` {@link RoleAssignmentEvent} for the pairs removed. Pairs the User
      * does not hold are ignored, and nothing is published when nothing changes.
      *
-     * Performs no authorization, no SuperAdmin anchoring and no sole-SuperAdmin guard: this is
-     * the row primitive beneath {@link remove}. Actor-made changes go through {@link remove}.
+     * Performs no authorization and no sole-SuperAdmin guard: this is the row primitive beneath
+     * {@link remove}. Actor-made changes go through {@link remove}. A SuperAdmin pair on any
+     * Channel removes the User's SuperAdmin row, as in {@link remove}.
      *
      * @throws {EntityNotFoundError} if the User does not exist
      * @since 4.0.0
@@ -517,8 +519,17 @@ export class RoleAssignmentService {
     async deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const existing = await this.getAssignmentsForUser(ctx, userId);
+        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         const target = this.dedupePairs(pairs);
-        const toRemove = existing.filter(assignment => target.some(pair => this.matches(assignment, pair)));
+        const removesSuperAdmin = target.some(pair => idsAreEqual(pair.roleId, superAdminRole.id));
+        // A SuperAdmin pair names the SuperAdmin Role on every Channel, so it removes the User's
+        // SuperAdmin row wherever it is stored. Rows which predate anchoring in this method may
+        // name another Channel than the default one.
+        const toRemove = existing.filter(
+            assignment =>
+                target.some(pair => this.matches(assignment, pair)) ||
+                (removesSuperAdmin && idsAreEqual(assignment.roleId, superAdminRole.id)),
+        );
         await this.removeRows(ctx, user, toRemove);
     }
 

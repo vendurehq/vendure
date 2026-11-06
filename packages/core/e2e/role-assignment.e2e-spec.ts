@@ -5,7 +5,11 @@ import {
     AdministratorEvent,
     AdministratorService,
     EventBus,
+    RequestContextService,
+    RoleAssignment,
     RoleAssignmentEvent,
+    RoleAssignmentService,
+    TransactionalConnection,
     VendureEvent,
 } from '@vendure/core';
 import {
@@ -515,6 +519,51 @@ describe('RoleAssignment', () => {
             }, 'You are not currently authorized to perform this action')();
 
             await asSuperAdminOnDefaultChannel();
+        });
+
+        // An authentication strategy grants the Roles it resolved through createAssignments, on
+        // the Channel it runs on. A SuperAdmin pair must still become the default-channel row,
+        // or removeRolesFromUser could not find it to revoke it.
+        it('the unauthorized write primitives keep the SuperAdmin row on the default channel', async () => {
+            const roleAssignmentService = server.app.get(RoleAssignmentService);
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const userId = secondSuperAdmin.user.id.replace('T_', '');
+            const superAdminRole = superAdminRoleId.replace('T_', '');
+            const otherChannel = secondChannel.id.replace('T_', '');
+
+            await roleAssignmentService.createAssignments(ctx, userId, [
+                { roleId: superAdminRole, channelId: otherChannel },
+            ]);
+            expect(await getUserRoleAssignments(secondSuperAdmin.id)).toEqual([
+                { roleCode: SUPER_ADMIN_ROLE_CODE, channelId: DEFAULT_CHANNEL_ID },
+            ]);
+
+            await roleAssignmentService.deleteAssignments(ctx, userId, [
+                { roleId: superAdminRole, channelId: otherChannel },
+            ]);
+            expect(await getUserRoleAssignments(secondSuperAdmin.id)).toEqual([]);
+        });
+
+        it('revokes a SuperAdmin row which was stored on another channel', async () => {
+            // A row as an authentication strategy wrote it before the primitives anchored it
+            await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(RoleAssignment)
+                .save(
+                    new RoleAssignment({
+                        userId: secondSuperAdmin.user.id.replace('T_', ''),
+                        roleId: superAdminRoleId.replace('T_', ''),
+                        channelId: secondChannel.id.replace('T_', ''),
+                    }),
+                );
+
+            const { removeRolesFromUser } = await adminClient.query(removeRolesFromUserDocument, {
+                input: {
+                    userId: secondSuperAdmin.user.id,
+                    assignments: [{ roleId: superAdminRoleId, channelId: DEFAULT_CHANNEL_ID }],
+                },
+            });
+            expect(removeRolesFromUser.roleAssignments).toEqual([]);
         });
 
         it('the sole SuperAdmin cannot lose the SuperAdmin role', async () => {
