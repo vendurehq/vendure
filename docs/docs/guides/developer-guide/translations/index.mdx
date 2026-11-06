@@ -218,7 +218,7 @@ export class MyPlugin implements OnApplicationBootstrap {
 
 These strings describe the operation itself, so they should appear in whatever language the administrator reads. That is a separate setting from the one which selects the translation of your product and Collection data.
 
-The two come from different parts of the request. The `languageCode` query parameter selects which translation of your data to return, such as the product name or the Collection description. The `Accept-Language` header tells the server which language to write its own text in, and operation descriptions and argument labels count as its own text. So an administrator reading the Admin UI in Japanese while editing the German translation of a product sends `?languageCode=de` together with `Accept-Language: ja`, and gets German product data described by Japanese labels.
+The two come from different parts of the request. The `languageCode` query parameter selects which translation of your data to return, such as the product name or the Collection description. The `Accept-Language` header tells the server which language to write its own text in, and operation descriptions and argument labels count as its own text. So an administrator reading the Dashboard in Japanese while editing the German translation of a product sends `?languageCode=de` together with `Accept-Language: ja`, and gets German product data described by Japanese labels.
 
 A client which sends no `Accept-Language` header falls back to `languageCode`.
 
@@ -229,14 +229,14 @@ Select option labels behave slightly differently. The description and the argume
 :::caution
 Browsers send an `Accept-Language` header of their own, derived from the operating system locale, on every request. A browser-based Admin API client which relies on `languageCode` alone for these strings will therefore resolve them against that OS locale.
 
-If you maintain such a client, set the header explicitly from whatever language your interface is displayed in. The Dashboard and the Admin UI both do this. Server-to-server clients are unaffected, since they only send the header if they choose to.
+If you maintain such a client, set the header explicitly from whatever language your interface is displayed in. The Dashboard does this. Server-to-server clients are unaffected, since they only send the header if they choose to.
 :::
 
 :::note
 A key which matches no operation is never read, so a mistyped key produces no error — the inline string is used instead and the mistake is silent. Call `getTranslationKeys()` on the operation, which returns the exact key paths it expects.
 :::
 
-Several of core's descriptions are templates rather than sentences, for example `Discount order by { discount }%`. The admin UI substitutes the live argument values into these placeholders, so a translated string must reproduce them exactly, spaces inside the braces included.
+Several of core's descriptions are templates rather than sentences, for example `Discount order by { discount }%`. The Dashboard substitutes the live argument values into these placeholders, so a translated string must reproduce them exactly, spaces inside the braces included.
 
 ### Use translations
 

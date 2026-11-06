@@ -240,7 +240,7 @@ export interface ApiOptions {
      *
      * Before enabling this, check that every client which uploads files to your API sends the
      * `Apollo-Require-Preflight` header, since multipart uploads use one of the blocked content
-     * types. `@vendure/admin-ui`, `@vendure/dashboard` and `@vendure/testing` all send it. A custom
+     * types. `@vendure/dashboard` and `@vendure/testing` both send it. A custom
      * admin client built on `apollo-upload-client` does not send it unless you add it.
      *
      * The same applies to `GET` requests, which carry no content type at all: a storefront that uses

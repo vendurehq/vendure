@@ -108,8 +108,8 @@ future major release.
 
 :::warning
 Before you enable it, check every client that uploads files to your API. Multipart uploads use one of
-the blocked content types, so the client must send `Apollo-Require-Preflight`. `@vendure/admin-ui`,
-`@vendure/dashboard` and `@vendure/testing` all send it. A custom admin client built on
+the blocked content types, so the client must send `Apollo-Require-Preflight`. `@vendure/dashboard`
+and `@vendure/testing` both send it. A custom admin client built on
 `apollo-upload-client` does not send it unless you add it. The same applies to any storefront that
 uses `GET` for cacheable queries. The storefront starters offered by `@vendure/create` live in separate
 repositories, so check the one you used before you turn this on.

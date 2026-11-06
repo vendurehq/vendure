@@ -46,13 +46,11 @@ Lower importance, still in scope:
 - `packages/mcp-sdk`: the `@McpTool` decorator and helpers that the MCP plugin uses at runtime.
 - `packages/harden-plugin` (query complexity limits), `packages/job-queue-plugin`, `packages/graphiql-plugin`,
   `packages/telemetry-plugin`, `packages/sentry-plugin`.
-- `packages/admin-ui` and `packages/admin-ui-plugin`: the older Angular admin app, which is being replaced
-  by `packages/dashboard`.
 
 Out of scope:
 - `packages/dev-server`, `packages/testing`, `e2e-common`, `scripts`, `docs`: development and test tooling,
   never deployed.
-- `packages/create`, `packages/cli` and `packages/ui-devkit`: run locally by a developer against their own project.
+- `packages/create` and `packages/cli`: run locally by a developer against their own project.
 - Code generated into `packages/*/src/generated*` or `graphql-env.d.ts` files.
 
 ## How to exercise it
