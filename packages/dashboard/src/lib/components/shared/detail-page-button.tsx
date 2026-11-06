@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button.js';
 
 /**
@@ -11,7 +11,7 @@ import { Button } from '../ui/button.js';
  *
  * In a data table row, the button's link covers the whole row, so a click on any point of the
  * row opens the detail page. Buttons, links, inputs and copy chips in the row stay clickable.
- * There, the chevron is hidden, and an arrow at the end of the row shows while the row is
+ * There, the chevron moves from the label to the end of the row, and shows only while the row is
  * hovered or holds keyboard focus.
  *
  * @example
@@ -63,9 +63,9 @@ export function DetailPageButton({
             data-row-link={disabled ? undefined : ''}
         >
             {label}
-            {!disabled && <ChevronRight data-row-chevron className="h-3 w-3 text-muted-foreground" />}
+            {!disabled && <ChevronRight data-label-chevron className="h-3 w-3 text-muted-foreground" />}
             {/* `opacity-0` also opts the icon out of the button's dimmed-icon rule; styles.css reveals it. */}
-            {!disabled && <ArrowRight data-row-arrow aria-hidden className="opacity-0" />}
+            {!disabled && <ChevronRight data-row-chevron aria-hidden className="opacity-0" />}
         </Button>
     );
 }
