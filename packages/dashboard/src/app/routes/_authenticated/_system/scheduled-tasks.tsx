@@ -1,3 +1,4 @@
+import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
 import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
@@ -26,12 +27,10 @@ import { CirclePlay, EllipsisIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayloadDialog } from './components/payload-dialog.js';
 
-// A scheduled task's enablement and execution status. `running` means the task
-// is executing right now (progress — renders a pulsing dot). Enabled is the
-// expected default and shows no badge; disabled is the exception worth spotting
-// (critical). Keys are the local flag values, not wire states.
+// A scheduled task's execution status. `running` means the task is executing
+// right now (progress — renders a pulsing dot). Keys are the local flag values,
+// not wire states. The enabled column uses BooleanDisplayBadge.
 const scheduledTaskStateDictionary = defineStateEntries({
-    disabled: { tone: 'critical', defaultLabel: 'Disabled' },
     running: { tone: 'progress', defaultLabel: 'Running' },
     idle: { tone: 'neutral', defaultLabel: 'Not Running' },
 });
@@ -130,16 +129,8 @@ function ScheduledTasksPage() {
         columnHelper.accessor('enabled', {
             header: t`Status`,
             meta: { contentInset: columnContentInset.statusBadge },
-            cell: ({ row }) =>
-                row.original.enabled ? (
-                    <span className="sr-only">
-                        <Trans>Enabled</Trans>
-                    </span>
-                ) : (
-                    <StatusBadge tone={scheduledTaskStateDictionary.toneFor('disabled')}>
-                        <Trans>Disabled</Trans>
-                    </StatusBadge>
-                ),
+            // Same rule as every enabled column: "Disabled" always shows, "Enabled" only on row hover.
+            cell: ({ row }) => <BooleanDisplayBadge value={row.original.enabled} />,
         }),
         columnHelper.accessor('schedule', {
             header: t`Schedule Pattern`,
