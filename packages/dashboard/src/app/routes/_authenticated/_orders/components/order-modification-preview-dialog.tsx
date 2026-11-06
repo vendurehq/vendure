@@ -20,7 +20,7 @@ import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { ResultOf, VariablesOf } from 'gql.tada';
-import { CheckIcon } from 'lucide-react';
+import { AlertCircle, CheckIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -175,6 +175,7 @@ export function OrderModificationPreviewDialog({
                             {priceDifference < 0 && (
                                 <>
                                     <Alert variant="destructive">
+                                        <AlertCircle />
                                         <AlertTitle>
                                             <Trans>Refund required</Trans>
                                         </AlertTitle>
@@ -317,9 +318,10 @@ export function OrderModificationPreviewDialog({
                                 </>
                             )}
                             <div className="w-full flex justify-end">
-                                <div className="max-w-l mb-2">
+                                <div className="w-full mb-2">
                                     {priceDifference > 0 && (
                                         <Alert variant="destructive">
+                                            <AlertCircle />
                                             <AlertTitle>
                                                 <Trans>Additional payment required</Trans>
                                             </AlertTitle>

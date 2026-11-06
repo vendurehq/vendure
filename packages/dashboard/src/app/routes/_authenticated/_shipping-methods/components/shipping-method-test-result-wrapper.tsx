@@ -2,7 +2,7 @@ import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Trans } from '@lingui/react/macro';
-import { PlayIcon } from 'lucide-react';
+import { AlertCircle, PlayIcon } from 'lucide-react';
 import React from 'react';
 
 interface ShippingMethodTestResultWrapperProps {
@@ -64,6 +64,7 @@ export function ShippingMethodTestResultWrapper({
 
                 {okToRun && testDataUpdated && hasTestedOnce && (
                     <Alert variant="destructive">
+                        <AlertCircle />
                         <AlertDescription>
                             <Trans>
                                 Test data has been updated. Click "Run Test" to see updated results.
