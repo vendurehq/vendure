@@ -4,7 +4,9 @@ import { ConfigService, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { exec } from 'child_process';
 import fs from 'fs-extra';
+import os from 'os';
 import path from 'path';
+import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -109,6 +111,30 @@ describe('AssetServerPlugin', () => {
         const previewFile = await fs.readFile(previewFilePath);
 
         expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
+    });
+
+    it('caps the generated preview at 1600 px with the default options', async () => {
+        const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'asset-server-plugin-'));
+        const largeImagePath = path.join(tmpDir, 'large-image.jpg');
+        await sharp({ create: { width: 4000, height: 3000, channels: 3, background: '#888888' } })
+            .jpeg()
+            .toFile(largeImagePath);
+
+        try {
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: [largeImagePath],
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+            const res = await fetch(createAssets[0].preview);
+            const { width, height } = await sharp(Buffer.from(await res.arrayBuffer())).metadata();
+
+            expect({ width, height }).toEqual({ width: 1600, height: 1200 });
+        } finally {
+            await fs.remove(tmpDir);
+        }
     });
 
     it('can handle non-latin filenames', async () => {
