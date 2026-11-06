@@ -540,10 +540,7 @@ async function deleteRevokedRoleAssignments(queryRunner: QueryRunner, sources: S
 async function reportUnappliedGrants(queryRunner: QueryRunner, sources: SourceTables): Promise<void> {
     const t = getTableNames(queryRunner);
     const pending = getPendingGrantQueries(queryRunner, sources);
-    const unapplied = await describeGrants(
-        queryRunner,
-        `${pending.legacyGrants} UNION ALL ${pending.superAdminGrants}`,
-    );
+    const unapplied = await describeGrants(queryRunner, [pending.legacyGrants, pending.superAdminGrants]);
     if (unapplied.total === 0) {
         return;
     }
@@ -817,8 +814,7 @@ function getExtraGrantsQuery(
  */
 async function verifyRoleAssignmentData(queryRunner: QueryRunner, sources: SourceTables): Promise<void> {
     const pending = getPendingGrantQueries(queryRunner, sources);
-    const missingQuery = `${pending.legacyGrants} UNION ALL ${pending.superAdminGrants}`;
-    const missing = await describeGrants(queryRunner, missingQuery);
+    const missing = await describeGrants(queryRunner, [pending.legacyGrants, pending.superAdminGrants]);
     const extra = await describeGrants(queryRunner, getExtraGrantsQuery(queryRunner, sources));
     if (missing.total === 0 && extra.total === 0) {
         return;
@@ -889,22 +885,31 @@ interface DescribedGrant {
 }
 
 /**
- * Counts the grants a query yields and fetches up to MAX_FETCHED_MISMATCHES of them with
+ * Counts the grants the queries yield and fetches up to MAX_FETCHED_MISMATCHES of them with
  * the user identifier, role code and channel code they refer to.
+ *
+ * Each query is counted on its own: MariaDB plans the anti-join of a `UNION ALL` derived
+ * table far worse than that of either branch, which made the count about 7x slower at
+ * 2M grants.
  */
 async function describeGrants(
     queryRunner: QueryRunner,
-    grantsQuery: string,
+    grantsQueries: string | string[],
 ): Promise<{ total: number; grants: DescribedGrant[] }> {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const t = getTableNames(queryRunner);
-    const countRows: Array<{ count: string | number }> = await queryRunner.query(
-        `SELECT COUNT(*) AS ${esc('count')} FROM (${grantsQuery}) g`,
-    );
-    const total = Number(countRows[0].count);
+    const queries = Array.isArray(grantsQueries) ? grantsQueries : [grantsQueries];
+    let total = 0;
+    for (const query of queries) {
+        const countRows: Array<{ count: string | number }> = await queryRunner.query(
+            `SELECT COUNT(*) AS ${esc('count')} FROM (${query}) g`,
+        );
+        total += Number(countRows[0].count);
+    }
     if (total === 0) {
         return { total, grants: [] };
     }
+    const grantsQuery = queries.join(' UNION ALL ');
     const grants: DescribedGrant[] = await queryRunner.query(
         `SELECT g.${esc('userId')} AS ${esc('userId')}, u.${esc('identifier')} AS ${esc('userIdentifier')},
                 g.${esc('roleId')} AS ${esc('roleId')}, r.${esc('code')} AS ${esc('roleCode')},
