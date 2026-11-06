@@ -115,7 +115,9 @@ html[dir="rtl"] * {
     }
 
     [data-slot='table-row'] [data-row-link] [data-row-chevron] {
-        @apply text-muted-foreground transition-[opacity,translate,color] duration-moderate ease-out motion-reduce:transition-opacity;
+        @apply text-muted-foreground transition-[opacity,translate,color] ease-out motion-reduce:transition-opacity;
+        /* The design system's moderate duration token; 150ms where the tokens do not define it. */
+        transition-duration: var(--transition-duration-moderate, 150ms);
         display: block;
         position: absolute;
         inset-inline-end: --spacing(3);
