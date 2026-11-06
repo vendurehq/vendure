@@ -2,7 +2,26 @@ import { ID } from '@vendure/common/lib/shared-types';
 
 import { ApiType } from '../../api/common/get-api-type';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
+import { CustomSessionFields } from '../../entity/custom-entity-fields';
 import { UserChannelPermissions } from '../../service/helpers/utils/get-user-channels-permissions';
+
+/**
+ * A `datetime` custom field is a Date on the Session entity, but an ISO string in the cache.
+ */
+type CachedValue<T> = T extends Date ? string : T;
+
+/**
+ * @description
+ * The custom fields of a Session as they are stored in the cache. Custom fields of type
+ * `relation` are not included, and `datetime` values are stored as ISO strings.
+ *
+ * @docsCategory auth
+ * @docsPage SessionCacheStrategy
+ * @since 3.8.0
+ */
+export type CachedSessionCustomFields = {
+    [K in keyof CustomSessionFields]: CachedValue<CustomSessionFields[K]>;
+};
 
 /**
  * @description
@@ -51,6 +70,13 @@ export type CachedSession = {
      * @since 3.8.0
      */
     apiType?: ApiType;
+    /**
+     * @description
+     * The custom fields defined on the Session entity, if any.
+     *
+     * @since 3.8.0
+     */
+    customFields?: CachedSessionCustomFields;
 };
 
 /**
