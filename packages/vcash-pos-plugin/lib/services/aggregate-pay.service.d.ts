@@ -84,5 +84,4 @@ export declare class AggregatePayService {
      *            外层事务持有的行锁，而外层又在等本函数返回 → 跨连接自锁。
      */
     private updateAggregatePayStatus;
-    private findSessionByOrderId;
 }

@@ -142,14 +142,18 @@ let AggregatePayService = class AggregatePayService {
                     throw new core_1.UserInputError(`Order transition 到 PaymentSettled 失败: ${result.message}`);
                 }
             }
-        });
-        // 4. 清除 session.activeOrderId
-        const session = await this.findSessionByOrderId(Number(payment.order.id));
-        if (session) {
-            await this.connection.getRepository(pos_session_entity_1.PosSession).update(session.id, {
-                activeOrderId: null,
+            // 4. 清除 session.activeOrderId（同一事务）
+            //    放在事务外会在「支付已 Settled + 订单已 PaymentSettled」之后留下
+            //    「会话仍指向已结算订单」的半完成态：若该更新失败，调用方按失败处理，
+            //    但重试时 Payment 已非 Authorized 直接报错，无法自愈。
+            const sessionRepo = this.transactionalConnection.getRepository(txCtx, pos_session_entity_1.PosSession);
+            const session = await sessionRepo.findOne({
+                where: { activeOrderId: Number(order.id) },
             });
-        }
+            if (session) {
+                await sessionRepo.update(session.id, { activeOrderId: null });
+            }
+        });
         return this.findPaymentOrThrow(paymentId);
     }
     /**
@@ -268,11 +272,6 @@ let AggregatePayService = class AggregatePayService {
         }
         payment.customFields = Object.assign(Object.assign({}, ((_a = payment.customFields) !== null && _a !== void 0 ? _a : {})), { aggregatePayStatus: status });
         await repo.save(payment);
-    }
-    async findSessionByOrderId(orderId) {
-        return this.connection.getRepository(pos_session_entity_1.PosSession).findOne({
-            where: { activeOrderId: orderId },
-        });
     }
 };
 exports.AggregatePayService = AggregatePayService;

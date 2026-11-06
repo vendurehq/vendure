@@ -178,15 +178,19 @@ export class AggregatePayService {
           );
         }
       }
-    });
 
-    // 4. 清除 session.activeOrderId
-    const session = await this.findSessionByOrderId(Number(payment.order.id));
-    if (session) {
-      await this.connection.getRepository(PosSession).update(session.id, {
-        activeOrderId: null,
+      // 4. 清除 session.activeOrderId（同一事务）
+      //    放在事务外会在「支付已 Settled + 订单已 PaymentSettled」之后留下
+      //    「会话仍指向已结算订单」的半完成态：若该更新失败，调用方按失败处理，
+      //    但重试时 Payment 已非 Authorized 直接报错，无法自愈。
+      const sessionRepo = this.transactionalConnection.getRepository(txCtx, PosSession);
+      const session = await sessionRepo.findOne({
+        where: { activeOrderId: Number(order.id) },
       });
-    }
+      if (session) {
+        await sessionRepo.update(session.id, { activeOrderId: null });
+      }
+    });
 
     return this.findPaymentOrThrow(paymentId);
   }
@@ -348,13 +352,5 @@ export class AggregatePayService {
       aggregatePayStatus: status,
     };
     await repo.save(payment);
-  }
-
-  private async findSessionByOrderId(
-    orderId: number,
-  ): Promise<PosSession | null> {
-    return this.connection.getRepository(PosSession).findOne({
-      where: { activeOrderId: orderId },
-    });
   }
 }
