@@ -129,7 +129,7 @@ function ScheduledTasksPage() {
             header: t`Description`,
         }),
         columnHelper.accessor('enabled', {
-            header: t`Enabled`,
+            header: t`Status`,
             cell: ({ row }) => {
                 return (
                     <StatusBadge
