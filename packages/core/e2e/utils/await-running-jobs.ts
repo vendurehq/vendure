@@ -30,7 +30,7 @@ export async function awaitRunningJobs(
     let lastActivity = startTime;
 
     for (;;) {
-        const runningJobs = await queryRunningJobs(adminClient);
+        const { totalItems: runningJobs, items } = await queryRunningJobs(adminClient);
         const now = Date.now();
         if (runningJobs > 0) {
             lastActivity = now;
@@ -39,7 +39,9 @@ export async function awaitRunningJobs(
         }
         if (now - startTime >= timeout) {
             throw new Error(
-                `awaitRunningJobs timed out after ${timeout}ms with ${runningJobs} job(s) still running`,
+                `awaitRunningJobs timed out after ${timeout}ms with ${runningJobs} job(s) still running: ${items
+                    .map(j => `${j.queueName} (${j.state}, ${j.duration}ms)`)
+                    .join(', ')}`,
             );
         }
         await sleep(pollMs);
@@ -59,12 +61,12 @@ function defaultConfirmMs(): number {
     return process.env.CI ? 500 : 200;
 }
 
-async function queryRunningJobs(adminClient: SimpleGraphQLClient): Promise<number> {
+async function queryRunningJobs(adminClient: SimpleGraphQLClient) {
     const { jobs } = await adminClient.query<GetRunningJobsQuery, GetRunningJobsQueryVariables>(
         getRunningJobsDocument,
         { options: { filter: { isSettled: { eq: false } } } },
     );
-    return jobs.totalItems;
+    return jobs;
 }
 
 function sleep(ms: number): Promise<void> {

@@ -135,6 +135,54 @@ describe('PollingJobQueueStrategy', () => {
         expect(processed).toEqual(['job-1']);
     });
 
+    // #4949 — a job claimed by an in-flight next() must not be left RUNNING by shutdown
+    it('waits for a job claimed by an in-flight next() before stop() resolves', async () => {
+        let releaseNext: (() => void) | undefined;
+        const nextGate = new Promise<void>(resolve => {
+            releaseNext = resolve;
+        });
+        const originalNext = strategy.next.bind(strategy);
+        let sawNext = false;
+        vi.spyOn(strategy, 'next').mockImplementation(async (queueName: string) => {
+            if (!sawNext) {
+                // Simulate a slow claim: the SQL strategy marks the row RUNNING inside next(),
+                // so the job is already taken before ActiveQueue knows about it.
+                sawNext = true;
+                await nextGate;
+            }
+            return originalNext(queueName);
+        });
+
+        let releaseProcess: (() => void) | undefined;
+        const processGate = new Promise<void>(resolve => {
+            releaseProcess = resolve;
+        });
+        const process = async () => {
+            await processGate;
+            return true;
+        };
+
+        await strategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+        activeProcess = process;
+        await strategy.start('test', process);
+        await vi.waitFor(() => expect(sawNext).toBe(true), { timeout: 2000, interval: 10 });
+
+        let stopped = false;
+        const stopPromise = strategy.stop('test', process).then(() => (stopped = true));
+        activeProcess = undefined;
+        releaseNext?.();
+
+        // stop() always sleeps 1s before resolving, so wait past that to prove it is
+        // still waiting on the claimed job rather than on its own delay.
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        expect(stopped).toBe(false);
+
+        releaseProcess?.();
+        await stopPromise;
+        const settled = await strategy.findOne('job-1');
+        expect(settled?.state).toBe(JobState.COMPLETED);
+    });
+
     // #5440 — a job cancelled while running stays CANCELLED whatever its process function returns
     it.each([
         ['undefined', undefined],
