@@ -129,8 +129,15 @@ exports.MessagePlugin = MessagePlugin = MessagePlugin_1 = __decorate([
                 totalItems: Int!
             }
 
+            # 以生产契约为准：myMessages 接受 skip/take 输入对象（非 JSON 标量）。
+            # 迁移到本地仓库时生产已在用该契约，按仓库旧 JSON 构建会打断外卖消息中心。
+            input MyMessageListOptions {
+                skip: Int
+                take: Int
+            }
+
             extend type Query {
-                myMessages(options: JSON): MyMessageList!
+                myMessages(options: MyMessageListOptions): MyMessageList!
                 myUnreadMessageCount: Int!
             }
 
