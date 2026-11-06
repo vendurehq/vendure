@@ -3,6 +3,8 @@
 import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { QueryRunner } from 'typeorm';
 
+import { qualifiedTableName } from './v4_0_role_assignments';
+
 /**
  * @description
  * The intended behavior changes {@link migrateRoleAssignmentData} will cause for a given
@@ -133,11 +135,9 @@ export interface RoleAssignmentMigrationPreview {
 export async function previewRoleAssignmentMigration(
     queryRunner: QueryRunner,
 ): Promise<RoleAssignmentMigrationPreview> {
-    // TypeORM applies the entityPrefix to join tables too
-    const prefix = queryRunner.connection.options.entityPrefix ?? '';
     const hasLegacyTables =
-        (await queryRunner.hasTable(`${prefix}user_roles_role`)) &&
-        (await queryRunner.hasTable(`${prefix}role_channels_channel`));
+        (await queryRunner.hasTable(qualifiedTableName(queryRunner, 'user_roles_role'))) &&
+        (await queryRunner.hasTable(qualifiedTableName(queryRunner, 'role_channels_channel')));
     if (!hasLegacyTables) {
         throw new Error(
             'The user_roles_role and role_channels_channel tables do not exist. Run ' +
@@ -145,7 +145,11 @@ export async function previewRoleAssignmentMigration(
         );
     }
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
-    const table = (name: string) => esc(`${prefix}${name}`);
+    const table = (name: string) =>
+        qualifiedTableName(queryRunner, name)
+            .split('.')
+            .map(part => esc(part))
+            .join('.');
     // The Roles held by Users which are not soft-deleted: the migration writes no rows for a
     // soft-deleted User, whose login fails anyway, so the preview leaves them out too.
     const userRoles = `(SELECT ur0.${esc('userId')} AS ${esc('userId')}, ur0.${esc('roleId')} AS ${esc('roleId')}

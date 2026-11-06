@@ -78,7 +78,8 @@ const MIGRATION_GUIDE_URL =
  * The helper is idempotent: once the copy has been recorded, it is skipped. It is safe to
  * re-run, e.g. after a partial failure on MySQL (where DDL is non-transactional).
  *
- * Table names honor the `entityPrefix` of the connection options.
+ * Table names honor the `entityPrefix` of the connection options, and on Postgres the
+ * `schema` option.
  *
  * ```ts
  * import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -265,16 +266,16 @@ async function updateSystemRoles(queryRunner: QueryRunner): Promise<void> {
         `${roleIdInsert.select}CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '${ROLE_EDITOR_ROLE_CODE}', ` +
         `'${ROLE_EDITOR_ROLE_DESCRIPTION}', '${roleEditorPermissions.join(',')}'`;
     await queryRunner.query(
-        `INSERT INTO ${esc(t.role)} (${roleColumns})
+        `INSERT INTO ${escTable(queryRunner, t.role)} (${roleColumns})
          SELECT ${roleValues}
          FROM (SELECT 1 AS ${esc('one')}) AS tmp
          WHERE NOT EXISTS (
-             SELECT 1 FROM ${esc(t.role)} r WHERE r.${esc('code')} = '${ROLE_EDITOR_ROLE_CODE}'
+             SELECT 1 FROM ${escTable(queryRunner, t.role)} r WHERE r.${esc('code')} = '${ROLE_EDITOR_ROLE_CODE}'
          )`,
     );
 
     const superAdminRoleRows: Array<{ id: string | number; permissions: string }> = await queryRunner.query(
-        `SELECT ${esc('id')}, ${esc('permissions')} FROM ${esc(t.role)}
+        `SELECT ${esc('id')}, ${esc('permissions')} FROM ${escTable(queryRunner, t.role)}
              WHERE ${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'`,
     );
     for (const row of superAdminRoleRows) {
@@ -285,7 +286,7 @@ async function updateSystemRoles(queryRunner: QueryRunner): Promise<void> {
         if (missingPermissions.length) {
             const idLiteral = typeof row.id === 'number' ? row.id : `'${row.id}'`;
             await queryRunner.query(
-                `UPDATE ${esc(t.role)}
+                `UPDATE ${escTable(queryRunner, t.role)}
                  SET ${esc('permissions')} = '${[...currentPermissions, ...missingPermissions].join(',')}'
                  WHERE ${esc('id')} = ${idLiteral}`,
             );
@@ -313,19 +314,19 @@ async function assignRoleOwners(queryRunner: QueryRunner, sources: SourceTables)
                 `helpers after the part of your migration which adds it. See ${MIGRATION_GUIDE_URL}`,
         );
     }
-    const roleId = `${esc(t.role)}.${esc('id')}`;
+    const roleId = `${escTable(queryRunner, t.role)}.${esc('id')}`;
     // A scalar subquery with LIMIT rather than MIN(): Postgres has no MIN() for uuid columns.
     // The subqueries do not read the role table itself, which MySQL would refuse in an UPDATE.
     await queryRunner.query(
-        `UPDATE ${esc(t.role)}
+        `UPDATE ${escTable(queryRunner, t.role)}
          SET ${esc('channelId')} = (
-             SELECT rc.${esc('channelId')} FROM ${esc(sources.roleChannels)} rc
+             SELECT rc.${esc('channelId')} FROM ${escTable(queryRunner, sources.roleChannels)} rc
              WHERE rc.${esc('roleId')} = ${roleId}
              LIMIT 1
          )
          WHERE ${esc('channelId')} IS NULL
          AND (
-             SELECT COUNT(*) FROM ${esc(sources.roleChannels)} rc
+             SELECT COUNT(*) FROM ${escTable(queryRunner, sources.roleChannels)} rc
              WHERE rc.${esc('roleId')} = ${roleId}
          ) = 1`,
     );
@@ -340,9 +341,9 @@ async function assignDefaultChannelOwner(queryRunner: QueryRunner): Promise<void
     const t = getTableNames(queryRunner);
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     await queryRunner.query(
-        `UPDATE ${esc(t.role)}
+        `UPDATE ${escTable(queryRunner, t.role)}
          SET ${esc('channelId')} = (
-             SELECT c.${esc('id')} FROM ${esc(t.channel)} c WHERE c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
+             SELECT c.${esc('id')} FROM ${escTable(queryRunner, t.channel)} c WHERE c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
          )
          WHERE ${esc('channelId')} IS NULL`,
     );
@@ -360,7 +361,7 @@ async function deleteLegacyCustomerRole(queryRunner: QueryRunner): Promise<void>
     }
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const customerRoleRows: Array<{ id: string | number }> = await queryRunner.query(
-        `SELECT ${esc('id')} FROM ${esc(t.role)} WHERE ${esc('code')} = '${CUSTOMER_ROLE_CODE}'`,
+        `SELECT ${esc('id')} FROM ${escTable(queryRunner, t.role)} WHERE ${esc('code')} = '${CUSTOMER_ROLE_CODE}'`,
     );
     if (!customerRoleRows.length) {
         return;
@@ -368,7 +369,9 @@ async function deleteLegacyCustomerRole(queryRunner: QueryRunner): Promise<void>
     await assertNoCustomerRoleAssignments(queryRunner);
     for (const row of customerRoleRows) {
         const idLiteral = typeof row.id === 'number' ? row.id : `'${row.id}'`;
-        await queryRunner.query(`DELETE FROM ${esc(t.role)} WHERE ${esc('id')} = ${idLiteral}`);
+        await queryRunner.query(
+            `DELETE FROM ${escTable(queryRunner, t.role)} WHERE ${esc('id')} = ${idLiteral}`,
+        );
     }
 }
 
@@ -435,7 +438,7 @@ async function copyRoleAssignmentGrants(queryRunner: QueryRunner, sources: Sourc
     const pending = getPendingGrantQueries(queryRunner, sources, idInsert.select);
     for (const pendingGrants of [pending.legacyGrants, pending.superAdminGrants]) {
         await queryRunner.query(
-            `INSERT INTO ${esc(t.roleAssignment)} (${idInsert.columns}${esc('userId')}, ${esc('roleId')}, ${esc('channelId')})
+            `INSERT INTO ${escTable(queryRunner, t.roleAssignment)} (${idInsert.columns}${esc('userId')}, ${esc('roleId')}, ${esc('channelId')})
              ${pendingGrants}`,
         );
     }
@@ -477,8 +480,8 @@ async function recordCopy(queryRunner: QueryRunner): Promise<void> {
         );
     }
     await queryRunner.query(
-        `INSERT INTO ${esc(t.copyRecord)} (${esc('id')}, ${esc('copiedAt')})
-         SELECT 1, MAX(ra.${esc('createdAt')}) FROM ${esc(t.roleAssignment)} ra`,
+        `INSERT INTO ${escTable(queryRunner, t.copyRecord)} (${esc('id')}, ${esc('copiedAt')})
+         SELECT 1, MAX(ra.${esc('createdAt')}) FROM ${escTable(queryRunner, t.roleAssignment)} ra`,
     );
 }
 
@@ -488,7 +491,7 @@ async function hasRecordedCopy(queryRunner: QueryRunner): Promise<boolean> {
         return false;
     }
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
-    const rows: unknown[] = await queryRunner.query(`SELECT 1 FROM ${esc(t.copyRecord)}`);
+    const rows: unknown[] = await queryRunner.query(`SELECT 1 FROM ${escTable(queryRunner, t.copyRecord)}`);
     return rows.length > 0;
 }
 
@@ -517,7 +520,7 @@ async function deleteRevokedRoleAssignments(queryRunner: QueryRunner, sources: S
             .slice(i, i + DELETE_BATCH_SIZE)
             .map(row => (typeof row.id === 'number' ? row.id : `'${row.id}'`));
         await queryRunner.query(
-            `DELETE FROM ${esc(t.roleAssignment)} WHERE ${esc('id')} IN (${idLiterals.join(', ')})`,
+            `DELETE FROM ${escTable(queryRunner, t.roleAssignment)} WHERE ${esc('id')} IN (${idLiterals.join(', ')})`,
         );
     }
     console.log(
@@ -559,7 +562,7 @@ async function countRoleAssignments(queryRunner: QueryRunner): Promise<number> {
     const t = getTableNames(queryRunner);
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const rows: Array<{ count: string | number }> = await queryRunner.query(
-        `SELECT COUNT(*) AS ${esc('count')} FROM ${esc(t.roleAssignment)}`,
+        `SELECT COUNT(*) AS ${esc('count')} FROM ${escTable(queryRunner, t.roleAssignment)}`,
     );
     return Number(rows[0].count);
 }
@@ -568,7 +571,7 @@ async function describeRoleAssignmentCounts(queryRunner: QueryRunner): Promise<s
     const t = getTableNames(queryRunner);
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const userRows: Array<{ count: string | number }> = await queryRunner.query(
-        `SELECT COUNT(DISTINCT ${esc('userId')}) AS ${esc('count')} FROM ${esc(t.roleAssignment)}`,
+        `SELECT COUNT(DISTINCT ${esc('userId')}) AS ${esc('count')} FROM ${escTable(queryRunner, t.roleAssignment)}`,
     );
     return (
         `It now holds ${await countRoleAssignments(queryRunner)} role assignments for ` +
@@ -653,7 +656,9 @@ async function hasUnmigratedRoleGrants(queryRunner: QueryRunner): Promise<boolea
         return false;
     }
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
-    const rows: unknown[] = await queryRunner.query(`SELECT 1 FROM ${esc(t.userRoles)} LIMIT 1`);
+    const rows: unknown[] = await queryRunner.query(
+        `SELECT 1 FROM ${escTable(queryRunner, t.userRoles)} LIMIT 1`,
+    );
     return rows.length > 0;
 }
 
@@ -669,19 +674,48 @@ interface TableNames {
 
 /**
  * Table names with the `entityPrefix` of the connection options applied, which TypeORM
- * also prefixes join tables with.
+ * also prefixes join tables with, and on Postgres the `schema` option.
  */
 function getTableNames(queryRunner: QueryRunner): TableNames {
-    const prefix = queryRunner.connection.options.entityPrefix ?? '';
+    const name = (table: string) => qualifiedTableName(queryRunner, table);
     return {
-        user: `${prefix}user`,
-        role: `${prefix}role`,
-        channel: `${prefix}channel`,
-        roleAssignment: `${prefix}role_assignment`,
-        userRoles: `${prefix}user_roles_role`,
-        roleChannels: `${prefix}role_channels_channel`,
-        copyRecord: `${prefix}role_assignment_migration`,
+        user: name('user'),
+        role: name('role'),
+        channel: name('channel'),
+        roleAssignment: name('role_assignment'),
+        userRoles: name('user_roles_role'),
+        roleChannels: name('role_channels_channel'),
+        copyRecord: name('role_assignment_migration'),
     };
+}
+
+/**
+ * @description
+ * The name of a table with the `entityPrefix` of the connection options applied, and on
+ * Postgres the `schema` option, as `schema.table`. TypeORM's QueryRunner methods accept that
+ * form; raw SQL must escape it with {@link escTable}.
+ *
+ * @internal
+ */
+export function qualifiedTableName(queryRunner: QueryRunner, table: string): string {
+    const options = queryRunner.connection.options;
+    const prefixed = `${options.entityPrefix ?? ''}${table}`;
+    const schema =
+        (options.type === 'postgres' || options.type === 'cockroachdb') && options.schema
+            ? options.schema
+            : undefined;
+    return schema ? `${schema}.${prefixed}` : prefixed;
+}
+
+/**
+ * Escapes a table name from {@link qualifiedTableName} for raw SQL, the schema and the table
+ * separately.
+ */
+function escTable(queryRunner: QueryRunner, qualifiedName: string): string {
+    return qualifiedName
+        .split('.')
+        .map(part => queryRunner.connection.driver.escape(part))
+        .join('.');
 }
 
 interface SourceTables {
@@ -704,25 +738,25 @@ function getPendingGrantQueries(
     const t = getTableNames(queryRunner);
     const notYetAssigned = (userId: string, roleId: string, channelId: string) =>
         `NOT EXISTS (
-             SELECT 1 FROM ${esc(t.roleAssignment)} ra
+             SELECT 1 FROM ${escTable(queryRunner, t.roleAssignment)} ra
              WHERE ra.${esc('userId')} = ${userId}
              AND ra.${esc('roleId')} = ${roleId}
              AND ra.${esc('channelId')} = ${channelId}
          )`;
     return {
         legacyGrants: `SELECT ${idSelect}ur.${esc('userId')} AS ${esc('userId')}, ur.${esc('roleId')} AS ${esc('roleId')}, rc.${esc('channelId')} AS ${esc('channelId')}
-             FROM ${esc(sources.userRoles)} ur
-             INNER JOIN ${esc(sources.roleChannels)} rc ON rc.${esc('roleId')} = ur.${esc('roleId')}
-             INNER JOIN ${esc(t.role)} r ON r.${esc('id')} = ur.${esc('roleId')}
-             INNER JOIN ${esc(t.user)} u ON u.${esc('id')} = ur.${esc('userId')}
+             FROM ${escTable(queryRunner, sources.userRoles)} ur
+             INNER JOIN ${escTable(queryRunner, sources.roleChannels)} rc ON rc.${esc('roleId')} = ur.${esc('roleId')}
+             INNER JOIN ${escTable(queryRunner, t.role)} r ON r.${esc('id')} = ur.${esc('roleId')}
+             INNER JOIN ${escTable(queryRunner, t.user)} u ON u.${esc('id')} = ur.${esc('userId')}
              WHERE r.${esc('code')} NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')
              AND u.${esc('deletedAt')} IS NULL
              AND ${notYetAssigned(`ur.${esc('userId')}`, `ur.${esc('roleId')}`, `rc.${esc('channelId')}`)}`,
         superAdminGrants: `SELECT ${idSelect}ur.${esc('userId')} AS ${esc('userId')}, ur.${esc('roleId')} AS ${esc('roleId')}, c.${esc('id')} AS ${esc('channelId')}
-             FROM ${esc(sources.userRoles)} ur
-             INNER JOIN ${esc(t.role)} r ON r.${esc('id')} = ur.${esc('roleId')}
-             INNER JOIN ${esc(t.channel)} c ON c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
-             INNER JOIN ${esc(t.user)} u ON u.${esc('id')} = ur.${esc('userId')}
+             FROM ${escTable(queryRunner, sources.userRoles)} ur
+             INNER JOIN ${escTable(queryRunner, t.role)} r ON r.${esc('id')} = ur.${esc('roleId')}
+             INNER JOIN ${escTable(queryRunner, t.channel)} c ON c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
+             INNER JOIN ${escTable(queryRunner, t.user)} u ON u.${esc('id')} = ur.${esc('userId')}
              WHERE r.${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'
              AND u.${esc('deletedAt')} IS NULL
              AND ${notYetAssigned(`ur.${esc('userId')}`, `ur.${esc('roleId')}`, `c.${esc('id')}`)}`,
@@ -747,29 +781,29 @@ function getExtraGrantsQuery(
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const t = getTableNames(queryRunner);
     const copiedOnlyJoin = options.copiedOnly
-        ? `INNER JOIN ${esc(t.copyRecord)} m ON ra.${esc('createdAt')} <= m.${esc('copiedAt')}`
+        ? `INNER JOIN ${escTable(queryRunner, t.copyRecord)} m ON ra.${esc('createdAt')} <= m.${esc('copiedAt')}`
         : '';
     return `SELECT ra.${esc('id')} AS ${esc('id')}, ra.${esc('userId')} AS ${esc('userId')},
                 ra.${esc('roleId')} AS ${esc('roleId')}, ra.${esc('channelId')} AS ${esc('channelId')}
-         FROM ${esc(t.roleAssignment)} ra
-         LEFT JOIN ${esc(t.role)} r ON r.${esc('id')} = ra.${esc('roleId')}
-         LEFT JOIN ${esc(t.user)} u ON u.${esc('id')} = ra.${esc('userId')}
+         FROM ${escTable(queryRunner, t.roleAssignment)} ra
+         LEFT JOIN ${escTable(queryRunner, t.role)} r ON r.${esc('id')} = ra.${esc('roleId')}
+         LEFT JOIN ${escTable(queryRunner, t.user)} u ON u.${esc('id')} = ra.${esc('userId')}
          ${copiedOnlyJoin}
          WHERE u.${esc('deletedAt')} IS NOT NULL OR NOT (
              (COALESCE(r.${esc('code')}, '') NOT IN ('${CUSTOMER_ROLE_CODE}', '${SUPER_ADMIN_ROLE_CODE}')
                  AND EXISTS (
-                     SELECT 1 FROM ${esc(sources.userRoles)} ur
-                     INNER JOIN ${esc(sources.roleChannels)} rc ON rc.${esc('roleId')} = ur.${esc('roleId')}
+                     SELECT 1 FROM ${escTable(queryRunner, sources.userRoles)} ur
+                     INNER JOIN ${escTable(queryRunner, sources.roleChannels)} rc ON rc.${esc('roleId')} = ur.${esc('roleId')}
                      WHERE ur.${esc('userId')} = ra.${esc('userId')}
                      AND ur.${esc('roleId')} = ra.${esc('roleId')}
                      AND rc.${esc('channelId')} = ra.${esc('channelId')}
                  ))
              OR (COALESCE(r.${esc('code')}, '') = '${SUPER_ADMIN_ROLE_CODE}'
                  AND ra.${esc('channelId')} IN (
-                     SELECT c.${esc('id')} FROM ${esc(t.channel)} c WHERE c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
+                     SELECT c.${esc('id')} FROM ${escTable(queryRunner, t.channel)} c WHERE c.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
                  )
                  AND EXISTS (
-                     SELECT 1 FROM ${esc(sources.userRoles)} ur
+                     SELECT 1 FROM ${escTable(queryRunner, sources.userRoles)} ur
                      WHERE ur.${esc('userId')} = ra.${esc('userId')}
                      AND ur.${esc('roleId')} = ra.${esc('roleId')}
                  ))
@@ -826,8 +860,8 @@ async function assertNoCustomerRoleAssignments(queryRunner: QueryRunner): Promis
     const customerGrants = await describeGrants(
         queryRunner,
         `SELECT ra.${esc('userId')} AS ${esc('userId')}, ra.${esc('roleId')} AS ${esc('roleId')}, ra.${esc('channelId')} AS ${esc('channelId')}
-         FROM ${esc(t.roleAssignment)} ra
-         INNER JOIN ${esc(t.role)} r ON r.${esc('id')} = ra.${esc('roleId')}
+         FROM ${escTable(queryRunner, t.roleAssignment)} ra
+         INNER JOIN ${escTable(queryRunner, t.role)} r ON r.${esc('id')} = ra.${esc('roleId')}
          WHERE r.${esc('code')} = '${CUSTOMER_ROLE_CODE}'`,
     );
     if (customerGrants.total === 0) {
@@ -876,9 +910,9 @@ async function describeGrants(
                 g.${esc('roleId')} AS ${esc('roleId')}, r.${esc('code')} AS ${esc('roleCode')},
                 g.${esc('channelId')} AS ${esc('channelId')}, c.${esc('code')} AS ${esc('channelCode')}
          FROM (${grantsQuery}) g
-         LEFT JOIN ${esc(t.user)} u ON u.${esc('id')} = g.${esc('userId')}
-         LEFT JOIN ${esc(t.role)} r ON r.${esc('id')} = g.${esc('roleId')}
-         LEFT JOIN ${esc(t.channel)} c ON c.${esc('id')} = g.${esc('channelId')}
+         LEFT JOIN ${escTable(queryRunner, t.user)} u ON u.${esc('id')} = g.${esc('userId')}
+         LEFT JOIN ${escTable(queryRunner, t.role)} r ON r.${esc('id')} = g.${esc('roleId')}
+         LEFT JOIN ${escTable(queryRunner, t.channel)} c ON c.${esc('id')} = g.${esc('channelId')}
          ORDER BY g.${esc('userId')}, g.${esc('roleId')}, g.${esc('channelId')}
          LIMIT ${MAX_FETCHED_MISMATCHES}`,
     );
