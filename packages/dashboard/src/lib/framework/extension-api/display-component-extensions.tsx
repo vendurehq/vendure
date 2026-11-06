@@ -4,6 +4,7 @@ import {
     BooleanDisplayYesNoBadge,
 } from '@/vdb/components/data-display/boolean.js';
 import { DateTime } from '@/vdb/components/data-display/date-time.js';
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { Json } from '@/vdb/components/data-display/json.js';
 import { Money } from '@/vdb/components/data-display/money.js';
 import { VendureImage } from '@/vdb/components/shared/vendure-image.js';
@@ -22,6 +23,7 @@ displayComponents.set('vendure:booleanCheckbox', BooleanDisplayCheckbox);
 displayComponents.set('vendure:booleanBadge', BooleanDisplayBadge);
 displayComponents.set('vendure:booleanYesNoBadge', BooleanDisplayYesNoBadge);
 displayComponents.set('vendure:dateTime', DateTime);
+displayComponents.set('vendure:identifier', IdentifierDisplay);
 displayComponents.set('vendure:asset', AssetDisplay);
 displayComponents.set('vendure:money', Money);
 displayComponents.set('vendure:json', Json);

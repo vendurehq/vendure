@@ -368,6 +368,9 @@ function getRowActions(
     };
 }
 
+// String fields that hold an identifier a user copies into other places.
+const IDENTIFIER_FIELD_NAMES = new Set(['code', 'slug', 'sku', 'couponCode']);
+
 function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: FieldInfo }) {
     if (fieldInfo.list && Array.isArray(value) && fieldInfo.isScalar) {
         return value.join(', ');
@@ -381,6 +384,9 @@ function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: 
         } else {
             return <DisplayComponent id="vendure:booleanYesNoBadge" value={value} />;
         }
+    }
+    if (fieldInfo.type === 'String' && IDENTIFIER_FIELD_NAMES.has(fieldInfo.name)) {
+        return <DisplayComponent id="vendure:identifier" value={value} />;
     }
     if (fieldInfo.type === 'Asset') {
         return <DisplayComponent id="vendure:asset" value={value} />;
