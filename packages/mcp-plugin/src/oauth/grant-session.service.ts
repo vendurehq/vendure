@@ -131,7 +131,13 @@ export class McpGrantSessionService {
 
     /** No token is supplied, so the session's identifier can't be derived from the OAuth tokens that reach it. */
     createVendureSession(ctx: RequestContext, user: User): Promise<AuthenticatedSession> {
-        return this.sessionService.createNewAuthenticatedSession(ctx, user, MCP_SESSION_STRATEGY);
+        return this.sessionService.createNewAuthenticatedSession(
+            ctx,
+            user,
+            MCP_SESSION_STRATEGY,
+            undefined,
+            ctx.apiType,
+        );
     }
 
     /** Returns the deleted session's token too, since a cached session keeps serving until its entry ages out even after the row is gone. */

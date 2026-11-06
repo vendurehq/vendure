@@ -475,23 +475,27 @@ export class McpOauthService {
         }
     }
 
-    /** Raw-selects the session token via LEFT JOIN rather than a relation, so a missing session doesn't hide an otherwise-live grant. */
+    /** Looks up the grant and its Vendure session token, supporting both numeric and UUID id strategies on Postgres. */
     private async findGrantAndSessionToken(
         ctx: RequestContext,
         accessToken: string,
     ): Promise<GrantLookup | undefined> {
-        const result = await this.connection
-            .getRepository(ctx, McpOauthGrant)
-            .createQueryBuilder('grant')
-            .leftJoinAndSelect('grant.oauthClient', 'oauthClient')
-            .leftJoin(Session, 'vendureSession', 'vendureSession.id = grant.vendureSessionId')
-            .addSelect('vendureSession.token', 'vendureSessionToken')
-            .where('grant.accessTokenHash = :accessTokenHash', {
-                accessTokenHash: this.hashLookup(accessToken),
-            })
-            .getRawAndEntities<{ vendureSessionToken: string | null }>();
-        const grant = result.entities[0];
-        return grant ? { grant, sessionToken: result.raw[0]?.vendureSessionToken ?? null } : undefined;
+        const grant = await this.connection.getRepository(ctx, McpOauthGrant).findOne({
+            where: { accessTokenHash: this.hashLookup(accessToken) },
+            relations: { oauthClient: true },
+        });
+        if (!grant) {
+            return undefined;
+        }
+        let sessionToken: string | null = null;
+        if (grant.vendureSessionId) {
+            const session = await this.connection.getRepository(ctx, Session).findOne({
+                where: { id: grant.vendureSessionId },
+                select: ['id', 'token'],
+            });
+            sessionToken = session?.token ?? null;
+        }
+        return { grant, sessionToken };
     }
 
     /** Checks the toolset matches, so a code requested for one API can't be used to spoof a token for the other. */
