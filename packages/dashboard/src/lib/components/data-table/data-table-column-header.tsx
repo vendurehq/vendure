@@ -17,14 +17,16 @@ export function DataTableColumnHeader({ headerContext, customConfig }: Readonly<
 
     const display = useMemo(() => {
         const customHeader = customConfig.header;
-        let result = getTranslatedFieldName(column.id);
+        // The cell of an `enabled` column shows a state chip ("Disabled"), so the
+        // header names what the chip describes rather than repeating one of its values.
+        let result = column.id === 'enabled' ? t`Status` : getTranslatedFieldName(column.id);
         if (typeof customHeader === 'function') {
             result = customHeader(headerContext);
         } else if (typeof customHeader === 'string') {
             result = customHeader;
         }
         return result;
-    }, [customConfig.header, column.id, getTranslatedFieldName]);
+    }, [customConfig.header, column.id, getTranslatedFieldName, t]);
 
     return (
         <ColumnHeaderWrapper columnId={column.id}>

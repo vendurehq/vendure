@@ -127,8 +127,7 @@ function ScheduledTasksPage() {
             header: t`Description`,
         }),
         columnHelper.accessor('enabled', {
-            header: t`Enabled`,
-            // The column header already says "Enabled": only a disabled task gets a badge.
+            header: t`Status`,
             cell: ({ row }) =>
                 row.original.enabled ? (
                     <span className="sr-only">
