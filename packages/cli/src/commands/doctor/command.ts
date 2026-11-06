@@ -14,7 +14,8 @@ export const doctorCommandDef: CliCommandDefinition = {
         },
         {
             long: '--check <names...>',
-            description: 'Run specific checks only (project, dependencies, config, schema, database)',
+            description:
+                'Run specific checks only (project, dependencies, typescript, config, schema, database)',
             required: false,
         },
         {

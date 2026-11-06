@@ -55,6 +55,6 @@
         "mysql2": "^3.15.0",
         "pg": "^8.11.3",
         "rimraf": "^5.0.5",
-        "typescript": "5.8.2"
+        "typescript": "7.1.0-beta"
     }
 }

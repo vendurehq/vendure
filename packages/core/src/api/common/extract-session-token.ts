@@ -1,3 +1,6 @@
+// Augments Express.Request with `session`/`sessionOptions`. Since TypeScript 6, @types packages
+// are no longer included automatically (`types` defaults to []), so reference them where used.
+/// <reference types="cookie-session" />
 import { Request } from 'express';
 
 import { AuthOptions } from '../../config/vendure-config';

@@ -4,7 +4,8 @@
   ],
   "compilerOptions": {
     "declaration": true,
-    "outDir": "./dist/plugin"
+    "outDir": "./dist/plugin",
+    "rootDir": "./plugin"
   },
   "include": [
     "plugin/**/*"

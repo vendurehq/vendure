@@ -1,7 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { get as httpGet } from 'node:http';
 import { get as httpsGet } from 'node:https';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,12 +13,12 @@ import {
     RestartReadinessCoordinator,
 } from './dev-workflow-utils.mjs';
 
-const require = createRequire(import.meta.url);
 const devServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(devServerDir, '../..');
 const cliPath = path.resolve(devServerDir, '../cli/dist/cli.js');
 const portlessCliPath = resolvePackageBin(import.meta.resolve('portless'), 'portless', 'portless');
-const typescriptCliPath = require.resolve('typescript/bin/tsc');
+// TypeScript 7's package exports don't include bin/tsc, so read the bin from its package.json.
+const typescriptCliPath = resolvePackageBin(import.meta.resolve('typescript'), 'typescript', 'tsc');
 const packageManager = process.env.npm_execpath || 'bun';
 const mode = process.argv[2] ?? 'portless';
 const agentMode = process.argv.includes('--agent');

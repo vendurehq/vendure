@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { getBuildTypeScriptVersion } from '../../shared/project-typescript';
+
 import {
     buildCommand,
     getBuildCleanPathsForTarget,
@@ -184,17 +186,6 @@ describe('build command', () => {
             });
 
             expect(definitions.dashboard.args).toEqual(['build', '--emptyOutDir', '--logLevel', 'warn']);
-        });
-
-        it('uses tsgo when experimentalTsgo is enabled', () => {
-            const definitions = getBuildProcessDefinitions({
-                experimentalTsgo: true,
-                tsconfig: './tsconfig.server.json',
-            });
-
-            expect(definitions.server.packageName).toBe('@typescript/native-preview');
-            expect(definitions.server.binName).toBe('tsgo');
-            expect(definitions.server.args).toEqual(['-p', './tsconfig.server.json', '--noEmitOnError']);
         });
 
         it('uses a custom worker TypeScript config for worker builds', () => {
@@ -550,6 +541,100 @@ describe('build command', () => {
             } finally {
                 rmSync(dir, { recursive: true, force: true });
             }
+        });
+
+        it('rejects a tsconfig using options removed in TypeScript 7', () => {
+            const dir = createTempDir();
+            try {
+                mkdirSync(path.join(dir, 'src'), { recursive: true });
+                writeFileSync(path.join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
+                writeFileSync(
+                    path.join(dir, 'tsconfig.json'),
+                    JSON.stringify({
+                        compilerOptions: { module: 'nodenext', baseUrl: './', outDir: './dist' },
+                        include: ['src/**/*.ts'],
+                    }),
+                );
+
+                expect(() => validateTsConfig(dir)).toThrow(/not compatible with TypeScript 7/);
+                expect(() => validateTsConfig(dir)).toThrow(/TS5102/);
+                expect(() => validateTsConfig(dir)).toThrow(/TS5011/);
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        describe('depending on the TypeScript version the build compiles with', () => {
+            const legacyTsConfig = {
+                compilerOptions: {
+                    module: 'commonjs',
+                    moduleResolution: 'node',
+                    baseUrl: './',
+                    outDir: './dist',
+                },
+                include: ['src/**/*.ts'],
+            };
+
+            function createLegacyProject(typescriptVersion?: string) {
+                const dir = createTempDir();
+                mkdirSync(path.join(dir, 'src'), { recursive: true });
+                writeFileSync(path.join(dir, 'src', 'index.ts'), 'export const value = 1;\n');
+                writeJsonFile(path.join(dir, 'tsconfig.json'), legacyTsConfig);
+                writeJsonFile(path.join(dir, 'package.json'), { name: 'legacy-project' });
+                if (typescriptVersion) {
+                    const packageDir = path.join(dir, 'node_modules', 'typescript');
+                    mkdirSync(packageDir, { recursive: true });
+                    writeJsonFile(path.join(packageDir, 'package.json'), {
+                        name: 'typescript',
+                        version: typescriptVersion,
+                        bin: { tsc: './bin/tsc' },
+                    });
+                }
+                return dir;
+            }
+
+            it.each(['5.4.5', '5.8.2', '6.0.3'])(
+                'skips the TypeScript 7 checks when the project compiles with TypeScript %s',
+                version => {
+                    const dir = createLegacyProject(version);
+                    try {
+                        expect(getBuildTypeScriptVersion(dir)).toBe(version);
+                        expect(() => validateTsConfig(dir)).not.toThrow();
+                    } finally {
+                        rmSync(dir, { recursive: true, force: true });
+                    }
+                },
+            );
+
+            it('enforces the TypeScript 7 checks when the project compiles with TypeScript 7', () => {
+                const dir = createLegacyProject('7.1.0-beta');
+                try {
+                    expect(() => validateTsConfig(dir)).toThrow(/not compatible with TypeScript 7/);
+                } finally {
+                    rmSync(dir, { recursive: true, force: true });
+                }
+            });
+
+            it("enforces the TypeScript 7 checks when the project has no TypeScript, as the build uses the CLI's", () => {
+                const dir = createLegacyProject();
+                try {
+                    // Falls back to @vendure/cli's own TypeScript 7, like the build's tsc resolution
+                    expect(getBuildTypeScriptVersion(dir)).toMatch(/^7\./);
+                    expect(() => validateTsConfig(dir)).toThrow(/TS5102/);
+                } finally {
+                    rmSync(dir, { recursive: true, force: true });
+                }
+            });
+
+            it('still rejects an unreadable tsconfig on TypeScript 5.x', () => {
+                const dir = createLegacyProject('5.8.2');
+                try {
+                    writeFileSync(path.join(dir, 'tsconfig.json'), '{ invalid json');
+                    expect(() => validateTsConfig(dir)).toThrow(/TS1005/);
+                } finally {
+                    rmSync(dir, { recursive: true, force: true });
+                }
+            });
         });
 
         it('rejects an invalid tsconfig file', () => {

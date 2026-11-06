@@ -28,11 +28,6 @@ export async function pauseForPromptDisplay() {
     await new Promise(resolve => setTimeout(resolve, 100));
 }
 
-export function isRunningInTsNode(): boolean {
-    // @ts-ignore
-    return process[Symbol.for('ts-node.register.instance')] != null;
-}
-
 export function isTruthyEnvVar(value: string | undefined): boolean {
     if (value == null) {
         return false;

@@ -176,9 +176,9 @@ and a set of scripts in your `package.json` file:
 {
   // ...
   "scripts": {
-    "migration:generate": "ts-node migration.ts generate",
-    "migration:run": "ts-node migration.ts run",
-    "migration:revert": "ts-node migration.ts revert"
+    "migration:generate": "node --require @vendure/cli/register migration.ts generate",
+    "migration:run": "node --require @vendure/cli/register migration.ts run",
+    "migration:revert": "node --require @vendure/cli/register migration.ts revert"
   }
 }
 ```

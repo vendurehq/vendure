@@ -1,6 +1,7 @@
 import path from 'node:path';
 import vm from 'node:vm';
-import ts from 'typescript';
+import { ScriptTarget } from 'typescript/ast';
+import { API, ModuleKind } from 'typescript/sync';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { getCiConfiguration } from './gather-user-responses';
@@ -13,11 +14,11 @@ const SRC_DIR = '/app/src';
  * options object the config passes to `EmailPlugin.init()`.
  */
 function getEmailPluginOptions(configSource: string, appEnv: string | undefined) {
-    const { outputText } = ts.transpileModule(configSource, {
+    const { outputText } = new API({ cwd: process.cwd() }).transpileModule(configSource, {
+        // The TypeScript API only accepts numeric enum values for compiler options.
         compilerOptions: {
-            module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES2019,
-            esModuleInterop: true,
+            module: ModuleKind.CommonJS,
+            target: ScriptTarget.ES2019,
         },
     });
     const initCalls = new Map<string, unknown>();

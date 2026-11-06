@@ -11,6 +11,9 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 
 Happy linting! 💖
 */
+// typescript-eslint does not support TypeScript 7 yet. See the file for details.
+require('./scripts/tooling/use-typescript6-for-tools.cjs');
+
 module.exports = {
     env: {
         es6: true,

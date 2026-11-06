@@ -2,8 +2,8 @@
   "extends": ["./tsconfig.json"],
   "compilerOptions": {
     "types": ["./src/virtual.d.ts", "node"],
-    "module": "umd",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": false,
     "skipLibCheck": true,
     "plugins": [],

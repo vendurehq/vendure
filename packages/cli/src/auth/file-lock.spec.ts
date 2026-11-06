@@ -3,7 +3,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import ts from 'typescript';
+import { API, ModuleKind } from 'typescript/sync';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { claimPath, withFileLock } from './file-lock';
@@ -129,8 +129,8 @@ describe('withFileLock across processes', () => {
         const source = fs.readFileSync(path.join(__dirname, 'file-lock.ts'), 'utf-8');
         fs.writeFileSync(
             lockModule,
-            ts.transpileModule(source, {
-                compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
+            new API({ cwd: directory }).transpileModule(source, {
+                compilerOptions: { module: ModuleKind.CommonJS },
             }).outputText,
         );
         const child = path.join(directory, 'child.js');

@@ -1,7 +1,11 @@
-import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import { findConfigExport } from './ast-utils.js';
+import { withSourceFileSync } from './typescript-api.js';
+
+function findInSource(sourceText: string) {
+    return withSourceFileSync('path/to/test.ts', sourceText, findConfigExport);
+}
 
 describe('findConfigExport', () => {
     it('should return undefined when no VendureConfig export is found', { timeout: 30_000 }, () => {
@@ -10,8 +14,7 @@ describe('findConfigExport', () => {
                 some: 'value'
             };
         `;
-        const sourceFile = ts.createSourceFile('path/to/test.ts', sourceText, ts.ScriptTarget.Latest, true);
-        const result = findConfigExport(sourceFile);
+        const result = findInSource(sourceText);
         expect(result).toBeUndefined();
     });
 
@@ -25,8 +28,7 @@ describe('findConfigExport', () => {
                 }
             };
         `;
-        const sourceFile = ts.createSourceFile('path/to/test.ts', sourceText, ts.ScriptTarget.Latest, true);
-        const result = findConfigExport(sourceFile);
+        const result = findInSource(sourceText);
         expect(result).toBe('config');
     });
 
@@ -45,13 +47,7 @@ describe('findConfigExport', () => {
             };
             export const anotherExport = 123;
         `;
-            const sourceFile = ts.createSourceFile(
-                'path/to/test.ts',
-                sourceText,
-                ts.ScriptTarget.Latest,
-                true,
-            );
-            const result = findConfigExport(sourceFile);
+            const result = findInSource(sourceText);
             expect(result).toBe('config');
         },
     );

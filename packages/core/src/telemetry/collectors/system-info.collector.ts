@@ -29,6 +29,7 @@ export class SystemInfoCollector {
             runtimeType: this.getRuntimeType(),
             packageManager: this.getPackageManager(),
             tsNode: this.getTsNode(),
+            typescriptLoader: this.getTypeScriptLoader(),
             cpuCount: this.getCpuCount(),
             totalMemoryGb: this.getTotalMemoryGb(),
         };
@@ -64,6 +65,32 @@ export class SystemInfoCollector {
     private getTsNode(): boolean | undefined {
         try {
             return !!(process as any)[Symbol.for('ts-node.register.instance')];
+        } catch {
+            return undefined;
+        }
+    }
+
+    private getTypeScriptLoader(): TelemetryRuntime['typescriptLoader'] {
+        try {
+            const proc = process as any;
+            if (proc[Symbol.for('vendure.typescript.register')]) {
+                return 'vendure-register';
+            }
+            if (proc[Symbol.for('ts-node.register.instance')]) {
+                return 'ts-node';
+            }
+            // tsx registers itself through --require/--import flags, which child processes
+            // also receive through NODE_OPTIONS.
+            const flags = [...process.execArgv, process.env.NODE_OPTIONS ?? ''].join(' ');
+            if (/(^|[\s/\\])tsx([\s/\\]|$)/.test(flags)) {
+                return 'other';
+            }
+            // Otherwise a TypeScript entry file means the runtime itself loads TypeScript,
+            // e.g. Node.js type stripping, Bun or Deno.
+            if (/\.[cm]?tsx?$/.test(process.argv[1] ?? '')) {
+                return 'other';
+            }
+            return undefined;
         } catch {
             return undefined;
         }

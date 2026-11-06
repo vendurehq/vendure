@@ -57,12 +57,11 @@ async function getProductCount() {
 This script can then be run from the command-line:
 
 ```bash
-npx ts-node src/get-product-count.ts
-
-# or
-
-yarn ts-node src/get-product-count.ts
+node --require @vendure/cli/register src/get-product-count.ts
 ```
+
+The `@vendure/cli/register` hook compiles TypeScript files on the fly using your project's `tsconfig.json`,
+including decorator metadata and `paths` mappings.
 
 resulting in the following output:
 

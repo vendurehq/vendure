@@ -1,3 +1,6 @@
+// typescript-eslint does not support TypeScript 7 yet, so give it the TypeScript 6 API.
+// This must be the first import, as ES modules are evaluated in import order.
+import '../../scripts/tooling/use-typescript6-for-tools.cjs';
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
 import storybook from "eslint-plugin-storybook";
 

@@ -48,7 +48,7 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
         const configPath = vendureConfigRef.getPathRelativeToProjectRoot();
         details.push(`Config loaded from ${configPath}`);
 
-        // 3. Load the config at runtime (ts-node, path mappings, dotenv)
+        // 3. Load the config at runtime (TypeScript register hook, path mappings, dotenv)
         const config = await loadVendureConfigFile(vendureConfigRef, vendureTsConfig);
 
         // 4. Run preBootstrapConfig() -- validates custom fields, registers entities,

@@ -1,4 +1,4 @@
-import { ClassDeclaration, Node, SyntaxKind, Type } from 'ts-morph';
+import { ClassDeclaration, Node, Type } from 'ts-morph';
 
 export class EntityRef {
     constructor(public classDeclaration: ClassDeclaration) {}

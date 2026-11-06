@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "strict": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "strictPropertyInitialization": false,
+        "paths": {
+            "@lib/*": ["./lib/*"]
+        }
+    }
+}

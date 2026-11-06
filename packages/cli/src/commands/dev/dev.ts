@@ -2,10 +2,30 @@ import { log } from '@clack/prompts';
 import chokidar from 'chokidar';
 import { ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { Dirent, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { Dirent, existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
-import ts from 'typescript';
+import type {
+    CallExpression,
+    Decorator,
+    Node,
+    NoSubstitutionTemplateLiteral,
+    ObjectLiteralExpression,
+    PropertyName,
+    StringLiteral,
+} from 'typescript/ast';
+import {
+    isCallExpression,
+    isClassDeclaration,
+    isDecorator,
+    isIdentifier,
+    isNoSubstitutionTemplateLiteral,
+    isNumericLiteral,
+    isObjectLiteralExpression,
+    isPropertyAccessExpression,
+    isPropertyAssignment,
+    isStringLiteral,
+} from 'typescript/ast/is';
 
 import {
     getProcessPrefix,
@@ -15,14 +35,19 @@ import {
 } from '../../shared/cli-process-utils';
 import { showConsoleHintIfUnlinked } from '../../shared/console-hint';
 import { showStarPromptOnce } from '../../shared/star-prompt';
+import { getTypeScriptApi } from '../../shared/typescript-api';
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 
 interface DevProcessDefinition {
     target: Exclude<DevTarget, 'all'>;
-    packageName: string;
-    binName: string;
+    /**
+     * The package and bin to run with Node.js. When omitted, `args` are passed
+     * straight to Node.js (used to run TypeScript entry files via the register hook).
+     */
+    packageName?: string;
+    binName?: string;
     nodeArgs: string[];
     args: string[];
     requiredFile?: string;
@@ -126,9 +151,7 @@ export function getDevProcessDefinitions(
     return {
         server: {
             target: 'server',
-            packageName: 'ts-node',
-            binName: 'ts-node',
-            nodeArgs: getInspectArgs(options, target, 'server'),
+            nodeArgs: [...getInspectArgs(options, target, 'server'), '--require', getRegisterHookPath()],
             args: [serverEntry],
             requiredFile: serverEntry,
             reloadOnChange: true,
@@ -136,9 +159,7 @@ export function getDevProcessDefinitions(
         },
         worker: {
             target: 'worker',
-            packageName: 'ts-node',
-            binName: 'ts-node',
-            nodeArgs: getInspectArgs(options, target, 'worker'),
+            nodeArgs: [...getInspectArgs(options, target, 'worker'), '--require', getRegisterHookPath()],
             args: [workerEntry],
             requiredFile: workerEntry,
             reloadOnChange: true,
@@ -155,6 +176,15 @@ export function getDevProcessDefinitions(
             color: pc.magenta,
         },
     };
+}
+
+/**
+ * Path to the `@vendure/cli/register` preload script, which transpiles TypeScript
+ * on the fly using the TypeScript 7 API.
+ */
+export function getRegisterHookPath(): string {
+    // Resolved from the package root so that this also works when running from source.
+    return path.resolve(__dirname, '../../..', 'dist', 'register.js');
 }
 
 export function normalizeDevTarget(targetArg?: string): DevTarget {
@@ -174,7 +204,10 @@ function startDevProcess(
     processDefinition: DevProcessDefinition,
     options: { prefixOutput: boolean; reload: boolean; reloadIgnoredPaths: string[] },
 ): ManagedDevProcess {
-    const binPath = resolvePackageBin(processDefinition.packageName, processDefinition.binName, projectDir);
+    const binPath =
+        processDefinition.packageName && processDefinition.binName
+            ? resolvePackageBin(processDefinition.packageName, processDefinition.binName, projectDir)
+            : undefined;
     return options.reload
         ? startSupervisedDevProcess(projectDir, processDefinition, binPath, options)
         : startPlainDevProcess(projectDir, processDefinition, binPath, options);
@@ -183,12 +216,12 @@ function startDevProcess(
 function spawnDevChild(
     projectDir: string,
     processDefinition: DevProcessDefinition,
-    binPath: string,
+    binPath: string | undefined,
     options: { prefixOutput: boolean },
 ): ChildProcess {
     const child = spawn(
         process.execPath,
-        [...processDefinition.nodeArgs, binPath, ...processDefinition.args],
+        [...processDefinition.nodeArgs, ...(binPath ? [binPath] : []), ...processDefinition.args],
         {
             cwd: projectDir,
             env: {
@@ -208,7 +241,7 @@ function spawnDevChild(
 function startPlainDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
-    binPath: string,
+    binPath: string | undefined,
     options: { prefixOutput: boolean },
 ): ManagedDevProcess {
     const child = spawnDevChild(projectDir, processDefinition, binPath, options);
@@ -232,7 +265,7 @@ export interface SupervisedDevProcessOptions {
 export function startSupervisedDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
-    binPath: string,
+    binPath: string | undefined,
     options: SupervisedDevProcessOptions,
 ): ManagedDevProcess {
     const spawnChild = options.spawnChild ?? spawnDevChild;
@@ -502,7 +535,7 @@ function isChildRunning(child: ChildProcess): boolean {
 
 // Whether a supervised child that just closed should be left for the watcher to respawn, rather
 // than treated as the whole `dev` run ending. Only a non-zero exit code the child chose for itself
-// qualifies, such as ts-node failing to compile after an edit. A signal means `kill` or a process
+// qualifies, such as a TypeScript syntax error after an edit. A signal means `kill` or a process
 // manager decided the process should stop. A later file change fixes none of the other cases: a
 // zero exit, a close carrying neither a code nor a signal, or a shutdown in progress.
 export function isRecoverableChildExit(
@@ -608,19 +641,24 @@ function findDashboardMetadataCandidateFiles(projectDir: string): string[] {
 }
 
 function getDashboardEntryPathsFromSource(source: string, filePath: string): string[] {
-    const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
+    const lease = getTypeScriptApi().createSourceFile(filePath, source);
     const dashboardEntryPaths: string[] = [];
 
-    const visit = (node: ts.Node) => {
-        if (ts.isClassDeclaration(node)) {
-            const decorators = ts.canHaveDecorators(node) ? (ts.getDecorators(node) ?? []) : [];
+    const visit = (node: Node) => {
+        if (isClassDeclaration(node)) {
+            const decorators: Decorator[] = [];
+            node.modifiers?.forEach(modifier => {
+                if (isDecorator(modifier)) {
+                    decorators.push(modifier);
+                }
+            });
             for (const decorator of decorators) {
                 const expression = decorator.expression;
-                if (!ts.isCallExpression(expression) || !isVendurePluginDecoratorCall(expression)) {
+                if (!isCallExpression(expression) || !isVendurePluginDecoratorCall(expression)) {
                     continue;
                 }
                 const metadata = expression.arguments[0];
-                if (!metadata || !ts.isObjectLiteralExpression(metadata)) {
+                if (!metadata || !isObjectLiteralExpression(metadata)) {
                     continue;
                 }
                 const dashboardEntryPath = getDashboardEntryPathFromMetadata(metadata);
@@ -629,40 +667,44 @@ function getDashboardEntryPathsFromSource(source: string, filePath: string): str
                 }
             }
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
     };
 
-    visit(sourceFile);
+    try {
+        visit(lease.sourceFile);
+    } finally {
+        lease.dispose();
+    }
     return dashboardEntryPaths;
 }
 
-function isVendurePluginDecoratorCall(callExpression: ts.CallExpression): boolean {
+function isVendurePluginDecoratorCall(callExpression: CallExpression): boolean {
     const expression = callExpression.expression;
-    if (ts.isIdentifier(expression)) {
+    if (isIdentifier(expression)) {
         return expression.text === 'VendurePlugin';
     }
-    if (ts.isPropertyAccessExpression(expression)) {
+    if (isPropertyAccessExpression(expression)) {
         return expression.name.text === 'VendurePlugin';
     }
     return false;
 }
 
-function getDashboardEntryPathFromMetadata(metadata: ts.ObjectLiteralExpression): string | undefined {
+function getDashboardEntryPathFromMetadata(metadata: ObjectLiteralExpression): string | undefined {
     const dashboardProperty = metadata.properties.find(
-        property => ts.isPropertyAssignment(property) && getPropertyName(property.name) === 'dashboard',
+        property => isPropertyAssignment(property) && getPropertyName(property.name) === 'dashboard',
     );
-    if (!dashboardProperty || !ts.isPropertyAssignment(dashboardProperty)) {
+    if (!dashboardProperty || !isPropertyAssignment(dashboardProperty)) {
         return;
     }
     const initializer = dashboardProperty.initializer;
     if (isStringLiteralLike(initializer)) {
         return initializer.text;
     }
-    if (ts.isObjectLiteralExpression(initializer)) {
+    if (isObjectLiteralExpression(initializer)) {
         const locationProperty = initializer.properties.find(
-            property => ts.isPropertyAssignment(property) && getPropertyName(property.name) === 'location',
+            property => isPropertyAssignment(property) && getPropertyName(property.name) === 'location',
         );
-        if (locationProperty && ts.isPropertyAssignment(locationProperty)) {
+        if (locationProperty && isPropertyAssignment(locationProperty)) {
             const locationInitializer = locationProperty.initializer;
             if (isStringLiteralLike(locationInitializer)) {
                 return locationInitializer.text;
@@ -671,18 +713,14 @@ function getDashboardEntryPathFromMetadata(metadata: ts.ObjectLiteralExpression)
     }
 }
 
-function getPropertyName(propertyName: ts.PropertyName): string | undefined {
-    if (
-        ts.isIdentifier(propertyName) ||
-        ts.isStringLiteral(propertyName) ||
-        ts.isNumericLiteral(propertyName)
-    ) {
+function getPropertyName(propertyName: PropertyName): string | undefined {
+    if (isIdentifier(propertyName) || isStringLiteral(propertyName) || isNumericLiteral(propertyName)) {
         return propertyName.text;
     }
 }
 
-function isStringLiteralLike(node: ts.Node): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral {
-    return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+function isStringLiteralLike(node: Node): node is StringLiteral | NoSubstitutionTemplateLiteral {
+    return isStringLiteral(node) || isNoSubstitutionTemplateLiteral(node);
 }
 
 function isPathInside(filePath: string, parentPath: string): boolean {

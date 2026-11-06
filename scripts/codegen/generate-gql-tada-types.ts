@@ -1,8 +1,9 @@
-import { generateOutput } from '@gql.tada/cli-utils';
 import { buildClientSchema, printSchema } from 'graphql';
 import { writeFileSync, readFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+
+import { writeGqlTadaIntrospectionFile } from '../../packages/dashboard/vite/utils/gql-tada-output.js';
 
 const ADMIN_SCHEMA_JSON = join(__dirname, '../../schema-admin.json');
 const SHOP_SCHEMA_JSON = join(__dirname, '../../schema-shop.json');
@@ -46,24 +47,8 @@ async function generateTypesForApi(
     const schemaPath = join(tempDir, 'schema.graphql');
     writeFileSync(schemaPath, sdl);
 
-    const tsConfigContent = {
-        compilerOptions: {
-            plugins: [
-                {
-                    name: 'gql.tada/ts-plugin',
-                    schema: schemaPath,
-                },
-            ],
-        },
-    };
-    const tsConfigPath = join(tempDir, 'tsconfig.json');
-    writeFileSync(tsConfigPath, JSON.stringify(tsConfigContent, null, 2));
-
     const outputPath = join(outputDir, `graphql-env-${apiType}.d.ts`);
-    await generateOutput({
-        output: outputPath,
-        tsconfig: tsConfigPath,
-    });
+    await writeGqlTadaIntrospectionFile({ schemaPath, outputPath });
 
     const graphqlWrapperPath = join(outputDir, `graphql-${apiType}.ts`);
     const wrapperContent = `import type { introspection } from './graphql-env-${apiType}.d.ts';

@@ -208,8 +208,12 @@ export class PgNotifyJobQueueStrategy extends SqlJobQueueStrategy {
         this.stopping.clear();
         this.pendingWakes.clear();
         this.retries.clear();
-        this.txConnection = injector.get(TransactionalConnection);
-        this.dataSource = this.txConnection.rawConnection;
+        // Resolved into a local first: TypeScript 7 infers the return type of `injector.get()`
+        // from an assignment target, so assigning straight to the optional property would type
+        // it as possibly undefined.
+        const txConnection = injector.get<TransactionalConnection>(TransactionalConnection);
+        this.txConnection = txConnection;
+        this.dataSource = txConnection.rawConnection;
         this.notifySupported = getDatabaseType(this.dataSource) === 'postgres';
         if (!this.notifySupported) {
             Logger.warn(

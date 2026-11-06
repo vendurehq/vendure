@@ -9,7 +9,7 @@
  * - onApplicationBootstrap: sequential strategy `.init()` fan-out + a DB query
  *
  * Written in plain JS (decorators invoked manually) so benchmark runs measure
- * compiled-JS cost only, with no ts-node overhead.
+ * compiled-JS cost only, with no TypeScript compilation overhead.
  */
 const { Entity, Column } = require('typeorm');
 const { Resolver, Query } = require('@nestjs/graphql');

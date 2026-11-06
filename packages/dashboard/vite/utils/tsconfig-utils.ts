@@ -1,7 +1,6 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 import stripJsonComments from 'strip-json-comments';
-import { CompilerOptions } from 'typescript';
 
 import { Logger, TransformTsConfigPathMappingsFn } from '../types.js';
 
@@ -12,7 +11,7 @@ export interface TsConfigPathsConfig {
 
 interface RawTsConfigResult {
     dir: string;
-    rawPaths: Required<CompilerOptions>['paths'];
+    rawPaths: Record<string, string[]>;
     baseUrl: string;
 }
 
@@ -88,14 +87,16 @@ export async function findTsConfigPaths(
     return { baseUrl: tsConfigBaseUrl, paths: pathMappings };
 }
 
-async function getCompilerOptionsFromFile(tsConfigFilePath: string): Promise<CompilerOptions> {
+async function getCompilerOptionsFromFile(
+    tsConfigFilePath: string,
+): Promise<{ paths?: Record<string, string[]>; baseUrl?: string }> {
     const tsConfigContent = await fs.readFile(tsConfigFilePath, 'utf-8');
     const tsConfig = JSON.parse(stripJsonComments(tsConfigContent));
     return tsConfig.compilerOptions || {};
 }
 
 function getTransformedPathMappings(
-    paths: Required<CompilerOptions>['paths'],
+    paths: Record<string, string[]>,
     phase: 'compiling' | 'loading',
     transformTsConfigPathMappings: TransformTsConfigPathMappingsFn,
 ) {

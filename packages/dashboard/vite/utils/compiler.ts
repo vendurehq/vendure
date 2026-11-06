@@ -4,16 +4,27 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import tsConfigPaths from 'tsconfig-paths';
 import { RegisterParams } from 'tsconfig-paths/lib/register.js';
-import * as ts from 'typescript';
+import type { ExportDeclaration, ImportDeclaration } from 'typescript/ast';
+import { ScriptTarget, SyntaxKind } from 'typescript/ast';
+import {
+    isExportDeclaration,
+    isImportDeclaration,
+    isNamedExports,
+    isNamedImports,
+    isStringLiteral,
+} from 'typescript/ast/is';
+import { JsxEmit, ModuleKind, type CompilerOptions as TsCompilerOptions } from 'typescript/sync';
 
 import { Logger, PathAdapter, PluginInfo } from '../types.js';
 
 import { findConfigExport } from './ast-utils.js';
 import { resolvePathAliasImports, resolveSourceFile } from './import-resolution.js';
+import { addJsonImportAttributes } from './json-import-attributes.js';
 import { noopLogger } from './logger.js';
-import { createPathTransformer } from './path-transformer.js';
+import { createPathTransformer, PathTransformer } from './path-transformer.js';
 import { discoverPlugins } from './plugin-discovery.js';
 import { findTsConfigPaths } from './tsconfig-utils.js';
+import { getTypeScriptApi, withSourceFile } from './typescript-api.js';
 
 const defaultPathAdapter: Required<Pick<PathAdapter, 'transformTsConfigPathMappings'>> = {
     transformTsConfigPathMappings: ({ patterns }) => patterns,
@@ -210,13 +221,11 @@ async function compileInternal(options: CompilerOptions): Promise<CompileResult>
     await writePackageJson(outputPath, options.module);
 
     // Find the exported config symbol
-    const sourceFile = ts.createSourceFile(
+    const exportedSymbolName = await withSourceFile(
         vendureConfigPath,
         await fs.readFile(vendureConfigPath, 'utf-8'),
-        ts.ScriptTarget.Latest,
-        true,
+        findConfigExport,
     );
-    const exportedSymbolName = findConfigExport(sourceFile);
     if (!exportedSymbolName) {
         throw new Error(
             `Could not find a variable exported as VendureConfig. Please specify the name of the exported variable.`,
@@ -342,10 +351,10 @@ async function resolveSourceContext(
  * Compiles TypeScript files to JavaScript using per-file transpilation, and copies
  * across the JSON they import.
  *
- * Instead of using `ts.createProgram()` (which resolves all imports including
+ * Instead of using `createProgram()` (which resolves all imports including
  * node_modules type definitions and can OOM on projects with heavy dependencies),
  * this function:
- * 1. Transpiles each given TypeScript file individually with `ts.transpileModule()`
+ * 1. Transpiles each given TypeScript file individually with `transpileModule()`
  *    (no type resolution), and copies JSON through unchanged
  * 2. Validates every emit lands inside outputPath before writing anything
  *
@@ -369,14 +378,16 @@ async function compileTypeScript({
 }): Promise<void> {
     await fs.ensureDir(outputPath);
 
-    const afterTransformers: Array<ts.TransformerFactory<ts.SourceFile>> = [];
+    // The TypeScript 7 transpileModule() API has no custom transformers, so these
+    // rewrite the emitted JavaScript instead. They run in order on each file's output.
+    const emitTransforms: PathTransformer[] = [];
 
     // Build path transformer for ESM mode
     // This is necessary because tsconfig-paths.register() only works for CommonJS require(),
-    // not for ESM import(). We need to transform the import paths during transpilation.
+    // not for ESM import(). We need to rewrite the import paths in the emitted JavaScript.
     if (module === 'esm' && tsConfigInfo) {
         logger.debug('Adding path transformer for ESM mode');
-        afterTransformers.push(
+        emitTransforms.push(
             createPathTransformer({
                 baseUrl: tsConfigInfo.baseUrl,
                 paths: tsConfigInfo.paths,
@@ -389,27 +400,25 @@ async function compileTypeScript({
     // JSON module in ESM without `with { type: 'json' }`, which the author cannot write
     // in a source file that also targets CommonJS for the server build.
     if (module === 'esm') {
-        afterTransformers.push(createJsonImportAttributeTransformer());
+        emitTransforms.push(addJsonImportAttributes);
     }
 
     // Note: emitDecoratorMetadata with transpileModule emits `Object` for all
     // imported types since there is no type resolver. This is acceptable because
     // the compiled output is only used for config loading and plugin discovery,
     // not for runtime dependency injection.
-    const compilerOptions: ts.CompilerOptions = {
-        target: ts.ScriptTarget.ES2020,
-        module: module === 'esm' ? ts.ModuleKind.ESNext : ts.ModuleKind.CommonJS,
+    // The TypeScript API only accepts numeric enum values for compiler options.
+    const compilerOptions: TsCompilerOptions = {
+        target: ScriptTarget.ES2020,
+        module: module === 'esm' ? ModuleKind.ESNext : ModuleKind.CommonJS,
         // Plugin import graphs can transitively reach .tsx files (e.g. server-side
         // React for PDF or email rendering). Without this, transpileModule emits raw
         // JSX into the .js output and the compiled config fails to import.
-        jsx: ts.JsxEmit.ReactJSX,
+        jsx: JsxEmit.ReactJSX,
         experimentalDecorators: true,
         emitDecoratorMetadata: true,
-        esModuleInterop: true,
     };
-    const transformers: ts.CustomTransformers | undefined = afterTransformers.length
-        ? { after: afterTransformers }
-        : undefined;
+    const api = getTypeScriptApi();
 
     // Transpile first and validate every destination before writing anything,
     // so a rejected compile cannot leave partially written output behind.
@@ -427,11 +436,10 @@ async function compileTypeScript({
         // server would have read.
         const outputText = filePath.endsWith('.json')
             ? content
-            : ts.transpileModule(content, {
-                  compilerOptions,
-                  fileName: filePath,
-                  transformers,
-              }).outputText;
+            : emitTransforms.reduce(
+                  (text, transform) => transform(text, filePath),
+                  api.transpileModule(content, { compilerOptions, fileName: filePath }).outputText,
+              );
 
         // Compute output path preserving directory structure relative to source root
         const relativePath = path.relative(sourceRoot, filePath);
@@ -448,64 +456,6 @@ async function compileTypeScript({
         await fs.ensureDir(path.dirname(emit.outputFilePath));
         await fs.writeFile(emit.outputFilePath, emit.outputText);
     }
-}
-
-/**
- * Adds `type: 'json'` to the import attributes of import and export declarations
- * of `.json` specifiers that do not already carry a `type` attribute. Any other
- * attributes, including an empty `with {}`, are kept and the entry is appended.
- *
- * Matching on the `.json` suffix is a superset of the rule `collectLocalSourceFiles`
- * uses to copy a JSON file. Bare specifiers such as `some-pkg/data.json` are never
- * copied, but still get the attribute, because Node requires it for them too.
- */
-function createJsonImportAttributeTransformer(): ts.TransformerFactory<ts.SourceFile> {
-    return context => {
-        const { factory } = context;
-        const withJsonAttribute = (attributes: ts.ImportAttributes | undefined) => {
-            const typeJson = factory.createImportAttribute(
-                factory.createIdentifier('type'),
-                factory.createStringLiteral('json'),
-            );
-            return attributes
-                ? factory.updateImportAttributes(
-                      attributes,
-                      factory.createNodeArray([...attributes.elements, typeJson]),
-                      attributes.multiLine,
-                  )
-                : factory.createImportAttributes(factory.createNodeArray([typeJson]));
-        };
-        const needsJsonAttributes = (node: ts.ImportDeclaration | ts.ExportDeclaration) =>
-            !node.attributes?.elements.some(attribute => attribute.name.text === 'type') &&
-            !!node.moduleSpecifier &&
-            ts.isStringLiteral(node.moduleSpecifier) &&
-            node.moduleSpecifier.text.endsWith('.json');
-
-        const visitor: ts.Visitor = node => {
-            if (ts.isImportDeclaration(node) && needsJsonAttributes(node)) {
-                return factory.updateImportDeclaration(
-                    node,
-                    node.modifiers,
-                    node.importClause,
-                    node.moduleSpecifier,
-                    withJsonAttribute(node.attributes),
-                );
-            }
-            if (ts.isExportDeclaration(node) && needsJsonAttributes(node)) {
-                return factory.updateExportDeclaration(
-                    node,
-                    node.modifiers,
-                    node.isTypeOnly,
-                    node.exportClause,
-                    node.moduleSpecifier,
-                    withJsonAttribute(node.attributes),
-                );
-            }
-            return node;
-        };
-
-        return sourceFile => ts.visitEachChild(sourceFile, visitor, context);
-    };
 }
 
 function assertWithinOutputPath(outputFilePath: string, outputPath: string): void {
@@ -565,28 +515,29 @@ async function collectLocalSourceFiles(
         if (resolved.endsWith('.json')) return;
 
         const content = await fs.readFile(resolved, 'utf-8');
-        const sf = ts.createSourceFile(resolved, content, ts.ScriptTarget.Latest, true);
         const dir = path.dirname(resolved);
         const importsToFollow: string[] = [];
 
-        ts.forEachChild(sf, node => {
-            if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) return;
-            if (isTypeOnlyImportOrExport(node)) return;
-            const moduleSpecifier = node.moduleSpecifier;
-            if (!moduleSpecifier || !ts.isStringLiteral(moduleSpecifier)) return;
-            const importPath = moduleSpecifier.text;
+        await withSourceFile(resolved, content, sf =>
+            sf.forEachChild(node => {
+                if (!isImportDeclaration(node) && !isExportDeclaration(node)) return;
+                if (isTypeOnlyImportOrExport(node)) return;
+                const moduleSpecifier = node.moduleSpecifier;
+                if (!moduleSpecifier || !isStringLiteral(moduleSpecifier)) return;
+                const importPath = moduleSpecifier.text;
 
-            // Follow local relative imports
-            if (importPath.startsWith('.')) {
-                importsToFollow.push(path.resolve(dir, importPath));
-                return;
-            }
+                // Follow local relative imports
+                if (importPath.startsWith('.')) {
+                    importsToFollow.push(path.resolve(dir, importPath));
+                    return;
+                }
 
-            // Follow tsconfig path aliases (uses shared resolution logic)
-            importsToFollow.push(...resolvePathAliasImports(importPath, tsConfigInfo));
-            // npm package imports are intentionally skipped — they are resolved
-            // at runtime via require() / import(), not during transpilation.
-        });
+                // Follow tsconfig path aliases (uses shared resolution logic)
+                importsToFollow.push(...resolvePathAliasImports(importPath, tsConfigInfo));
+                // npm package imports are intentionally skipped — they are resolved
+                // at runtime via require() / import(), not during transpilation.
+            }),
+        );
 
         for (const imp of importsToFollow) {
             await processFile(imp);
@@ -597,20 +548,21 @@ async function collectLocalSourceFiles(
     return { sourceFiles: [...visited], skippedPackageJsonFiles: [...skippedPackageJson] };
 }
 
-function isTypeOnlyImportOrExport(node: ts.ImportDeclaration | ts.ExportDeclaration) {
-    if (ts.isImportDeclaration(node)) {
+function isTypeOnlyImportOrExport(node: ImportDeclaration | ExportDeclaration) {
+    if (isImportDeclaration(node)) {
         const importClause = node.importClause;
         if (!importClause) {
             return false;
         }
-        if (importClause.isTypeOnly) {
+        // `import type { X }` (the TypeScript 7 AST records `type` as the import phase)
+        if (importClause.phaseModifier === SyntaxKind.TypeKeyword) {
             return true;
         }
         const namedBindings = importClause.namedBindings;
         return (
             !importClause.name &&
             !!namedBindings &&
-            ts.isNamedImports(namedBindings) &&
+            isNamedImports(namedBindings) &&
             namedBindings.elements.length > 0 &&
             namedBindings.elements.every(element => element.isTypeOnly)
         );
@@ -621,7 +573,7 @@ function isTypeOnlyImportOrExport(node: ts.ImportDeclaration | ts.ExportDeclarat
     }
     return (
         !!node.exportClause &&
-        ts.isNamedExports(node.exportClause) &&
+        isNamedExports(node.exportClause) &&
         node.exportClause.elements.length > 0 &&
         node.exportClause.elements.every(element => element.isTypeOnly)
     );

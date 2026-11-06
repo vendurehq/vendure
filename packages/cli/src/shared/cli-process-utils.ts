@@ -135,7 +135,7 @@ export function signalToExitCode(signal: NodeJS.Signals | null): number | undefi
     }
 }
 
-function resolvePackageJsonPath(packageName: string, projectDir: string, installHint: string): string {
+export function resolvePackageJsonPath(packageName: string, projectDir: string, installHint: string): string {
     const packageJsonRequest = `${packageName}/package.json`;
     const requireFromProject = createRequire(path.join(projectDir, 'package.json'));
     const lookupPaths = [

@@ -7,11 +7,12 @@ import { runDependencyCheck } from './checks/dependency-check';
 import { runProductionCheck } from './checks/production-check';
 import { runProjectCheck } from './checks/project-check';
 import { runSchemaCheck } from './checks/schema-check';
+import { runTypeScriptCheck } from './checks/typescript-check';
 import { formatConsoleReport } from './formatters/console-formatter';
 import { formatJsonReport } from './formatters/json-formatter';
 import { CheckResult, DoctorOptions, DoctorReport } from './types';
 
-const ALL_CHECKS = ['project', 'dependencies', 'config', 'schema', 'database'] as const;
+const ALL_CHECKS = ['project', 'dependencies', 'typescript', 'config', 'schema', 'database'] as const;
 const VALID_PROFILES = ['production'] as const;
 
 /**
@@ -60,7 +61,12 @@ export async function doctorCommand(options?: DoctorOptions) {
         results.push(await runDependencyCheck());
     }
 
-    // Check 3: Config loading, validation, plugin compatibility
+    // Check 3: tsconfig compatibility with TypeScript 7
+    if (checksToRun.includes('typescript')) {
+        results.push(runTypeScriptCheck());
+    }
+
+    // Check 4: Config loading, validation, plugin compatibility
     if (checksToRun.includes('config')) {
         const configResult = await runConfigCheck(options?.config);
         results.push(configResult.check);
@@ -88,7 +94,7 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    // Check 4: GraphQL schema generation
+    // Check 5: GraphQL schema generation
     if (checksToRun.includes('schema')) {
         if (loadedConfig) {
             results.push(await runSchemaCheck(loadedConfig));
@@ -101,7 +107,7 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    // Check 5: Database connectivity
+    // Check 6: Database connectivity
     if (checksToRun.includes('database')) {
         if (loadedConfig) {
             results.push(await runDatabaseCheck(loadedConfig));
@@ -114,7 +120,7 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    // Check 6: Production profile checks (only with --profile production)
+    // Check 7: Production profile checks (only with --profile production)
     if (options?.profile === 'production') {
         if (loadedConfig) {
             results.push(await runProductionCheck(loadedConfig));

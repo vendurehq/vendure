@@ -442,7 +442,7 @@ function checkDbDriver(
 /**
  * Attempts to detect the database type by scanning source files for
  * dbConnectionOptions configuration. This is a lightweight text-based scan
- * that avoids importing the config (which requires ts-node setup).
+ * that avoids importing the config (which requires the TypeScript register hook).
  */
 function detectDbTypeFromSource(cwd: string): string | undefined {
     const candidates = [
