@@ -17,7 +17,9 @@ vi.mock('@vendure-io/ui/components/molecules/data-table/data-table-column-header
 const i18n = setupI18n({ locale: 'en', messages: { en: {} } });
 
 function renderHeader(columnId: string, header?: string) {
-    const headerContext = { column: { id: columnId } } as unknown as HeaderContext<any, any>;
+    const headerContext = {
+        column: { id: columnId, getCanSort: () => false },
+    } as unknown as HeaderContext<any, any>;
     return renderToStaticMarkup(
         <I18nProvider i18n={i18n}>
             <DataTableColumnHeader headerContext={headerContext} customConfig={{ header }} />
