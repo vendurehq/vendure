@@ -91,15 +91,36 @@ export function isErrorDiagnostic(diagnostic: Diagnostic): boolean {
 }
 
 /**
- * Formats TypeScript diagnostics. By default, colours and source context are only used when
- * stderr is a TTY, so logs and CI output contain no ANSI escape codes. Pass `color: false`
- * for output that is never shown in a terminal, such as JSON reports.
+ * Whether output written to the given stream should use colours. Follows the same conventions
+ * as Node.js itself: `FORCE_COLOR` (other than "0" or "false") forces colours on and takes
+ * precedence over `NO_COLOR` and `NODE_DISABLE_COLORS`, which turn them off. Otherwise colours
+ * are only used when the stream is a TTY.
+ */
+export function shouldUseColor(
+    stream: { isTTY?: boolean } = process.stderr,
+    env: NodeJS.ProcessEnv = process.env,
+): boolean {
+    const forceColor = env.FORCE_COLOR;
+    if (forceColor !== undefined) {
+        return forceColor !== '0' && forceColor.toLowerCase() !== 'false';
+    }
+    if (env.NO_COLOR !== undefined || env.NODE_DISABLE_COLORS !== undefined) {
+        return false;
+    }
+    return stream.isTTY === true;
+}
+
+/**
+ * Formats TypeScript diagnostics. By default, colours and source context are used according
+ * to {@link shouldUseColor} for stderr, so logs and CI output contain no ANSI escape codes
+ * unless colours are forced. Pass `color: false` for output that is never shown in a terminal,
+ * such as JSON reports.
  */
 export function formatTsDiagnostics(
     diagnostics: readonly Diagnostic[],
     options: { color?: boolean } = {},
 ): string {
-    const color = options.color ?? process.stderr.isTTY === true;
+    const color = options.color ?? shouldUseColor();
     return color
         ? formatDiagnosticsWithColorAndContext(diagnostics, getTypeScriptApi())
         : formatDiagnostics(diagnostics, getTypeScriptApi());

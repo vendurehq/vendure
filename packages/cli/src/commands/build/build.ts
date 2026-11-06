@@ -11,6 +11,11 @@ import {
     signalToExitCode,
 } from '../../shared/cli-process-utils';
 import {
+    compilesWithTypeScript7,
+    getBuildTypeScriptVersion,
+    TYPESCRIPT_7_UPGRADE_GUIDE_URL,
+} from '../../shared/project-typescript';
+import {
     formatTsDiagnostics,
     getTsConfigProgramErrors,
     parseTsConfigFile,
@@ -66,7 +71,8 @@ export interface BuildOptions {
     workerTsconfig?: string;
     viteConfig?: string;
     /**
-     * @deprecated Has no effect. TypeScript 7, which is the native compiler, is used by default.
+     * @deprecated Has no effect. The build runs the project's own `tsc`, which is the native
+     * compiler from TypeScript 7 onwards.
      */
     experimentalTsgo?: boolean;
     clean?: boolean;
@@ -94,12 +100,19 @@ export async function buildCommand(targetArg?: string, options: BuildOptions = {
         if (options.experimentalTsgo) {
             log.warn(
                 'The --experimental-tsgo option is deprecated and has no effect. ' +
-                    'TypeScript 7, which is the native compiler, is now used by default.',
+                    "The build runs your project's own tsc, which is the native compiler from TypeScript 7 onwards.",
             );
         }
 
+        const typescriptVersion = getBuildTypeScriptVersion(projectDir);
+        if (!compilesWithTypeScript7(typescriptVersion)) {
+            log.info(
+                `Your project compiles with TypeScript ${String(typescriptVersion)}, so the TypeScript 7 ` +
+                    `tsconfig checks are skipped. TypeScript 7 is recommended: ${TYPESCRIPT_7_UPGRADE_GUIDE_URL}`,
+            );
+        }
         for (const tsconfig of getBuildTsConfigsForTarget(target, tsconfigs)) {
-            validateTsConfig(projectDir, tsconfig);
+            validateTsConfig(projectDir, tsconfig, typescriptVersion);
         }
 
         if (options.clean) {
@@ -326,12 +339,26 @@ export function normalizeBuildTarget(targetArg?: string): BuildTarget {
 }
 
 /**
- * Checks that the tsconfig file can be read, and that it does not use options which
- * TypeScript 7 no longer supports (e.g. `baseUrl`, `moduleResolution: "node"`, or an
- * implicit `rootDir`). Otherwise tsc would only fail once the build has started.
+ * Checks that the tsconfig file can be read. If the project compiles with TypeScript 7 or
+ * newer, it also checks that the tsconfig does not use options which TypeScript 7 no longer
+ * supports (e.g. `baseUrl`, `moduleResolution: "node"`, or an implicit `rootDir`), so that
+ * the build fails early with a migration hint rather than once tsc has started.
+ *
+ * Projects that still compile with TypeScript 5.x or 6.x accept those options, so for them
+ * the TypeScript 7 checks are skipped.
+ *
+ * @param typescriptVersion - the version of the TypeScript whose `tsc` the build runs.
+ *   Defaults to the one resolved from the project directory.
  */
-export function validateTsConfig(projectDir: string, tsconfig: string = './tsconfig.json') {
+export function validateTsConfig(
+    projectDir: string,
+    tsconfig: string = './tsconfig.json',
+    typescriptVersion: string | undefined = getBuildTypeScriptVersion(projectDir),
+) {
     parseTsConfig(projectDir, tsconfig);
+    if (!compilesWithTypeScript7(typescriptVersion)) {
+        return;
+    }
     const errors = getTsConfigProgramErrors(path.resolve(projectDir, tsconfig));
     if (errors.length) {
         throw new Error(

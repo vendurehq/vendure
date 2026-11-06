@@ -87,6 +87,7 @@
   ],
   "workspaces": [
     "packages/*",
+    "packages/cli/e2e/fixtures/ts5-project",
     "scripts/tooling/typescript6"
   ],
   "commitlint": {

@@ -1,4 +1,7 @@
+// Storybook's react-docgen-typescript does not support TypeScript 7 yet, so give it the TypeScript 6
+// API. This must be the first import, as ES modules are evaluated in import order.
 import type { StorybookConfig } from '@storybook/react-vite';
+import '../../../scripts/tooling/use-typescript6-for-tools.cjs';
 
 import { dirname, resolve } from 'path';
 

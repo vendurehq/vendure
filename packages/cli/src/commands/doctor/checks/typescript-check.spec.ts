@@ -120,7 +120,71 @@ describe('typescript-check', () => {
         expect(result.details).toContain('TypeScript 7.1.0-beta');
     });
 
-    it.each(['5.8.2', '7.0.2', '7.1.0-dev.20261105.1', '7.2.0'])(
+    it.each(['5.4.5', '5.8.2', '6.0.3'])(
+        'warns that TypeScript 7 is recommended when TypeScript %s is installed',
+        version => {
+            writeTsConfig('tsconfig.json', COMPATIBLE_OPTIONS);
+            installTypeScript(version);
+
+            const result = runTypeScriptCheck(projectDir);
+
+            expect(result.status).toBe('warn');
+            expect(result.message).toBe(`TypeScript ${version} is installed; TypeScript 7 is recommended`);
+            expect(result.details?.join('\n')).toContain('updating/#typescript-7');
+        },
+    );
+
+    it('only warns about a v3 tsconfig when the project compiles with TypeScript 5.x', () => {
+        writeTsConfig('tsconfig.json', {
+            module: 'commonjs',
+            moduleResolution: 'node',
+            baseUrl: './',
+            outDir: './dist',
+            target: 'es2019',
+        });
+        installTypeScript('5.8.2');
+
+        const result = runTypeScriptCheck(projectDir);
+
+        // `vendure build` succeeds with TypeScript 5.x, so this must not fail the doctor run
+        expect(result.status).toBe('warn');
+        expect(result.message).toContain('tsconfig.json need changes before upgrading to TypeScript 7');
+        expect(result.details?.join('\n')).toContain('TS5102');
+    });
+
+    it('fails for a v3 tsconfig when the project compiles with TypeScript 7', () => {
+        writeTsConfig('tsconfig.json', { module: 'commonjs', moduleResolution: 'node', outDir: './dist' });
+        installTypeScript('7.1.0-beta');
+
+        expect(runTypeScriptCheck(projectDir).status).toBe('fail');
+    });
+
+    it('does not warn about useDefineForClassFields without a target on TypeScript 5.x', () => {
+        // TypeScript 5.x defaults to an ES5 target, which keeps the old class field semantics
+        writeTsConfig('tsconfig.json', { ...COMPATIBLE_OPTIONS, target: undefined });
+        installTypeScript('5.8.2');
+
+        const result = runTypeScriptCheck(projectDir);
+
+        expect(result.message).not.toContain('useDefineForClassFields');
+    });
+
+    it('warns about useDefineForClassFields with an ES2022 target on TypeScript 5.x', () => {
+        writeTsConfig('tsconfig.json', {
+            module: 'commonjs',
+            moduleResolution: 'node',
+            baseUrl: './',
+            target: 'es2022',
+        });
+        installTypeScript('5.8.2');
+
+        const result = runTypeScriptCheck(projectDir);
+
+        expect(result.status).toBe('warn');
+        expect(result.message).toContain('tsconfig.json enables useDefineForClassFields');
+    });
+
+    it.each(['7.0.2', '7.1.0-dev.20261105.1', '7.2.0'])(
         'warns when TypeScript %s is installed, which is outside the supported range',
         version => {
             writeTsConfig('tsconfig.json', COMPATIBLE_OPTIONS);

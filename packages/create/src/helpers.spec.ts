@@ -7,7 +7,12 @@ import path from 'node:path';
 import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
+import {
+    NESTJS_GRAPHQL_VERSION,
+    REQUIRED_NODE_VERSION,
+    TYPEORM_VERSION,
+    TYPESCRIPT_VERSION,
+} from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
@@ -17,6 +22,7 @@ import {
     getInstallCommand,
     getMonorepoRootPackageJson,
     getNativeBuildDependencies,
+    getNpmOverrides,
     getPackageManagerInfo,
     getPnpmWorkspaceYaml,
     getServerPackageScripts,
@@ -805,5 +811,29 @@ describe('getDependencies', () => {
     it('pins typeorm to the same range as @vendure/core', () => {
         const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
         expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
+    });
+
+    // With TypeScript 7 in the project, npm nests @nestjs/graphql (whose optional typescript peer
+    // excludes 7) under @vendure/core unless the project declares it. The pin must match core's
+    // range so that npm keeps a single copy.
+    it('declares @nestjs/graphql for npm only, with the same range as @vendure/core', () => {
+        const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
+        expect(NESTJS_GRAPHQL_VERSION).toBe(corePkg.dependencies['@nestjs/graphql']);
+        expect(getDependencies('postgres', '@4.0.0', 'npm').dependencies).toContain(
+            `@nestjs/graphql@${NESTJS_GRAPHQL_VERSION}`,
+        );
+        for (const pm of ['pnpm', 'yarn', 'bun'] as const) {
+            const deps = getDependencies('postgres', '@4.0.0', pm).dependencies;
+            expect(deps.some(d => d.startsWith('@nestjs/graphql'))).toBe(false);
+        }
+    });
+
+    it("overrides @nestjs/graphql's TypeScript peer for npm projects only", () => {
+        expect(getNpmOverrides(getPackageManagerInfo('npm'))).toEqual({
+            overrides: { '@nestjs/graphql': { typescript: TYPESCRIPT_VERSION } },
+        });
+        for (const pm of ['pnpm', 'yarn', 'bun'] as const) {
+            expect(getNpmOverrides(getPackageManagerInfo(pm))).toEqual({});
+        }
     });
 });

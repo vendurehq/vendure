@@ -85,20 +85,47 @@ describe('@vendure/cli/register', () => {
         expect(result.stderr).toContain('No tsconfig.json found');
     });
 
-    it('reports syntax errors without ANSI colour codes when stderr is not a TTY', () => {
+    /**
+     * Runs a file with a syntax error. The environment is controlled, because CI sets
+     * FORCE_COLOR, which makes both our diagnostics and Node.js's own error output use colours.
+     */
+    function runBrokenFile(colorEnv: NodeJS.ProcessEnv) {
         tempDir = mkdtempSync(path.join(tmpdir(), 'vendure-register-syntax-error-'));
         writeFileSync(path.join(tempDir, 'tsconfig.json'), '{ "compilerOptions": {} }');
         writeFileSync(path.join(tempDir, 'broken.ts'), 'const value = ;\n');
-
-        const result = spawnSync(
+        const env = { ...process.env };
+        delete env.FORCE_COLOR;
+        delete env.NO_COLOR;
+        delete env.NODE_DISABLE_COLORS;
+        return spawnSync(
             process.execPath,
             ['--require', require.resolve('@vendure/cli/register'), 'broken.ts'],
-            { cwd: tempDir, encoding: 'utf-8' },
+            { cwd: tempDir, encoding: 'utf-8', env: { ...env, ...colorEnv } },
         );
+    }
+
+    it('reports syntax errors without ANSI colour codes when stderr is not a TTY', () => {
+        const result = runBrokenFile({});
 
         expect(result.status).not.toBe(0);
         expect(result.stderr).toContain('TS1109');
         // eslint-disable-next-line no-control-regex
         expect(result.stderr).not.toMatch(/\u001b\[/);
+    });
+
+    it('reports syntax errors without ANSI colour codes when NO_COLOR is set', () => {
+        const result = runBrokenFile({ NO_COLOR: '1' });
+
+        expect(result.stderr).toContain('TS1109');
+        // eslint-disable-next-line no-control-regex
+        expect(result.stderr).not.toMatch(/\u001b\[/);
+    });
+
+    it('colours the diagnostics when FORCE_COLOR is set, like Node.js does', () => {
+        const result = runBrokenFile({ FORCE_COLOR: '1' });
+
+        // The colourised TypeScript formatter prints the error code in colour
+        // eslint-disable-next-line no-control-regex
+        expect(result.stderr).toMatch(/\u001b\[[0-9;]*m[^\n]*TS1109|TS1109[^\n]*\u001b\[/);
     });
 });

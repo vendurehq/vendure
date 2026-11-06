@@ -1,7 +1,7 @@
 # vendure build
 
 Compiles a Vendure project for production: the server and worker are compiled
-with TypeScript, the dashboard with Vite.
+with the project's own `tsc`, the dashboard with Vite.
 
 ## Usage
 
@@ -18,7 +18,7 @@ vendure build [target]
 | `--tsconfig <path>`        | Server TypeScript config (also used by the worker unless overridden) |
 | `--worker-tsconfig <path>` | Separate TypeScript config for the worker                            |
 | `--vite-config <path>`     | Vite config used by the dashboard build                              |
-| `--experimental-tsgo`      | Deprecated, no effect: TypeScript 7 (native compiler) is the default |
+| `--experimental-tsgo`      | Deprecated, no effect: the project's own `tsc` is always used        |
 | `--clean`                  | Delete build output directories before building                      |
 | `--watch`                  | Rebuild on source changes (long-running)                             |
 | `--no-progress`            | Disable spinner/progress rendering — use for stable CI logs          |
@@ -26,6 +26,10 @@ vendure build [target]
 
 ## Notes
 
+- Before compiling, the build checks the tsconfig files. If the project compiles
+  with TypeScript 7 (recommended), it fails early on options that TypeScript 7
+  removed, such as `baseUrl` and `moduleResolution: "node"`. Projects that stay
+  on TypeScript 5.x skip those checks; the build logs that it does.
 - For CI or scripted builds, prefer `--no-progress` so logs stay parseable, and
   `--verbose` when you need to diagnose a failure.
 - `vendure build all` protects overlapping outputs by running the Vite dashboard

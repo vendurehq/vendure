@@ -1,0 +1,20 @@
+{
+    // A Vendure v3 style tsconfig, which TypeScript 5.x accepts but TypeScript 7 rejects:
+    // `moduleResolution: "node"` (TS5108), `baseUrl` (TS5102), and `outDir` without
+    // `rootDir` while the sources are in ./src (TS5011).
+    "compilerOptions": {
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "es2019",
+        "strict": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true,
+        "outDir": "./dist",
+        "baseUrl": "./src",
+        "paths": {
+            "@shared/*": ["shared/*"]
+        }
+    },
+    "include": ["src/**/*.ts"]
+}

@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { formatTsDiagnostics, getTsConfigProgramErrors, parseTsConfigFile } from './typescript-api';
+import {
+    formatTsDiagnostics,
+    getTsConfigProgramErrors,
+    parseTsConfigFile,
+    shouldUseColor,
+} from './typescript-api';
 
 describe('typescript-api', () => {
     let tempDir: string;
@@ -51,6 +56,31 @@ describe('typescript-api', () => {
             expect(codes).toContain(5102); // baseUrl has been removed
             expect(codes).toContain(5108); // moduleResolution=node10 has been removed
             expect(codes).toContain(5011); // rootDir must be set explicitly
+        });
+    });
+
+    describe('shouldUseColor()', () => {
+        it('uses colours for a TTY', () => {
+            expect(shouldUseColor({ isTTY: true }, {})).toBe(true);
+        });
+
+        it('does not use colours when the stream is not a TTY', () => {
+            expect(shouldUseColor({ isTTY: false }, {})).toBe(false);
+        });
+
+        it.each([{ NO_COLOR: '1' }, { NO_COLOR: '' }, { NODE_DISABLE_COLORS: '1' }])(
+            'does not use colours for a TTY when %o is set',
+            env => {
+                expect(shouldUseColor({ isTTY: true }, env)).toBe(false);
+            },
+        );
+
+        it.each(['1', 'true', '3'])('forces colours when FORCE_COLOR=%s, even with NO_COLOR', value => {
+            expect(shouldUseColor({ isTTY: false }, { FORCE_COLOR: value, NO_COLOR: '1' })).toBe(true);
+        });
+
+        it.each(['0', 'false'])('turns colours off when FORCE_COLOR=%s', value => {
+            expect(shouldUseColor({ isTTY: true }, { FORCE_COLOR: value })).toBe(false);
         });
     });
 

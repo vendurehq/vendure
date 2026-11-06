@@ -19,6 +19,7 @@ import * as tar from 'tar';
 import {
     CONCURRENTLY_VERSION,
     DEFAULT_PROJECT_VERSION,
+    NESTJS_GRAPHQL_VERSION,
     OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
@@ -387,7 +388,7 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];
     }
-    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType), ...getNpmOverrides(pmInfo) };
 }
 
 /**
@@ -404,7 +405,23 @@ export function getSingleProjectPackageJson(
         private: true,
         scripts: getServerPackageScripts(),
     };
-    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType), ...getNpmOverrides(pmInfo) };
+}
+
+/**
+ * Returns the `overrides` field for npm projects. `@nestjs/graphql` declares an optional peer
+ * dependency on `typescript@^5.5.0 || ^6.0.0`, so with TypeScript 7 in the project, npm either
+ * refuses to install it as a direct dependency (ERESOLVE) or nests it out of reach of the
+ * project's plugins. Overriding its TypeScript peer with the project's TypeScript range lets npm
+ * keep a single copy at the top of node_modules. The range is a literal rather than a
+ * `$typescript` reference, as TypeScript is only installed after the dependencies.
+ * See NESTJS_GRAPHQL_VERSION.
+ */
+export function getNpmOverrides(pmInfo: PackageManagerInfo): Record<string, unknown> {
+    if (pmInfo.name !== 'npm') {
+        return {};
+    }
+    return { overrides: { '@nestjs/graphql': { typescript: TYPESCRIPT_VERSION } } };
 }
 
 /**
@@ -601,6 +618,8 @@ export function getDependencies(
         // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
         // node-modules linker), so declare it directly for pnpm only. See #4960.
         ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
+        // See NESTJS_GRAPHQL_VERSION: keeps npm from nesting it when the project uses TypeScript 7.
+        ...(packageManager === 'npm' ? [`@nestjs/graphql@${NESTJS_GRAPHQL_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [

@@ -1,11 +1,16 @@
 import { TYPESCRIPT_VERSION_RANGE } from '@vendure/common/lib/shared-constants';
-import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import semver from 'semver';
 import { ScriptTarget } from 'typescript/ast';
 import type { CompilerOptions } from 'typescript/sync';
 
+import {
+    compilesWithTypeScript7,
+    getBuildTypeScriptVersion,
+    getInstalledTypeScriptVersion,
+    TYPESCRIPT_7_UPGRADE_GUIDE_URL,
+} from '../../../shared/project-typescript';
 import {
     formatTsDiagnostics,
     getTsConfigProgramErrors,
@@ -28,12 +33,14 @@ const TSCONFIG_CANDIDATES = [
 const INSTALL_HINT = `Install it with e.g. npm install -D "typescript@${TYPESCRIPT_VERSION_RANGE}".`;
 
 /**
- * Checks that the project's tsconfig files work with TypeScript 7, which Vendure v4 uses
- * to build and run projects. TypeScript 7 rejects options that Vendure v3 projects commonly
- * use, such as `baseUrl` and `moduleResolution: "node"`, and requires an explicit `rootDir`
- * when `outDir` is set and the sources are in a subdirectory.
+ * Checks that the project's tsconfig files work with TypeScript 7, which Vendure v4 recommends.
+ * TypeScript 7 rejects options that Vendure v3 projects commonly use, such as `baseUrl` and
+ * `moduleResolution: "node"`, and requires an explicit `rootDir` when `outDir` is set and the
+ * sources are in a subdirectory. Such tsconfig files fail the check when the project compiles
+ * with TypeScript 7, as `vendure build` would fail too. Projects that stay on TypeScript 5.x can
+ * still build, so for them the check only warns.
  *
- * It also warns when the installed TypeScript version is not in the supported range, and
+ * It also warns when the installed TypeScript version is not in the recommended range, and
  * when a tsconfig enables `useDefineForClassFields`, which breaks Vendure entities.
  */
 export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
@@ -53,9 +60,19 @@ export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
     const warnings: string[] = [];
 
     const installedVersion = getInstalledTypeScriptVersion(projectDir);
+    // The TypeScript whose tsc `vendure build` runs: the project's own, or the CLI's as a fallback
+    const buildVersion = getBuildTypeScriptVersion(projectDir);
+    const requiresTypeScript7Config = compilesWithTypeScript7(buildVersion);
     if (!installedVersion) {
         warnings.push('TypeScript is not installed');
         details.push(`The "typescript" package is not installed. ${INSTALL_HINT}`);
+    } else if (!compilesWithTypeScript7(installedVersion)) {
+        warnings.push(`TypeScript ${installedVersion} is installed; TypeScript 7 is recommended`);
+        details.push(
+            `TypeScript ${installedVersion} is installed. Vendure v4 still builds projects on TypeScript 5.x, ` +
+                `but recommends "${TYPESCRIPT_VERSION_RANGE}"; \`vendure build\` skips its TypeScript 7 ` +
+                `tsconfig checks. ${INSTALL_HINT} See ${TYPESCRIPT_7_UPGRADE_GUIDE_URL}`,
+        );
     } else if (!semver.satisfies(installedVersion, TYPESCRIPT_VERSION_RANGE)) {
         warnings.push(`TypeScript ${installedVersion} is not supported`);
         details.push(
@@ -87,10 +104,12 @@ export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
                 incompatible.push(relativePath);
                 // Plain formatting: the details are also emitted in the JSON report
                 details.push(`${relativePath}:`, formatTsDiagnostics(errors, { color: false }).trim());
-                continue;
+            } else {
+                details.push(`${relativePath} is compatible with TypeScript 7`);
             }
-            details.push(`${relativePath} is compatible with TypeScript 7`);
-            if (usesDefineForClassFields(parseTsConfigFile(tsconfigPath).options)) {
+            // Also checked for tsconfig files that TypeScript 7 rejects: a project that stays on
+            // TypeScript 5.x still builds with them, and is affected in the same way.
+            if (usesDefineForClassFields(parseTsConfigFile(tsconfigPath).options, buildVersion)) {
                 warnings.push(`${relativePath} enables useDefineForClassFields`);
                 details.push(
                     `${relativePath} enables "useDefineForClassFields" (explicitly, or through a "target" of ` +
@@ -107,12 +126,16 @@ export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
 
     if (incompatible.length) {
         details.push(TSCONFIG_MIGRATION_HINT);
-        return {
-            name: 'TypeScript',
-            status: 'fail',
-            message: `${incompatible.join(', ')} not compatible with TypeScript 7`,
-            details,
-        };
+        if (requiresTypeScript7Config) {
+            // `vendure build` would fail on these, as the project compiles with TypeScript 7
+            return {
+                name: 'TypeScript',
+                status: 'fail',
+                message: `${incompatible.join(', ')} not compatible with TypeScript 7`,
+                details,
+            };
+        }
+        warnings.push(`${incompatible.join(', ')} need changes before upgrading to TypeScript 7`);
     }
 
     return {
@@ -125,22 +148,18 @@ export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
 
 /**
  * Whether the compiler options make class fields use [[Define]] semantics. When the
- * option is not set, TypeScript enables it for a target of ES2022 or later, and TypeScript 7
- * defaults to a target later than ES2022.
+ * option is not set, TypeScript enables it for a target of ES2022 or later. Without a
+ * `target`, TypeScript 7 defaults to a target later than ES2022, and TypeScript 5.x to ES5.
+ *
+ * @param typescriptVersion - the version of the TypeScript that compiles the project.
+ *   Unknown versions are treated as TypeScript 7.
  */
-export function usesDefineForClassFields(options: CompilerOptions): boolean {
+export function usesDefineForClassFields(options: CompilerOptions, typescriptVersion?: string): boolean {
     if (options.useDefineForClassFields != null) {
         return options.useDefineForClassFields;
     }
-    return options.target == null || Number(options.target) >= Number(ScriptTarget.ES2022);
-}
-
-function getInstalledTypeScriptVersion(projectDir: string): string | undefined {
-    try {
-        const projectRequire = createRequire(path.join(projectDir, 'package.json'));
-        const packageJsonPath = projectRequire.resolve('typescript/package.json');
-        return (JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { version: string }).version;
-    } catch {
-        return undefined;
+    if (options.target == null) {
+        return compilesWithTypeScript7(typescriptVersion);
     }
+    return Number(options.target) >= Number(ScriptTarget.ES2022);
 }

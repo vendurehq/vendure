@@ -1,0 +1,10 @@
+{
+    "name": "@vendure-internal/cli-e2e-ts5-project",
+    "version": "0.0.0",
+    "private": true,
+    "description": "A project that stays on TypeScript 5.x. Used by the @vendure/cli e2e tests to check that `vendure build` works with it. It is a workspace package (see the root package.json), so that it gets its own TypeScript 5 install, nested in its node_modules.",
+    "devDependencies": {
+        "@vendure/core": "workspace:*",
+        "typescript": "5.8.2"
+    }
+}

@@ -79,8 +79,15 @@ Older `unplugin-swc` versions only turn off esbuild, which Vite 8 no longer uses
 
 ### TypeScript 7
 
-Vendure v4 builds and runs projects with TypeScript 7, the native TypeScript compiler. New projects are set up for it
-automatically. To upgrade an existing v3 project:
+Vendure v4 recommends TypeScript 7, the native TypeScript compiler, which compiles projects many times faster.
+New projects are set up for it automatically. TypeScript 7 is not required, though: projects can stay on
+TypeScript 5.x (see [Staying on TypeScript 5.x](#staying-on-typescript-5x)).
+
+`@vendure/cli` and `@vendure/dashboard` bring their own TypeScript 7, which they use internally: to run your
+TypeScript files in `vendure dev`, to check tsconfig files, and to compile your Vendure config for the Dashboard.
+This adds about 32 MB to your install, unless your project uses the same TypeScript version.
+
+#### Moving to TypeScript 7
 
 1. Update the `typescript` dev dependency to `"7.1.0-beta || ~7.1.0"`. This is the range that `@vendure/cli` and
    `@vendure/dashboard` use, so your project only installs one copy of TypeScript.
@@ -120,11 +127,36 @@ automatically. To upgrade an existing v3 project:
 
    Run `npx vendure doctor --check typescript` to list any remaining problems. `vendure build` also checks your
    tsconfig files before compiling.
-3. **ts-node is no longer supported**, because it cannot run on TypeScript 7. Remove it from your dependencies.
+
+3. **If you use npm**, add `@nestjs/graphql` as a dependency, with the same range as `@vendure/core`, and override
+   its TypeScript peer dependency. `@nestjs/graphql` declares an optional peer dependency on TypeScript 5 or 6, so
+   with TypeScript 7 in your project npm installs it under `node_modules/@vendure/core/node_modules`, where the
+   Dashboard plugin and your own GraphQL resolvers can no longer import it (`Cannot find module '@nestjs/graphql'`).
+   New projects created with npm include this. pnpm, Yarn and Bun are not affected.
+
+   ```diff title="package.json"
+   {
+     "dependencies": {
+   +   "@nestjs/graphql": "~14.0.0",
+       // ...
+     },
+   + "overrides": {
+   +   "@nestjs/graphql": {
+   +     "typescript": "7.1.0-beta || ~7.1.0"
+   +   }
+   + }
+   }
+   ```
+
+#### Changes for all projects
+
+1. **The Vendure CLI no longer uses ts-node**, which cannot run on TypeScript 7.
    `vendure dev`, `vendure migrate` and the other CLI commands now run your TypeScript files with a require hook
    provided by `@vendure/cli`, which keeps decorator metadata (used by Vendure's dependency injection and entities)
    and registers the `paths` from your tsconfig automatically, so you no longer need `tsconfig-paths/register`.
-   To run your own TypeScript scripts, replace `ts-node` with `node --require @vendure/cli/register`:
+   It works with TypeScript 5.x tsconfig files too. To run your own TypeScript scripts, replace `ts-node` with
+   `node --require @vendure/cli/register`, and remove ts-node from your dependencies (projects on TypeScript 5.x
+   can keep using ts-node for their own scripts):
 
    ```diff title="package.json"
    {
@@ -139,12 +171,35 @@ automatically. To upgrade an existing v3 project:
 
    The hook uses the nearest `tsconfig.json` to the current working directory. Set the `VENDURE_TSCONFIG`
    environment variable to use a different one.
-4. **`vendure dev` no longer type-checks your code.** In v3 it ran your server with ts-node, which reported type
+2. **`vendure dev` no longer type-checks your code.** In v3 it ran your server with ts-node, which reported type
    errors when the server started. The new hook compiles each file without type checking, like ts-node's
    `transpileOnly` mode, so a type error no longer stops the server. Check types with your editor, with
    `npx tsc --noEmit --watch` in a separate terminal, or with `vendure build`, which type-checks before emitting.
-5. The `--experimental-tsgo` option of `vendure build` is deprecated and has no effect, since TypeScript 7 is now
-   always used.
+3. The `--experimental-tsgo` option of `vendure build` is deprecated and has no effect. `vendure build` runs your
+   project's own `tsc`, which is the native compiler from TypeScript 7 onwards.
+
+#### Staying on TypeScript 5.x
+
+If your project can't move to TypeScript 7 yet, for example because it shares its TypeScript version with the
+rest of a monorepo, keep its `typescript` dependency and tsconfig files as they are. Vendure's type declarations
+are built with TypeScript 7 and work with TypeScript 5.4 and later.
+
+`vendure build` runs your project's own `tsc`. The TypeScript 7 tsconfig checks described above only run when that
+is TypeScript 7 or later. Otherwise the build logs that it skips them. The `useDefineForClassFields` advice above
+still applies if your tsconfig sets a `target` of ES2022 or later.
+
+A project on TypeScript 5.x gives up:
+
+- **Build speed.** TypeScript 7 compiles about 9 times faster (measured on `@vendure/core`: 4.9s with TypeScript
+  5.8, 0.5s with TypeScript 7).
+- **One TypeScript install.** Your project installs both its own TypeScript 5.x and the TypeScript 7 that
+  `@vendure/cli` and `@vendure/dashboard` use internally.
+- **Early warning about TypeScript 7.** `vendure doctor` warns that TypeScript 7 is recommended, and lists the
+  tsconfig changes that it needs, but `vendure build` does not check for them.
+
+`vendure dev` and the other CLI commands compile your TypeScript files with the CLI's own TypeScript 7, using the
+options from your tsconfig. They work with TypeScript 5.x tsconfig files, including `baseUrl` and
+`"moduleResolution": "node"`.
 
 ## Versioning Policy & Breaking changes
 
