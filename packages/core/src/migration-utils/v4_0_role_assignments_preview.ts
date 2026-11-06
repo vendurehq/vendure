@@ -392,7 +392,7 @@ export async function previewRoleAssignmentMigration(
         })),
         rolesBecomingShared: [...rolesBecomingShared.values()].map(role => ({
             ...role,
-            channelCodes: role.channelCodes.sort(),
+            channelCodes: role.channelCodes.sort((a, b) => a.localeCompare(b)),
         })),
     };
 }

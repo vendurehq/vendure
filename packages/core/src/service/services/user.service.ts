@@ -276,7 +276,7 @@ export class UserService {
      * IMPORTANT: The caller is responsible for granting the User its Roles via
      * {@link RoleAssignmentService} before a session is created for it.
      */
-    async createApiKeyUser(ctx: RequestContext, identifier: string): Promise<User> {
+    createApiKeyUser(ctx: RequestContext, identifier: string): Promise<User> {
         return this.connection.getRepository(ctx, User).save(new User({ identifier }));
     }
 

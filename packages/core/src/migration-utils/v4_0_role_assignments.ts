@@ -610,7 +610,7 @@ export async function assertRoleAssignmentDataMigrated(queryRunner: QueryRunner)
  * Whether the pre-v4 `user_roles_role` table still exists, that is,
  * {@link removeLegacyRoleData} has not run yet.
  */
-export async function hasLegacyRoleTables(queryRunner: QueryRunner): Promise<boolean> {
+export function hasLegacyRoleTables(queryRunner: QueryRunner): Promise<boolean> {
     return queryRunner.hasTable(getTableNames(queryRunner).userRoles);
 }
 
@@ -776,11 +776,11 @@ const MAX_FETCHED_MISMATCHES = 500;
 function getExtraGrantsQuery(
     queryRunner: QueryRunner,
     sources: SourceTables,
-    options: { copiedOnly: boolean } = { copiedOnly: false },
+    { copiedOnly = false }: { copiedOnly?: boolean } = {},
 ): string {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const t = getTableNames(queryRunner);
-    const copiedOnlyJoin = options.copiedOnly
+    const copiedOnlyJoin = copiedOnly
         ? `INNER JOIN ${escTable(queryRunner, t.copyRecord)} m ON ra.${esc('createdAt')} <= m.${esc('copiedAt')}`
         : '';
     return `SELECT ra.${esc('id')} AS ${esc('id')}, ra.${esc('userId')} AS ${esc('userId')},
