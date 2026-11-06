@@ -1,10 +1,13 @@
 import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import { DEFAULT_APIKEY_HEADER_KEY } from '@vendure/common/lib/shared-constants';
 import {
+    ChannelService,
+    Customer,
     DefaultCachePlugin,
     InMemorySessionCacheStrategy,
     mergeConfig,
     RedisCachePlugin,
+    RequestContextService,
     VendureConfig,
 } from '@vendure/core';
 import {
@@ -28,7 +31,9 @@ import {
     createChannelDocument,
     createRoleDocument,
     getAdministratorsDocument,
+    getCustomerListDocument,
     getProductListDocument,
+    MeDocument,
     removeRolesFromUserDocument,
     updateProductDocument,
 } from './graphql/shared-definitions';
@@ -119,7 +124,7 @@ describe('Role assignment changes reach live sessions with each session cache', 
                 ...variant.config,
                 authOptions: { ...variant.config.authOptions, tokenMethod: ['bearer', 'api-key'] },
             });
-            const { server, adminClient } = createTestEnvironment(config);
+            const { server, adminClient, shopClient } = createTestEnvironment(config);
             const adminApiUrl = `http://localhost:${config.apiOptions.port}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
             // The administrator under test keeps a live session here while adminClient, as the
             // SuperAdmin, changes its assignments.
@@ -271,6 +276,50 @@ describe('Role assignment changes reach live sessions with each session cache', 
                 expect(administrators.totalItems).toBeGreaterThan(0);
 
                 await revoke(victim.userId, adminReaderRoleId);
+            });
+
+            // A Customer holds Authenticated on the Channels it is a member of. The first visit to
+            // a Channel assigns the Customer and re-serializes the cached session
+            // (SessionService.setActiveChannel); leaving the Channel evicts it.
+            it('a customer gains Authenticated on a channel on their first visit', async () => {
+                const { customers } = await adminClient.query(getCustomerListDocument, {
+                    options: { take: 1 },
+                });
+                const customer = customers.items[0];
+                await shopClient.asUserWithCredentials(customer.emailAddress, PASSWORD);
+                shopClient.setChannelToken(B_TOKEN);
+
+                const { me } = await shopClient.query(MeDocument);
+                expect(me?.channels.map(c => c.token)).toContain(B_TOKEN);
+            });
+
+            it('removing the customer from the channel is effective on the next request', async () => {
+                const { customers } = await adminClient.query(getCustomerListDocument, {
+                    options: { take: 1 },
+                });
+                const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+                const channelService = server.app.get(ChannelService);
+                const channelB = await channelService.getChannelFromToken(B_TOKEN);
+                await channelService.removeFromChannels(
+                    ctx,
+                    Customer,
+                    customers.items[0].id.replace('T_', ''),
+                    [channelB.id],
+                );
+
+                // The eviction runs after the transaction commits, so allow it a moment
+                let denied = false;
+                for (let attempt = 0; attempt < 20 && !denied; attempt++) {
+                    denied = await shopClient.query(MeDocument).then(
+                        () => false,
+                        (e: Error) => e.message.includes(FORBIDDEN),
+                    );
+                    if (!denied) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+                expect(denied).toBe(true);
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             });
         });
     }
