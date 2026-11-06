@@ -1,6 +1,7 @@
+import { RoleAssignmentInput } from '@vendure/common/lib/generated-types';
+
 import { RequestContext } from '../../api/common/request-context';
 import { User } from '../../entity/user/user.entity';
-import { RoleChannelPair } from '../../service/services/role-assignment.service';
 import { VendureEvent } from '../vendure-event';
 
 /**
@@ -30,7 +31,7 @@ export class RoleAssignmentEvent extends VendureEvent {
     constructor(
         public ctx: RequestContext,
         public user: User,
-        public assignments: RoleChannelPair[],
+        public assignments: RoleAssignmentInput[],
         public type: 'assigned' | 'removed',
     ) {
         super();

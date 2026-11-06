@@ -5,7 +5,6 @@ import {
 import {
     AuthenticationResult as AdminAuthenticationResult,
     CurrentUser,
-    CurrentUserChannel,
     MutationAuthenticateArgs,
     MutationLoginArgs,
     Success,
@@ -165,7 +164,7 @@ export class BaseAuthResolver {
         return {
             id: user.id,
             identifier: user.identifier,
-            channels: channels as CurrentUserChannel[],
+            channels,
         };
     }
 }

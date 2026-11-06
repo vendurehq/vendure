@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Permission } from '@vendure/common/lib/generated-types';
+import { Permission, RoleAssignmentInput } from '@vendure/common/lib/generated-types';
 import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
@@ -21,8 +21,8 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
@@ -30,20 +30,6 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { withLockIfSupported } from '../helpers/utils/with-lock-if-supported';
 
 import { RoleService } from './role.service';
-
-/**
- * @description
- * A `(roleId, channelId)` pair identifying the grant of a Role on a Channel, as taken by
- * {@link RoleAssignmentService.assign} and {@link RoleAssignmentService.remove}.
- *
- * @docsCategory services
- * @docsPage RoleAssignmentService
- * @since 4.0.0
- */
-export interface RoleChannelPair {
-    roleId: ID;
-    channelId: ID;
-}
 
 /**
  * @description
@@ -110,7 +96,6 @@ export class RoleAssignmentService {
      * operate over the visible rows only.
      *
      * @param userIdProperty the property of the query's main alias which holds the User id
-     * @since 4.0.0
      */
     async restrictToManageableUsers<E extends ObjectLiteral>(
         ctx: RequestContext,
@@ -173,8 +158,6 @@ export class RoleAssignmentService {
      * remove: all of them if the active user has authority over the User
      * ({@link activeUserCanManageUser}), none otherwise, as in {@link findAll}. This is what
      * `User.roleAssignments` resolves to in the Admin API.
-     *
-     * @since 4.0.0
      */
     async getGrantableAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<RoleAssignment[]> {
         const assignments = await this.getAssignmentsForUser(ctx, userId);
@@ -192,8 +175,6 @@ export class RoleAssignmentService {
      * ({@link RoleService.canGrant}) every RoleAssignment the User holds. A User holding no
      * assignments is in anyone's authority, and a SuperAdmin target is in a SuperAdmin's only.
      * This decides which Administrators the active user may see, update and delete.
-     *
-     * @since 4.0.0
      */
     async activeUserCanManageUser(ctx: RequestContext, userId: ID): Promise<boolean> {
         const assignments = await this.getAssignmentsForUser(ctx, userId);
@@ -236,8 +217,6 @@ export class RoleAssignmentService {
      * would miss the other transaction's committed write. Call it inside the transaction
      * which performs the write. On SQLite locks are not supported; SQLite serializes writes
      * itself.
-     *
-     * @since 4.0.0
      */
     async isSoleSuperAdminHolder(ctx: RequestContext, userId: ID): Promise<boolean> {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
@@ -279,9 +258,8 @@ export class RoleAssignmentService {
      *
      * @throws {EntityNotFoundError} if the User, a Role or a Channel does not exist
      * @throws {UserInputError} if the active user may not grant one of the pairs
-     * @since 4.0.0
      */
-    async assign(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<RoleAssignment[]> {
+    async assign(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]): Promise<RoleAssignment[]> {
         const allChannels = await this.connection.getRepository(ctx, Channel).find();
         const target = await this.anchorSuperAdminPairs(ctx, pairs);
         await this.roleService.assertActiveUserCanGrantRoles(ctx, target);
@@ -321,9 +299,8 @@ export class RoleAssignmentService {
      * @throws {EntityNotFoundError} if the User or a Role does not exist
      * @throws {UserInputError} if the active user may not grant one of the pairs
      * @throws {InternalServerError} if a pair names the SuperAdmin Role and the User is the sole SuperAdmin
-     * @since 4.0.0
      */
-    async remove(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<RoleAssignment[]> {
+    async remove(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]): Promise<RoleAssignment[]> {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         const target = await this.anchorSuperAdminPairs(ctx, pairs);
         await this.roleService.assertActiveUserCanGrantRoles(ctx, target);
@@ -373,9 +350,12 @@ export class RoleAssignmentService {
      * over it
      * @throws {ForbiddenError} if the active user lacks the update permission on the active
      * Channel or on the Channel of one of the pairs
-     * @since 4.0.0
      */
-    async assertManageableSubject(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
+    async assertManageableSubject(
+        ctx: RequestContext,
+        userId: ID,
+        pairs: RoleAssignmentInput[],
+    ): Promise<void> {
         const permission = await this.getSubjectUpdatePermission(ctx, userId);
         if (!(await this.activeUserCanManageUser(ctx, userId))) {
             throw new EntityNotFoundError('User', userId);
@@ -396,7 +376,6 @@ export class RoleAssignmentService {
      * assignments.
      *
      * @throws {ForbiddenError} if the active user lacks the permission on one of the Channels
-     * @since 4.0.0
      */
     assertActiveUserHasPermissionOnChannels(
         ctx: RequestContext,
@@ -449,12 +428,11 @@ export class RoleAssignmentService {
      *
      * @throws {UserInputError} if a pair names the SuperAdmin Role or a Channel the key does not
      * belong to
-     * @since 4.0.0
      */
     async assertValidApiKeyGrants(
         ctx: RequestContext,
         apiKeyChannelIds: ID[],
-        pairs: RoleChannelPair[],
+        pairs: RoleAssignmentInput[],
     ): Promise<void> {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         if (pairs.some(pair => idsAreEqual(pair.roleId, superAdminRole.id))) {
@@ -515,9 +493,8 @@ export class RoleAssignmentService {
      *
      * @throws {EntityNotFoundError} if the User does not exist
      * @throws {IllegalOperationError} if a pair names the legacy Customer role
-     * @since 4.0.0
      */
-    async createAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
+    async createAssignments(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]): Promise<void> {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const repository = this.connection.getRepository(ctx, RoleAssignment);
         const existing = await repository.find({ where: { userId } });
@@ -545,9 +522,8 @@ export class RoleAssignmentService {
      * Channel removes the User's SuperAdmin row, as in {@link remove}.
      *
      * @throws {EntityNotFoundError} if the User does not exist
-     * @since 4.0.0
      */
-    async deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
+    async deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleAssignmentInput[]): Promise<void> {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const existing = await this.getAssignmentsForUser(ctx, userId);
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
@@ -560,7 +536,7 @@ export class RoleAssignmentService {
      * predate the anchoring in {@link createAssignments} may name another Channel than the
      * default one.
      */
-    private selectRows(rows: RoleAssignment[], pairs: RoleChannelPair[], superAdminRoleId: ID) {
+    private selectRows(rows: RoleAssignment[], pairs: RoleAssignmentInput[], superAdminRoleId: ID) {
         const removesSuperAdmin = pairs.some(pair => idsAreEqual(pair.roleId, superAdminRoleId));
         return rows.filter(
             assignment =>
@@ -581,7 +557,6 @@ export class RoleAssignmentService {
      * assigned on (see {@link RoleService}) and so keep gating the Role for live administrators.
      *
      * @throws {EntityNotFoundError} if the User does not exist
-     * @since 4.0.0
      */
     async removeAllAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<void> {
         const user = await this.connection.getEntityOrThrow(ctx, User, userId);
@@ -599,8 +574,6 @@ export class RoleAssignmentService {
      * Performs no authorization and no sole-SuperAdmin guard: this is the primitive behind
      * the Channel delete. The SuperAdmin row lives on the default Channel, which cannot be
      * deleted.
-     *
-     * @since 4.0.0
      */
     async removeAllAssignmentsOnChannel(ctx: RequestContext, channelId: ID): Promise<void> {
         const rows = await this.connection
@@ -617,8 +590,6 @@ export class RoleAssignmentService {
      *
      * Performs no authorization and no sole-SuperAdmin guard: this is the primitive behind the
      * Role delete, which refuses the system Roles.
-     *
-     * @since 4.0.0
      */
     async removeAllAssignmentsOfRole(ctx: RequestContext, roleId: ID): Promise<void> {
         const rows = await this.connection
@@ -654,7 +625,10 @@ export class RoleAssignmentService {
      * Customer permissions from channel memberships, and an assignment of the role would make
      * `removeLegacyRoleData()` refuse to delete it.
      */
-    private async assertNoLegacyCustomerRole(ctx: RequestContext, pairs: RoleChannelPair[]): Promise<void> {
+    private async assertNoLegacyCustomerRole(
+        ctx: RequestContext,
+        pairs: RoleAssignmentInput[],
+    ): Promise<void> {
         const customerRole = await this.connection
             .getRepository(ctx, Role)
             .findOne({ where: { code: CUSTOMER_ROLE_CODE } });
@@ -663,13 +637,13 @@ export class RoleAssignmentService {
         }
     }
 
-    private matches(assignment: RoleAssignment, pair: RoleChannelPair): boolean {
+    private matches(assignment: RoleAssignment, pair: RoleAssignmentInput): boolean {
         return (
             idsAreEqual(assignment.roleId, pair.roleId) && idsAreEqual(assignment.channelId, pair.channelId)
         );
     }
 
-    private dedupePairs(pairs: RoleChannelPair[]): RoleChannelPair[] {
+    private dedupePairs(pairs: RoleAssignmentInput[]): RoleAssignmentInput[] {
         return pairs.filter(
             (pair, index) =>
                 pairs.findIndex(
@@ -687,8 +661,8 @@ export class RoleAssignmentService {
      */
     private async anchorSuperAdminPairs(
         ctx: RequestContext,
-        pairs: RoleChannelPair[],
-    ): Promise<RoleChannelPair[]> {
+        pairs: RoleAssignmentInput[],
+    ): Promise<RoleAssignmentInput[]> {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         if (!pairs.some(pair => idsAreEqual(pair.roleId, superAdminRole.id))) {
             return this.dedupePairs(pairs);

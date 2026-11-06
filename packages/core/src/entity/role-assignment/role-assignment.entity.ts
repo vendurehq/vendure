@@ -24,6 +24,7 @@ import { User } from '../user/user.entity';
  * SuperAdmin pair on any Channel to the default-channel row.
  *
  * @docsCategory entities
+ * @since 4.0.0
  */
 @Entity()
 @Unique('IDX_ROLE_ASSIGNMENT_USER_ROLE_CHANNEL', ['user', 'role', 'channel'])

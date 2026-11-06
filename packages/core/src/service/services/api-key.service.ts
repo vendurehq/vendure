@@ -5,6 +5,7 @@ import {
     DeletionResponse,
     DeletionResult,
     Permission,
+    RoleAssignmentInput,
     RotateApiKeyResult,
     UpdateApiKeyInput,
 } from '@vendure/common/lib/generated-types';
@@ -37,7 +38,7 @@ import { TranslatorService } from '../helpers/translator/translator.service';
 import { getRequestedRoleAssignments } from '../helpers/utils/requested-role-assignments';
 
 import { ChannelService } from './channel.service';
-import { RoleAssignmentService, RoleChannelPair } from './role-assignment.service';
+import { RoleAssignmentService } from './role-assignment.service';
 import { RoleService } from './role.service';
 import { SessionService } from './session.service';
 import { UserService } from './user.service';
@@ -282,7 +283,7 @@ export class ApiKeyService {
      */
     private assertNoRoleInputsForImpersonatedUser(input: {
         roleIds?: ID[] | null;
-        roleAssignments?: RoleChannelPair[] | null;
+        roleAssignments?: RoleAssignmentInput[] | null;
     }) {
         if (input.roleIds || input.roleAssignments) {
             throw new UserInputError('error.api-key-impersonated-user-cannot-receive-roles');

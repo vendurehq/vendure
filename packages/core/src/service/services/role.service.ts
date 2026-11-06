@@ -5,6 +5,7 @@ import {
     DeletionResponse,
     DeletionResult,
     Permission,
+    RoleAssignmentInput,
     UpdateRoleInput,
 } from '@vendure/common/lib/generated-types';
 import {
@@ -31,8 +32,8 @@ import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { EventBus } from '../../event-bus';
 import { RoleEvent } from '../../event-bus/events/role-event';
 import { hasLegacyRoleTables } from '../../migration-utils/v4_0_role_assignments';
@@ -44,8 +45,6 @@ import {
 } from '../helpers/role-permission-resolver/role-permission-resolver';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { withLockIfSupported } from '../helpers/utils/with-lock-if-supported';
-
-import { RoleChannelPair } from './role-assignment.service';
 
 /**
  * @description
@@ -422,7 +421,7 @@ export class RoleService {
      * @throws {UserInputError} if the active user may not grant one of the pairs
      * @since 4.0.0
      */
-    async assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleChannelPair[]): Promise<void> {
+    async assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleAssignmentInput[]): Promise<void> {
         if (pairs.length === 0) {
             return;
         }

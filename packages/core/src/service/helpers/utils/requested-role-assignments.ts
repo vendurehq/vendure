@@ -1,8 +1,8 @@
+import { RoleAssignmentInput } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { UserInputError } from '../../../common/error/errors';
-import { RoleChannelPair } from '../../services/role-assignment.service';
 
 /**
  * Returns the grants a create input requests: its `roleAssignments`, or for the deprecated
@@ -11,8 +11,8 @@ import { RoleChannelPair } from '../../services/role-assignment.service';
  */
 export function getRequestedRoleAssignments(
     ctx: RequestContext,
-    input: { roleIds?: ID[] | null; roleAssignments?: RoleChannelPair[] | null },
-): RoleChannelPair[] {
+    input: { roleIds?: ID[] | null; roleAssignments?: RoleAssignmentInput[] | null },
+): RoleAssignmentInput[] {
     if (input.roleIds && input.roleAssignments) {
         throw new UserInputError('error.role-ids-and-role-assignments-are-mutually-exclusive');
     }
