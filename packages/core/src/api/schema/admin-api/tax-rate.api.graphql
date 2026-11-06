@@ -23,7 +23,7 @@ input TaxRateFilterParameter {
 input TaxRateListOptions
 
 input CreateTaxRateInput {
-    name: String!
+    name: String! @nonBlank
     enabled: Boolean!
     value: Float!
     categoryId: ID!
@@ -33,7 +33,7 @@ input CreateTaxRateInput {
 
 input UpdateTaxRateInput {
     id: ID!
-    name: String
+    name: String @nonBlank
     value: Float
     enabled: Boolean
     categoryId: ID

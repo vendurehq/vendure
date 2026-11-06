@@ -43,16 +43,16 @@ input MoveCollectionInput {
 
 input CreateCollectionTranslationInput {
     languageCode: LanguageCode!
-    name: String!
-    slug: String!
+    name: String! @nonBlank
+    slug: String! @nonBlank
     description: String!
 }
 
 input UpdateCollectionTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
-    slug: String
+    name: String @nonBlank
+    slug: String @nonBlank
     description: String
 }
 

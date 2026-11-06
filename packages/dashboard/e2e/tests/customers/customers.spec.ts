@@ -19,6 +19,29 @@ createCrudTestSuite({
     updateFields: [{ label: 'Last name', value: 'TestCustomerUpdated' }],
 });
 
+// #5080 - a whitespace-only first name must be rejected by the form instead of being saved
+test('should block creating a customer with a blank first name', async ({ page }) => {
+    await page.goto('/customers/new');
+    const firstName = page
+        .getByRole('main')
+        .locator('[data-slot="field"]')
+        .filter({ has: page.locator('[data-slot="field-label"]').getByText('First name', { exact: true }) })
+        .getByRole('textbox');
+    await firstName.fill('   ');
+
+    let createSent = false;
+    page.on('request', req => {
+        if ((req.postData() ?? '').includes('mutation CreateCustomer(')) {
+            createSent = true;
+        }
+    });
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+    expect(await firstName.evaluate((el: HTMLInputElement) => el.validity.valid)).toBe(false);
+    await expect(page).toHaveURL(/\/customers\/new$/);
+    expect(createSent).toBe(false);
+});
+
 // #4997 — the history timeline must refresh after updating the customer,
 // without requiring a full page reload
 test('should show new history entries after updating the customer', async ({ page }) => {

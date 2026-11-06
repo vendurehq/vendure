@@ -27,12 +27,12 @@ input SellerTranslationInput {
 }
 
 input CreateSellerInput {
-    name: String!
+    name: String! @nonBlank
     translations: [SellerTranslationInput!]
 }
 
 input UpdateSellerInput {
     id: ID!
-    name: String
+    name: String @nonBlank
     translations: [SellerTranslationInput!]
 }

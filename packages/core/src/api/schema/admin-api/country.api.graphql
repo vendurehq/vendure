@@ -20,11 +20,11 @@ type Mutation {
 input CountryTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateCountryInput {
-    code: String!
+    code: String! @nonBlank
     translations: [CountryTranslationInput!]!
     enabled: Boolean!
 }
@@ -32,7 +32,7 @@ input CreateCountryInput {
 
 input UpdateCountryInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     translations: [CountryTranslationInput!]
     enabled: Boolean
 }

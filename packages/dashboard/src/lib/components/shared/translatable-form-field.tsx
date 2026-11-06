@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { isNonBlankField } from '@/vdb/framework/form-engine/non-blank-fields.js';
 import { OverriddenFormComponent } from '@/vdb/framework/form-engine/overridden-form-component.js';
 import { LocationWrapper } from '@/vdb/framework/layout-engine/location-wrapper.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -160,8 +161,9 @@ export const TranslatableFormFieldWrapper = <
     const { name, render, ...rest } = controllerProps;
     const { activeChannel } = useChannel();
     const { contentLanguage } = useUserSettings().settings;
-    const { watch } = useFormContext();
+    const { watch, control } = useFormContext();
     const translations = watch('translations');
+    const nonBlank = isNonBlankField(rest.control ?? control, `translations.${String(name)}`);
     const defaultLanguageCode = activeChannel?.defaultLanguageCode;
 
     const fallbackPlaceholder = useMemo(
@@ -190,7 +192,7 @@ export const TranslatableFormFieldWrapper = <
                             {label && <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>}
                             <OverriddenFormComponent field={renderArgs.field} fieldName={name as string}>
                                 {renderFormControl
-                                    ? applyControlProps(render(renderArgs), controlProps)
+                                    ? applyControlProps(render(renderArgs), controlProps, nonBlank)
                                     : render(renderArgs)}
                             </OverriddenFormComponent>
                             {description && <FieldDescription>{description}</FieldDescription>}

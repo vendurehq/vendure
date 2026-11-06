@@ -44,41 +44,41 @@ type ProductOptionList implements PaginatedList {
 input ProductOptionGroupTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateProductOptionGroupInput {
-    code: String!
+    code: String! @nonBlank
     translations: [ProductOptionGroupTranslationInput!]!
     options: [CreateGroupOptionInput!]
 }
 
 input UpdateProductOptionGroupInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     translations: [ProductOptionGroupTranslationInput!]
 }
 
 input ProductOptionTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateGroupOptionInput {
-    code: String!
+    code: String! @nonBlank
     translations: [ProductOptionGroupTranslationInput!]!
 }
 
 input CreateProductOptionInput {
     productOptionGroupId: ID!
-    code: String!
+    code: String! @nonBlank
     translations: [ProductOptionGroupTranslationInput!]!
 }
 
 input UpdateProductOptionInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     translations: [ProductOptionGroupTranslationInput!]
 }
 

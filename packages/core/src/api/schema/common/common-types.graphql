@@ -6,6 +6,11 @@ scalar Upload
 # Our custom scalars
 scalar Money
 
+"""
+A string input field marked with this directive must not be empty or whitespace-only when it is provided.
+"""
+directive @nonBlank on INPUT_FIELD_DEFINITION
+
 interface PaginatedList {
     items: [Node!]!
     totalItems: Int!
@@ -195,10 +200,10 @@ input SearchResultSortParameter {
 
 input CreateCustomerInput {
     title: String
-    firstName: String!
-    lastName: String!
+    firstName: String! @nonBlank
+    lastName: String! @nonBlank
     phoneNumber: String
-    emailAddress: String!
+    emailAddress: String! @nonBlank
 }
 
 """
@@ -211,7 +216,7 @@ If an invalid code is passed, the mutation will fail.
 input CreateAddressInput {
     fullName: String
     company: String
-    streetLine1: String!
+    streetLine1: String! @nonBlank
     streetLine2: String
     city: String
     province: String
@@ -233,7 +238,7 @@ input UpdateAddressInput {
     id: ID!
     fullName: String
     company: String
-    streetLine1: String
+    streetLine1: String @nonBlank
     streetLine2: String
     city: String
     province: String

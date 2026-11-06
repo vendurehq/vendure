@@ -32,11 +32,11 @@ type Mutation {
 }
 
 input CreateZoneInput {
-    name: String!
+    name: String! @nonBlank
     memberIds: [ID!]
 }
 
 input UpdateZoneInput {
     id: ID!
-    name: String
+    name: String @nonBlank
 }
