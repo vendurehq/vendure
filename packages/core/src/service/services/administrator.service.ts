@@ -7,7 +7,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { IsNull, NotBrackets, SelectQueryBuilder } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -27,7 +27,6 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
@@ -182,7 +181,9 @@ export class AdministratorService {
             where: { deletedAt: IsNull() },
             ctx,
         });
-        await this.restrictToManageableAdministrators(ctx, qb);
+        // Restricted to the Administrators the active user has authority over, in the query so that
+        // totalItems, sorting, filtering and pagination operate over the visible ones only.
+        await this.roleAssignmentService.restrictToManageableUsers(ctx, qb, 'userId');
         const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
     }
@@ -504,50 +505,6 @@ export class AdministratorService {
         return {
             result: DeletionResult.DELETED,
         };
-    }
-
-    /**
-     * Restricts a list query to the Administrators the active user has authority over, by the
-     * rule of {@link RoleAssignmentService.activeUserCanManageUser}. The restriction is applied
-     * to the query rather than to its result, so that `totalItems`, sorting, filtering and
-     * pagination all operate over the visible Administrators only.
-     */
-    private async restrictToManageableAdministrators(
-        ctx: RequestContext,
-        qb: SelectQueryBuilder<Administrator>,
-    ) {
-        // canGrant holds for every pair for a SuperAdmin, so the sub-query below would exclude
-        // nobody. This early return only saves the query.
-        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
-            return;
-        }
-        const grantable = await this.roleService.getGrantableChannelIdsByRole(ctx);
-        // An Administrator is excluded as soon as they hold a single assignment the active user
-        // may not grant. A sub-query is used rather than a join on the main query, so that the
-        // Administrator rows are not duplicated by their assignments.
-        qb.andWhere(outerQb => {
-            const hiddenAdministratorsQuery = outerQb
-                .subQuery()
-                .select('hidden_administrator.id')
-                .from(Administrator, 'hidden_administrator')
-                .innerJoin('hidden_administrator.user', 'hidden_user')
-                .innerJoin(RoleAssignment, 'hidden_assignment', 'hidden_assignment.userId = hidden_user.id');
-            // With nothing grantable, every assignment is hidden, so no condition is needed.
-            if (grantable.length) {
-                hiddenAdministratorsQuery.where(
-                    new NotBrackets(grantableQb => {
-                        grantable.forEach(({ roleId, channelIds }, i) => {
-                            grantableQb.orWhere(
-                                `(hidden_assignment.roleId = :grantableRole${i} AND hidden_assignment.channelId IN (:...grantableChannels${i}))`,
-                                { [`grantableRole${i}`]: roleId, [`grantableChannels${i}`]: channelIds },
-                            );
-                        });
-                    }),
-                );
-            }
-            const administratorId = `${outerQb.escape(outerQb.alias)}.${outerQb.escape('id')}`;
-            return `${administratorId} NOT IN ${hiddenAdministratorsQuery.getQuery()}`;
-        });
     }
 
     /**

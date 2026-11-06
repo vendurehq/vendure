@@ -122,12 +122,13 @@ export class RoleAssignmentService {
         qb: SelectQueryBuilder<E>,
         userIdProperty = 'userId',
     ): Promise<void> {
+        // A SuperAdmin may grant every assignment. This early return only saves the query.
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            return;
+        }
         const grantable = await this.roleService.getGrantableChannelIdsByRole(ctx);
         const roleCount = await this.connection.getRepository(ctx, Role).count();
-        const channelCount = await this.connection.getRepository(ctx, Channel).count();
-        const grantsEverything =
-            grantable.length === roleCount && grantable.every(g => g.channelIds.length === channelCount);
-        if (grantsEverything) {
+        if (grantable.length === roleCount && grantable.every(g => g.everywhere)) {
             return;
         }
         qb.andWhere(outerQb => {
@@ -139,11 +140,20 @@ export class RoleAssignmentService {
             if (grantable.length) {
                 ungrantableQuery.where(
                     new NotBrackets(grantableQb => {
-                        grantable.forEach(({ roleId, channelIds }, i) => {
-                            grantableQb.orWhere(
-                                `(ungrantable.roleId = :grantableRole${i} AND ungrantable.channelId IN (:...grantableChannels${i}))`,
-                                { [`grantableRole${i}`]: roleId, [`grantableChannels${i}`]: channelIds },
-                            );
+                        // A Role grantable on every Channel it may be assigned on needs no Channel
+                        // list, which keeps the parameter count down on instances with many
+                        // Channels.
+                        grantable.forEach(({ roleId, channelIds, everywhere }, i) => {
+                            if (everywhere) {
+                                grantableQb.orWhere(`ungrantable.roleId = :grantableRole${i}`, {
+                                    [`grantableRole${i}`]: roleId,
+                                });
+                            } else {
+                                grantableQb.orWhere(
+                                    `(ungrantable.roleId = :grantableRole${i} AND ungrantable.channelId IN (:...grantableChannels${i}))`,
+                                    { [`grantableRole${i}`]: roleId, [`grantableChannels${i}`]: channelIds },
+                                );
+                            }
                         });
                     }),
                 );

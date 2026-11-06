@@ -389,7 +389,12 @@ export class RoleService {
      * @since 4.0.0
      */
     async canGrant(ctx: RequestContext, roleId: ID, channelId: ID): Promise<boolean> {
-        const role = await this.connection.getRepository(ctx, Role).findOne({ where: { id: roleId } });
+        // Cached for the request: authority checks call this once per assignment of a User.
+        const role = await this.requestContextCache.get(
+            ctx,
+            `RoleService.canGrant.role(${String(roleId)})`,
+            () => this.connection.getRepository(ctx, Role).findOne({ where: { id: roleId } }),
+        );
         if (!role) {
             return false;
         }
@@ -437,26 +442,40 @@ export class RoleService {
      * @description
      * Evaluates {@link canGrant} over every Role and every Channel: for each Role the active
      * user may grant somewhere, the ids of the Channels they may grant it on. Roles the
-     * active user may grant nowhere are absent. This is the batch form of `canGrant` behind
-     * the filtered assignment list ({@link RoleAssignmentService.findAll}).
+     * active user may grant nowhere are absent. `everywhere` is true when the Role is grantable
+     * on every Channel it may be assigned on, so that a query can match the Role without listing
+     * the Channels. This is the batch form of `canGrant` behind the filtered assignment list
+     * ({@link RoleAssignmentService.findAll}).
      *
      * @since 4.0.0
      */
     async getGrantableChannelIdsByRole(
         ctx: RequestContext,
-    ): Promise<Array<{ roleId: ID; channelIds: ID[] }>> {
+    ): Promise<Array<{ roleId: ID; channelIds: ID[]; everywhere: boolean }>> {
         const roles = await this.connection.getRepository(ctx, Role).find();
         const channels = await this.connection.getRepository(ctx, Channel).find();
-        const result: Array<{ roleId: ID; channelIds: ID[] }> = [];
+        const defaultChannelId = await this.getDefaultChannelId(ctx);
+        const result: Array<{ roleId: ID; channelIds: ID[]; everywhere: boolean }> = [];
         for (const role of roles) {
+            if (role.channelId == null) {
+                continue;
+            }
+            // A Role owned by a Channel other than the default one can only be assigned there
+            const assignableChannelIds = idsAreEqual(role.channelId, defaultChannelId)
+                ? channels.map(channel => channel.id)
+                : [role.channelId];
             const channelIds: ID[] = [];
-            for (const channel of channels) {
-                if (await this.roleIsGrantableOnChannel(ctx, role, channel.id)) {
-                    channelIds.push(channel.id);
+            for (const channelId of assignableChannelIds) {
+                if (await this.roleIsGrantableOnChannel(ctx, role, channelId)) {
+                    channelIds.push(channelId);
                 }
             }
             if (channelIds.length) {
-                result.push({ roleId: role.id, channelIds });
+                result.push({
+                    roleId: role.id,
+                    channelIds,
+                    everywhere: channelIds.length === assignableChannelIds.length,
+                });
             }
         }
         return result;
