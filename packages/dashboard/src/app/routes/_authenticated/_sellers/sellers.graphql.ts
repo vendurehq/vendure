@@ -28,6 +28,10 @@ export const sellerDetailDocument = graphql(
         query SellerDetail($id: ID!) {
             seller(id: $id) {
                 ...SellerItem
+                translations {
+                    id
+                    languageCode
+                }
                 customFields
             }
         }

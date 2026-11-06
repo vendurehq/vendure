@@ -26,7 +26,7 @@ import { CollectionService, FacetService } from '../../../service';
 import { FacetValueService } from '../../../service/services/facet-value.service';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
-import { isFieldInSelection } from '../../common/is-field-in-selection';
+import { getVariantCountCollectionIds } from '../../common/get-variant-count-collection-ids';
 import { RequestContext } from '../../common/request-context';
 import { RelationPaths, Relations } from '../../decorators/relations.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
@@ -91,8 +91,8 @@ export class ShopProductsResolver {
         const collections = await this.collectionService.findAll(ctx, options, relations);
         // Cache the variant counts query promise if productVariantCount is requested,
         // allowing the DB query to start before the field resolvers are called
-        if (isFieldInSelection(info, 'productVariantCount')) {
-            const collectionIds = collections.items.map(c => c.id);
+        const collectionIds = getVariantCountCollectionIds(info, collections.items);
+        if (collectionIds) {
             const countsPromise = this.collectionService.getProductVariantCounts(ctx, collectionIds);
             this.requestContextCache.set(ctx, CacheKey.CollectionVariantCounts, countsPromise);
         }

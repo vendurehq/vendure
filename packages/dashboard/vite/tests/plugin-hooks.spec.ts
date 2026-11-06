@@ -1,3 +1,7 @@
+import { VendurePlugin, VendurePluginMetadata } from '@vendure/core';
+import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
 import { pathToFileURL } from 'node:url';
 import path from 'path';
 import type { Plugin } from 'vite';
@@ -146,6 +150,21 @@ describe('themeVariablesPlugin', () => {
         expect(result).toContain('--background: navy;');
     });
 
+    it('preserves custom brand and brand-foreground overrides', () => {
+        const plugin = themeVariablesPlugin({
+            theme: {
+                light: {
+                    brand: 'oklch(0.55 0.18 240)',
+                    'brand-foreground': 'oklch(0.98 0.01 240)',
+                },
+            },
+        });
+        const css = `@import 'virtual:admin-theme';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--brand: oklch(0.55 0.18 240);');
+        expect(result).toContain('--brand-foreground: oklch(0.98 0.01 240);');
+    });
+
     it('preserves surrounding CSS', () => {
         const plugin = themeVariablesPlugin({});
         const css = `.header { display: flex; }\n@import 'virtual:admin-theme';\n.footer { margin: 0; }`;
@@ -164,7 +183,8 @@ describe('themeVariablesPlugin', () => {
         expect(result).toContain('--shadow-sm:');
         expect(result).toContain('--font-sans: var(--font-sans);');
         expect(result).toContain('--color-dev-mode: var(--dev-mode);');
-        expect(result).toContain('--color-vendure-brand: #17c1ff;');
+        // `brand` is a published design-tokens v2 slot and is mapped automatically
+        expect(result).toContain('--color-brand: var(--brand);');
     });
 
     it('generates radius values directly from design tokens (not calc-based)', () => {
@@ -173,10 +193,10 @@ describe('themeVariablesPlugin', () => {
         const result = callTransform(plugin, css, '/app/styles.css');
         // All radius values should be direct token values, not calc() expressions
         expect(result).not.toContain('calc(');
-        expect(result).toContain('--radius-sm: 0.2rem;');
-        expect(result).toContain('--radius-md: 0.2rem;');
-        expect(result).toContain('--radius-lg: 0.2rem;');
-        expect(result).toContain('--radius-xl: 0.2rem;');
+        expect(result).toContain('--radius-sm: 0.125rem;');
+        expect(result).toContain('--radius-md: 0.25rem;');
+        expect(result).toContain('--radius-lg: 0.375rem;');
+        expect(result).toContain('--radius-xl: 0.5rem;');
     });
 
     it('handles both virtual imports in the same file', () => {
@@ -193,6 +213,53 @@ describe('themeVariablesPlugin', () => {
         const css = `@import "virtual:admin-theme-inline";`;
         const result = callTransform(plugin, css, '/app/styles.css');
         expect(result).toContain('@theme inline');
+    });
+
+    it('emits motion tokens (easing, duration, animation) inside the @theme inline block', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--ease-default: cubic-bezier(0.4, 0, 0.2, 1);');
+        expect(result).toContain('--transition-duration-fast: 100ms;');
+        expect(result).toContain('--animate-shimmer: shimmer 1.75s linear infinite;');
+    });
+
+    it('kebab-cases camelCase easing keys (inOut -> --ease-in-out)', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--ease-in-out:');
+        // The raw camelCase key must not leak through
+        expect(result).not.toContain('--ease-inOut');
+    });
+
+    it('emits top-level @keyframes blocks with kebab-cased CSS properties', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result: string = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('@keyframes shimmer {');
+        expect(result).toContain('background-position: -200% 0;');
+        expect(result).toContain('background-position: 200% 0;');
+        // camelCase property names must be converted
+        expect(result).not.toContain('backgroundPosition');
+        // @keyframes must be a top-level at-rule, not nested inside @theme inline
+        const themeStart = result.indexOf('@theme inline');
+        const themeBlock = result.slice(themeStart, themeStart + result.slice(themeStart).indexOf('}') + 1);
+        expect(themeBlock).not.toContain('@keyframes');
+    });
+
+    it('emits @utility text-style-* classes for the design-token text styles', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('@utility text-style-page-title {');
+        expect(result).toContain('@utility text-style-section-title {');
+        expect(result).toContain('@utility text-style-body {');
+        // Object props are rendered as kebab-cased declarations, not JS keys
+        expect(result).toContain('font-family:');
+        expect(result).toContain('font-weight:');
+        expect(result).not.toContain('fontFamily');
+        expect(result).not.toContain('fontWeight');
     });
 
     it('replaces virtual:vendure-user-styles with additionalStylesheets (single path)', () => {
@@ -386,6 +453,28 @@ describe('viteConfigPlugin', () => {
         expect(aliases['@/vdb']).toBeDefined();
     });
 
+    it('sets the @/gql alias to graphql.ts inside gqlOutputPath', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe(path.resolve('/fake/gql-output', 'graphql.ts'));
+    });
+
+    it('omits the @/gql alias when gqlOutputPath is not given', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect('@/gql' in aliases).toBe(false);
+    });
+
+    it('lets a @/gql alias from the user config override the default', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const config = { resolve: { alias: { '@/gql': '/user/gql/graphql.ts' } } };
+        const result = callConfig(plugin, config, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe('/user/gql/graphql.ts');
+    });
+
     it('sets optimizeDeps.exclude with virtual modules', () => {
         const plugin = viteConfigPlugin({ packageRoot });
         const result = callConfig(plugin, {}, { command: 'serve' });
@@ -406,6 +495,26 @@ describe('viteConfigPlugin', () => {
         const result = callConfig(plugin, { build: { outDir: 'my-output' } }, { command: 'build' });
         expect(path.isAbsolute(result.build.outDir)).toBe(true);
         expect(result.build.outDir).toBe(path.resolve(process.cwd(), 'my-output'));
+    });
+
+    // #4053 — NX sets root to the project dir and runs the build from the workspace root
+    it('build command: resolves relative outDir and default dist from the user root, not cwd', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const userRoot = path.join(process.cwd(), 'apps', 'admin');
+        const withOutDir = callConfig(
+            plugin,
+            { root: userRoot, build: { outDir: '../../dist/apps/admin' } },
+            { command: 'build' },
+        );
+        expect(withOutDir.build.outDir).toBe(path.join(process.cwd(), 'dist', 'apps', 'admin'));
+        const withDefault = callConfig(plugin, { root: userRoot }, { command: 'build' });
+        expect(withDefault.build.outDir).toBe(path.join(userRoot, 'dist'));
+        const withRelativeRoot = callConfig(
+            plugin,
+            { root: 'apps/admin', build: { outDir: 'out' } },
+            { command: 'build' },
+        );
+        expect(withRelativeRoot.build.outDir).toBe(path.resolve(process.cwd(), 'apps/admin/out'));
     });
 
     it('build command: preserves absolute outDir', () => {
@@ -503,6 +612,49 @@ describe('dashboardMetadataPlugin', () => {
         // Only one import
         expect((result.match(/await import/g) || []).length).toBe(1);
     });
+
+    // Extensions are dynamically imported, so Vite's cold-start crawl misses their
+    // dependencies; warming them at startup avoids a mid-boot re-optimization.
+    // POSIX only: the expected `/@fs/` URL is a literal path without a drive letter.
+    it.skipIf(process.platform === 'win32')(
+        'configureServer warms up active extension entries once the server is listening',
+        async () => {
+            const root = path.resolve('/project/node_modules/@vendure/dashboard');
+            const plugin = setupPlugin(
+                [
+                    {
+                        name: 'LocalPlugin',
+                        pluginPath: '/project/src/plugin.js',
+                        dashboardEntryPath: './ui.tsx',
+                    },
+                    {
+                        name: 'NoDashboard',
+                        pluginPath: '/project/src/other.js',
+                        dashboardEntryPath: undefined,
+                    },
+                    {
+                        name: 'InsideRoot',
+                        pluginPath: path.join(root, 'plugin/index.js'),
+                        dashboardEntryPath: './ui.tsx',
+                    },
+                ],
+                new Set(['LocalPlugin', 'NoDashboard', 'InsideRoot']),
+            );
+            const warmupRequest = vi.fn(() => Promise.resolve());
+            const httpServer = new EventEmitter();
+            (plugin.configureServer as (server: unknown) => void)({
+                config: { root },
+                environments: { client: { warmupRequest } },
+                httpServer,
+            });
+            // The deps optimizer is only initialized just before the server listens.
+            expect(warmupRequest).not.toHaveBeenCalled();
+            httpServer.emit('listening');
+            await vi.waitFor(() => expect(warmupRequest).toHaveBeenCalledTimes(2));
+            expect(warmupRequest).toHaveBeenCalledWith('/@fs/project/src/ui.tsx');
+            expect(warmupRequest).toHaveBeenCalledWith('/plugin/ui.tsx');
+        },
+    );
 
     it('load returns undefined for non-matching IDs', async () => {
         const plugin = setupPlugin([]);
@@ -673,15 +825,16 @@ describe('dashboardTailwindSourcePlugin', () => {
         expect(result.code.endsWith("';")).toBe(true);
     });
 
-    it('handles zero extensions (no @source directives)', async () => {
+    it('scans only the @vendure-io/ui source root when there are no extensions', async () => {
         const plugin = setupPlugin([]);
         const css = `@tailwind base;\n${markerComment}\n@tailwind components;`;
         const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
-        // The empty sources string is still spliced in, but no actual @source directive exists
-        const hasSourceDirective = result.code
+        const sourceLines: string[] = result.code
             .split('\n')
-            .some((l: string) => l.trimStart().startsWith("@source '"));
-        expect(hasSourceDirective).toBe(false);
+            .filter((line: string) => line.trimStart().startsWith("@source '"));
+
+        expect(sourceLines).toHaveLength(1);
+        expect(sourceLines[0].replaceAll(path.sep, '/')).toMatch(/\/@vendure-io\/ui\/src';$/);
     });
 
     // #4706 — Tailwind @source directives should only be emitted for plugins
@@ -743,21 +896,14 @@ describe('dashboardTailwindSourcePlugin', () => {
                 css,
                 '/some/app/extension-tailwind.css',
             );
-            expect(result.code).toContain(
-                `@source '${path.join(packageRoot, 'dist/bundle')}'`,
-            );
+            expect(result.code).toContain(`@source '${path.join(packageRoot, 'dist/bundle')}'`);
         });
 
         it('does NOT add bundle @source when transforming the regular styles.css (only extension-tailwind.css)', async () => {
             const packageRoot = '/fake/dashboard';
             const plugin = setupBundlePlugin([], packageRoot);
             const css = `@tailwind utilities;\n${markerComment}\n`;
-            const result = await callTransformWithContext(
-                plugin,
-                {},
-                css,
-                '/some/app/styles.css',
-            );
+            const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
             // Bundle source dir should not appear; styles.css is the source-mode entry
             expect(result.code).not.toContain('dist/bundle');
         });
@@ -786,11 +932,7 @@ describe('bundleEntryPlugin', () => {
      * This helper extracts the actual handler so we can call it consistently
      * with how Vite would.
      */
-    function callBundleEntryTransform(
-        plugin: Plugin,
-        html: string,
-        ctx: { filename: string },
-    ) {
+    function callBundleEntryTransform(plugin: Plugin, html: string, ctx: { filename: string }) {
         const hook = plugin.transformIndexHtml as
             | ((html: string, ctx: { filename: string }) => any)
             | { order?: 'pre' | 'post'; handler: (html: string, ctx: { filename: string }) => any };
@@ -875,9 +1017,35 @@ describe('viteConfigPlugin: useExperimentalBundle', () => {
         const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
-        expect(aliases['@vendure/dashboard']).toBe(
-            path.resolve(packageRoot, './dist/bundle/lib.js'),
-        );
+        expect(aliases['@vendure/dashboard']).toBe(path.resolve(packageRoot, './dist/bundle/lib.js'));
+    });
+
+    // A stale `lib.js` served from the browser's immutable cache alongside a fresh
+    // `main.js` loads two copies of the shared chunks, splitting React contexts.
+    it('with flag: versions the lib.js alias by bundle content so a changed bundle gets a new URL', () => {
+        const realRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vdb-bundle-'));
+        const libEntry = path.join(realRoot, 'dist/bundle/lib.js');
+        fs.mkdirSync(path.dirname(libEntry), { recursive: true });
+        const getAlias = () => {
+            const result = callConfig(
+                viteConfigPlugin({ packageRoot: realRoot, useExperimentalBundle: true }),
+                {},
+                { command: 'serve' },
+            );
+            return (result.resolve.alias as Record<string, string>)['@vendure/dashboard'];
+        };
+        try {
+            fs.writeFileSync(libEntry, 'export * from "./chunks/common-AAAA.js";');
+            const first = getAlias();
+            expect(first.startsWith(`${libEntry}?v=`)).toBe(true);
+            expect(first.slice(`${libEntry}?v=`.length)).toMatch(/^[0-9a-f]{8}$/);
+            expect(getAlias()).toBe(first);
+
+            fs.writeFileSync(libEntry, 'export * from "./chunks/common-BBBB.js";');
+            expect(getAlias()).not.toBe(first);
+        } finally {
+            fs.rmSync(realRoot, { recursive: true, force: true });
+        }
     });
 
     it('with flag: still keeps @/vdb and @/graphql aliases', () => {
@@ -886,6 +1054,21 @@ describe('viteConfigPlugin: useExperimentalBundle', () => {
         const aliases = result.resolve.alias as Record<string, string>;
         expect(aliases['@/vdb']).toBe(path.resolve(packageRoot, './src/lib'));
         expect(aliases['@/graphql']).toBe(path.resolve(packageRoot, './src/lib/graphql'));
+    });
+
+    // Otherwise the bundle gets a raw `@lingui/core` while extension code gets an
+    // optimized copy (two `i18n` singletons), and it is discovered late on cold start.
+    it('optimizeDeps.include pre-bundles the Lingui runtime in both modes', () => {
+        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        const on = callConfig(
+            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+            {},
+            { command: 'serve' },
+        );
+        for (const result of [off, on]) {
+            expect(result.optimizeDeps.include).toContain('@lingui/core');
+            expect(result.optimizeDeps.include).toContain('@lingui/react');
+        }
     });
 
     it('optimizeDeps.exclude always includes virtual:plugin-translations (regardless of flag)', () => {
@@ -965,5 +1148,53 @@ describe('filterActivePluginInfo', () => {
             plugins: [null as any, undefined as any, {} as any, makePluginClass('A')],
         });
         expect(result.map(p => p.name)).toEqual(['A']);
+    });
+
+    describe('composed plugins', () => {
+        function makeVendurePlugin(name: string, plugins: VendurePluginMetadata['plugins'] = []) {
+            const cls = makePluginClass(name);
+            VendurePlugin({ plugins })(cls);
+            return cls;
+        }
+
+        it('keeps a composed plugin when only the parent is in vendureConfig.plugins', () => {
+            const child = makeVendurePlugin('ChildPlugin');
+            const parent = makeVendurePlugin('ParentPlugin', [child]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('ChildPlugin'), makePluginInfo('ParentPlugin'), makePluginInfo('Other')],
+                { plugins: [parent] },
+            );
+            expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
+        });
+
+        it('follows composed plugins through nested DynamicModule entries', () => {
+            const grandChild = makeVendurePlugin('GrandChildPlugin');
+            const child = makeVendurePlugin('ChildPlugin', [{ module: grandChild }]);
+            const parent = makeVendurePlugin('ParentPlugin', [{ module: child }]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('GrandChildPlugin'), makePluginInfo('ChildPlugin')],
+                { plugins: [{ module: parent }] },
+            );
+            expect(result.map(p => p.name)).toEqual(['GrandChildPlugin', 'ChildPlugin']);
+        });
+
+        it('lists each plugin once when the composed plugin is also in vendureConfig.plugins', () => {
+            const child = makeVendurePlugin('ChildPlugin');
+            const parent = makeVendurePlugin('ParentPlugin', [child]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('ChildPlugin'), makePluginInfo('ParentPlugin')],
+                { plugins: [parent, child, parent] },
+            );
+            expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
+        });
+
+        it('stops at a plugin that composes itself', () => {
+            const selfComposing = makePluginClass('SelfComposingPlugin');
+            VendurePlugin({ plugins: [selfComposing] })(selfComposing);
+            const result = filterActivePluginInfo([makePluginInfo('SelfComposingPlugin')], {
+                plugins: [selfComposing],
+            });
+            expect(result.map(p => p.name)).toEqual(['SelfComposingPlugin']);
+        });
     });
 });

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { Mock, vi } from 'vitest';
 
 import { MockClass } from '../testing/testing-types';

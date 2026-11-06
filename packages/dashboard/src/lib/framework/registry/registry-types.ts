@@ -6,8 +6,10 @@ import {
     DashboardHistoryEntryComponent,
     DashboardLoginExtensions,
     DashboardPageBlockDefinition,
+    DashboardRefundDestinationDefinition,
     DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
+    DashboardWidgetFilterDefinition,
 } from '@/vdb/framework/extension-api/types/index.js';
 import { DashboardFormComponent } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { DocumentNode } from 'graphql';
@@ -16,6 +18,7 @@ import { DataDisplayComponent } from '../component-registry/component-registry.j
 import { DashboardAlertDefinition } from '../extension-api/types/alerts.js';
 import { DataTableDisplayComponent } from '../extension-api/types/data-table.js';
 import { NavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
+import { PlatformGrantedCapabilitiesStore } from '../platform-promotion/platform-granted-capabilities.js';
 
 export interface GlobalRegistryContents {
     extensionSourceChangeCallbacks: Set<() => void>;
@@ -24,6 +27,8 @@ export interface GlobalRegistryContents {
     dashboardActionBarItemRegistry: Map<string, DashboardActionBarItem[]>;
     dashboardPageBlockRegistry: Map<string, DashboardPageBlockDefinition[]>;
     dashboardWidgetRegistry: Map<string, DashboardWidgetDefinition>;
+    excludedDashboardWidgets: Set<string>;
+    dashboardWidgetFilterRegistry: Map<string, DashboardWidgetFilterDefinition>;
     dashboardAlertRegistry: Map<string, DashboardAlertDefinition>;
     inputComponents: Map<string, DashboardFormComponent>;
     displayComponents: Map<string, DataDisplayComponent | DataTableDisplayComponent>;
@@ -33,7 +38,9 @@ export interface GlobalRegistryContents {
     viewOptionDefaultsRegistry: Map<string, DashboardDataTableViewOptionDefaults>;
     loginExtensions: DashboardLoginExtensions;
     historyEntries: Map<string, DashboardHistoryEntryComponent['component']>;
+    refundDestinations: Map<string, DashboardRefundDestinationDefinition>;
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
     dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;
+    platformGrantedCapabilities: PlatformGrantedCapabilitiesStore;
 }

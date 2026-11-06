@@ -14,19 +14,92 @@ import {
     VisibilityState,
 } from '@tanstack/react-table';
 import { Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
 import {
     couponCodeSelectorPromotionListDocument,
     draftOrderEligibleShippingMethodsDocument,
     orderDetailDocument,
     orderLineFragment,
 } from '../orders.graphql.js';
+
 import { MoneyGrossNet } from './money-gross-net.js';
 import { OrderLineCustomFieldsForm } from './order-line-custom-fields-form.js';
 import { OrderTableTotals } from './order-table-totals.js';
 import { ShippingMethodSelector } from './shipping-method-selector.js';
 
 type OrderFragment = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
+
+function QuantityCell({
+    line,
+    onAdjustLine,
+    onRemoveLine,
+}: {
+    line: OrderLineFragment & { customFields?: Record<string, any> };
+    onAdjustLine: OrderTableProps['onAdjustLine'];
+    onRemoveLine: OrderTableProps['onRemoveLine'];
+}) {
+    const [localValue, setLocalValue] = useState<string>(String(line.quantity));
+
+    // Sync local value when server state changes (e.g. after mutation completes)
+    useEffect(() => {
+        setLocalValue(String(line.quantity));
+    }, [line.quantity]);
+
+    const commitValue = (removeOnZero: boolean) => {
+        const numValue = localValue === '' ? 0 : Number(localValue);
+        if (numValue <= 0 || Number.isNaN(numValue)) {
+            if (removeOnZero) {
+                onRemoveLine({ lineId: line.id });
+            } else {
+                // Revert to the server value on blur
+                setLocalValue(String(line.quantity));
+            }
+        } else if (numValue !== line.quantity) {
+            onAdjustLine({ lineId: line.id, quantity: numValue, customFields: line.customFields });
+        }
+    };
+
+    return (
+        <div className="flex gap-2">
+            <Input
+                type="number"
+                value={localValue}
+                min={0}
+                placeholder="0"
+                data-testid="order-line-quantity"
+                onChange={e => setLocalValue(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        commitValue(true);
+                    }
+                }}
+                onBlur={() => commitValue(false)}
+            />
+            <Button
+                variant="outline"
+                type="button"
+                size="icon"
+                onClick={() => onRemoveLine({ lineId: line.id })}
+            >
+                <Trash2 />
+            </Button>
+            {line.customFields && (
+                <OrderLineCustomFieldsForm
+                    onUpdate={customFields => {
+                        onAdjustLine({
+                            lineId: line.id,
+                            quantity: line.quantity,
+                            customFields,
+                        });
+                    }}
+                    value={line.customFields}
+                />
+            )}
+        </div>
+    );
+}
 type OrderLineFragment = ResultOf<typeof orderLineFragment>;
 
 type ShippingMethodQuote = ResultOf<
@@ -70,7 +143,7 @@ export function EditOrderTable({
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const { t } = useLingui();
     const currencyCode = order.currencyCode;
-    const columns: ColumnDef<OrderLineFragment & { customFields?: Record<string, any> }>[] = useMemo(
+    const columns: Array<ColumnDef<OrderLineFragment & { customFields?: Record<string, any> }>> = useMemo(
         () => [
             {
                 header: '',
@@ -110,49 +183,13 @@ export function EditOrderTable({
             {
                 header: t`Quantity`,
                 accessorKey: 'quantity',
-                cell: ({ row }) => {
-                    return (
-                        <div className="flex gap-2">
-                            <Input
-                                type="number"
-                                value={row.original.quantity}
-                                min={0}
-                                data-testid="order-line-quantity"
-                                onChange={e => {
-                                    const value = Number.isNaN(e.target.valueAsNumber)
-                                        ? 0
-                                        : e.target.valueAsNumber;
-                                    onAdjustLine({
-                                        lineId: row.original.id,
-                                        quantity: value,
-                                        customFields: row.original.customFields,
-                                    });
-                                }}
-                            />
-                            <Button
-                                variant="outline"
-                                type="button"
-                                size="icon"
-                                disabled={row.original.quantity === 0}
-                                onClick={() => onRemoveLine({ lineId: row.original.id })}
-                            >
-                                <Trash2 />
-                            </Button>
-                            {row.original.customFields && (
-                                <OrderLineCustomFieldsForm
-                                    onUpdate={customFields => {
-                                        onAdjustLine({
-                                            lineId: row.original.id,
-                                            quantity: row.original.quantity,
-                                            customFields: customFields,
-                                        });
-                                    }}
-                                    value={row.original.customFields}
-                                />
-                            )}
-                        </div>
-                    );
-                },
+                cell: ({ row }) => (
+                    <QuantityCell
+                        line={row.original}
+                        onAdjustLine={onAdjustLine}
+                        onRemoveLine={onRemoveLine}
+                    />
+                ),
             },
             {
                 header: t`Total`,

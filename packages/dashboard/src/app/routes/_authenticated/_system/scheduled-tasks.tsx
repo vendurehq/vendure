@@ -1,6 +1,5 @@
-import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
+import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     DropdownMenu,
@@ -8,6 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     FullWidthPageBlock,
     Page,
@@ -25,6 +25,18 @@ import { CirclePlay, EllipsisIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayloadDialog } from './components/payload-dialog.js';
 
+// A scheduled task's enablement and execution status. `running` means the task
+// is executing right now (progress — renders a pulsing dot). Enabled is the
+// expected default and stays calm; disabled is the exception worth spotting
+// (critical, matching BooleanDisplayBadge). Keys are the local flag values,
+// not wire states.
+const scheduledTaskStateDictionary = defineStateEntries({
+    enabled: { tone: 'neutral', defaultLabel: 'Enabled' },
+    disabled: { tone: 'critical', defaultLabel: 'Disabled' },
+    running: { tone: 'progress', defaultLabel: 'Running' },
+    idle: { tone: 'neutral', defaultLabel: 'Not Running' },
+});
+
 export const Route = createFileRoute('/_authenticated/_system/scheduled-tasks')({
     component: ScheduledTasksPage,
     loader: () => ({ breadcrumb: () => <Trans>Scheduled Tasks</Trans> }),
@@ -37,6 +49,7 @@ const getScheduledTasksDocument = graphql(`
             description
             schedule
             scheduleDescription
+            timezone
             lastExecutedAt
             nextExecutionAt
             isRunning
@@ -106,7 +119,11 @@ function ScheduledTasksPage() {
     const columns = [
         columnHelper.accessor('id', {
             header: t`ID`,
-            cell: ({ getValue }) => <CopyableText value={getValue()}><span className="font-mono">{getValue()}</span></CopyableText>,
+            cell: ({ getValue }) => (
+                <CopyableText value={getValue()}>
+                    <span className="font-mono">{getValue()}</span>
+                </CopyableText>
+            ),
         }),
         columnHelper.accessor('description', {
             header: t`Description`,
@@ -114,14 +131,14 @@ function ScheduledTasksPage() {
         columnHelper.accessor('enabled', {
             header: t`Enabled`,
             cell: ({ row }) => {
-                return row.original.enabled ? (
-                    <Badge variant="success">
-                        <Trans>Enabled</Trans>
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary">
-                        <Trans>Disabled</Trans>
-                    </Badge>
+                return (
+                    <StatusBadge
+                        tone={scheduledTaskStateDictionary.toneFor(
+                            row.original.enabled ? 'enabled' : 'disabled',
+                        )}
+                    >
+                        {row.original.enabled ? <Trans>Enabled</Trans> : <Trans>Disabled</Trans>}
+                    </StatusBadge>
                 );
             },
         }),
@@ -130,6 +147,14 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('scheduleDescription', {
             header: t`Schedule`,
+            cell: ({ row }) => (
+                <div>
+                    {row.original.scheduleDescription}
+                    {row.original.timezone && (
+                        <span className="text-muted-foreground"> ({row.original.timezone})</span>
+                    )}
+                </div>
+            ),
         }),
         columnHelper.accessor('lastExecutedAt', {
             header: t`Last Executed`,
@@ -156,14 +181,14 @@ function ScheduledTasksPage() {
         columnHelper.accessor('isRunning', {
             header: t`Running`,
             cell: ({ row }) => {
-                return row.original.isRunning ? (
-                    <Badge variant="success">
-                        <Trans>Running</Trans>
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary">
-                        <Trans>Not Running</Trans>
-                    </Badge>
+                return (
+                    <StatusBadge
+                        tone={scheduledTaskStateDictionary.toneFor(
+                            row.original.isRunning ? 'running' : 'idle',
+                        )}
+                    >
+                        {row.original.isRunning ? <Trans>Running</Trans> : <Trans>Not Running</Trans>}
+                    </StatusBadge>
                 );
             },
         }),

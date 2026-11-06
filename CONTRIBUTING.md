@@ -91,7 +91,7 @@ git push origin master
 ## Setting up the dev environment
 
 > [!IMPORTANT]
-> The following instructions are for those who want to develop the Vendure core framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
+> The following instructions are for those who want to develop the Vendure Framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
 ### Prerequisites
 
@@ -127,7 +127,7 @@ All the necessary infrastructure is defined in the root [docker-compose.yml](./d
 you will need to start a database, for example:
 
 ```bash
-docker-compose up -d mariadb
+docker compose up -d mariadb
 ```
 
 MariaDB/MySQL is the default that will be used by the dev server if you don't explicitly set the `DB` environment variable.
@@ -135,7 +135,7 @@ MariaDB/MySQL is the default that will be used by the dev server if you don't ex
 If for example you are doing development on the Elasticsearch plugin, you will also need to start the Elasticsearch container:
 
 ```bash
-docker-compose up -d elasticsearch
+docker compose up -d elasticsearch
 ```
 
 ### 4. Populate test data
@@ -156,7 +156,7 @@ If you want to develop against **PostgreSQL**:
 1. Run the `postgres_16` Docker container.
 
 ```bash
-docker-compose up -d postgres_16
+docker compose up -d postgres_16
 ```
 
 2. Create a .env file in `/packages/dev-server` and declare the `DB` variable inside it:
@@ -254,7 +254,7 @@ After implementing your changes, stage the changes and commit them. Refer to the
 
 ```
 git add .
-git commit -m "type(scope): Message in present tense"
+git commit -m "type(scope): message in present tense"
 ```
 
 ### Creating a pull request
@@ -334,8 +334,12 @@ myNewApi: number;
 This repo uses [Conventional Commits](https://www.conventionalcommits.org).
 
 ```
-type(scope): Message in present tense
+type(scope): message in present tense
 ```
+
+The subject must not start with a capital letter: `@commitlint/config-conventional` rejects sentence-case,
+start-case, pascal-case and upper-case subjects.
+
 `type` may be one of:
 * **feat** (new feature)
 * **fix** (bug fix)
@@ -359,7 +363,7 @@ type(scope): Message in present tense
 If a commit affects more than one package, separate them with a comma:
 
 ```
-fix(core,common): Fix the thing
+fix(core,common): fix the thing
 ```
 
 If a commit applies to no particular package (e.g. a tooling change in the root package.json), the scope can be omitted.
@@ -373,7 +377,7 @@ Please also make your pull request against the `major` branch rather than `maste
 Example:
 
 ```
-feat(core): Add new field to Customer
+feat(core): add new field to Customer
 
 Relates to #123. This commit adds the "foo" field to the Custom entity.
 
@@ -382,7 +386,8 @@ BREAKING CHANGE: A DB migration will be required in order to add the new "foo" f
 
 #### Linting
 
-Commit messages are linted on commit, so you'll know if your message is not quite right.
+Commit messages are linted on commit, so you'll know if your message is not quite right. Pull request titles are
+checked against the same format when a pull request is opened or its title is edited.
 
 ## Advanced Topics
 
@@ -424,7 +429,7 @@ To make a release:
 
 It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
-Next it will build all packages to ensure the distributed files are up to date.
+Next it will refresh the Platform catalog snapshot (`packages/common/src/platform-promotion-snapshot.ts`) from `https://api.vendure.io/v1/catalog`. The Dashboard build and the Core startup banner use this snapshot. Then it will build all packages to ensure the distributed files are up to date. Do not set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH` for a release. Check the output for `Platform catalog snapshot updated`. If it says `Platform catalog snapshot not changed`, the release keeps the old snapshot. After the command, `git show --stat HEAD` lists the snapshot file if the catalog data changed.
 
 Finally, the command will create changelog entries for this release and create a tagged commit.
 

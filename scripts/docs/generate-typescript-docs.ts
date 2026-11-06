@@ -23,6 +23,10 @@ const sections: DocsSectionConfig[] = [
         outputPath: '',
     },
     {
+        sourceDirs: ['packages/mcp-plugin/src/', 'packages/mcp-sdk/src/'],
+        outputPath: '',
+    },
+    {
         sourceDirs: ['packages/harden-plugin/src/'],
         outputPath: '',
     },

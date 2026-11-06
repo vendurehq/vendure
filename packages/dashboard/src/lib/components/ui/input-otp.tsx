@@ -1,1 +1,1 @@
-export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@vendure-io/ui/components/ui/input-otp';
+export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@vendure-io/ui/components/atoms/input-otp';

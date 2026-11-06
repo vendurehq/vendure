@@ -21,6 +21,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+
 import { addManualPaymentToOrderDocument, paymentMethodsDocument } from '../orders.graphql.js';
 import { Order } from '../utils/order-types.js';
 import { calculateOutstandingPaymentAmount } from '../utils/order-utils.js';
@@ -76,7 +77,7 @@ export function AddManualPaymentDialog({ order, onSuccess }: Readonly<AddManualP
                 input: {
                     orderId: order.id,
                     method: data.method,
-                    transactionId: data.transactionId,
+                    transactionId: data.transactionId || undefined,
                     metadata: {},
                 },
             });
@@ -120,7 +121,7 @@ export function AddManualPaymentDialog({ order, onSuccess }: Readonly<AddManualP
             >
                 <Trans>Add payment</Trans>
             </Button>
-            <Dialog open={open}>
+            <Dialog open={open} onOpenChange={open => !open && handleCancel()}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>
@@ -158,7 +159,6 @@ export function AddManualPaymentDialog({ order, onSuccess }: Readonly<AddManualP
                                 control={form.control}
                                 name="transactionId"
                                 label={<Trans>Transaction ID</Trans>}
-                                rules={{ required: t`Transaction ID is required` }}
                                 render={({ field }) => (
                                     <Input {...field} placeholder={t`Enter transaction ID`} />
                                 )}

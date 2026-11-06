@@ -1,6 +1,6 @@
 import { GraphQLTypesLoader } from '@nestjs/graphql';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
-import { buildSchema, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
+import { buildSchema, concatAST, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
 import path from 'path';
 
 import {
@@ -74,7 +74,7 @@ export async function getFinalVendureSchema(
     // Paths must be normalized to use forward-slash separators.
     // See https://github.com/nestjs/graphql/issues/336
     const normalizedPaths = typePaths.map(p => p.split(path.sep).join('/'));
-    const typeDefs = await typesLoader.mergeTypesByPaths(normalizedPaths);
+    const typeDefs = await mergeTypesByPathsCached(typesLoader, normalizedPaths);
     let schema = buildSchema(typeDefs);
     schema = buildSchemaFromVendureConfig(schema, config, apiType);
     if (options.output === 'sdl') {
@@ -82,6 +82,56 @@ export async function getFinalVendureSchema(
     } else {
         return schema;
     }
+}
+
+/**
+ * Plain code-unit ordering, deliberately not `localeCompare`: the goal is to
+ * reproduce the file ordering of the default `Array.sort()` that
+ * `GraphQLTypesLoader` applies to the globbed file paths, and `localeCompare`
+ * is locale-dependent and would diverge from it.
+ */
+function compareByCodeUnit(a: string, b: string): number {
+    if (a < b) {
+        return -1;
+    }
+    if (a > b) {
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Loads and merges type definitions with a per-glob-pattern cache, so that
+ * patterns shared between the shop and admin APIs (the `common` schema files)
+ * are only globbed, read and parsed once per process. Patterns are merged in
+ * sorted order to reproduce the file ordering of a single uncached
+ * `mergeTypesByPaths()` call over all patterns.
+ */
+const typeDefsCache = new Map<string, Promise<string | null>>();
+async function mergeTypesByPathsCached(typesLoader: GraphQLTypesLoader, paths: string[]): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { mergeTypeDefs } = require('@graphql-tools/merge');
+    const sortedPaths = [...paths].sort(compareByCodeUnit);
+    const parts = await Promise.all(
+        sortedPaths.map(async p => {
+            let cached = typeDefsCache.get(p);
+            if (!cached) {
+                cached = typesLoader.mergeTypesByPaths([p]);
+                typeDefsCache.set(p, cached);
+            }
+            return cached;
+        }),
+    );
+    // These options mirror the ones GraphQLTypesLoader.mergeTypesByPaths() uses
+    // internally, which is a private implementation detail of @nestjs/graphql.
+    // If an upgrade changes them there, the two merge passes here could diverge
+    // from a single uncached merge — verify with scripts/bootstrap-bench/dump-sdl.js
+    // when bumping @nestjs/graphql.
+    return mergeTypeDefs(parts.filter(notNullOrUndefined), {
+        throwOnConflict: true,
+        commentDescriptions: true,
+        reverseDirectives: true,
+    });
 }
 
 export function buildSchemaFromVendureConfig(
@@ -123,11 +173,13 @@ function extendSchemaWithPluginApiExtensions(
     plugins: RuntimeVendureConfig['plugins'],
     apiType: 'admin' | 'shop',
 ) {
-    getPluginAPIExtensions(plugins, apiType)
+    // All extension documents are evaluated against the un-extended schema and then
+    // merged into a single extendSchema() pass, since each full-schema rebuild is
+    // costly and would otherwise run once per plugin.
+    const documentNodes = getPluginAPIExtensions(plugins, apiType)
         .map(e => (typeof e.schema === 'function' ? e.schema(schema) : e.schema))
-        .filter(notNullOrUndefined)
-        .forEach(documentNode => (schema = extendSchema(schema, documentNode)));
-    return schema;
+        .filter(notNullOrUndefined);
+    return documentNodes.length ? extendSchema(schema, concatAST(documentNodes)) : schema;
 }
 
 export function isUsingDefaultEntityIdStrategy(entityIdStrategy: EntityIdStrategy<any>): boolean {

@@ -50,6 +50,8 @@ export default defineConfig({
             VITE_ADMIN_API_PORT: String(VENDURE_PORT),
             VITE_ADMIN_API_HOST: 'http://localhost',
             VENDURE_CONFIG_PATH: path.join(__dirname, 'fixtures/e2e-vendure-config.ts'),
+            // Build with the bundled Platform catalog snapshot, not the live catalog.
+            VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH: 'true',
         },
         timeout: 120_000,
     },

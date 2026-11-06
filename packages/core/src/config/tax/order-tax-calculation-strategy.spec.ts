@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { Order } from '../../entity/order/order.entity';
 import { ShippingLine } from '../../entity/shipping-line/shipping-line.entity';
 import { Surcharge } from '../../entity/surcharge/surcharge.entity';
 import { createOrder, createRequestContext, taxCategoryStandard } from '../../testing/order-test-utils';
@@ -112,6 +113,51 @@ describe('OrderTaxCalculationStrategy', () => {
             expect(totals.subTotal).toBe(100);
             expect(totals.subTotalWithTax).toBe(100);
             expect(taxSummary).toEqual([]);
+        });
+
+        it('returns zeroed totals and an empty summary when order relations are undefined', () => {
+            // An Order whose `lines`, `surcharges` and `shippingLines` relations have not
+            // been loaded exercises the `?? []` fallbacks in both methods.
+            const order = new Order({});
+
+            const totals = strategy.calculateOrderTotals(order);
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            expect(totals).toEqual({ subTotal: 0, subTotalWithTax: 0, shipping: 0, shippingWithTax: 0 });
+            expect(taxSummary).toEqual([]);
+        });
+
+        it('skips a line whose taxLines relation is undefined', () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            // taxLines undefined (relation not loaded) rather than an empty array:
+            // exercises the optional-chaining branch in `!line.taxLines?.length`.
+            order.lines[0].taxLines = undefined as any;
+
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            expect(taxSummary).toEqual([]);
+        });
+
+        it('produces a zero-tax summary row for a zero-rate tax line', () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 300, taxCategory: taxCategoryStandard, quantity: 2 }],
+            });
+            // taxRate 0 -> `proportionOfTotalRate` takes the `: 0` branch, avoiding
+            // a division by the zero total rate.
+            order.lines[0].taxLines = [{ taxRate: 0, description: 'zero-rate' }];
+
+            const totals = strategy.calculateOrderTotals(order);
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            expect(totals.subTotal).toBe(600);
+            expect(totals.subTotalWithTax).toBe(600);
+            expect(taxSummary).toEqual([{ description: 'zero-rate', taxRate: 0, taxBase: 600, taxTotal: 0 }]);
         });
     });
 
@@ -384,6 +430,18 @@ describe('OrderTaxCalculationStrategy', () => {
             const totals = strategy.calculateOrderTotals(order);
             const taxSummary = strategy.calculateTaxSummary(order);
             expect(totals.subTotal).toBe(100);
+            expect(taxSummary).toEqual([]);
+        });
+
+        it('returns zeroed totals and an empty summary when order relations are undefined', () => {
+            // Undefined `lines`, `surcharges` and `shippingLines` exercise the `?? []`
+            // fallbacks inside `groupOrder`.
+            const order = new Order({});
+
+            const totals = strategy.calculateOrderTotals(order);
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            expect(totals).toEqual({ subTotal: 0, subTotalWithTax: 0, shipping: 0, shippingWithTax: 0 });
             expect(taxSummary).toEqual([]);
         });
     });

@@ -17,6 +17,18 @@ import {
 import { isStringFieldWithOptions, isStructCustomFieldConfig } from '@/vdb/framework/form-engine/utils.js';
 import { z, ZodRawShape, ZodType, ZodTypeAny } from '@/vdb/lib/zod.js';
 
+/**
+ * Centralized validation messages for form schema generation.
+ * Provides consistent messaging across all form validations and enables future i18n support.
+ */
+const VALIDATION_MESSAGES = {
+    pattern: (pattern: string) => `Value must match pattern: ${pattern}`,
+    min: (min: number) => `Value must be at least ${min}`,
+    max: (max: number) => `Value must be at most ${max}`,
+    dateAfter: (date: string) => `Date must be after ${date}`,
+    dateBefore: (date: string) => `Date must be before ${date}`,
+} as const;
+
 function mapGraphQLCustomFieldToConfig(field: StructField) {
     const { __typename, ...rest } = field;
     const baseConfig: CustomFieldConfig = {
@@ -25,6 +37,7 @@ function mapGraphQLCustomFieldToConfig(field: StructField) {
         readonly: false,
         requiresPermission: [],
         nullable: true, // Default to true since GraphQL fields are nullable by default
+        secret: false, // struct sub-fields cannot be secret
     };
 
     switch (field.__typename) {
@@ -91,8 +104,8 @@ function createDateValidationSchema(minDate: Date | undefined, maxDate: Date | u
 
     const dateMinString = minDate?.toLocaleDateString() ?? '';
     const dateMaxString = maxDate?.toLocaleDateString() ?? '';
-    const dateMinMessage = minDate ? `Date must be after ${dateMinString}` : '';
-    const dateMaxMessage = maxDate ? `Date must be before ${dateMaxString}` : '';
+    const dateMinMessage = minDate ? VALIDATION_MESSAGES.dateAfter(dateMinString) : '';
+    const dateMaxMessage = maxDate ? VALIDATION_MESSAGES.dateBefore(dateMaxString) : '';
 
     return baseSchema.refine(
         val => {
@@ -122,7 +135,7 @@ function createStringValidationSchema(pattern?: string | null): ZodType {
     let schema = z.string();
     if (pattern) {
         schema = schema.regex(new RegExp(pattern), {
-            message: `Value must match pattern: ${pattern}`,
+            message: VALIDATION_MESSAGES.pattern(pattern),
         });
     }
     return schema;
@@ -140,12 +153,12 @@ function createNumberValidationSchema(min?: number | null, max?: number | null):
     let schema = z.number();
     if (min != null) {
         schema = schema.min(min, {
-            message: `Value must be at least ${min}`,
+            message: VALIDATION_MESSAGES.min(min),
         });
     }
     if (max != null) {
         schema = schema.max(max, {
-            message: `Value must be at most ${max}`,
+            message: VALIDATION_MESSAGES.max(max),
         });
     }
     return schema;
@@ -181,8 +194,9 @@ function createCustomFieldValidationSchema(customField: CustomFieldConfig): ZodT
             );
             break;
         case 'datetime': {
-            const minDate = parseDate((customField as DateTimeCustomFieldConfig).datetimeMin);
-            const maxDate = parseDate((customField as DateTimeCustomFieldConfig).datetimeMax);
+            const cf = customField as DateTimeCustomFieldConfig;
+            const minDate = parseDate(cf.datetimeMin);
+            const maxDate = parseDate(cf.datetimeMax);
             zodType = createDateValidationSchema(minDate, maxDate);
             break;
         }
@@ -234,17 +248,29 @@ function createStructFieldSchema(structFieldConfig: StructCustomFieldConfig): Zo
  * Many custom fields can be configured as lists (arrays) and/or nullable, so this helper
  * centralizes that logic to avoid duplication.
  *
+ * A create form also accepts an empty value for a `nullable: false` custom field (#5241). Every
+ * custom field is nullable in the GraphQL input type, so such a field is seeded `null`, and the
+ * create submit path strips that null from the payload (`stripNullNullableFields`). The server
+ * guarantees the field has a `defaultValue` backing the column's SQL DEFAULT, so the database
+ * supplies the value. The update schema keeps requiring one: the column is NOT NULL, so clearing
+ * the input must keep the form invalid, exactly as the server would reject that write.
+ *
  * @param zodType - The base Zod schema to modify
  * @param customField - Custom field config containing list/nullable flags
+ * @param isCreateForm - Whether the schema is for a create form (no entity yet)
  * @returns Modified Zod schema with list/nullable modifiers applied
  */
-function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldConfig): ZodType {
+function applyCustomFieldModifiers(
+    zodType: ZodType,
+    customField: CustomFieldConfig,
+    isCreateForm: boolean,
+): ZodType {
     let modifiedType = zodType;
 
     if (customField.list) {
         modifiedType = z.array(modifiedType);
     }
-    if (customField.nullable !== false) {
+    if (customField.nullable !== false || customField.readonly || isCreateForm) {
         modifiedType = modifiedType.optional().nullable();
     }
     if (customField.readonly) {
@@ -260,11 +286,13 @@ function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldCon
  *
  * @param customFieldConfigs - Array of all custom field configurations
  * @param isTranslationContext - Whether we're processing fields for translation forms
+ * @param isCreateForm - Whether the schema is for a create form (no entity yet)
  * @returns Zod schema shape for the entire customFields object
  */
 function processCustomFieldsSchema(
     customFieldConfigs: CustomFieldConfig[],
     isTranslationContext: boolean,
+    isCreateForm: boolean,
 ): ZodRawShape {
     const customFieldsSchema: ZodRawShape = {};
     const translatableTypes = ['localeString', 'localeText'];
@@ -286,7 +314,7 @@ function processCustomFieldsSchema(
             zodType = createCustomFieldValidationSchema(customField);
         }
 
-        zodType = applyCustomFieldModifiers(zodType, customField);
+        zodType = applyCustomFieldModifiers(zodType, customField, isCreateForm);
         const schemaPropertyName = getGraphQlInputName(customField);
         customFieldsSchema[schemaPropertyName] = zodType;
     }
@@ -298,6 +326,7 @@ export function createFormSchemaFromFields(
     fields: FieldInfo[],
     customFieldConfigs?: CustomFieldConfig[],
     isTranslationContext = false,
+    isCreateForm = false,
 ) {
     const schemaConfig: ZodRawShape = {};
 
@@ -310,7 +339,7 @@ export function createFormSchemaFromFields(
         } else if (field.name === 'customFields') {
             const customFieldsSchema =
                 customFieldConfigs && customFieldConfigs.length > 0
-                    ? processCustomFieldsSchema(customFieldConfigs, isTranslationContext)
+                    ? processCustomFieldsSchema(customFieldConfigs, isTranslationContext, isCreateForm)
                     : {};
             // Use .passthrough() to preserve custom field values that aren't in the schema
             // This is essential for nested entities (e.g., ProductVariantPrice) whose custom
@@ -322,6 +351,7 @@ export function createFormSchemaFromFields(
                 field.typeInfo,
                 customFieldConfigs,
                 isNestedTranslationContext,
+                isCreateForm,
             );
 
             if (field.nullable) {
@@ -486,6 +516,12 @@ export function getZodTypeFromField(field: FieldInfo): ZodTypeAny {
     // Custom fields are handled separately in createFormSchemaFromFields
 
     switch (field.type) {
+        // Required-ness cannot be inferred from the GraphQL type here, so none of these get a
+        // `min(1)`. `String!` means "not null", not "not empty" — an empty string is a valid
+        // value for e.g. `CollectionTranslationInput.description`. And a non-nullable `ID!` is
+        // not necessarily user-supplied: `CreateFacetValueInput.facetId` is injected by the page
+        // in `transformCreateInput`, so it is legitimately '' in the form.
+        // Pages declare their genuinely-required fields explicitly via `extendSchema`.
         case 'String':
         case 'ID':
         case 'DateTime':

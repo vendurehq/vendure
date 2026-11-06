@@ -74,10 +74,11 @@ export class LocalAssetStorageStrategy implements AssetStorageStrategy {
     }
 
     private filePathToIdentifier(filePath: string): string {
-        const filePathDirname = path.dirname(filePath);
-        const deltaDirname = filePathDirname.replace(this.uploadPath, '');
-        const identifier = path.join(deltaDirname, path.basename(filePath));
-        return identifier.replace(/^[\\/]+/, '');
+        // `path.relative` rather than stripping `uploadPath` as a literal substring, which
+        // misses when the configured path spells its separators differently from the joined
+        // one (`'C:/vendure/assets'` against `C:\vendure\assets\source\ab`) and leaves the
+        // whole upload path in the identifier.
+        return path.relative(this.uploadPath, filePath).split(path.sep).join('/');
     }
 
     private identifierToFilePath(identifier: string): string {

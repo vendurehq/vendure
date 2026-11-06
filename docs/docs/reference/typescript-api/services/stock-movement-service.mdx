@@ -2,7 +2,7 @@
 title: "StockMovementService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/stock-movement.service.ts" sourceLine="41" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-movement.service.ts" sourceLine="45" packageName="@vendure/core" />
 
 Contains methods relating to [StockMovement](/reference/typescript-api/entities/stock-movement#stockmovement) entities.
 
@@ -44,6 +44,15 @@ Returns a [PaginatedList](/reference/typescript-api/common/paginated-list#pagina
 
 Adjusts the stock level of the ProductVariant, creating a new [StockAdjustment](/reference/typescript-api/entities/stock-movement#stockadjustment) entity
 in the process.
+
+The `stockOnHand` of the input is absolute, but the write which applies it is a relative
+`stockOnHand + delta`, so the current value is read under a write lock held until the
+surrounding transaction commits. Two concurrent adjustments of the same ProductVariant
+therefore serialize, and the stored value is the one the later of the two asked for.
+
+When adjusting more than one ProductVariant in a transaction, call
+`StockLevelService.lockStockLevelsForVariants` for the whole set first, with
+`{ includeUntrackedVariants: true }`, so the locks are taken in the shared order.
 ### createAllocationsForOrder
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/entities/stock-movement#allocation'>Allocation</a>[]>`}   />

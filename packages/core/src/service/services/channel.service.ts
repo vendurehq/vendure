@@ -5,26 +5,32 @@ import {
     CurrencyCode,
     DeletionResponse,
     DeletionResult,
+    Permission,
     UpdateChannelInput,
     UpdateChannelResult,
 } from '@vendure/common/lib/generated-types';
-import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import {
+    CUSTOMER_ROLE_CODE,
+    DEFAULT_CHANNEL_CODE,
+    SUPER_ADMIN_ROLE_CODE,
+} from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { FindOptionsWhere } from 'typeorm';
+import { EntityManager, FindOptionsWhere, In, Repository } from 'typeorm';
 
 import { RelationPaths } from '../../api';
 import { RequestContext } from '../../api/common/request-context';
+import { TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
 import {
     ChannelNotFoundError,
     EntityNotFoundError,
+    ForbiddenError,
     InternalServerError,
     UserInputError,
 } from '../../common/error/errors';
 import { LanguageNotAvailableError } from '../../common/error/generated-graphql-admin-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { createSelfRefreshingCache, SelfRefreshingCache } from '../../common/self-refreshing-cache';
 import { ChannelAware, ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
@@ -34,6 +40,7 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Role } from '../../entity/role/role.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -42,9 +49,16 @@ import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event'
 import { ChannelEvent } from '../../event-bus/events/channel-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { isChannelAwareMetadata } from '../helpers/utils/is-channel-aware-metadata';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
+
+const TOKEN_CACHE_SIZE = 10_000;
+const MISS_CACHE_SIZE = 1_000;
+
+type CacheEntry<T> = { value: Promise<T>; expires: number; resolved?: boolean };
+
 /**
  * @description
  * Contains methods relating to {@link Channel} entities.
@@ -54,7 +68,22 @@ import { GlobalSettingsService } from './global-settings.service';
 @Injectable()
 @Instrument()
 export class ChannelService {
-    private allChannels: SelfRefreshingCache<Channel[], [RequestContext]>;
+    /**
+     * Channels are looked up on every request, so lookups by token, the default Channel and the
+     * Channel count are cached per process. Promises are cached so that concurrent misses share
+     * one query. Once resolved, unknown tokens move to a smaller cache of their own, so that a
+     * flood of them cannot evict the count or the default Channel, and can only evict known tokens
+     * while their query is in flight.
+     */
+    private countCache = new Map<string, CacheEntry<number>>();
+    private defaultChannelCache = new Map<string, CacheEntry<Channel | undefined>>();
+    private tokenCache = new Map<string, CacheEntry<Channel | undefined>>();
+    private missCache = new Map<string, CacheEntry<Channel | undefined>>();
+    /**
+     * Transactions which have created, updated or deleted a Channel. They skip the cache entirely
+     * until they end, because other requests may refill it from the committed data in the meantime.
+     */
+    private channelWriters = new WeakSet<EntityManager>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -63,50 +92,20 @@ export class ChannelService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
-    ) {}
+    ) {
+        // The caches are also cleared synchronously in create, update and delete, but that happens
+        // before the transaction commits. Events are published after the commit, so clearing again
+        // here drops anything another request cached from the old data in the meantime.
+        this.eventBus.ofType(ChannelEvent).subscribe(() => this.clearCache());
+    }
 
     /**
-     * When the app is bootstrapped, ensure a default Channel exists and populate the
-     * channel lookup array.
+     * When the app is bootstrapped, ensure a default Channel exists.
      *
      * @internal
      */
     async initChannels() {
         await this.ensureDefaultChannelExists();
-        await this.ensureCacheExists();
-    }
-
-    /**
-     * Creates a channels cache, that can be used to reduce number of channel queries to database
-     *
-     * @internal
-     */
-    async createCache(): Promise<SelfRefreshingCache<Channel[], [RequestContext]>> {
-        return createSelfRefreshingCache({
-            name: 'ChannelService.allChannels',
-            ttl: this.configService.entityOptions.channelCacheTtl,
-            refresh: {
-                fn: async ctx => {
-                    const result = await this.listQueryBuilder
-                        .build(
-                            Channel,
-                            {},
-                            {
-                                ctx,
-                                relations: ['defaultShippingZone', 'defaultTaxZone'],
-                                ignoreQueryLimits: true,
-                            },
-                        )
-                        .getManyAndCount()
-                        .then(([items, totalItems]) => ({
-                            items,
-                            totalItems,
-                        }));
-                    return result.items;
-                },
-                defaultArgs: [RequestContext.empty()],
-            },
-        });
     }
 
     /**
@@ -273,13 +272,25 @@ export class ChannelService {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             ctxOrToken instanceof RequestContext ? [ctxOrToken, token!] : [undefined, ctxOrToken];
 
-        const allChannels = await this.allChannels.value(ctx);
-
-        if (allChannels.length === 1 || channelToken === '') {
+        const channelCount = await this.cached(ctx, this.countCache, 'count', repository =>
+            repository.count(),
+        );
+        if (channelCount === 1 || channelToken === '') {
             // there is only the default channel, so return it
             return this.getDefaultChannel(ctx);
         }
-        const channel = allChannels.find(c => c.token === channelToken);
+        // Misses are cached too, so unknown tokens do not query the database on every request
+        const channel = await this.cached(
+            ctx,
+            this.tokenCache,
+            channelToken,
+            // The database collation may be case-insensitive (e.g. MySQL), but tokens must match exactly
+            repository =>
+                this.findChannel(repository, { token: channelToken }).then(result =>
+                    result?.token === channelToken ? result : undefined,
+                ),
+            { maxSize: TOKEN_CACHE_SIZE, missCache: this.missCache },
+        );
         if (!channel) {
             throw new ChannelNotFoundError(channelToken);
         }
@@ -291,8 +302,9 @@ export class ChannelService {
      * Returns the default Channel.
      */
     async getDefaultChannel(ctx?: RequestContext): Promise<Channel> {
-        const allChannels = await this.allChannels.value(ctx);
-        const defaultChannel = allChannels.find(channel => channel.code === DEFAULT_CHANNEL_CODE);
+        const defaultChannel = await this.cached(ctx, this.defaultChannelCache, 'default', repository =>
+            this.findChannel(repository, { code: DEFAULT_CHANNEL_CODE }),
+        );
 
         if (!defaultChannel) {
             throw new InternalServerError('error.default-channel-not-found');
@@ -320,10 +332,20 @@ export class ChannelService {
     findOne(ctx: RequestContext, id: ID): Promise<Channel | undefined> {
         return this.connection
             .getRepository(ctx, Channel)
-            .findOne({ where: { id }, relations: ['defaultShippingZone', 'defaultTaxZone'] })
+            .findOne({ where: { id }, relations: { defaultShippingZone: true, defaultTaxZone: true } })
             .then(result => result ?? undefined);
     }
 
+    /**
+     * @description
+     * Creates a new Channel from the given input, validating the default language code and
+     * resolving the default tax and shipping Zones and the Seller if provided.
+     *
+     * Since v3.8.0, the new Channel is automatically assigned to the SuperAdmin and Customer
+     * roles. Without these assignments a Channel is not administrable (it does not appear in the
+     * Dashboard) and cannot support customer accounts, so callers no longer need to assign these
+     * roles themselves.
+     */
     async create(
         ctx: RequestContext,
         input: CreateChannelInput,
@@ -364,15 +386,40 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
-        await this.allChannels.refresh(ctx);
+        // RoleService depends on ChannelService, so it cannot be injected here without creating a
+        // circular dependency; the default roles are therefore looked up directly.
+        const defaultRoleCodes = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE];
+        const defaultRoles = await this.connection.getRepository(ctx, Role).find({
+            where: { code: In(defaultRoleCodes) },
+        });
+        for (const code of defaultRoleCodes) {
+            const role = defaultRoles.find(r => r.code === code);
+            if (!role) {
+                throw new InternalServerError(
+                    code === SUPER_ADMIN_ROLE_CODE
+                        ? 'error.super-admin-role-not-found'
+                        : 'error.customer-role-not-found',
+                );
+            }
+            await this.assignToChannels(ctx, Role, role.id, [newChannel.id]);
+        }
+        this.clearCache(ctx);
+        await this.assignDefaultRolesToChannel(ctx, newChannel.id);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
     }
 
+    /**
+     * @description
+     * Updates a Channel. Throws a ForbiddenError if the active user does not hold the
+     * `UpdateChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+     * with no session skips the check.
+     */
     async update(
         ctx: RequestContext,
         input: UpdateChannelInput,
     ): Promise<ErrorResultUnion<UpdateChannelResult, Channel>> {
+        this.assertHasPermissionOnChannel(ctx, input.id, Permission.UpdateChannel);
         const channel = await this.findOne(ctx, input.id);
         if (!channel) {
             throw new EntityNotFoundError('Channel', input.id);
@@ -460,12 +507,19 @@ export class ChannelService {
         }
         await this.connection.getRepository(ctx, Channel).save(updatedChannel, { reload: false });
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, updatedChannel);
-        await this.allChannels.refresh(ctx);
+        this.clearCache(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, channel, 'updated', input));
         return assertFound(this.findOne(ctx, channel.id));
     }
 
+    /**
+     * @description
+     * Deletes a Channel. Throws a ForbiddenError if the active user does not hold the
+     * `DeleteChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+     * with no session skips the check.
+     */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
+        this.assertHasPermissionOnChannel(ctx, id, Permission.DeleteChannel);
         const channel = await this.connection.getEntityOrThrow(ctx, Channel, id);
         if (channel.code === DEFAULT_CHANNEL_CODE)
             return {
@@ -479,11 +533,38 @@ export class ChannelService {
         await this.connection.getRepository(ctx, ProductVariantPrice).delete({
             channelId: id,
         });
+        this.clearCache(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, deletedChannel, 'deleted', id));
 
         return {
             result: DeletionResult.DELETED,
         };
+    }
+
+    /**
+     * A Channel may only be modified by a user who holds the required permission on that particular
+     * Channel, see GHSA-22x4-937q-5fr5.
+     *
+     * A SuperAdmin is exempt, because the SuperAdmin permission is global. We check it against the
+     * active Channel rather than the target Channel, since a Channel created programmatically via
+     * ChannelService.create() does not necessarily have the SuperAdmin Role assigned to it.
+     *
+     * A RequestContext with no session is skipped, because it belongs to an internal server-side
+     * call such as Populator.setChannelDefaults(), which calls update() with RequestContext.empty().
+     * With the default AuthGuard an unauthenticated API request cannot reach this point. Note that
+     * the skip fails open: a custom EntityAccessControlStrategy which admits sessionless requests
+     * would bypass this check.
+     */
+    private assertHasPermissionOnChannel(ctx: RequestContext, channelId: ID, permission: Permission) {
+        if (!ctx.session?.user) {
+            return;
+        }
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            return;
+        }
+        if (!ctx.userHasPermissions([permission], channelId)) {
+            throw new ForbiddenError();
+        }
     }
 
     /**
@@ -493,20 +574,125 @@ export class ChannelService {
      */
     public isChannelAware(entity: VendureEntity): entity is VendureEntity & ChannelAware {
         const entityType = Object.getPrototypeOf(entity).constructor;
-        return !!this.connection.rawConnection
-            .getMetadata(entityType)
-            .relations.find(r => r.type === Channel && r.propertyName === 'channels');
+        return isChannelAwareMetadata(this.connection.rawConnection.getMetadata(entityType));
+    }
+
+    private findChannel(
+        repository: Repository<Channel>,
+        where: FindOptionsWhere<Channel>,
+    ): Promise<Channel | undefined> {
+        return repository
+            .findOne({ where, relations: { defaultShippingZone: true, defaultTaxZone: true } })
+            .then(result => result ?? undefined);
     }
 
     /**
-     * Ensures channel cache exists. If not, this method creates one.
+     * Cached entries are shared by every request in the process, so they are loaded outside of
+     * any transaction. A caller inside a transaction still uses a loaded cached Channel, but on a miss it
+     * loads through its own transaction and does not store the result, so it does not wait for a
+     * second pool connection while holding one. The shared cache is filled in the background instead.
+     * Resolved misses are ignored inside a transaction. A transaction which has written a Channel
+     * skips the cache entirely, so it always sees its own writes and never shares them with other
+     * requests.
+     *
+     * Loads go to the repository directly rather than through `TransactionalConnection.getRepository(ctx)`,
+     * because resolving a Channel is not subject to the {@link EntityAccessControlStrategy}, and
+     * the result must not depend on whether the cache was warm. They also read from the master,
+     * so that replica lag right after a write is not cached for the whole TTL.
      */
-    private async ensureCacheExists() {
-        if (this.allChannels) {
-            return;
+    private cached<T>(
+        ctx: RequestContext | undefined,
+        cache: Map<string, CacheEntry<T>>,
+        key: string,
+        load: (repository: Repository<Channel>) => Promise<T>,
+        options: { maxSize?: number; missCache?: Map<string, CacheEntry<T>> } = {},
+    ): Promise<T> {
+        const { maxSize = Infinity, missCache } = options;
+        const now = Date.now();
+        const transactionManager: EntityManager | undefined = ctx && (ctx as any)[TRANSACTION_MANAGER_KEY];
+        if (transactionManager) {
+            if (this.channelWriters.has(transactionManager)) {
+                return load(transactionManager.getRepository(Channel));
+            }
+            const cachedHit = cache.get(key);
+            if (cachedHit && now < cachedHit.expires) {
+                // A load still in flight needs a second pool connection, so waiting for it while
+                // holding the transaction's connection could exhaust the pool
+                return cachedHit.resolved ? cachedHit.value : load(transactionManager.getRepository(Channel));
+            }
+            const cachedMiss = missCache?.get(key);
+            if (!cachedMiss || now >= cachedMiss.expires) {
+                // Fill the shared cache in the background, so that callers which only ever run
+                // inside a transaction do not query the database on every call
+                void this.fill(cache, key, load, now, maxSize, missCache);
+            }
+            return load(transactionManager.getRepository(Channel));
         }
+        const hit = cache.get(key) ?? missCache?.get(key);
+        if (hit && now < hit.expires) {
+            return hit.value;
+        }
+        return this.fill(cache, key, load, now, maxSize, missCache);
+    }
 
-        this.allChannels = await this.createCache();
+    private fill<T>(
+        cache: Map<string, CacheEntry<T>>,
+        key: string,
+        load: (repository: Repository<Channel>) => Promise<T>,
+        now: number,
+        maxSize: number,
+        missCache?: Map<string, CacheEntry<T>>,
+    ): Promise<T> {
+        cache.delete(key);
+        missCache?.delete(key);
+        const entry: CacheEntry<T> = {
+            value: this.loadFromMaster(load),
+            expires: now + this.configService.entityOptions.channelCacheTtl,
+        };
+        this.setBounded(cache, key, entry, maxSize);
+        entry.value.then(
+            result => {
+                entry.resolved = true;
+                if (missCache && result == null && cache.get(key) === entry) {
+                    cache.delete(key);
+                    this.setBounded(missCache, key, entry, MISS_CACHE_SIZE);
+                }
+            },
+            () => {
+                if (cache.get(key) === entry) {
+                    cache.delete(key);
+                }
+            },
+        );
+        return entry.value;
+    }
+
+    private async loadFromMaster<T>(load: (repository: Repository<Channel>) => Promise<T>): Promise<T> {
+        const queryRunner = this.connection.rawConnection.createQueryRunner('master');
+        try {
+            return await load(queryRunner.manager.getRepository(Channel));
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    private setBounded<V>(cache: Map<string, V>, key: string, value: V, maxSize: number) {
+        if (cache.size >= maxSize) {
+            // Evicts the oldest insertion rather than the least recently used entry
+            cache.delete(cache.keys().next().value as string);
+        }
+        cache.set(key, value);
+    }
+
+    private clearCache(ctx?: RequestContext) {
+        const transactionManager: EntityManager | undefined = ctx && (ctx as any)[TRANSACTION_MANAGER_KEY];
+        if (transactionManager) {
+            this.channelWriters.add(transactionManager);
+        }
+        this.countCache.clear();
+        this.defaultChannelCache.clear();
+        this.tokenCache.clear();
+        this.missCache.clear();
     }
 
     /**
@@ -519,7 +705,7 @@ export class ChannelService {
             where: {
                 code: DEFAULT_CHANNEL_CODE,
             },
-            relations: ['seller'],
+            relations: { seller: true },
         });
 
         if (!defaultChannel) {
@@ -562,5 +748,27 @@ export class ChannelService {
                 return new LanguageNotAvailableError({ languageCode: input.defaultLanguageCode });
             }
         }
+    }
+
+    /**
+     * Assigns the SuperAdmin and Customer roles to the given channel. Called
+     * during channel creation to ensure that the SuperAdmin always has access
+     * to all channels, and that customers can authenticate against them.
+     */
+    private async assignDefaultRolesToChannel(ctx: RequestContext, channelId: ID): Promise<void> {
+        const superAdminRole = await this.connection.getRepository(ctx, Role).findOne({
+            where: { code: SUPER_ADMIN_ROLE_CODE },
+        });
+        if (!superAdminRole) {
+            throw new InternalServerError('error.super-admin-role-not-found');
+        }
+        const customerRole = await this.connection.getRepository(ctx, Role).findOne({
+            where: { code: CUSTOMER_ROLE_CODE },
+        });
+        if (!customerRole) {
+            throw new InternalServerError('error.customer-role-not-found');
+        }
+        await this.assignToChannels(ctx, Role, superAdminRole.id, [channelId]);
+        await this.assignToChannels(ctx, Role, customerRole.id, [channelId]);
     }
 }

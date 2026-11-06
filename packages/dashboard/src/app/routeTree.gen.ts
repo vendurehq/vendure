@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedZonesZonesRouteImport } from './routes/_authenticated/_zones/zones'
@@ -68,9 +70,19 @@ import { Route as AuthenticatedOrdersOrdersAggregateOrderIdSellerOrdersSellerOrd
 import { Route as AuthenticatedOptionGroupsOptionGroupsGroupIdOptionsIdRouteImport } from './routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id'
 import { Route as AuthenticatedFacetsFacetsFacetIdValuesIdRouteImport } from './routes/_authenticated/_facets/facets_.$facetId.values_.$id'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -415,7 +427,9 @@ const AuthenticatedFacetsFacetsFacetIdValuesIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/administrators': typeof AuthenticatedAdministratorsAdministratorsRoute
   '/api-keys': typeof AuthenticatedApiKeysApiKeysRoute
   '/assets': typeof AuthenticatedAssetsAssetsRoute
@@ -473,7 +487,9 @@ export interface FileRoutesByFullPath {
   '/orders/$aggregateOrderId/seller-orders/$sellerOrderId': typeof AuthenticatedOrdersOrdersAggregateOrderIdSellerOrdersSellerOrderIdRoute
 }
 export interface FileRoutesByTo {
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/': typeof AuthenticatedIndexRoute
   '/administrators': typeof AuthenticatedAdministratorsAdministratorsRoute
   '/api-keys': typeof AuthenticatedApiKeysApiKeysRoute
@@ -534,7 +550,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/_administrators/administrators': typeof AuthenticatedAdministratorsAdministratorsRoute
   '/_authenticated/_api-keys/api-keys': typeof AuthenticatedApiKeysApiKeysRoute
@@ -596,7 +614,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/administrators'
     | '/api-keys'
     | '/assets'
@@ -654,7 +674,9 @@ export interface FileRouteTypes {
     | '/orders/$aggregateOrderId/seller-orders/$sellerOrderId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/'
     | '/administrators'
     | '/api-keys'
@@ -714,7 +736,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/_authenticated/'
     | '/_authenticated/_administrators/administrators'
     | '/_authenticated/_api-keys/api-keys'
@@ -775,16 +799,32 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -1342,7 +1382,9 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
