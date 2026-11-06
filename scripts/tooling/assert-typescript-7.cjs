@@ -16,6 +16,8 @@ const path = require('node:path');
 const MIN_MAJOR = 7;
 const BIN_NAME = process.platform === 'win32' ? 'tsc.cmd' : 'tsc';
 
+// The messages are fixed text: they don't include values read from package.json files or
+// derived file paths, so nothing from the environment ends up in build logs.
 function fail(message) {
     // eslint-disable-next-line no-console
     console.error(`\n[assert-typescript-7] ${message}\n`);
@@ -56,7 +58,7 @@ function findOwningPackageJson(file) {
 
 const binPath = findTscBin(process.cwd());
 if (!binPath) {
-    fail(`No node_modules/.bin/${BIN_NAME} found in ${process.cwd()} or its parents. Run "bun install".`);
+    fail('No node_modules/.bin/tsc found in the working directory or its parents. Run "bun install".');
 }
 
 let packageJsonPath;
@@ -68,16 +70,17 @@ if (process.platform === 'win32') {
     packageJsonPath = findOwningPackageJson(realpathSync(binPath));
 }
 if (!packageJsonPath || !existsSync(packageJsonPath)) {
-    fail(`Could not find the package that ${binPath} belongs to.`);
+    fail('Could not find the package that node_modules/.bin/tsc belongs to.');
 }
 
-const { name, version } = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-const major = Number(String(version).split('.')[0]);
-if (!(major >= MIN_MAJOR)) {
+const { version } = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+const major = Number.parseInt(String(version), 10);
+if (!Number.isInteger(major) || major < MIN_MAJOR) {
     fail(
-        `"tsc" (${binPath}) is ${String(name)} ${String(version)} from ${packageJsonPath}, but the build ` +
-            `requires TypeScript ${MIN_MAJOR}. Check which package node_modules/.bin/tsc links to.`,
+        '"tsc" is older than TypeScript 7, but the build requires TypeScript 7. Run ' +
+            '`node_modules/.bin/tsc --version` and `readlink -f node_modules/.bin/tsc` to see which ' +
+            'package node_modules/.bin/tsc links to.',
     );
 }
 // eslint-disable-next-line no-console
-console.log(`[assert-typescript-7] Building with TypeScript ${String(version)}`);
+console.log('[assert-typescript-7] Building with TypeScript 7 or newer');

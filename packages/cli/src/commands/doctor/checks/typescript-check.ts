@@ -56,32 +56,9 @@ export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
             message: `Skipped: ${e instanceof Error ? e.message : String(e)}`,
         };
     }
-    const details: string[] = [];
-    const warnings: string[] = [];
+    const findings: Findings = { details: [], warnings: [] };
 
-    const installedVersion = getInstalledTypeScriptVersion(projectDir);
-    // The TypeScript whose tsc `vendure build` runs: the project's own, or the CLI's as a fallback
-    const buildVersion = getBuildTypeScriptVersion(projectDir);
-    const requiresTypeScript7Config = compilesWithTypeScript7(buildVersion);
-    if (!installedVersion) {
-        warnings.push('TypeScript is not installed');
-        details.push(`The "typescript" package is not installed. ${INSTALL_HINT}`);
-    } else if (!compilesWithTypeScript7(installedVersion)) {
-        warnings.push(`TypeScript ${installedVersion} is installed; TypeScript 7 is recommended`);
-        details.push(
-            `TypeScript ${installedVersion} is installed. Vendure v4 still builds projects on TypeScript 5.x, ` +
-                `but recommends "${TYPESCRIPT_VERSION_RANGE}"; \`vendure build\` skips its TypeScript 7 ` +
-                `tsconfig checks. ${INSTALL_HINT} See ${TYPESCRIPT_7_UPGRADE_GUIDE_URL}`,
-        );
-    } else if (!semver.satisfies(installedVersion, TYPESCRIPT_VERSION_RANGE)) {
-        warnings.push(`TypeScript ${installedVersion} is not supported`);
-        details.push(
-            `TypeScript ${installedVersion} is installed, but Vendure supports "${TYPESCRIPT_VERSION_RANGE}". ` +
-                INSTALL_HINT,
-        );
-    } else {
-        details.push(`TypeScript ${installedVersion}`);
-    }
+    checkInstalledVersion(projectDir, findings);
 
     const tsconfigPaths = TSCONFIG_CANDIDATES.map(file => path.join(projectDir, file)).filter(file =>
         existsSync(file),
@@ -91,59 +68,109 @@ export function runTypeScriptCheck(cwd: string = process.cwd()): CheckResult {
             name: 'TypeScript',
             status: 'fail',
             message: `No tsconfig.json found in ${projectDir}`,
-            details,
+            details: findings.details,
         };
     }
 
+    // The TypeScript whose tsc `vendure build` runs: the project's own, or the CLI's as a fallback
+    const buildVersion = getBuildTypeScriptVersion(projectDir);
     const incompatible: string[] = [];
     for (const tsconfigPath of tsconfigPaths) {
         const relativePath = path.relative(cwd, tsconfigPath) || tsconfigPath;
-        try {
-            const errors = getTsConfigProgramErrors(tsconfigPath);
-            if (errors.length) {
-                incompatible.push(relativePath);
-                // Plain formatting: the details are also emitted in the JSON report
-                details.push(`${relativePath}:`, formatTsDiagnostics(errors, { color: false }).trim());
-            } else {
-                details.push(`${relativePath} is compatible with TypeScript 7`);
-            }
-            // Also checked for tsconfig files that TypeScript 7 rejects: a project that stays on
-            // TypeScript 5.x still builds with them, and is affected in the same way.
-            if (usesDefineForClassFields(parseTsConfigFile(tsconfigPath).options, buildVersion)) {
-                warnings.push(`${relativePath} enables useDefineForClassFields`);
-                details.push(
-                    `${relativePath} enables "useDefineForClassFields" (explicitly, or through a "target" of ` +
-                        'ES2022 or later, which is also the default in TypeScript 7). Then fields declared on ' +
-                        'entity subclasses are reset after the constructor runs, so e.g. new MyEntity(input) ' +
-                        'loses its input. Set "useDefineForClassFields": false.',
-                );
-            }
-        } catch (e) {
+        if (!checkTsConfig(tsconfigPath, relativePath, buildVersion, findings)) {
             incompatible.push(relativePath);
-            details.push(`${relativePath}: ${e instanceof Error ? e.message : String(e)}`);
         }
     }
 
     if (incompatible.length) {
-        details.push(TSCONFIG_MIGRATION_HINT);
-        if (requiresTypeScript7Config) {
+        findings.details.push(TSCONFIG_MIGRATION_HINT);
+        if (compilesWithTypeScript7(buildVersion)) {
             // `vendure build` would fail on these, as the project compiles with TypeScript 7
             return {
                 name: 'TypeScript',
                 status: 'fail',
                 message: `${incompatible.join(', ')} not compatible with TypeScript 7`,
-                details,
+                details: findings.details,
             };
         }
-        warnings.push(`${incompatible.join(', ')} need changes before upgrading to TypeScript 7`);
+        findings.warnings.push(`${incompatible.join(', ')} need changes before upgrading to TypeScript 7`);
     }
 
     return {
         name: 'TypeScript',
-        status: warnings.length ? 'warn' : 'pass',
-        message: warnings.length ? warnings.join('; ') : 'tsconfig files are compatible with TypeScript 7',
-        details,
+        status: findings.warnings.length ? 'warn' : 'pass',
+        message: findings.warnings.length
+            ? findings.warnings.join('; ')
+            : 'tsconfig files are compatible with TypeScript 7',
+        details: findings.details,
     };
+}
+
+interface Findings {
+    details: string[];
+    warnings: string[];
+}
+
+/**
+ * Warns when the project's own TypeScript is missing, older than TypeScript 7, or outside the
+ * supported range.
+ */
+function checkInstalledVersion(projectDir: string, findings: Findings): void {
+    const installedVersion = getInstalledTypeScriptVersion(projectDir);
+    if (!installedVersion) {
+        findings.warnings.push('TypeScript is not installed');
+        findings.details.push(`The "typescript" package is not installed. ${INSTALL_HINT}`);
+    } else if (!compilesWithTypeScript7(installedVersion)) {
+        findings.warnings.push(`TypeScript ${installedVersion} is installed; TypeScript 7 is recommended`);
+        findings.details.push(
+            `TypeScript ${installedVersion} is installed. Vendure v4 still builds projects on TypeScript 5.x, ` +
+                `but recommends "${TYPESCRIPT_VERSION_RANGE}"; \`vendure build\` skips its TypeScript 7 ` +
+                `tsconfig checks. ${INSTALL_HINT} See ${TYPESCRIPT_7_UPGRADE_GUIDE_URL}`,
+        );
+    } else if (!semver.satisfies(installedVersion, TYPESCRIPT_VERSION_RANGE)) {
+        findings.warnings.push(`TypeScript ${installedVersion} is not supported`);
+        findings.details.push(
+            `TypeScript ${installedVersion} is installed, but Vendure supports "${TYPESCRIPT_VERSION_RANGE}". ` +
+                INSTALL_HINT,
+        );
+    } else {
+        findings.details.push(`TypeScript ${installedVersion}`);
+    }
+}
+
+/**
+ * Checks a single tsconfig file. Returns false if TypeScript 7 rejects it.
+ */
+function checkTsConfig(
+    tsconfigPath: string,
+    relativePath: string,
+    buildVersion: string | undefined,
+    findings: Findings,
+): boolean {
+    try {
+        const errors = getTsConfigProgramErrors(tsconfigPath);
+        if (errors.length) {
+            // Plain formatting: the details are also emitted in the JSON report
+            findings.details.push(`${relativePath}:`, formatTsDiagnostics(errors, { color: false }).trim());
+        } else {
+            findings.details.push(`${relativePath} is compatible with TypeScript 7`);
+        }
+        // Also checked for tsconfig files that TypeScript 7 rejects: a project that stays on
+        // TypeScript 5.x still builds with them, and is affected in the same way.
+        if (usesDefineForClassFields(parseTsConfigFile(tsconfigPath).options, buildVersion)) {
+            findings.warnings.push(`${relativePath} enables useDefineForClassFields`);
+            findings.details.push(
+                `${relativePath} enables "useDefineForClassFields" (explicitly, or through a "target" of ` +
+                    'ES2022 or later, which is also the default in TypeScript 7). Then fields declared on ' +
+                    'entity subclasses are reset after the constructor runs, so e.g. new MyEntity(input) ' +
+                    'loses its input. Set "useDefineForClassFields": false.',
+            );
+        }
+        return errors.length === 0;
+    } catch (e) {
+        findings.details.push(`${relativePath}: ${e instanceof Error ? e.message : String(e)}`);
+        return false;
+    }
 }
 
 /**

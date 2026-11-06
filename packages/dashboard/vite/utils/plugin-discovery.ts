@@ -388,6 +388,31 @@ export async function analyzeSourceFiles(
             // Track imports to follow
             const importsToFollow: string[] = [];
 
+            // Records a package import, or queues a local, aliased or symlinked import to follow
+            async function followImport(importPath: string) {
+                // Track non-local imports (packages)
+                const npmPackageName = getNpmPackageNameFromImport(importPath);
+                if (npmPackageName) {
+                    // Check if this is actually a symlinked local package
+                    const localPackagePath = await isSymlinkedLocalPackage(npmPackageName, nodeModulesRoot);
+                    if (localPackagePath) {
+                        // If it is local, follow it like a local import
+                        importsToFollow.push(localPackagePath);
+                        logger.debug(
+                            `Found symlinked local package "${npmPackageName}" at ${localPackagePath}`,
+                        );
+                    } else {
+                        packageImportsSet.add(npmPackageName);
+                    }
+                }
+                // Handle path aliases and local imports
+                importsToFollow.push(...resolvePathAliasImports(importPath, tsConfigInfo));
+                // Also handle local imports
+                if (importPath.startsWith('.')) {
+                    importsToFollow.push(path.resolve(path.dirname(filePath), importPath));
+                }
+            }
+
             async function visit(node: Node) {
                 // Look for VendurePlugin decorator
                 const vendurePlugin = getVendurePluginInfo(node);
@@ -400,41 +425,12 @@ export async function analyzeSourceFiles(
                 }
 
                 // Handle both imports and exports
-                const isImportOrExport = isImportDeclaration(node) || isExportDeclaration(node);
-                if (isImportOrExport) {
-                    const moduleSpecifier = node.moduleSpecifier;
-                    if (moduleSpecifier && isStringLiteral(moduleSpecifier)) {
-                        const importPath = moduleSpecifier.text;
-
-                        // Track non-local imports (packages)
-                        const npmPackageName = getNpmPackageNameFromImport(importPath);
-                        if (npmPackageName) {
-                            // Check if this is actually a symlinked local package
-                            const localPackagePath = await isSymlinkedLocalPackage(
-                                npmPackageName,
-                                nodeModulesRoot,
-                            );
-                            if (localPackagePath) {
-                                // If it is local, follow it like a local import
-                                importsToFollow.push(localPackagePath);
-                                logger.debug(
-                                    `Found symlinked local package "${npmPackageName}" at ${localPackagePath}`,
-                                );
-                            } else {
-                                packageImportsSet.add(npmPackageName);
-                            }
-                        }
-                        // Handle path aliases and local imports
-                        const pathAliasImports = resolvePathAliasImports(importPath, tsConfigInfo);
-                        if (pathAliasImports.length) {
-                            importsToFollow.push(...pathAliasImports);
-                        }
-                        // Also handle local imports
-                        if (importPath.startsWith('.')) {
-                            const resolvedPath = path.resolve(path.dirname(filePath), importPath);
-                            importsToFollow.push(resolvedPath);
-                        }
-                    }
+                if (
+                    (isImportDeclaration(node) || isExportDeclaration(node)) &&
+                    node.moduleSpecifier &&
+                    isStringLiteral(node.moduleSpecifier)
+                ) {
+                    await followImport(node.moduleSpecifier.text);
                 }
 
                 // Visit children
