@@ -5,6 +5,7 @@ import { createTestEnvironment } from '@vendure/testing';
 import { exec } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
+import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -109,6 +110,18 @@ describe('AssetServerPlugin', () => {
         const previewFile = await fs.readFile(previewFilePath);
 
         expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
+    });
+
+    // #5568 - the preview and transformed images keep the XMP packet of the source
+    it('keeps the source XMP in the preview and in transformed images', async () => {
+        const { xmp: sourceXmp } = await sharp(await fs.readFile(sourceFilePath)).metadata();
+        expect(sourceXmp).toBeDefined();
+
+        for (const url of [asset.preview, `${asset.preview}?w=100&h=100&format=webp&cache=false`]) {
+            const res = await fetch(url);
+            const { xmp } = await sharp(Buffer.from(await res.arrayBuffer())).metadata();
+            expect(xmp?.toString()).toBe(sourceXmp?.toString());
+        }
     });
 
     it('can handle non-latin filenames', async () => {
