@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -128,6 +129,7 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('enabled', {
             header: t`Status`,
+            meta: { contentInset: columnContentInset.statusBadge },
             cell: ({ row }) =>
                 row.original.enabled ? (
                     <span className="sr-only">
@@ -177,6 +179,7 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('isRunning', {
             header: t`Running`,
+            meta: { contentInset: columnContentInset.statusBadge },
             cell: ({ row }) => {
                 return (
                     <StatusBadge

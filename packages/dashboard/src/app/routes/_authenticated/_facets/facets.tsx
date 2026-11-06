@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { FacetValueChip } from '@/vdb/components/shared/facet-value-chip.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
@@ -39,6 +40,7 @@ function FacetListPage() {
                 },
                 isPrivate: {
                     header: () => <Trans>Visibility</Trans>,
+                    meta: { contentInset: columnContentInset.statusBadge },
                     cell: ({ row }) => {
                         const isPrivate = row.original.isPrivate;
                         // Public is the default; private is the deliberate config
