@@ -99,11 +99,16 @@ html[dir="rtl"] * {
 
 /* Overrides of the stretched link's button utilities, so they sit in the utilities layer.
    - The link is hovered wherever the row is, so its ghost fill would stack on the row's fill.
+   - The focus ring goes around the row, so the button's own outline is dropped.
    - A press scale makes the link the containing block of its ::after, which then shrinks to
      the button mid-click, and the click no longer reaches the link. */
 @layer utilities {
     [data-slot='table-row'] [data-row-link]:hover {
         background-color: transparent;
+    }
+
+    [data-slot='table-row'] [data-row-link]:focus-visible {
+        outline: none;
     }
 
     [data-slot='table-row'] [data-row-link]:active {
