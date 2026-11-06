@@ -61,6 +61,7 @@ let TelemetryService = class TelemetryService {
             props: ev.props,
             ua: meta.ua,
             ip: meta.ip,
+            ...(ev.createdAt ? { createdAt: ev.createdAt } : {}),
         }));
         await repo.save(rows, { chunk: 50 });
         return rows.length;

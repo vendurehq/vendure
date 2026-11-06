@@ -26,6 +26,7 @@ const typeorm_1 = require("typeorm");
 const core_1 = require("@vendure/core");
 const payment_profile_entity_1 = require("./payment-profile.entity");
 const payment_profile_method_entity_1 = require("./payment-profile-method.entity");
+const list_sort_1 = require("../common/list-sort");
 let PaymentProfileService = class PaymentProfileService {
     constructor(connection) {
         this.connection = connection;
@@ -43,6 +44,7 @@ let PaymentProfileService = class PaymentProfileService {
         if ((_b = (_a = options === null || options === void 0 ? void 0 : options.filter) === null || _a === void 0 ? void 0 : _a.name) === null || _b === void 0 ? void 0 : _b.contains) {
             qb.andWhere('pp.name LIKE :name', { name: `%${options.filter.name.contains}%` });
         }
+        (0, list_sort_1.applyListSort)(qb, 'pp', options === null || options === void 0 ? void 0 : options.sort, ['name', 'createdAt', 'updatedAt']);
         const skip = (options === null || options === void 0 ? void 0 : options.skip) || 0;
         const take = (options === null || options === void 0 ? void 0 : options.take) || 10;
         qb.skip(skip).take(take);

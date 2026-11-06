@@ -4,6 +4,9 @@ export declare const TRACK_EVENT_NAME_MAX = 64;
 export declare const TRACK_PAGE_MAX = 128;
 export declare const TRACK_SESSION_MAX = 64;
 export declare const TRACK_PROPS_MAX_CHARS = 2000;
+/** 端侧事件时间允许的时钟漂移（未来）与最长补传窗口（过去） */
+export declare const TRACK_TIME_MAX_FUTURE_MS: number;
+export declare const TRACK_TIME_MAX_AGE_MS: number;
 export declare const ERROR_MESSAGE_MAX = 2000;
 export declare const ERROR_STACK_MAX = 8000;
 export declare const ERROR_URL_MAX = 500;
@@ -12,6 +15,8 @@ export interface NormalizedTrackEvent {
     page: string | null;
     sessionId: string | null;
     props: Record<string, any> | null;
+    /** 端侧事件发生时间；非法/超出窗口时为 null（回落入库时间） */
+    createdAt: Date | null;
 }
 export interface NormalizedErrorReport {
     source: string;

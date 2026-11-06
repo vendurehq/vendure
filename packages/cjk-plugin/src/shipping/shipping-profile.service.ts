@@ -17,6 +17,7 @@ import { PickupLocation } from '../pickup/pickup-location.entity';
 import { PickupLocationService } from '../pickup/pickup-location.service';
 import { PaymentProfile } from '../payment/payment-profile.entity';
 import { PaymentProfileService } from '../payment/payment-profile.service';
+import { applyListSort } from '../common/list-sort';
 
 @Injectable()
 export class ShippingProfileService {
@@ -42,6 +43,8 @@ export class ShippingProfileService {
         if (options?.filter?.name?.contains) {
             qb.andWhere('sp.name LIKE :name', { name: `%${options.filter.name.contains}%` });
         }
+        applyListSort(qb, 'sp', options?.sort, ['name', 'createdAt', 'updatedAt']);
+
         const skip = options?.skip || 0;
         const take = options?.take || 10;
         qb.skip(skip).take(take);

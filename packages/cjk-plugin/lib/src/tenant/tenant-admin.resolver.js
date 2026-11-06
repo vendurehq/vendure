@@ -74,12 +74,25 @@ let TenantAdminResolver = class TenantAdminResolver {
         return done;
     }
     async tenants(ctx, args) {
-        var _a, _b, _c, _d;
-        const result = await this.channelService.findAll(ctx, {
-            skip: (_b = (_a = args.options) === null || _a === void 0 ? void 0 : _a.skip) !== null && _b !== void 0 ? _b : 0,
-            take: (_d = (_c = args.options) === null || _c === void 0 ? void 0 : _c.take) !== null && _d !== void 0 ? _d : 50,
-        });
-        return result;
+        var _a, _b, _c, _d, _e, _f;
+        const filter = (_b = (_a = args.options) === null || _a === void 0 ? void 0 : _a.filter) !== null && _b !== void 0 ? _b : {};
+        const qb = this.connection.getRepository(ctx, core_1.Channel).createQueryBuilder('channel');
+        // 关键字：租户 code / 店铺名（列表展示字段）
+        const keyword = typeof filter.keyword === 'string' ? filter.keyword.trim() : '';
+        if (keyword) {
+            qb.andWhere('(channel.code ILIKE :kw OR channel."customFieldsShopname" ILIKE :kw)', { kw: `%${keyword}%` });
+        }
+        // 状态：enabled / disabled（也兼容 boolean 与 1/0）
+        const status = filter.status;
+        if (status !== undefined && status !== null && status !== '') {
+            const enabled = status === true ||
+                String(status).toLowerCase() === 'enabled' ||
+                String(status) === '1';
+            qb.andWhere('channel."customFieldsEnabled" = :enabled', { enabled });
+        }
+        qb.skip((_d = (_c = args.options) === null || _c === void 0 ? void 0 : _c.skip) !== null && _d !== void 0 ? _d : 0).take((_f = (_e = args.options) === null || _e === void 0 ? void 0 : _e.take) !== null && _f !== void 0 ? _f : 50);
+        const [items, totalItems] = await qb.getManyAndCount();
+        return { items, totalItems };
     }
     async tenant(ctx, id) {
         return this.channelService.findOne(ctx, id);

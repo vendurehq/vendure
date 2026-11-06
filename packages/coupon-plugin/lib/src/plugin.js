@@ -644,9 +644,19 @@ exports.CouponPlugin = CouponPlugin = CouponPlugin_1 = __decorate([
                 merchantCostRate: Int
             }
 
-            input CouponTemplateListOptions
+            input CouponTemplateListOptions {
+                skip: Int
+                take: Int
+                sort: JSON
+                filter: JSON
+            }
 
-            input CustomerCouponListOptions
+            input CustomerCouponListOptions {
+                skip: Int
+                take: Int
+                sort: JSON
+                filter: JSON
+            }
 
             type CouponBundleItem {
                 id: ID!

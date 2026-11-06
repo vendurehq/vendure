@@ -11,6 +11,12 @@ export declare class FlashSaleService {
     findOne(ctx: RequestContext, id: ID): Promise<FlashSaleActivity | undefined>;
     create(ctx: RequestContext, input: Partial<FlashSaleActivity>): Promise<FlashSaleActivity>;
     update(ctx: RequestContext, input: any): Promise<FlashSaleActivity>;
+    /**
+     * 显式改状态（替代 Update input 中已被静默忽略的 status 字段）。
+     * 规则：ended 随时可设（人工下线）；active 必须在 [startAt, endAt] 内；
+     * upcoming 只能在开始前恢复。每次变更写结构化日志（操作人/渠道/前后状态）。
+     */
+    setStatus(ctx: RequestContext, id: ID, status: 'upcoming' | 'active' | 'ended'): Promise<FlashSaleActivity>;
     delete(ctx: RequestContext, id: ID): Promise<void>;
     /**
      * 抢购一体：

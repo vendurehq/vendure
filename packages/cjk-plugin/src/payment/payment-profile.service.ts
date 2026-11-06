@@ -12,6 +12,7 @@ import {
 } from '@vendure/core';
 import { PaymentProfile } from './payment-profile.entity';
 import { PaymentProfileMethod } from './payment-profile-method.entity';
+import { applyListSort } from '../common/list-sort';
 
 @Injectable()
 export class PaymentProfileService {
@@ -32,6 +33,8 @@ export class PaymentProfileService {
         if (options?.filter?.name?.contains) {
             qb.andWhere('pp.name LIKE :name', { name: `%${options.filter.name.contains}%` });
         }
+        applyListSort(qb, 'pp', options?.sort, ['name', 'createdAt', 'updatedAt']);
+
         const skip = options?.skip || 0;
         const take = options?.take || 10;
         qb.skip(skip).take(take);

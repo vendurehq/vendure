@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Allow, Ctx, Permission, RequestContext, ChannelService, TransactionalConnection, ProductService } from '@vendure/core';
+import { Allow, Channel, Ctx, Permission, RequestContext, ChannelService, TransactionalConnection, ProductService } from '@vendure/core';
 import { Inject } from '@nestjs/common';
 import { TenantMemberService } from './tenant-member.service';
 import { TenantMember } from './tenant-member.entity';
@@ -70,11 +70,28 @@ export class TenantAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: { options: { skip?: number; take?: number; filter?: any } },
     ): Promise<{ items: any[]; totalItems: number }> {
-        const result = await this.channelService.findAll(ctx, {
-            skip: args.options?.skip ?? 0,
-            take: args.options?.take ?? 50,
-        });
-        return result as any;
+        const filter = args.options?.filter ?? {};
+        const qb = this.connection.getRepository(ctx, Channel).createQueryBuilder('channel');
+        // 关键字：租户 code / 店铺名（列表展示字段）
+        const keyword = typeof filter.keyword === 'string' ? filter.keyword.trim() : '';
+        if (keyword) {
+            qb.andWhere(
+                '(channel.code ILIKE :kw OR channel."customFieldsShopname" ILIKE :kw)',
+                { kw: `%${keyword}%` },
+            );
+        }
+        // 状态：enabled / disabled（也兼容 boolean 与 1/0）
+        const status = filter.status;
+        if (status !== undefined && status !== null && status !== '') {
+            const enabled =
+                status === true ||
+                String(status).toLowerCase() === 'enabled' ||
+                String(status) === '1';
+            qb.andWhere('channel."customFieldsEnabled" = :enabled', { enabled });
+        }
+        qb.skip(args.options?.skip ?? 0).take(args.options?.take ?? 50);
+        const [items, totalItems] = await qb.getManyAndCount();
+        return { items, totalItems };
     }
 
     @Query()

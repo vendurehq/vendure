@@ -74,6 +74,20 @@ export class FlashSaleAdminResolver {
         return this.flashSaleService.update(ctx, input);
     }
 
+    /** 显式改状态（结束/启用/恢复未开始）：替代 Update input 中已移除的 status 字段 */
+    @Mutation()
+    @Transaction()
+    @Allow(Permission.Authenticated)
+    async setFlashSaleActivityStatus(
+        @Ctx() ctx: RequestContext,
+        @Args('id') id: ID,
+        @Args('status') status: 'upcoming' | 'active' | 'ended',
+    ): Promise<FlashSaleActivity> {
+        this.assertCanManage(ctx);
+        await this.assertChannelAccess(ctx, id);
+        return this.flashSaleService.setStatus(ctx, id, status);
+    }
+
     @Mutation()
     @Transaction()
     @Allow(Permission.Authenticated)

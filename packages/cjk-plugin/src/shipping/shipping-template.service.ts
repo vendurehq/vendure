@@ -14,6 +14,7 @@ import {
 } from '@vendure/core';
 import { ShippingTemplate } from './shipping-template.entity';
 import { fillDefaultArgs } from '../common/fill-default-args';
+import { applyListSort } from '../common/list-sort';
 
 @Injectable()
 export class ShippingTemplateService {
@@ -82,6 +83,8 @@ export class ShippingTemplateService {
         if (options?.filter?.isGlobal !== undefined) {
             qb.andWhere('st.isGlobal = :isGlobalFilter', { isGlobalFilter: options.filter.isGlobal });
         }
+
+        applyListSort(qb, 'st', options?.sort, ['name', 'code', 'createdAt', 'updatedAt']);
 
         const skip = options?.skip || 0;
         const take = options?.take || 10;

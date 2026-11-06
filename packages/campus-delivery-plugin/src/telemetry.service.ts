@@ -91,6 +91,7 @@ export class TelemetryService {
                     props: ev.props,
                     ua: meta.ua,
                     ip: meta.ip,
+                    ...(ev.createdAt ? { createdAt: ev.createdAt } : {}),
                 } as any),
         );
         await repo.save(rows, { chunk: 50 });

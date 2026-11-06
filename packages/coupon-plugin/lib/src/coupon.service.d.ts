@@ -46,6 +46,12 @@ export declare class CouponService {
     createTemplate(ctx: RequestContext, input: any): Promise<CouponTemplate>;
     updateTemplate(ctx: RequestContext, input: any): Promise<CouponTemplate>;
     /**
+     * 兑换码入参规范化（create/update 共用）：
+     * - 未传 → 不动；空串/空白 → 清空（null）
+     * - 去首尾空白后全库唯一（兑换接口按 claimCode 定位模板，重复会导致归属歧义）
+     */
+    private applyClaimCodeInput;
+    /**
      * 券成本承担入参规范化（create/update 共用）：
      * - costBearer 仅接受 PLATFORM|MERCHANT|SPLIT，非法值回退 PLATFORM（历史行为：平台承担）
      * - merchantCostRate 仅在 SPLIT 下生效（0-100，缺省 50）；PLATFORM 归 0、MERCHANT 归 100，

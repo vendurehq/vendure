@@ -31,6 +31,7 @@ const delivery_capability_1 = require("./delivery-capability");
 const pickup_location_entity_1 = require("../pickup/pickup-location.entity");
 const pickup_location_service_1 = require("../pickup/pickup-location.service");
 const payment_profile_service_1 = require("../payment/payment-profile.service");
+const list_sort_1 = require("../common/list-sort");
 let ShippingProfileService = class ShippingProfileService {
     constructor(connection, pickupLocationService, paymentProfileService) {
         this.connection = connection;
@@ -51,6 +52,7 @@ let ShippingProfileService = class ShippingProfileService {
         if ((_b = (_a = options === null || options === void 0 ? void 0 : options.filter) === null || _a === void 0 ? void 0 : _a.name) === null || _b === void 0 ? void 0 : _b.contains) {
             qb.andWhere('sp.name LIKE :name', { name: `%${options.filter.name.contains}%` });
         }
+        (0, list_sort_1.applyListSort)(qb, 'sp', options === null || options === void 0 ? void 0 : options.sort, ['name', 'createdAt', 'updatedAt']);
         const skip = (options === null || options === void 0 ? void 0 : options.skip) || 0;
         const take = (options === null || options === void 0 ? void 0 : options.take) || 10;
         qb.skip(skip).take(take);

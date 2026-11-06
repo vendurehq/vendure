@@ -46,6 +46,12 @@ let FlashSaleAdminResolver = class FlashSaleAdminResolver {
         await this.assertChannelAccess(ctx, input.id);
         return this.flashSaleService.update(ctx, input);
     }
+    /** 显式改状态（结束/启用/恢复未开始）：替代 Update input 中已移除的 status 字段 */
+    async setFlashSaleActivityStatus(ctx, id, status) {
+        this.assertCanManage(ctx);
+        await this.assertChannelAccess(ctx, id);
+        return this.flashSaleService.setStatus(ctx, id, status);
+    }
     async deleteFlashSaleActivity(ctx, id) {
         this.assertCanManage(ctx);
         await this.assertChannelAccess(ctx, id);
@@ -114,6 +120,17 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext, Object]),
     __metadata("design:returntype", Promise)
 ], FlashSaleAdminResolver.prototype, "updateFlashSaleActivity", null);
+__decorate([
+    (0, graphql_1.Mutation)(),
+    (0, core_1.Transaction)(),
+    (0, core_1.Allow)(core_1.Permission.Authenticated),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('id')),
+    __param(2, (0, graphql_1.Args)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, String]),
+    __metadata("design:returntype", Promise)
+], FlashSaleAdminResolver.prototype, "setFlashSaleActivityStatus", null);
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Transaction)(),

@@ -42,6 +42,9 @@ const TEMPLATE_UPDATE_ALLOWED = [
     'categoryId',
     'variantId',
     'enabled',
+    'claimable',
+    'claimCode',
+    'validDays',
     'usageScene',
     'distributionChannels',
     'salePrice',
@@ -190,6 +193,7 @@ let CouponService = class CouponService {
         this.assertScopeSupported(input === null || input === void 0 ? void 0 : input.scope);
         const repo = this.connection.getRepository(ctx, coupon_template_entity_1.CouponTemplate);
         const tpl = new coupon_template_entity_1.CouponTemplate(input);
+        await this.applyClaimCodeInput(repo, tpl, input);
         if (tpl.type === 'FULL') {
             tpl.minSpend = 0;
         }
@@ -226,16 +230,40 @@ let CouponService = class CouponService {
         if (input.scope != null)
             this.assertScopeSupported(input.scope);
         for (const key of TEMPLATE_UPDATE_ALLOWED) {
-            if (key in input) {
-                tpl[key] = input[key];
-            }
+            if (!(key in input))
+                continue;
+            // claimable 为非空列：显式传 null 视为未修改，避免落库报错
+            if (key === 'claimable' && input[key] == null)
+                continue;
+            tpl[key] = input[key];
         }
+        await this.applyClaimCodeInput(repo, tpl, input);
         // 多语言入参（P5）：合并 nameZh/nameEn/descZh/descEn（保留既有其它语言文案）。
         this.applyMultilingualInput(tpl, input);
         this.applyMarketingInput(tpl, input);
         this.applyStoreCoverageInput(tpl, input);
         this.applyCostBearerInput(tpl, input);
         return repo.save(tpl);
+    }
+    /**
+     * 兑换码入参规范化（create/update 共用）：
+     * - 未传 → 不动；空串/空白 → 清空（null）
+     * - 去首尾空白后全库唯一（兑换接口按 claimCode 定位模板，重复会导致归属歧义）
+     */
+    async applyClaimCodeInput(repo, tpl, input) {
+        if (!(input && 'claimCode' in input))
+            return;
+        const raw = input.claimCode;
+        const code = typeof raw === 'string' ? raw.trim() : '';
+        if (!code) {
+            tpl.claimCode = null;
+            return;
+        }
+        const existing = await repo.findOne({ where: { claimCode: code } });
+        if (existing && existing.id !== tpl.id) {
+            throw new core_1.UserInputError(`兑换码「${code}」已被其他券模板占用`);
+        }
+        tpl.claimCode = code;
     }
     /**
      * 券成本承担入参规范化（create/update 共用）：

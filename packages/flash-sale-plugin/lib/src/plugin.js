@@ -124,7 +124,6 @@ exports.FlashSalePlugin = FlashSalePlugin = FlashSalePlugin_1 = __decorate([
                 limitPerUser: Int
                 productId: ID
                 variantId: ID
-                status: FlashSaleStatus
             }
 
             input FlashSaleActivityListOptions
@@ -137,6 +136,8 @@ exports.FlashSalePlugin = FlashSalePlugin = FlashSalePlugin_1 = __decorate([
             extend type Mutation {
                 createFlashSaleActivity(input: CreateFlashSaleActivityInput!): FlashSaleActivity!
                 updateFlashSaleActivity(input: UpdateFlashSaleActivityInput!): FlashSaleActivity!
+                """显式改状态：upcoming→仅开始前；active→必须在活动窗口内；ended→随时可人工下线"""
+                setFlashSaleActivityStatus(id: ID!, status: FlashSaleStatus!): FlashSaleActivity!
                 deleteFlashSaleActivity(id: ID!): Boolean!
             }
         `,

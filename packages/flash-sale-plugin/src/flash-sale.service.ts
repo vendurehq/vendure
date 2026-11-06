@@ -110,6 +110,55 @@ export class FlashSaleService {
         return repo.save(activity);
     }
 
+    /**
+     * 显式改状态（替代 Update input 中已被静默忽略的 status 字段）。
+     * 规则：ended 随时可设（人工下线）；active 必须在 [startAt, endAt] 内；
+     * upcoming 只能在开始前恢复。每次变更写结构化日志（操作人/渠道/前后状态）。
+     */
+    async setStatus(
+        ctx: RequestContext,
+        id: ID,
+        status: 'upcoming' | 'active' | 'ended',
+    ): Promise<FlashSaleActivity> {
+        if (!['upcoming', 'active', 'ended'].includes(status)) {
+            throw new UserInputError(`不支持的活动状态：${status}`);
+        }
+        const repo = this.connection.getRepository(ctx, FlashSaleActivity);
+        const activity = await repo.findOne({ where: { id: id as any } });
+        if (!activity) {
+            throw new UserInputError(`FlashSaleActivity with id ${id} not found`);
+        }
+        const now = new Date();
+        if (status === 'active') {
+            if (now < new Date(activity.startAt) || now > new Date(activity.endAt)) {
+                throw new UserInputError('只能在活动开始时间与结束时间之间启用');
+            }
+        } else if (status === 'upcoming') {
+            if (now >= new Date(activity.startAt)) {
+                throw new UserInputError('活动已开始，不能恢复为未开始');
+            }
+        }
+        if (activity.status === status) {
+            return activity;
+        }
+        const from = activity.status;
+        activity.status = status;
+        const saved = await repo.save(activity);
+        Logger.info(
+            JSON.stringify({
+                action: 'flashSale.setStatus',
+                activityId: String(saved.id),
+                channelId: String(ctx.channelId),
+                activeUserId: ctx.activeUserId ? String(ctx.activeUserId) : null,
+                from,
+                to: status,
+                at: now.toISOString(),
+            }),
+            loggerCtx,
+        );
+        return saved;
+    }
+
     async delete(ctx: RequestContext, id: ID): Promise<void> {
         const repo = this.connection.getRepository(ctx, FlashSaleActivity);
         await repo.delete(id);

@@ -1,18 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ERROR_URL_MAX = exports.ERROR_STACK_MAX = exports.ERROR_MESSAGE_MAX = exports.TRACK_PROPS_MAX_CHARS = exports.TRACK_SESSION_MAX = exports.TRACK_PAGE_MAX = exports.TRACK_EVENT_NAME_MAX = exports.TRACK_BATCH_MAX = void 0;
+exports.ERROR_URL_MAX = exports.ERROR_STACK_MAX = exports.ERROR_MESSAGE_MAX = exports.TRACK_TIME_MAX_AGE_MS = exports.TRACK_TIME_MAX_FUTURE_MS = exports.TRACK_PROPS_MAX_CHARS = exports.TRACK_SESSION_MAX = exports.TRACK_PAGE_MAX = exports.TRACK_EVENT_NAME_MAX = exports.TRACK_BATCH_MAX = void 0;
 exports.sanitizeTrackEvent = sanitizeTrackEvent;
 exports.normalizeTrackEventBatch = normalizeTrackEventBatch;
 exports.sanitizeErrorReport = sanitizeErrorReport;
 exports.buildTrend = buildTrend;
 exports.rowsToDayCounts = rowsToDayCounts;
 const campus_time_1 = require("./campus-time");
+const core_1 = require("@vendure/core");
 /** 单次批量上报事件上限（端侧 10 条/5s，服务端再兜一层） */
 exports.TRACK_BATCH_MAX = 20;
 exports.TRACK_EVENT_NAME_MAX = 64;
 exports.TRACK_PAGE_MAX = 128;
 exports.TRACK_SESSION_MAX = 64;
 exports.TRACK_PROPS_MAX_CHARS = 2000;
+/** 端侧事件时间允许的时钟漂移（未来）与最长补传窗口（过去） */
+exports.TRACK_TIME_MAX_FUTURE_MS = 5 * 60 * 1000;
+exports.TRACK_TIME_MAX_AGE_MS = 30 * 24 * 3600 * 1000;
 exports.ERROR_MESSAGE_MAX = 2000;
 exports.ERROR_STACK_MAX = 8000;
 exports.ERROR_URL_MAX = 500;
@@ -50,16 +54,36 @@ function normalizeProps(raw) {
         return null;
     }
 }
+/** 解析端侧事件时间：只接受 ISO 字符串且落在 [now-30d, now+5min]，否则返回 null。 */
+function parseEventTime(raw, now = Date.now()) {
+    if (typeof raw !== 'string' || !raw.trim())
+        return null;
+    const ts = Date.parse(raw);
+    if (!Number.isFinite(ts))
+        return null;
+    if (ts > now + exports.TRACK_TIME_MAX_FUTURE_MS)
+        return null;
+    if (ts < now - exports.TRACK_TIME_MAX_AGE_MS)
+        return null;
+    return new Date(ts);
+}
 /** 单条事件裁剪：无事件名直接丢弃（返回 null）。 */
 function sanitizeTrackEvent(raw) {
     const eventName = clip(raw === null || raw === void 0 ? void 0 : raw.eventName, exports.TRACK_EVENT_NAME_MAX);
     if (!eventName)
         return null;
+    const rawCreatedAt = raw === null || raw === void 0 ? void 0 : raw.createdAt;
+    const createdAt = parseEventTime(rawCreatedAt);
+    if (!createdAt && rawCreatedAt != null && String(rawCreatedAt).trim() !== '') {
+        // 端侧提供了时间但非法/越界：回落入库时间，留痕便于识别伪造或时钟异常
+        core_1.Logger.warn(`[campusTelemetry] createdAt 回落服务器时间: eventName=${eventName}, raw=${String(rawCreatedAt).slice(0, 64)}`);
+    }
     return {
         eventName,
         page: clipNullable(raw === null || raw === void 0 ? void 0 : raw.page, exports.TRACK_PAGE_MAX),
         sessionId: clipNullable(raw === null || raw === void 0 ? void 0 : raw.sessionId, exports.TRACK_SESSION_MAX),
         props: normalizeProps(raw === null || raw === void 0 ? void 0 : raw.props),
+        createdAt,
     };
 }
 /**

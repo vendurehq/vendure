@@ -97,6 +97,48 @@ let FlashSaleService = class FlashSaleService {
         }
         return repo.save(activity);
     }
+    /**
+     * 显式改状态（替代 Update input 中已被静默忽略的 status 字段）。
+     * 规则：ended 随时可设（人工下线）；active 必须在 [startAt, endAt] 内；
+     * upcoming 只能在开始前恢复。每次变更写结构化日志（操作人/渠道/前后状态）。
+     */
+    async setStatus(ctx, id, status) {
+        if (!['upcoming', 'active', 'ended'].includes(status)) {
+            throw new core_1.UserInputError(`不支持的活动状态：${status}`);
+        }
+        const repo = this.connection.getRepository(ctx, flash_sale_activity_entity_1.FlashSaleActivity);
+        const activity = await repo.findOne({ where: { id: id } });
+        if (!activity) {
+            throw new core_1.UserInputError(`FlashSaleActivity with id ${id} not found`);
+        }
+        const now = new Date();
+        if (status === 'active') {
+            if (now < new Date(activity.startAt) || now > new Date(activity.endAt)) {
+                throw new core_1.UserInputError('只能在活动开始时间与结束时间之间启用');
+            }
+        }
+        else if (status === 'upcoming') {
+            if (now >= new Date(activity.startAt)) {
+                throw new core_1.UserInputError('活动已开始，不能恢复为未开始');
+            }
+        }
+        if (activity.status === status) {
+            return activity;
+        }
+        const from = activity.status;
+        activity.status = status;
+        const saved = await repo.save(activity);
+        core_1.Logger.info(JSON.stringify({
+            action: 'flashSale.setStatus',
+            activityId: String(saved.id),
+            channelId: String(ctx.channelId),
+            activeUserId: ctx.activeUserId ? String(ctx.activeUserId) : null,
+            from,
+            to: status,
+            at: now.toISOString(),
+        }), constants_1.loggerCtx);
+        return saved;
+    }
     async delete(ctx, id) {
         const repo = this.connection.getRepository(ctx, flash_sale_activity_entity_1.FlashSaleActivity);
         await repo.delete(id);

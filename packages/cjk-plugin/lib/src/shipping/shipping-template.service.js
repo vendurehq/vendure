@@ -25,6 +25,7 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const shipping_template_entity_1 = require("./shipping-template.entity");
 const fill_default_args_1 = require("../common/fill-default-args");
+const list_sort_1 = require("../common/list-sort");
 let ShippingTemplateService = class ShippingTemplateService {
     constructor(connection, shippingMethodService, configService) {
         this.connection = connection;
@@ -80,6 +81,7 @@ let ShippingTemplateService = class ShippingTemplateService {
         if (((_e = options === null || options === void 0 ? void 0 : options.filter) === null || _e === void 0 ? void 0 : _e.isGlobal) !== undefined) {
             qb.andWhere('st.isGlobal = :isGlobalFilter', { isGlobalFilter: options.filter.isGlobal });
         }
+        (0, list_sort_1.applyListSort)(qb, 'st', options === null || options === void 0 ? void 0 : options.sort, ['name', 'code', 'createdAt', 'updatedAt']);
         const skip = (options === null || options === void 0 ? void 0 : options.skip) || 0;
         const take = (options === null || options === void 0 ? void 0 : options.take) || 10;
         qb.skip(skip).take(take);

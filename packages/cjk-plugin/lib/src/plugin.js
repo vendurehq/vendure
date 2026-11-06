@@ -1353,12 +1353,35 @@ exports.CjkPlugin = CjkPlugin = CjkPlugin_1 = __decorate([
                     storefrontMode: String
                     storefrontHomeLayout: String
                     couponFloorGroups: String
+                    # 运营设置（service 已支持落库，此处补齐声明；均为可空局部更新）
+                    firstBuyDiscount: Int
+                    # couponCampaign 以 JSON 字符串存储（Channel customFields 为 string(4096)）
+                    couponCampaign: String
+                    billpayMaxSalePrice: Int
+                    billpayMaxFaceValue: Int
+                    billpayMaxBundleTotal: Int
+                    billpayMinValidDays: Int
+                    billpayExpireRefundPolicy: String
+                }
+
+                input TenantFilterInput {
+                    keyword: String
+                    status: String
                 }
 
                 input TenantListOptions {
                     skip: Int
                     take: Int
-                    filter: JSON
+                    filter: TenantFilterInput
+                }
+
+                # 必须用独立的 TenantList 类型（而不是 ChannelList）：
+                # Vendure 的 generateListOptions 会把「返回 XxxList」的查询 options 参数
+                # 按实体自动改写为 XxxListOptions（此处即 ChannelListOptions），
+                # 导致 filter.keyword/status 被替换成 ChannelFilterParameter 而校验失败。
+                type TenantList implements PaginatedList {
+                    totalItems: Int!
+                    items: [Channel!]!
                 }
 
                 input CreateTenantAdministratorInput {
@@ -1459,7 +1482,7 @@ exports.CjkPlugin = CjkPlugin = CjkPlugin_1 = __decorate([
 
                 extend type Query {
                     permissionCatalog: [PermissionCatalogGroup!]
-                    tenants(options: TenantListOptions): ChannelList!
+                    tenants(options: TenantListOptions): TenantList!
                     tenant(id: ID!): Channel
                     tenantSlots: TenantSlots!
                     tenantAdministrators(channelId: ID!): [TenantMember!]!
