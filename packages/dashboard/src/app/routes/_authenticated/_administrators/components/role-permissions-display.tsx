@@ -32,7 +32,7 @@ const CRUD_ORDER = ['Create', 'Read', 'Update', 'Delete'];
 /**
  * Read-only view of the permissions granted by a set of Roles. Shows only the granted
  * permissions by default, with a toggle to the full permission list for auditing what
- * is NOT granted.
+ * is NOT granted. Both list one row per permission group, with the actions as chips.
  *
  * A Role is a channel-agnostic permission template: the Channels its permissions apply
  * to are determined per-user by RoleAssignments, so the caller passes the Roles granted
@@ -74,19 +74,24 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
         const action = CRUD_ORDER.find(prefix => permissionName.startsWith(prefix));
         return action ? crudActionLabels[action] : i18n.t(permissionName);
     };
-    const sortCrud = (permissions: typeof groupedPermissions[number]['permissions']) =>
+    const sortCrud = (permissions: (typeof groupedPermissions)[number]['permissions']) =>
         [...permissions].sort(
             (a, b) =>
                 CRUD_ORDER.findIndex(p => a.name.startsWith(p)) -
                 CRUD_ORDER.findIndex(p => b.name.startsWith(p)),
         );
 
-    const grantedGroups = groupedPermissions
+    // Both views list one row per permission group, the entity with its actions as chips. The
+    // default view keeps the granted permissions only; "show all" adds the rest, muted.
+    const rows = groupedPermissions
         .map(group => ({
-            ...group,
-            granted: sortCrud(group.permissions).filter(p => grantingRoles(p.name).length > 0),
+            label: group.label,
+            permissions: sortCrud(group.permissions)
+                .map(permission => ({ ...permission, granted: grantingRoles(permission.name).length > 0 }))
+                .filter(permission => showAll || permission.granted),
         }))
-        .filter(group => group.granted.length > 0);
+        .filter(row => row.permissions.length > 0);
+    const hasGranted = rows.some(row => row.permissions.some(permission => permission.granted));
 
     const permissionTooltip = (permission: { name: string; description: string }, granted: boolean) => (
         <TooltipContent side="top" className="max-w-[250px]">
@@ -111,106 +116,75 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
         <TooltipProvider>
             <div className="flex flex-col items-start gap-2 w-full">
                 <div className="rounded-md border w-full">
-                    {showAll ? (
-                        <table className="w-full">
-                            <tbody>
-                                {groupedPermissions.map((group, idx) => (
-                                    <tr
-                                        key={group.label}
-                                        className={
-                                            idx !== groupedPermissions.length - 1 ? 'border-b' : undefined
-                                        }
-                                    >
-                                        <td className="p-4">
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                {sortCrud(group.permissions).map(permission => {
-                                                    const granted =
-                                                        grantingRoles(permission.name).length > 0;
-                                                    return (
-                                                        <div
-                                                            key={permission.name}
-                                                            className="flex items-center space-x-2"
-                                                        >
-                                                            {granted ? (
-                                                                <Check className="h-4 w-4 text-success shrink-0" />
-                                                            ) : (
-                                                                <Minus className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                                                            )}
-                                                            <Tooltip>
-                                                                <TooltipTrigger
-                                                                    render={
-                                                                        <span
-                                                                            className={cn(
-                                                                                'text-sm cursor-default',
-                                                                                !granted &&
-                                                                                    'text-muted-foreground',
-                                                                            )}
-                                                                        />
-                                                                    }
-                                                                >
-                                                                    {i18n.t(permission.name)}
-                                                                </TooltipTrigger>
-                                                                {permissionTooltip(permission, granted)}
-                                                            </Tooltip>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : grantedGroups.length === 0 ? (
+                    {!showAll && !hasGranted ? (
                         <p className="p-4 text-sm text-muted-foreground">
                             <Trans>The assigned roles grant no permissions on this channel.</Trans>
                         </p>
                     ) : (
-                        grantedGroups.map((group, idx) => {
+                        rows.map((row, idx) => {
+                            const anyGranted = row.permissions.some(permission => permission.granted);
                             const isSingleNonCrud =
-                                group.granted.length === 1 && group.granted[0].name === group.label;
+                                row.permissions.length === 1 && row.permissions[0].name === row.label;
                             return (
                                 <div
-                                    key={group.label}
+                                    key={row.label}
                                     className={cn(
                                         'flex flex-wrap items-center gap-x-4 gap-y-2 p-3',
-                                        idx !== grantedGroups.length - 1 && 'border-b',
+                                        idx !== rows.length - 1 && 'border-b',
                                     )}
                                 >
                                     <div className="flex items-center gap-2 w-56 shrink-0">
-                                        <Check className="h-4 w-4 text-success shrink-0" />
+                                        {anyGranted ? (
+                                            <Check className="h-4 w-4 text-success shrink-0" />
+                                        ) : (
+                                            <Minus className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                                        )}
                                         {isSingleNonCrud ? (
                                             <Tooltip>
                                                 <TooltipTrigger
                                                     render={
-                                                        <span className="text-sm font-medium cursor-default" />
+                                                        <span
+                                                            className={cn(
+                                                                'text-sm font-medium cursor-default break-words',
+                                                                !anyGranted && 'text-muted-foreground',
+                                                            )}
+                                                        />
                                                     }
                                                 >
-                                                    {i18n.t(group.label)}
+                                                    {i18n.t(row.label)}
                                                 </TooltipTrigger>
-                                                {permissionTooltip(group.granted[0], true)}
+                                                {permissionTooltip(row.permissions[0], anyGranted)}
                                             </Tooltip>
                                         ) : (
-                                            <span className="text-sm font-medium">
-                                                {i18n.t(group.label)}
+                                            <span
+                                                className={cn(
+                                                    'text-sm font-medium break-words',
+                                                    !anyGranted && 'text-muted-foreground',
+                                                )}
+                                            >
+                                                {i18n.t(row.label)}
                                             </span>
                                         )}
                                     </div>
                                     {!isSingleNonCrud && (
                                         <div className="flex flex-wrap gap-1.5">
-                                            {group.granted.map(permission => (
+                                            {row.permissions.map(permission => (
                                                 <Tooltip key={permission.name}>
-                                                    <TooltipTrigger
-                                                        render={<span className="inline-flex" />}
-                                                    >
+                                                    <TooltipTrigger render={<span className="inline-flex" />}>
                                                         <Badge
-                                                            variant="default"
-                                                            className="cursor-default"
+                                                            variant={
+                                                                permission.granted ? 'default' : 'outline'
+                                                            }
+                                                            className={cn(
+                                                                'cursor-default',
+                                                                !permission.granted &&
+                                                                    'border-dashed text-muted-foreground opacity-60',
+                                                            )}
                                                         >
                                                             {actionLabel(permission.name)}
                                                         </Badge>
                                                     </TooltipTrigger>
-                                                    {permissionTooltip(permission, true)}
+                                                    {permissionTooltip(permission, permission.granted)}
                                                 </Tooltip>
                                             ))}
                                         </div>
@@ -220,7 +194,12 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
                         })
                     )}
                 </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll(current => !current)}>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAll(current => !current)}
+                >
                     {showAll ? <Trans>Show granted only</Trans> : <Trans>Show all permissions</Trans>}
                 </Button>
             </div>
