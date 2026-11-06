@@ -61,6 +61,8 @@ export function DetailPageButton({
             className={className}
             // In a table row, this link opens the detail page from any point of the row (see styles.css).
             data-row-link={disabled ? undefined : ''}
+            // In a table row, the label is plain text in line with the column header, also when disabled.
+            data-row-label=""
         >
             {label}
             {!disabled && <ChevronRight data-label-chevron className="h-3 w-3 text-muted-foreground" />}

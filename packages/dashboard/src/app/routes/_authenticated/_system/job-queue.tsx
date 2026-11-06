@@ -155,6 +155,7 @@ function JobQueuePage() {
                     ),
                 },
                 data: {
+                    meta: { contentInset: columnContentInset.smallButton },
                     cell: ({ row }) => (
                         <PayloadDialog
                             payload={row.original.data}

@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -277,6 +278,8 @@ function CollectionListPage() {
                         // This column needs the following fields to always be available
                         // in order to correctly render.
                         dependencies: ['children', 'breadcrumbs'],
+                        // A top-level name starts after the folder toggle slot: `w-6` + `gap-2`.
+                        contentInset: 'calc(var(--spacing) * 8)',
                     },
                     cell: ({ row }) => {
                         const original = row.original as Collection;
@@ -343,6 +346,7 @@ function CollectionListPage() {
                 },
                 productVariantCount: {
                     header: () => <Trans>Contents</Trans>,
+                    meta: { contentInset: columnContentInset.smallButton },
                     cell: ({ row }) => {
                         return (
                             <CollectionContentsSheet

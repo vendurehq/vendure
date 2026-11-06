@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { RoleCodeLabel } from '@/vdb/components/shared/role-code-label.js';
@@ -46,10 +47,15 @@ function RoleListPage() {
                     },
                 },
                 permissions: {
+                    meta: { contentInset: columnContentInset.badge },
                     cell: ({ row }) => {
                         if (SYSTEM_ROLES.includes(row.original.code)) {
+                            // Padded like the permission badges of the other rows, so all rows line up.
                             return (
-                                <span className="text-muted-foreground">
+                                <span
+                                    className="inline-block text-muted-foreground"
+                                    style={{ paddingInlineStart: columnContentInset.badge }}
+                                >
                                     <Trans>This is a default Role and cannot be modified</Trans>
                                 </span>
                             );
@@ -59,6 +65,7 @@ function RoleListPage() {
                     },
                 },
                 channels: {
+                    meta: { contentInset: columnContentInset.badgeWithIcon },
                     cell: ({ row }) => {
                         if (SYSTEM_ROLES.includes(row.original.code)) {
                             return null;

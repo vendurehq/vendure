@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -34,6 +35,7 @@ function ZoneListPage() {
             additionalColumns={{
                 regions: {
                     header: t`Regions`,
+                    meta: { contentInset: columnContentInset.smallButton },
                     cell: ({ row }) => (
                         <ZoneCountriesSheet zoneId={row.original.id} zoneName={row.original.name}>
                             <Trans>Edit members</Trans>

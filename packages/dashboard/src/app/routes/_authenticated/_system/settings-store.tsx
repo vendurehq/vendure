@@ -1,4 +1,5 @@
 import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
@@ -62,6 +63,10 @@ const scopeBadgeVariant: Record<string, 'default' | 'outline'> = {
     CUSTOM: 'outline',
 };
 
+// Where the text of a JSON value button starts: a `sm` Button (`px-2.5` + 1px border) + its
+// `size-3.5` icon + `gap-2`. The header and the other kinds of value start their text there too.
+const VALUE_TEXT_INSET = 'calc(var(--spacing) * 8 + 1px)';
+
 function ValueCell({ field, onSave }: { field: FieldDefinition; onSave: (value: any) => void }) {
     const value = field.currentValue;
     const isComplex = typeof value === 'object' && value !== null;
@@ -75,16 +80,31 @@ function ValueCell({ field, onSave }: { field: FieldDefinition; onSave: (value: 
 
     // Readonly simple values → plain text
     if (field.readonly) {
-        return <span className="text-muted-foreground">{formatDisplayValue(value)}</span>;
+        return (
+            <span
+                className="inline-block text-muted-foreground"
+                style={{ paddingInlineStart: VALUE_TEXT_INSET }}
+            >
+                {formatDisplayValue(value)}
+            </span>
+        );
     }
 
     // Booleans → inline toggle
     if (typeof value === 'boolean') {
-        return <Switch checked={value} onCheckedChange={checked => onSave(checked)} />;
+        return (
+            <div style={{ paddingInlineStart: VALUE_TEXT_INSET }}>
+                <Switch checked={value} onCheckedChange={checked => onSave(checked)} />
+            </div>
+        );
     }
 
-    // Strings, numbers, null → inline editable text
-    return <InlineEditValue value={value} onSave={onSave} />;
+    // Strings, numbers, null → inline editable text. Its button has `px-1` of its own.
+    return (
+        <div style={{ paddingInlineStart: `calc(${VALUE_TEXT_INSET} - var(--spacing))` }}>
+            <InlineEditValue value={value} onSave={onSave} />
+        </div>
+    );
 }
 
 function JsonValueDialog({
@@ -295,16 +315,15 @@ export function createSettingsStoreColumns(
         }),
         columnHelper.accessor('currentValue', {
             header: labels.value,
+            meta: { contentInset: VALUE_TEXT_INSET },
             enableColumnFilter: false,
             cell: ({ row }) => (
-                <ValueCell
-                    field={row.original}
-                    onSave={newValue => onSetValue(row.original, newValue)}
-                />
+                <ValueCell field={row.original} onSave={newValue => onSetValue(row.original, newValue)} />
             ),
         }),
         columnHelper.accessor('scopeType', {
             header: labels.scope,
+            meta: { contentInset: columnContentInset.badge },
             enableColumnFilter: false,
             cell: ({ row }) => (
                 <Badge variant={scopeBadgeVariant[row.original.scopeType] ?? 'outline'}>
@@ -314,6 +333,7 @@ export function createSettingsStoreColumns(
         }),
         columnHelper.accessor('readonly', {
             header: labels.readonly,
+            meta: { contentInset: columnContentInset.badge },
             enableColumnFilter: false,
             cell: ({ row }) =>
                 row.original.readonly ? (
