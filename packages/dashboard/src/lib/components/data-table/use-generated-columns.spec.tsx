@@ -125,7 +125,11 @@ describe('useGeneratedColumns display component precedence', () => {
     });
 
     it('renders the default display component when a column has neither a core cell nor a registration', () => {
-        expect(renderColumnCell('test-page-default', 'sku')).toBe(String(PRICE));
+        // The default display component of an identifier field such as `sku` is the copy chip.
+        const markup = renderColumnCell('test-page-default', 'sku');
+
+        expect(markup).toContain('data-slot="id-chip"');
+        expect(markup).toContain(`>${PRICE}</span>`);
     });
 
     it('applies a display component registered through defineDashboardExtension', () => {
