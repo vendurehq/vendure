@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ChannelService, idsAreEqual, Permission, RequestContext } from '@vendure/core';
+import { ChannelService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler, page, paginationFields, slicePage } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpToolSerializerService } from '../serializer.service';
 
-import { userChannelIds } from './channel-access';
+import { userCanAccessChannel } from './channel-access';
 
 const listChannelsInput = z.strictObject({
     ...paginationFields('channels'),
@@ -37,11 +37,8 @@ export class ListChannelsTool implements McpToolHandler<ListChannelsInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: ListChannelsInput) {
-        const accessibleIds = userChannelIds(ctx);
         const result = await this.channelService.findAll(ctx);
-        const accessible = result.items.filter(channel =>
-            accessibleIds.some(id => idsAreEqual(id, channel.id)),
-        );
+        const accessible = result.items.filter(channel => userCanAccessChannel(ctx, channel.id));
         const items = slicePage(accessible, input).map(channel => this.serializer.channel(channel));
         return page(items, accessible.length, input);
     }

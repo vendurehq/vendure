@@ -5,7 +5,7 @@ export interface AdminProvisioningContext {
     adminClient: SimpleGraphQLClient;
     /** Fully-qualified admin API URL, e.g. `http://localhost:3050/admin-api`. */
     adminApiUrl: string;
-    /** GraphQL id of the channel the new role is scoped to. */
+    /** GraphQL id of the channel the new role is granted on. */
     channelId: string;
 }
 
@@ -36,7 +36,6 @@ export async function provisionAdmin(
                 code: `mcp-${key}-role`,
                 description: `${key} role`,
                 permissions,
-                channelIds: [channelId],
             },
         },
     );
@@ -54,7 +53,7 @@ export async function provisionAdmin(
                 lastName: 'Admin',
                 emailAddress: email,
                 password: 'test',
-                roleIds: [role.createRole.id],
+                roleAssignments: [{ roleId: role.createRole.id, channelId }],
             },
         },
     );

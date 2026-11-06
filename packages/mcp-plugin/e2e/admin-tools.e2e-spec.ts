@@ -169,7 +169,6 @@ async function provisionLimitedAdmin(
                 code: admin.roleCode,
                 description: `MCP ${admin.roleCode}`,
                 permissions: admin.permissions,
-                channelIds: [channelId],
             },
         },
     );
@@ -187,7 +186,7 @@ async function provisionLimitedAdmin(
                 lastName: 'Admin',
                 emailAddress: admin.emailAddress,
                 password: LIMITED_ADMIN_PASSWORD,
-                roleIds: [role.createRole.id],
+                roleAssignments: [{ roleId: role.createRole.id, channelId }],
             },
         },
     );
