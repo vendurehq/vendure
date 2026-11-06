@@ -1,0 +1,78 @@
+---
+title: "Migrating from v3"
+metaTitle: "Migrating from Vendure v3 to v4 - Complete Guide"
+metaDescription: "Step-by-step instructions for upgrading from Vendure v3 to v4, covering code updates, the database migration, storefront changes and the steps after go-live."
+order: 1
+---
+
+This section contains guides for migrating from Vendure v3 to v4. Follow the steps below in order. Each step ends with how to check it is done before you move on.
+
+## What changed in v4
+
+| Change | Affects | Guide |
+|---|---|---|
+| Roles are granted per Channel through role assignments. Customers no longer hold a Customer role. | Database, plugins, Admin API clients, multi-channel storefronts | [Role assignments](/developer-guide/migrating-from-v3/role-assignments) |
+
+## Migration steps
+
+### 1. Upgrade to the latest v3 release
+
+Upgrade to the latest v3 release first, following [Updating Vendure](/developer-guide/updating), and run any migrations it needs.
+
+**Done when:** your project runs on the latest v3 release.
+
+### 2. Back up your database
+
+After you go live on v4, restoring this backup is the only way back to v3.
+
+**Done when:** you have a backup you have tested restoring.
+
+### 3. Update your Vendure dependencies
+
+Set every `@vendure/*` package in your `package.json` to the same v4 version, including `@vendure/cli` and `@vendure/dashboard`, then install:
+
+```diff
+{
+  "dependencies": {
+-    "@vendure/common": "3.7.3",
+-    "@vendure/core": "3.7.3",
++    "@vendure/common": "4.0.0",
++    "@vendure/core": "4.0.0",
+     // etc.
+  }
+}
+```
+
+**Done when:** the install succeeds and every `@vendure/*` package has the same v4 version.
+
+### 4. Update your custom code
+
+Do this before the database migration: generating the migration loads your Vendure config and plugins, so they must compile against v4.
+
+1. Run the v4 codemods listed in [Breaking API changes](/developer-guide/migrating-from-v3/breaking-api-changes#codemods).
+2. Fix each `// TODO(vendure-v4):` comment the codemods leave.
+3. Search for the code the codemods do not change, using the [search list](/developer-guide/migrating-from-v3/breaking-api-changes#finding-code-to-update), and update it.
+
+**Done when:** `rg "TODO\(vendure-v4\)"` finds nothing, and `npx tsc --noEmit` passes.
+
+### 5. Preview the data migrations
+
+Run the read-only previews against your production data. See [Previewing the data migrations](/developer-guide/migrating-from-v3/database-migration#previewing-the-data-migrations).
+
+**Done when:** you have read each preview report and acted on any section marked "action needed".
+
+### 6. Migrate your database
+
+Generate and run the v4 migration. It copies the role grants and keeps the v3 tables, then drops them: in the same migration if you stop v3 first, or in a later one for a rolling deployment. See [Database migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration).
+
+**Done when:** the migration has run, each data-migration helper logged its result, and Vendure v4 starts. For a rolling deployment, also once the migration that drops the v3 tables has run.
+
+### 7. Update your storefront
+
+See [Storefront migration](/developer-guide/migrating-from-v3/storefront-migration).
+
+**Done when:** your storefront works against v4 on every Channel your Customers use.
+
+### 8. Finish the steps after go-live
+
+- Role assignments: [clear the session cache](/developer-guide/migrating-from-v3/role-assignments#clear-the-session-cache) once the last v3 server has stopped, and [grant the RoleEditor Role](/developer-guide/migrating-from-v3/role-assignments#grant-the-roleeditor-role) to the Administrators who manage Roles.

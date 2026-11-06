@@ -50,11 +50,11 @@ const activeAdministratorRoleChannelsDocument = graphql(`
             id
             user {
                 id
-                roles {
-                    id
-                    code
-                    channels {
+                roleAssignments {
+                    channelId
+                    role {
                         id
+                        code
                     }
                 }
             }
@@ -306,16 +306,15 @@ describe('Administrator resolver', () => {
         expect(result2?.emailAddress).toBe(SUPER_ADMIN_USER_IDENTIFIER);
     });
 
-    // The dashboard selects user -> roles -> channels, the full depth the @Relations
-    // decorator resolves by default (DEFAULT_DEPTH = 3). Without the join the response is
-    // the same, fetched one query per role, so assert the deepest level explicitly.
-    it('activeAdministrator resolves nested role channels', async () => {
+    // The dashboard selects user -> roleAssignments -> role, the full depth the @Relations
+    // decorator resolves by default (DEFAULT_DEPTH = 3), so assert the deepest level explicitly.
+    it('activeAdministrator resolves nested role assignments', async () => {
         await adminClient.asSuperAdmin();
 
         const { activeAdministrator } = await adminClient.query(activeAdministratorRoleChannelsDocument);
 
-        expect(activeAdministrator?.user.roles.length).toBeGreaterThan(0);
-        expect(activeAdministrator?.user.roles[0].channels.length).toBeGreaterThan(0);
+        expect(activeAdministrator?.user.roleAssignments.length).toBeGreaterThan(0);
+        expect(activeAdministrator?.user.roleAssignments[0].role.code).toBeTruthy();
     });
 
     it('updateActiveAdministrator', async () => {

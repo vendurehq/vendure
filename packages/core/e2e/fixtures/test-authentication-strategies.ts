@@ -1,8 +1,11 @@
+import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
     AuthenticationStrategy,
+    Channel,
     ExternalAuthenticationService,
     Injector,
     RequestContext,
+    RoleAssignment,
     RoleService,
     TransactionalConnection,
     User,
@@ -249,8 +252,22 @@ export class TestSSOStrategyRoleOnly implements AuthenticationStrategy<{ email: 
             strategy: this.name,
             externalIdentifier: email,
         });
-        user.roles = [await this.roleService.getSuperAdminRole()];
-        return this.connection.getRepository(ctx, User).save(user);
+        // A SuperAdmin grant with no Administrator row. It is written as a row directly, since
+        // RoleAssignmentService.assign only accepts the pairs an actor may grant.
+        const superAdminRole = await this.roleService.getSuperAdminRole();
+        const defaultChannel = await this.connection
+            .getRepository(ctx, Channel)
+            .findOneOrFail({ where: { code: DEFAULT_CHANNEL_CODE } });
+        await this.connection
+            .getRepository(ctx, RoleAssignment)
+            .save(
+                new RoleAssignment({
+                    userId: user.id,
+                    roleId: superAdminRole.id,
+                    channelId: defaultChannel.id,
+                }),
+            );
+        return user;
     }
 }
 

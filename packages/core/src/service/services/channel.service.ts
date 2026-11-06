@@ -9,14 +9,10 @@ import {
     UpdateChannelInput,
     UpdateChannelResult,
 } from '@vendure/common/lib/generated-types';
-import {
-    CUSTOMER_ROLE_CODE,
-    DEFAULT_CHANNEL_CODE,
-    SUPER_ADMIN_ROLE_CODE,
-} from '@vendure/common/lib/shared-constants';
+import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { EntityManager, FindOptionsWhere, In, Repository } from 'typeorm';
+import { EntityManager, FindOptionsWhere, Repository } from 'typeorm';
 
 import { RelationPaths } from '../../api';
 import { RequestContext } from '../../api/common/request-context';
@@ -40,7 +36,6 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
-import { Role } from '../../entity/role/role.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -53,6 +48,8 @@ import { isChannelAwareMetadata } from '../helpers/utils/is-channel-aware-metada
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
+import { RoleAssignmentService } from './role-assignment.service';
+import { RoleService } from './role.service';
 
 const TOKEN_CACHE_SIZE = 10_000;
 const MISS_CACHE_SIZE = 1_000;
@@ -92,6 +89,8 @@ export class ChannelService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
+        private roleAssignmentService: RoleAssignmentService,
+        private roleService: RoleService,
     ) {
         // The caches are also cleared synchronously in create, update and delete, but that happens
         // before the transaction commits. Events are published after the commit, so clearing again
@@ -386,25 +385,9 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
-        // RoleService depends on ChannelService, so it cannot be injected here without creating a
-        // circular dependency; the default roles are therefore looked up directly.
-        const defaultRoleCodes = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE];
-        const defaultRoles = await this.connection.getRepository(ctx, Role).find({
-            where: { code: In(defaultRoleCodes) },
-        });
-        for (const code of defaultRoleCodes) {
-            const role = defaultRoles.find(r => r.code === code);
-            if (!role) {
-                throw new InternalServerError(
-                    code === SUPER_ADMIN_ROLE_CODE
-                        ? 'error.super-admin-role-not-found'
-                        : 'error.customer-role-not-found',
-                );
-            }
-            await this.assignToChannels(ctx, Role, role.id, [newChannel.id]);
-        }
+        // No SuperAdmin assignment rows are written for the new Channel: SuperAdmin access is
+        // resolved at check time from the single default-channel row (see RoleAssignment).
         this.clearCache(ctx);
-        await this.assignDefaultRolesToChannel(ctx, newChannel.id);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
     }
@@ -517,6 +500,12 @@ export class ChannelService {
      * Deletes a Channel. Throws a ForbiddenError if the active user does not hold the
      * `DeleteChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
      * with no session skips the check.
+     *
+     * The RoleAssignments on the Channel are removed through
+     * {@link RoleAssignmentService.removeAllAssignmentsOnChannel} before the Channel row goes,
+     * so that a {@link RoleAssignmentEvent} is published and the affected Users' cached
+     * sessions are evicted. The Roles the Channel owns are deleted with it, each with a
+     * {@link RoleEvent}.
      */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         this.assertHasPermissionOnChannel(ctx, id, Permission.DeleteChannel);
@@ -529,6 +518,8 @@ export class ChannelService {
 
         const deletedChannel = new Channel(channel);
         await this.connection.getRepository(ctx, Session).delete({ activeChannelId: id });
+        await this.roleAssignmentService.removeAllAssignmentsOnChannel(ctx, id);
+        await this.roleService.deleteRolesOwnedByChannel(ctx, id);
         await this.connection.getRepository(ctx, Channel).delete(id);
         await this.connection.getRepository(ctx, ProductVariantPrice).delete({
             channelId: id,
@@ -545,9 +536,8 @@ export class ChannelService {
      * A Channel may only be modified by a user who holds the required permission on that particular
      * Channel, see GHSA-22x4-937q-5fr5.
      *
-     * A SuperAdmin is exempt, because the SuperAdmin permission is global. We check it against the
-     * active Channel rather than the target Channel, since a Channel created programmatically via
-     * ChannelService.create() does not necessarily have the SuperAdmin Role assigned to it.
+     * A SuperAdmin is exempt. The SuperAdmin permission is global (see {@link RoleAssignment}), so
+     * the check on the active Channel answers for every Channel.
      *
      * A RequestContext with no session is skipped, because it belongs to an internal server-side
      * call such as Populator.setChannelDefaults(), which calls update() with RequestContext.empty().
@@ -748,27 +738,5 @@ export class ChannelService {
                 return new LanguageNotAvailableError({ languageCode: input.defaultLanguageCode });
             }
         }
-    }
-
-    /**
-     * Assigns the SuperAdmin and Customer roles to the given channel. Called
-     * during channel creation to ensure that the SuperAdmin always has access
-     * to all channels, and that customers can authenticate against them.
-     */
-    private async assignDefaultRolesToChannel(ctx: RequestContext, channelId: ID): Promise<void> {
-        const superAdminRole = await this.connection.getRepository(ctx, Role).findOne({
-            where: { code: SUPER_ADMIN_ROLE_CODE },
-        });
-        if (!superAdminRole) {
-            throw new InternalServerError('error.super-admin-role-not-found');
-        }
-        const customerRole = await this.connection.getRepository(ctx, Role).findOne({
-            where: { code: CUSTOMER_ROLE_CODE },
-        });
-        if (!customerRole) {
-            throw new InternalServerError('error.customer-role-not-found');
-        }
-        await this.assignToChannels(ctx, Role, superAdminRole.id, [channelId]);
-        await this.assignToChannels(ctx, Role, customerRole.id, [channelId]);
     }
 }

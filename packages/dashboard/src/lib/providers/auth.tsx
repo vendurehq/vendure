@@ -117,12 +117,12 @@ const CurrentUserQuery = graphql(`
             user {
                 id
                 identifier
-                roles {
-                    id
-                    code
-                    description
-                    channels {
+                roleAssignments {
+                    channelId
+                    role {
                         id
+                        code
+                        description
                     }
                 }
             }

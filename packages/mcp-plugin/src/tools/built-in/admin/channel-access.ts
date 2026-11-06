@@ -1,6 +1,16 @@
-import { ID, RequestContext } from '@vendure/core';
+import { ID, idsAreEqual, RequestContext } from '@vendure/core';
 
-// An empty list means the user has no channel access at all, not that we couldn't tell.
-export function userChannelIds(ctx: RequestContext): ID[] {
-    return ctx.session?.user?.channelPermissions.map(entry => entry.id) ?? [];
+/**
+ * Whether the active user may act on the given Channel. Global permissions (SuperAdmin) apply on
+ * every Channel, so their holder is listed in `channelPermissions` only for the default Channel.
+ */
+export function userCanAccessChannel(ctx: RequestContext, channelId: ID): boolean {
+    const user = ctx.session?.user;
+    if (!user) {
+        return false;
+    }
+    if (user.globalPermissions?.length) {
+        return true;
+    }
+    return user.channelPermissions.some(entry => idsAreEqual(entry.id, channelId));
 }

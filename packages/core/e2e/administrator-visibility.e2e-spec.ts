@@ -36,13 +36,15 @@ const assignRoleToAdministratorDocument = graphql(`
 `);
 
 /**
- * An Administrator must only be visible to an active user who already holds every Permission of
- * every Role of that Administrator, on every Channel of those Roles. This is the same rule which
- * governs updating an Administrator, so the read and write policies cannot drift apart.
+ * An Administrator must only be visible to an active user who may grant every RoleAssignment
+ * that Administrator holds: for each (Role, Channel) row, the active user holds every Permission
+ * of the Role on that Channel. This is the same rule which governs updating an Administrator, so
+ * the read and write policies cannot drift apart.
  *
  * This uses a dedicated environment rather than folding into administrator.e2e-spec.ts, because that
  * suite asserts fixed Administrator counts across its sequential tests.
  */
+// GHSA-37j3-p93w-fq6w — Administrator reads are scoped to the active user's authority.
 describe('Administrator visibility', () => {
     const { server, adminClient } = createTestEnvironment(testConfig());
 
@@ -50,22 +52,52 @@ describe('Administrator visibility', () => {
     const CHANNEL_B_TOKEN = 'channel_b_token';
 
     const channelAAdmin = { emailAddress: 'channel-a-admin@test.com', password: 'test-password' };
+    const channelBAdmin = { emailAddress: 'channel-b-admin@test.com', password: 'test-password' };
     const channelAStaff = { emailAddress: 'channel-a-staff@test.com', password: 'test-password' };
     const bothChannelsAdmin = { emailAddress: 'both-channels-admin@test.com', password: 'test-password' };
     const bothChannelsStaff = { emailAddress: 'both-channels-staff@test.com', password: 'test-password' };
 
     let superAdminId: string;
     let channelAAdminId: string;
+    let channelBAdminId: string;
     let bothChannelsAdminId: string;
     let channelAStaffId: string;
     let channelBStaffId: string;
     let bothChannelsStaffId: string;
     let noRolesAdminId: string;
-    let channelAStaffRoleId: string;
+    let channelAId: string;
+    let staffRoleId: string;
 
     const channelGuard: ErrorResultGuard<FragmentOf<typeof channelFragment>> = createErrorResultGuard(
         input => !!input.defaultLanguageCode,
     );
+
+    async function createTestChannel(code: string, token: string) {
+        const { createChannel } = await adminClient.query(createChannelDocument, {
+            input: {
+                code,
+                token,
+                defaultLanguageCode: LanguageCode.en,
+                currencyCode: CurrencyCode.GBP,
+                pricesIncludeTax: true,
+                defaultShippingZoneId: 'T_1',
+                defaultTaxZoneId: 'T_1',
+            },
+        });
+        channelGuard.assertSuccess(createChannel);
+        return createChannel.id;
+    }
+
+    async function createTestAdministrator(
+        emailAddress: string,
+        firstName: string,
+        roleAssignments: Array<{ roleId: string; channelId: string }>,
+    ) {
+        const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
+            input: { emailAddress, firstName, lastName: 'Test', password: 'test-password', roleAssignments },
+        });
+        return createAdministrator.id;
+    }
 
     beforeAll(async () => {
         await server.init({
@@ -82,38 +114,15 @@ describe('Administrator visibility', () => {
         }
         superAdminId = superAdmin.id;
 
-        const { createChannel: channelA } = await adminClient.query(createChannelDocument, {
-            input: {
-                code: 'channel-a',
-                token: CHANNEL_A_TOKEN,
-                defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.GBP,
-                pricesIncludeTax: true,
-                defaultShippingZoneId: 'T_1',
-                defaultTaxZoneId: 'T_1',
-            },
-        });
-        const { createChannel: channelB } = await adminClient.query(createChannelDocument, {
-            input: {
-                code: 'channel-b',
-                token: CHANNEL_B_TOKEN,
-                defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.GBP,
-                pricesIncludeTax: true,
-                defaultShippingZoneId: 'T_1',
-                defaultTaxZoneId: 'T_1',
-            },
-        });
-        channelGuard.assertSuccess(channelA);
-        channelGuard.assertSuccess(channelB);
-        const channelAId = channelA.id;
-        const channelBId = channelB.id;
+        channelAId = await createTestChannel('channel-a', CHANNEL_A_TOKEN);
+        const channelBId = await createTestChannel('channel-b', CHANNEL_B_TOKEN);
 
-        // Can administer Administrators on Channel A only.
-        const { createRole: channelAAdminRole } = await adminClient.query(createRoleDocument, {
+        // Roles carry no Channels: the Channel is on each RoleAssignment row, so the same Role is
+        // assigned on Channel A, Channel B or both below.
+        const { createRole: adminManagerRole } = await adminClient.query(createRoleDocument, {
             input: {
-                code: 'channel-a-admin',
-                description: 'Manages administrators of Channel A',
+                code: 'admin-manager',
+                description: 'Manages administrators',
                 permissions: [
                     Permission.ReadCatalog,
                     Permission.CreateAdministrator,
@@ -121,119 +130,58 @@ describe('Administrator visibility', () => {
                     Permission.UpdateAdministrator,
                     Permission.DeleteAdministrator,
                 ],
-                channelIds: [channelAId],
             },
         });
-        // The same authority, but on both Channels.
-        const { createRole: bothChannelsAdminRole } = await adminClient.query(createRoleDocument, {
+        // Can read Administrators, but holds less than admin-manager does.
+        const { createRole: staffRole } = await adminClient.query(createRoleDocument, {
             input: {
-                code: 'both-channels-admin',
-                description: 'Manages administrators of both Channels',
-                permissions: [
-                    Permission.ReadCatalog,
-                    Permission.CreateAdministrator,
-                    Permission.ReadAdministrator,
-                    Permission.UpdateAdministrator,
-                    Permission.DeleteAdministrator,
-                ],
-                channelIds: [channelAId, channelBId],
-            },
-        });
-        // Can read Administrators on Channel A, but holds less than channel-a-admin does.
-        const { createRole: channelAStaffRole } = await adminClient.query(createRoleDocument, {
-            input: {
-                code: 'channel-a-staff',
-                description: 'Catalog staff of Channel A',
+                code: 'staff',
+                description: 'Catalog staff who can read administrators',
                 permissions: [Permission.ReadCatalog, Permission.ReadAdministrator],
-                channelIds: [channelAId],
             },
         });
-        const { createRole: channelBStaffRole } = await adminClient.query(createRoleDocument, {
+        const { createRole: catalogRole } = await adminClient.query(createRoleDocument, {
             input: {
-                code: 'channel-b-staff',
-                description: 'Catalog staff of Channel B',
+                code: 'catalog',
+                description: 'Catalog staff',
                 permissions: [Permission.ReadCatalog],
-                channelIds: [channelBId],
             },
         });
+        staffRoleId = staffRole.id;
 
-        channelAStaffRoleId = channelAStaffRole.id;
-
-        const { createAdministrator: aAdmin } = await adminClient.query(createAdministratorDocument, {
-            input: {
-                emailAddress: channelAAdmin.emailAddress,
-                firstName: 'Alice',
-                lastName: 'ChannelA',
-                password: channelAAdmin.password,
-                roleIds: [channelAAdminRole.id],
-            },
-        });
-        channelAAdminId = aAdmin.id;
-
-        const { createAdministrator: abAdmin } = await adminClient.query(createAdministratorDocument, {
-            input: {
-                emailAddress: bothChannelsAdmin.emailAddress,
-                firstName: 'Bob',
-                lastName: 'BothChannels',
-                password: bothChannelsAdmin.password,
-                roleIds: [bothChannelsAdminRole.id],
-            },
-        });
-        bothChannelsAdminId = abAdmin.id;
-
-        const { createAdministrator: aStaff } = await adminClient.query(createAdministratorDocument, {
-            input: {
-                emailAddress: channelAStaff.emailAddress,
-                firstName: 'Carol',
-                lastName: 'StaffA',
-                password: channelAStaff.password,
-                roleIds: [channelAStaffRole.id],
-            },
-        });
-        channelAStaffId = aStaff.id;
-
-        const { createAdministrator: bStaff } = await adminClient.query(createAdministratorDocument, {
-            input: {
-                emailAddress: 'channel-b-staff@test.com',
-                firstName: 'Dave',
-                lastName: 'StaffB',
-                password: 'test-password',
-                roleIds: [channelBStaffRole.id],
-            },
-        });
-        channelBStaffId = bStaff.id;
-
-        // Holds a Role of each Channel, so one visible Role and one hidden Role for a Channel A
-        // administrator.
-        const { createAdministrator: abStaff } = await adminClient.query(createAdministratorDocument, {
-            input: {
-                emailAddress: bothChannelsStaff.emailAddress,
-                firstName: 'Frank',
-                lastName: 'StaffAB',
-                password: bothChannelsStaff.password,
-                roleIds: [channelAStaffRole.id, channelBStaffRole.id],
-            },
-        });
-        bothChannelsStaffId = abStaff.id;
-
-        // An Administrator with no Roles at all. There is nothing to check them against, so they
-        // are visible to any holder of ReadAdministrator.
-        const { createAdministrator: noRoles } = await adminClient.query(createAdministratorDocument, {
-            input: {
-                emailAddress: 'no-roles-admin@test.com',
-                firstName: 'Erin',
-                lastName: 'NoRoles',
-                password: 'test-password',
-                roleIds: [],
-            },
-        });
-        noRolesAdminId = noRoles.id;
+        channelAAdminId = await createTestAdministrator(channelAAdmin.emailAddress, 'Alice', [
+            { roleId: adminManagerRole.id, channelId: channelAId },
+        ]);
+        // The B-only counterpart of channelAAdmin.
+        channelBAdminId = await createTestAdministrator(channelBAdmin.emailAddress, 'Bea', [
+            { roleId: adminManagerRole.id, channelId: channelBId },
+        ]);
+        bothChannelsAdminId = await createTestAdministrator(bothChannelsAdmin.emailAddress, 'Bob', [
+            { roleId: adminManagerRole.id, channelId: channelAId },
+            { roleId: adminManagerRole.id, channelId: channelBId },
+        ]);
+        channelAStaffId = await createTestAdministrator(channelAStaff.emailAddress, 'Carol', [
+            { roleId: staffRole.id, channelId: channelAId },
+        ]);
+        channelBStaffId = await createTestAdministrator('channel-b-staff@test.com', 'Dave', [
+            { roleId: catalogRole.id, channelId: channelBId },
+        ]);
+        // Holds the same Role on both Channels, so one visible row and one hidden row for a
+        // Channel A administrator.
+        bothChannelsStaffId = await createTestAdministrator(bothChannelsStaff.emailAddress, 'Frank', [
+            { roleId: staffRole.id, channelId: channelAId },
+            { roleId: staffRole.id, channelId: channelBId },
+        ]);
+        // An Administrator with no RoleAssignments at all belongs to no Channel, so only an actor
+        // holding ReadAdministrator on every Channel sees them. None of the actors below does.
+        noRolesAdminId = await createTestAdministrator('no-roles-admin@test.com', 'Erin', []);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
         await server.destroy();
     });
 
+    // GHSA-37j3-p93w-fq6w — an actor with authority on Channel A only sees and modifies Channel A Administrators.
     describe('administrator scoped to a single Channel', () => {
         beforeAll(async () => {
             adminClient.setChannelToken(CHANNEL_A_TOKEN);
@@ -250,23 +198,31 @@ describe('Administrator visibility', () => {
             expect(visibleIds).toEqual(expect.arrayContaining([channelAAdminId, channelAStaffId]));
         });
 
-        it('administrators omits an Administrator who holds a hidden Role beside a visible one', async () => {
+        it('administrators omits an Administrator who holds a hidden assignment beside a visible one', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
             expect(administrators.items.map(a => a.id)).not.toContain(bothChannelsStaffId);
         });
 
-        it('administrators includes an Administrator with no Roles', async () => {
+        it('administrators omits an Administrator with no assignments', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.items.map(a => a.id)).toContain(noRolesAdminId);
+            expect(administrators.items.map(a => a.id)).not.toContain(noRolesAdminId);
+        });
+
+        it('administrator returns null for an Administrator with no assignments', async () => {
+            const { administrator } = await adminClient.query(getAdministratorDocument, {
+                id: noRolesAdminId,
+            });
+
+            expect(administrator).toBeNull();
         });
 
         it('totalItems counts only visible Administrators', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.totalItems).toBe(3);
-            expect(administrators.items.length).toBe(3);
+            expect(administrators.totalItems).toBe(2);
+            expect(administrators.items.length).toBe(2);
         });
 
         it('administrator returns null for an Administrator of another Channel', async () => {
@@ -277,7 +233,7 @@ describe('Administrator visibility', () => {
             expect(administrator).toBeNull();
         });
 
-        it('administrator returns null for an Administrator who holds a hidden Role beside a visible one', async () => {
+        it('administrator returns null for an Administrator who holds a hidden assignment beside a visible one', async () => {
             const { administrator } = await adminClient.query(getAdministratorDocument, {
                 id: bothChannelsStaffId,
             });
@@ -305,7 +261,7 @@ describe('Administrator visibility', () => {
             const { activeAdministrator } = await adminClient.query(getActiveAdministratorDocument);
 
             expect(activeAdministrator?.id).toBe(channelAAdminId);
-            expect(activeAdministrator?.user.roles.map(r => r.code)).toEqual(['channel-a-admin']);
+            expect(activeAdministrator?.user.roles.map(r => r.code)).toEqual(['admin-manager']);
         });
 
         it(
@@ -317,12 +273,13 @@ describe('Administrator visibility', () => {
             }, 'could be found'),
         );
 
+        // assignRoleToAdministrator is deprecated (since 4.0.0) and assigns on the active Channel.
         it(
             'assignRoleToAdministrator reports an Administrator of another Channel as not found',
             assertThrowsWithMessage(async () => {
                 await adminClient.query(assignRoleToAdministratorDocument, {
                     administratorId: channelBStaffId,
-                    roleId: channelAStaffRoleId,
+                    roleId: staffRoleId,
                 });
             }, 'could be found'),
         );
@@ -336,18 +293,18 @@ describe('Administrator visibility', () => {
             }, 'could be found'),
         );
 
-        it('createAdministrator succeeds with a Role of its own Channel', async () => {
+        it('createAdministrator succeeds with an assignment on its own Channel', async () => {
             const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
                 input: {
                     emailAddress: 'created-by-channel-a-admin@test.com',
                     firstName: 'Grace',
                     lastName: 'CreatedA',
                     password: 'test-password',
-                    roleIds: [channelAStaffRoleId],
+                    roleAssignments: [{ roleId: staffRoleId, channelId: channelAId }],
                 },
             });
 
-            expect(createAdministrator.user.roles.map(r => r.code)).toEqual(['channel-a-staff']);
+            expect(createAdministrator.user.roles.map(r => r.code)).toEqual(['staff']);
 
             const { deleteAdministrator } = await adminClient.query(deleteAdministratorDocument, {
                 id: createAdministrator.id,
@@ -366,6 +323,7 @@ describe('Administrator visibility', () => {
         });
     });
 
+    // GHSA-37j3-p93w-fq6w — authority needs every Permission of the target's Role, not just a shared Channel.
     describe('administrator with narrower permissions than a colleague on the same Channel', () => {
         beforeAll(async () => {
             adminClient.setChannelToken(CHANNEL_A_TOKEN);
@@ -375,10 +333,8 @@ describe('Administrator visibility', () => {
         it('administrators omits the colleague with broader permissions', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.items.map(a => a.id).sort()).toEqual(
-                [channelAStaffId, noRolesAdminId].sort(),
-            );
-            expect(administrators.totalItems).toBe(2);
+            expect(administrators.items.map(a => a.id)).toEqual([channelAStaffId]);
+            expect(administrators.totalItems).toBe(1);
         });
 
         it('administrator returns null for the colleague with broader permissions', async () => {
@@ -390,6 +346,7 @@ describe('Administrator visibility', () => {
         });
     });
 
+    // GHSA-37j3-p93w-fq6w — the filter runs in the list query, so counts, sorting and filtering agree with it.
     describe('administrator with authority on both Channels', () => {
         beforeAll(async () => {
             adminClient.setChannelToken(CHANNEL_A_TOKEN);
@@ -407,12 +364,15 @@ describe('Administrator visibility', () => {
                 expect.arrayContaining([
                     bothChannelsAdminId,
                     channelAAdminId,
+                    channelBAdminId,
                     channelAStaffId,
                     channelBStaffId,
                     bothChannelsStaffId,
                 ]),
             );
             expect(visibleIds).not.toContain(superAdminId);
+            // Not on the default Channel, so not authorized over an Administrator of no Channel
+            expect(visibleIds).not.toContain(noRolesAdminId);
             expect(administrators.totalItems).toBe(6);
         });
 
@@ -456,6 +416,116 @@ describe('Administrator visibility', () => {
         });
     });
 
+    // GHSA-37j3-p93w-fq6w — per-actor rows against the B-only Administrator channelBStaff, who holds
+    // the catalog Role on Channel B. Only an actor holding the catalog Permissions on Channel B
+    // has authority over them; holding them on Channel A does not count.
+    describe('per-actor access to a Channel B only Administrator', () => {
+        const NOT_AUTHORIZED = 'You are not currently authorized to perform this action';
+        const rows = [
+            {
+                name: 'admin-manager on Channel A only, active on Channel A',
+                actor: channelAAdmin,
+                channelToken: CHANNEL_A_TOKEN,
+                expected: 'hidden',
+            },
+            // Switching the active Channel does not help: the actor holds nothing on Channel B.
+            {
+                name: 'admin-manager on Channel A only, active on Channel B',
+                actor: channelAAdmin,
+                channelToken: CHANNEL_B_TOKEN,
+                expected: 'forbidden',
+            },
+            {
+                name: 'admin-manager on Channel B only, active on Channel B',
+                actor: channelBAdmin,
+                channelToken: CHANNEL_B_TOKEN,
+                expected: 'visible',
+            },
+        ] as const;
+
+        for (const row of rows) {
+            describe(row.name, () => {
+                // login() switches the client to the user's first Channel, so the token is set after it.
+                beforeAll(async () => {
+                    await adminClient.asUserWithCredentials(row.actor.emailAddress, row.actor.password);
+                    adminClient.setChannelToken(row.channelToken);
+                });
+
+                if (row.expected === 'forbidden') {
+                    it(
+                        'administrators is forbidden',
+                        assertThrowsWithMessage(
+                            () => adminClient.query(getAdministratorsDocument),
+                            NOT_AUTHORIZED,
+                        ),
+                    );
+                    it(
+                        'administrator is forbidden',
+                        assertThrowsWithMessage(
+                            () => adminClient.query(getAdministratorDocument, { id: channelBStaffId }),
+                            NOT_AUTHORIZED,
+                        ),
+                    );
+                    it(
+                        'updateAdministrator is forbidden',
+                        assertThrowsWithMessage(
+                            () =>
+                                adminClient.query(updateAdministratorDocument, {
+                                    input: { id: channelBStaffId, firstName: 'Pwned' },
+                                }),
+                            NOT_AUTHORIZED,
+                        ),
+                    );
+                    return;
+                }
+
+                const visible = row.expected === 'visible';
+
+                it(`administrators ${visible ? 'includes' : 'omits'} the Administrator`, async () => {
+                    const { administrators } = await adminClient.query(getAdministratorsDocument);
+                    const visibleIds = administrators.items.map(a => a.id);
+
+                    if (visible) {
+                        expect(visibleIds).toContain(channelBStaffId);
+                    } else {
+                        expect(visibleIds).not.toContain(channelBStaffId);
+                    }
+                });
+
+                it(`administrator ${visible ? 'returns' : 'returns null for'} the Administrator`, async () => {
+                    const { administrator } = await adminClient.query(getAdministratorDocument, {
+                        id: channelBStaffId,
+                    });
+
+                    expect(administrator?.id ?? null).toBe(visible ? channelBStaffId : null);
+                });
+
+                if (visible) {
+                    it('updateAdministrator updates the Administrator', async () => {
+                        const { updateAdministrator } = await adminClient.query(updateAdministratorDocument, {
+                            input: { id: channelBStaffId, firstName: 'UpdatedByChannelBAdmin' },
+                        });
+
+                        expect(updateAdministrator.id).toBe(channelBStaffId);
+                        expect(updateAdministrator.firstName).toBe('UpdatedByChannelBAdmin');
+                    });
+                } else {
+                    it(
+                        'updateAdministrator reports the Administrator as not found',
+                        assertThrowsWithMessage(
+                            () =>
+                                adminClient.query(updateAdministratorDocument, {
+                                    input: { id: channelBStaffId, firstName: 'Pwned' },
+                                }),
+                            'could be found',
+                        ),
+                    );
+                }
+            });
+        }
+    });
+
+    // GHSA-37j3-p93w-fq6w — the SuperAdmin is not restricted.
     describe('SuperAdmin', () => {
         beforeAll(async () => {
             adminClient.setChannelToken(CHANNEL_A_TOKEN);
@@ -465,11 +535,12 @@ describe('Administrator visibility', () => {
         it('still sees every Administrator', async () => {
             const { administrators } = await adminClient.query(getAdministratorsDocument);
 
-            expect(administrators.totalItems).toBe(7);
+            expect(administrators.totalItems).toBe(8);
             expect(administrators.items.map(a => a.id)).toEqual(
                 expect.arrayContaining([
                     superAdminId,
                     channelAAdminId,
+                    channelBAdminId,
                     bothChannelsAdminId,
                     channelAStaffId,
                     channelBStaffId,

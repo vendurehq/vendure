@@ -28,8 +28,8 @@ const administrator = {
     user: {
         id: 'user-1',
         identifier: 'ada',
-        roles: [
-            { id: 'role-1', code: 'floor-staff', description: 'Floor staff', channels: [{ id: 'ch-2' }] },
+        roleAssignments: [
+            { channelId: 'ch-2', role: { id: 'role-1', code: 'floor-staff', description: 'Floor staff' } },
         ],
     },
 };
@@ -99,6 +99,44 @@ describe('useDashboardUserContext', () => {
 
         expect(result?.ctx.administrator?.id).toBe('admin-1');
         expect(result?.ctx.roles.map(role => role.code)).toEqual(['floor-staff']);
+    });
+
+    it('groups the assignments of a role into its channels', async () => {
+        const role = { id: 'role-1', code: 'floor-staff', description: 'Floor staff' };
+        useAuthMock.mockReturnValue({
+            user: {
+                ...administrator,
+                user: {
+                    ...administrator.user,
+                    roleAssignments: [
+                        { channelId: 'ch-1', role },
+                        { channelId: 'ch-2', role },
+                    ],
+                },
+            },
+            channels,
+        });
+        await render();
+
+        expect(result?.ctx.roles).toEqual([{ ...role, channels: [{ id: 'ch-1' }, { id: 'ch-2' }] }]);
+    });
+
+    it('treats the SuperAdmin role as held on every accessible channel', async () => {
+        const superAdminRole = { id: 'role-sa', code: '__super_admin_role__', description: 'SuperAdmin' };
+        useAuthMock.mockReturnValue({
+            user: {
+                ...administrator,
+                user: {
+                    ...administrator.user,
+                    roleAssignments: [{ channelId: 'ch-1', role: superAdminRole }],
+                },
+            },
+            channels,
+        });
+        await render();
+
+        expect(result?.ctx.isSuperAdmin).toBe(true);
+        expect(result?.ctx.roles[0].channels).toEqual([{ id: 'ch-1' }, { id: 'ch-2' }]);
     });
 
     it('resolves the active channel against the permission-bearing list', async () => {

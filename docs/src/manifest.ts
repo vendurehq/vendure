@@ -277,6 +277,39 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/developer-guide/updating/index.mdx'),
                 },
                 {
+                    title: 'Migrating from v3',
+                    slug: 'migrating-from-v3',
+                    file: file('docs/guides/developer-guide/migrating-from-v3/index.mdx'),
+                    children: [
+                        {
+                            title: 'Database Migration',
+                            slug: 'database-migration',
+                            file: file(
+                                'docs/guides/developer-guide/migrating-from-v3/database-migration.mdx',
+                            ),
+                        },
+                        {
+                            title: 'Breaking API Changes',
+                            slug: 'breaking-api-changes',
+                            file: file(
+                                'docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx',
+                            ),
+                        },
+                        {
+                            title: 'Storefront Migration',
+                            slug: 'storefront-migration',
+                            file: file(
+                                'docs/guides/developer-guide/migrating-from-v3/storefront-migration.mdx',
+                            ),
+                        },
+                        {
+                            title: 'Role Assignments',
+                            slug: 'role-assignments',
+                            file: file('docs/guides/developer-guide/migrating-from-v3/role-assignments.mdx'),
+                        },
+                    ],
+                },
+                {
                     title: 'Worker & Job Queue',
                     slug: 'worker-job-queue',
                     file: file('docs/guides/developer-guide/worker-job-queue/index.mdx'),

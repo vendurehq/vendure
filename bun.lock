@@ -103,6 +103,7 @@
         "@vendure/core": "3.8.1",
         "@vendure/testing": "3.8.1",
         "cross-env": "^7.0.3",
+        "graphql": "^16.11.0",
       },
       "peerDependencies": {
         "vite": "^8.0.0",

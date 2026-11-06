@@ -348,10 +348,34 @@ type Mutation {
     Administrator: '/reference/graphql-api/admin/object-types#administrator',
     ID: '/reference/graphql-api/admin/object-types#id',
   }}
+  deprecated="Use assignRolesToUser instead. assignRoleToAdministrator assigns the Role on the active Channel only."
 >
 {`"""Assign a Role to an Administrator"""
 type Mutation {
   assignRoleToAdministrator(administratorId: ID!, roleId: ID!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="assignrolestouser"></a>
+
+## assignRolesToUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignRolesToUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    AssignRolesToUserInput: '/reference/graphql-api/admin/input-types#assignrolestouserinput',
+  }}
+>
+{`"""
+Grants the User each Role on the given Channel. The active user must hold every permission
+of the Role on that Channel, be able to grant every assignment the User already holds, and
+have UpdateAdministrator (UpdateApiKey for an ApiKey's User) on each Channel involved.
+A SuperAdmin grant applies on every Channel.
+"""
+type Mutation {
+  assignRolesToUser(input: AssignRolesToUserInput!): User!
 }`}
 </GraphQLDoc>
 
@@ -2243,6 +2267,28 @@ type Mutation {
 {`"""Removes Promotions from the specified Channel"""
 type Mutation {
   removePromotionsFromChannel(input: RemovePromotionsFromChannelInput!): [Promotion!]!
+}`}
+</GraphQLDoc>
+
+<a name="removerolesfromuser"></a>
+
+## removeRolesFromUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeRolesFromUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    RemoveRolesFromUserInput: '/reference/graphql-api/admin/input-types#removerolesfromuserinput',
+  }}
+>
+{`"""
+Revokes each Role on the given Channel from the User, under the same rules as
+assignRolesToUser. Revoking SuperAdmin removes it on every Channel; the sole SuperAdmin
+cannot lose it.
+"""
+type Mutation {
+  removeRolesFromUser(input: RemoveRolesFromUserInput!): User!
 }`}
 </GraphQLDoc>
 

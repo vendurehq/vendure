@@ -111,6 +111,10 @@ export class OrderAdminEntityResolver {
     @ResolveField()
     async channels(@Ctx() ctx: RequestContext, @Parent() order: Order) {
         const channels = order.channels ?? (await this.orderService.getOrderChannels(ctx, order));
+        // A user with global permissions (SuperAdmin) has access to every Channel.
+        if (ctx.session?.user?.globalPermissions?.length) {
+            return channels;
+        }
         return channels.filter(channel =>
             ctx.session?.user?.channelPermissions.find(cp => idsAreEqual(cp.id, channel.id)),
         );
@@ -133,6 +137,10 @@ export class OrderAdminEntityResolver {
     async sellerOrders(@Ctx() ctx: RequestContext, @Parent() order: Order) {
         const sellerOrders = await this.orderService.getSellerOrders(ctx, order);
         // Only return seller orders on those channels to which the active user has access.
+        // A user with global permissions (SuperAdmin) has access to every Channel.
+        if (ctx.session?.user?.globalPermissions?.length) {
+            return sellerOrders;
+        }
         const userChannelIds = ctx.session?.user?.channelPermissions.map(cp => cp.id) ?? [];
         return sellerOrders.filter(sellerOrder =>
             sellerOrder.channels.find(c => userChannelIds.includes(c.id)),
@@ -142,6 +150,10 @@ export class OrderAdminEntityResolver {
     @ResolveField()
     async aggregateOrder(@Ctx() ctx: RequestContext, @Parent() order: Order) {
         const aggregateOrder = await this.orderService.getAggregateOrder(ctx, order);
+        // A user with global permissions (SuperAdmin) has access to every Channel.
+        if (aggregateOrder && ctx.session?.user?.globalPermissions?.length) {
+            return aggregateOrder;
+        }
         const userChannelIds = ctx.session?.user?.channelPermissions.map(cp => cp.id) ?? [];
         // Only return the aggregate order if the active user has permissions on that channel
         return aggregateOrder &&

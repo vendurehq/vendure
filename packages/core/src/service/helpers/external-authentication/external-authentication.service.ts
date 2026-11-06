@@ -15,6 +15,7 @@ import { AdministratorService } from '../../services/administrator.service';
 import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
 import { HistoryService } from '../../services/history.service';
+import { RoleAssignmentService } from '../../services/role-assignment.service';
 import { RoleService } from '../../services/role.service';
 import { StoredMediaUpload } from '../stored-media/stored-media.service';
 
@@ -29,11 +30,12 @@ import { StoredMediaUpload } from '../stored-media/stored-media.service';
 export class ExternalAuthenticationService {
     constructor(
         private connection: TransactionalConnection,
-        private roleService: RoleService,
+        private roleAssignmentService: RoleAssignmentService,
         private historyService: HistoryService,
         private customerService: CustomerService,
         private administratorService: AdministratorService,
         private channelService: ChannelService,
+        private roleService: RoleService,
     ) {}
 
     /**
@@ -137,10 +139,10 @@ export class ExternalAuthenticationService {
             }
             user = existingUser;
         } else {
-            const customerRole = await this.roleService.getCustomerRole(ctx);
+            // Customer permissions derive from the Customer's channel
+            // memberships at permission-resolution time — no role bookkeeping needed.
             user = new User({
                 identifier: emailAddress,
-                roles: [customerRole],
                 verified: config.verified || false,
                 authenticationMethods: [],
             });
@@ -211,14 +213,27 @@ export class ExternalAuthenticationService {
             emailAddress?: string;
             firstName?: string;
             lastName?: string;
-            roles: Role[];
+            /**
+             * Roles to grant. A Role owned by a Channel other than the default one is granted on
+             * that Channel; a shared Role on the active Channel, which the client chooses with
+             * the vendure-token header. To name the Channel, use roleAssignments.
+             *
+             * @deprecated since 4.0.0, use roleAssignments
+             */
+            roles?: Role[];
+            /**
+             * The Roles to grant, each on the given Channel. The Role must be assignable there:
+             * a shared Role on any Channel, any other Role on its owner only.
+             *
+             * @since 4.0.0
+             */
+            roleAssignments?: Array<{ role: Role; channelId: ID }>;
             /** An optional provider profile image to use as the Administrator avatar. */
             avatar?: Promise<StoredMediaUpload> | StoredMediaUpload;
         },
     ) {
         const newUser = new User({
             identifier: config.identifier,
-            roles: config.roles,
             verified: true,
         });
 
@@ -231,6 +246,21 @@ export class ExternalAuthenticationService {
 
         newUser.authenticationMethods = [authMethod];
         const savedUser = await this.connection.getRepository(ctx, User).save(newUser);
+        // The strategy has already decided which Roles this User gets and there is no actor
+        // whose grant rights could apply, so the write goes through the unauthorized
+        // primitive, which still enforces Role ownership. The active Channel comes from the
+        // client, so it is used only for shared Roles.
+        const pairs = [
+            ...(config.roleAssignments ?? []).map(({ role, channelId }) => ({ roleId: role.id, channelId })),
+        ];
+        for (const role of config.roles ?? []) {
+            const channelId =
+                role.channelId != null && !(await this.roleService.isSharedRole(ctx, role))
+                    ? role.channelId
+                    : ctx.channelId;
+            pairs.push({ roleId: role.id, channelId });
+        }
+        await this.roleAssignmentService.createAssignments(ctx, savedUser.id, pairs);
 
         const administrator = await this.connection.getRepository(ctx, Administrator).save(
             new Administrator({

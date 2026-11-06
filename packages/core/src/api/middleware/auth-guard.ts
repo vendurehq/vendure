@@ -69,13 +69,16 @@ export class AuthGuard implements CanActivate {
             }
             requestContext = await this.requestContextService.fromRequest(req, info, permissions, session);
 
-            const requestContextShouldBeReinitialized = await this.setActiveChannel(requestContext, session);
-            if (requestContextShouldBeReinitialized) {
+            const updatedSession = await this.setActiveChannel(requestContext, session);
+            if (updatedSession) {
+                // The visit may just have assigned the customer to the active Channel, which
+                // changes their permissions, so the RequestContext is rebuilt from the
+                // freshly-serialized session rather than the stale one.
                 requestContext = await this.requestContextService.fromRequest(
                     req,
                     info,
                     permissions,
-                    session,
+                    updatedSession,
                 );
             }
             internal_setRequestContext(req, requestContext, context);
@@ -129,25 +132,30 @@ export class AuthGuard implements CanActivate {
         return session.apiType === 'admin';
     }
 
+    /**
+     * Sets the session's active Channel to the current request's Channel where they differ,
+     * assigning the active customer to that Channel first where appropriate. Returns the
+     * updated serialized session (whose user permissions reflect a fresh assignment), or
+     * undefined if no update was needed.
+     */
     private async setActiveChannel(
         requestContext: RequestContext,
         session?: CachedSession,
-    ): Promise<boolean> {
+    ): Promise<CachedSession | undefined> {
         if (!session) {
-            return false;
+            return;
         }
         // In case the session does not have an activeChannelId or the activeChannelId
         // does not correspond to the current channel, the activeChannelId on the session is set
         const activeChannelShouldBeSet =
             !session.activeChannelId || session.activeChannelId !== requestContext.channelId;
         if (!activeChannelShouldBeSet) {
-            return false;
+            return;
         }
         if (requestContext.activeUserId) {
             await this.customerChannelAssignmentService.tryAssignToActiveChannel(requestContext);
         }
-        await this.sessionService.setActiveChannel(session, requestContext.channel);
-        return true;
+        return this.sessionService.setActiveChannel(session, requestContext.channel);
     }
 
     private async getSession(
@@ -210,11 +218,7 @@ export class AuthGuard implements CanActivate {
 
         const ctx = await this.requestContextService.fromRequest(req, info);
 
-        const apiKey = await this.apiKeyService.findOneByLookupId(ctx, parseResult.lookupId, [
-            'user',
-            'user.roles',
-            'user.roles.channels',
-        ]);
+        const apiKey = await this.apiKeyService.findOneByLookupId(ctx, parseResult.lookupId, ['user']);
         if (!apiKey) {
             return;
         }

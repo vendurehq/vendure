@@ -428,7 +428,6 @@ describe('Promotion resolver', () => {
                     input: {
                         code: 'promotion-channel-permission-test-role',
                         description: '',
-                        channelIds: [secondChannel.id],
                         permissions: [Permission.UpdatePromotion],
                     },
                 });
@@ -438,7 +437,10 @@ describe('Promotion resolver', () => {
                         lastName: 'Admin',
                         emailAddress: RESTRICTED_ADMIN_EMAIL,
                         password: RESTRICTED_ADMIN_PASSWORD,
-                        roleIds: [createRole.id],
+                        roleAssignments: [secondChannel.id].map(channelId => ({
+                            roleId: createRole.id,
+                            channelId,
+                        })),
                     },
                 });
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
@@ -458,12 +460,15 @@ describe('Promotion resolver', () => {
 
             it('can assign a Promotion to a channel it has permission on', async () => {
                 // Positive control for the rejections below.
-                const { assignPromotionsToChannel } = await adminClient.query(assignPromotionsToChannelDocument, {
-                    input: {
-                        channelId: secondChannel.id,
-                        promotionIds: [promotion.id],
+                const { assignPromotionsToChannel } = await adminClient.query(
+                    assignPromotionsToChannelDocument,
+                    {
+                        input: {
+                            channelId: secondChannel.id,
+                            promotionIds: [promotion.id],
+                        },
                     },
-                });
+                );
                 expect(assignPromotionsToChannel).toEqual([{ id: promotion.id, name: promotion.name }]);
             });
 

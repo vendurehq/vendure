@@ -5,7 +5,6 @@ import {
     ChannelService,
     EntityNotFoundError,
     ForbiddenError,
-    idsAreEqual,
     InternalServerError,
     Permission,
     RequestContext,
@@ -18,7 +17,7 @@ import { z } from 'zod';
 import { McpOauthGrant } from '../../../entities/mcp-oauth-grant.entity';
 import { McpToolSerializerService } from '../serializer.service';
 
-import { userChannelIds } from './channel-access';
+import { userCanAccessChannel } from './channel-access';
 
 const setActiveChannelInput = z.strictObject({
     channelToken: shortText.describe('Channel token of the channel to activate.'),
@@ -62,8 +61,7 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
                     'you can use.',
             );
         }
-        const accessibleIds = userChannelIds(ctx);
-        if (!accessibleIds.some(id => idsAreEqual(id, channel.id))) {
+        if (!userCanAccessChannel(ctx, channel.id)) {
             throw new ForbiddenError();
         }
         // Update only channelId so a concurrent token refresh cannot overwrite rotated hashes.

@@ -50,6 +50,7 @@ import { Country } from './region/country.entity';
 import { Province } from './region/province.entity';
 import { RegionTranslation } from './region/region-translation.entity';
 import { Region } from './region/region.entity';
+import { RoleAssignment } from './role-assignment/role-assignment.entity';
 import { Role } from './role/role.entity';
 import { SellerTranslation } from './seller/seller-translation.entity';
 import { Seller } from './seller/seller.entity';
@@ -137,6 +138,7 @@ export const coreEntitiesMap = {
     RegionTranslation,
     Release,
     Role,
+    RoleAssignment,
     Sale,
     Session,
     SettingsStoreEntry,

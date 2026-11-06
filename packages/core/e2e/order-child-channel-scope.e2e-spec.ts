@@ -232,7 +232,6 @@ describe('Order child entity channel scoping', () => {
                     Permission.ReadOrder,
                     Permission.UpdateOrder,
                 ],
-                channelIds: [channelBId],
             },
         });
         await adminClient.query(createAdministratorDocument, {
@@ -241,7 +240,7 @@ describe('Order child entity channel scoping', () => {
                 firstName: 'Bob',
                 lastName: 'ChannelB',
                 password: channelBAdmin.password,
-                roleIds: [createRole.id],
+                roleAssignments: [channelBId].map(channelId => ({ roleId: createRole.id, channelId })),
             },
         });
 

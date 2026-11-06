@@ -6,7 +6,7 @@ import {
     LanguageCode,
     Permission,
 } from '@vendure/common/lib/generated-types';
-import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import { DEFAULT_CHANNEL_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ChannelService, RequestContextService } from '@vendure/core';
 import {
     createErrorResultGuard,
@@ -43,7 +43,6 @@ describe('Channels', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
     const SECOND_CHANNEL_TOKEN = 'second_channel_token';
 
-    let secondChannelAdminRole: ResultOf<typeof createRoleDocument>['createRole'];
     let customerUser: ResultOf<typeof getCustomerListDocument>['customers']['items'][number];
 
     type ChannelFragment = FragmentOf<typeof channelFragment>;
@@ -149,10 +148,39 @@ describe('Channels', () => {
         expect(secondChannelData!.permissions.sort()).toEqual(nonOwnerPermissions);
     });
 
-    it('customer has Authenticated permission on new channel', async () => {
+    it('writes no superadmin role assignment for the new channel', async () => {
+        const { roleAssignments } = await adminClient.query(getRoleAssignmentsDocument);
+
+        // The SuperAdmin role is stored as a single row on the default channel, which
+        // stands for every channel; access to the new channel is derived at check time.
+        const superAdminChannelTokens = roleAssignments.items
+            .filter(assignment => assignment.role.code === SUPER_ADMIN_ROLE_CODE)
+            .map(assignment => assignment.channel.token);
+
+        expect(superAdminChannelTokens).toEqual([E2E_DEFAULT_CHANNEL_TOKEN]);
+    });
+
+    it('customer permissions derive from channel membership', async () => {
         await shopClient.asUserWithCredentials(customerUser.emailAddress, 'test');
         const { me } = await shopClient.query(MeDocument);
 
+        // The customer is a member of the default channel only, so the new channel does
+        // not appear: creating a channel does not grant every customer access to it.
+        expect(me!.channels).toEqual([
+            {
+                code: DEFAULT_CHANNEL_CODE,
+                permissions: ['Authenticated'],
+                token: E2E_DEFAULT_CHANNEL_TOKEN,
+            },
+        ]);
+    });
+
+    it('visiting a channel assigns the customer to it and grants Authenticated there', async () => {
+        shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        await shopClient.asUserWithCredentials(customerUser.emailAddress, 'test');
+
+        shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+        const { me } = await shopClient.query(MeDocument);
         expect(me!.channels.length).toBe(2);
 
         expect(me!.channels).toEqual([
@@ -167,11 +195,13 @@ describe('Channels', () => {
                 token: SECOND_CHANNEL_TOKEN,
             },
         ]);
+
+        shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
     });
 
     // Channels created programmatically via channelService.create() (e.g. by a plugin
-    // during bootstrap or a migration) must also get the SuperAdmin and Customer roles
-    // assigned, so that the SuperAdmin is not locked out of the channel.
+    // during bootstrap or a migration) must not lock the SuperAdmin out. SuperAdmin access is
+    // global, so no assignment is needed for the new Channel.
     it('superadmin has permissions on channel created via channelService.create()', async () => {
         const channelService = server.app.get(ChannelService);
         const requestContextService = server.app.get(RequestContextService);
@@ -191,27 +221,21 @@ describe('Channels', () => {
         await adminClient.asSuperAdmin();
         const { me } = await adminClient.query(MeDocument);
 
-        const programmaticChannelData = me!.channels.find(
-            c => c.token === 'programmatic-channel-token',
-        );
+        const programmaticChannelData = me!.channels.find(c => c.token === 'programmatic-channel-token');
         const nonOwnerPermissions = Object.values(Permission).filter(
             p => p !== Permission.Owner && p !== Permission.Public,
         );
         expect(programmaticChannelData!.permissions.sort()).toEqual(nonOwnerPermissions);
     });
 
-    it('customer has Authenticated permission on channel created via channelService.create()', async () => {
+    // In v4 a Customer holds Authenticated only on the Channels they are a member of, so a
+    // Channel created programmatically grants nothing to existing Customers until they join it.
+    it('customer has no permissions on a channel created via channelService.create()', async () => {
         await shopClient.asUserWithCredentials(customerUser.emailAddress, 'test');
         const { me } = await shopClient.query(MeDocument);
 
-        const programmaticChannelData = me!.channels.find(
-            c => c.token === 'programmatic-channel-token',
-        );
-        expect(programmaticChannelData).toEqual({
-            code: 'programmatic-channel',
-            permissions: ['Authenticated'],
-            token: 'programmatic-channel-token',
-        });
+        const programmaticChannelData = me!.channels.find(c => c.token === 'programmatic-channel-token');
+        expect(programmaticChannelData).toBeUndefined();
 
         // Clean up so subsequent tests are not affected by the extra channel
         const channelService = server.app.get(ChannelService);
@@ -254,12 +278,13 @@ describe('Channels', () => {
         );
     });
 
-    it('createRole on second Channel', async () => {
+    it('createAdministrator stores the role grant as an assignment on the second channel', async () => {
+        // The role is a channel-agnostic template (covered in role.e2e-spec); the channel
+        // scope is expressed per user at assignment time.
         const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
                 description: 'second channel admin',
                 code: 'second-channel-admin',
-                channelIds: ['T_2'],
                 permissions: [
                     Permission.ReadCatalog,
                     Permission.ReadSettings,
@@ -270,82 +295,17 @@ describe('Channels', () => {
             },
         });
 
-        expect(createRole.channels).toEqual([
-            {
-                id: 'T_2',
-                code: 'second-channel',
-                token: SECOND_CHANNEL_TOKEN,
-            },
-        ]);
-
-        secondChannelAdminRole = createRole;
-    });
-
-    it('createAdministrator with second-channel-admin role', async () => {
         const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
             input: {
                 firstName: 'Admin',
                 lastName: 'Two',
                 emailAddress: 'admin2@test.com',
                 password: 'test',
-                roleIds: [secondChannelAdminRole.id],
+                roleAssignments: [{ roleId: createRole.id, channelId: 'T_2' }],
             },
         });
 
         expect(createAdministrator.user.roles.map(r => r.description)).toEqual(['second channel admin']);
-    });
-
-    it(
-        'cannot create role on channel for which admin does not have CreateAdministrator permission',
-        assertThrowsWithMessage(async () => {
-            await adminClient.asUserWithCredentials('admin2@test.com', 'test');
-            await adminClient.query(createRoleDocument, {
-                input: {
-                    description: 'read default channel catalog',
-                    code: 'read default channel catalog',
-                    channelIds: ['T_1'],
-                    permissions: [Permission.ReadCatalog],
-                },
-            });
-        }, 'You are not currently authorized to perform this action'),
-    );
-
-    it('can create role on channel for which admin has CreateAdministrator permission', async () => {
-        const { createRole } = await adminClient.query(createRoleDocument, {
-            input: {
-                description: 'read second channel catalog',
-                code: 'read-second-channel-catalog',
-                channelIds: ['T_2'],
-                permissions: [Permission.ReadCatalog],
-            },
-        });
-
-        expect(createRole.channels).toEqual([
-            {
-                id: 'T_2',
-                code: 'second-channel',
-                token: SECOND_CHANNEL_TOKEN,
-            },
-        ]);
-    });
-
-    it('createRole with no channelId implicitly uses active channel', async () => {
-        await adminClient.asSuperAdmin();
-        const { createRole } = await adminClient.query(createRoleDocument, {
-            input: {
-                description: 'update second channel catalog',
-                code: 'update-second-channel-catalog',
-                permissions: [Permission.UpdateCatalog],
-            },
-        });
-
-        expect(createRole.channels).toEqual([
-            {
-                id: 'T_2',
-                code: 'second-channel',
-                token: SECOND_CHANNEL_TOKEN,
-            },
-        ]);
     });
 
     describe('setting defaultLanguage', () => {
@@ -531,6 +491,25 @@ const updateGlobalLanguagesDocument = graphql(`
             ... on GlobalSettings {
                 id
                 availableLanguages
+            }
+        }
+    }
+`);
+
+const getRoleAssignmentsDocument = graphql(`
+    query GetRoleAssignments {
+        roleAssignments {
+            items {
+                id
+                userId
+                role {
+                    id
+                    code
+                }
+                channel {
+                    id
+                    token
+                }
             }
         }
     }

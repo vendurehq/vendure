@@ -1017,6 +1017,27 @@ type Query {
 }`}
 </GraphQLDoc>
 
+<a name="roleassignments"></a>
+
+## roleAssignments
+
+<GraphQLDoc
+  type="query"
+  typeName="roleAssignments"
+  typeLinks={{
+    RoleAssignmentList: '/reference/graphql-api/admin/object-types#roleassignmentlist',
+    RoleAssignmentListOptions: '/reference/graphql-api/admin/input-types#roleassignmentlistoptions',
+  }}
+>
+{`"""
+Get a paginated list of the RoleAssignments of the Users the active user may manage: those
+whose every assignment the active user could grant.
+"""
+type Query {
+  roleAssignments(options: RoleAssignmentListOptions): RoleAssignmentList!
+}`}
+</GraphQLDoc>
+
 <a name="roles"></a>
 
 ## roles

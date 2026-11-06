@@ -52,6 +52,7 @@ export * from './refund/refund.entity';
 export * from './region/country.entity';
 export * from './region/province.entity';
 export * from './region/region.entity';
+export * from './role-assignment/role-assignment.entity';
 export * from './role/role.entity';
 export * from './seller/seller-translation.entity';
 export * from './seller/seller.entity';

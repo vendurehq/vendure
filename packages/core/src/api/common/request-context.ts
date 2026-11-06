@@ -304,6 +304,13 @@ export class RequestContext {
      * active Channel of this request. Since 3.7.3.
      */
     userHasPermissions(permissions: Permission[], channelId: ID = this.channelId): boolean {
+        const user = this.session?.user;
+        if (!user || !channelId) {
+            return false;
+        }
+        if (user.globalPermissions && this.arraysIntersect(user.globalPermissions, permissions)) {
+            return true;
+        }
         const permissionsOnChannel = this.getUserPermissionsOnChannel(channelId);
         if (permissionsOnChannel) {
             return this.arraysIntersect(permissionsOnChannel, permissions);
@@ -336,11 +343,18 @@ export class RequestContext {
      * @since 3.6.0
      */
     userHasAllPermissions(permissions: Permission[], channelId: ID = this.channelId): boolean {
-        const permissionsOnChannel = this.getUserPermissionsOnChannel(channelId);
-        if (permissionsOnChannel) {
-            return permissions.every(permission => permissionsOnChannel.includes(permission));
+        const user = this.session?.user;
+        if (!user || !channelId) {
+            return false;
         }
-        return false;
+        const globalPermissions = user.globalPermissions ?? [];
+        const channelPermissions = this.getUserPermissionsOnChannel(channelId) ?? [];
+        if (globalPermissions.length === 0 && channelPermissions.length === 0) {
+            return false;
+        }
+        return permissions.every(
+            permission => globalPermissions.includes(permission) || channelPermissions.includes(permission),
+        );
     }
 
     /**
@@ -403,6 +417,8 @@ export class RequestContext {
                 identifier: user.identifier,
                 verified: user.verified,
                 channelPermissions: user.channelPermissions,
+                // SuperAdmin access is held here rather than per Channel, so a worker needs it too
+                globalPermissions: user.globalPermissions,
             },
         };
     }

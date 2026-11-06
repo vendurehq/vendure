@@ -12,13 +12,12 @@ import { fail } from 'assert';
 import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { FragmentOf, ResultOf } from './graphql/graphql-admin';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { channelFragment, productVariantFragment } from './graphql/fragments-admin';
-import { graphql } from './graphql/graphql-admin';
+import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import {
     addOptionGroupToProductDocument,
     assignProductOptionGroupsToChannelDocument,
@@ -98,7 +97,6 @@ describe('ChannelAware Products and ProductVariants', () => {
             input: {
                 description: 'second channel admin',
                 code: 'second-channel-admin',
-                channelIds: ['T_2'],
                 permissions: [
                     Permission.ReadCatalog,
                     Permission.ReadSettings,
@@ -116,7 +114,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                 lastName: 'Two',
                 emailAddress: 'admin2@test.com',
                 password: 'test',
-                roleIds: [secondChannelAdminRole.id],
+                roleAssignments: [{ roleId: secondChannelAdminRole.id, channelId: 'T_2' }],
             },
         });
     }, TEST_SETUP_TIMEOUT_MS);
@@ -622,21 +620,18 @@ describe('ChannelAware Products and ProductVariants', () => {
             testProduct = createProduct;
 
             // Create an option group with one option
-            const { createProductOptionGroup } = await adminClient.query(
-                createProductOptionGroupDocument,
-                {
-                    input: {
-                        code: 'test-color',
-                        translations: [{ languageCode: LanguageCode.en, name: 'Color' }],
-                        options: [
-                            {
-                                code: 'red',
-                                translations: [{ languageCode: LanguageCode.en, name: 'Red' }],
-                            },
-                        ],
-                    },
+            const { createProductOptionGroup } = await adminClient.query(createProductOptionGroupDocument, {
+                input: {
+                    code: 'test-color',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Color' }],
+                    options: [
+                        {
+                            code: 'red',
+                            translations: [{ languageCode: LanguageCode.en, name: 'Red' }],
+                        },
+                    ],
                 },
-            );
+            });
             colorGroupId = createProductOptionGroup.id;
             redOptionId = createProductOptionGroup.options[0].id;
 
@@ -724,10 +719,7 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             // Both variants should be visible in the third channel
             expect(product.variants).toHaveLength(2);
-            expect(product.variants.map(v => v.sku).sort()).toEqual([
-                'CHAN-VAR-BLUE',
-                'CHAN-VAR-RED',
-            ]);
+            expect(product.variants.map(v => v.sku).sort()).toEqual(['CHAN-VAR-BLUE', 'CHAN-VAR-RED']);
         });
 
         it('new variant has correct price in the tax-inclusive assigned channel', async () => {
@@ -828,7 +820,6 @@ describe('ChannelAware Products and ProductVariants', () => {
                     input: {
                         description: 'default-channel-catalog-admin',
                         code: 'default-channel-catalog-admin',
-                        channelIds: ['T_1'],
                         permissions: [Permission.UpdateCatalog, Permission.ReadCatalog],
                     },
                 });
@@ -838,7 +829,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                         lastName: 'Admin',
                         emailAddress: 'limited-admin@test.com',
                         password: 'test',
-                        roleIds: [createRole.id],
+                        roleAssignments: ['T_1'].map(channelId => ({ roleId: createRole.id, channelId })),
                     },
                 });
 
@@ -1095,12 +1086,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                 input: {
                     description: 'second channel deleter',
                     code: 'second-channel-deleter',
-                    channelIds: ['T_2'],
-                    permissions: [
-                        Permission.ReadCatalog,
-                        Permission.DeleteCatalog,
-                        Permission.DeleteProduct,
-                    ],
+                    permissions: [Permission.ReadCatalog, Permission.DeleteCatalog, Permission.DeleteProduct],
                 },
             });
             await adminClient.query(createAdministratorDocument, {
@@ -1109,7 +1095,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                     lastName: 'Two',
                     emailAddress: 'deleter2@test.com',
                     password: 'test',
-                    roleIds: [createRole.id],
+                    roleAssignments: ['T_2'].map(channelId => ({ roleId: createRole.id, channelId })),
                 },
             });
         });
@@ -1121,13 +1107,17 @@ describe('ChannelAware Products and ProductVariants', () => {
 
         it(
             'a second-channel admin cannot delete a variant that lives only in the default channel',
-            assertThrowsWithMessage(async () => {
-                await adminClient.asUserWithCredentials('deleter2@test.com', 'test');
-                adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query(deleteProductVariantDocument, { id: defaultOnlyVariantId });
-                // Deferred so `defaultOnlyVariantId` (set in beforeAll) is read at throw time, not
-                // at test-registration time when it is still undefined.
-            }, () => `No ProductVariant with the id "${defaultOnlyVariantId.replace(/^T_/, '')}" could be found`),
+            assertThrowsWithMessage(
+                async () => {
+                    await adminClient.asUserWithCredentials('deleter2@test.com', 'test');
+                    adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                    await adminClient.query(deleteProductVariantDocument, { id: defaultOnlyVariantId });
+                    // Deferred so `defaultOnlyVariantId` (set in beforeAll) is read at throw time, not
+                    // at test-registration time when it is still undefined.
+                },
+                () =>
+                    `No ProductVariant with the id "${defaultOnlyVariantId.replace(/^T_/, '')}" could be found`,
+            ),
         );
 
         it('the variant still exists after the cross-channel delete attempt', async () => {
@@ -1325,9 +1315,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                 const { productVariants } = await adminClient.query(getProductVariantListDocument, {
                     options: { filter: { id: { in: [sharedId, defaultOnlyId] } } },
                 });
-                expect(productVariants.items.map(v => v.id).sort()).toEqual(
-                    [sharedId, defaultOnlyId].sort(),
-                );
+                expect(productVariants.items.map(v => v.id).sort()).toEqual([sharedId, defaultOnlyId].sort());
             },
         );
     });

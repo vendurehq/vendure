@@ -1,4 +1,4 @@
-import { ChannelNotFoundError, EntityNotFoundError, UserInputError } from '@vendure/core';
+import { ChannelNotFoundError, EntityNotFoundError, ForbiddenError, UserInputError } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SetActiveChannelTool } from './set-active-channel.tool';
@@ -34,6 +34,28 @@ describe('SetActiveChannelTool', () => {
         await expect(rejection).rejects.toThrowError(
             'No channel with token "no-such-token". Call list_channels for the tokens you can use.',
         );
+    });
+
+    it('refuses a channel the caller holds no permissions on', async () => {
+        const { tool, update } = build(1);
+
+        await expect(
+            tool.execute(ctxWithChannelAccess(1), { channelToken: 'ch-2' }, { grant: { id: 9 } } as any),
+        ).rejects.toBeInstanceOf(ForbiddenError);
+        expect(update).not.toHaveBeenCalled();
+    });
+
+    // A SuperAdmin holds its permissions globally, so channelPermissions lists only the default
+    // Channel; every other Channel is reachable too.
+    it('lets a caller with global permissions switch to any channel', async () => {
+        const { tool, update } = build(1);
+        const ctx = {
+            session: { user: { globalPermissions: ['SuperAdmin'], channelPermissions: [{ id: 1 }] } },
+        } as any;
+
+        await tool.execute(ctx, { channelToken: 'ch-2' }, { grant: { id: 9 } } as any);
+
+        expect(update).toHaveBeenCalledWith({ id: 9 }, { channelId: 2 });
     });
 
     it('throws when the grant row is gone', async () => {

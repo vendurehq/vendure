@@ -4493,23 +4493,78 @@ type RefundStateTransitionError {
   type="type"
   typeName="Role"
   typeLinks={{
+    Channel: '/reference/graphql-api/admin/object-types#channel',
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
-    Channel: '/reference/graphql-api/admin/object-types#channel',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`type Role {
+  """
+  The Channel which owns this Role. A Role owned by the default Channel can be assigned on any
+  Channel, any other Role only on its owner. Null only for a Role created by a v3 server during
+  a rolling upgrade, until the role assignment migration has completed.
+  """
+  channel: Channel
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
   code: String!
   description: String!
   permissions: [Permission!]!
-  channels: [Channel!]!
   customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="roleassignment"></a>
+
+## RoleAssignment
+
+<GraphQLDoc
+  type="type"
+  typeName="RoleAssignment"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    DateTime: '/reference/graphql-api/admin/object-types#datetime',
+    User: '/reference/graphql-api/admin/object-types#user',
+    Role: '/reference/graphql-api/admin/object-types#role',
+    Channel: '/reference/graphql-api/admin/object-types#channel',
+  }}
+>
+{`"""
+Grants a User the permissions of a Role on a Channel. A SuperAdmin assignment is stored on the
+default Channel and applies on every Channel.
+"""
+type RoleAssignment {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  userId: ID!
+  user: User!
+  roleId: ID!
+  role: Role!
+  channelId: ID!
+  channel: Channel!
+}`}
+</GraphQLDoc>
+
+<a name="roleassignmentlist"></a>
+
+## RoleAssignmentList
+
+<GraphQLDoc
+  type="type"
+  typeName="RoleAssignmentList"
+  typeLinks={{
+    RoleAssignment: '/reference/graphql-api/admin/object-types#roleassignment',
+    Int: '/reference/graphql-api/admin/object-types#int',
+  }}
+>
+{`type RoleAssignmentList {
+  items: [RoleAssignment!]!
+  totalItems: Int!
 }`}
 </GraphQLDoc>
 
@@ -5824,6 +5879,7 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
   type="type"
   typeName="User"
   typeLinks={{
+    RoleAssignment: '/reference/graphql-api/admin/object-types#roleassignment',
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
@@ -5834,6 +5890,11 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
   }}
 >
 {`type User {
+  """
+  The RoleAssignments of this User: all of them if the active user could grant every one,
+  none otherwise.
+  """
+  roleAssignments: [RoleAssignment!]!
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!

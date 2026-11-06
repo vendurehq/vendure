@@ -411,7 +411,6 @@ describe('assign-to-channel source Channel scoping', () => {
             input: {
                 code: 'victim-channel-admin',
                 description: 'victim and partner channel admin',
-                channelIds: [victimChannelId, partnerChannelId],
                 permissions: [
                     Permission.ReadCatalog,
                     Permission.CreateCatalog,
@@ -431,7 +430,10 @@ describe('assign-to-channel source Channel scoping', () => {
                 lastName: 'Tim',
                 emailAddress: VICTIM_ADMIN_EMAIL,
                 password: VICTIM_ADMIN_PASSWORD,
-                roleIds: [victimAdminRole.id],
+                roleAssignments: [victimChannelId, partnerChannelId].map(channelId => ({
+                    roleId: victimAdminRole.id,
+                    channelId,
+                })),
             },
         });
 
@@ -439,7 +441,6 @@ describe('assign-to-channel source Channel scoping', () => {
             input: {
                 code: 'attacker-channel-admin',
                 description: 'attacker channel admin',
-                channelIds: [attackerChannelId],
                 permissions: [
                     Permission.ReadCatalog,
                     Permission.CreateCatalog,
@@ -469,7 +470,7 @@ describe('assign-to-channel source Channel scoping', () => {
                 lastName: 'Acker',
                 emailAddress: ATTACKER_EMAIL,
                 password: ATTACKER_PASSWORD,
-                roleIds: [createRole.id],
+                roleAssignments: [attackerChannelId].map(channelId => ({ roleId: createRole.id, channelId })),
             },
         });
     }, TEST_SETUP_TIMEOUT_MS);

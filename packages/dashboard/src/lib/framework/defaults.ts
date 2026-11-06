@@ -212,7 +212,7 @@ export function registerDefaults() {
                         title: /* i18n*/ 'Roles',
                         url: '/roles',
                         order: 500,
-                        requiresPermission: ['ReadAdministrator'],
+                        requiresPermission: ['ReadRole'],
                     },
                     {
                         id: BUILT_IN_NAV_ITEM_IDS.ShippingMethods,

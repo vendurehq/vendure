@@ -49,8 +49,8 @@ msgid "Text style"
 msgstr "Szövegstílus"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
-msgid "The selected permissions will be applied to the these channels."
-msgstr "A kiválasztott jogosultságok ezekre a csatornákra lesznek alkalmazva."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "A kiválasztott jogosultságok ezekre a csatornákra lesznek alkalmazva."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
@@ -236,6 +236,10 @@ msgstr "Nincsenek teljesítések"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, one {Nem sikerült törölni {1} készlethelyet: {messages}} other {Nem sikerült törölni {2} készlethelyet: {messages}}}"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Ha ez engedélyezve van, a termékkatalógusban megadott árak tartalmazzák az alapértelmezett adózóna adóját."
@@ -355,8 +359,8 @@ msgid "Orders"
 msgstr "Megrendelések"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Select roles"
-msgstr "Szerepkörök kiválasztása"
+#~ msgid "Select roles"
+#~ msgstr "Szerepkörök kiválasztása"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
@@ -445,6 +449,7 @@ msgstr "A raktárhely sikeresen létrehozva"
 msgid "No widgets to add"
 msgstr "Nincs hozzáadható widget"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -654,6 +659,10 @@ msgstr ""
 msgid "Go to next page"
 msgstr "Ugrás a következő oldalra"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+msgid "Add role"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Remove link"
 msgstr "Hivatkozás eltávolítása"
@@ -778,7 +787,9 @@ msgid "Move Collections"
 msgstr "Gyűjtemények áthelyezése"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -1111,7 +1122,6 @@ msgstr "Termék létrehozása sikertelen"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
-#: src/lib/components/shared/role-code-label.tsx
 msgid "Customer"
 msgstr "Vásárló"
 
@@ -1606,8 +1616,8 @@ msgid "Address deleted"
 msgstr "Cím törölve"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Only roles assigned to your account are available."
-msgstr "Csak a fiókjához rendelt szerepkörök érhetők el."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Csak a fiókjához rendelt szerepkörök érhetők el."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1828,6 +1838,7 @@ msgid "Use as the default billing address"
 msgstr "Használja alapértelmezett számlázási címként"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
@@ -1866,6 +1877,10 @@ msgstr "Mutatók betöltése…"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Customer account verified"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Read"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -1993,6 +2008,7 @@ msgstr "{row} x {col} méretű táblázat beszúrása"
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
@@ -2077,6 +2093,11 @@ msgstr "Variáns törlése"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "No modifications made"
 msgstr "Nem történt módosítás"
+
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2166,6 +2187,7 @@ msgstr "Visszatérítés szükséges"
 msgid "Fulfill order"
 msgstr "Megrendelés teljesítése"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/forgot-password-form.tsx
 msgid "Send reset link"
 msgstr "Visszaállítási link küldése"
@@ -2199,6 +2221,10 @@ msgstr "Nem sikerült eltávolítani az opciócsoportot"
 msgid "Failed to update tax category"
 msgstr "Adókategória frissítése sikertelen"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "A visszatérítés sikeresen rendezve"
@@ -2209,6 +2235,7 @@ msgid "{0, plural, =1 {Select a target collection to move this collection to.} o
 msgstr "{0, plural, =1 {Válasszon célgyűjteményt, ahová ezt a gyűjteményt áthelyezi.} other {Válasszon célgyűjteményt, ahová # gyűjteményt áthelyez.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -2470,6 +2497,11 @@ msgstr "Nyelv kiválasztása"
 #: src/lib/components/layout/nav-user.tsx
 msgid "Log out"
 msgstr "Kijelentkezés"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -3041,6 +3073,11 @@ msgstr "{count, plural, one {Biztosan eltávolít {count} ügyfelet ebből a cso
 msgid "Search countries..."
 msgstr "Országok keresése..."
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Stock on Hand"
@@ -3077,6 +3114,11 @@ msgstr "Meglévő hozzárendelése"
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Generate variants"
 msgstr "Variánsok generálása"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role"
+msgstr ""
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 #: src/lib/components/data-table/human-readable-operator.tsx
@@ -3196,6 +3238,11 @@ msgstr "\"{viewName}\"  nézet alkalmazva"
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} tulajdonság sikeresen eltávolítva a csatornából"
+
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3322,6 +3369,7 @@ msgstr "Tulajdonságértékek hozzáadása"
 msgid "after"
 msgstr "után"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Channel"
 msgstr "Csatorna"
@@ -3464,6 +3512,7 @@ msgid "Delete Global View"
 msgstr "Globális nézet törlése"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -3717,6 +3766,10 @@ msgstr "Visszatérítés"
 msgid "Modify"
 msgstr "Módosítás"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "No global languages configured"
 msgstr "Nincsenek globális nyelvek beállítva"
@@ -3781,6 +3834,10 @@ msgstr "Oszlopok"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Failed to upload image"
 msgstr "Nem sikerült feltölteni a képet"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "No assets match these filters"
@@ -3867,6 +3924,11 @@ msgstr "{taxRate}% adót tartalmaz"
 msgid "Order metrics"
 msgstr "Megrendelési statisztikák"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
 msgstr "Új jelszó megerősítése"
@@ -3899,7 +3961,6 @@ msgstr "Nem sikerült rotálni az API key-t"
 msgid "in"
 msgstr "ebben"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/lib/components/shared/role-selector.tsx
 msgid "Search roles..."
 msgstr "Szerepkörök keresése..."
@@ -4177,6 +4238,10 @@ msgstr "Legújabb vásárlók widget"
 msgid "Latest Orders Widget"
 msgstr "Legújabb megrendelések widget"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Loading stock levels…"
 msgstr "Készletszintek betöltése…"
@@ -4223,12 +4288,12 @@ msgstr "Nem található ellenőrző"
 msgid "Settle payment"
 msgstr "Fizetés rendezése"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Channels"
 msgstr "Csatornák"
@@ -4283,6 +4348,10 @@ msgstr "Művelet hozzáadása"
 #~ msgid "Assign options to existing variant"
 #~ msgstr "Opciók hozzárendelése meglévő termékváltozathoz"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role removed"
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx
 msgid "Duplicate {0}s"
@@ -4311,6 +4380,10 @@ msgstr "Válasszon dátumot és időpontot"
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Owner"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -4521,6 +4594,10 @@ msgstr "Új csatorna"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "Opciócsoport neve"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -5278,6 +5355,10 @@ msgstr "Ha létezik fiók a(z) {submittedEmailAddress} címhez, e-mailt fog kapn
 msgid "Schedule Pattern"
 msgstr "Ütemezési minta"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show granted only"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment failed"
 msgstr "Fizetés sikertelen"
@@ -5602,6 +5683,12 @@ msgstr "Adókategória sikeresen frissítve"
 msgid "Move"
 msgstr "Áthelyezés"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "All channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Edit or delete existing tags"
 msgstr "Meglévő címkék szerkesztése vagy törlése"
@@ -5680,6 +5767,8 @@ msgstr "Téves termék"
 msgid "Summary of modifications"
 msgstr "Módosítások összefoglalása"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Reset password"
 msgstr "Jelszó visszaállítása"
@@ -6005,6 +6094,7 @@ msgstr "Jelszava visszaállítása"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Password reset requested"
 msgstr "Jelszó-visszaállítás kérve"
 
@@ -6178,6 +6268,11 @@ msgstr "Megrendelés-módosítások előnézete"
 #~ msgid "Successfully updated product option group"
 #~ msgstr "Termékopció-csoport sikeresen frissítve"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
 #: src/lib/hooks/use-extended-list-query.ts
@@ -6264,6 +6359,10 @@ msgstr "Gyűjtemények keresése..."
 msgid "Add option group to product"
 msgstr "Opciócsoport hozzáadása a termékhez"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Preview of {0}"
@@ -6272,6 +6371,10 @@ msgstr "{0} előnézete"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
 msgstr "Eladó sikeresen frissítve"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Assign role"
+msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 #: src/lib/components/platform-promotion/platform-promo.tsx
@@ -6696,6 +6799,10 @@ msgstr "Videó"
 msgid "less than"
 msgstr "kisebb mint"
 
+#: src/lib/components/shared/role-code-label.tsx
+msgid "Role Editor"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "A termékváltozat nem adható hozzá. Győződjön meg arról, hogy a szülő termék engedélyezett."
@@ -6971,6 +7078,10 @@ msgstr "Visszatérítés ID"
 msgid "Order custom fields updated"
 msgstr "A megrendelés egyéni mezői frissítve"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role assigned"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Search entries..."
 msgstr "Bejegyzések keresése..."
@@ -7056,6 +7167,10 @@ msgstr "A useWidgetFilters csak WidgetFiltersProvider-en belül használható"
 msgid "Edit as form"
 msgstr "Szerkesztés űrlapként"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
@@ -7096,6 +7211,10 @@ msgstr "Termékváltozatok kezelése"
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "There was a problem loading your latest orders."
 msgstr "Hiba történt a legutóbbi megrendelések betöltésekor."
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/shared/stock-level-label.tsx
 msgid "Stock allocated"
@@ -7299,6 +7418,10 @@ msgstr "Még nincs eredmény"
 msgid "Payment settled"
 msgstr "Fizetés teljesítve"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Available Conditions"
 msgstr "Elérhető feltételek"
@@ -7457,6 +7580,11 @@ msgstr "Opció"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "Order process"
 msgstr "Rendelési folyamat"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/shared/customer-selector.tsx

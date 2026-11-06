@@ -1,9 +1,9 @@
 import { log, spinner } from '@clack/prompts';
-import fs from 'fs-extra';
 import path from 'node:path';
 import { Project } from 'ts-morph';
 
 import { defaultManipulationSettings } from '../../../constants';
+import { findTsConfig } from '../shared/find-ts-config';
 
 import { transformAccordionProps } from './transforms/accordion-props';
 import { transformAsChildToRender } from './transforms/as-child-to-render';
@@ -38,7 +38,7 @@ export async function dashboardUiMigration(targetPath?: string) {
     s.start('Analyzing project...');
 
     const projectDir = targetPath ?? process.cwd();
-    const tsConfigPath = findTsConfig(projectDir);
+    const tsConfigPath = findTsConfig(projectDir, ['tsconfig.dashboard.json', 'tsconfig.json']);
 
     let project: Project;
     try {
@@ -118,35 +118,5 @@ export async function dashboardUiMigration(targetPath?: string) {
         saveSpinner.stop(`Done! ${totalChanges} changes across ${filesChanged} files`);
     } else {
         log.info('No Radix UI patterns found. Your code is already up to date!');
-    }
-}
-
-/**
- * Finds the nearest tsconfig by walking up from the given directory.
- * Checks for `tsconfig.dashboard.json` first (preferred for dashboard
- * extensions), then `tsconfig.json`. Throws if neither is found in
- * any ancestor up to the filesystem root.
- */
-function findTsConfig(dir: string): string {
-    const candidates = ['tsconfig.dashboard.json', 'tsconfig.json'];
-    let currentDir = path.resolve(dir);
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-        for (const candidate of candidates) {
-            const fullPath = path.join(currentDir, candidate);
-            if (fs.existsSync(fullPath)) {
-                return fullPath;
-            }
-        }
-        const parentDir = path.dirname(currentDir);
-        if (parentDir === currentDir) {
-            // Reached filesystem root without finding a tsconfig
-            throw new Error(
-                `No tsconfig.json found in ${dir} or any parent directory.\n` +
-                    `Make sure you are running the codemod from a directory with a tsconfig.json, ` +
-                    `or provide the path to the project directory as the second argument.`,
-            );
-        }
-        currentDir = parentDir;
     }
 }
