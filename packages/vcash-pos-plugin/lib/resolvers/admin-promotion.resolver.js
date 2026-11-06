@@ -34,17 +34,17 @@ let AdminPromotionResolver = class AdminPromotionResolver {
     async promotionRules(ctx, channelId) {
         return this.ruleService.findAll(ctx, channelId ? parseInt(channelId, 10) : undefined);
     }
-    async promotionRule(id) {
-        return this.ruleService.findOne(parseInt(id, 10));
+    async promotionRule(ctx, id) {
+        return this.ruleService.findOne(ctx, parseInt(id, 10));
     }
     async createPromotionRule(ctx, input) {
         return this.ruleService.create(ctx, input);
     }
-    async updatePromotionRule(input) {
-        return this.ruleService.update(parseInt(input.id, 10), input);
+    async updatePromotionRule(ctx, input) {
+        return this.ruleService.update(ctx, parseInt(input.id, 10), input);
     }
-    async deletePromotionRule(id) {
-        return this.ruleService.delete(parseInt(id, 10));
+    async deletePromotionRule(ctx, id) {
+        return this.ruleService.delete(ctx, parseInt(id, 10));
     }
     /**
      * 手动触发重新应用促销（管理员调试用）。
@@ -73,9 +73,10 @@ __decorate([
 __decorate([
     (0, graphql_1.Query)(),
     (0, core_1.Allow)(core_1.Permission.ReadSettings, constants_1.posSessionPermission.Read),
-    __param(0, (0, graphql_1.Args)('id')),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [core_1.RequestContext, String]),
     __metadata("design:returntype", Promise)
 ], AdminPromotionResolver.prototype, "promotionRule", null);
 __decorate([
@@ -90,17 +91,19 @@ __decorate([
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Allow)(core_1.Permission.UpdateSettings, constants_1.posSessionPermission.Update),
-    __param(0, (0, graphql_1.Args)('input')),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('input')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object]),
     __metadata("design:returntype", Promise)
 ], AdminPromotionResolver.prototype, "updatePromotionRule", null);
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Allow)(core_1.Permission.DeleteSettings, constants_1.posSessionPermission.Delete),
-    __param(0, (0, graphql_1.Args)('id')),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [core_1.RequestContext, String]),
     __metadata("design:returntype", Promise)
 ], AdminPromotionResolver.prototype, "deletePromotionRule", null);
 __decorate([

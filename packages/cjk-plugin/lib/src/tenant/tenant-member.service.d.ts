@@ -42,8 +42,8 @@ export interface CreateTenantAdminInput {
 }
 /** 生成随机强口令：≥10 位，保证大小写/数字/符号各类至少一个 */
 export declare function randomStrongPassword(length?: number): string;
-/** 租户管理人密码重置的默认口令（超管在租户详情页「重置密码」时写回此值） */
-export declare const DEFAULT_ADMIN_PASSWORD = "you123123";
+/** 一次性重置口令的有效期：24 小时。超期后必须由管理员重新重置，口令不可再用 */
+export declare const RESET_PASSWORD_TTL_MS: number;
 /** 可授判定：目标角色权限 ⊆ 操作者权限，且不含租户管理类权限（防链式提权）。
  *  Authenticated 为所有角色基础权限，不计入比较。 */
 export declare function canGrantRole(operatorPerms: Set<string>, rolePermissions: string[]): boolean;
@@ -206,9 +206,12 @@ export declare class TenantMemberService {
     setMemberEnabled(ctx: RequestContext, channelId: ID, memberId: ID, enabled: boolean): Promise<void>;
     /** 租户人员移除（仅删 TenantMember 关联，Administrator 本体保留） */
     removeMember(ctx: RequestContext, channelId: ID, memberId: ID): Promise<void>;
-    /** 超管重置租户管理人密码为默认口令 you123123，并清除该人员的首登强改密标志（可用默认口令直接登录） */
+    /**
+     * 超管重置租户管理人密码：生成随机一次性口令，保留首登强改密并写入 24 小时有效期。
+     * 明文仅经返回值（initialPassword）交给操作者，不落日志、不落库。
+     */
     resetAdminPassword(ctx: RequestContext, memberId: ID): Promise<TenantMember>;
-    /** 租户自助：重置本租户成员密码为默认口令 you123123（目标权限必须低于操作者） */
+    /** 租户自助：重置本租户成员密码（随机一次性口令 + 强改密 + 有效期；目标权限必须低于操作者） */
     resetMyMemberPassword(ctx: RequestContext, memberId: ID): Promise<TenantMember>;
     /** 搜索后台账号（按邮箱/姓氏模糊匹配），返回各账号在租户内的关联统计，供「关联已有账号进租户」选择 */
     searchAdmins(ctx: RequestContext, channelId: ID, keyword?: string, take?: number): Promise<any[]>;

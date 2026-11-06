@@ -118,11 +118,11 @@ let TenantMemberResolver = class TenantMemberResolver {
     async roleIds(member, ctx) {
         return this.tenantMemberService.memberRoleIdsInChannel(ctx, member);
     }
-    /** 租户自助重置本租户成员密码为默认口令（权限门禁见 service） */
+    /** 租户自助重置本租户成员密码：随机一次性口令，返回明文供本次转交（权限门禁见 service） */
     async myResetTenantMemberPassword(ctx, id) {
         this.tenantMemberService.assertChannelMember(ctx);
-        await this.tenantMemberService.resetMyMemberPassword(ctx, id);
-        return true;
+        const member = await this.tenantMemberService.resetMyMemberPassword(ctx, id);
+        return member.initialPassword;
     }
     /** 当前登录者修改自身密码（主动改密传旧密码校验；首登强改密 oldPassword 传 null 跳过校验） */
     // 不能使用 Permission.Authenticated：它按「当前渠道」判定，首登改密时前端尚未带渠道头，

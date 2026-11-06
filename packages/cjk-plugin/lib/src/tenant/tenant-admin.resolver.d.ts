@@ -71,8 +71,8 @@ export declare class TenantAdminResolver {
         enabled: boolean;
     }): Promise<TenantMember>;
     deleteTenantAdministrator(ctx: RequestContext, id: string): Promise<boolean>;
-    /** 重置租户管理人密码（管理员 Tab 某成员）为默认口令 you123123（仅超管） */
-    resetTenantAdministratorPassword(ctx: RequestContext, memberId: string): Promise<boolean>;
+    /** 重置租户管理人密码（管理员 Tab 某成员）：随机一次性口令，返回明文供本次转交（仅超管） */
+    resetTenantAdministratorPassword(ctx: RequestContext, memberId: string): Promise<string>;
     tenantRoles(ctx: RequestContext, channelId: string): Promise<any[]>;
     createTenantRole(ctx: RequestContext, args: {
         channelId: string;

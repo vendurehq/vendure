@@ -5,6 +5,17 @@ export declare class TenantCatalogService {
     private channelService;
     private connection;
     constructor(collectionService: CollectionService, channelService: ChannelService, connection: TransactionalConnection);
+    /** 是否平台超管（沿用 my-access 的口径：session.user.superAdmin 或任一渠道角色含 SuperAdmin） */
+    private isSuperAdmin;
+    /** 目标渠道必须属于操作者的 channelPermissions（或超管），防止跨租户操作他人渠道 */
+    private assertChannelAccess;
+    /** 商品必须属于当前请求渠道，防止 A 店改 B 店商品 */
+    private assertProductInChannel;
+    /**
+     * 分类归属校验：超管放行；否则分类须挂当前渠道（租户自有分类）
+     * 或挂默认渠道（平台公共分类，租户归位时允许追加商品）。
+     */
+    private assertCollectionAccess;
     /** 解析 productIds 参数值：Vendure ConfigArg 中 list 型参数以 JSON 字符串存储（如 '[60]' / '["60"]'），兼容数组。 */
     private parseIdList;
     /**

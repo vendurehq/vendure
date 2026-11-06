@@ -49,6 +49,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], TenantMember.prototype, "mustChangePassword", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], TenantMember.prototype, "resetPasswordExpiresAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)
 ], TenantMember.prototype, "displayName", void 0);

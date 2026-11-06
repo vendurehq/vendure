@@ -18,6 +18,60 @@ let TenantCatalogService = class TenantCatalogService {
         this.channelService = channelService;
         this.connection = connection;
     }
+    /** 是否平台超管（沿用 my-access 的口径：session.user.superAdmin 或任一渠道角色含 SuperAdmin） */
+    isSuperAdmin(ctx) {
+        var _a;
+        const user = (_a = ctx.session) === null || _a === void 0 ? void 0 : _a.user;
+        if ((user === null || user === void 0 ? void 0 : user.superAdmin) === true)
+            return true;
+        const perms = (user === null || user === void 0 ? void 0 : user.channelPermissions) || [];
+        return perms.some((cp) => (cp.permissions || []).includes(core_1.Permission.SuperAdmin));
+    }
+    /** 目标渠道必须属于操作者的 channelPermissions（或超管），防止跨租户操作他人渠道 */
+    assertChannelAccess(ctx, channelId) {
+        var _a, _b;
+        if (this.isSuperAdmin(ctx))
+            return;
+        const perms = (((_b = (_a = ctx.session) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.channelPermissions) || []);
+        const allowed = perms.some((c) => String(c.id) === String(channelId));
+        if (!allowed) {
+            // 目标渠道不在操作者 channelPermissions 内
+            throw new core_1.ForbiddenError();
+        }
+    }
+    /** 商品必须属于当前请求渠道，防止 A 店改 B 店商品 */
+    async assertProductInChannel(ctx, productId) {
+        const product = await this.connection
+            .getRepository(ctx, core_1.Product)
+            .findOne({ where: { id: String(productId) }, relations: ['channels'] });
+        if (!product) {
+            throw new core_1.UserInputError(`商品 ${productId} 不存在`);
+        }
+        const belongs = (product.channels || []).some((c) => String(c.id) === String(ctx.channelId));
+        if (!belongs) {
+            // 商品不属于当前渠道
+            throw new core_1.ForbiddenError();
+        }
+        return product;
+    }
+    /**
+     * 分类归属校验：超管放行；否则分类须挂当前渠道（租户自有分类）
+     * 或挂默认渠道（平台公共分类，租户归位时允许追加商品）。
+     */
+    async assertCollectionAccess(ctx, collection) {
+        if (this.isSuperAdmin(ctx))
+            return;
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+        const channelIds = new Set([
+            String(ctx.channelId),
+            String(defaultChannel.id),
+        ]);
+        const belongs = (collection.channels || []).some((c) => channelIds.has(String(c.id)));
+        if (!belongs) {
+            // 分类既不属于当前渠道，也不是默认渠道的平台分类
+            throw new core_1.ForbiddenError();
+        }
+    }
     /** 解析 productIds 参数值：Vendure ConfigArg 中 list 型参数以 JSON 字符串存储（如 '[60]' / '["60"]'），兼容数组。 */
     parseIdList(value) {
         if (Array.isArray(value))
@@ -50,12 +104,16 @@ let TenantCatalogService = class TenantCatalogService {
     /** 把商品 ID 追加进平台分类的 productId 过滤器（只增；非 productId 独过滤器则新建一条 productId 过滤器，不改其它过滤器）。 */
     async addProductToCollection(ctx, productId, collectionId) {
         var _a, _b, _c;
+        // 归属校验：商品必须属于当前渠道；分类须为当前渠道或默认渠道（平台分类）
+        await this.assertProductInChannel(ctx, productId);
         const repo = this.connection.getRepository(ctx, core_1.Collection);
         const collection = await repo.findOne({
             where: { id: String(collectionId) },
+            relations: ['channels'],
         });
         if (!collection)
             return;
+        await this.assertCollectionAccess(ctx, collection);
         // Vendure ConfigurableOperation 标准形态：{ code, args: [{name, value}] }，list 参数值存 JSON 字符串。
         const filters = (_a = collection.filters) !== null && _a !== void 0 ? _a : [];
         const productIdFilter = filters.find(f => f.code === 'product-id-filter');
@@ -96,12 +154,16 @@ let TenantCatalogService = class TenantCatalogService {
      * 不能走 removeProductsFromChannel（会被「默认渠道不可摘除」守卫拦），须直接 channelService.removeFromChannels。
      */
     async moveProductsToTenantChannel(ctx, productIds, channelId) {
+        // 目标渠道必须在操作者权限范围内（或超管）
+        this.assertChannelAccess(ctx, channelId);
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
         const channel = await this.channelService.findOne(ctx, channelId);
         if (!channel)
             throw new core_1.InternalServerError(`Channel not found: ${channelId}`);
         const result = [];
         for (const id of productIds) {
+            // 商品必须属于当前渠道，防止把别店商品挂进本店 / 从默认渠道摘除
+            await this.assertProductInChannel(ctx, id);
             if (!(0, core_1.idsAreEqual)(channel.id, defaultChannel.id)) {
                 await this.channelService.assignToChannels(ctx, core_1.Product, id, [channel.id]);
             }

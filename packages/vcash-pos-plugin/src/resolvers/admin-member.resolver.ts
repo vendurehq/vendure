@@ -117,8 +117,11 @@ export class AdminMemberResolver {
 
   @Query()
   @Allow(Permission.ReadSettings, posSessionPermission.Read)
-  async memberPriceRule(@Args('id') id: string): Promise<MemberPriceRule | null> {
-    return this.ruleService.findOne(parseInt(id, 10));
+  async memberPriceRule(
+    @Ctx() ctx: RequestContext,
+    @Args('id') id: string,
+  ): Promise<MemberPriceRule | null> {
+    return this.ruleService.findOne(ctx, parseInt(id, 10));
   }
 
   @Mutation()
@@ -133,15 +136,19 @@ export class AdminMemberResolver {
   @Mutation()
   @Allow(Permission.UpdateSettings, posSessionPermission.Update)
   async updateMemberPriceRule(
+    @Ctx() ctx: RequestContext,
     @Args('input') input: any,
   ): Promise<MemberPriceRule> {
-    return this.ruleService.update(parseInt(input.id, 10), input);
+    return this.ruleService.update(ctx, parseInt(input.id, 10), input);
   }
 
   @Mutation()
   @Allow(Permission.DeleteSettings, posSessionPermission.Delete)
-  async deleteMemberPriceRule(@Args('id') id: string): Promise<boolean> {
-    return this.ruleService.delete(parseInt(id, 10));
+  async deleteMemberPriceRule(
+    @Ctx() ctx: RequestContext,
+    @Args('id') id: string,
+  ): Promise<boolean> {
+    return this.ruleService.delete(ctx, parseInt(id, 10));
   }
 
   // ===== Helpers =====

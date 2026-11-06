@@ -1239,7 +1239,8 @@ function mergeCustomFields<T extends { name: string }>(
                     createTenantAdministrator(channelId: ID!, input: CreateTenantAdministratorInput!): TenantMember!
                     setTenantAdministratorEnabled(id: ID!, enabled: Boolean!): TenantMember!
                     deleteTenantAdministrator(id: ID!): Boolean!
-                    resetTenantAdministratorPassword(memberId: ID!): Boolean!
+                    "重置后返回一次性随机口令（24 小时内有效，仅本次返回，不落日志/库）"
+                    resetTenantAdministratorPassword(memberId: ID!): String!
                     createTenantRole(channelId: ID!, input: CreateTenantRoleInput!): Role!
                     updateTenantRole(roleId: ID!, input: UpdateTenantRoleInput!): Role!
                     deleteTenantRole(roleId: ID!): Boolean!
@@ -1260,7 +1261,8 @@ function mergeCustomFields<T extends { name: string }>(
                     myUpdateTenantMemberRoles(id: ID!, roleIds: [ID!]!): Boolean!
                     tenantLinkMember(channelId: ID!, administratorId: ID!, roleIds: [ID!]!, displayName: String, phone: String, remark: String): TenantMember!
                     myLinkMember(administratorId: ID!, roleIds: [ID!]!, displayName: String, phone: String, remark: String): TenantMember!
-                    myResetTenantMemberPassword(id: ID!): Boolean!
+                    "重置本租户成员密码，返回一次性随机口令（24 小时内有效，仅本次返回）"
+                    myResetTenantMemberPassword(id: ID!): String!
                     setTenantMemberRedeemProfiles(id: ID!, shippingProfileIds: [ID!]!): TenantMember!
                     mySetTenantMemberRedeemProfiles(id: ID!, shippingProfileIds: [ID!]!): TenantMember!
                     tenantChangeMyPassword(oldPassword: String, newPassword: String!): Boolean!

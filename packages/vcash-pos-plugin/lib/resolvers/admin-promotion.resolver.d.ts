@@ -15,10 +15,10 @@ export declare class AdminPromotionResolver {
     private promotionEngine;
     constructor(ruleService: PromotionRuleService, sessionService: PosSessionService, orderService: OrderService, promotionEngine: PromotionEngineService);
     promotionRules(ctx: RequestContext, channelId?: string): Promise<PromotionRule[]>;
-    promotionRule(id: string): Promise<PromotionRule | null>;
+    promotionRule(ctx: RequestContext, id: string): Promise<PromotionRule | null>;
     createPromotionRule(ctx: RequestContext, input: PromotionRuleInput): Promise<PromotionRule>;
-    updatePromotionRule(input: any): Promise<PromotionRule>;
-    deletePromotionRule(id: string): Promise<boolean>;
+    updatePromotionRule(ctx: RequestContext, input: any): Promise<PromotionRule>;
+    deletePromotionRule(ctx: RequestContext, id: string): Promise<boolean>;
     /**
      * 手动触发重新应用促销（管理员调试用）。
      * 通常 addPosItem 会自动 reapply，此接口便于规则变更后对存量订单重算。

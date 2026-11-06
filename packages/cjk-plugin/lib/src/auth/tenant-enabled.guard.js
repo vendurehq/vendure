@@ -71,7 +71,13 @@ let TenantEnabledGuard = class TenantEnabledGuard {
                 'logout',
                 'activeChannel',
             ]);
-            if (!field || !allowedAtForcedChange.has(field)) {
+            // 一次性重置口令超期：连改密也拒绝（口令已失效），需管理员重新重置
+            const expired = member.resetPasswordExpiresAt != null &&
+                new Date(member.resetPasswordExpiresAt).getTime() < Date.now();
+            const allowed = expired
+                ? new Set(['myTenantAccess', 'me', 'logout', 'activeChannel'])
+                : allowedAtForcedChange;
+            if (!field || !allowed.has(field)) {
                 throw new core_1.ForbiddenError();
             }
         }

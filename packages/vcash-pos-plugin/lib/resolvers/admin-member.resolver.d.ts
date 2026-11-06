@@ -37,10 +37,10 @@ export declare class AdminMemberResolver {
     bindSessionMember(ctx: RequestContext, customerId: ID): Promise<PosSession>;
     unbindSessionMember(ctx: RequestContext): Promise<PosSession>;
     memberPriceRules(ctx: RequestContext, channelId?: string): Promise<MemberPriceRule[]>;
-    memberPriceRule(id: string): Promise<MemberPriceRule | null>;
+    memberPriceRule(ctx: RequestContext, id: string): Promise<MemberPriceRule | null>;
     createMemberPriceRule(ctx: RequestContext, input: MemberPriceRuleInput): Promise<MemberPriceRule>;
-    updateMemberPriceRule(input: any): Promise<MemberPriceRule>;
-    deleteMemberPriceRule(id: string): Promise<boolean>;
+    updateMemberPriceRule(ctx: RequestContext, input: any): Promise<MemberPriceRule>;
+    deleteMemberPriceRule(ctx: RequestContext, id: string): Promise<boolean>;
     private requireMyOpenSession;
     private resolveOperator;
     private findCustomerByPhone;

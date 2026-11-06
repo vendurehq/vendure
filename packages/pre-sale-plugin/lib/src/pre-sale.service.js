@@ -44,11 +44,12 @@ const UPDATE_ALLOWED_FIELDS = [
     'agreementVersion',
 ];
 let PreSaleService = class PreSaleService {
-    constructor(connection, listQueryBuilder, orderService, paymentService, productVariantService) {
+    constructor(connection, listQueryBuilder, orderService, paymentService, paymentMethodService, productVariantService) {
         this.connection = connection;
         this.listQueryBuilder = listQueryBuilder;
         this.orderService = orderService;
         this.paymentService = paymentService;
+        this.paymentMethodService = paymentMethodService;
         this.productVariantService = productVariantService;
     }
     init(injector) {
@@ -222,6 +223,7 @@ let PreSaleService = class PreSaleService {
      * 新路径：期次实例存在 → paySchedulePeriod(seq=1)；否则旧路径直接收全额。
      */
     async payPreSaleFull(ctx, orderId, method) {
+        await this.assertPaymentMethodAllowed(ctx, method);
         const order = await this.requirePreSaleOrder(ctx, orderId);
         const activity = await this.requireActiveActivity(ctx, order);
         if (activity.mode !== 'full') {
@@ -240,6 +242,7 @@ let PreSaleService = class PreSaleService {
      */
     async payPreSaleDeposit(ctx, orderId, method) {
         var _a, _b;
+        await this.assertPaymentMethodAllowed(ctx, method);
         const order = await this.requirePreSaleOrder(ctx, orderId);
         if (order.state !== 'ArrangingPayment') {
             throw new core_1.UserInputError('Order must be in ArrangingPayment state to pay deposit');
@@ -266,6 +269,7 @@ let PreSaleService = class PreSaleService {
      */
     async payPreSaleTail(ctx, orderId, method) {
         var _a;
+        await this.assertPaymentMethodAllowed(ctx, method);
         const order = await this.requirePreSaleOrder(ctx, orderId);
         if (order.state !== 'Deposited') {
             throw new core_1.UserInputError('Order must be in Deposited state to pay tail');
@@ -364,21 +368,44 @@ let PreSaleService = class PreSaleService {
     }
     /**
      * 校验订单已绑定预售活动，并返回重载后的订单（含 lines.productVariant）。
+     * 同时校验订单归属：只允许订单所属客户本人支付，防止 A 用户拿 B 的 orderId 发起支付（IDOR）。
      */
     async requirePreSaleOrder(ctx, orderId) {
         var _a;
         const order = await this.orderService.findOne(ctx, orderId, [
             'customer',
+            'customer.user',
             'lines',
             'lines.productVariant',
         ]);
         if (!order) {
             throw new core_1.UserInputError(`Order ${orderId} not found`);
         }
+        this.assertOrderOwner(ctx, order);
         if (!((_a = order.customFields) === null || _a === void 0 ? void 0 : _a.preSaleActivityId)) {
             throw new core_1.UserInputError('Order is not bound to a pre-sale activity');
         }
         return order;
+    }
+    /** 订单归属校验：order.customer.user.id 必须等于当前登录用户 */
+    assertOrderOwner(ctx, order) {
+        var _a, _b;
+        const ownerUserId = (_b = (_a = order === null || order === void 0 ? void 0 : order.customer) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.id;
+        if (ctx.activeUserId == null ||
+            ownerUserId == null ||
+            String(ownerUserId) !== String(ctx.activeUserId)) {
+            throw new core_1.UserInputError('You can only pay for your own order');
+        }
+    }
+    /**
+     * 支付方式服务端白名单：必须是当前渠道已启用的 PaymentMethod code，
+     * 不存在/已停用/不属于本渠道一律拒绝（不信任前端传入的 method 字符串）。
+     */
+    async assertPaymentMethodAllowed(ctx, method) {
+        if (!method || typeof method !== 'string') {
+            throw new core_1.UserInputError('Payment method is required');
+        }
+        await this.paymentMethodService.getMethodAndOperations(ctx, method);
     }
     /**
      * 校验订单关联活动存在且处于可支付窗口（active/delivered + 窗口内）。
@@ -521,6 +548,7 @@ exports.PreSaleService = PreSaleService = __decorate([
         core_1.ListQueryBuilder,
         core_1.OrderService,
         core_1.PaymentService,
+        core_1.PaymentMethodService,
         core_1.ProductVariantService])
 ], PreSaleService);
 //# sourceMappingURL=pre-sale.service.js.map

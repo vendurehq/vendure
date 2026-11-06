@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TenantMemberService = exports.DEFAULT_ADMIN_PASSWORD = exports.BUSINESS_TENANT_CAPACITY = exports.OFFICIAL_TENANT_SLOTS = exports.GLOBAL_ROLE_PREFIX = exports.BUSINESS_PERMISSIONS = exports.PERMISSION_CATALOG = void 0;
+exports.TenantMemberService = exports.RESET_PASSWORD_TTL_MS = exports.BUSINESS_TENANT_CAPACITY = exports.OFFICIAL_TENANT_SLOTS = exports.GLOBAL_ROLE_PREFIX = exports.BUSINESS_PERMISSIONS = exports.PERMISSION_CATALOG = void 0;
 exports.normalizeGlobalRoleCode = normalizeGlobalRoleCode;
 exports.randomStrongPassword = randomStrongPassword;
 exports.canGrantRole = canGrantRole;
@@ -193,8 +193,8 @@ function randomStrongPassword(length = 12) {
     }
     return parts.join('');
 }
-/** 租户管理人密码重置的默认口令（超管在租户详情页「重置密码」时写回此值） */
-exports.DEFAULT_ADMIN_PASSWORD = 'you123123';
+/** 一次性重置口令的有效期：24 小时。超期后必须由管理员重新重置，口令不可再用 */
+exports.RESET_PASSWORD_TTL_MS = 24 * 60 * 60 * 1000;
 /** 可授判定：目标角色权限 ⊆ 操作者权限，且不含租户管理类权限（防链式提权）。
  *  Authenticated 为所有角色基础权限，不计入比较。 */
 function canGrantRole(operatorPerms, rolePermissions) {
@@ -979,6 +979,14 @@ let TenantMemberService = class TenantMemberService {
         const memberRepo = this.connection.getRepository(ctx, tenant_member_entity_1.TenantMember);
         const members = await memberRepo.find({ where: { administratorId: adminId } });
         const mustChange = members.some((m) => m.mustChangePassword);
+        if (mustChange) {
+            // 一次性重置口令超期后不可再用于改密，必须由管理员重新重置
+            const expired = members.some((m) => m.mustChangePassword &&
+                m.resetPasswordExpiresAt != null &&
+                new Date(m.resetPasswordExpiresAt).getTime() < Date.now());
+            if (expired)
+                throw new Error('RESET_PASSWORD_EXPIRED');
+        }
         if (!mustChange) {
             // 主动改密：未传旧密码直接拒绝，防止已登录会话（XSS/共享电脑）绕过旧密码验证改密
             if (!oldPassword)
@@ -991,6 +999,7 @@ let TenantMemberService = class TenantMemberService {
         for (const m of members) {
             if (m.mustChangePassword) {
                 m.mustChangePassword = false;
+                m.resetPasswordExpiresAt = null;
                 await memberRepo.save(m);
             }
         }
@@ -1012,23 +1021,28 @@ let TenantMemberService = class TenantMemberService {
             throw new Error('MEMBER_NOT_FOUND');
         await repo.remove(member);
     }
-    /** 超管重置租户管理人密码为默认口令 you123123，并清除该人员的首登强改密标志（可用默认口令直接登录） */
+    /**
+     * 超管重置租户管理人密码：生成随机一次性口令，保留首登强改密并写入 24 小时有效期。
+     * 明文仅经返回值（initialPassword）交给操作者，不落日志、不落库。
+     */
     async resetAdminPassword(ctx, memberId) {
         const repo = this.connection.getRepository(ctx, tenant_member_entity_1.TenantMember);
         const member = await repo.findOne({ where: { id: String(memberId) } });
         if (!member)
             throw new Error('MEMBER_NOT_FOUND');
+        const password = randomStrongPassword();
         await this.administratorService.update(ctx, {
             id: String(member.administratorId),
-            password: exports.DEFAULT_ADMIN_PASSWORD,
+            password,
         });
-        if (member.mustChangePassword) {
-            member.mustChangePassword = false;
-            await repo.save(member);
-        }
+        member.mustChangePassword = true;
+        member.resetPasswordExpiresAt = new Date(Date.now() + exports.RESET_PASSWORD_TTL_MS);
+        await repo.save(member);
+        // 一次性口令：仅本次调用回传，不持久化
+        member.initialPassword = password;
         return member;
     }
-    /** 租户自助：重置本租户成员密码为默认口令 you123123（目标权限必须低于操作者） */
+    /** 租户自助：重置本租户成员密码（随机一次性口令 + 强改密 + 有效期；目标权限必须低于操作者） */
     async resetMyMemberPassword(ctx, memberId) {
         const repo = this.connection.getRepository(ctx, tenant_member_entity_1.TenantMember);
         const member = await repo.findOne({ where: { id: String(memberId) } });
@@ -1039,14 +1053,15 @@ let TenantMemberService = class TenantMemberService {
         const view = await this.memberToView(ctx, member);
         if (!view.canResetPassword)
             throw new Error('PERMISSION_EXCEEDS_OPERATOR');
+        const password = randomStrongPassword();
         await this.administratorService.update(ctx, {
             id: String(member.administratorId),
-            password: exports.DEFAULT_ADMIN_PASSWORD,
+            password,
         });
-        if (member.mustChangePassword) {
-            member.mustChangePassword = false;
-            await repo.save(member);
-        }
+        member.mustChangePassword = true;
+        member.resetPasswordExpiresAt = new Date(Date.now() + exports.RESET_PASSWORD_TTL_MS);
+        await repo.save(member);
+        member.initialPassword = password;
         return member;
     }
     /** 搜索后台账号（按邮箱/姓氏模糊匹配），返回各账号在租户内的关联统计，供「关联已有账号进租户」选择 */

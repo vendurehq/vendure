@@ -8,6 +8,7 @@ import {
     Order,
     OrderService,
     PaginatedList,
+    PaymentMethodService,
     PaymentService,
     ProductVariantService,
     RequestContext,
@@ -55,6 +56,7 @@ export class PreSaleService {
         private listQueryBuilder: ListQueryBuilder,
         private orderService: OrderService,
         private paymentService: PaymentService,
+        private paymentMethodService: PaymentMethodService,
         private productVariantService: ProductVariantService,
     ) {}
 
@@ -253,6 +255,7 @@ export class PreSaleService {
      * 新路径：期次实例存在 → paySchedulePeriod(seq=1)；否则旧路径直接收全额。
      */
     async payPreSaleFull(ctx: RequestContext, orderId: ID, method: string): Promise<Order> {
+        await this.assertPaymentMethodAllowed(ctx, method);
         const order = await this.requirePreSaleOrder(ctx, orderId);
         const activity = await this.requireActiveActivity(ctx, order);
         if (activity.mode !== 'full') {
@@ -271,6 +274,7 @@ export class PreSaleService {
      * 旧路径：createSettledPayment + 手动转 Deposited。
      */
     async payPreSaleDeposit(ctx: RequestContext, orderId: ID, method: string): Promise<Order> {
+        await this.assertPaymentMethodAllowed(ctx, method);
         const order = await this.requirePreSaleOrder(ctx, orderId);
         if (order.state !== 'ArrangingPayment') {
             throw new UserInputError('Order must be in ArrangingPayment state to pay deposit');
@@ -297,6 +301,7 @@ export class PreSaleService {
      * 新路径：unlockTailForOrder + paySchedulePeriod（尾款期）；旧路径按剩余金额收款。
      */
     async payPreSaleTail(ctx: RequestContext, orderId: ID, method: string): Promise<Order> {
+        await this.assertPaymentMethodAllowed(ctx, method);
         const order = await this.requirePreSaleOrder(ctx, orderId);
         if (order.state !== 'Deposited') {
             throw new UserInputError('Order must be in Deposited state to pay tail');
@@ -396,20 +401,46 @@ export class PreSaleService {
 
     /**
      * 校验订单已绑定预售活动，并返回重载后的订单（含 lines.productVariant）。
+     * 同时校验订单归属：只允许订单所属客户本人支付，防止 A 用户拿 B 的 orderId 发起支付（IDOR）。
      */
     private async requirePreSaleOrder(ctx: RequestContext, orderId: ID): Promise<Order> {
         const order = await this.orderService.findOne(ctx, orderId, [
             'customer',
+            'customer.user',
             'lines',
             'lines.productVariant',
         ]);
         if (!order) {
             throw new UserInputError(`Order ${orderId} not found`);
         }
+        this.assertOrderOwner(ctx, order);
         if (!(order as any).customFields?.preSaleActivityId) {
             throw new UserInputError('Order is not bound to a pre-sale activity');
         }
         return order as Order;
+    }
+
+    /** 订单归属校验：order.customer.user.id 必须等于当前登录用户 */
+    private assertOrderOwner(ctx: RequestContext, order: Order): void {
+        const ownerUserId = (order as any)?.customer?.user?.id;
+        if (
+            ctx.activeUserId == null ||
+            ownerUserId == null ||
+            String(ownerUserId) !== String(ctx.activeUserId)
+        ) {
+            throw new UserInputError('You can only pay for your own order');
+        }
+    }
+
+    /**
+     * 支付方式服务端白名单：必须是当前渠道已启用的 PaymentMethod code，
+     * 不存在/已停用/不属于本渠道一律拒绝（不信任前端传入的 method 字符串）。
+     */
+    private async assertPaymentMethodAllowed(ctx: RequestContext, method: string): Promise<void> {
+        if (!method || typeof method !== 'string') {
+            throw new UserInputError('Payment method is required');
+        }
+        await this.paymentMethodService.getMethodAndOperations(ctx, method);
     }
 
     /**

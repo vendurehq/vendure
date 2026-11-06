@@ -12,6 +12,12 @@ export declare class TenantMember extends VendureEntity {
     enabled: boolean;
     /** 首登强改密：为 true 时该人员在更改密码前只能执行基础/改密操作 */
     mustChangePassword: boolean;
+    /**
+     * 一次性重置口令的有效期（UTC）。仅当 mustChangePassword=true 时有意义：
+     * 超过该时间后强改密闸门直接拒绝所有业务操作，需管理员重新重置。
+     * 列由 TenantMemberColumnMigration 幂等补齐。
+     */
+    resetPasswordExpiresAt: Date | null;
     displayName: string | null;
     remark: string | null;
     /** 手机号（选填） */

@@ -137,10 +137,10 @@ let TenantAdminResolver = class TenantAdminResolver {
         await this.tenantMemberService.removeMember(ctx, member.channelId, id);
         return true;
     }
-    /** 重置租户管理人密码（管理员 Tab 某成员）为默认口令 you123123（仅超管） */
+    /** 重置租户管理人密码（管理员 Tab 某成员）：随机一次性口令，返回明文供本次转交（仅超管） */
     async resetTenantAdministratorPassword(ctx, memberId) {
-        await this.tenantMemberService.resetAdminPassword(ctx, memberId);
-        return true;
+        const member = await this.tenantMemberService.resetAdminPassword(ctx, memberId);
+        return member.initialPassword;
     }
     async tenantRoles(ctx, channelId) {
         return this.tenantMemberService.rolesForChannel(ctx, channelId);

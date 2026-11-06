@@ -26,8 +26,22 @@ let PromotionRuleService = class PromotionRuleService {
     constructor(connection) {
         this.connection = connection;
     }
+    /**
+     * 解析并校验渠道：只允许操作当前请求渠道的数据。
+     * 显式传了其他渠道 id 时直接拒绝，避免跨租户读取/改写。
+     */
+    assertChannel(ctx, channelId) {
+        const current = Number(ctx.channelId);
+        if (!Number.isFinite(current)) {
+            throw new core_1.UserInputError('当前请求未绑定渠道');
+        }
+        if (channelId != null && Number(channelId) !== current) {
+            throw new core_1.UserInputError('无权访问其他渠道的促销规则');
+        }
+        return current;
+    }
     async findAll(ctx, channelId) {
-        const targetChannelId = channelId !== null && channelId !== void 0 ? channelId : ctx.channelId;
+        const targetChannelId = this.assertChannel(ctx, channelId);
         return this.connection
             .getRepository(promotion_rule_entity_1.PromotionRule)
             .createQueryBuilder('rule')
@@ -36,8 +50,14 @@ let PromotionRuleService = class PromotionRuleService {
             .addOrderBy('rule.id', 'ASC')
             .getMany();
     }
-    async findOne(id) {
-        return this.connection.getRepository(promotion_rule_entity_1.PromotionRule).findOne({ where: { id } });
+    /**
+     * 按 id + 渠道查询。跨渠道 id 返回 null（调用方据此拒绝 update/delete）。
+     */
+    async findOne(ctx, id) {
+        const channelId = this.assertChannel(ctx);
+        return this.connection
+            .getRepository(promotion_rule_entity_1.PromotionRule)
+            .findOne({ where: { id, channelId } });
     }
     /**
      * 返回当前时段有效的规则（active=true 且 currentTime 在 [startTime, endTime] 内）。
@@ -74,9 +94,9 @@ let PromotionRuleService = class PromotionRuleService {
         rule.actions = (_j = input.actions) !== null && _j !== void 0 ? _j : null;
         return this.connection.getRepository(promotion_rule_entity_1.PromotionRule).save(rule);
     }
-    async update(id, input) {
+    async update(ctx, id, input) {
         var _a, _b, _c, _d, _e, _f;
-        const rule = await this.findOne(id);
+        const rule = await this.findOne(ctx, id);
         if (!rule)
             throw new core_1.UserInputError(`促销规则 ${id} 不存在`);
         if (input.type !== undefined)
@@ -104,9 +124,12 @@ let PromotionRuleService = class PromotionRuleService {
         this.validateInput(rule);
         return this.connection.getRepository(promotion_rule_entity_1.PromotionRule).save(rule);
     }
-    async delete(id) {
+    async delete(ctx, id) {
         var _a;
-        const res = await this.connection.getRepository(promotion_rule_entity_1.PromotionRule).delete(id);
+        const channelId = this.assertChannel(ctx);
+        const res = await this.connection
+            .getRepository(promotion_rule_entity_1.PromotionRule)
+            .delete({ id, channelId });
         return ((_a = res.affected) !== null && _a !== void 0 ? _a : 0) > 0;
     }
     /**

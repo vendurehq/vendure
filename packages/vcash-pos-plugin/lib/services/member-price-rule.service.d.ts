@@ -18,11 +18,19 @@ export interface MemberPriceRuleInput {
 export declare class MemberPriceRuleService {
     private connection;
     constructor(connection: Connection);
+    /**
+     * 解析并校验渠道：只允许操作当前请求渠道的数据。
+     * 显式传了其他渠道 id 时直接拒绝，避免跨租户读取/改写。
+     */
+    private assertChannel;
     findAll(ctx: RequestContext, channelId?: number): Promise<MemberPriceRule[]>;
-    findOne(id: number): Promise<MemberPriceRule | null>;
+    /**
+     * 按 id + 渠道查询。跨渠道 id 返回 null（调用方据此拒绝 update/delete）。
+     */
+    findOne(ctx: RequestContext, id: number): Promise<MemberPriceRule | null>;
     create(ctx: RequestContext, input: MemberPriceRuleInput): Promise<MemberPriceRule>;
-    update(id: number, input: Partial<MemberPriceRuleInput>): Promise<MemberPriceRule>;
-    delete(id: number): Promise<boolean>;
+    update(ctx: RequestContext, id: number, input: Partial<MemberPriceRuleInput>): Promise<MemberPriceRule>;
+    delete(ctx: RequestContext, id: number): Promise<boolean>;
     /**
      * 查询生效规则：先查 category（指定 categoryId + memberLevel），未命中则查 global。
      * 若同一层有多条规则，priority 大者优先；priority 相同取 discountPercent 更低（更优惠）。

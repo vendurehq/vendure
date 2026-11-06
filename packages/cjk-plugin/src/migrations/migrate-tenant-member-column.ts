@@ -29,6 +29,9 @@ export class TenantMemberColumnMigration implements OnApplicationBootstrap {
                 };
                 await ensure('must_change_password', 'boolean', false, false);
                 await ensure('phone', 'varchar(32)', true, undefined);
+                // 一次性重置口令有效期（A3）：随机口令 + 强制改密 + 过期失效
+                // 列名与实体属性一致（TypeORM 默认命名策略按属性名落库）
+                await ensure('resetPasswordExpiresAt', 'timestamp', true, undefined);
             } finally {
                 await queryRunner.release();
             }

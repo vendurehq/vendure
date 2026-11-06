@@ -55,8 +55,8 @@ export declare class TenantMemberResolver {
         remark?: string;
     }): Promise<any>;
     roleIds(member: TenantMember, ctx: RequestContext): Promise<ID[]>;
-    /** 租户自助重置本租户成员密码为默认口令（权限门禁见 service） */
-    myResetTenantMemberPassword(ctx: RequestContext, id: string): Promise<boolean>;
+    /** 租户自助重置本租户成员密码：随机一次性口令，返回明文供本次转交（权限门禁见 service） */
+    myResetTenantMemberPassword(ctx: RequestContext, id: string): Promise<string>;
     /** 当前登录者修改自身密码（主动改密传旧密码校验；首登强改密 oldPassword 传 null 跳过校验） */
     tenantChangeMyPassword(ctx: RequestContext, oldPassword: string | null, newPassword: string): Promise<boolean>;
 }

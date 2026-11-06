@@ -1,12 +1,13 @@
-import { ID, Injector, ListQueryBuilder, ListQueryOptions, Order, OrderService, PaginatedList, PaymentService, ProductVariantService, RequestContext, TransactionalConnection } from '@vendure/core';
+import { ID, Injector, ListQueryBuilder, ListQueryOptions, Order, OrderService, PaginatedList, PaymentMethodService, PaymentService, ProductVariantService, RequestContext, TransactionalConnection } from '@vendure/core';
 import { PreSaleActivity } from './pre-sale-activity.entity';
 export declare class PreSaleService {
     private connection;
     private listQueryBuilder;
     private orderService;
     private paymentService;
+    private paymentMethodService;
     private productVariantService;
-    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, orderService: OrderService, paymentService: PaymentService, productVariantService: ProductVariantService);
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, orderService: OrderService, paymentService: PaymentService, paymentMethodService: PaymentMethodService, productVariantService: ProductVariantService);
     init(injector: Injector): void;
     findAll(ctx: RequestContext, options?: ListQueryOptions<PreSaleActivity>): Promise<PaginatedList<PreSaleActivity>>;
     findOne(ctx: RequestContext, id: ID): Promise<PreSaleActivity | undefined>;
@@ -61,8 +62,16 @@ export declare class PreSaleService {
     private assertLegalDepositCap;
     /**
      * 校验订单已绑定预售活动，并返回重载后的订单（含 lines.productVariant）。
+     * 同时校验订单归属：只允许订单所属客户本人支付，防止 A 用户拿 B 的 orderId 发起支付（IDOR）。
      */
     private requirePreSaleOrder;
+    /** 订单归属校验：order.customer.user.id 必须等于当前登录用户 */
+    private assertOrderOwner;
+    /**
+     * 支付方式服务端白名单：必须是当前渠道已启用的 PaymentMethod code，
+     * 不存在/已停用/不属于本渠道一律拒绝（不信任前端传入的 method 字符串）。
+     */
+    private assertPaymentMethodAllowed;
     /**
      * 校验订单关联活动存在且处于可支付窗口（active/delivered + 窗口内）。
      */

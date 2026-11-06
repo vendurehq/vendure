@@ -32,6 +32,14 @@ export class TenantMember extends VendureEntity {
     @Column({ type: 'boolean', default: false })
     mustChangePassword!: boolean;
 
+    /**
+     * 一次性重置口令的有效期（UTC）。仅当 mustChangePassword=true 时有意义：
+     * 超过该时间后强改密闸门直接拒绝所有业务操作，需管理员重新重置。
+     * 列由 TenantMemberColumnMigration 幂等补齐。
+     */
+    @Column({ type: 'timestamp', nullable: true })
+    resetPasswordExpiresAt!: Date | null;
+
     @Column({ type: 'varchar', nullable: true })
     displayName!: string | null;
 

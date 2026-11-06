@@ -42,8 +42,11 @@ export class AdminPromotionResolver {
 
   @Query()
   @Allow(Permission.ReadSettings, posSessionPermission.Read)
-  async promotionRule(@Args('id') id: string): Promise<PromotionRule | null> {
-    return this.ruleService.findOne(parseInt(id, 10));
+  async promotionRule(
+    @Ctx() ctx: RequestContext,
+    @Args('id') id: string,
+  ): Promise<PromotionRule | null> {
+    return this.ruleService.findOne(ctx, parseInt(id, 10));
   }
 
   @Mutation()
@@ -57,14 +60,20 @@ export class AdminPromotionResolver {
 
   @Mutation()
   @Allow(Permission.UpdateSettings, posSessionPermission.Update)
-  async updatePromotionRule(@Args('input') input: any): Promise<PromotionRule> {
-    return this.ruleService.update(parseInt(input.id, 10), input);
+  async updatePromotionRule(
+    @Ctx() ctx: RequestContext,
+    @Args('input') input: any,
+  ): Promise<PromotionRule> {
+    return this.ruleService.update(ctx, parseInt(input.id, 10), input);
   }
 
   @Mutation()
   @Allow(Permission.DeleteSettings, posSessionPermission.Delete)
-  async deletePromotionRule(@Args('id') id: string): Promise<boolean> {
-    return this.ruleService.delete(parseInt(id, 10));
+  async deletePromotionRule(
+    @Ctx() ctx: RequestContext,
+    @Args('id') id: string,
+  ): Promise<boolean> {
+    return this.ruleService.delete(ctx, parseInt(id, 10));
   }
 
   /**

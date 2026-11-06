@@ -28,15 +28,35 @@ let MemberPriceRuleService = class MemberPriceRuleService {
     constructor(connection) {
         this.connection = connection;
     }
+    /**
+     * 解析并校验渠道：只允许操作当前请求渠道的数据。
+     * 显式传了其他渠道 id 时直接拒绝，避免跨租户读取/改写。
+     */
+    assertChannel(ctx, channelId) {
+        const current = Number(ctx.channelId);
+        if (!Number.isFinite(current)) {
+            throw new core_1.UserInputError('当前请求未绑定渠道');
+        }
+        if (channelId != null && Number(channelId) !== current) {
+            throw new core_1.UserInputError('无权访问其他渠道的会员价规则');
+        }
+        return current;
+    }
     async findAll(ctx, channelId) {
         const qb = this.connection
             .getRepository(member_price_rule_entity_1.MemberPriceRule)
             .createQueryBuilder('rule')
-            .where('rule.channelId = :channelId', { channelId: channelId !== null && channelId !== void 0 ? channelId : ctx.channelId });
+            .where('rule.channelId = :channelId', { channelId: this.assertChannel(ctx, channelId) });
         return qb.orderBy('rule.memberLevel', 'ASC').addOrderBy('rule.priority', 'DESC').getMany();
     }
-    async findOne(id) {
-        return this.connection.getRepository(member_price_rule_entity_1.MemberPriceRule).findOne({ where: { id } });
+    /**
+     * 按 id + 渠道查询。跨渠道 id 返回 null（调用方据此拒绝 update/delete）。
+     */
+    async findOne(ctx, id) {
+        const channelId = this.assertChannel(ctx);
+        return this.connection
+            .getRepository(member_price_rule_entity_1.MemberPriceRule)
+            .findOne({ where: { id, channelId } });
     }
     async create(ctx, input) {
         var _a, _b, _c;
@@ -51,9 +71,9 @@ let MemberPriceRuleService = class MemberPriceRuleService {
         rule.priority = (_c = input.priority) !== null && _c !== void 0 ? _c : (input.scope === 'category' ? 100 : 10);
         return this.connection.getRepository(member_price_rule_entity_1.MemberPriceRule).save(rule);
     }
-    async update(id, input) {
+    async update(ctx, id, input) {
         var _a;
-        const rule = await this.findOne(id);
+        const rule = await this.findOne(ctx, id);
         if (!rule)
             throw new core_1.UserInputError(`会员价规则 ${id} 不存在`);
         if (input.scope !== undefined)
@@ -71,9 +91,12 @@ let MemberPriceRuleService = class MemberPriceRuleService {
         this.validateInput(rule);
         return this.connection.getRepository(member_price_rule_entity_1.MemberPriceRule).save(rule);
     }
-    async delete(id) {
+    async delete(ctx, id) {
         var _a;
-        const res = await this.connection.getRepository(member_price_rule_entity_1.MemberPriceRule).delete(id);
+        const channelId = this.assertChannel(ctx);
+        const res = await this.connection
+            .getRepository(member_price_rule_entity_1.MemberPriceRule)
+            .delete({ id, channelId });
         return ((_a = res.affected) !== null && _a !== void 0 ? _a : 0) > 0;
     }
     /**

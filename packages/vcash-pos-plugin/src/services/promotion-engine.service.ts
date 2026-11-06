@@ -332,13 +332,13 @@ export class PromotionEngineService {
       // （addPosItem 阶段可能已应用会员价修改 listPrice，需恢复以避免叠加优惠）
       await this.revertMemberPriceLines(orderForCalc);
       if (best.type === 'fullReduction') {
-        const rule = await this.ruleService.findOne(best.ruleId!);
+        const rule = await this.ruleService.findOne(ctx, best.ruleId!);
         if (rule) await this.applyFullReduction(ctx, orderForCalc, rule, best.payload.tier);
       } else if (best.type === 'discount') {
-        const rule = await this.ruleService.findOne(best.ruleId!);
+        const rule = await this.ruleService.findOne(ctx, best.ruleId!);
         if (rule) await this.applyDiscount(ctx, orderForCalc, rule);
       } else if (best.type === 'buyGift') {
-        const rule = await this.ruleService.findOne(best.ruleId!);
+        const rule = await this.ruleService.findOne(ctx, best.ruleId!);
         if (rule) await this.applyBuyGift(ctx, orderForCalc, rule);
       }
     }
