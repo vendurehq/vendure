@@ -211,6 +211,98 @@ class DisableSellerSplitPlugin {}
 class RelaxArrangingPaymentGuardPlugin {}
 
 /**
+ * CSRF 第二道闸（第一道是 cookieOptions 的 SameSite=Lax）：
+ * —— 只对写方法（POST/PUT/PATCH/DELETE）生效，GET/HEAD/OPTIONS 直接放行。
+ * —— 判定顺序：
+ *    1) `Sec-Fetch-Site: cross-site` → 直接拒绝；
+ *    2) `Origin` 存在 → 必须等于「请求自身 Origin」或白名单中的 Origin；
+ *    3) `Origin` 缺失但有 `Referer` → 取 Referer 的 Origin 按同样规则校验；
+ *    4) Origin / Referer / Sec-Fetch-Site 全部缺失（老浏览器、curl、CLI 运维脚本、
+ *       服务端到服务端调用、Nitro 代理）→ **放行**。
+ *
+ * 退化策略（第 4 条）是有意为之：这类客户端不会自动携带跨站 Cookie，
+ * 拦截它们只会误伤运维脚本与 S2S 调用；浏览器跨站写请求的 Cookie 仍由
+ * SameSite=Lax 兜底（跨站不会携带 vshop_sid / vadmin_sid）。
+ *
+ * 拒绝时返回 HTTP 403 + GraphQL 风格错误体（extensions.code = CSRF_BLOCKED），
+ * 不是裸 500，前端/日志可直接读取原因。
+ */
+const CSRF_ALLOWED_ORIGINS = new Set<string>(
+    (
+        process.env.CSRF_ALLOWED_ORIGINS ??
+        'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,http://localhost:5280,http://localhost:3000'
+    )
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean),
+);
+
+const CSRF_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function csrfReject(res: Response, reason: string): void {
+    res.status(403).json({
+        data: null,
+        errors: [
+            {
+                message: `CSRF 校验未通过：${reason}。写操作必须来自受信任的同源页面。`,
+                extensions: { code: 'CSRF_BLOCKED' },
+            },
+        ],
+    });
+}
+
+function parseOrigin(value: string): string | null {
+    try {
+        return new URL(value).origin.toLowerCase();
+    } catch {
+        return null;
+    }
+}
+
+function csrfCookieGuard(req: Request, res: Response, next: NextFunction): void {
+    // GET / HEAD / OPTIONS 等读请求一律放行
+    if (!CSRF_WRITE_METHODS.has(req.method)) {
+        return next();
+    }
+
+    // 浏览器明确声明跨站 → 一律拒绝
+    const secFetchSite = String(req.headers['sec-fetch-site'] ?? '').trim().toLowerCase();
+    if (secFetchSite === 'cross-site') {
+        csrfReject(res, 'Sec-Fetch-Site 标记为 cross-site');
+        return;
+    }
+
+    // 请求自身的 Origin（经 nginx 反代，trustProxy=1 + X-Forwarded-Proto 还原协议）
+    const host = String(req.headers.host ?? '').trim().toLowerCase();
+    const selfOrigin = host ? `${req.protocol}://${host}`.toLowerCase() : '';
+    const isTrusted = (origin: string): boolean => origin === selfOrigin || CSRF_ALLOWED_ORIGINS.has(origin);
+
+    const rawOrigin = String(req.headers.origin ?? '').trim();
+    // Origin: null 视为「未提供」（沙箱 iframe/重定向场景），继续走 Referer / 退化策略
+    if (rawOrigin && rawOrigin.toLowerCase() !== 'null') {
+        const origin = parseOrigin(rawOrigin);
+        if (!origin || !isTrusted(origin)) {
+            csrfReject(res, `Origin ${rawOrigin} 不在允许列表内`);
+            return;
+        }
+        return next();
+    }
+
+    const rawReferer = String(req.headers.referer ?? '').trim();
+    if (rawReferer) {
+        const origin = parseOrigin(rawReferer);
+        if (!origin || !isTrusted(origin)) {
+            csrfReject(res, `Referer ${rawReferer} 不在允许列表内`);
+            return;
+        }
+        return next();
+    }
+
+    // 退化策略：无 Origin / Referer / Sec-Fetch-Site 的非浏览器调用放行
+    next();
+}
+
+/**
  * Config settings used during development
  */
 export const devConfig: VendureConfig = {
@@ -280,6 +372,15 @@ export const devConfig: VendureConfig = {
             },
             {
                 handler: loginRateLimit,
+                route: '/admin-api',
+            },
+            // CSRF：写操作 Origin/Referer + Sec-Fetch-Site 校验（读请求与无头调用放行）
+            {
+                handler: csrfCookieGuard,
+                route: '/shop-api',
+            },
+            {
+                handler: csrfCookieGuard,
                 route: '/admin-api',
             },
         ],

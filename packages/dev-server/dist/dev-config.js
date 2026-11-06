@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.devConfig = void 0;
 const admin_ui_plugin_1 = require("@vendure/admin-ui-plugin");
@@ -166,6 +166,63 @@ RelaxArrangingPaymentGuardPlugin = __decorate([
         },
     })
 ], RelaxArrangingPaymentGuardPlugin);
+const CSRF_ALLOWED_ORIGINS = new Set(((_a = process.env.CSRF_ALLOWED_ORIGINS) !== null && _a !== void 0 ? _a : 'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,http://localhost:5280,http://localhost:3000')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean));
+const CSRF_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+function csrfReject(res, reason) {
+    res.status(403).json({
+        data: null,
+        errors: [
+            {
+                message: `CSRF 校验未通过：${reason}。写操作必须来自受信任的同源页面。`,
+                extensions: { code: 'CSRF_BLOCKED' },
+            },
+        ],
+    });
+}
+function parseOrigin(value) {
+    try {
+        return new URL(value).origin.toLowerCase();
+    }
+    catch (_a) {
+        return null;
+    }
+}
+function csrfCookieGuard(req, res, next) {
+    var _a, _b, _c, _d;
+    if (!CSRF_WRITE_METHODS.has(req.method)) {
+        return next();
+    }
+    const secFetchSite = String((_a = req.headers['sec-fetch-site']) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+    if (secFetchSite === 'cross-site') {
+        csrfReject(res, 'Sec-Fetch-Site 标记为 cross-site');
+        return;
+    }
+    const host = String((_b = req.headers.host) !== null && _b !== void 0 ? _b : '').trim().toLowerCase();
+    const selfOrigin = host ? `${req.protocol}://${host}`.toLowerCase() : '';
+    const isTrusted = (origin) => origin === selfOrigin || CSRF_ALLOWED_ORIGINS.has(origin);
+    const rawOrigin = String((_c = req.headers.origin) !== null && _c !== void 0 ? _c : '').trim();
+    if (rawOrigin && rawOrigin.toLowerCase() !== 'null') {
+        const origin = parseOrigin(rawOrigin);
+        if (!origin || !isTrusted(origin)) {
+            csrfReject(res, `Origin ${rawOrigin} 不在允许列表内`);
+            return;
+        }
+        return next();
+    }
+    const rawReferer = String((_d = req.headers.referer) !== null && _d !== void 0 ? _d : '').trim();
+    if (rawReferer) {
+        const origin = parseOrigin(rawReferer);
+        if (!origin || !isTrusted(origin)) {
+            csrfReject(res, `Referer ${rawReferer} 不在允许列表内`);
+            return;
+        }
+        return next();
+    }
+    next();
+}
 exports.devConfig = {
     apiOptions: {
         port: Number(process.env.API_PORT) || shared_constants_1.API_PORT,
@@ -224,6 +281,14 @@ exports.devConfig = {
             },
             {
                 handler: login_rate_limit_1.loginRateLimit,
+                route: '/admin-api',
+            },
+            {
+                handler: csrfCookieGuard,
+                route: '/shop-api',
+            },
+            {
+                handler: csrfCookieGuard,
                 route: '/admin-api',
             },
         ],
@@ -399,12 +464,12 @@ exports.devConfig = {
             authSecret: process.env.AUTH_SECRET || 'dev-auth-secret-key',
         }),
         shop_plugin_1.ShopPlugin.init({}),
-        shop_template_plugin_1.ShopTemplatePlugin.init({ app: (_a = process.env.APP) !== null && _a !== void 0 ? _a : 'nshop' }),
-        diy_plugin_1.DiyPlugin.init({ app: (_b = process.env.APP) !== null && _b !== void 0 ? _b : 'nshop' }),
+        shop_template_plugin_1.ShopTemplatePlugin.init({ app: (_b = process.env.APP) !== null && _b !== void 0 ? _b : 'nshop' }),
+        diy_plugin_1.DiyPlugin.init({ app: (_c = process.env.APP) !== null && _c !== void 0 ? _c : 'nshop' }),
         pickup_plugin_1.PickupPlugin.init({}),
         ...((process.env.ALIPAY_NOTIFY_URL || devBypassEnabled('DEV_BYPASS_ALIPAY')) ? [alipay_plugin_1.AlipayPlugin.init({
                 notifyUrl: process.env.ALIPAY_NOTIFY_URL || '',
-                alipayPublicKey: (_c = process.env.ALIPAY_PUBLIC_KEY) !== null && _c !== void 0 ? _c : '',
+                alipayPublicKey: (_d = process.env.ALIPAY_PUBLIC_KEY) !== null && _d !== void 0 ? _d : '',
                 sellerId: process.env.ALIPAY_SELLER_ID || undefined,
                 auth: devBypassEnabled('DEV_BYPASS_ALIPAY') ? {
                     devBypass: true,
@@ -422,16 +487,16 @@ exports.devConfig = {
                 : undefined,
         }),
         ...(process.env.OSS_ACCESS_KEY_ID ? [oss_plugin_1.OssPlugin.init({
-                region: (_d = process.env.OSS_REGION) !== null && _d !== void 0 ? _d : '',
-                accessKeyId: (_e = process.env.OSS_ACCESS_KEY_ID) !== null && _e !== void 0 ? _e : '',
-                accessKeySecret: (_f = process.env.OSS_ACCESS_KEY_SECRET) !== null && _f !== void 0 ? _f : '',
-                bucket: (_g = process.env.OSS_BUCKET) !== null && _g !== void 0 ? _g : '',
+                region: (_e = process.env.OSS_REGION) !== null && _e !== void 0 ? _e : '',
+                accessKeyId: (_f = process.env.OSS_ACCESS_KEY_ID) !== null && _f !== void 0 ? _f : '',
+                accessKeySecret: (_g = process.env.OSS_ACCESS_KEY_SECRET) !== null && _g !== void 0 ? _g : '',
+                bucket: (_h = process.env.OSS_BUCKET) !== null && _h !== void 0 ? _h : '',
             })] : []),
         phone_auth_plugin_1.PhoneAuthPlugin.init({
             accessKeyId: process.env.SMS_ACCESS_KEY_ID || '',
-            accessKeySecret: (_h = process.env.SMS_ACCESS_KEY_SECRET) !== null && _h !== void 0 ? _h : '',
-            signName: (_j = process.env.SMS_SIGN_NAME) !== null && _j !== void 0 ? _j : '',
-            templateCode: (_k = process.env.SMS_TEMPLATE_CODE) !== null && _k !== void 0 ? _k : '',
+            accessKeySecret: (_j = process.env.SMS_ACCESS_KEY_SECRET) !== null && _j !== void 0 ? _j : '',
+            signName: (_k = process.env.SMS_SIGN_NAME) !== null && _k !== void 0 ? _k : '',
+            templateCode: (_l = process.env.SMS_TEMPLATE_CODE) !== null && _l !== void 0 ? _l : '',
             devBypass: devBypassEnabled('DEV_BYPASS_SMS'),
             devBypassCode: '123456',
             redisUrl: process.env.PHONE_AUTH_REDIS_URL || undefined,
@@ -475,7 +540,7 @@ exports.devConfig = {
             })] : []),
         ...(process.env.KUAIDI100_CUSTOMER ? [logistics_api_plugin_1.LogisticsApiPlugin.init({
                 customer: process.env.KUAIDI100_CUSTOMER,
-                key: (_l = process.env.KUAIDI100_KEY) !== null && _l !== void 0 ? _l : '',
+                key: (_m = process.env.KUAIDI100_KEY) !== null && _m !== void 0 ? _m : '',
             })] : []),
         invoice_pdf_plugin_1.InvoicePdfPlugin.init(),
         recharge_card_plugin_1.RechargeCardPlugin.init({ defaultExpiresMonths: 12 }),
@@ -558,8 +623,8 @@ exports.devConfig = {
         installment_plugin_1.InstallmentPlugin.init({}),
         rental_plugin_1.RentalPlugin.init({}),
         meilisearch_plugin_1.MeiliSearchPlugin.init({
-            host: (_m = process.env.MEILI_HOST) !== null && _m !== void 0 ? _m : 'http://127.0.0.1:7700',
-            adminKey: (_o = process.env.MEILI_ADMIN_KEY) !== null && _o !== void 0 ? _o : '',
+            host: (_o = process.env.MEILI_HOST) !== null && _o !== void 0 ? _o : 'http://127.0.0.1:7700',
+            adminKey: (_p = process.env.MEILI_ADMIN_KEY) !== null && _p !== void 0 ? _p : '',
             indexPrefix: 'kb',
             locales: ['zh', 'en'],
             reindexUrl: process.env.ZHAO_SEARCH_REINDEX_URL,
