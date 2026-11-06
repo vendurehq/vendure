@@ -11,6 +11,12 @@ export interface ShiftSummary {
   warnings: string[];
 }
 
+/** 批量结算结果：成功笔数 + 逐笔失败原因（不再静默吞掉异常） */
+export interface SettleSessionAggregatePaysResult {
+  settled: number;
+  failed: Array<{ paymentId: string; reason: string }>;
+}
+
 export interface ReceiptData {
   header: string;
   phone: string;

@@ -13,6 +13,7 @@ import {
 
 import { posSessionPermission } from '../constants';
 import { PosSession, ShiftSummary } from '../entities/pos-session.entity';
+import { SettleSessionAggregatePaysResult } from '../types';
 import { AggregatePayService } from '../services/aggregate-pay.service';
 import { PosOrderService } from '../services/pos-order.service';
 import { PosSessionService } from '../services/pos-session.service';
@@ -226,14 +227,14 @@ export class AdminPosResolver {
 
   /**
    * 批量结算班次内所有 confirmed 状态的聚合码支付。
-   * 返回结算笔数。
+   * 返回 { settled, failed }，失败逐笔带原因。
    */
   @Mutation()
   @Allow(posSessionPermission.Update)
   async settleSessionAggregatePays(
     @Args('sessionId') sessionId: string,
     @Ctx() ctx: RequestContext,
-  ): Promise<number> {
+  ): Promise<SettleSessionAggregatePaysResult> {
     return this.aggregatePayService.settleSessionPayments(
       ctx,
       parseInt(sessionId, 10),

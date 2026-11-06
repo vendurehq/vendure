@@ -1,6 +1,7 @@
 import { ID, OrderService, Payment, PaymentService, RequestContext, TransactionalConnection } from '@vendure/core';
 import { Connection } from 'typeorm';
 import { PosSession } from '../entities/pos-session.entity';
+import { SettleSessionAggregatePaysResult } from '../types';
 import { PosOrderService } from './pos-order.service';
 /**
  * 聚合码支付服务：
@@ -62,9 +63,9 @@ export declare class AggregatePayService {
     failPayment(ctx: RequestContext, paymentId: ID): Promise<Payment>;
     /**
      * 批量结算班次内所有 confirmed 状态的聚合码支付。
-     * 关班时调用，返回结算笔数。
+     * 关班时调用，返回成功笔数与逐笔失败原因（失败不再静默丢弃）。
      */
-    settleSessionPayments(ctx: RequestContext, sessionId: number): Promise<number>;
+    settleSessionPayments(ctx: RequestContext, sessionId: number): Promise<SettleSessionAggregatePaysResult>;
     /**
      * 根据聚合码查找待支付 Payment。
      */
@@ -77,6 +78,10 @@ export declare class AggregatePayService {
      * repository.update(id, { colName: val }) 接收的是 entity property 名
      * 而非列名，直接用 PRAGMA 列名做 key 无法正确映射到 embedded 属性。
      * 正确做法：load entity → modify customFields → save entity。
+     *
+     * @param ctx 传入调用方的事务上下文；在 withTransaction 内必须传 txCtx。
+     *            若此处固定用 this.connection，独立连接更新同一 payment 行会等待
+     *            外层事务持有的行锁，而外层又在等本函数返回 → 跨连接自锁。
      */
     private updateAggregatePayStatus;
     private findSessionByOrderId;

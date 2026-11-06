@@ -155,7 +155,7 @@ let AdminPosResolver = class AdminPosResolver {
     }
     /**
      * 批量结算班次内所有 confirmed 状态的聚合码支付。
-     * 返回结算笔数。
+     * 返回 { settled, failed }，失败逐笔带原因。
      */
     async settleSessionAggregatePays(sessionId, ctx) {
         return this.aggregatePayService.settleSessionPayments(ctx, parseInt(sessionId, 10));

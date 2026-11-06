@@ -1,5 +1,6 @@
 import { AdministratorService, Order, Payment, RequestContext } from '@vendure/core';
 import { PosSession, ShiftSummary } from '../entities/pos-session.entity';
+import { SettleSessionAggregatePaysResult } from '../types';
 import { AggregatePayService } from '../services/aggregate-pay.service';
 import { PosOrderService } from '../services/pos-order.service';
 import { PosSessionService } from '../services/pos-session.service';
@@ -84,9 +85,9 @@ export declare class AdminPosResolver {
     failAggregatePay(paymentId: string, ctx: RequestContext): Promise<Payment>;
     /**
      * 批量结算班次内所有 confirmed 状态的聚合码支付。
-     * 返回结算笔数。
+     * 返回 { settled, failed }，失败逐笔带原因。
      */
-    settleSessionAggregatePays(sessionId: string, ctx: RequestContext): Promise<number>;
+    settleSessionAggregatePays(sessionId: string, ctx: RequestContext): Promise<SettleSessionAggregatePaysResult>;
     /**
      * 根据聚合码查询 Payment 状态。
      */

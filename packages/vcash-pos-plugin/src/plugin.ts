@@ -219,7 +219,7 @@ const adminSchema = gql`
     confirmAggregatePay(paymentId: ID!): Payment!
     settleAggregatePay(paymentId: ID!): Payment!
     failAggregatePay(paymentId: ID!): Payment!
-    settleSessionAggregatePays(sessionId: ID!): Int!
+    settleSessionAggregatePays(sessionId: ID!): SettleSessionAggregatePaysResult!
     createPosRefund(input: CreatePosRefundInput!): Refund!
     settleManualRefund(input: SettleManualRefundInput!): Refund!
     holdOrder: Order!
@@ -229,6 +229,17 @@ const adminSchema = gql`
 
   input CreateAggregatePayInput {
     aggregatePayCode: String!
+  }
+
+  # 批量结算结果：失败逐笔返回原因，避免关班时静默漏结
+  type AggregatePayFailure {
+    paymentId: ID!
+    reason: String!
+  }
+
+  type SettleSessionAggregatePaysResult {
+    settled: Int!
+    failed: [AggregatePayFailure!]!
   }
 
   input CreatePosRefundInput {

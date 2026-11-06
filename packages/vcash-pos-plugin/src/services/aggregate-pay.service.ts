@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/typeorm';
 import {
   ID,
+  Logger,
   Order,
   OrderService,
   Payment,
@@ -14,8 +15,11 @@ import { Connection } from 'typeorm';
 
 import { AGGREGATE_PAY_STATUS } from '../constants';
 import { PosSession } from '../entities/pos-session.entity';
+import { SettleSessionAggregatePaysResult } from '../types';
 import { PosOrderService } from './pos-order.service';
 import { findDbColumn } from './db-columns';
+
+const loggerCtx = 'AggregatePayService';
 
 /**
  * 聚合码支付服务：
@@ -129,7 +133,7 @@ export class AggregatePayService {
     }
 
     // 更新 customFields.aggregatePayStatus
-    await this.updateAggregatePayStatus(paymentId, AGGREGATE_PAY_STATUS.CONFIRMED);
+    await this.updateAggregatePayStatus(ctx, paymentId, AGGREGATE_PAY_STATUS.CONFIRMED);
 
     return this.findPaymentOrThrow(paymentId);
   }
@@ -155,7 +159,9 @@ export class AggregatePayService {
         .save(payment, { reload: false });
 
       // 2. 更新 customFields.aggregatePayStatus（load-modify-save）
-      await this.updateAggregatePayStatus(paymentId, AGGREGATE_PAY_STATUS.SETTLED);
+      //    必须传 txCtx：用独立连接更新同一 payment 行会等待本事务持有的行锁，
+      //    而本事务又在等这个调用返回 —— 形成跨连接自锁（批量结算卡住）。
+      await this.updateAggregatePayStatus(txCtx, paymentId, AGGREGATE_PAY_STATUS.SETTLED);
 
       // 3. 手动 transition Order → PaymentSettled
       //    checkPaymentsCoverTotal 会校验已结算支付覆盖总额
@@ -206,7 +212,7 @@ export class AggregatePayService {
         .save(payment, { reload: false });
 
       // 2. 更新 customFields.aggregatePayStatus（load-modify-save）
-      await this.updateAggregatePayStatus(paymentId, AGGREGATE_PAY_STATUS.FAILED);
+      await this.updateAggregatePayStatus(txCtx, paymentId, AGGREGATE_PAY_STATUS.FAILED);
 
       // 3. Order: ArrangingPayment → AddingItems
       const order = payment.order;
@@ -229,19 +235,23 @@ export class AggregatePayService {
 
   /**
    * 批量结算班次内所有 confirmed 状态的聚合码支付。
-   * 关班时调用，返回结算笔数。
+   * 关班时调用，返回成功笔数与逐笔失败原因（失败不再静默丢弃）。
    */
   async settleSessionPayments(
     ctx: RequestContext,
     sessionId: number,
-  ): Promise<number> {
+  ): Promise<SettleSessionAggregatePaysResult> {
     // 查找班次内所有 aggregatePayStatus='confirmed' 的 Payment
     // Payment.customFields 是 embedded entity，动态查找实际列名
     const statusCol = await findDbColumn(this.connection, 'payment', 'aggregatePayStatus');
     const sessionCol = await findDbColumn(this.connection, 'payment', 'posSessionId');
 
     if (!statusCol || !sessionCol) {
-      return 0;
+      Logger.warn(
+        `[aggregatePay] 无法定位聚合码支付列（statusCol=${statusCol}, sessionCol=${sessionCol}），批量结算跳过`,
+        loggerCtx,
+      );
+      return { settled: 0, failed: [] };
     }
 
     const payments = (await this.connection
@@ -254,16 +264,23 @@ export class AggregatePayService {
       .andWhere(`pay."${sessionCol}" = :sid`, { sid: sessionId })
       .getMany()) as Payment[];
 
-    let count = 0;
+    let settled = 0;
+    const failed: Array<{ paymentId: string; reason: string }> = [];
     for (const payment of payments) {
       try {
         await this.settlePayment(ctx, payment.id);
-        count++;
+        settled++;
       } catch (e) {
-        // 单笔失败不影响其他笔
+        // 单笔失败不阻断其他笔，但必须上报原因，不能静默计数
+        const reason = e instanceof Error ? e.message : String(e);
+        failed.push({ paymentId: String(payment.id), reason });
+        Logger.warn(
+          `[aggregatePay] 批量结算失败 paymentId=${payment.id}: ${reason}`,
+          loggerCtx,
+        );
       }
     }
-    return count;
+    return { settled, failed };
   }
 
   /**
@@ -304,21 +321,33 @@ export class AggregatePayService {
    * repository.update(id, { colName: val }) 接收的是 entity property 名
    * 而非列名，直接用 PRAGMA 列名做 key 无法正确映射到 embedded 属性。
    * 正确做法：load entity → modify customFields → save entity。
+   *
+   * @param ctx 传入调用方的事务上下文；在 withTransaction 内必须传 txCtx。
+   *            若此处固定用 this.connection，独立连接更新同一 payment 行会等待
+   *            外层事务持有的行锁，而外层又在等本函数返回 → 跨连接自锁。
    */
   private async updateAggregatePayStatus(
+    ctx: RequestContext,
     paymentId: ID,
     status: string,
   ): Promise<void> {
-    const payment = await this.connection.getRepository(Payment).findOne({
+    const repo = this.transactionalConnection.getRepository(ctx, Payment);
+    const payment = await repo.findOne({
       where: { id: paymentId },
     });
-    if (!payment) return;
+    if (!payment) {
+      Logger.warn(
+        `[aggregatePay] 更新聚合码支付状态时找不到 paymentId=${paymentId}（目标状态 ${status}）`,
+        loggerCtx,
+      );
+      return;
+    }
 
     (payment as any).customFields = {
       ...((payment as any).customFields ?? {}),
       aggregatePayStatus: status,
     };
-    await this.connection.getRepository(Payment).save(payment);
+    await repo.save(payment);
   }
 
   private async findSessionByOrderId(
