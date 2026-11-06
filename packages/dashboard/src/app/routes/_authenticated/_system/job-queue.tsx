@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
@@ -193,6 +194,7 @@ function JobQueuePage() {
                     },
                 },
                 state: {
+                    meta: { contentInset: columnContentInset.statusBadge },
                     cell: ({ row, table }) => {
                         const cancelJobMutation = useMutation({
                             mutationFn: (jobId: string) => api.mutate(cancelJobDocument, { jobId }),
@@ -203,12 +205,13 @@ function JobQueuePage() {
                         const state = STATES.find(s => s.value === row.original.state);
                         return (
                             <div className="flex items-center gap-2">
-                                <StatusBadge tone={jobStateDictionary.toneFor(row.original.state)}>
-                                    {/* RUNNING renders the progress tone's pulsing dot, so the
-                                        static state icon would be redundant — omit it there. */}
-                                    {state && row.original.state !== 'RUNNING' && (
-                                        <state.icon className="size-3" />
-                                    )}
+                                <StatusBadge
+                                    tone={jobStateDictionary.toneFor(row.original.state)}
+                                    // RUNNING keeps the progress tone's own spinner, so it gets no state icon.
+                                    icon={
+                                        state && row.original.state !== 'RUNNING' ? <state.icon /> : undefined
+                                    }
+                                >
                                     {row.original.state}
                                 </StatusBadge>
                                 {row.original.state === 'RUNNING' && (

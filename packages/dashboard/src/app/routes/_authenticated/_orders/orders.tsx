@@ -1,3 +1,4 @@
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import {
     CustomerCell,
@@ -75,6 +76,7 @@ function OrderListPage() {
                     cell: OrderMoneyCell,
                 },
                 state: {
+                    meta: { contentInset: columnContentInset.statusBadge },
                     cell: OrderStateCell,
                 },
                 code: {

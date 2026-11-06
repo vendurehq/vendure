@@ -20,23 +20,18 @@ const customerStatusDictionary = defineStateEntries<CustomerStatus>({
 
 export function CustomerStatusBadge({ user }: Readonly<CustomerStatusBadgeProps>) {
     const status: CustomerStatus = user ? (user.verified ? 'verified' : 'registered') : 'guest';
+    // The icon goes in `icon`, not in the children: the chip sizes and spaces its own icon.
     return (
-        <StatusBadge tone={customerStatusDictionary.toneFor(status)}>
+        <StatusBadge
+            tone={customerStatusDictionary.toneFor(status)}
+            icon={status === 'guest' ? <BadgeX /> : <BadgeCheck />}
+        >
             {status === 'verified' ? (
-                <>
-                    <BadgeCheck className="size-3.5" />
-                    <Trans>Verified</Trans>
-                </>
+                <Trans>Verified</Trans>
             ) : status === 'registered' ? (
-                <>
-                    <BadgeCheck className="size-3.5" />
-                    <Trans>Registered</Trans>
-                </>
+                <Trans>Registered</Trans>
             ) : (
-                <>
-                    <BadgeX className="size-3.5" />
-                    <Trans>Unverified</Trans>
-                </>
+                <Trans>Unverified</Trans>
             )}
         </StatusBadge>
     );

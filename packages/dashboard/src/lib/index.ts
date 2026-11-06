@@ -29,6 +29,7 @@ export * from './components/data-input/struct-form-input.js';
 export * from './components/data-input/text-input.js';
 export * from './components/data-input/textarea-input.js';
 export * from './components/data-table/add-filter-menu.js';
+export * from './components/data-table/column-content-inset.js';
 export * from './components/data-table/column-header-wrapper.js';
 export * from './components/data-table/data-table-active-filters-popover.js';
 export * from './components/data-table/data-table-bulk-action-item.js';

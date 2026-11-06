@@ -155,6 +155,9 @@ html[dir="rtl"] * {
 /* Overrides of the stretched link's button utilities, so they sit in the utilities layer.
    - The link is hovered wherever the row is, so its ghost fill would stack on the row's fill.
    - The focus ring goes around the row, so the button's own outline is dropped.
+   - The link drops its inline padding and border, so its text lines up with the header.
+   - A later link in the row opens another entity (e.g. a variant's product). It is underlined
+     on its own hover, so it reads apart from the row link.
    - A press scale makes the link the containing block of its ::after, which then shrinks to
      the button mid-click, and the click no longer reaches the link.
    - The last cell of each row reserves the row chevron's slot over the table cells' own padding. */
@@ -169,6 +172,16 @@ html[dir="rtl"] * {
 
     [data-slot='table-row'] [data-row-link]:focus-visible {
         outline: none;
+    }
+
+    [data-slot='table-row'] [data-row-link] {
+        padding-inline: 0;
+        border-inline-width: 0;
+    }
+
+    [data-slot='table-row'] td:has([data-row-link]) ~ td [data-row-link]:hover {
+        text-decoration-line: underline;
+        text-underline-offset: 4px;
     }
 
     [data-slot='table-row'] [data-row-link]:active {

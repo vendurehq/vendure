@@ -1,3 +1,4 @@
+import { withHeaderContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DataTableSettingsMenu } from '@/vdb/components/data-table/data-table-settings-menu.js';
 import { DataTableViewsTabs } from '@/vdb/components/data-table/data-table-views-tabs.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -403,7 +404,9 @@ export function DataTable<TData>({
     // and use its presence as the signal that this table is selectable.
     const hasSelectionColumn = useMemo(() => columns.some(c => c.id === 'selection'), [columns]);
     const bridgeColumns = useMemo(() => {
-        const dataColumns = hasSelectionColumn ? columns.filter(c => c.id !== 'selection') : columns;
+        const dataColumns = (hasSelectionColumn ? columns.filter(c => c.id !== 'selection') : columns).map(
+            withHeaderContentInset,
+        );
         if (isDraggableEnabled) {
             const dragHandleColumn: ColumnDef<TData, any> = {
                 id: '__drag_handle__',

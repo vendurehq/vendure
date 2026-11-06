@@ -30,6 +30,9 @@ export function DataTableColumnHeader({ headerContext, customConfig }: Readonly<
         <ColumnHeaderWrapper columnId={column.id}>
             <UiDataTableColumnHeader
                 column={column}
+                // The sort button pulls back by its padding (`-ml-2.5`), but not by its 1px
+                // border, so the header text sat 1px right of the cell text.
+                className={column.getCanSort() ? '-ml-[calc(var(--spacing)*2.5+1px)]' : undefined}
                 sortLabel={typeof display === 'string' ? t`Sort by ${display}` : undefined}
             >
                 {display}
