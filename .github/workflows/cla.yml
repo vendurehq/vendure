@@ -5,16 +5,13 @@ on:
   pull_request_target:
     types: [opened,reopened,closed,synchronize]
 
-# explicitly configure permissions, in case your GITHUB_TOKEN workflow permissions are set to read-only in repository settings
-permissions:
-  actions: write
-  contents: write # this can be 'read' if the signatures are in remote repository
-  pull-requests: write
-  statuses: write
+permissions: {}
 
 jobs:
   CLAAssistant:
     runs-on: ubuntu-latest
+    # The GITHUB_TOKEN is not used: the CLA Assistant step gets the CI bot app token.
+    permissions: {}
     steps:
       - name: Generate CI Bot Token
         id: app-token
@@ -62,6 +59,9 @@ jobs:
     needs: CLAAssistant
     if: always()
     uses: ./.github/workflows/cla_check.yml
+    # Only for checking out the workflow's own scripts. Everything else uses the CI bot app token.
+    permissions:
+      contents: read
     with:
       status-context: cla (next)
       post-comment: false

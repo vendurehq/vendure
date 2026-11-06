@@ -27,7 +27,7 @@ export function isSkipped(user) {
     return SKIPPED_LOGINS.includes(user.login.toLowerCase());
 }
 
-const RELEASE_BRANCHES = ['master', 'minor', 'major'];
+const RELEASE_BRANCHES = new Set(['master', 'minor', 'major']);
 
 /**
  * A back-merge brings one release branch into another, e.g. master into
@@ -38,7 +38,7 @@ const RELEASE_BRANCHES = ['master', 'minor', 'major'];
  * @param {{ headRef: string, headRepo: string | undefined, baseRepo: string }} pull
  */
 export function isBackMerge({ headRef, headRepo, baseRepo }) {
-    return headRepo === baseRepo && (RELEASE_BRANCHES.includes(headRef) || headRef.startsWith('merge/'));
+    return headRepo === baseRepo && (RELEASE_BRANCHES.has(headRef) || headRef.startsWith('merge/'));
 }
 
 /**

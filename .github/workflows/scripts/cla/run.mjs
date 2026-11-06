@@ -21,16 +21,8 @@ const MAX_WRITE_ATTEMPTS = 5;
 export async function run({ github, context, core, options }) {
     const { owner, repo } = context.repo;
     const comment = context.eventName === 'issue_comment' ? context.payload.comment : undefined;
-
-    if (comment) {
-        if (!context.payload.issue.pull_request) {
-            core.info('The comment is on an issue, not a pull request.');
-            return;
-        }
-        if (!isSignComment(comment.body) && !isRecheckComment(comment.body)) {
-            core.info('The comment is neither a signature nor a recheck.');
-            return;
-        }
+    if (comment && !isRelevantComment(context, comment, core)) {
+        return;
     }
 
     const pullNumber = context.payload.pull_request?.number ?? context.payload.issue.number;
@@ -40,13 +32,49 @@ export async function run({ github, context, core, options }) {
         return;
     }
 
+    const signers = await getSignersForPull(github, { owner, repo, pull });
+    const store = signatureStore(github, options);
+    let { signatures } = await store.read();
+
+    if (comment && isSignComment(comment.body)) {
+        signatures = await recordSignature(store, {
+            signers,
+            signatures,
+            comment,
+            core,
+            repoId: context.payload.repository.id,
+            pullNumber,
+            pullRef: `${owner}/${repo}#${pullNumber}`,
+        });
+    }
+
+    const unsigned = getUnsigned(signers, signatures);
+    await reportStatus(github, { owner, repo, sha: pull.head.sha, unsigned, options, core });
+    if (options.postComment) {
+        await upsertComment(github, { owner, repo, pullNumber, unsigned, documentUrl: options.documentUrl });
+    }
+}
+
+function isRelevantComment(context, comment, core) {
+    if (!context.payload.issue.pull_request) {
+        core.info('The comment is on an issue, not a pull request.');
+        return false;
+    }
+    if (!isSignComment(comment.body) && !isRecheckComment(comment.body)) {
+        core.info('The comment is neither a signature nor a recheck.');
+        return false;
+    }
+    return true;
+}
+
+async function getSignersForPull(github, { owner, repo, pull }) {
     const commits = await github.paginate(github.rest.pulls.listCommits, {
         owner,
         repo,
-        pull_number: pullNumber,
+        pull_number: pull.number,
         per_page: 100,
     });
-    const signers = getRequiredSigners({
+    return getRequiredSigners({
         prAuthor: toUser(pull.user),
         commits: commits.map(c => ({ sha: c.sha, author: c.author ? toUser(c.author) : null })),
         backMerge: isBackMerge({
@@ -55,55 +83,47 @@ export async function run({ github, context, core, options }) {
             baseRepo: pull.base.repo.full_name,
         }),
     });
+}
 
-    const store = signatureStore(github, options);
-    let { signatures } = await store.read();
-    let unsigned = getUnsigned(signers, signatures);
-
-    if (comment && isSignComment(comment.body)) {
-        const signer = unsigned.find(s => s.id === comment.user.id);
-        if (signer) {
-            const signature = createSignature({
-                user: toUser(comment.user),
-                commentId: comment.id,
-                createdAt: comment.created_at,
-                repoId: context.payload.repository.id,
-                pullRequestNo: pullNumber,
-            });
-            signatures = await store.add(
-                signature,
-                `@${signer.login} has signed the CLA in ${owner}/${repo}#${pullNumber}`,
-            );
-            unsigned = getUnsigned(signers, signatures);
-            core.info(`Recorded the signature of @${signer.login}.`);
-        } else {
-            core.info(
-                `@${comment.user.login} does not need to sign for this pull request, or has already signed.`,
-            );
-        }
+/**
+ * Adds the commenter's signature when they still have to sign for this
+ * pull request, and returns the signatures afterwards.
+ */
+async function recordSignature(store, { signers, signatures, comment, core, repoId, pullNumber, pullRef }) {
+    const signer = getUnsigned(signers, signatures).find(s => s.id === comment.user.id);
+    if (!signer) {
+        core.info(
+            `@${comment.user.login} does not need to sign for this pull request, or has already signed.`,
+        );
+        return signatures;
     }
+    const signature = createSignature({
+        user: toUser(comment.user),
+        commentId: comment.id,
+        createdAt: comment.created_at,
+        repoId,
+        pullRequestNo: pullNumber,
+    });
+    const updated = await store.add(signature, `@${signer.login} has signed the CLA in ${pullRef}`);
+    core.info(`Recorded the signature of @${signer.login}.`);
+    return updated;
+}
 
+async function reportStatus(github, { owner, repo, sha, unsigned, options, core }) {
+    const mentions = unsigned.map(s => '@' + s.login).join(', ');
+    const description =
+        unsigned.length === 0 ? 'Everyone has signed the CLA' : `Waiting for ${mentions} to sign the CLA`;
     await github.rest.repos.createCommitStatus({
         owner,
         repo,
-        sha: pull.head.sha,
+        sha,
         context: options.statusContext,
         state: unsigned.length === 0 ? 'success' : 'failure',
-        description:
-            unsigned.length === 0
-                ? 'Everyone has signed the CLA'
-                : `Waiting for ${unsigned.map(s => `@${s.login}`).join(', ')} to sign the CLA`.slice(0, 140),
+        // GitHub rejects status descriptions longer than 140 characters.
+        description: description.slice(0, 140),
         target_url: options.documentUrl,
     });
-    core.info(
-        unsigned.length === 0
-            ? 'Everyone has signed the CLA.'
-            : `Not signed yet: ${unsigned.map(s => s.login).join(', ')}`,
-    );
-
-    if (options.postComment) {
-        await upsertComment(github, { owner, repo, pullNumber, unsigned, documentUrl: options.documentUrl });
-    }
+    core.info(description);
 }
 
 function toUser(user) {
