@@ -108,6 +108,15 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          * included in the visible table columns.
          */
         dependencies?: Array<AllItemFieldKeys<T>>;
+        /**
+         * @description
+         * The distance from the cell's content edge to the start of its text, for a cell
+         * component with its own box (a chip or badge). The header is indented by the same
+         * distance, so the header text lines up with the cell text. See `columnContentInset`.
+         *
+         * @since 3.8.2
+         */
+        contentInset?: string;
     };
 };
 

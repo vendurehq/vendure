@@ -65,6 +65,133 @@ html[dir="rtl"] * {
     }
 }
 
+/* Whole-row link. A table row with a DetailPageButton opens its detail page from any
+   point of the row: the link's ::after stretches over the row, and the row's own controls
+   stack above it. The link stays the row's only tab stop. Only the first link of a row
+   stretches. A copy chip is raised as a whole: its button stays static, because the
+   button's own ::after makes the whole chip the copy target. */
+@layer components {
+    [data-slot='table-row']:has([data-row-link]) {
+        position: relative;
+        cursor: pointer;
+    }
+
+    [data-slot='table-row'] [data-row-link]::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+    }
+
+    [data-slot='table-row'] [data-row-link]:focus-visible::after {
+        @apply ring-2 ring-ring ring-inset;
+    }
+
+    [data-slot='table-row']:has([data-row-link])
+        :is(button, a, input, select, textarea, [role='checkbox'], [role='button'], [data-slot='id-chip']):not(
+            [data-row-link],
+            [data-slot='id-chip'] *
+        ),
+    [data-slot='table-row'] td:has([data-row-link]) ~ td [data-row-link] {
+        position: relative;
+        z-index: 10;
+    }
+}
+
+/* Row chevron. In a data table, a DetailPageButton shows a chevron at the end of its row instead
+   of the one after its label. It is decorative: the row link stays the accessible target.
+   - It appears while the row is hovered or holds keyboard focus, with a small slide toward the
+     end of the row. Under reduced motion it only fades.
+   - Every row keeps a narrow slot after the last cell, so the chevron never shifts the layout.
+     A row without a detail page keeps the empty slot.
+   - Only the first link of a row (the stretched one) shows a chevron.
+   The rules sit in the utilities layer, over the ghost button's own icon utilities. */
+@layer utilities {
+    [data-row-chevron] {
+        display: none;
+    }
+
+    [data-slot='table-row'] [data-label-chevron] {
+        display: none;
+    }
+
+    [data-slot='table-row'] [data-row-link] [data-row-chevron] {
+        @apply text-muted-foreground transition-[opacity,translate,color] ease-out motion-reduce:transition-opacity;
+        /* The design system's moderate duration token; 150ms where the tokens do not define it. */
+        transition-duration: var(--transition-duration-moderate, 150ms);
+        display: block;
+        position: absolute;
+        inset-inline-end: --spacing(3);
+        top: 50%;
+        width: --spacing(4);
+        height: --spacing(4);
+        translate: -3px -50%;
+        pointer-events: none;
+    }
+
+    [dir='rtl'] [data-slot='table-row'] [data-row-link] [data-row-chevron] {
+        translate: 3px -50%;
+        scale: -1 1;
+    }
+
+    [data-slot='table-row']:is(:hover, :has(:focus-visible)) [data-row-link] [data-row-chevron] {
+        opacity: 1;
+        translate: 0 -50%;
+    }
+
+    [data-slot='table-row']:hover [data-row-link] [data-row-chevron] {
+        @apply text-foreground;
+    }
+
+    [data-slot='table-row'] td:has([data-row-link]) ~ td [data-row-link] [data-row-chevron] {
+        display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        [data-slot='table-row'] [data-row-link] [data-row-chevron],
+        [dir='rtl'] [data-slot='table-row'] [data-row-link] [data-row-chevron] {
+            translate: 0 -50%;
+        }
+    }
+}
+
+/* Overrides of the stretched link's button utilities, so they sit in the utilities layer.
+   - The link is hovered wherever the row is, so its ghost fill would stack on the row's fill.
+   - The focus ring goes around the row, so the button's own outline is dropped.
+   - The link drops its inline padding and border, so its text lines up with the header.
+   - A later link in the row opens another entity (e.g. a variant's product). It is underlined
+     on its own hover, so it reads apart from the row link.
+   - A press scale makes the link the containing block of its ::after, which then shrinks to
+     the button mid-click, and the click no longer reaches the link.
+   - The last cell of each row reserves the row chevron's slot over the table cells' own padding. */
+@layer utilities {
+    [data-slot='table']:has([data-row-link]) [data-slot='table-row'] > :last-child {
+        padding-inline-end: --spacing(10);
+    }
+
+    [data-slot='table-row'] [data-row-link]:hover {
+        background-color: transparent;
+    }
+
+    [data-slot='table-row'] [data-row-link]:focus-visible {
+        outline: none;
+    }
+
+    [data-slot='table-row'] [data-row-link] {
+        padding-inline: 0;
+        border-inline-width: 0;
+    }
+
+    [data-slot='table-row'] td:has([data-row-link]) ~ td [data-row-link]:hover {
+        text-decoration-line: underline;
+        text-underline-offset: 4px;
+    }
+
+    [data-slot='table-row'] [data-row-link]:active {
+        scale: none;
+        transform: none;
+    }
+}
+
 @utility col-main {
     grid-column: span 3 / span 3;
 }

@@ -13,6 +13,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { Trans } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ResultOf } from 'gql.tada';
+import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
 import { orderHistoryDocument, transitionOrderToStateDocument } from '../orders.graphql.js';
@@ -121,6 +122,7 @@ export function useTransitionOrderToState(orderId: string | undefined) {
                     </Select>
                     {transitionError && (
                         <Alert variant="destructive">
+                            <AlertCircle />
                             <AlertDescription>
                                 <Trans>Error transitioning to state</Trans>: {transitionError}
                             </AlertDescription>

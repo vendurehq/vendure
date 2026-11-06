@@ -9,6 +9,11 @@ import { Button } from '../ui/button.js';
  * a chevron indicator, making it easy for users to identify clickable links that
  * navigate to detail views.
  *
+ * In a data table row, the button's link covers the whole row, so a click on any point of the
+ * row opens the detail page. Buttons, links, inputs and copy chips in the row stay clickable.
+ * There, the chevron moves from the label to the end of the row, and shows only while the row is
+ * hovered or holds keyboard focus.
+ *
  * @example
  * ```tsx
  * // Basic usage with ID (relative navigation)
@@ -49,9 +54,18 @@ export function DetailPageButton({
         return <span>{label}</span>;
     }
     return (
-        <Button render={<Link to={href ?? `./${id}`} search={search ?? {}} preload={false} />} variant="ghost" disabled={disabled} className={className}>
-                {label}
-                {!disabled && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+        <Button
+            render={<Link to={href ?? `./${id}`} search={search ?? {}} preload={false} />}
+            variant="ghost"
+            disabled={disabled}
+            className={className}
+            // In a table row, this link opens the detail page from any point of the row (see styles.css).
+            data-row-link={disabled ? undefined : ''}
+        >
+            {label}
+            {!disabled && <ChevronRight data-label-chevron className="h-3 w-3 text-muted-foreground" />}
+            {/* `opacity-0` also opts the icon out of the button's dimmed-icon rule; styles.css reveals it. */}
+            {!disabled && <ChevronRight data-row-chevron aria-hidden className="opacity-0" />}
         </Button>
     );
 }

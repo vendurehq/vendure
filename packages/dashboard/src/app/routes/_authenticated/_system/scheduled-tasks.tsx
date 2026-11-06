@@ -1,4 +1,5 @@
 import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
+import { columnContentInset } from '@/vdb/components/data-table/column-content-inset.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -126,7 +127,8 @@ function ScheduledTasksPage() {
             header: t`Description`,
         }),
         columnHelper.accessor('enabled', {
-            header: t`Enabled`,
+            header: t`Status`,
+            meta: { contentInset: columnContentInset.statusBadge },
             // Same rule as every enabled column: "Disabled" always shows, "Enabled" only on row hover.
             cell: ({ row }) => <BooleanDisplayBadge value={row.original.enabled} />,
         }),
@@ -168,6 +170,7 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('isRunning', {
             header: t`Running`,
+            meta: { contentInset: columnContentInset.statusBadge },
             cell: ({ row }) => {
                 return (
                     <StatusBadge
