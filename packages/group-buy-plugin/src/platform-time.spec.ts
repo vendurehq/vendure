@@ -1,34 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    instantToPlatformWall,
-    platformDayKey,
-    platformNowMs,
-    platformWallToInstant,
-    wallClockMs,
-} from './platform-time';
+import { platformDayKey, platformNowMs, platformWallToInstant, wallClockMs } from './platform-time';
 
 /**
- * 关键不变量：同一绝对时刻在任意进程时区（TZ=UTC / TZ=Asia/Shanghai / 其他）
- * 下换算出的「平台墙上时间」必须完全一致。因此断言里只使用 Date.UTC 常量，
- * 不含任何本地时区解读。
+ * 归一为 timestamptz 后：时间列的读回值就是绝对时刻，墙上时间换算退化为恒等。
+ * 断言只用 epoch 常量，不含任何本地时区解读，TZ=UTC 与 TZ=Asia/Shanghai 结果一致。
  */
-describe('platform-time', () => {
-    it('绝对时刻 → 平台墙上时间：恒等于 UTC+8 墙钟', () => {
+describe('platform-time（归一后恒等语义）', () => {
+    it('墙上时间换算已退化为恒等', () => {
         const instant = new Date('2026-11-30T00:00:00.000Z');
-        expect(wallClockMs(instantToPlatformWall(instant))).toBe(Date.UTC(2026, 10, 30, 8, 0, 0, 0));
+        expect(platformWallToInstant(instant).getTime()).toBe(instant.getTime());
+        expect(wallClockMs(instant)).toBe(instant.getTime());
     });
 
-    it('平台墙上时间 → 绝对时刻：可逆', () => {
-        const instant = new Date('2026-11-30T16:30:15.123Z');
-        expect(platformWallToInstant(instantToPlatformWall(instant)).getTime()).toBe(instant.getTime());
-    });
-
-    it('platformNowMs 与进程时区无关', () => {
-        const before = platformNowMs();
-        const instant = new Date();
-        expect(Math.abs(platformNowMs() - before)).toBeLessThan(1000);
-        expect(wallClockMs(instantToPlatformWall(instant)).toString()).toHaveLength(13);
+    it('platformNowMs 返回绝对时刻', () => {
+        const before = Date.now();
+        const now = platformNowMs();
+        expect(Math.abs(now - before)).toBeLessThan(1000);
+        expect(Math.abs(now - Date.now())).toBeLessThan(1000);
     });
 
     it('平台自然日 key 在北京时间 0 点切日', () => {

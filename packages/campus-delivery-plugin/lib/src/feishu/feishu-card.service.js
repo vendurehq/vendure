@@ -15,7 +15,6 @@ const core_1 = require("@vendure/core");
 const campus_building_entity_1 = require("../campus-building.entity");
 const feishu_client_1 = require("./feishu.client");
 const feishu_templates_1 = require("./feishu.templates");
-const db_now_wall_1 = require("../db-now-wall");
 const loggerCtx = 'Feishu';
 const ALERT_MAX_AGE_MS = 24 * 3600000; // 告警超过 24h 没更新 → GC
 const MSG_MAX_AGE_MS = 48 * 3600000; // message_id 缓存 48h（卡片 PATCH 需要）
@@ -149,7 +148,7 @@ let FeishuCardService = class FeishuCardService {
             exceptionNote: (_q = cf === null || cf === void 0 ? void 0 : cf.exceptionNote) !== null && _q !== void 0 ? _q : null,
             exceptionMinutes: Number.isNaN(reportedAt) ? null : Math.round((Date.now() - reportedAt) / 60000),
             // order.createdAt 是 DB now() 写入的 UTC 墙钟，告警卡片展示前先还原成绝对时刻
-            createdAt: (0, db_now_wall_1.dbNowWallToInstant)(order.createdAt).getTime(),
+            createdAt: (order.createdAt).getTime(),
             at: Date.now(),
             alerts,
         };

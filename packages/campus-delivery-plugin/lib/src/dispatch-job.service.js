@@ -19,7 +19,6 @@ const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const campus_notify_service_1 = require("./campus-notify.service");
 const compensation_task_service_1 = require("./compensation-task.service");
-const db_now_wall_1 = require("./db-now-wall");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
 const hall_grab_service_1 = require("./hall-grab.service");
 const hall_service_1 = require("./hall.service");
@@ -989,7 +988,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
      * customFields 里的各类锚点（hallEnteredAt/assignedAt/deliveredAt 等）是 timestamptz，可直接用。
      */
     createdMs(o) {
-        return (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime();
+        return o.createdAt ? new Date(o.createdAt).getTime() : NaN;
     }
     /**
      * 入厅计时锚（绝对毫秒）：hallEnteredAt 是 timestamptz，直接用；
@@ -1258,16 +1257,15 @@ DispatchJobService.SCAN_BUCKETS = [
         key: 'open',
         statuses: ['open'],
         limit: SCAN_LIMIT,
-        // createdAt 是 timestamp（UTC 墙钟）：显式 AT TIME ZONE 'UTC' 转绝对时刻，
-        // 避免与 timestamptz 的 hallEnteredAt 混在 COALESCE 里时依赖会话时区
-        orderBy: "COALESCE(order.customFields.hallEnteredAt, order.createdAt AT TIME ZONE 'UTC')",
+        // 列已归一为 timestamptz：createdAt 与 hallEnteredAt 同为绝对时刻，可直接 COALESCE
+        orderBy: "COALESCE(order.customFields.hallEnteredAt, order.createdAt)",
     },
     { key: 'scheduled', statuses: ['scheduled'], limit: SCHEDULED_SCAN_LIMIT, orderBy: 'order.customFields.scheduledFor' },
     {
         key: 'inflight',
         statuses: ['grabbed', 'pending_merchant', 'accepted', 'pending_dispatch', 'third_party', 'owned_pool', 'owned_dispatched', 'merchant_delivering'],
         limit: SCAN_LIMIT,
-        orderBy: "COALESCE(order.customFields.assignedAt, order.customFields.hallEnteredAt, order.createdAt AT TIME ZONE 'UTC')",
+        orderBy: "COALESCE(order.customFields.assignedAt, order.customFields.hallEnteredAt, order.createdAt)",
     },
 ];
 /** 即时单（无 deliverySlotId）打包时间窗：入厅时间差 ≤10min 视为顺路 */

@@ -14,7 +14,6 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const after_sales_plugin_1 = require("@vendure/after-sales-plugin");
 const advisory_lock_1 = require("./advisory-lock");
-const db_now_wall_1 = require("./db-now-wall");
 const periodic_fallback_1 = require("./periodic-fallback");
 const loggerCtx = 'CampusAfterSalesSlaAlert';
 /** 启动后首跑延迟：等迁移建表 / DB 连接稳定 */
@@ -101,7 +100,7 @@ let AfterSalesSlaAlertJob = class AfterSalesSlaAlertJob {
                 const timeoutHours = Number((_c = cf.afterSalesTimeoutHours) !== null && _c !== void 0 ? _c : DEFAULT_TIMEOUT_HOURS) || DEFAULT_TIMEOUT_HOURS;
                 const dueSoonHours = Number((_d = cf.afterSalesDueSoonHours) !== null && _d !== void 0 ? _d : DEFAULT_DUE_SOON_HOURS) || 0;
                 // 申请时间由 DB now() 写入（UTC 墙钟），按原始 Date 参与运算会早 8 小时触发超时提醒
-                const createdAt = (0, db_now_wall_1.dbNowWallToInstant)(r.createdAt).getTime();
+                const createdAt = (r.createdAt).getTime();
                 // §95：已累计暂停时长顺延截止时间
                 const deadline = createdAt + timeoutHours * 3600000 + (Number(r.slaPausedMs) || 0);
                 const kind = now >= deadline

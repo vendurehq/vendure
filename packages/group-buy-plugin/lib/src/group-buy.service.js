@@ -87,9 +87,9 @@ let GroupBuyService = class GroupBuyService {
         activity.channels = [ctx.channel];
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
         if (activity.startAt)
-            activity.startAt = (0, platform_time_1.instantToPlatformWall)(activity.startAt);
+            activity.startAt = (activity.startAt);
         if (activity.endAt)
-            activity.endAt = (0, platform_time_1.instantToPlatformWall)(activity.endAt);
+            activity.endAt = (activity.endAt);
         const saved = await repo.save(activity);
         if (this.stockPrewarmService && saved.status === 'active') {
             await this.stockPrewarmService.prewarm(`group-buy:${saved.id}`, saved.targetCount - saved.currentCount);
@@ -111,9 +111,9 @@ let GroupBuyService = class GroupBuyService {
         Object.assign(activity, patch);
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
         if (patch.startAt)
-            activity.startAt = (0, platform_time_1.instantToPlatformWall)(new Date(patch.startAt));
+            activity.startAt = (new Date(patch.startAt));
         if (patch.endAt)
-            activity.endAt = (0, platform_time_1.instantToPlatformWall)(new Date(patch.endAt));
+            activity.endAt = (new Date(patch.endAt));
         return repo.save(activity);
     }
     async delete(ctx, id) {

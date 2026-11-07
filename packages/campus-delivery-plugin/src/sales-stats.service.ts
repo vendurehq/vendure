@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Logger, Order, Permission, RequestContext, TransactionalConnection, UserInputError } from '@vendure/core';
 import { campusDayKey, campusHour, startOfCampusDay } from './campus-time';
-import { dbNowWallToInstant } from './db-now-wall';
 
 /** P4-1-1 销售侧经营 BI：今日/近 7 日/近 30 日三档窗口；custom=按 from/to 自然日区间（含首尾）。 */
 export type SalesRange = 'today' | '7d' | '30d' | 'custom';
@@ -243,11 +242,11 @@ export function aggregateSalesStats(args: {
     const windowEnd = args.windowEnd ?? Number.MAX_SAFE_INTEGER;
 
     const curOrders = raw.filter(o => {
-        const t = dbNowWallToInstant(o.createdAt).getTime();
+        const t = toMs(o.createdAt);
         return isSalesOrder(o) && t >= windowStart && t < windowEnd;
     });
     const prevOrders = raw.filter(o => {
-        const t = dbNowWallToInstant(o.createdAt).getTime();
+        const t = toMs(o.createdAt);
         return isSalesOrder(o) && t >= prevStart && t < prevEnd;
     });
 
@@ -257,7 +256,7 @@ export function aggregateSalesStats(args: {
     // 时段热力：24 小时（今日只到当前小时，未来小时给 0）
     const hours: SalesHourPoint[] = Array.from({ length: 24 }, (_, hour) => ({ hour, orders: 0, gmvFen: 0 }));
     for (const o of curOrders) {
-        const h = campusHour(dbNowWallToInstant(o.createdAt).getTime());
+        const h = campusHour(toMs(o.createdAt));
         hours[h].orders++;
         hours[h].gmvFen += o.totalWithTax ?? 0;
     }
@@ -267,7 +266,7 @@ export function aggregateSalesStats(args: {
     if (range !== 'today') {
         const map = new Map<string, { orders: number; gmvFen: number }>();
         for (const o of curOrders) {
-            const key = campusDayKey(dbNowWallToInstant(o.createdAt).getTime());
+            const key = campusDayKey(toMs(o.createdAt));
             const b = map.get(key) ?? { orders: 0, gmvFen: 0 };
             b.orders++;
             b.gmvFen += o.totalWithTax ?? 0;
@@ -404,7 +403,7 @@ export class SalesStatsService {
         const curCustomerIds = [
             ...new Set(
                 orders
-                    .filter(o => dbNowWallToInstant(o.createdAt).getTime() >= windowStart)
+                    .filter(o => toMs(o.createdAt) >= windowStart)
                     .map(o => (o.customer?.id != null ? Number(o.customer.id) : NaN))
                     .filter(Number.isFinite),
             ),
@@ -436,4 +435,9 @@ export class SalesStatsService {
         }
         return map;
     }
+}
+
+/** 原始行的时间列可能是 pg 返回的 Date，也可能是 ::text 序列化后的字符串；统一取 epoch 毫秒。 */
+function toMs(v: string | Date): number {
+    return v instanceof Date ? v.getTime() : new Date(v).getTime();
 }

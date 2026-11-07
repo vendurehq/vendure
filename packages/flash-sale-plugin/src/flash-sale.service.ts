@@ -16,7 +16,6 @@ import {
 import { loggerCtx } from './constants';
 import { FlashSaleActivity } from './flash-sale-activity.entity';
 import {
-    instantToPlatformWall,
     PLATFORM_TIME_ZONE,
     platformNowMs,
     wallClockMs,
@@ -93,8 +92,8 @@ export class FlashSaleService {
         const activity = new FlashSaleActivity(safeInput);
         activity.channels = [ctx.channel];
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
-        if (activity.startAt) activity.startAt = instantToPlatformWall(activity.startAt);
-        if (activity.endAt) activity.endAt = instantToPlatformWall(activity.endAt);
+        if (activity.startAt) activity.startAt = (activity.startAt);
+        if (activity.endAt) activity.endAt = (activity.endAt);
         if (activity.startAt && platformNowMs() >= wallClockMs(activity.startAt)) {
             activity.status = 'active';
         } else {
@@ -116,8 +115,8 @@ export class FlashSaleService {
             }
         }
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
-        if (input.startAt) activity.startAt = instantToPlatformWall(new Date(input.startAt));
-        if (input.endAt) activity.endAt = instantToPlatformWall(new Date(input.endAt));
+        if (input.startAt) activity.startAt = (new Date(input.startAt));
+        if (input.endAt) activity.endAt = (new Date(input.endAt));
         return repo.save(activity);
     }
 

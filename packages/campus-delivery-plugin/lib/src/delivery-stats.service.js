@@ -17,7 +17,6 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const campus_time_1 = require("./campus-time");
-const db_now_wall_1 = require("./db-now-wall");
 const RANGE_MS = {
     '7d': 7 * 24 * 3600000,
     '30d': 30 * 24 * 3600000,
@@ -76,7 +75,7 @@ function aggregateStats(args) {
         const chId = ch ? Number(ch.id) : 0;
         const grace = ((_e = graceByChannel.get(chId)) !== null && _e !== void 0 ? _e : DEFAULT_GRACE_MIN) * 60000;
         // order.createdAt 是 DB now() 写入的 UTC 墙钟，按桶归档/接单时长前先还原成绝对时刻
-        const createdAt = (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime();
+        const createdAt = toMs(o.createdAt);
         bucketOf(createdAt).orders++;
         const chName = ((_f = ch === null || ch === void 0 ? void 0 : ch.customFields) === null || _f === void 0 ? void 0 : _f.shopName) || (ch === null || ch === void 0 ? void 0 : ch.code) || `channel-${chId}`;
         let store = stores.get(chId);
@@ -193,4 +192,8 @@ exports.DeliveryStatsService = DeliveryStatsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [core_1.TransactionalConnection])
 ], DeliveryStatsService);
+/** 原始行的时间列可能是 pg 返回的 Date，也可能是 ::text 序列化后的字符串；统一取 epoch 毫秒。 */
+function toMs(v) {
+    return v instanceof Date ? v.getTime() : new Date(v).getTime();
+}
 //# sourceMappingURL=delivery-stats.service.js.map

@@ -24,7 +24,6 @@ import { GroupBuyOrder } from './group-buy-order.entity';
 import { GroupBuyCompletedEvent, GroupBuyFailedEvent } from './events';
 import { setGroupBuyConnection } from './group-buy-runtime';
 import {
-    instantToPlatformWall,
     PLATFORM_TIME_ZONE,
     platformNowMs,
     wallClockMs,
@@ -117,8 +116,8 @@ export class GroupBuyService {
         const activity = new GroupBuyActivity(safeInput);
         activity.channels = [ctx.channel];
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
-        if (activity.startAt) activity.startAt = instantToPlatformWall(activity.startAt);
-        if (activity.endAt) activity.endAt = instantToPlatformWall(activity.endAt);
+        if (activity.startAt) activity.startAt = (activity.startAt);
+        if (activity.endAt) activity.endAt = (activity.endAt);
         const saved = await repo.save(activity);
         if (this.stockPrewarmService && saved.status === 'active') {
             await this.stockPrewarmService.prewarm(`group-buy:${saved.id}`, saved.targetCount - saved.currentCount);
@@ -140,8 +139,8 @@ export class GroupBuyService {
         }
         Object.assign(activity, patch);
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
-        if (patch.startAt) activity.startAt = instantToPlatformWall(new Date(patch.startAt as any));
-        if (patch.endAt) activity.endAt = instantToPlatformWall(new Date(patch.endAt as any));
+        if (patch.startAt) activity.startAt = (new Date(patch.startAt as any));
+        if (patch.endAt) activity.endAt = (new Date(patch.endAt as any));
         return repo.save(activity);
     }
 

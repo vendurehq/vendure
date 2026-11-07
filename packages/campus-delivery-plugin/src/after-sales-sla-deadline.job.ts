@@ -1,7 +1,6 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { Channel, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 import { businessDeadline } from './after-sales-sla';
-import { dbNowWallToInstant } from './db-now-wall';
 import { closureDateKeys } from './closure-calendar';
 import { withAdvisoryLock } from './advisory-lock';
 import { CampusConfigService } from './campus-config.service';
@@ -92,7 +91,7 @@ export class AfterSalesSlaDeadlineJob implements OnApplicationShutdown {
         for (const r of list) {
             // 申请时间由 DB now() 写入（UTC 墙钟），必须还原为绝对时刻，否则截止时间整体提前 8 小时
             const deadline = businessDeadline(
-                dbNowWallToInstant(r.createdAt),
+                (r.createdAt),
                 timeoutHours,
                 businessHours,
                 Number(r.paused),

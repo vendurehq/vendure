@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { aggregateStats, windowStartOf, normalizeRange, DeliveryStatsService } from './delivery-stats.service';
 import { campusHour } from './campus-time';
-import { instantToDbNowWall } from './db-now-wall';
 
 const now = new Date('2026-10-23T15:30:00+08:00').getTime();
 const min = (m: number, base = now) => new Date(base - m * 60_000);
@@ -10,7 +9,7 @@ const order = (id: number, ch: number, cf: any, extra: any = {}) => ({
     code: `A${id}`,
     state: 'Delivered',
     // createdAt 是 DB now() 写入的 UTC 墙钟：造数模拟 pg 读回（本地字段 = UTC 墙钟）
-    createdAt: instantToDbNowWall(cf.createdAt ?? min(60)),
+    createdAt: (cf.createdAt ?? min(60)),
     channels: [{ id: ch, code: ch === 9 ? '__default_channel__' : `shop-${ch}`, customFields: ch === 1 ? { shopName: '一食堂麻辣香锅' } : {} }],
     customFields: cf,
     ...extra,

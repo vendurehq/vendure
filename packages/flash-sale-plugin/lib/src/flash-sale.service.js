@@ -77,9 +77,9 @@ let FlashSaleService = class FlashSaleService {
         activity.channels = [ctx.channel];
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
         if (activity.startAt)
-            activity.startAt = (0, platform_time_1.instantToPlatformWall)(activity.startAt);
+            activity.startAt = (activity.startAt);
         if (activity.endAt)
-            activity.endAt = (0, platform_time_1.instantToPlatformWall)(activity.endAt);
+            activity.endAt = (activity.endAt);
         if (activity.startAt && (0, platform_time_1.platformNowMs)() >= (0, platform_time_1.wallClockMs)(activity.startAt)) {
             activity.status = 'active';
         }
@@ -102,9 +102,9 @@ let FlashSaleService = class FlashSaleService {
         }
         // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
         if (input.startAt)
-            activity.startAt = (0, platform_time_1.instantToPlatformWall)(new Date(input.startAt));
+            activity.startAt = (new Date(input.startAt));
         if (input.endAt)
-            activity.endAt = (0, platform_time_1.instantToPlatformWall)(new Date(input.endAt));
+            activity.endAt = (new Date(input.endAt));
         return repo.save(activity);
     }
     /**

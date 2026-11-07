@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DispatchJobService } from './dispatch-job.service';
-import { instantToDbNowWall } from './db-now-wall';
 
 function makeEnv(opts: {
     openOrders?: any[];
@@ -115,7 +114,7 @@ const now = Date.now();
 const minAgo = (m: number) => new Date(now - m * 60_000);
 // order.createdAt 是 DB now() 写入的 UTC 墙钟；造数时模拟 pg 读回（本地字段 = UTC 墙钟），
 // 这样 clock 断言在 TZ=UTC 与 TZ=Asia/Shanghai 下都成立
-const dbMinAgo = (m: number) => instantToDbNowWall(minAgo(m));
+const dbMinAgo = (m: number) => (minAgo(m));
 
 describe('DispatchJobService.scan', () => {
     it('open 超 autoAssignMinutes → 强派最佳在线骑手', async () => {
@@ -244,25 +243,22 @@ function injectT4Services(svc: DispatchJobService) {
 }
 
 describe('DispatchJobService.scan 异常超时升级', () => {
-    it('异常上报超 SLA 未处置 → 自动回大厅重派', async () => {
+    it('异常上报超 SLA 未处置 → 只升级人工介入告警，不回大厅、不改状态', async () => {
+        const feishu = { pushEvent: vi.fn() };
         const { svc, hallSvc } = makeEnv({
             openOrders: [{
                 id: 9, code: 'E1', createdAt: dbMinAgo(90),
                 customFields: { hallStatus: 'grabbed', deliveryStatus: 'exception', exceptionReportedAt: minAgo(60) },
             }],
+            feishu,
         });
         await svc.scan({ channelId: 1 } as any);
         expect(hallSvc.backToHall).not.toHaveBeenCalled();
-        expect(hallSvc.transitionFrom).toHaveBeenCalledWith(expect.anything(), 9, expect.any(Array), expect.objectContaining({
-            hallStatus: 'open',
-            campusCause: 'exception_timeout',
-            // 重派即新骑手接手：旧异常痕迹必须清空，否则新骑手端仍显示异常单
-            exceptionReportedAt: null,
-            exceptionType: null,
-            exceptionPhotos: null,
-            deliveryStatus: null,
-            deliveryStaffId: null,
-        }));
+        // 餐可能仍在骑手手上：禁止自动回厅/改状态，只进人工介入队列
+        expect(hallSvc.transitionFrom).not.toHaveBeenCalled();
+        const call = feishu.pushEvent.mock.calls.find((c: any[]) => c[4] === 'exception_manual:E1:2');
+        expect(call).toBeDefined();
+        expect(call![1]).toBe('异常超时待人工介入');
     });
 
     it('异常上报未超 SLA → 保持不动', async () => {
@@ -965,8 +961,8 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         expect(feishu.pushEvent).toHaveBeenCalled();
     });
 
-    // F7：骑手已取货超 2×SLA → 转异常单，交给异常超时规则再回厅
-    it('骑手已取货超 2×SLA → 转异常单', async () => {
+    // F7：骑手已取货超 2×SLA → 只升级人工介入告警，不改状态（餐在骑手手上，防丢餐）
+    it('骑手已取货超 2×SLA → 只告警不改状态', async () => {
         const feishu = { pushEvent: vi.fn() };
         const { svc, hallSvc } = makeEnv({
             scanOrders: [{
@@ -977,10 +973,10 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
             cfg: { inProgressSlaMinutes: 45, merchantAutoOpenMinutes: 15, autoAssignMinutes: 10, autoRefundMinutes: 30 },
         });
         await svc.scan({ channelId: 1 } as any);
-        expect(hallSvc.transitionFrom).toHaveBeenCalledWith(
-            expect.anything(), 14, expect.any(Array),
-            expect.objectContaining({ deliveryStatus: 'exception', exceptionType: 'rider_lost' }),
-        );
+        expect(hallSvc.transitionFrom).not.toHaveBeenCalled();
+        const call = feishu.pushEvent.mock.calls.find((c: any[]) => c[4] === 'rider_manual:RIDER_LOST:3');
+        expect(call).toBeDefined();
+        expect(call![1]).toBe('骑手配送超时待人工介入');
     });
 
     // F4：外部取消失败连续多轮 → 升级飞书异常，但绝不自动回落（避免双运单双份运费）

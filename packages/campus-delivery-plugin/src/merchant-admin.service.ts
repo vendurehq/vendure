@@ -27,7 +27,6 @@ import { CampusConfigService } from './campus-config.service';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { CampusNotifyService } from './campus-notify.service';
 import { campusDayKey, campusHour, startOfCampusDay } from './campus-time';
-import { dbNowWallToInstant } from './db-now-wall';
 import { BusinessTransition, isWithinBusinessHours, nextBusinessTransition, parseBusinessHours } from './business-hours';
 import { ExternalProviderCode } from './route-matrix';
 import { HallService } from './hall.service';
@@ -1655,7 +1654,7 @@ export class MerchantAdminService {
         const overdueOrders = active.filter(o => {
             const st = cfOf(o).hallStatus;
             if (st !== 'pending_merchant' && st !== 'accepted') return false;
-            return (nowMs - dbNowWallToInstant(o.createdAt).getTime()) / 60000 >= KDS_LATE_MINUTES;
+            return (nowMs - (o.createdAt).getTime()) / 60000 >= KDS_LATE_MINUTES;
         }).length;
         // 售后待办（§83）：一次聚合拿到各状态计数，避免为两个数字各发一次 count 查询
         const asStateRows = await this.connection.getRepository(ctx, AfterSalesRequest)
@@ -2381,12 +2380,12 @@ export class MerchantAdminService {
             const cf = o.customFields as any;
             const urgedAt = cf.urgedAt ? new Date(cf.urgedAt) : null;
             // createdAt 是 DB DEFAULT now() 写入的 UTC 墙钟：先还原成绝对时刻，再算等待分钟
-            const waitingMinutes = Math.max(0, Math.floor((now - dbNowWallToInstant(o.createdAt).getTime()) / 60000));
+            const waitingMinutes = Math.max(0, Math.floor((now - (o.createdAt).getTime()) / 60000));
             return {
                 id: String(o.id),
                 code: o.code,
                 stage: cf.hallStatus === 'accepted' ? 'cooking' : 'pending',
-                createdAt: dbNowWallToInstant(o.createdAt),
+                createdAt: (o.createdAt),
                 waitingMinutes,
                 urgency: waitingMinutes >= KDS_LATE_MINUTES ? 'late' : waitingMinutes >= KDS_WARN_MINUTES ? 'warn' : 'normal',
                 zone: cf.campusZone ?? '',
@@ -5849,7 +5848,7 @@ export class MerchantAdminService {
                 task.status = AfterSalesTimeoutStatus.CANCELLED;
             } else {
                 // 售后申请时间由 DB now() 写入（UTC 墙钟）：不换算会让超时任务提前 8 小时执行
-                task.dueAt = new Date(dbNowWallToInstant(req.createdAt).getTime() + hours * 3_600_000);
+                task.dueAt = new Date((req.createdAt).getTime() + hours * 3_600_000);
             }
             await taskRepo.save(task);
         }
@@ -6839,7 +6838,7 @@ export class MerchantAdminService {
         const list: any[] = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
         for (const r of Array.isArray(list) ? list : []) {
             const deadline = businessDeadline(
-                dbNowWallToInstant(r.createdAt),
+                (r.createdAt),
                 timeoutHours,
                 businessHours,
                 Number(r.paused),
@@ -6862,7 +6861,7 @@ export class MerchantAdminService {
         const r = Array.isArray(list) ? list[0] : null;
         if (!r) return;
         const deadline = businessDeadline(
-            dbNowWallToInstant(r.createdAt),
+            (r.createdAt),
             this.afterSalesTimeoutHours(ctx),
             await this.channelBusinessHours(ctx),
             Number(r.paused),
@@ -7090,7 +7089,7 @@ export class MerchantAdminService {
         // §95：暂停累计时长顺延截止时间；暂停中不再判超时/临期
         // §99：只统计门店营业时段，非营业时间不计入处理时长
         const deadline = businessDeadline(
-            dbNowWallToInstant(row.createdAt),
+            (row.createdAt),
             timeoutHours,
             opts.businessHours,
             sla?.pausedMs ?? 0,
@@ -7459,7 +7458,7 @@ export class MerchantAdminService {
             return {
                 id: String(o.id),
                 code: o.code,
-                createdAt: dbNowWallToInstant(o.createdAt),
+                createdAt: (o.createdAt),
                 total: o.total,
                 shipping: o.shipping,
                 building: cf.buildingId ? buildingNames.get(String(cf.buildingId)) ?? '' : '',

@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Logger, Order, Permission, RequestContext, TransactionalConnection } from '@vendure/core';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
 import { campusDayKey, campusHour, startOfCampusDay } from './campus-time';
-import { dbNowWallToInstant } from './db-now-wall';
 
 export type StatsRange = 'today' | '7d' | '30d';
 
@@ -133,7 +132,7 @@ export function aggregateStats(args: {
         const chId = ch ? Number(ch.id) : 0;
         const grace = (graceByChannel.get(chId) ?? DEFAULT_GRACE_MIN) * 60_000;
         // order.createdAt 是 DB now() 写入的 UTC 墙钟，按桶归档/接单时长前先还原成绝对时刻
-        const createdAt = dbNowWallToInstant(o.createdAt).getTime();
+        const createdAt = toMs(o.createdAt);
 
         bucketOf(createdAt).orders++;
 
@@ -253,4 +252,9 @@ export class DeliveryStatsService {
         );
         return payload;
     }
+}
+
+/** 原始行的时间列可能是 pg 返回的 Date，也可能是 ::text 序列化后的字符串；统一取 epoch 毫秒。 */
+function toMs(v: string | Date): number {
+    return v instanceof Date ? v.getTime() : new Date(v).getTime();
 }

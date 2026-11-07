@@ -410,7 +410,7 @@ let TenantMemberService = class TenantMemberService {
                  JOIN merchant_store s ON s.id = c."storeId"
                  WHERE c."channelId" = ${ph(1)}`, [Number(channelId)]);
             await qr.query(`UPDATE merchant_store_channel
-                 SET status = 'REVOKED', "updatedAt" = (now() AT TIME ZONE 'Asia/Shanghai')
+                 SET status = 'REVOKED', "updatedAt" = now()
                  WHERE "channelId" = ${ph(1)} AND status = 'ACTIVE'`, [Number(channelId)]);
             if (!(await qr.hasTable('merchant'))) {
                 return;
@@ -425,7 +425,7 @@ let TenantMemberService = class TenantMemberService {
                             JOIN merchant_store s ON s.id = c."storeId"
                             WHERE s."merchantId" = ${ph(1)} AND s."deletedAt" IS NULL AND c.status = 'ACTIVE'
                          ) THEN 'CLAIMED' ELSE 'UNCLAIMED' END,
-                         "updatedAt" = (now() AT TIME ZONE 'Asia/Shanghai')
+                         "updatedAt" = now()
                      WHERE id = ${ph(1)}`, [merchantId]);
             }
             core_1.Logger.info(`租户 ${channelId} 停用：门店认领已释放`, constants_1.loggerCtx);

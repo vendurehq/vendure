@@ -13,7 +13,6 @@ exports.AfterSalesSlaDeadlineJob = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const after_sales_sla_1 = require("./after-sales-sla");
-const db_now_wall_1 = require("./db-now-wall");
 const closure_calendar_1 = require("./closure-calendar");
 const advisory_lock_1 = require("./advisory-lock");
 const campus_config_service_1 = require("./campus-config.service");
@@ -101,7 +100,7 @@ let AfterSalesSlaDeadlineJob = class AfterSalesSlaDeadlineJob {
             return;
         for (const r of list) {
             // 申请时间由 DB now() 写入（UTC 墙钟），必须还原为绝对时刻，否则截止时间整体提前 8 小时
-            const deadline = (0, after_sales_sla_1.businessDeadline)((0, db_now_wall_1.dbNowWallToInstant)(r.createdAt), timeoutHours, businessHours, Number(r.paused), closureDates);
+            const deadline = (0, after_sales_sla_1.businessDeadline)((r.createdAt), timeoutHours, businessHours, Number(r.paused), closureDates);
             await raw.query('UPDATE after_sales_request SET "slaDeadlineAt" = to_timestamp($2 / 1000.0) '
                 + 'WHERE id = $1 AND "slaDeadlineAt" IS DISTINCT FROM to_timestamp($2 / 1000.0)', [Number(r.id), deadline]);
         }

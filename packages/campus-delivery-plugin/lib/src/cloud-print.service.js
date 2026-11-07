@@ -22,7 +22,6 @@ exports.buildTicketContent = buildTicketContent;
  * 易联云 MD5(client_id+timestamp+client_secret)），密钥/账号不进日志。
  */
 const crypto_1 = require("crypto");
-const db_now_wall_1 = require("./db-now-wall");
 const core_1 = require("@vendure/core");
 const common_1 = require("@nestjs/common");
 const campus_config_service_1 = require("./campus-config.service");
@@ -113,7 +112,7 @@ let CloudPrintService = class CloudPrintService {
             storePhone: (_e = cfg.storePhone) !== null && _e !== void 0 ? _e : null,
             code: order.code,
             // 小票上的下单时间：order.createdAt 是 DB now() 写入的 UTC 墙钟，先还原再按北京时区打印
-            createdAtText: campusTimeText((0, db_now_wall_1.dbNowWallToInstant)(order.createdAt)),
+            createdAtText: campusTimeText((order.createdAt)),
             zone: String((_f = cf.campusZone) !== null && _f !== void 0 ? _f : ''),
             building: (_g = buildingName === null || buildingName === void 0 ? void 0 : buildingName.name) !== null && _g !== void 0 ? _g : '',
             slotText: String((_h = cf.deliverySlotText) !== null && _h !== void 0 ? _h : ''),

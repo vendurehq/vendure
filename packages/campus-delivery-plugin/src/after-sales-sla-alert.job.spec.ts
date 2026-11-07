@@ -2,7 +2,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { AfterSalesSlaAlertJob } from './after-sales-sla-alert.job';
-import { instantToDbNowWall } from './db-now-wall';
 
 const HOUR = 3600_000;
 
@@ -37,7 +36,7 @@ function pending(hoursAgo: number, requestId = 1, pausedMs = 0) {
         requestId,
         channelId: 1,
         // createdAt 是 DB now() 写入的 UTC 墙钟：造数模拟 pg 读回（本地字段 = UTC 墙钟）
-        createdAt: instantToDbNowWall(new Date(Date.now() - hoursAgo * HOUR)).toISOString(),
+        createdAt: new Date(Date.now() - hoursAgo * HOUR),
         slaPausedMs: pausedMs,
     };
 }
