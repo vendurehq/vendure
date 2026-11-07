@@ -1653,7 +1653,7 @@ export class MerchantAdminService {
         const overdueOrders = active.filter(o => {
             const st = cfOf(o).hallStatus;
             if (st !== 'pending_merchant' && st !== 'accepted') return false;
-            return (nowMs - new Date(o.createdAt).getTime()) / 60000 >= KDS_LATE_MINUTES;
+            return (nowMs - dbNowWallToInstant(o.createdAt).getTime()) / 60000 >= KDS_LATE_MINUTES;
         }).length;
         // 售后待办（§83）：一次聚合拿到各状态计数，避免为两个数字各发一次 count 查询
         const asStateRows = await this.connection.getRepository(ctx, AfterSalesRequest)
@@ -2372,12 +2372,13 @@ export class MerchantAdminService {
         const tickets: KitchenTicket[] = orders.map(o => {
             const cf = o.customFields as any;
             const urgedAt = cf.urgedAt ? new Date(cf.urgedAt) : null;
-            const waitingMinutes = Math.max(0, Math.floor((now - new Date(o.createdAt).getTime()) / 60000));
+            // createdAt 是 DB DEFAULT now() 写入的 UTC 墙钟：先还原成绝对时刻，再算等待分钟
+            const waitingMinutes = Math.max(0, Math.floor((now - dbNowWallToInstant(o.createdAt).getTime()) / 60000));
             return {
                 id: String(o.id),
                 code: o.code,
                 stage: cf.hallStatus === 'accepted' ? 'cooking' : 'pending',
-                createdAt: o.createdAt,
+                createdAt: dbNowWallToInstant(o.createdAt),
                 waitingMinutes,
                 urgency: waitingMinutes >= KDS_LATE_MINUTES ? 'late' : waitingMinutes >= KDS_WARN_MINUTES ? 'warn' : 'normal',
                 zone: cf.campusZone ?? '',
@@ -7450,7 +7451,7 @@ export class MerchantAdminService {
             return {
                 id: String(o.id),
                 code: o.code,
-                createdAt: o.createdAt,
+                createdAt: dbNowWallToInstant(o.createdAt),
                 total: o.total,
                 shipping: o.shipping,
                 building: cf.buildingId ? buildingNames.get(String(cf.buildingId)) ?? '' : '',

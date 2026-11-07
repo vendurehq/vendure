@@ -3,6 +3,7 @@
  * 计费 = 分区基价 + 时段高峰加价 + 供需紧张加价 + 手动倍率加价，单笔加价封顶。
  * 满额免配送费在 calculator 层先判定（达标直接 0），不进入本函数。
  */
+import { CAMPUS_TZ_OFFSET_MS } from './campus-time';
 
 export interface PeakWindow {
     label?: string;
@@ -84,7 +85,9 @@ export function parseDynamicPricing(raw: unknown): DynamicPricingConfig {
 }
 
 function minutesOfDay(d: Date): number {
-    return d.getHours() * 60 + d.getMinutes();
+    // 高峰时段按校园时区（UTC+8）判定，不依赖进程本地时区
+    const shifted = new Date(d.getTime() + CAMPUS_TZ_OFFSET_MS);
+    return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
 }
 
 function toMinutes(hhmm: string): number | null {

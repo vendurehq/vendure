@@ -9,6 +9,7 @@
  * 易联云 MD5(client_id+timestamp+client_secret)），密钥/账号不进日志。
  */
 import { createHash, randomUUID } from 'crypto';
+import { dbNowWallToInstant } from './db-now-wall';
 import { ID, Order, RequestContext, TransactionalConnection, UserInputError } from '@vendure/core';
 import { Injectable } from '@nestjs/common';
 import { CampusConfigService } from './campus-config.service';
@@ -151,7 +152,8 @@ export class CloudPrintService {
             storeName: ctx.channel?.code ?? '',
             storePhone: cfg.storePhone ?? null,
             code: order.code,
-            createdAtText: campusTimeText(new Date(order.createdAt)),
+            // 小票上的下单时间：order.createdAt 是 DB now() 写入的 UTC 墙钟，先还原再按北京时区打印
+            createdAtText: campusTimeText(dbNowWallToInstant(order.createdAt)),
             zone: String(cf.campusZone ?? ''),
             building: buildingName?.name ?? '',
             slotText: String(cf.deliverySlotText ?? ''),

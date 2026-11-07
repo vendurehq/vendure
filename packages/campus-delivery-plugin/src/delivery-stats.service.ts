@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Logger, Order, Permission, RequestContext, TransactionalConnection } from '@vendure/core';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
 import { campusDayKey, campusHour, startOfCampusDay } from './campus-time';
+import { dbNowWallToInstant } from './db-now-wall';
 
 export type StatsRange = 'today' | '7d' | '30d';
 
@@ -131,7 +132,8 @@ export function aggregateStats(args: {
         const ch = (o.channels ?? []).find(c => c.code !== DEFAULT_CHANNEL_CODE) ?? (o.channels ?? [])[0];
         const chId = ch ? Number(ch.id) : 0;
         const grace = (graceByChannel.get(chId) ?? DEFAULT_GRACE_MIN) * 60_000;
-        const createdAt = new Date(o.createdAt).getTime();
+        // order.createdAt 是 DB now() 写入的 UTC 墙钟，按桶归档/接单时长前先还原成绝对时刻
+        const createdAt = dbNowWallToInstant(o.createdAt).getTime();
 
         bucketOf(createdAt).orders++;
 

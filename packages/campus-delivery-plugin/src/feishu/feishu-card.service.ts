@@ -4,6 +4,7 @@ import { Logger, Order, TransactionalConnection } from '@vendure/core';
 import { CampusBuilding } from '../campus-building.entity';
 import { FeishuClient } from './feishu.client';
 import { buildOrderCard, OrderStatusInput } from './feishu.templates';
+import { dbNowWallToInstant } from '../db-now-wall';
 
 const loggerCtx = 'Feishu';
 const ALERT_MAX_AGE_MS = 24 * 3600_000;  // 告警超过 24h 没更新 → GC
@@ -141,7 +142,8 @@ export class FeishuCardService {
             exceptionType: cf?.exceptionType ?? null,
             exceptionNote: cf?.exceptionNote ?? null,
             exceptionMinutes: Number.isNaN(reportedAt) ? null : Math.round((Date.now() - reportedAt) / 60_000),
-            createdAt: new Date(order.createdAt).getTime(),
+            // order.createdAt 是 DB now() 写入的 UTC 墙钟，告警卡片展示前先还原成绝对时刻
+            createdAt: dbNowWallToInstant(order.createdAt).getTime(),
             at: Date.now(),
             alerts,
         };

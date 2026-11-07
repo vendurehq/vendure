@@ -15,6 +15,7 @@ import { CampusDedupeService } from './campus-dedupe.service';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
 import { CampusNotifyService } from './campus-notify.service';
 import { CompensationTaskService } from './compensation-task.service';
+import { dbNowWallToInstant } from './db-now-wall';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { HallGrabService } from './hall-grab.service';
 import { ACTIVE_HALL_STATUSES, HallService } from './hall.service';
@@ -76,14 +77,16 @@ export class DispatchJobService implements OnApplicationShutdown {
             key: 'open',
             statuses: ['open'],
             limit: SCAN_LIMIT,
-            orderBy: 'COALESCE(order.customFields.hallEnteredAt, order.createdAt)',
+            // createdAt 是 timestamp（UTC 墙钟）：显式 AT TIME ZONE 'UTC' 转绝对时刻，
+            // 避免与 timestamptz 的 hallEnteredAt 混在 COALESCE 里时依赖会话时区
+            orderBy: "COALESCE(order.customFields.hallEnteredAt, order.createdAt AT TIME ZONE 'UTC')",
         },
         { key: 'scheduled', statuses: ['scheduled'], limit: SCHEDULED_SCAN_LIMIT, orderBy: 'order.customFields.scheduledFor' },
         {
             key: 'inflight',
             statuses: ['grabbed', 'pending_merchant', 'accepted', 'pending_dispatch', 'third_party', 'owned_pool', 'owned_dispatched', 'merchant_delivering'],
             limit: SCAN_LIMIT,
-            orderBy: 'COALESCE(order.customFields.assignedAt, order.customFields.hallEnteredAt, order.createdAt)',
+            orderBy: "COALESCE(order.customFields.assignedAt, order.customFields.hallEnteredAt, order.createdAt AT TIME ZONE 'UTC')",
         },
     ];
 
@@ -427,8 +430,7 @@ export class DispatchJobService implements OnApplicationShutdown {
                 const merchantStale = orders.filter(o => {
                     const cf = o.customFields as any;
                     return (cf.hallStatus === 'pending_merchant' || cf.hallStatus === 'accepted')
-                        && now - new Date(cf.hallEnteredAt ?? o.createdAt).getTime()
-                            > (cfg.merchantAutoOpenMinutes ?? 15) * 60_000;
+                        && now - this.enteredMs(o) > (cfg.merchantAutoOpenMinutes ?? 15) * 60_000;
                 });
                 for (const o of merchantStale) {
                     try {
@@ -498,12 +500,10 @@ export class DispatchJobService implements OnApplicationShutdown {
                 };
                 const stale = orders.filter(o => {
                     const cf = o.customFields as any;
-                    // 历史/外部写入可能缺 hallEnteredAt：回退 createdAt，否则这类 open 单永不强派
-                    const anchor = cf.hallEnteredAt ?? o.createdAt;
+                    // 历史/外部写入可能缺 hallEnteredAt：回退 createdAt（UTC 墙钟，需还原），否则这类 open 单永不强派
                     return cf.hallStatus === 'open' && this.orderInChannel(o, cfg)
-                        && now - new Date(anchor).getTime() > (cfg.autoAssignMinutes ?? 10) * 60_000;
-                }).sort((a, b) => new Date((a.customFields as any).hallEnteredAt ?? a.createdAt).getTime()
-                         - new Date((b.customFields as any).hallEnteredAt ?? b.createdAt).getTime());
+                        && now - this.enteredMs(o) > (cfg.autoAssignMinutes ?? 10) * 60_000;
+                }).sort((a, b) => this.enteredMs(a) - this.enteredMs(b));
                 for (const o of stale) {
                     try {
                         const rider = pickRider();
@@ -524,10 +524,9 @@ export class DispatchJobService implements OnApplicationShutdown {
             // 3) T4: open 超 autoRefundMinutes 无人接 → 自动退款终态（降级阶梯最后一级）
             const staleFinal = orders.filter(o => {
                 const cf = o.customFields as any;
-                // 同上：缺 hallEnteredAt 的历史单回退 createdAt，否则永不自动退款
-                const anchor = cf.hallEnteredAt ?? o.createdAt;
+                // 同上：缺 hallEnteredAt 的历史单回退 createdAt（UTC 墙钟，需还原），否则永不自动退款
                 return cf.hallStatus === 'open'
-                    && now - new Date(anchor).getTime() > (cfg.autoRefundMinutes ?? 30) * 60_000;
+                    && now - this.enteredMs(o) > (cfg.autoRefundMinutes ?? 30) * 60_000;
             });
             for (const o of staleFinal) {
                 try {
@@ -690,7 +689,7 @@ export class DispatchJobService implements OnApplicationShutdown {
             const route = String(cf.fulfillmentRoute ?? '');
             // 逐单隔离：单笔规则异常（DB/外部网关）只跳过该单，不阻断同轮其余订单兜底
             try {
-                const enteredAt = cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : new Date(o.createdAt).getTime();
+                const enteredAt = this.enteredMs(o);
 
                 // P1 提前告警：商家即将超时但还没兜底（dedupe 5min 窗口防刷屏）
                 if (cf.hallStatus === 'pending_merchant' && (route === 'R1' || route === 'R2')
@@ -757,7 +756,7 @@ export class DispatchJobService implements OnApplicationShutdown {
                 //     R1/R2 都要兜底：R1 若只依赖上面的 merchantConfirmEnabled 开关块，渠道关闭确认模式后
                 //     遗留 accepted 单会永久卡死（不退款、不进墙、不告警）。
                 if (cf.hallStatus === 'accepted' && (route === 'R1' || route === 'R2')
-                    && now - new Date(cf.hallEnteredAt ?? o.createdAt).getTime() > deliverMs) {
+                    && now - this.enteredMs(o) > deliverMs) {
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['accepted'], {
                         hallStatus: 'open',
                         hallEnteredAt: new Date(),
@@ -814,7 +813,7 @@ export class DispatchJobService implements OnApplicationShutdown {
                     cf.assignedAt ? new Date(cf.assignedAt).getTime() : 0,
                     cf.thirdPartyDispatchAt ? new Date(cf.thirdPartyDispatchAt).getTime() : 0,
                     cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : 0,
-                    new Date(o.createdAt).getTime(),
+                    this.createdMs(o),
                 );
                 if (cf.hallStatus === 'pending_dispatch' && now - pushAnchor > pushMs) {
                     const enteredAt = new Date();
@@ -971,7 +970,7 @@ export class DispatchJobService implements OnApplicationShutdown {
 
                 // 5) 自营快递池久无人接单 → 回抢单大厅（传信者兜底）
                 if (cf.hallStatus === 'owned_pool'
-                    && now - new Date(cf.hallEnteredAt ?? o.createdAt).getTime() > deliverMs) {
+                    && now - this.enteredMs(o) > deliverMs) {
                     const enteredAt = new Date();
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['owned_pool'], {
                         hallStatus: 'open',
@@ -1189,13 +1188,31 @@ export class DispatchJobService implements OnApplicationShutdown {
         }
     }
 
+    /**
+     * 订单创建时间（绝对毫秒）。
+     * order.createdAt 是 timestamp + DB DEFAULT now()，库里存 UTC 墙钟，必须还原；
+     * customFields 里的各类锚点（hallEnteredAt/assignedAt/deliveredAt 等）是 timestamptz，可直接用。
+     */
+    private createdMs(o: Order): number {
+        return dbNowWallToInstant(o.createdAt).getTime();
+    }
+
+    /**
+     * 入厅计时锚（绝对毫秒）：hallEnteredAt 是 timestamptz，直接用；
+     * 历史/外部写入缺锚时回退 order.createdAt（DB now() 的 UTC 墙钟，需还原）。
+     */
+    private enteredMs(o: Order): number {
+        const cf = o.customFields as any;
+        return cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : this.createdMs(o);
+    }
+
     /** 超时归因粗判：无骑手承接=platform；接单前耗时更长=merchant，否则=rider */
     private timeoutAttribution(order: Order): string {
         const cf = order.customFields as any;
         const deliveredMs = new Date(cf.deliveredAt).getTime();
         if (!cf.assignedAt) return 'platform';
         const assignedMs = new Date(cf.assignedAt).getTime();
-        const preAssignMs = assignedMs - new Date(order.createdAt).getTime();
+        const preAssignMs = assignedMs - this.createdMs(order);
         return preAssignMs > deliveredMs - assignedMs ? 'merchant' : 'rider';
     }
 
@@ -1234,8 +1251,7 @@ export class DispatchJobService implements OnApplicationShutdown {
                 continue;
             }
             // 即时单：按入厅时间聚类（升序，相邻差超窗口即断批）
-            const entered = (o: Order) =>
-                new Date((o.customFields as any).hallEnteredAt ?? o.createdAt).getTime();
+            const entered = (o: Order) => this.enteredMs(o);
             const sorted = [...arr].sort((a, b) => entered(a) - entered(b));
             let cluster: Order[] = [];
             for (const o of sorted) {

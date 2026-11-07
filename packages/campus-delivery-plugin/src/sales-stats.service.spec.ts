@@ -8,6 +8,7 @@ import {
     salesWindowStart,
     SalesOrderLike,
 } from './sales-stats.service';
+import { instantToDbNowWall } from './db-now-wall';
 
 const now = new Date('2026-10-27T15:30:00+08:00').getTime();
 const hoursAgo = (h: number, base = now) => new Date(base - h * 3600_000);
@@ -35,7 +36,7 @@ const order = (args: {
     id: args.id,
     code: `A${args.id}`,
     state: args.state ?? 'Delivered',
-    createdAt: args.createdAt,
+    createdAt: instantToDbNowWall(args.createdAt),
     totalWithTax: args.totalWithTax,
     customer: args.customerId == null ? null : { id: args.customerId },
     customFields: { errandKind: args.errandKind ?? null },

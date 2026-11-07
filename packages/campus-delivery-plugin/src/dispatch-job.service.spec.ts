@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DispatchJobService } from './dispatch-job.service';
+import { instantToDbNowWall } from './db-now-wall';
 
 function makeEnv(opts: {
     openOrders?: any[];
@@ -112,6 +113,9 @@ function makeEnv(opts: {
 
 const now = Date.now();
 const minAgo = (m: number) => new Date(now - m * 60_000);
+// order.createdAt 是 DB now() 写入的 UTC 墙钟；造数时模拟 pg 读回（本地字段 = UTC 墙钟），
+// 这样 clock 断言在 TZ=UTC 与 TZ=Asia/Shanghai 下都成立
+const dbMinAgo = (m: number) => instantToDbNowWall(minAgo(m));
 
 describe('DispatchJobService.scan', () => {
     it('open 超 autoAssignMinutes → 强派最佳在线骑手', async () => {
@@ -243,7 +247,7 @@ describe('DispatchJobService.scan 异常超时升级', () => {
     it('异常上报超 SLA 未处置 → 自动回大厅重派', async () => {
         const { svc, hallSvc } = makeEnv({
             openOrders: [{
-                id: 9, code: 'E1', createdAt: minAgo(90),
+                id: 9, code: 'E1', createdAt: dbMinAgo(90),
                 customFields: { hallStatus: 'grabbed', deliveryStatus: 'exception', exceptionReportedAt: minAgo(60) },
             }],
         });
@@ -264,7 +268,7 @@ describe('DispatchJobService.scan 异常超时升级', () => {
     it('异常上报未超 SLA → 保持不动', async () => {
         const { svc, hallSvc } = makeEnv({
             openOrders: [{
-                id: 9, code: 'E1', createdAt: minAgo(30),
+                id: 9, code: 'E1', createdAt: dbMinAgo(30),
                 customFields: { hallStatus: 'grabbed', deliveryStatus: 'exception', exceptionReportedAt: minAgo(10) },
             }],
         });
@@ -384,7 +388,7 @@ describe('DispatchJobService.scan T4 自动退款', () => {
 describe('DispatchJobService.scan 多单顺路打包 T1.5（plan 3.3）', () => {
     const fresh = (id: number, cf: any) => ({
         id,
-        createdAt: minAgo(20),
+        createdAt: dbMinAgo(20),
         customFields: { hallStatus: 'open', hallEnteredAt: minAgo(1), fulfillmentRoute: 'R1', ...cf },
     });
     // 打包已改裸 SQL 条件写：从 rawConnection.query 调用中筛出 routeGroupId 写入
@@ -421,9 +425,9 @@ describe('DispatchJobService.scan 多单顺路打包 T1.5（plan 3.3）', () => 
     });
 
     it('即时单同楼栋入厅差 ≤10min 成组，超窗不成组', async () => {
-        const near = { id: 1, createdAt: minAgo(20), customFields: { hallStatus: 'open', fulfillmentRoute: 'R1', buildingId: 'b1', hallEnteredAt: minAgo(9) } };
-        const near2 = { id: 2, createdAt: minAgo(19), customFields: { hallStatus: 'open', fulfillmentRoute: 'R1', buildingId: 'b1', hallEnteredAt: minAgo(1) } };
-        const far = { id: 3, createdAt: minAgo(40), customFields: { hallStatus: 'open', fulfillmentRoute: 'R1', buildingId: 'b1', hallEnteredAt: minAgo(30) } };
+        const near = { id: 1, createdAt: dbMinAgo(20), customFields: { hallStatus: 'open', fulfillmentRoute: 'R1', buildingId: 'b1', hallEnteredAt: minAgo(9) } };
+        const near2 = { id: 2, createdAt: dbMinAgo(19), customFields: { hallStatus: 'open', fulfillmentRoute: 'R1', buildingId: 'b1', hallEnteredAt: minAgo(1) } };
+        const far = { id: 3, createdAt: dbMinAgo(40), customFields: { hallStatus: 'open', fulfillmentRoute: 'R1', buildingId: 'b1', hallEnteredAt: minAgo(30) } };
         const env = makeEnv({ openOrders: [near, near2, far] });
         await env.svc.scan({ channelId: 1 } as any);
         const [, ids] = packCalls(env.rawQuery)[0][1];
@@ -462,7 +466,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('R1 商户接单超时 → 转自营快递（owned_dispatched）', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 21, code: 'R1T', createdAt: minAgo(10), customFields: { hallStatus: 'pending_merchant', fulfillmentRoute: 'R1', deliveryPlan: 'merchant' } }],
+            openOrders: [{ id: 21, code: 'R1T', createdAt: dbMinAgo(10), customFields: { hallStatus: 'pending_merchant', fulfillmentRoute: 'R1', deliveryPlan: 'merchant' } }],
             cfg: { ...cfg, merchantAcceptMinutes: 5 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -475,7 +479,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('R2 商户接单超时 → 降级传信者到店取餐直送（open）', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 24, code: 'R2A', createdAt: minAgo(10), customFields: { hallStatus: 'pending_merchant', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier' } }],
+            openOrders: [{ id: 24, code: 'R2A', createdAt: dbMinAgo(10), customFields: { hallStatus: 'pending_merchant', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier' } }],
             cfg: { ...cfg, merchantAcceptMinutes: 5 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -488,7 +492,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('R2 已接单但久未出餐 → 降级传信者到店取餐直送（open）', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 25, code: 'R2C', createdAt: minAgo(40), customFields: { hallStatus: 'accepted', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier' } }],
+            openOrders: [{ id: 25, code: 'R2C', createdAt: dbMinAgo(40), customFields: { hallStatus: 'accepted', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier' } }],
             cfg: { ...cfg, merchantAutoOpenMinutes: 15 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -501,7 +505,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('R1 已接单但久未出餐（确认模式关闭遗留单）→ 同样回大厅兜底', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 26, code: 'R1C', createdAt: minAgo(40), customFields: { hallStatus: 'accepted', fulfillmentRoute: 'R1', deliveryPlan: 'merchant' } }],
+            openOrders: [{ id: 26, code: 'R1C', createdAt: dbMinAgo(40), customFields: { hallStatus: 'accepted', fulfillmentRoute: 'R1', deliveryPlan: 'merchant' } }],
             cfg: { ...cfg, merchantAutoOpenMinutes: 15 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -515,7 +519,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('R1 商户久未送达交接点 → 回大厅由传信者取餐', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 22, code: 'R1D', createdAt: minAgo(40), customFields: { hallStatus: 'merchant_delivering', fulfillmentRoute: 'R1', deliveryPlan: 'merchant', assignedAt: minAgo(20) } }],
+            openOrders: [{ id: 22, code: 'R1D', createdAt: dbMinAgo(40), customFields: { hallStatus: 'merchant_delivering', fulfillmentRoute: 'R1', deliveryPlan: 'merchant', assignedAt: minAgo(20) } }],
             cfg: { ...cfg, merchantAutoOpenMinutes: 15 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -528,7 +532,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('R2 迟迟未推送外部快递 → 回大厅', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 23, code: 'R2P', createdAt: minAgo(30), customFields: { hallStatus: 'pending_dispatch', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier' } }],
+            openOrders: [{ id: 23, code: 'R2P', createdAt: dbMinAgo(30), customFields: { hallStatus: 'pending_dispatch', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier' } }],
             cfg: { ...cfg, externalPushTimeoutMinutes: 10 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -540,8 +544,8 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
     it('R3 外部快递久未接单 → 取消并回抢单大厅；R2 回待推送', async () => {
         const env = makeEnv({
             openOrders: [
-                { id: 24, code: 'R3F', createdAt: minAgo(40), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R3', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30) } },
-                { id: 25, code: 'R2F', createdAt: minAgo(40), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30) } },
+                { id: 24, code: 'R3F', createdAt: dbMinAgo(40), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R3', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30) } },
+                { id: 25, code: 'R2F', createdAt: dbMinAgo(40), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30) } },
             ],
             cfg: { ...cfg, externalFallbackMinutes: 20 },
         });
@@ -556,7 +560,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('外部取消失败 → 保持 third_party 不回落重推（防双运单双份运费）', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 30, code: 'R3C', createdAt: minAgo(40), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R3', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30) } }],
+            openOrders: [{ id: 30, code: 'R3C', createdAt: dbMinAgo(40), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R3', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30) } }],
             cfg: { ...cfg, externalFallbackMinutes: 20 },
         });
         // 注入外部网关：取消返回失败
@@ -572,7 +576,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('外部已接单/取货 → 超 fallback 也不取消（避免干掉在途骑手）', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 26, code: 'R2A', createdAt: minAgo(60), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30), thirdPartyState: 'accepted' } }],
+            openOrders: [{ id: 26, code: 'R2A', createdAt: dbMinAgo(60), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R2', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(30), thirdPartyState: 'accepted' } }],
             cfg: { ...cfg, externalFallbackMinutes: 20 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -581,7 +585,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('外部接单后超 3×fallback → 硬上限仍取消回落', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 27, code: 'R3A', createdAt: minAgo(90), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R3', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(70), thirdPartyState: 'pickup' } }],
+            openOrders: [{ id: 27, code: 'R3A', createdAt: dbMinAgo(90), customFields: { hallStatus: 'third_party', fulfillmentRoute: 'R3', deliveryPlan: 'external_courier', thirdPartyDispatchAt: minAgo(70), thirdPartyState: 'pickup' } }],
             cfg: { ...cfg, externalFallbackMinutes: 20 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -592,7 +596,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('自营快递池久无人接单 → 回抢单大厅（传信者兜底）', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 28, code: 'R3O', createdAt: minAgo(40), customFields: { hallStatus: 'owned_pool', fulfillmentRoute: 'R3', deliveryPlan: 'owned' } }],
+            openOrders: [{ id: 28, code: 'R3O', createdAt: dbMinAgo(40), customFields: { hallStatus: 'owned_pool', fulfillmentRoute: 'R3', deliveryPlan: 'owned' } }],
             cfg: { ...cfg, merchantAutoOpenMinutes: 15 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -603,7 +607,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('自营快递已派出久未送达 → 回抢单大厅并清空骑手', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 29, code: 'R1O', createdAt: minAgo(60), customFields: { hallStatus: 'owned_dispatched', fulfillmentRoute: 'R1', deliveryPlan: 'owned', assignedAt: minAgo(20), deliveryStaffId: '9' } }],
+            openOrders: [{ id: 29, code: 'R1O', createdAt: dbMinAgo(60), customFields: { hallStatus: 'owned_dispatched', fulfillmentRoute: 'R1', deliveryPlan: 'owned', assignedAt: minAgo(20), deliveryStaffId: '9' } }],
             cfg: { ...cfg, merchantAutoOpenMinutes: 15 },
         });
         await env.svc.scan({ channelId: 1 } as any);
@@ -616,7 +620,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
     it('预约单刚放量：按 hallEnteredAt 计时，不被 createdAt 误判商家超时', async () => {
         const env = makeEnv({
             openOrders: [{
-                id: 31, code: 'SCH', createdAt: minAgo(300), // 预约单很早下单
+                id: 31, code: 'SCH', createdAt: dbMinAgo(300), // 预约单很早下单
                 customFields: { hallStatus: 'scheduled', fulfillmentRoute: 'R1', scheduledFor: new Date(now + 10 * 60_000) },
             }],
             cfg: { ...cfg, merchantAcceptMinutes: 5 },
@@ -629,7 +633,7 @@ describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
 
     it('CAS 未命中（并发取消/已改派）→ 跳过且不再继续后续兜底', async () => {
         const env = makeEnv({
-            openOrders: [{ id: 32, code: 'CAS', createdAt: minAgo(40), customFields: { hallStatus: 'owned_pool', fulfillmentRoute: 'R3', deliveryPlan: 'owned' } }],
+            openOrders: [{ id: 32, code: 'CAS', createdAt: dbMinAgo(40), customFields: { hallStatus: 'owned_pool', fulfillmentRoute: 'R3', deliveryPlan: 'owned' } }],
             cfg: { ...cfg, merchantAutoOpenMinutes: 15 },
         });
         env.hallSvc.transitionFrom.mockResolvedValueOnce(false);
@@ -667,7 +671,7 @@ function makeTimeoutEnv(opts: {
 describe('DispatchJobService 超时赔付（P0）', () => {
     const cfgOn = { timeoutCompensationEnabled: true, timeoutGraceMinutes: 10, timeoutCompensationCouponTemplateId: 'T-LATE' };
     const deliveredOrder = (over: any = {}) => ({
-        id: 31, code: 'TO1', customerId: '5', createdAt: minAgo(60),
+        id: 31, code: 'TO1', customerId: '5', createdAt: dbMinAgo(60),
         customFields: {
             promisedAt: new Date(now - 25 * 60_000), deliveredAt: new Date(now),
             assignedAt: minAgo(58), // 下单 60min 前、接单 58min 前 → 在途占比更长，归因 rider
@@ -914,7 +918,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
     it('R3 商家确认开关关闭后，存量 pending_merchant 仍有超时出口', async () => {
         const { svc, hallSvc } = makeEnv({
             scanOrders: [{
-                id: 11, code: 'R3_STALE', createdAt: minAgo(40),
+                id: 11, code: 'R3_STALE', createdAt: dbMinAgo(40),
                 customFields: { hallStatus: 'pending_merchant', hallEnteredAt: minAgo(40), fulfillmentRoute: 'R3' },
             }],
             cfg: { merchantConfirmEnabled: false, merchantAutoOpenMinutes: 15, autoAssignMinutes: 10, autoRefundMinutes: 30, inProgressSlaMinutes: 45 },
@@ -930,7 +934,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
     it('R2 回落重推后不被旧 assignedAt 立即再次判超时', async () => {
         const { svc, hallSvc } = makeEnv({
             scanOrders: [{
-                id: 12, code: 'R2_RETRY', createdAt: minAgo(80),
+                id: 12, code: 'R2_RETRY', createdAt: dbMinAgo(80),
                 customFields: {
                     hallStatus: 'pending_dispatch', fulfillmentRoute: 'R2',
                     assignedAt: minAgo(60), thirdPartyDispatchAt: minAgo(1), hallEnteredAt: minAgo(70),
@@ -947,7 +951,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         const feishu = { pushEvent: vi.fn() };
         const { svc, hallSvc } = makeEnv({
             scanOrders: [{
-                id: 13, code: 'SCHED_BAD', createdAt: minAgo(60),
+                id: 13, code: 'SCHED_BAD', createdAt: dbMinAgo(60),
                 customFields: { hallStatus: 'scheduled', scheduledFor: null },
             }],
             feishu,
@@ -966,7 +970,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         const feishu = { pushEvent: vi.fn() };
         const { svc, hallSvc } = makeEnv({
             scanOrders: [{
-                id: 14, code: 'RIDER_LOST', createdAt: minAgo(120),
+                id: 14, code: 'RIDER_LOST', createdAt: dbMinAgo(120),
                 customFields: { hallStatus: 'grabbed', deliveryStatus: 'in_progress', deliveryStaffId: '7', assignedAt: minAgo(100) },
             }],
             feishu,
@@ -989,7 +993,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         };
         const { svc, hallSvc } = makeEnv({
             scanOrders: [{
-                id: 15, code: 'TP_CANCEL_FAIL', createdAt: minAgo(200),
+                id: 15, code: 'TP_CANCEL_FAIL', createdAt: dbMinAgo(200),
                 customFields: {
                     hallStatus: 'third_party', fulfillmentRoute: 'R3', thirdPartyState: 'pending',
                     thirdPartyDispatchAt: minAgo(100), thirdPartyNo: 'TP-15',
@@ -1056,7 +1060,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         const many = Array.from({ length: 200 }, (_v, i) => ({
             id: 1000 + i,
             code: `BULK${i}`,
-            createdAt: minAgo(1),
+            createdAt: dbMinAgo(1),
             customFields: { hallStatus: 'open', hallEnteredAt: minAgo(1) },
         }));
         const { svc } = makeEnv({ scanOrders: many, feishu });
@@ -1073,13 +1077,13 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         const manyOpen = Array.from({ length: 200 }, (_v, i) => ({
             id: 2000 + i,
             code: `BULK${i}`,
-            createdAt: minAgo(1),
+            createdAt: dbMinAgo(1),
             customFields: { hallStatus: 'open', hallEnteredAt: minAgo(1) },
         }));
         const staleMerchant = {
             id: 3001,
             code: 'PM1',
-            createdAt: minAgo(30),
+            createdAt: dbMinAgo(30),
             customFields: { hallStatus: 'pending_merchant', hallEnteredAt: minAgo(30), fulfillmentRoute: 'R1' },
         };
         const { svc, hallSvc } = makeEnv({ scanOrders: [...manyOpen, staleMerchant], feishu });
@@ -1098,13 +1102,13 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
         const manyOpen = Array.from({ length: 200 }, (_v, i) => ({
             id: 4000 + i,
             code: `BULK${i}`,
-            createdAt: minAgo(1),
+            createdAt: dbMinAgo(1),
             customFields: { hallStatus: 'open', hallEnteredAt: minAgo(1) },
         }));
         const sched = {
             id: 4100,
             code: 'SC1',
-            createdAt: minAgo(120),
+            createdAt: dbMinAgo(120),
             customFields: { hallStatus: 'scheduled', scheduledFor: new Date(now + 10 * 60_000), hallEnteredAt: minAgo(120) },
         };
         const { svc, hallSvc } = makeEnv({ scanOrders: [...manyOpen, sched] });
@@ -1212,7 +1216,7 @@ describe('DispatchJobService 外部运单异常转工单（R7）', () => {
         const support = { createSystemTicket: vi.fn().mockResolvedValue({ id: 66, created: true }) };
         const { svc } = makeEnv({
             scanOrders: [{
-                id: 406, code: 'TP_CANCEL_FAIL2', createdAt: minAgo(200),
+                id: 406, code: 'TP_CANCEL_FAIL2', createdAt: dbMinAgo(200),
                 customFields: {
                     hallStatus: 'third_party', fulfillmentRoute: 'R3', thirdPartyState: 'pending',
                     thirdPartyDispatchAt: minAgo(100), thirdPartyNo: 'TP-16',
