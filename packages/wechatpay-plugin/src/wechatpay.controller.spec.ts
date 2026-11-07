@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import * as crypto from 'crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // 渠道覆盖凭证：按 channel.customFields.payConfig.wechatpayJson 还原真实解析语义
@@ -18,6 +19,7 @@ vi.mock('@vendure/cjk-plugin/lib/src/payment/payment-config', () => ({
 // WxPay 打桩：APIv3 key 决定验签/解密是否成功（模拟真实 GCM 认证语义）
 const wxState = vi.hoisted(() => ({
     apiKey: 'key-t1',
+    forceSdkFail: false,
     decrypted: {
         out_trade_no: 'ORD1',
         transaction_id: 'TX1',
@@ -34,7 +36,7 @@ vi.mock('wechatpay-node-v3', () => ({
             this.cfg = cfg;
         }
         async verifySign() {
-            return this.cfg.key === wxState.apiKey;
+            return !wxState.forceSdkFail && this.cfg.key === wxState.apiKey;
         }
         decipher_gcm() {
             if (this.cfg.key !== wxState.apiKey) {
@@ -213,6 +215,7 @@ describe('正式回调 notify：按 out_trade_no 反查渠道（不依赖 Host�
     beforeEach(() => {
         vi.clearAllMocks();
         wxState.apiKey = 'key-t1';
+        wxState.forceSdkFail = false;
         wxState.decrypted = {
             out_trade_no: 'ORD1',
             transaction_id: 'TX1',
@@ -304,6 +307,66 @@ describe('正式回调 notify：按 out_trade_no 反查渠道（不依赖 Host�
         expect(ctx.channelId).toBe(8);
         expect(ctx.channel.code).toBe('t2');
         expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('微信支付公钥模式：SDK 平台证书不可用时，用渠道公钥 RSA 验签仍可结算', async () => {
+        const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+        const pubPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+        const channels = [
+            {
+                id: 7,
+                code: 't1',
+                customFields: {
+                    payConfig: {
+                        wechatpayJson: JSON.stringify({
+                            appId: 'appid-t1',
+                            mchId: 'mch-1',
+                            apiKey: 'key-t1',
+                            publicKey: pubPem,
+                            privateKey: 'priv',
+                            serialNo: 'serial',
+                        }),
+                    },
+                },
+            },
+        ];
+        const body = {
+            id: 'evt-rsa',
+            event_type: 'TRANSACTION.SUCCESS',
+            resource: { ciphertext: 'c', associated_data: 'ad', nonce: 'n' },
+        };
+        const bodyStr = JSON.stringify(body);
+        const timestamp = '1700000000';
+        const nonce = 'rsa-nonce';
+        const signature = crypto
+            .createSign('RSA-SHA256')
+            .update(`${timestamp}\n${nonce}\n${bodyStr}\n`)
+            .sign(privateKey, 'base64');
+        // 强制 SDK 平台证书路径失败，只有「公钥直验」能通过
+        wxState.forceSdkFail = true;
+
+        const { ctrl, orderService } = makeController({
+            channels,
+            order: { code: 'ORD1', channels: [{ id: 7, code: 't1' }] },
+            payments: [{ id: 7, state: 'Authorized', amount: 1000 }],
+        });
+        const res = makeRes();
+        await ctrl.notify(
+            {
+                headers: {
+                    'wechatpay-timestamp': timestamp,
+                    'wechatpay-nonce': nonce,
+                    'wechatpay-signature': signature,
+                    'wechatpay-serial': 'PUB_KEY_ID_PROBE',
+                },
+                rawBody: Buffer.from(bodyStr, 'utf8'),
+            } as any,
+            res,
+            body,
+        );
+        expect(orderService.settlePayment).toHaveBeenCalledWith(expect.anything(), 7);
+        expect(res.status).toHaveBeenCalledWith(200);
+        wxState.forceSdkFail = false;
     });
 
     it('凭证渠道与订单渠道无交集：返回 500 CHANNEL_MISMATCH，不结算', async () => {

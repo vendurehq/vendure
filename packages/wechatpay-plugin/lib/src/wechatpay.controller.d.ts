@@ -22,6 +22,14 @@ export declare class WechatpayController {
     private collectCredentials;
     private buildWxPay;
     /**
+     * V3 回调验签。两种商户安全模式都要支持：
+     * 1) 微信支付公钥模式：商户号已无平台证书（/v3/certificates 返回 RESOURCE_NOT_EXISTS），
+     *    回调头 Wechatpay-Serial 为 PUB_KEY_ID_xxx，直接用渠道配置的微信支付公钥做 RSA-SHA256 验签；
+     * 2) 平台证书模式：用 SDK 拉取平台证书验签（publicKey 非平台证书时自然落到这里）。
+     * 验签失败或异常一律返回 false，由上层计入「凭证不匹配」分支。
+     */
+    private verifyNotifySignature;
+    /**
      * 由 out_trade_no 反查渠道（不做任何 Host 解析）。
      * 结算类前缀（CS-/BP- 等）优先走注册器；否则按全局订单号查 order.channels，
      * 并与「凭证试解成功的渠道集合」取交集，交集为空即拒绝（防跨渠道结算）。

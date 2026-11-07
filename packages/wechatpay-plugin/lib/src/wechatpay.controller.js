@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -17,6 +50,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WechatpayController = void 0;
 const common_1 = require("@nestjs/common");
+const crypto = __importStar(require("crypto"));
 const wechatpay_node_v3_1 = __importDefault(require("wechatpay-node-v3"));
 const core_1 = require("@vendure/core");
 // 断开循环依赖（同 wechatpay-handler.ts 注释）：从叶子模块导入，不经 cjk 主入口
@@ -148,6 +182,42 @@ let WechatpayController = class WechatpayController {
             key: cred.apiKey,
             serial_no: cred.serialNo,
         });
+    }
+    /**
+     * V3 回调验签。两种商户安全模式都要支持：
+     * 1) 微信支付公钥模式：商户号已无平台证书（/v3/certificates 返回 RESOURCE_NOT_EXISTS），
+     *    回调头 Wechatpay-Serial 为 PUB_KEY_ID_xxx，直接用渠道配置的微信支付公钥做 RSA-SHA256 验签；
+     * 2) 平台证书模式：用 SDK 拉取平台证书验签（publicKey 非平台证书时自然落到这里）。
+     * 验签失败或异常一律返回 false，由上层计入「凭证不匹配」分支。
+     */
+    async verifyNotifySignature(cred, pay, params) {
+        const message = `${params.timestamp}\n${params.nonce}\n${params.body}\n`;
+        if (cred.publicKey && cred.publicKey.includes('BEGIN')) {
+            try {
+                const ok = crypto
+                    .createVerify('RSA-SHA256')
+                    .update(message)
+                    .verify(cred.publicKey, params.signature, 'base64');
+                if (ok)
+                    return true;
+            }
+            catch (_a) {
+                // 交由平台证书模式兜底
+            }
+        }
+        try {
+            return await pay.verifySign({
+                timestamp: params.timestamp,
+                nonce: params.nonce,
+                body: params.body,
+                serial: params.serial,
+                signature: params.signature,
+                apiSecret: cred.apiKey,
+            });
+        }
+        catch (_b) {
+            return false;
+        }
     }
     /**
      * 由 out_trade_no 反查渠道（不做任何 Host 解析）。
@@ -297,31 +367,24 @@ let WechatpayController = class WechatpayController {
             const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : JSON.stringify(body);
             const baseCtx = await this.requestContextService.create({ apiType: 'admin' });
             const credentials = await this.collectCredentials(baseCtx);
-            // 逐凭证试验签 + 试解密：GCM 认证标签让错误密钥必然失败，可作为天然鉴别器
+            // 逐凭证试验签 + 试解密：验签通过且 GCM 认证成功（错误密钥必然失败）才认定为该渠道
             const matches = [];
             for (const credential of credentials) {
                 const pay = this.buildWxPay(credential);
-                let verified = false;
-                try {
-                    verified = await pay.verifySign({
-                        timestamp,
-                        nonce,
-                        body: bodyStr,
-                        serial,
-                        signature,
-                        apiSecret: credential.apiKey,
-                    });
-                }
-                catch (_d) {
-                    verified = false;
-                }
+                const verified = await this.verifyNotifySignature(credential, pay, {
+                    timestamp,
+                    nonce,
+                    body: bodyStr,
+                    signature,
+                    serial,
+                });
                 if (!verified)
                     continue;
                 let decrypted;
                 try {
                     decrypted = pay.decipher_gcm(resource.ciphertext, resource.associated_data, resource.nonce);
                 }
-                catch (_e) {
+                catch (_d) {
                     continue;
                 }
                 // 商户归属校验：报文 appid/mchid 必须与该渠道凭证一致

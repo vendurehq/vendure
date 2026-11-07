@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Inject, Post, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
+import * as crypto from 'crypto';
 import WxPay from 'wechatpay-node-v3';
 import {
     Channel,
@@ -184,6 +185,44 @@ export class WechatpayController {
             key: cred.apiKey,
             serial_no: cred.serialNo,
         });
+    }
+
+    /**
+     * V3 回调验签。两种商户安全模式都要支持：
+     * 1) 微信支付公钥模式：商户号已无平台证书（/v3/certificates 返回 RESOURCE_NOT_EXISTS），
+     *    回调头 Wechatpay-Serial 为 PUB_KEY_ID_xxx，直接用渠道配置的微信支付公钥做 RSA-SHA256 验签；
+     * 2) 平台证书模式：用 SDK 拉取平台证书验签（publicKey 非平台证书时自然落到这里）。
+     * 验签失败或异常一律返回 false，由上层计入「凭证不匹配」分支。
+     */
+    private async verifyNotifySignature(
+        cred: NotifyCredential,
+        pay: WxPay,
+        params: { timestamp: string; nonce: string; body: string; signature: string; serial: string },
+    ): Promise<boolean> {
+        const message = `${params.timestamp}\n${params.nonce}\n${params.body}\n`;
+        if (cred.publicKey && cred.publicKey.includes('BEGIN')) {
+            try {
+                const ok = crypto
+                    .createVerify('RSA-SHA256')
+                    .update(message)
+                    .verify(cred.publicKey, params.signature, 'base64');
+                if (ok) return true;
+            } catch {
+                // 交由平台证书模式兜底
+            }
+        }
+        try {
+            return await pay.verifySign({
+                timestamp: params.timestamp,
+                nonce: params.nonce,
+                body: params.body,
+                serial: params.serial,
+                signature: params.signature,
+                apiSecret: cred.apiKey,
+            });
+        } catch {
+            return false;
+        }
     }
 
     /**
@@ -396,23 +435,17 @@ export class WechatpayController {
             const baseCtx = await this.requestContextService.create({ apiType: 'admin' });
             const credentials = await this.collectCredentials(baseCtx);
 
-            // 逐凭证试验签 + 试解密：GCM 认证标签让错误密钥必然失败，可作为天然鉴别器
+            // 逐凭证试验签 + 试解密：验签通过且 GCM 认证成功（错误密钥必然失败）才认定为该渠道
             const matches: NotifyMatch[] = [];
             for (const credential of credentials) {
                 const pay = this.buildWxPay(credential);
-                let verified = false;
-                try {
-                    verified = await pay.verifySign({
-                        timestamp,
-                        nonce,
-                        body: bodyStr,
-                        serial,
-                        signature,
-                        apiSecret: credential.apiKey,
-                    });
-                } catch {
-                    verified = false;
-                }
+                const verified = await this.verifyNotifySignature(credential, pay, {
+                    timestamp,
+                    nonce,
+                    body: bodyStr,
+                    signature,
+                    serial,
+                });
                 if (!verified) continue;
 
                 let decrypted: DecryptedNotify;
