@@ -634,7 +634,8 @@ function mergeCustomFields<T extends { name: string }>(
                 type ShippingProfile implements Node {
                     id: ID!
                     name: String!
-                    description: String!
+                    # 可空：实体列与 Create/Update 输入均允许不填（历史数据存在 null）
+                    description: String
                     code: String!
                     isGlobal: Boolean!
                     freeShippingThreshold: Int
