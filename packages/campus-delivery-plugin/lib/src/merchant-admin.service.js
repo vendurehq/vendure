@@ -22,6 +22,7 @@ const campus_config_service_1 = require("./campus-config.service");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const campus_notify_service_1 = require("./campus-notify.service");
 const campus_time_1 = require("./campus-time");
+const db_now_wall_1 = require("./db-now-wall");
 const business_hours_1 = require("./business-hours");
 const hall_service_1 = require("./hall.service");
 const refund_payment_1 = require("./refund-payment");
@@ -566,7 +567,7 @@ let MerchantAdminService = class MerchantAdminService {
             const st = cfOf(o).hallStatus;
             if (st !== 'pending_merchant' && st !== 'accepted')
                 return false;
-            return (nowMs - new Date(o.createdAt).getTime()) / 60000 >= exports.KDS_LATE_MINUTES;
+            return (nowMs - (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime()) / 60000 >= exports.KDS_LATE_MINUTES;
         }).length;
         // 售后待办（§83）：一次聚合拿到各状态计数，避免为两个数字各发一次 count 查询
         const asStateRows = await this.connection.getRepository(ctx, after_sales_plugin_1.AfterSalesRequest)
@@ -1255,12 +1256,13 @@ let MerchantAdminService = class MerchantAdminService {
             var _a, _b, _c, _d, _e, _f, _g;
             const cf = o.customFields;
             const urgedAt = cf.urgedAt ? new Date(cf.urgedAt) : null;
-            const waitingMinutes = Math.max(0, Math.floor((now - new Date(o.createdAt).getTime()) / 60000));
+            // createdAt 是 DB DEFAULT now() 写入的 UTC 墙钟：先还原成绝对时刻，再算等待分钟
+            const waitingMinutes = Math.max(0, Math.floor((now - (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime()) / 60000));
             return {
                 id: String(o.id),
                 code: o.code,
                 stage: cf.hallStatus === 'accepted' ? 'cooking' : 'pending',
-                createdAt: o.createdAt,
+                createdAt: (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt),
                 waitingMinutes,
                 urgency: waitingMinutes >= exports.KDS_LATE_MINUTES ? 'late' : waitingMinutes >= exports.KDS_WARN_MINUTES ? 'warn' : 'normal',
                 zone: (_a = cf.campusZone) !== null && _a !== void 0 ? _a : '',
@@ -4434,7 +4436,8 @@ let MerchantAdminService = class MerchantAdminService {
                 task.status = after_sales_plugin_1.AfterSalesTimeoutStatus.CANCELLED;
             }
             else {
-                task.dueAt = new Date(new Date(req.createdAt).getTime() + hours * 3600000);
+                // 售后申请时间由 DB now() 写入（UTC 墙钟）：不换算会让超时任务提前 8 小时执行
+                task.dueAt = new Date((0, db_now_wall_1.dbNowWallToInstant)(req.createdAt).getTime() + hours * 3600000);
             }
             await taskRepo.save(task);
         }
@@ -5279,7 +5282,7 @@ let MerchantAdminService = class MerchantAdminService {
                             WHERE o.id = a."orderId" AND oc."channelId" = $1)`, [chId]);
         const list = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
         for (const r of Array.isArray(list) ? list : []) {
-            const deadline = (0, after_sales_sla_1.businessDeadline)(new Date(r.createdAt), timeoutHours, businessHours, Number(r.paused), closureDates);
+            const deadline = (0, after_sales_sla_1.businessDeadline)((0, db_now_wall_1.dbNowWallToInstant)(r.createdAt), timeoutHours, businessHours, Number(r.paused), closureDates);
             await raw.query('UPDATE after_sales_request SET "slaDeadlineAt" = to_timestamp($2 / 1000.0) WHERE id = $1', [Number(r.id), deadline]);
         }
     }
@@ -5290,7 +5293,7 @@ let MerchantAdminService = class MerchantAdminService {
         const r = Array.isArray(list) ? list[0] : null;
         if (!r)
             return;
-        const deadline = (0, after_sales_sla_1.businessDeadline)(new Date(r.createdAt), this.afterSalesTimeoutHours(ctx), await this.channelBusinessHours(ctx), Number(r.paused), await this.channelClosureDateKeys(ctx));
+        const deadline = (0, after_sales_sla_1.businessDeadline)((0, db_now_wall_1.dbNowWallToInstant)(r.createdAt), this.afterSalesTimeoutHours(ctx), await this.channelBusinessHours(ctx), Number(r.paused), await this.channelClosureDateKeys(ctx));
         await this.connection.rawConnection.query('UPDATE after_sales_request SET "slaDeadlineAt" = to_timestamp($2 / 1000.0) WHERE id = $1', [requestId, deadline]);
     }
     /** 驳回售后（§81）：理由必填（顾客在 C 端可见），仅 Pending 可驳回 */
@@ -5507,7 +5510,7 @@ let MerchantAdminService = class MerchantAdminService {
         const slaPaused = Boolean(sla === null || sla === void 0 ? void 0 : sla.paused);
         // §95：暂停累计时长顺延截止时间；暂停中不再判超时/临期
         // §99：只统计门店营业时段，非营业时间不计入处理时长
-        const deadline = (0, after_sales_sla_1.businessDeadline)(row.createdAt, timeoutHours, opts.businessHours, (_c = sla === null || sla === void 0 ? void 0 : sla.pausedMs) !== null && _c !== void 0 ? _c : 0);
+        const deadline = (0, after_sales_sla_1.businessDeadline)((0, db_now_wall_1.dbNowWallToInstant)(row.createdAt), timeoutHours, opts.businessHours, (_c = sla === null || sla === void 0 ? void 0 : sla.pausedMs) !== null && _c !== void 0 ? _c : 0);
         const assignee = (_d = opts.assignees) === null || _d === void 0 ? void 0 : _d.get(Number(row.id));
         return {
             id: String(row.id),
@@ -5840,7 +5843,7 @@ let MerchantAdminService = class MerchantAdminService {
             return {
                 id: String(o.id),
                 code: o.code,
-                createdAt: o.createdAt,
+                createdAt: (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt),
                 total: o.total,
                 shipping: o.shipping,
                 building: cf.buildingId ? (_a = buildingNames.get(String(cf.buildingId))) !== null && _a !== void 0 ? _a : '' : '',

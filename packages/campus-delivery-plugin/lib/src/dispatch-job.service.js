@@ -19,6 +19,7 @@ const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const campus_notify_service_1 = require("./campus-notify.service");
 const compensation_task_service_1 = require("./compensation-task.service");
+const db_now_wall_1 = require("./db-now-wall");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
 const hall_grab_service_1 = require("./hall-grab.service");
 const hall_service_1 = require("./hall.service");
@@ -374,11 +375,10 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             // 存量 pending_merchant/accepted 单否则会失去唯一出口（不退款、不入厅、不告警）。
             {
                 const merchantStale = orders.filter(o => {
-                    var _a, _b;
+                    var _a;
                     const cf = o.customFields;
                     return (cf.hallStatus === 'pending_merchant' || cf.hallStatus === 'accepted')
-                        && now - new Date((_a = cf.hallEnteredAt) !== null && _a !== void 0 ? _a : o.createdAt).getTime()
-                            > ((_b = cfg.merchantAutoOpenMinutes) !== null && _b !== void 0 ? _b : 15) * 60000;
+                        && now - this.enteredMs(o) > ((_a = cfg.merchantAutoOpenMinutes) !== null && _a !== void 0 ? _a : 15) * 60000;
                 });
                 for (const o of merchantStale) {
                     try {
@@ -451,17 +451,12 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     return best;
                 };
                 const stale = orders.filter(o => {
-                    var _a, _b;
+                    var _a;
                     const cf = o.customFields;
-                    // 历史/外部写入可能缺 hallEnteredAt：回退 createdAt，否则这类 open 单永不强派
-                    const anchor = (_a = cf.hallEnteredAt) !== null && _a !== void 0 ? _a : o.createdAt;
+                    // 历史/外部写入可能缺 hallEnteredAt：回退 createdAt（UTC 墙钟，需还原），否则这类 open 单永不强派
                     return cf.hallStatus === 'open' && this.orderInChannel(o, cfg)
-                        && now - new Date(anchor).getTime() > ((_b = cfg.autoAssignMinutes) !== null && _b !== void 0 ? _b : 10) * 60000;
-                }).sort((a, b) => {
-                    var _a, _b;
-                    return new Date((_a = a.customFields.hallEnteredAt) !== null && _a !== void 0 ? _a : a.createdAt).getTime()
-                        - new Date((_b = b.customFields.hallEnteredAt) !== null && _b !== void 0 ? _b : b.createdAt).getTime();
-                });
+                        && now - this.enteredMs(o) > ((_a = cfg.autoAssignMinutes) !== null && _a !== void 0 ? _a : 10) * 60000;
+                }).sort((a, b) => this.enteredMs(a) - this.enteredMs(b));
                 for (const o of stale) {
                     try {
                         const rider = pickRider();
@@ -481,12 +476,11 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             }
             // 3) T4: open 超 autoRefundMinutes 无人接 → 自动退款终态（降级阶梯最后一级）
             const staleFinal = orders.filter(o => {
-                var _a, _b;
+                var _a;
                 const cf = o.customFields;
-                // 同上：缺 hallEnteredAt 的历史单回退 createdAt，否则永不自动退款
-                const anchor = (_a = cf.hallEnteredAt) !== null && _a !== void 0 ? _a : o.createdAt;
+                // 同上：缺 hallEnteredAt 的历史单回退 createdAt（UTC 墙钟，需还原），否则永不自动退款
                 return cf.hallStatus === 'open'
-                    && now - new Date(anchor).getTime() > ((_b = cfg.autoRefundMinutes) !== null && _b !== void 0 ? _b : 30) * 60000;
+                    && now - this.enteredMs(o) > ((_a = cfg.autoRefundMinutes) !== null && _a !== void 0 ? _a : 30) * 60000;
             });
             for (const o of staleFinal) {
                 try {
@@ -572,7 +566,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
      * 6) owned_dispatched 超 merchantAutoOpenMinutes 未送达交接点 → 回大厅并清空骑手
      */
     async sweepRouteTimeouts(ctx, cfg, orders, now) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22;
         const minutes = (v, def) => (v !== null && v !== void 0 ? v : def) * 60000;
         const acceptMs = minutes(cfg.merchantAcceptMinutes, 5);
         const deliverMs = minutes(cfg.merchantAutoOpenMinutes, 15);
@@ -585,7 +579,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             const route = String((_a = cf.fulfillmentRoute) !== null && _a !== void 0 ? _a : '');
             // 逐单隔离：单笔规则异常（DB/外部网关）只跳过该单，不阻断同轮其余订单兜底
             try {
-                const enteredAt = cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : new Date(o.createdAt).getTime();
+                const enteredAt = this.enteredMs(o);
                 // P1 提前告警：商家即将超时但还没兜底（dedupe 5min 窗口防刷屏）
                 if (cf.hallStatus === 'pending_merchant' && (route === 'R1' || route === 'R2')
                     && merchantAlertMs > 0 && acceptMs > 0
@@ -634,7 +628,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 //     R1/R2 都要兜底：R1 若只依赖上面的 merchantConfirmEnabled 开关块，渠道关闭确认模式后
                 //     遗留 accepted 单会永久卡死（不退款、不进墙、不告警）。
                 if (cf.hallStatus === 'accepted' && (route === 'R1' || route === 'R2')
-                    && now - new Date((_h = cf.hallEnteredAt) !== null && _h !== void 0 ? _h : o.createdAt).getTime() > deliverMs) {
+                    && now - this.enteredMs(o) > deliverMs) {
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['accepted'], {
                         hallStatus: 'open',
                         hallEnteredAt: new Date(),
@@ -645,7 +639,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     if (!moved)
                         continue;
                     core_2.Logger.warn(`Order ${o.code} ${route} cooking timeout → hall`, 'CampusDispatch');
-                    void ((_j = this.feishu) === null || _j === void 0 ? void 0 : _j.pushEvent('exception', '商户出餐超时', `订单 ${o.code} 商户 ${(_k = cfg.merchantAutoOpenMinutes) !== null && _k !== void 0 ? _k : 15} 分钟未出餐（${route}），已回抢单大厅。`, o.code, o.code));
+                    void ((_h = this.feishu) === null || _h === void 0 ? void 0 : _h.pushEvent('exception', '商户出餐超时', `订单 ${o.code} 商户 ${(_j = cfg.merchantAutoOpenMinutes) !== null && _j !== void 0 ? _j : 15} 分钟未出餐（${route}），已回抢单大厅。`, o.code, o.code));
                     cf.hallStatus = 'open';
                     cf.deliveryPlan = 'campus_rider';
                     cf.handoverMode = '';
@@ -666,8 +660,8 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     if (!moved)
                         continue;
                     core_2.Logger.warn(`Order ${o.code} merchant deliver timeout → hall`, 'CampusDispatch');
-                    void ((_l = this.feishu) === null || _l === void 0 ? void 0 : _l.pushEvent('exception', '商户送达交接点超时', `订单 ${o.code} 商户 ${(_m = cfg.merchantAutoOpenMinutes) !== null && _m !== void 0 ? _m : 15} 分钟未送达交接点，已回抢单大厅。`, o.code, o.code));
-                    (_o = this.notify) === null || _o === void 0 ? void 0 : _o.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_p = cfg.h5BaseUrl) !== null && _p !== void 0 ? _p : undefined);
+                    void ((_k = this.feishu) === null || _k === void 0 ? void 0 : _k.pushEvent('exception', '商户送达交接点超时', `订单 ${o.code} 商户 ${(_l = cfg.merchantAutoOpenMinutes) !== null && _l !== void 0 ? _l : 15} 分钟未送达交接点，已回抢单大厅。`, o.code, o.code));
+                    (_m = this.notify) === null || _m === void 0 ? void 0 : _m.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_o = cfg.h5BaseUrl) !== null && _o !== void 0 ? _o : undefined);
                     cf.hallStatus = 'open';
                     cf.hallEnteredAt = enteredAt;
                     continue;
@@ -675,7 +669,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 // 3) 迟迟未推送外部快递 → 回大厅（R2 出餐闸门后从出餐时刻计时，避免把备餐时间算进超时）
                 //    计时锚取「接单/出餐」与「最近一次推送/回落」中较晚者：旧实现优先 assignedAt，
                 //    R2 超时回落后重推时仍沿用出餐时刻，下一轮立刻再判超时，“换一家重推”窗口形同虚设。
-                const pushAnchor = Math.max(cf.assignedAt ? new Date(cf.assignedAt).getTime() : 0, cf.thirdPartyDispatchAt ? new Date(cf.thirdPartyDispatchAt).getTime() : 0, cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : 0, new Date(o.createdAt).getTime());
+                const pushAnchor = Math.max(cf.assignedAt ? new Date(cf.assignedAt).getTime() : 0, cf.thirdPartyDispatchAt ? new Date(cf.thirdPartyDispatchAt).getTime() : 0, cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : 0, this.createdMs(o));
                 if (cf.hallStatus === 'pending_dispatch' && now - pushAnchor > pushMs) {
                     const enteredAt = new Date();
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['pending_dispatch'], {
@@ -688,8 +682,8 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     if (!moved)
                         continue;
                     core_2.Logger.warn(`Order ${o.code} external push timeout → hall`, 'CampusDispatch');
-                    void ((_q = this.feishu) === null || _q === void 0 ? void 0 : _q.pushEvent('exception', '外部快递推送超时', `订单 ${o.code} ${(_r = cfg.externalPushTimeoutMinutes) !== null && _r !== void 0 ? _r : 10} 分钟未推送外部快递，已回抢单大厅。`, o.code, o.code));
-                    (_s = this.notify) === null || _s === void 0 ? void 0 : _s.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_t = cfg.h5BaseUrl) !== null && _t !== void 0 ? _t : undefined);
+                    void ((_p = this.feishu) === null || _p === void 0 ? void 0 : _p.pushEvent('exception', '外部快递推送超时', `订单 ${o.code} ${(_q = cfg.externalPushTimeoutMinutes) !== null && _q !== void 0 ? _q : 10} 分钟未推送外部快递，已回抢单大厅。`, o.code, o.code));
+                    (_r = this.notify) === null || _r === void 0 ? void 0 : _r.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_s = cfg.h5BaseUrl) !== null && _s !== void 0 ? _s : undefined);
                     cf.hallStatus = 'open';
                     cf.hallEnteredAt = enteredAt;
                     continue;
@@ -697,34 +691,34 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 // 4) 已推送但久未接单/取货 → 取消并回落。
                 //    平台已接单/取货（accepted/pickup）不按 fallbackMs 取消，避免把在途骑手干掉；
                 //    但仍设 3×fallbackMs 硬上限，防止「接单后永不送达」永久占用。
-                const tpState = String((_u = cf.thirdPartyState) !== null && _u !== void 0 ? _u : '');
+                const tpState = String((_t = cf.thirdPartyState) !== null && _t !== void 0 ? _t : '');
                 // 离开 third_party 后清理取消失败计数，避免 Map 随历史单增长
                 if (cf.hallStatus !== 'third_party') {
                     this.externalCancelFails.delete(o.code);
-                    await ((_v = this.dedupe) === null || _v === void 0 ? void 0 : _v.del(`dispatch:cancel_fail:${o.code}`));
+                    await ((_u = this.dedupe) === null || _u === void 0 ? void 0 : _u.del(`dispatch:cancel_fail:${o.code}`));
                 }
                 const inDelivery = tpState === 'accepted' || tpState === 'pickup';
                 // §6 异常态（平台判定运力失败/拒收/破损等）：同样不等待，先告警 + 通知顾客，再由下方 tpStale 取消回落。
                 // 去重键带外部运单号：回落重推后新运单异常会再次告警。
-                const exceptionKey = `${o.code}:${String((_w = cf.thirdPartyNo) !== null && _w !== void 0 ? _w : '')}`;
+                const exceptionKey = `${o.code}:${String((_v = cf.thirdPartyNo) !== null && _v !== void 0 ? _v : '')}`;
                 // R7：工单关闭后回写 exceptionResolvedAt → 同一异常不再重复告警/建单
                 const exceptionResolved = !!cf.exceptionResolvedAt;
                 if (tpState !== 'exception') {
                     this.externalExceptionAlertedAt.delete(exceptionKey);
-                    await ((_x = this.dedupe) === null || _x === void 0 ? void 0 : _x.del(`dispatch:exception_alert:${exceptionKey}`));
+                    await ((_w = this.dedupe) === null || _w === void 0 ? void 0 : _w.del(`dispatch:exception_alert:${exceptionKey}`));
                 }
                 else if (!exceptionResolved
                     && cf.hallStatus === 'third_party'
                     && (await this.shouldAlertExternalException(exceptionKey))) {
-                    core_2.Logger.warn(`Order ${o.code} external courier exception (${String((_y = cf.thirdPartyNo) !== null && _y !== void 0 ? _y : '-')})`, 'CampusDispatch');
+                    core_2.Logger.warn(`Order ${o.code} external courier exception (${String((_x = cf.thirdPartyNo) !== null && _x !== void 0 ? _x : '-')})`, 'CampusDispatch');
                     const ticketId = await this.createExceptionTicket(ctx, {
                         dedupeKey: `third_party:${exceptionKey}`,
                         order: o,
                         cf,
-                        content: `外部运单异常：平台 ${String((_z = cf.thirdPartyProvider) !== null && _z !== void 0 ? _z : '-')}，运单 ${String((_0 = cf.thirdPartyNo) !== null && _0 !== void 0 ? _0 : '-')}，订单卡在 third_party。请核实运单状态与外部平台沟通，处置后关闭本工单。`,
+                        content: `外部运单异常：平台 ${String((_y = cf.thirdPartyProvider) !== null && _y !== void 0 ? _y : '-')}，运单 ${String((_z = cf.thirdPartyNo) !== null && _z !== void 0 ? _z : '-')}，订单卡在 third_party。请核实运单状态与外部平台沟通，处置后关闭本工单。`,
                     });
-                    void ((_1 = this.feishu) === null || _1 === void 0 ? void 0 : _1.pushEvent('exception', '外部运单异常', `订单 ${o.code} 外部运单${cf.thirdPartyNo ? ` ${cf.thirdPartyNo}` : ''} 状态异常，${ticketId ? `已建工单 #${ticketId}` : '请尽快人工核实'}；超时将自动取消并回落。`, o.code, `${o.code}:external_exception`));
-                    (_2 = this.notify) === null || _2 === void 0 ? void 0 : _2.user(ctx, Number(o.id), 'deliveryFallback', '运力异常，重新派送', (_3 = cfg.h5BaseUrl) !== null && _3 !== void 0 ? _3 : undefined);
+                    void ((_0 = this.feishu) === null || _0 === void 0 ? void 0 : _0.pushEvent('exception', '外部运单异常', `订单 ${o.code} 外部运单${cf.thirdPartyNo ? ` ${cf.thirdPartyNo}` : ''} 状态异常，${ticketId ? `已建工单 #${ticketId}` : '请尽快人工核实'}；超时将自动取消并回落。`, o.code, `${o.code}:external_exception`));
+                    (_1 = this.notify) === null || _1 === void 0 ? void 0 : _1.user(ctx, Number(o.id), 'deliveryFallback', '运力异常，重新派送', (_2 = cfg.h5BaseUrl) !== null && _2 !== void 0 ? _2 : undefined);
                 }
                 const tpElapsed = cf.thirdPartyDispatchAt
                     ? now - new Date(cf.thirdPartyDispatchAt).getTime()
@@ -736,7 +730,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 if (cf.hallStatus === 'third_party' && tpAlertMs > 0 && tpElapsed >= tpAlertMs && tpElapsed < fallbackMs) {
                     const mins = Math.round(tpElapsed / 60000);
                     const dedupeKey = `third_party_alert:${o.code}`;
-                    void ((_4 = this.feishu) === null || _4 === void 0 ? void 0 : _4.pushEvent('alert', '📦 外部快递在途超时', `订单 ${o.code} 外部快递已在途 ${mins} 分钟（状态：${tpState || '未知'}），${(_5 = cfg.externalFallbackMinutes) !== null && _5 !== void 0 ? _5 : 20} 分钟后将自动回落。`, o.code, dedupeKey));
+                    void ((_3 = this.feishu) === null || _3 === void 0 ? void 0 : _3.pushEvent('alert', '📦 外部快递在途超时', `订单 ${o.code} 外部快递已在途 ${mins} 分钟（状态：${tpState || '未知'}），${(_4 = cfg.externalFallbackMinutes) !== null && _4 !== void 0 ? _4 : 20} 分钟后将自动回落。`, o.code, dedupeKey));
                 }
                 if (cf.hallStatus === 'third_party' && tpStale) {
                     // 取消失败绝不回落/重推：外部运单仍有效，回落后再推会产生双运单双份运费。
@@ -768,15 +762,15 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                                     dedupeKey: `third_party_cancel:${exceptionKey}`,
                                     order: o,
                                     cf,
-                                    content: `外部运单取消失败：平台 ${String((_6 = cf.thirdPartyProvider) !== null && _6 !== void 0 ? _6 : '-')}，运单 ${String((_7 = cf.thirdPartyNo) !== null && _7 !== void 0 ? _7 : '-')}，连续 ${failN} 轮取消未确认。订单保持 third_party 不回落（防双运单双份运费），请人工核实平台运单状态后关闭本工单。`,
+                                    content: `外部运单取消失败：平台 ${String((_5 = cf.thirdPartyProvider) !== null && _5 !== void 0 ? _5 : '-')}，运单 ${String((_6 = cf.thirdPartyNo) !== null && _6 !== void 0 ? _6 : '-')}，连续 ${failN} 轮取消未确认。订单保持 third_party 不回落（防双运单双份运费），请人工核实平台运单状态后关闭本工单。`,
                                 })
                                 : null;
-                            void ((_8 = this.feishu) === null || _8 === void 0 ? void 0 : _8.pushEvent('exception', '外部运单取消失败', `订单 ${o.code} 外部运单连续 ${failN} 轮取消未确认（${String((_9 = cf.thirdPartyNo) !== null && _9 !== void 0 ? _9 : '-')}），已保持 third_party 不回落；${ticketId ? `已建工单 #${ticketId}` : '请人工核实平台运单状态'}。`, o.code, `${o.code}:cancel_failed`));
+                            void ((_7 = this.feishu) === null || _7 === void 0 ? void 0 : _7.pushEvent('exception', '外部运单取消失败', `订单 ${o.code} 外部运单连续 ${failN} 轮取消未确认（${String((_8 = cf.thirdPartyNo) !== null && _8 !== void 0 ? _8 : '-')}），已保持 third_party 不回落；${ticketId ? `已建工单 #${ticketId}` : '请人工核实平台运单状态'}。`, o.code, `${o.code}:cancel_failed`));
                         }
                         continue;
                     }
                     this.externalCancelFails.delete(o.code);
-                    await ((_10 = this.dedupe) === null || _10 === void 0 ? void 0 : _10.del(`dispatch:cancel_fail:${o.code}`));
+                    await ((_9 = this.dedupe) === null || _9 === void 0 ? void 0 : _9.del(`dispatch:cancel_fail:${o.code}`));
                     // cancel() 成功时内部已按路线回写本地状态（R2 待推送 / R3 大厅）；未推送（skipped）时本地补写
                     if (skipped) {
                         const patch = route === 'R2'
@@ -794,11 +788,11 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     }
                     cf.thirdPartyState = 'cancelled';
                     core_2.Logger.warn(`Order ${o.code} external fallback (${route})`, 'CampusDispatch');
-                    void ((_11 = this.feishu) === null || _11 === void 0 ? void 0 : _11.pushEvent('exception', '外部快递超时回落', `订单 ${o.code} 外部快递 ${(_12 = cfg.externalFallbackMinutes) !== null && _12 !== void 0 ? _12 : 20} 分钟未接单/取货，已回落（${route}）。`, o.code, `${o.code}:fallback`));
+                    void ((_10 = this.feishu) === null || _10 === void 0 ? void 0 : _10.pushEvent('exception', '外部快递超时回落', `订单 ${o.code} 外部快递 ${(_11 = cfg.externalFallbackMinutes) !== null && _11 !== void 0 ? _11 : 20} 分钟未接单/取货，已回落（${route}）。`, o.code, `${o.code}:fallback`));
                 }
                 // 5) 自营快递池久无人接单 → 回抢单大厅（传信者兜底）
                 if (cf.hallStatus === 'owned_pool'
-                    && now - new Date((_13 = cf.hallEnteredAt) !== null && _13 !== void 0 ? _13 : o.createdAt).getTime() > deliverMs) {
+                    && now - this.enteredMs(o) > deliverMs) {
                     const enteredAt = new Date();
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['owned_pool'], {
                         hallStatus: 'open',
@@ -810,15 +804,15 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     if (!moved)
                         continue;
                     core_2.Logger.warn(`Order ${o.code} owned pool timeout → hall`, 'CampusDispatch');
-                    void ((_14 = this.feishu) === null || _14 === void 0 ? void 0 : _14.pushEvent('exception', '自营快递无人接单', `订单 ${o.code} 自营快递池 ${(_15 = cfg.merchantAutoOpenMinutes) !== null && _15 !== void 0 ? _15 : 15} 分钟无人接单，已回抢单大厅。`, o.code, o.code));
-                    (_16 = this.notify) === null || _16 === void 0 ? void 0 : _16.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_17 = cfg.h5BaseUrl) !== null && _17 !== void 0 ? _17 : undefined);
+                    void ((_12 = this.feishu) === null || _12 === void 0 ? void 0 : _12.pushEvent('exception', '自营快递无人接单', `订单 ${o.code} 自营快递池 ${(_13 = cfg.merchantAutoOpenMinutes) !== null && _13 !== void 0 ? _13 : 15} 分钟无人接单，已回抢单大厅。`, o.code, o.code));
+                    (_14 = this.notify) === null || _14 === void 0 ? void 0 : _14.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_15 = cfg.h5BaseUrl) !== null && _15 !== void 0 ? _15 : undefined);
                     cf.hallStatus = 'open';
                     cf.hallEnteredAt = enteredAt;
                     continue;
                 }
                 // 6) 自营快递已派出但久未送达交接点 → 回抢单大厅（已取餐在途单除外：只告警、不回收）
                 if (cf.hallStatus === 'owned_dispatched' && cf.assignedAt
-                    && String((_18 = cf.deliveryStatus) !== null && _18 !== void 0 ? _18 : '') !== 'in_progress'
+                    && String((_16 = cf.deliveryStatus) !== null && _16 !== void 0 ? _16 : '') !== 'in_progress'
                     && now - new Date(cf.assignedAt).getTime() > deliverMs) {
                     const enteredAt = new Date();
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['owned_dispatched'], {
@@ -834,8 +828,8 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     if (!moved)
                         continue;
                     core_2.Logger.warn(`Order ${o.code} owned courier timeout → hall`, 'CampusDispatch');
-                    void ((_19 = this.feishu) === null || _19 === void 0 ? void 0 : _19.pushEvent('exception', '自营快递送达超时', `订单 ${o.code} 自营快递 ${(_20 = cfg.merchantAutoOpenMinutes) !== null && _20 !== void 0 ? _20 : 15} 分钟未送达交接点，已回抢单大厅。`, o.code, o.code));
-                    (_21 = this.notify) === null || _21 === void 0 ? void 0 : _21.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_22 = cfg.h5BaseUrl) !== null && _22 !== void 0 ? _22 : undefined);
+                    void ((_17 = this.feishu) === null || _17 === void 0 ? void 0 : _17.pushEvent('exception', '自营快递送达超时', `订单 ${o.code} 自营快递 ${(_18 = cfg.merchantAutoOpenMinutes) !== null && _18 !== void 0 ? _18 : 15} 分钟未送达交接点，已回抢单大厅。`, o.code, o.code));
+                    (_19 = this.notify) === null || _19 === void 0 ? void 0 : _19.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_20 = cfg.h5BaseUrl) !== null && _20 !== void 0 ? _20 : undefined);
                     cf.hallStatus = 'open';
                     cf.hallEnteredAt = enteredAt;
                 }
@@ -858,7 +852,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                                 cf.thirdPartyState = res.state;
                                 await this.thirdParty.onDeliveryStatus(ctx, {
                                     orderId: Number(o.id),
-                                    thirdPartyNo: String((_23 = cf.thirdPartyNo) !== null && _23 !== void 0 ? _23 : ''),
+                                    thirdPartyNo: String((_21 = cf.thirdPartyNo) !== null && _21 !== void 0 ? _21 : ''),
                                     status: res.state,
                                 });
                                 core_2.Logger.info(`Order ${o.code} external status synced → ${res.state}`, 'CampusDispatch');
@@ -871,7 +865,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 }
             }
             catch (e) {
-                core_2.Logger.error(`route timeout sweep failed for order ${(_24 = o.code) !== null && _24 !== void 0 ? _24 : o.id}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
+                core_2.Logger.error(`route timeout sweep failed for order ${(_22 = o.code) !== null && _22 !== void 0 ? _22 : o.id}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
             }
         }
     }
@@ -989,6 +983,22 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             }
         }
     }
+    /**
+     * 订单创建时间（绝对毫秒）。
+     * order.createdAt 是 timestamp + DB DEFAULT now()，库里存 UTC 墙钟，必须还原；
+     * customFields 里的各类锚点（hallEnteredAt/assignedAt/deliveredAt 等）是 timestamptz，可直接用。
+     */
+    createdMs(o) {
+        return (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime();
+    }
+    /**
+     * 入厅计时锚（绝对毫秒）：hallEnteredAt 是 timestamptz，直接用；
+     * 历史/外部写入缺锚时回退 order.createdAt（DB now() 的 UTC 墙钟，需还原）。
+     */
+    enteredMs(o) {
+        const cf = o.customFields;
+        return cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : this.createdMs(o);
+    }
     /** 超时归因粗判：无骑手承接=platform；接单前耗时更长=merchant，否则=rider */
     timeoutAttribution(order) {
         const cf = order.customFields;
@@ -996,7 +1006,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
         if (!cf.assignedAt)
             return 'platform';
         const assignedMs = new Date(cf.assignedAt).getTime();
-        const preAssignMs = assignedMs - new Date(order.createdAt).getTime();
+        const preAssignMs = assignedMs - this.createdMs(order);
         return preAssignMs > deliveredMs - assignedMs ? 'merchant' : 'rider';
     }
     /**
@@ -1034,7 +1044,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 continue;
             }
             // 即时单：按入厅时间聚类（升序，相邻差超窗口即断批）
-            const entered = (o) => { var _a; return new Date((_a = o.customFields.hallEnteredAt) !== null && _a !== void 0 ? _a : o.createdAt).getTime(); };
+            const entered = (o) => this.enteredMs(o);
             const sorted = [...arr].sort((a, b) => entered(a) - entered(b));
             let cluster = [];
             for (const o of sorted) {
@@ -1248,14 +1258,16 @@ DispatchJobService.SCAN_BUCKETS = [
         key: 'open',
         statuses: ['open'],
         limit: SCAN_LIMIT,
-        orderBy: 'COALESCE(order.customFields.hallEnteredAt, order.createdAt)',
+        // createdAt 是 timestamp（UTC 墙钟）：显式 AT TIME ZONE 'UTC' 转绝对时刻，
+        // 避免与 timestamptz 的 hallEnteredAt 混在 COALESCE 里时依赖会话时区
+        orderBy: "COALESCE(order.customFields.hallEnteredAt, order.createdAt AT TIME ZONE 'UTC')",
     },
     { key: 'scheduled', statuses: ['scheduled'], limit: SCHEDULED_SCAN_LIMIT, orderBy: 'order.customFields.scheduledFor' },
     {
         key: 'inflight',
         statuses: ['grabbed', 'pending_merchant', 'accepted', 'pending_dispatch', 'third_party', 'owned_pool', 'owned_dispatched', 'merchant_delivering'],
         limit: SCAN_LIMIT,
-        orderBy: 'COALESCE(order.customFields.assignedAt, order.customFields.hallEnteredAt, order.createdAt)',
+        orderBy: "COALESCE(order.customFields.assignedAt, order.customFields.hallEnteredAt, order.createdAt AT TIME ZONE 'UTC')",
     },
 ];
 /** 即时单（无 deliverySlotId）打包时间窗：入厅时间差 ≤10min 视为顺路 */

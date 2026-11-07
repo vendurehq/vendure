@@ -1,13 +1,14 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_DYNAMIC_PRICING = void 0;
+exports.parseDynamicPricing = parseDynamicPricing;
+exports.quoteDynamicFee = quoteDynamicFee;
 /**
  * 动态配送计价（纯函数，便于单测）。
  * 计费 = 分区基价 + 时段高峰加价 + 供需紧张加价 + 手动倍率加价，单笔加价封顶。
  * 满额免配送费在 calculator 层先判定（达标直接 0），不进入本函数。
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_DYNAMIC_PRICING = void 0;
-exports.parseDynamicPricing = parseDynamicPricing;
-exports.quoteDynamicFee = quoteDynamicFee;
+const campus_time_1 = require("./campus-time");
 exports.DEFAULT_DYNAMIC_PRICING = {
     enabled: false,
     peakWindows: [],
@@ -52,7 +53,9 @@ function parseDynamicPricing(raw) {
     };
 }
 function minutesOfDay(d) {
-    return d.getHours() * 60 + d.getMinutes();
+    // 高峰时段按校园时区（UTC+8）判定，不依赖进程本地时区
+    const shifted = new Date(d.getTime() + campus_time_1.CAMPUS_TZ_OFFSET_MS);
+    return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
 }
 function toMinutes(hhmm) {
     const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());

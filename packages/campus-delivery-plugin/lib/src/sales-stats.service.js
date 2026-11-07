@@ -19,6 +19,7 @@ exports.aggregateSalesStats = aggregateSalesStats;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const campus_time_1 = require("./campus-time");
+const db_now_wall_1 = require("./db-now-wall");
 const DAY_MS = 24 * 3600000;
 /** 自定义区间上限（天），防止一次导出/查询拉全量历史。 */
 const MAX_CUSTOM_DAYS = 366;
@@ -144,11 +145,11 @@ function aggregateSalesStats(args) {
     const { orders: raw, firstOrderAt, windowStart, prevStart, prevEnd, now, range } = args;
     const windowEnd = (_a = args.windowEnd) !== null && _a !== void 0 ? _a : Number.MAX_SAFE_INTEGER;
     const curOrders = raw.filter(o => {
-        const t = new Date(o.createdAt).getTime();
+        const t = (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime();
         return isSalesOrder(o) && t >= windowStart && t < windowEnd;
     });
     const prevOrders = raw.filter(o => {
-        const t = new Date(o.createdAt).getTime();
+        const t = (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime();
         return isSalesOrder(o) && t >= prevStart && t < prevEnd;
     });
     const kpis = kpisOf(curOrders, firstOrderAt, windowStart);
@@ -156,7 +157,7 @@ function aggregateSalesStats(args) {
     // 时段热力：24 小时（今日只到当前小时，未来小时给 0）
     const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, orders: 0, gmvFen: 0 }));
     for (const o of curOrders) {
-        const h = (0, campus_time_1.campusHour)(new Date(o.createdAt).getTime());
+        const h = (0, campus_time_1.campusHour)((0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime());
         hours[h].orders++;
         hours[h].gmvFen += (_b = o.totalWithTax) !== null && _b !== void 0 ? _b : 0;
     }
@@ -165,7 +166,7 @@ function aggregateSalesStats(args) {
     if (range !== 'today') {
         const map = new Map();
         for (const o of curOrders) {
-            const key = (0, campus_time_1.campusDayKey)(new Date(o.createdAt).getTime());
+            const key = (0, campus_time_1.campusDayKey)((0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime());
             const b = (_c = map.get(key)) !== null && _c !== void 0 ? _c : { orders: 0, gmvFen: 0 };
             b.orders++;
             b.gmvFen += (_d = o.totalWithTax) !== null && _d !== void 0 ? _d : 0;
@@ -298,7 +299,7 @@ let SalesStatsService = class SalesStatsService {
         // 新客判定需要客户历史首单时间：只对窗口内出现过的客户回查一次
         const curCustomerIds = [
             ...new Set(orders
-                .filter(o => new Date(o.createdAt).getTime() >= windowStart)
+                .filter(o => (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime() >= windowStart)
                 .map(o => { var _a; return (((_a = o.customer) === null || _a === void 0 ? void 0 : _a.id) != null ? Number(o.customer.id) : NaN); })
                 .filter(Number.isFinite)),
         ];

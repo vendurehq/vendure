@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const campus_time_1 = require("./campus-time");
+const db_now_wall_1 = require("./db-now-wall");
 const RANGE_MS = {
     '7d': 7 * 24 * 3600000,
     '30d': 30 * 24 * 3600000,
@@ -74,7 +75,8 @@ function aggregateStats(args) {
         const ch = (_c = ((_b = o.channels) !== null && _b !== void 0 ? _b : []).find(c => c.code !== DEFAULT_CHANNEL_CODE)) !== null && _c !== void 0 ? _c : ((_d = o.channels) !== null && _d !== void 0 ? _d : [])[0];
         const chId = ch ? Number(ch.id) : 0;
         const grace = ((_e = graceByChannel.get(chId)) !== null && _e !== void 0 ? _e : DEFAULT_GRACE_MIN) * 60000;
-        const createdAt = new Date(o.createdAt).getTime();
+        // order.createdAt 是 DB now() 写入的 UTC 墙钟，按桶归档/接单时长前先还原成绝对时刻
+        const createdAt = (0, db_now_wall_1.dbNowWallToInstant)(o.createdAt).getTime();
         bucketOf(createdAt).orders++;
         const chName = ((_f = ch === null || ch === void 0 ? void 0 : ch.customFields) === null || _f === void 0 ? void 0 : _f.shopName) || (ch === null || ch === void 0 ? void 0 : ch.code) || `channel-${chId}`;
         let store = stores.get(chId);

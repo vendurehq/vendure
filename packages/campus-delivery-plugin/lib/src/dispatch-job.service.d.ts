@@ -112,6 +112,17 @@ export declare class DispatchJobService implements OnApplicationShutdown {
      * 归因（粗判）：无骑手承接 = platform；接单前耗时 > 骑手在途 = merchant，否则 rider。
      */
     private sweepTimeoutCompensation;
+    /**
+     * 订单创建时间（绝对毫秒）。
+     * order.createdAt 是 timestamp + DB DEFAULT now()，库里存 UTC 墙钟，必须还原；
+     * customFields 里的各类锚点（hallEnteredAt/assignedAt/deliveredAt 等）是 timestamptz，可直接用。
+     */
+    private createdMs;
+    /**
+     * 入厅计时锚（绝对毫秒）：hallEnteredAt 是 timestamptz，直接用；
+     * 历史/外部写入缺锚时回退 order.createdAt（DB now() 的 UTC 墙钟，需还原）。
+     */
+    private enteredMs;
     /** 超时归因粗判：无骑手承接=platform；接单前耗时更长=merchant，否则=rider */
     private timeoutAttribution;
     /** 即时单（无 deliverySlotId）打包时间窗：入厅时间差 ≤10min 视为顺路 */

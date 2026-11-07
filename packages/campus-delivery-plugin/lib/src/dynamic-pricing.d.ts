@@ -1,8 +1,3 @@
-/**
- * 动态配送计价（纯函数，便于单测）。
- * 计费 = 分区基价 + 时段高峰加价 + 供需紧张加价 + 手动倍率加价，单笔加价封顶。
- * 满额免配送费在 calculator 层先判定（达标直接 0），不进入本函数。
- */
 export interface PeakWindow {
     label?: string;
     start: string;
