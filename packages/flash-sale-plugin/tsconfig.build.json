@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "outDir": "./lib" },
-  "files": ["./index.ts"]
+  "files": ["./index.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.e2e-spec.ts"]
 }

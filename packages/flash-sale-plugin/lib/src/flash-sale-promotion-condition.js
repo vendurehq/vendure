@@ -4,6 +4,7 @@ exports.flashSaleDiscountCondition = void 0;
 const core_1 = require("@vendure/core");
 const flash_sale_activity_entity_1 = require("./flash-sale-activity.entity");
 const flash_sale_runtime_1 = require("./flash-sale-runtime");
+const platform_time_1 = require("./platform-time");
 /**
  * 秒杀价条件：读 order.customFields.flashSaleActivityId，
  * 运行时查询活动并校验（active、窗口内、库存未售罄）后，
@@ -28,13 +29,13 @@ exports.flashSaleDiscountCondition = new core_1.PromotionCondition({
             .findOne({ where: { id: activityId } });
         if (!activity)
             return false;
-        const now = new Date();
+        const nowMs = (0, platform_time_1.platformNowMs)();
         // 仅活动进行中且窗口内生效；非 active 或已结束不优惠
         if (activity.status !== 'active')
             return false;
-        if (activity.startAt && now < activity.startAt)
+        if (activity.startAt && nowMs < (0, platform_time_1.wallClockMs)(activity.startAt))
             return false;
-        if (activity.endAt && now > activity.endAt)
+        if (activity.endAt && nowMs > (0, platform_time_1.wallClockMs)(activity.endAt))
             return false;
         // 库存售罄不再优惠（存量已占满）
         if (activity.soldCount >= activity.totalStock)

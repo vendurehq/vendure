@@ -33,6 +33,7 @@ import { JianghuProfile } from './jianghu-profile.entity';
 import { JianghuRecord } from './jianghu-record.entity';
 import { JianghuRiskService } from './jianghu-risk.service';
 import { JianghuTask } from './jianghu-task.entity';
+import { platformDayKey, platformWallToInstant } from './platform-time';
 import { jianghuOptions } from './options';
 
 /** 情报分类中文（实体未存文案，后端按分类派生下发） */
@@ -92,7 +93,7 @@ export interface EventInput {
     rewardPoolRep?: number | null;
 }
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => platformDayKey(new Date());
 
 @Injectable()
 export class JianghuService {
@@ -487,7 +488,7 @@ export class JianghuService {
         await repo.save(task);
 
         const base = task.rewardRep || LEVEL_REWARD[task.level];
-        const daysSince = Math.floor((Date.now() - new Date(profile.createdAt).getTime()) / 86400000);
+        const daysSince = Math.floor((Date.now() - platformWallToInstant(profile.createdAt).getTime()) / 86400000);
         const mult = timeFactor() * streakFactor(profile.streakDays) * rookieFactor(daysSince);
         const delta = Math.round(base * mult);
 
@@ -573,7 +574,7 @@ export class JianghuService {
     private ensureDay(profile: JianghuProfile) {
         const today = todayStr();
         if (profile.repDay !== today) {
-            const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            const yest = platformDayKey(new Date(Date.now() - 86400000));
             if (profile.lastActiveDay === yest) profile.streakDays += 1;
             else if (profile.lastActiveDay !== today) profile.streakDays = 1;
             profile.repToday = 0;

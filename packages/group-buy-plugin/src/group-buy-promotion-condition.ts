@@ -3,6 +3,7 @@ import { LanguageCode, PromotionCondition, RequestContext } from '@vendure/core'
 import { GroupBuyDiscountConditionState } from './types';
 import { GroupBuyActivity } from './group-buy-activity.entity';
 import { getGroupBuyConnection } from './group-buy-runtime';
+import { platformNowMs, wallClockMs } from './platform-time';
 
 /**
  * 拼团价条件：读 order.customFields.groupBuyActivityId，
@@ -25,11 +26,11 @@ export const groupBuyDiscountCondition = new PromotionCondition({
             .findOne({ where: { id: activityId as any } });
         if (!activity) return false;
 
-        const now = new Date();
+        const nowMs = platformNowMs();
         if (activity.status === 'expired') return false;
         if (activity.status !== 'active' && !activity.allowJoinAfterComplete) return false;
-        if (activity.startAt && now < activity.startAt) return false;
-        if (activity.endAt && now > activity.endAt) return false;
+        if (activity.startAt && nowMs < wallClockMs(activity.startAt)) return false;
+        if (activity.endAt && nowMs > wallClockMs(activity.endAt)) return false;
 
         // 订单须包含拼团变体行，避免对非拼团商品误打折
         const lines = order?.lines ?? [];

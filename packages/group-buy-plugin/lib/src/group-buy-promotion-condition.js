@@ -4,6 +4,7 @@ exports.groupBuyDiscountCondition = void 0;
 const core_1 = require("@vendure/core");
 const group_buy_activity_entity_1 = require("./group-buy-activity.entity");
 const group_buy_runtime_1 = require("./group-buy-runtime");
+const platform_time_1 = require("./platform-time");
 /**
  * 拼团价条件：读 order.customFields.groupBuyActivityId，
  * 运行时查询活动并校验（非 expired、窗口内、订单含拼团变体行）后，
@@ -26,14 +27,14 @@ exports.groupBuyDiscountCondition = new core_1.PromotionCondition({
             .findOne({ where: { id: activityId } });
         if (!activity)
             return false;
-        const now = new Date();
+        const nowMs = (0, platform_time_1.platformNowMs)();
         if (activity.status === 'expired')
             return false;
         if (activity.status !== 'active' && !activity.allowJoinAfterComplete)
             return false;
-        if (activity.startAt && now < activity.startAt)
+        if (activity.startAt && nowMs < (0, platform_time_1.wallClockMs)(activity.startAt))
             return false;
-        if (activity.endAt && now > activity.endAt)
+        if (activity.endAt && nowMs > (0, platform_time_1.wallClockMs)(activity.endAt))
             return false;
         // 订单须包含拼团变体行，避免对非拼团商品误打折
         const lines = (_b = order === null || order === void 0 ? void 0 : order.lines) !== null && _b !== void 0 ? _b : [];

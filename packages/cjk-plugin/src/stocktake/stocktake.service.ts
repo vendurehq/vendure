@@ -28,6 +28,7 @@ import { StorageBin } from '../storage/storage-bin.entity';
 import { StorageZone } from '../storage/storage-zone.entity';
 import { VariantStorageBin } from '../storage/variant-storage-bin.entity';
 import { TenantMember } from '../tenant/tenant-member.entity';
+import { instantToPlatformWall } from '../platform-time';
 import {
     aggregateByBin,
     aggregateByCounter,
@@ -729,7 +730,10 @@ export class StocktakeService {
 
         const truncated = body.length > CSV_MAX_ROWS;
         const content = toCsv([header, ...body.slice(0, CSV_MAX_ROWS)]);
-        const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+        // 导出文件名时间戳按平台时区（Asia/Shanghai），不随进程 TZ 漂移
+        const w = instantToPlatformWall(new Date());
+        const p2 = (n: number) => String(n).padStart(2, '0');
+        const stamp = `${w.getFullYear()}${p2(w.getMonth() + 1)}${p2(w.getDate())}${p2(w.getHours())}${p2(w.getMinutes())}`;
         return {
             filename: `stocktake-${task.code}-${kind}-${stamp}.csv`,
             mimeType: 'text/csv;charset=utf-8',

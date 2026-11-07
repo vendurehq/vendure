@@ -27,6 +27,7 @@ const storage_bin_entity_1 = require("../storage/storage-bin.entity");
 const storage_zone_entity_1 = require("../storage/storage-zone.entity");
 const variant_storage_bin_entity_1 = require("../storage/variant-storage-bin.entity");
 const tenant_member_entity_1 = require("../tenant/tenant-member.entity");
+const platform_time_1 = require("../platform-time");
 const stocktake_math_1 = require("./stocktake-math");
 const stock_doc_service_1 = require("../inventory/stock-doc.service");
 const virtual_physical_stock_service_1 = require("../inventory/virtual-physical-stock.service");
@@ -699,7 +700,10 @@ let StocktakeService = class StocktakeService {
         }
         const truncated = body.length > stocktake_math_1.CSV_MAX_ROWS;
         const content = (0, stocktake_math_1.toCsv)([header, ...body.slice(0, stocktake_math_1.CSV_MAX_ROWS)]);
-        const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+        // 导出文件名时间戳按平台时区（Asia/Shanghai），不随进程 TZ 漂移
+        const w = (0, platform_time_1.instantToPlatformWall)(new Date());
+        const p2 = (n) => String(n).padStart(2, '0');
+        const stamp = `${w.getFullYear()}${p2(w.getMonth() + 1)}${p2(w.getDate())}${p2(w.getHours())}${p2(w.getMinutes())}`;
         return {
             filename: `stocktake-${task.code}-${kind}-${stamp}.csv`,
             mimeType: 'text/csv;charset=utf-8',

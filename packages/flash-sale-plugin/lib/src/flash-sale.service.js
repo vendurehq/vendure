@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const constants_1 = require("./constants");
 const flash_sale_activity_entity_1 = require("./flash-sale-activity.entity");
+const platform_time_1 = require("./platform-time");
 const flash_sale_runtime_1 = require("./flash-sale-runtime");
 /**
  * update() 允许写入的字段白名单。
@@ -74,8 +75,12 @@ let FlashSaleService = class FlashSaleService {
         delete safeInput.channelId;
         const activity = new flash_sale_activity_entity_1.FlashSaleActivity(safeInput);
         activity.channels = [ctx.channel];
-        const now = new Date();
-        if (activity.startAt && now >= activity.startAt) {
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
+        if (activity.startAt)
+            activity.startAt = (0, platform_time_1.instantToPlatformWall)(activity.startAt);
+        if (activity.endAt)
+            activity.endAt = (0, platform_time_1.instantToPlatformWall)(activity.endAt);
+        if (activity.startAt && (0, platform_time_1.platformNowMs)() >= (0, platform_time_1.wallClockMs)(activity.startAt)) {
             activity.status = 'active';
         }
         else {
@@ -95,6 +100,11 @@ let FlashSaleService = class FlashSaleService {
                 activity[key] = input[key];
             }
         }
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
+        if (input.startAt)
+            activity.startAt = (0, platform_time_1.instantToPlatformWall)(new Date(input.startAt));
+        if (input.endAt)
+            activity.endAt = (0, platform_time_1.instantToPlatformWall)(new Date(input.endAt));
         return repo.save(activity);
     }
     /**
@@ -111,14 +121,14 @@ let FlashSaleService = class FlashSaleService {
         if (!activity) {
             throw new core_1.UserInputError(`FlashSaleActivity with id ${id} not found`);
         }
-        const now = new Date();
+        const nowMs = (0, platform_time_1.platformNowMs)();
         if (status === 'active') {
-            if (now < new Date(activity.startAt) || now > new Date(activity.endAt)) {
+            if (nowMs < (0, platform_time_1.wallClockMs)(activity.startAt) || nowMs > (0, platform_time_1.wallClockMs)(activity.endAt)) {
                 throw new core_1.UserInputError('只能在活动开始时间与结束时间之间启用');
             }
         }
         else if (status === 'upcoming') {
-            if (now >= new Date(activity.startAt)) {
+            if (nowMs >= (0, platform_time_1.wallClockMs)(activity.startAt)) {
                 throw new core_1.UserInputError('活动已开始，不能恢复为未开始');
             }
         }
@@ -135,7 +145,7 @@ let FlashSaleService = class FlashSaleService {
             activeUserId: ctx.activeUserId ? String(ctx.activeUserId) : null,
             from,
             to: status,
-            at: now.toISOString(),
+            at: new Date().toISOString(),
         }), constants_1.loggerCtx);
         return saved;
     }
@@ -171,14 +181,14 @@ let FlashSaleService = class FlashSaleService {
         if (!activity) {
             throw new core_1.UserInputError(`FlashSaleActivity with id ${activityId} not found`);
         }
-        const now = new Date();
+        const nowMs = (0, platform_time_1.platformNowMs)();
         if (activity.status !== 'active') {
             throw new core_1.UserInputError('Activity is not active');
         }
-        if (activity.startAt && now < activity.startAt) {
+        if (activity.startAt && nowMs < (0, platform_time_1.wallClockMs)(activity.startAt)) {
             throw new core_1.UserInputError('Activity has not started');
         }
-        if (activity.endAt && now > activity.endAt) {
+        if (activity.endAt && nowMs > (0, platform_time_1.wallClockMs)(activity.endAt)) {
             throw new core_1.UserInputError('Activity has ended');
         }
         // 订单须包含秒杀变体行
@@ -214,25 +224,31 @@ let FlashSaleService = class FlashSaleService {
     /* ------------------------- 查询 ------------------------- */
     async findActive(ctx) {
         const repo = this.connection.getRepository(ctx, flash_sale_activity_entity_1.FlashSaleActivity);
-        const now = new Date();
         return repo
             .createQueryBuilder('fsa')
             .innerJoin('fsa.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
             .where('fsa.status = :status', { status: 'active' })
-            .andWhere('fsa.startAt <= :now', { now })
-            .andWhere('fsa.endAt >= :now', { now })
+            .andWhere('fsa.startAt <= (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
+            .andWhere('fsa.endAt >= (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
             .getMany();
     }
     async findActiveByVariant(ctx, variantId) {
         const repo = this.connection.getRepository(ctx, flash_sale_activity_entity_1.FlashSaleActivity);
-        const now = new Date();
         const result = await repo
             .createQueryBuilder('fsa')
             .innerJoin('fsa.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
             .where('fsa.variantId = :variantId', { variantId: variantId })
             .andWhere('fsa.status = :status', { status: 'active' })
-            .andWhere('fsa.startAt <= :now', { now })
-            .andWhere('fsa.endAt >= :now', { now })
+            .andWhere('fsa.startAt <= (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
+            .andWhere('fsa.endAt >= (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
             .getOne();
         return result !== null && result !== void 0 ? result : undefined;
     }
@@ -354,8 +370,9 @@ let FlashSaleService = class FlashSaleService {
             return;
         if (activity.status !== 'ended')
             return;
-        const now = new Date();
-        const inWindow = (!activity.startAt || now >= activity.startAt) && (!activity.endAt || now <= activity.endAt);
+        const nowMs = (0, platform_time_1.platformNowMs)();
+        const inWindow = (!activity.startAt || nowMs >= (0, platform_time_1.wallClockMs)(activity.startAt))
+            && (!activity.endAt || nowMs <= (0, platform_time_1.wallClockMs)(activity.endAt));
         if (inWindow && activity.soldCount < activity.totalStock) {
             activity.status = 'active';
             await this.connection.getRepository(ctx, flash_sale_activity_entity_1.FlashSaleActivity).save(activity);

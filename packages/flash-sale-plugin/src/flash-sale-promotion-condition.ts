@@ -2,6 +2,7 @@ import { LanguageCode, PromotionCondition, RequestContext } from '@vendure/core'
 
 import { FlashSaleActivity } from './flash-sale-activity.entity';
 import { getFlashSaleConnection } from './flash-sale-runtime';
+import { platformNowMs, wallClockMs } from './platform-time';
 
 /**
  * 秒杀价条件：读 order.customFields.flashSaleActivityId，
@@ -26,11 +27,11 @@ export const flashSaleDiscountCondition = new PromotionCondition({
             .findOne({ where: { id: activityId as any } });
         if (!activity) return false;
 
-        const now = new Date();
+        const nowMs = platformNowMs();
         // 仅活动进行中且窗口内生效；非 active 或已结束不优惠
         if (activity.status !== 'active') return false;
-        if (activity.startAt && now < activity.startAt) return false;
-        if (activity.endAt && now > activity.endAt) return false;
+        if (activity.startAt && nowMs < wallClockMs(activity.startAt)) return false;
+        if (activity.endAt && nowMs > wallClockMs(activity.endAt)) return false;
         // 库存售罄不再优惠（存量已占满）
         if (activity.soldCount >= activity.totalStock) return false;
 

@@ -20,6 +20,7 @@ const jianghu_profile_entity_1 = require("./jianghu-profile.entity");
 const jianghu_record_entity_1 = require("./jianghu-record.entity");
 const jianghu_risk_service_1 = require("./jianghu-risk.service");
 const jianghu_task_entity_1 = require("./jianghu-task.entity");
+const platform_time_1 = require("./platform-time");
 const options_1 = require("./options");
 /** 情报分类中文（实体未存文案，后端按分类派生下发） */
 const INTEL_CATEGORY_TEXT = {
@@ -30,7 +31,7 @@ const INTEL_CATEGORY_TEXT = {
     NOTICE: '通知公告',
     SCENERY: '校园风物',
 };
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => (0, platform_time_1.platformDayKey)(new Date());
 let JianghuService = class JianghuService {
     constructor(connection, customerService, risk) {
         this.connection = connection;
@@ -418,7 +419,7 @@ let JianghuService = class JianghuService {
         task.status = 'VERIFIED';
         await repo.save(task);
         const base = task.rewardRep || constants_1.LEVEL_REWARD[task.level];
-        const daysSince = Math.floor((Date.now() - new Date(profile.createdAt).getTime()) / 86400000);
+        const daysSince = Math.floor((Date.now() - (0, platform_time_1.platformWallToInstant)(profile.createdAt).getTime()) / 86400000);
         const mult = (0, constants_1.timeFactor)() * (0, constants_1.streakFactor)(profile.streakDays) * (0, constants_1.rookieFactor)(daysSince);
         const delta = Math.round(base * mult);
         await this.addRep(ctx, profile, delta, 'LETTER_' + task.level, task.id);
@@ -493,7 +494,7 @@ let JianghuService = class JianghuService {
     ensureDay(profile) {
         const today = todayStr();
         if (profile.repDay !== today) {
-            const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            const yest = (0, platform_time_1.platformDayKey)(new Date(Date.now() - 86400000));
             if (profile.lastActiveDay === yest)
                 profile.streakDays += 1;
             else if (profile.lastActiveDay !== today)

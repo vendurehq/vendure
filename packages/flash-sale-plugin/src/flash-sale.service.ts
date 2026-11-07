@@ -15,6 +15,12 @@ import {
 
 import { loggerCtx } from './constants';
 import { FlashSaleActivity } from './flash-sale-activity.entity';
+import {
+    instantToPlatformWall,
+    PLATFORM_TIME_ZONE,
+    platformNowMs,
+    wallClockMs,
+} from './platform-time';
 import { setFlashSaleConnection } from './flash-sale-runtime';
 
 /**
@@ -86,8 +92,10 @@ export class FlashSaleService {
         delete safeInput.channelId;
         const activity = new FlashSaleActivity(safeInput);
         activity.channels = [ctx.channel];
-        const now = new Date();
-        if (activity.startAt && now >= activity.startAt) {
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
+        if (activity.startAt) activity.startAt = instantToPlatformWall(activity.startAt);
+        if (activity.endAt) activity.endAt = instantToPlatformWall(activity.endAt);
+        if (activity.startAt && platformNowMs() >= wallClockMs(activity.startAt)) {
             activity.status = 'active';
         } else {
             activity.status = 'upcoming';
@@ -107,6 +115,9 @@ export class FlashSaleService {
                 (activity as any)[key] = input[key];
             }
         }
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
+        if (input.startAt) activity.startAt = instantToPlatformWall(new Date(input.startAt));
+        if (input.endAt) activity.endAt = instantToPlatformWall(new Date(input.endAt));
         return repo.save(activity);
     }
 
@@ -128,13 +139,13 @@ export class FlashSaleService {
         if (!activity) {
             throw new UserInputError(`FlashSaleActivity with id ${id} not found`);
         }
-        const now = new Date();
+        const nowMs = platformNowMs();
         if (status === 'active') {
-            if (now < new Date(activity.startAt) || now > new Date(activity.endAt)) {
+            if (nowMs < wallClockMs(activity.startAt) || nowMs > wallClockMs(activity.endAt)) {
                 throw new UserInputError('只能在活动开始时间与结束时间之间启用');
             }
         } else if (status === 'upcoming') {
-            if (now >= new Date(activity.startAt)) {
+            if (nowMs >= wallClockMs(activity.startAt)) {
                 throw new UserInputError('活动已开始，不能恢复为未开始');
             }
         }
@@ -152,7 +163,7 @@ export class FlashSaleService {
                 activeUserId: ctx.activeUserId ? String(ctx.activeUserId) : null,
                 from,
                 to: status,
-                at: now.toISOString(),
+                at: new Date().toISOString(),
             }),
             loggerCtx,
         );
@@ -194,14 +205,14 @@ export class FlashSaleService {
             throw new UserInputError(`FlashSaleActivity with id ${activityId} not found`);
         }
 
-        const now = new Date();
+        const nowMs = platformNowMs();
         if (activity.status !== 'active') {
             throw new UserInputError('Activity is not active');
         }
-        if (activity.startAt && now < activity.startAt) {
+        if (activity.startAt && nowMs < wallClockMs(activity.startAt)) {
             throw new UserInputError('Activity has not started');
         }
-        if (activity.endAt && now > activity.endAt) {
+        if (activity.endAt && nowMs > wallClockMs(activity.endAt)) {
             throw new UserInputError('Activity has ended');
         }
 
@@ -247,26 +258,32 @@ export class FlashSaleService {
 
     async findActive(ctx: RequestContext): Promise<FlashSaleActivity[]> {
         const repo = this.connection.getRepository(ctx, FlashSaleActivity);
-        const now = new Date();
         return repo
             .createQueryBuilder('fsa')
             .innerJoin('fsa.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
             .where('fsa.status = :status', { status: 'active' })
-            .andWhere('fsa.startAt <= :now', { now })
-            .andWhere('fsa.endAt >= :now', { now })
+            .andWhere('fsa.startAt <= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
+            .andWhere('fsa.endAt >= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
             .getMany();
     }
 
     async findActiveByVariant(ctx: RequestContext, variantId: ID): Promise<FlashSaleActivity | undefined> {
         const repo = this.connection.getRepository(ctx, FlashSaleActivity);
-        const now = new Date();
         const result = await repo
             .createQueryBuilder('fsa')
             .innerJoin('fsa.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
             .where('fsa.variantId = :variantId', { variantId: variantId as any })
             .andWhere('fsa.status = :status', { status: 'active' })
-            .andWhere('fsa.startAt <= :now', { now })
-            .andWhere('fsa.endAt >= :now', { now })
+            .andWhere('fsa.startAt <= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
+            .andWhere('fsa.endAt >= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
             .getOne();
         return result ?? undefined;
     }
@@ -406,9 +423,10 @@ export class FlashSaleService {
         const activity = await this.findOne(ctx, activityId);
         if (!activity) return;
         if (activity.status !== 'ended') return;
-        const now = new Date();
+        const nowMs = platformNowMs();
         const inWindow =
-            (!activity.startAt || now >= activity.startAt) && (!activity.endAt || now <= activity.endAt);
+            (!activity.startAt || nowMs >= wallClockMs(activity.startAt))
+            && (!activity.endAt || nowMs <= wallClockMs(activity.endAt));
         if (inWindow && activity.soldCount < activity.totalStock) {
             activity.status = 'active';
             await this.connection.getRepository(ctx, FlashSaleActivity).save(activity);

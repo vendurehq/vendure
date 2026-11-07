@@ -2,6 +2,7 @@ import { Logger, ScheduledTask, TransactionalConnection } from '@vendure/core';
 
 import { loggerCtx } from './constants';
 import { FlashSaleActivity } from './flash-sale-activity.entity';
+import { PLATFORM_TIME_ZONE } from './platform-time';
 
 /**
  * 秒杀活动状态转换 ScheduledTask。
@@ -24,7 +25,6 @@ export const flashSaleStatusTask = new ScheduledTask({
     async execute({ injector }) {
         const connection = injector.get(TransactionalConnection);
         const repo = connection.rawConnection.getRepository(FlashSaleActivity);
-        const now = new Date();
 
         // 可选预热：若安装了 redis-stock-plugin 的 StockPrewarmService，则用之
         let stockPrewarmService: any = null;
@@ -38,7 +38,9 @@ export const flashSaleStatusTask = new ScheduledTask({
         const toActivate = await repo
             .createQueryBuilder('fsa')
             .where('fsa.status = :status', { status: 'upcoming' })
-            .andWhere('fsa.startAt <= :now', { now })
+            .andWhere('fsa.startAt <= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
             .getMany();
 
         for (const activity of toActivate) {
@@ -56,7 +58,9 @@ export const flashSaleStatusTask = new ScheduledTask({
         const toEnd = await repo
             .createQueryBuilder('fsa')
             .where('fsa.status = :status', { status: 'active' })
-            .andWhere('fsa.endAt <= :now', { now })
+            .andWhere('fsa.endAt <= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
             .getMany();
 
         for (const activity of toEnd) {

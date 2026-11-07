@@ -3,6 +3,7 @@ import { Logger, VendurePlugin } from '@vendure/core';
 import { HARDEN_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { HideValidationErrorsPlugin } from './middleware/hide-validation-errors-plugin';
 import { QueryComplexityPlugin } from './middleware/query-complexity-plugin';
+import { TimezoneDriftCheck } from './timezone-drift-check';
 import { HardenPluginOptions } from './types';
 
 /**
@@ -149,6 +150,7 @@ import { HardenPluginOptions } from './types';
             provide: HARDEN_PLUGIN_OPTIONS,
             useFactory: () => HardenPlugin.options,
         },
+        TimezoneDriftCheck,
     ],
     configuration: config => {
         if (HardenPlugin.options.hideFieldSuggestions !== false) {

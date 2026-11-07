@@ -23,6 +23,12 @@ import { GroupBuyActivity } from './group-buy-activity.entity';
 import { GroupBuyOrder } from './group-buy-order.entity';
 import { GroupBuyCompletedEvent, GroupBuyFailedEvent } from './events';
 import { setGroupBuyConnection } from './group-buy-runtime';
+import {
+    instantToPlatformWall,
+    PLATFORM_TIME_ZONE,
+    platformNowMs,
+    wallClockMs,
+} from './platform-time';
 
 const ALLOWED_UPDATE_FIELDS = [
     'name',
@@ -110,6 +116,9 @@ export class GroupBuyService {
         delete safeInput.channelId;
         const activity = new GroupBuyActivity(safeInput);
         activity.channels = [ctx.channel];
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
+        if (activity.startAt) activity.startAt = instantToPlatformWall(activity.startAt);
+        if (activity.endAt) activity.endAt = instantToPlatformWall(activity.endAt);
         const saved = await repo.save(activity);
         if (this.stockPrewarmService && saved.status === 'active') {
             await this.stockPrewarmService.prewarm(`group-buy:${saved.id}`, saved.targetCount - saved.currentCount);
@@ -130,6 +139,9 @@ export class GroupBuyService {
             }
         }
         Object.assign(activity, patch);
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
+        if (patch.startAt) activity.startAt = instantToPlatformWall(new Date(patch.startAt as any));
+        if (patch.endAt) activity.endAt = instantToPlatformWall(new Date(patch.endAt as any));
         return repo.save(activity);
     }
 
@@ -176,17 +188,17 @@ export class GroupBuyService {
             throw new UserInputError(`GroupBuyActivity with id ${activityId} not found`);
         }
 
-        const now = new Date();
+        const nowMs = platformNowMs();
         if (activity.status === 'expired') {
             throw new UserInputError('Activity has expired');
         }
         if (activity.status !== 'active' && !activity.allowJoinAfterComplete) {
             throw new UserInputError('Activity is not joinable');
         }
-        if (activity.startAt && now < activity.startAt) {
+        if (activity.startAt && nowMs < wallClockMs(activity.startAt)) {
             throw new UserInputError('Group buy activity has not started yet');
         }
-        if (activity.endAt && now > activity.endAt) {
+        if (activity.endAt && nowMs > wallClockMs(activity.endAt)) {
             throw new UserInputError('Group buy activity has ended');
         }
 
@@ -217,8 +229,12 @@ export class GroupBuyService {
                         allowJoin: activity.allowJoinAfterComplete,
                     },
                 )
-                .andWhere('startAt <= :now', { now })
-                .andWhere('endAt >= :now', { now })
+                .andWhere('startAt <= (now() AT TIME ZONE :platformTz)', {
+                    platformTz: PLATFORM_TIME_ZONE,
+                })
+                .andWhere('endAt >= (now() AT TIME ZONE :platformTz)', {
+                    platformTz: PLATFORM_TIME_ZONE,
+                })
                 .andWhere('(maxCount = 0 OR currentCount < maxCount)')
                 .execute();
             if ((incResult.affected ?? 0) === 0) {
@@ -281,12 +297,13 @@ export class GroupBuyService {
     async processExpired(ctx: RequestContext): Promise<GroupBuyActivity[]> {
         const activityRepo = this.connection.getRepository(ctx, GroupBuyActivity);
         const orderRepo = this.connection.getRepository(ctx, GroupBuyOrder);
-        const now = new Date();
 
         const expiredActivities = await activityRepo
             .createQueryBuilder('gba')
             .innerJoin('gba.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
-            .where('gba.endAt < :now', { now })
+            .where('gba.endAt < (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
             .andWhere('gba.status = :status', { status: 'active' })
             .getMany();
 
@@ -343,13 +360,16 @@ export class GroupBuyService {
 
     async findActive(ctx: RequestContext): Promise<GroupBuyActivity[]> {
         const repo = this.connection.getRepository(ctx, GroupBuyActivity);
-        const now = new Date();
         return repo
             .createQueryBuilder('gba')
             .innerJoin('gba.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
             .where('gba.status = :status', { status: 'active' })
-            .andWhere('gba.startAt <= :now', { now })
-            .andWhere('gba.endAt >= :now', { now })
+            .andWhere('gba.startAt <= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
+            .andWhere('gba.endAt >= (now() AT TIME ZONE :platformTz)', {
+                platformTz: PLATFORM_TIME_ZONE,
+            })
             .getMany();
     }
 

@@ -458,7 +458,7 @@ export class TenantMemberService {
             );
             await qr.query(
                 `UPDATE merchant_store_channel
-                 SET status = 'REVOKED', "updatedAt" = CURRENT_TIMESTAMP
+                 SET status = 'REVOKED', "updatedAt" = (now() AT TIME ZONE 'Asia/Shanghai')
                  WHERE "channelId" = ${ph(1)} AND status = 'ACTIVE'`,
                 [Number(channelId)],
             );
@@ -475,7 +475,7 @@ export class TenantMemberService {
                             JOIN merchant_store s ON s.id = c."storeId"
                             WHERE s."merchantId" = ${ph(1)} AND s."deletedAt" IS NULL AND c.status = 'ACTIVE'
                          ) THEN 'CLAIMED' ELSE 'UNCLAIMED' END,
-                         "updatedAt" = CURRENT_TIMESTAMP
+                         "updatedAt" = (now() AT TIME ZONE 'Asia/Shanghai')
                      WHERE id = ${ph(1)}`,
                     [merchantId],
                 );

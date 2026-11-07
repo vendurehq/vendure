@@ -18,6 +18,7 @@ const group_buy_activity_entity_1 = require("./group-buy-activity.entity");
 const group_buy_order_entity_1 = require("./group-buy-order.entity");
 const events_1 = require("./events");
 const group_buy_runtime_1 = require("./group-buy-runtime");
+const platform_time_1 = require("./platform-time");
 const ALLOWED_UPDATE_FIELDS = [
     'name',
     'description',
@@ -84,6 +85,11 @@ let GroupBuyService = class GroupBuyService {
         delete safeInput.channelId;
         const activity = new group_buy_activity_entity_1.GroupBuyActivity(safeInput);
         activity.channels = [ctx.channel];
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp，不随进程 TZ 漂移）
+        if (activity.startAt)
+            activity.startAt = (0, platform_time_1.instantToPlatformWall)(activity.startAt);
+        if (activity.endAt)
+            activity.endAt = (0, platform_time_1.instantToPlatformWall)(activity.endAt);
         const saved = await repo.save(activity);
         if (this.stockPrewarmService && saved.status === 'active') {
             await this.stockPrewarmService.prewarm(`group-buy:${saved.id}`, saved.targetCount - saved.currentCount);
@@ -103,6 +109,11 @@ let GroupBuyService = class GroupBuyService {
             }
         }
         Object.assign(activity, patch);
+        // 入参是绝对时刻，落库前显式转成平台墙上时间（列类型为 timestamp）
+        if (patch.startAt)
+            activity.startAt = (0, platform_time_1.instantToPlatformWall)(new Date(patch.startAt));
+        if (patch.endAt)
+            activity.endAt = (0, platform_time_1.instantToPlatformWall)(new Date(patch.endAt));
         return repo.save(activity);
     }
     async delete(ctx, id) {
@@ -140,17 +151,17 @@ let GroupBuyService = class GroupBuyService {
         if (!activity) {
             throw new core_1.UserInputError(`GroupBuyActivity with id ${activityId} not found`);
         }
-        const now = new Date();
+        const nowMs = (0, platform_time_1.platformNowMs)();
         if (activity.status === 'expired') {
             throw new core_1.UserInputError('Activity has expired');
         }
         if (activity.status !== 'active' && !activity.allowJoinAfterComplete) {
             throw new core_1.UserInputError('Activity is not joinable');
         }
-        if (activity.startAt && now < activity.startAt) {
+        if (activity.startAt && nowMs < (0, platform_time_1.wallClockMs)(activity.startAt)) {
             throw new core_1.UserInputError('Group buy activity has not started yet');
         }
-        if (activity.endAt && now > activity.endAt) {
+        if (activity.endAt && nowMs > (0, platform_time_1.wallClockMs)(activity.endAt)) {
             throw new core_1.UserInputError('Group buy activity has ended');
         }
         // 订单须包含拼团变体行
@@ -173,8 +184,12 @@ let GroupBuyService = class GroupBuyService {
                 completed: 'completed',
                 allowJoin: activity.allowJoinAfterComplete,
             })
-                .andWhere('startAt <= :now', { now })
-                .andWhere('endAt >= :now', { now })
+                .andWhere('startAt <= (now() AT TIME ZONE :platformTz)', {
+                platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+            })
+                .andWhere('endAt >= (now() AT TIME ZONE :platformTz)', {
+                platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+            })
                 .andWhere('(maxCount = 0 OR currentCount < maxCount)')
                 .execute();
             if (((_d = incResult.affected) !== null && _d !== void 0 ? _d : 0) === 0) {
@@ -228,11 +243,12 @@ let GroupBuyService = class GroupBuyService {
     async processExpired(ctx) {
         const activityRepo = this.connection.getRepository(ctx, group_buy_activity_entity_1.GroupBuyActivity);
         const orderRepo = this.connection.getRepository(ctx, group_buy_order_entity_1.GroupBuyOrder);
-        const now = new Date();
         const expiredActivities = await activityRepo
             .createQueryBuilder('gba')
             .innerJoin('gba.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
-            .where('gba.endAt < :now', { now })
+            .where('gba.endAt < (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
             .andWhere('gba.status = :status', { status: 'active' })
             .getMany();
         const processed = [];
@@ -280,13 +296,16 @@ let GroupBuyService = class GroupBuyService {
     }
     async findActive(ctx) {
         const repo = this.connection.getRepository(ctx, group_buy_activity_entity_1.GroupBuyActivity);
-        const now = new Date();
         return repo
             .createQueryBuilder('gba')
             .innerJoin('gba.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
             .where('gba.status = :status', { status: 'active' })
-            .andWhere('gba.startAt <= :now', { now })
-            .andWhere('gba.endAt >= :now', { now })
+            .andWhere('gba.startAt <= (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
+            .andWhere('gba.endAt >= (now() AT TIME ZONE :platformTz)', {
+            platformTz: platform_time_1.PLATFORM_TIME_ZONE,
+        })
             .getMany();
     }
     /**

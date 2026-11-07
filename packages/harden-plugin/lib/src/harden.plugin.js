@@ -12,6 +12,7 @@ const core_1 = require("@vendure/core");
 const constants_1 = require("./constants");
 const hide_validation_errors_plugin_1 = require("./middleware/hide-validation-errors-plugin");
 const query_complexity_plugin_1 = require("./middleware/query-complexity-plugin");
+const timezone_drift_check_1 = require("./timezone-drift-check");
 /**
  * @description
  * The HardenPlugin hardens the Shop and Admin GraphQL APIs against attacks and abuse.
@@ -164,6 +165,7 @@ exports.HardenPlugin = HardenPlugin = HardenPlugin_1 = __decorate([
                 provide: constants_1.HARDEN_PLUGIN_OPTIONS,
                 useFactory: () => HardenPlugin.options,
             },
+            timezone_drift_check_1.TimezoneDriftCheck,
         ],
         configuration: config => {
             if (HardenPlugin.options.hideFieldSuggestions !== false) {
