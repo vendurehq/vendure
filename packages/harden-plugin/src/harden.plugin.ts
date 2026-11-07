@@ -1,4 +1,4 @@
-import { Logger, VendurePlugin } from '@vendure/core';
+import { Logger, PluginCommonModule, VendurePlugin } from '@vendure/core';
 
 import { HARDEN_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { HideValidationErrorsPlugin } from './middleware/hide-validation-errors-plugin';
@@ -145,6 +145,7 @@ import { HardenPluginOptions } from './types';
  * @docsCategory core plugins/HardenPlugin
  */
 @VendurePlugin({
+    imports: [PluginCommonModule],
     providers: [
         {
             provide: HARDEN_PLUGIN_OPTIONS,

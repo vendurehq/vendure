@@ -160,6 +160,7 @@ let HardenPlugin = HardenPlugin_1 = class HardenPlugin {
 exports.HardenPlugin = HardenPlugin;
 exports.HardenPlugin = HardenPlugin = HardenPlugin_1 = __decorate([
     (0, core_1.VendurePlugin)({
+        imports: [core_1.PluginCommonModule],
         providers: [
             {
                 provide: constants_1.HARDEN_PLUGIN_OPTIONS,
