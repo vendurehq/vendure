@@ -23,7 +23,7 @@ export class RiderWithdrawalRequest extends VendureEntity {
     withdrawState: 'intent' | 'confirmed' | 'deduct_failed' | null;
     @Column({ type: 'varchar', nullable: true }) remark: string | null;
     @Column({ type: 'varchar', nullable: true }) reviewedBy: string | null;
-    @Column({ type: 'timestamp', nullable: true }) reviewedAt: Date | null;
+    @Column({ type: 'timestamptz', nullable: true }) reviewedAt: Date | null;
     /** 打款流水号（通过时必填，用于对账留痕） */
     @Column({ type: 'varchar', nullable: true }) payoutRef: string | null;
     /** 打款凭证（转账截图/回单 URL） */

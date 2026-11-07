@@ -65,7 +65,7 @@ export class StocktakeLine extends VendureEntity {
     @Column({ type: 'varchar', nullable: true })
     countedByName!: string | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     countedAt!: Date | null;
 
     @Column({ type: 'text', nullable: true })

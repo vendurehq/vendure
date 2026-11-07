@@ -31,11 +31,11 @@ __decorate([
     __metadata("design:type", Object)
 ], OfflineSyncQueue.prototype, "payload", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], OfflineSyncQueue.prototype, "clientCreatedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], OfflineSyncQueue.prototype, "clientUpdatedAt", void 0);
 __decorate([
@@ -59,7 +59,7 @@ __decorate([
     __metadata("design:type", Number)
 ], OfflineSyncQueue.prototype, "retryCount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true, type: 'timestamp' }),
+    (0, typeorm_1.Column)({ nullable: true, type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], OfflineSyncQueue.prototype, "syncedAt", void 0);
 __decorate([

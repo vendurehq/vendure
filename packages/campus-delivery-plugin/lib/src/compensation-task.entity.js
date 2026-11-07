@@ -55,7 +55,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CampusCompensationTask.prototype, "attempts", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], CampusCompensationTask.prototype, "nextAttemptAt", void 0);
 __decorate([

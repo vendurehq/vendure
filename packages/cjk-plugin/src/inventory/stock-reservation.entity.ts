@@ -35,6 +35,6 @@ export class StockReservationEntity {
      * 历史数据为 NULL = 永不过期（不回溯释放旧单）。
      */
     @Index()
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     expiresAt!: Date | null;
 }

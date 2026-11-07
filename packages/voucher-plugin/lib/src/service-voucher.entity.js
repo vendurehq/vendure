@@ -63,15 +63,15 @@ __decorate([
     __metadata("design:type", Number)
 ], ServiceVoucher.prototype, "effectiveDays", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Date)
 ], ServiceVoucher.prototype, "expiresAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Date)
 ], ServiceVoucher.prototype, "usedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Date)
 ], ServiceVoucher.prototype, "refundedAt", void 0);
 exports.ServiceVoucher = ServiceVoucher = __decorate([

@@ -35,7 +35,7 @@ __decorate([
     __metadata("design:type", Number)
 ], PickBatchOrder.prototype, "orderId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], PickBatchOrder.prototype, "addedAt", void 0);
 exports.PickBatchOrder = PickBatchOrder = __decorate([

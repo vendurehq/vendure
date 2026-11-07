@@ -43,26 +43,26 @@ export class PickBatch extends VendureEntity {
     @Column({ type: 'varchar', nullable: true })
     createdBy!: string | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     pickedAt!: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     printedAt!: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     shippedAt!: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     handoverAt!: Date | null;
 
     /** 交接对象（承运商 / 接收人） */
     @Column({ type: 'varchar', nullable: true })
     handoverTo!: string | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     reviewedAt!: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     exceptionAt!: Date | null;
 
     /** 异常件原因（登记时必填，处理完保留） */

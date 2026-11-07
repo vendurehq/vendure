@@ -59,7 +59,7 @@ __decorate([
     __metadata("design:type", Object)
 ], MerchantSettlementLedger.prototype, "status", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], MerchantSettlementLedger.prototype, "occurredAt", void 0);
 __decorate([
@@ -76,7 +76,7 @@ __decorate([
     __metadata("design:type", Object)
 ], MerchantSettlementLedger.prototype, "orderCode", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], MerchantSettlementLedger.prototype, "collectedAt", void 0);
 exports.MerchantSettlementLedger = MerchantSettlementLedger = __decorate([

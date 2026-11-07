@@ -37,7 +37,7 @@ export class TenantMember extends VendureEntity {
      * 超过该时间后强改密闸门直接拒绝所有业务操作，需管理员重新重置。
      * 列由 TenantMemberColumnMigration 幂等补齐。
      */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     resetPasswordExpiresAt!: Date | null;
 
     @Column({ type: 'varchar', nullable: true })

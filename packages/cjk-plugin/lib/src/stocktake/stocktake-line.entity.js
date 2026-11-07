@@ -85,7 +85,7 @@ __decorate([
     __metadata("design:type", Object)
 ], StocktakeLine.prototype, "countedByName", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], StocktakeLine.prototype, "countedAt", void 0);
 __decorate([

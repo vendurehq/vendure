@@ -79,7 +79,7 @@ __decorate([
     __metadata("design:type", String)
 ], CampusAddressChange.prototype, "status", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true, type: 'timestamp' }),
+    (0, typeorm_1.Column)({ nullable: true, type: 'timestamptz' }),
     __metadata("design:type", Object)
 ], CampusAddressChange.prototype, "settledAt", void 0);
 __decorate([

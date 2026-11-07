@@ -18,7 +18,7 @@ export class SubscriptionOccurrence extends VendureEntity implements ChannelAwar
     @Column({ type: 'int' })
     periodNo: number;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     scheduledDate: Date;
 
     /** 卖家逐期指定内容 [{variantId,quantity}]（可从模板改）。simple-json。 */

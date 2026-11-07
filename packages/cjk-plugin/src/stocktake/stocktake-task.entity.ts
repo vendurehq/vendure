@@ -56,7 +56,7 @@ export class StocktakeTask extends VendureEntity {
     @Column({ type: 'int', nullable: true })
     postedStockDocId!: number | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     postedAt!: Date | null;
 
     @Column({ type: 'text', nullable: true })

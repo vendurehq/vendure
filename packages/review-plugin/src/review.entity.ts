@@ -57,7 +57,7 @@ export class Review extends VendureEntity implements ChannelAware {
     giftChoice: string | null;
 
     /** 审核时间（approve/reject 留痕）；追评窗口以此为基准。 */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     reviewedAt?: Date | null;
 
     // ---------------- 差评申诉（P0-4）----------------

@@ -40,15 +40,15 @@ export class LiveRoom extends VendureEntity implements ChannelAware {
     status: string;
 
     /** 计划开始时间 */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     scheduledStartAt: Date | null;
 
     /** 实际开播时间 */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     startedAt: Date | null;
 
     /** 实际结束时间 */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     endedAt: Date | null;
 
     /** 推流 streamKey（腾讯云 push 地址 /live/{streamKey}） */

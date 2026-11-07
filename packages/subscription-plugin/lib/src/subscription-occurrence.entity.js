@@ -32,7 +32,7 @@ __decorate([
     __metadata("design:type", Number)
 ], SubscriptionOccurrence.prototype, "periodNo", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], SubscriptionOccurrence.prototype, "scheduledDate", void 0);
 __decorate([

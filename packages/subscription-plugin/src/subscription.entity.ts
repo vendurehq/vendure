@@ -28,10 +28,10 @@ export class Subscription extends VendureEntity implements ChannelAware {
     @Column({ type: 'simple-json' })
     scheduleJson: string[];
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     startDate?: Date;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     endDate?: Date;
 
     /** 预存款余额（分）。 */

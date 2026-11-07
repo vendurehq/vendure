@@ -65,16 +65,16 @@ export class DeliveryRecord extends VendureEntity {
     @Column({ type: 'text', nullable: true })
     itemsJson?: string | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     sentAt?: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     deliveredAt?: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     returnedAt?: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     exceptionAt?: Date | null;
 
     @Column({ type: 'text', nullable: true })

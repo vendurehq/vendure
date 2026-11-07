@@ -9,14 +9,14 @@ export class OfflineSyncQueue {
   @Column({ type: 'varchar', unique: true }) idempotencyKey!: string;
   @Column({ type: 'varchar' }) type!: 'order' | 'payment' | 'session';
   @Column({ type: 'json' }) payload!: any;
-  @Column({ type: 'timestamp' }) clientCreatedAt!: Date;
-  @Column({ type: 'timestamp' }) clientUpdatedAt!: Date;
+  @Column({ type: 'timestamptz' }) clientCreatedAt!: Date;
+  @Column({ type: 'timestamptz' }) clientUpdatedAt!: Date;
 
   @Column({ type: 'varchar', default: 'pending' }) status!: string;
   @Column({ nullable: true, type: 'int' }) syncedOrderId?: number;
   @Column({ nullable: true, type: 'varchar' }) syncedOrderCode?: string;
   @Column({ nullable: true, type: 'json' }) syncError?: { code: string; message: string } | null;
   @Column({ type: 'int', default: 0 }) retryCount!: number;
-  @Column({ nullable: true, type: 'timestamp' }) syncedAt?: Date;
+  @Column({ nullable: true, type: 'timestamptz' }) syncedAt?: Date;
   @Column({ nullable: true, type: 'varchar' }) sessionCode?: string;
 }

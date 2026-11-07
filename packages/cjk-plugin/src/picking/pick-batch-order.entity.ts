@@ -24,6 +24,6 @@ export class PickBatchOrder extends VendureEntity {
     @Column({ type: 'integer' })
     orderId!: number;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     addedAt!: Date;
 }

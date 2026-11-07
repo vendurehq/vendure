@@ -66,11 +66,11 @@ __decorate([
     __metadata("design:type", Number)
 ], StocktakeWave.prototype, "countedCount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], StocktakeWave.prototype, "claimedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], StocktakeWave.prototype, "submittedAt", void 0);
 exports.StocktakeWave = StocktakeWave = __decorate([

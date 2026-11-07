@@ -57,11 +57,11 @@ __decorate([
     __metadata("design:type", String)
 ], ReconciliationBatch.prototype, "trigger", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], ReconciliationBatch.prototype, "startedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], ReconciliationBatch.prototype, "finishedAt", void 0);
 exports.ReconciliationBatch = ReconciliationBatch = __decorate([
@@ -97,7 +97,7 @@ __decorate([
     __metadata("design:type", Object)
 ], ReconciliationOrderLine.prototype, "remark", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
     __metadata("design:type", Object)
 ], ReconciliationOrderLine.prototype, "fixedAt", void 0);
 __decorate([

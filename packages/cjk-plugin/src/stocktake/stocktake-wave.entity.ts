@@ -60,9 +60,9 @@ export class StocktakeWave extends VendureEntity {
     @Column({ type: 'int', default: 0 })
     countedCount!: number;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     claimedAt!: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     submittedAt!: Date | null;
 }

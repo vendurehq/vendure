@@ -29,7 +29,7 @@ export class CampusAddressChange extends VendureEntity {
 
     /** pending | settled | waived */
     @Column({ default: 'pending' }) status: string;
-    @Column({ nullable: true, type: 'timestamp' }) settledAt: Date | null;
+    @Column({ nullable: true, type: 'timestamptz' }) settledAt: Date | null;
     @Column('int', { nullable: true }) settledBy: ID | null;
     /** refund=已退顾客 | collect=已补收 | waive=免收 */
     @Column({ type: 'varchar', nullable: true }) settleAction: string | null;

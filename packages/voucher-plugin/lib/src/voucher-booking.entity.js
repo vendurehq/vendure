@@ -42,7 +42,7 @@ __decorate([
     __metadata("design:type", Number)
 ], VoucherBooking.prototype, "shopId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], VoucherBooking.prototype, "slotAt", void 0);
 __decorate([

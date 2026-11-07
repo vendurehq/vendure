@@ -42,7 +42,7 @@ __decorate([
     __metadata("design:type", String)
 ], AffiliateRelation.prototype, "bindSource", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)({ type: 'timestamptz' }),
     __metadata("design:type", Date)
 ], AffiliateRelation.prototype, "boundAt", void 0);
 exports.AffiliateRelation = AffiliateRelation = __decorate([

@@ -36,10 +36,10 @@ export class ReconciliationBatch extends VendureEntity {
     @Column({ type: 'varchar', default: 'manual' })
     trigger: string; // manual | cron
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     startedAt?: Date | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     finishedAt?: Date | null;
 }
 
@@ -66,7 +66,7 @@ export class ReconciliationOrderLine extends VendureEntity {
     @Column({ type: 'varchar', nullable: true })
     remark?: string | null;
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     fixedAt?: Date | null;
 
     @Column({ type: 'varchar', nullable: true })

@@ -23,15 +23,15 @@ export class CommunityActivity extends VendureEntity implements ChannelAware {
     pickupLocationId: number;
 
     @Index()
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     windowStart: Date;
 
     @Index()
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     windowEnd: Date;
 
     @Index()
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     cutoffTime: Date;
 
     @Column({ type: 'bigint' }) // 千分比，3% = 3000

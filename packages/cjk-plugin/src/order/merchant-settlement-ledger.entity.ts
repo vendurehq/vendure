@@ -48,7 +48,7 @@ export class MerchantSettlementLedger extends VendureEntity {
     status: string | null;
 
     /** 记账 / 收款时点 */
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamptz' })
     occurredAt: Date;
 
     /** 核销/收款渠道 id：到店收款归属的收款方（门店/租户）渠道；在线分账行为空 */
@@ -65,6 +65,6 @@ export class MerchantSettlementLedger extends VendureEntity {
     orderCode: string | null;
 
     /** 到店核销收款确认时点（区别于 occurredAt 记账时点） */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'timestamptz', nullable: true })
     collectedAt: Date | null;
 }

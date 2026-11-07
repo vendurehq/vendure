@@ -22,7 +22,7 @@ export class CampusCompensationTask extends VendureEntity {
     @Column({ type: 'varchar', default: 'pending' }) status: 'pending' | 'done' | 'failed';
     @Column({ type: 'int', default: 0 }) attempts: number;
     /** 下次重试时间（退避）；done/failed 后置 null */
-    @Column({ type: 'timestamp', nullable: true }) nextAttemptAt: Date | null;
+    @Column({ type: 'timestamptz', nullable: true }) nextAttemptAt: Date | null;
     @Column({ type: 'varchar', nullable: true }) lastError: string | null;
 
     constructor(input?: DeepPartial<CampusCompensationTask>) {

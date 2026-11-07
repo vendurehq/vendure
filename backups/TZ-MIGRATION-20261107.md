@@ -115,3 +115,77 @@ cd /www/apps/vendure && scripts/tz-guard.sh && pm2 restart vendure
 - 删表 → `tz-guard.sh` exit 0「RESULT: PASS」；再重启：`info 时区列自检通过：列数 0`
 - 最终：`timestamp without time zone = 0`，无 `tz_guard*` 临时表残留
 
+
+## 清账：实体注解统一 `timestamptz`（2026-11-07）
+
+### 范围与结论
+
+- 全仓实体 `.entity.ts` 中的 `type: 'timestamp'` 全部改为 `type: 'timestamptz'`：**44 列 / 23 文件**
+  - **A 类**（库列已是 `timestamp with time zone`）：39 列 / 20 文件
+  - **A0 类**（对应表尚未创建、插件未启用）：5 列 / 3 文件（`affiliate_relation` / `affiliate_withdrawal` / `community_activity`）
+- 未执行任何 DDL、未生成迁移、未重放历史迁移。生产 `DB_SYNC=0`（`synchronize:false`），注解只影响 TypeORM 元数据。
+- TypeORM 0.3.31 行为已核对：`normalizeType` 把 `timestamptz` 归一为 `timestamp with time zone`；`preparePersistentValue` 对 `timestamp` 与 `timestamp with time zone` 同走 `DateUtils.mixedDateToDate`（返回 Date 对象），序列化路径一致，读写行为无变化。
+
+### A / A0 改动清单（44 列）
+
+| 文件 | 列 |
+| --- | --- |
+| cjk-plugin/delivery/delivery-record.entity.ts | sentAt, deliveredAt, returnedAt, exceptionAt |
+| cjk-plugin/inventory/stock-reservation.entity.ts | expiresAt |
+| cjk-plugin/order/merchant-settlement-ledger.entity.ts | occurredAt, collectedAt |
+| cjk-plugin/picking/pick-batch-order.entity.ts | addedAt |
+| cjk-plugin/picking/pick-batch.entity.ts | pickedAt, printedAt, shippedAt, handoverAt, reviewedAt, exceptionAt |
+| cjk-plugin/reconcile/reconciliation.entity.ts | startedAt, finishedAt, fixedAt |
+| cjk-plugin/stocktake/stocktake-line.entity.ts | countedAt |
+| cjk-plugin/stocktake/stocktake-task.entity.ts | postedAt |
+| cjk-plugin/stocktake/stocktake-wave.entity.ts | claimedAt, submittedAt |
+| cjk-plugin/tenant/tenant-member.entity.ts | resetPasswordExpiresAt |
+| live-streaming-plugin/live-room.entity.ts | scheduledStartAt, startedAt, endedAt |
+| review-plugin/review.entity.ts | reviewedAt |
+| subscription-plugin/subscription-occurrence.entity.ts | scheduledDate |
+| subscription-plugin/subscription.entity.ts | startDate, endDate |
+| voucher-plugin/service-voucher.entity.ts | expiresAt, usedAt, refundedAt |
+| voucher-plugin/voucher-booking.entity.ts | slotAt |
+| campus-delivery-plugin/campus-address-change.entity.ts | settledAt |
+| campus-delivery-plugin/compensation-task.entity.ts | nextAttemptAt |
+| campus-delivery-plugin/rider-withdrawal.entity.ts | reviewedAt |
+| vcash-offline-plugin/entities/offline-sync-queue.entity.ts | clientCreatedAt, clientUpdatedAt, syncedAt |
+| affiliate-plugin/affiliate-relation.entity.ts | boundAt（A0） |
+| affiliate-plugin/affiliate-withdrawal.entity.ts | paidAt（A0） |
+| community-plugin/community-activity.entity.ts | windowStart, windowEnd, cutoffTime（A0） |
+
+### B 类：历史迁移写法，保持不动（35 条命中）
+
+这些写法都已在生产执行过，且 `synchronize:false` 不会再次落库；重放或改写会带来无收益的 DDL 风险，所以**一行不改**，仅在此标注为历史写法：
+
+- `bill-pay-plugin/src/migrations/create-bill-pay-tables.ts`（8 条，含 4 表共用的 `createdAt`/`updatedAt` 模板）
+- `campus-delivery-plugin/src/migrations/`：`add-address-change-pricing.ts`(3)、`add-withdraw-payout.ts`(1)、`p13-auto-accept.ts`(1)、`p36-compensation-task.ts`(3)、`p4-ops-hardening.ts`(1)、`p5-timestamp-timezone.ts`(1)、`p9-p5-rider-compliance.ts`(3)
+- `cjk-plugin/src/migrations/`：`migrate-hotel-booking-reschedule-columns.ts`(1)、`migrate-pick-batch-handover-columns.ts`(4)、`migrate-pickup-store-link-soft-delete.ts`(1)、`migrate-reservation-expires-at.ts`(1)、`migrate-tenant-member-column.ts`(1)
+- `coupon-plugin/src/migrations/add-coupon-promo-fields.ts`(1)
+- `merchant-plugin/src/migrations/`：`add-merchant-deleted-at.ts`(1)、`create-merchant-tables.ts`(2，类型工厂，覆盖 4 表 19 个日期列)
+- `subscription-plugin/src/migrations/migrate-subscription-tables.ts`(1，类型工厂，覆盖 3 表 12 个日期列)
+- `voucher-plugin/src/migrations/migrate-voucher-tables.ts`(1，类型工厂，覆盖 2 表 10 个日期列)
+
+对应库列现全部为 `timestamptz`（已在上文 705 列迁移中转好）。
+
+### 3 条误报（不算历史 `timestamp` 写法）
+
+1. `campus-delivery-plugin/src/migrations/p5-timestamp-timezone.ts:13`：`SELECT ... WHERE data_type='timestamp without time zone'` 是**检测语句**，不是建列。
+2. `cjk-plugin/src/migrations/migrate-pickup-store-link-soft-delete.ts:33`：模板变量名是 `${timestamp}`，但第 22 行 `isPostgres ? 'timestamptz' : 'datetime'`，PG 分支实际写 `timestamptz`。
+3. `merchant-plugin/src/migrations/add-merchant-deleted-at.ts:26`：同上，变量名误导，实际值 `timestamptz`。
+
+### 约束：今后新迁移必须写 `timestamptz`
+
+新增迁移或建表脚本里的时间列一律写 `timestamptz`（SQLite 分支写 `datetime`）。该约束已固化为发布前预检：
+
+```bash
+cd /www/apps/vendure && scripts/tz-guard.sh && pm2 restart vendure
+```
+
+数据库出现 `timestamp without time zone`、实体出现 `'timestamp'`、迁移新增 `timestamp`，任一命中即 exit 1。
+
+### 护栏数字
+
+- `scripts/tz-guard.sh --all`：改前基线 **61 条**（同文件同样式行去重后的存量条目；原始命中 79 条）→ 改后 **35 条，全部位于 `src/migrations/`**。
+- `scripts/tz-guard-baseline.txt` 已重新生成：**35 行**，非迁移行 0。
+- 默认模式 `scripts/tz-guard.sh`：`RESULT: PASS`，exit 0。
