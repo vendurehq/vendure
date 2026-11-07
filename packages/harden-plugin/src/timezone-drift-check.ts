@@ -12,6 +12,17 @@ const MAX_REPORTED_COLUMNS = 20;
 /** 飞书 webhook 推送超时 */
 const FEISHU_TIMEOUT_MS = 5_000;
 
+/** 飞书 API 请求（统一超时；不抛错，由调用方判定成功与否） */
+async function feishuFetch(url: string, init: RequestInit): Promise<Response> {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), FEISHU_TIMEOUT_MS);
+    try {
+        return await fetch(url, { ...init, signal: ctrl.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 /**
  * 启动自检：
  * 1. 数据库 now() 与 Node Date.now() 偏差 > 60 秒打 error。
@@ -93,15 +104,42 @@ export class TimezoneDriftCheck implements OnApplicationBootstrap {
         }
     }
 
-    /** 复用现有飞书群机器人 webhook（与 FeishuClient 同一通道、同一签名算法）；未配置则静默跳过 */
+    /** tenant_access_token 缓存（提前 5 分钟过期），避免频繁取 token */
+    private static appToken?: { value: string; expiresAt: number };
+
+    /**
+     * 告警通道：webhook 优先（保持原有自定义机器人模式）；
+     * 未配置 webhook 时走自建应用模式（tenant_access_token + 指定 chat_id）。
+     */
     private async notifyFeishu(text: string): Promise<void> {
+        const enabled = /^(true|1)$/i.test(String(process.env.FEISHU_ENABLED ?? ''));
+        if (!enabled) {
+            Logger.info('时区列自检告警未发送：FEISHU_ENABLED 未开启', loggerCtx);
+            return;
+        }
+        const webhook = process.env.FEISHU_WEBHOOK?.trim();
+        if (webhook) {
+            await this.notifyViaWebhook(webhook, text);
+            return;
+        }
+        // 告警专用应用优先；未单独配置时回退到通用 FEISHU_APP_ID/SECRET
+        const appId = (process.env.FEISHU_ALERT_APP_ID ?? process.env.FEISHU_APP_ID)?.trim();
+        const appSecret = (process.env.FEISHU_ALERT_APP_SECRET ?? process.env.FEISHU_APP_SECRET)?.trim();
+        const chatId = process.env.FEISHU_ALERT_CHAT_ID?.trim();
+        if (!appId || !appSecret || !chatId) {
+            Logger.info(
+                '时区列自检告警未发送：未配置 FEISHU_WEBHOOK，也缺少 '
+                + 'FEISHU_ALERT_APP_ID/FEISHU_ALERT_APP_SECRET/FEISHU_ALERT_CHAT_ID',
+                loggerCtx,
+            );
+            return;
+        }
+        await this.notifyViaApp(appId, appSecret, chatId, text);
+    }
+
+    /** 群自定义机器人 webhook（与 FeishuClient 同一签名算法） */
+    private async notifyViaWebhook(webhook: string, text: string): Promise<void> {
         try {
-            const enabled = /^(true|1)$/i.test(String(process.env.FEISHU_ENABLED ?? ''));
-            const webhook = process.env.FEISHU_WEBHOOK?.trim();
-            if (!enabled || !webhook) {
-                Logger.info('时区列自检告警未发送：飞书通道未启用或未配置 FEISHU_WEBHOOK', loggerCtx);
-                return;
-            }
             const secret = process.env.FEISHU_SECRET?.trim();
             const payload: Record<string, unknown> = { msg_type: 'text', content: { text } };
             if (secret) {
@@ -109,27 +147,92 @@ export class TimezoneDriftCheck implements OnApplicationBootstrap {
                 payload.timestamp = ts;
                 payload.sign = createHmac('sha256', `${ts}\n${secret}`).update('').digest('base64');
             }
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), FEISHU_TIMEOUT_MS);
-            try {
-                const res = await fetch(webhook, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                    body: JSON.stringify(payload),
-                    signal: ctrl.signal,
-                });
-                const json: any = await res.json().catch(() => null);
-                const code = json?.code ?? json?.StatusCode;
-                if (res.ok && (code === 0 || code === undefined)) {
-                    Logger.info('时区列自检告警已推送飞书', loggerCtx);
-                } else {
-                    Logger.warn(`时区列自检告警推送失败：HTTP ${res.status}，code=${code ?? 'n/a'}`, loggerCtx);
-                }
-            } finally {
-                clearTimeout(timer);
+            const res = await feishuFetch(webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(payload),
+            });
+            const json: any = await res.json().catch(() => null);
+            const code = json?.code ?? json?.StatusCode;
+            if (res.ok && (code === 0 || code === undefined)) {
+                Logger.info('时区列自检告警已推送飞书（webhook）', loggerCtx);
+            } else {
+                Logger.warn(`时区列自检告警推送失败（webhook）：HTTP ${res.status}，code=${code ?? 'n/a'}`, loggerCtx);
             }
         } catch (e: any) {
-            Logger.warn(`时区列自检告警推送异常：${String(e?.message ?? e)}`, loggerCtx);
+            Logger.warn(`时区列自检告警推送异常（webhook）：${String(e?.message ?? e)}`, loggerCtx);
+        }
+    }
+
+    /** 自建应用模式：tenant_access_token -> im/v1/messages（receive_id_type=chat_id） */
+    private async notifyViaApp(appId: string, appSecret: string, chatId: string, text: string): Promise<void> {
+        try {
+            const token = await this.tenantToken(appId, appSecret);
+            if (!token) return;
+            const res = await feishuFetch(
+                'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        receive_id: chatId,
+                        msg_type: 'text',
+                        content: JSON.stringify({ text }),
+                    }),
+                },
+            );
+            const json: any = await res.json().catch(() => null);
+            const code = json?.code;
+            if (res.ok && code === 0) {
+                Logger.info(
+                    `时区列自检告警已推送飞书（app）message_id=${json?.data?.message_id ?? 'unknown'}`,
+                    loggerCtx,
+                );
+            } else {
+                Logger.warn(
+                    `时区列自检告警推送失败（app）：HTTP ${res.status}，`
+                    + `code=${code ?? 'n/a'} msg=${json?.msg ?? 'n/a'}`,
+                    loggerCtx,
+                );
+            }
+        } catch (e: any) {
+            Logger.warn(`时区列自检告警推送异常（app）：${String(e?.message ?? e)}`, loggerCtx);
+        }
+    }
+
+    private async tenantToken(appId: string, appSecret: string): Promise<string | null> {
+        const cached = TimezoneDriftCheck.appToken;
+        if (cached && cached.expiresAt > Date.now()) return cached.value;
+        try {
+            const res = await feishuFetch(
+                'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+                },
+            );
+            const json: any = await res.json().catch(() => null);
+            if (!json?.tenant_access_token) {
+                Logger.warn(
+                    `时区列自检告警：获取 tenant_access_token 失败 code=${json?.code ?? 'n/a'} `
+                    + `msg=${json?.msg ?? 'n/a'}`,
+                    loggerCtx,
+                );
+                return null;
+            }
+            const ttl = Number(json.expire ?? 7200) * 1000;
+            TimezoneDriftCheck.appToken = {
+                value: json.tenant_access_token,
+                expiresAt: Date.now() + ttl - 5 * 60_000,
+            };
+            return json.tenant_access_token;
+        } catch (e: any) {
+            Logger.warn(`时区列自检告警：获取 tenant_access_token 异常 ${String(e?.message ?? e)}`, loggerCtx);
+            return null;
         }
     }
 }

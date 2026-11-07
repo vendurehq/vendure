@@ -16,6 +16,16 @@ export declare class TimezoneDriftCheck implements OnApplicationBootstrap {
     onApplicationBootstrap(): Promise<void>;
     /** 时区列自检：`timestamp without time zone` 应为 0；发现即 error + 飞书告警，但不阻断启动 */
     private checkLegacyTimestampColumns;
-    /** 复用现有飞书群机器人 webhook（与 FeishuClient 同一通道、同一签名算法）；未配置则静默跳过 */
+    /** tenant_access_token 缓存（提前 5 分钟过期），避免频繁取 token */
+    private static appToken?;
+    /**
+     * 告警通道：webhook 优先（保持原有自定义机器人模式）；
+     * 未配置 webhook 时走自建应用模式（tenant_access_token + 指定 chat_id）。
+     */
     private notifyFeishu;
+    /** 群自定义机器人 webhook（与 FeishuClient 同一签名算法） */
+    private notifyViaWebhook;
+    /** 自建应用模式：tenant_access_token -> im/v1/messages（receive_id_type=chat_id） */
+    private notifyViaApp;
+    private tenantToken;
 }

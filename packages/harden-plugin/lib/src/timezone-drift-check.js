@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var TimezoneDriftCheck_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TimezoneDriftCheck = void 0;
 const node_crypto_1 = require("node:crypto");
@@ -20,6 +21,17 @@ const DRIFT_LIMIT_MS = 60000;
 const MAX_REPORTED_COLUMNS = 20;
 /** 飞书 webhook 推送超时 */
 const FEISHU_TIMEOUT_MS = 5000;
+/** 飞书 API 请求（统一超时；不抛错，由调用方判定成功与否） */
+async function feishuFetch(url, init) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), FEISHU_TIMEOUT_MS);
+    try {
+        return await fetch(url, Object.assign(Object.assign({}, init), { signal: ctrl.signal }));
+    }
+    finally {
+        clearTimeout(timer);
+    }
+}
 /**
  * 启动自检：
  * 1. 数据库 now() 与 Node Date.now() 偏差 > 60 秒打 error。
@@ -30,7 +42,7 @@ const FEISHU_TIMEOUT_MS = 5000;
  *
  * 两条自检都只告警、不抛错、不阻塞启动：新建表当天不能把服务卡死。
  */
-let TimezoneDriftCheck = class TimezoneDriftCheck {
+let TimezoneDriftCheck = TimezoneDriftCheck_1 = class TimezoneDriftCheck {
     constructor(connection) {
         this.connection = connection;
     }
@@ -90,52 +102,127 @@ let TimezoneDriftCheck = class TimezoneDriftCheck {
             core_1.Logger.warn(`时区列自检跳过（无法查询 information_schema）：${String((_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : e)}`, constants_1.loggerCtx);
         }
     }
-    /** 复用现有飞书群机器人 webhook（与 FeishuClient 同一通道、同一签名算法）；未配置则静默跳过 */
+    /**
+     * 告警通道：webhook 优先（保持原有自定义机器人模式）；
+     * 未配置 webhook 时走自建应用模式（tenant_access_token + 指定 chat_id）。
+     */
     async notifyFeishu(text) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g;
+        const enabled = /^(true|1)$/i.test(String((_a = process.env.FEISHU_ENABLED) !== null && _a !== void 0 ? _a : ''));
+        if (!enabled) {
+            core_1.Logger.info('时区列自检告警未发送：FEISHU_ENABLED 未开启', constants_1.loggerCtx);
+            return;
+        }
+        const webhook = (_b = process.env.FEISHU_WEBHOOK) === null || _b === void 0 ? void 0 : _b.trim();
+        if (webhook) {
+            await this.notifyViaWebhook(webhook, text);
+            return;
+        }
+        // 告警专用应用优先；未单独配置时回退到通用 FEISHU_APP_ID/SECRET
+        const appId = (_d = ((_c = process.env.FEISHU_ALERT_APP_ID) !== null && _c !== void 0 ? _c : process.env.FEISHU_APP_ID)) === null || _d === void 0 ? void 0 : _d.trim();
+        const appSecret = (_f = ((_e = process.env.FEISHU_ALERT_APP_SECRET) !== null && _e !== void 0 ? _e : process.env.FEISHU_APP_SECRET)) === null || _f === void 0 ? void 0 : _f.trim();
+        const chatId = (_g = process.env.FEISHU_ALERT_CHAT_ID) === null || _g === void 0 ? void 0 : _g.trim();
+        if (!appId || !appSecret || !chatId) {
+            core_1.Logger.info('时区列自检告警未发送：未配置 FEISHU_WEBHOOK，也缺少 '
+                + 'FEISHU_ALERT_APP_ID/FEISHU_ALERT_APP_SECRET/FEISHU_ALERT_CHAT_ID', constants_1.loggerCtx);
+            return;
+        }
+        await this.notifyViaApp(appId, appSecret, chatId, text);
+    }
+    /** 群自定义机器人 webhook（与 FeishuClient 同一签名算法） */
+    async notifyViaWebhook(webhook, text) {
+        var _a, _b, _c;
         try {
-            const enabled = /^(true|1)$/i.test(String((_a = process.env.FEISHU_ENABLED) !== null && _a !== void 0 ? _a : ''));
-            const webhook = (_b = process.env.FEISHU_WEBHOOK) === null || _b === void 0 ? void 0 : _b.trim();
-            if (!enabled || !webhook) {
-                core_1.Logger.info('时区列自检告警未发送：飞书通道未启用或未配置 FEISHU_WEBHOOK', constants_1.loggerCtx);
-                return;
-            }
-            const secret = (_c = process.env.FEISHU_SECRET) === null || _c === void 0 ? void 0 : _c.trim();
+            const secret = (_a = process.env.FEISHU_SECRET) === null || _a === void 0 ? void 0 : _a.trim();
             const payload = { msg_type: 'text', content: { text } };
             if (secret) {
                 const ts = String(Math.floor(Date.now() / 1000));
                 payload.timestamp = ts;
                 payload.sign = (0, node_crypto_1.createHmac)('sha256', `${ts}\n${secret}`).update('').digest('base64');
             }
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), FEISHU_TIMEOUT_MS);
-            try {
-                const res = await fetch(webhook, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                    body: JSON.stringify(payload),
-                    signal: ctrl.signal,
-                });
-                const json = await res.json().catch(() => null);
-                const code = (_d = json === null || json === void 0 ? void 0 : json.code) !== null && _d !== void 0 ? _d : json === null || json === void 0 ? void 0 : json.StatusCode;
-                if (res.ok && (code === 0 || code === undefined)) {
-                    core_1.Logger.info('时区列自检告警已推送飞书', constants_1.loggerCtx);
-                }
-                else {
-                    core_1.Logger.warn(`时区列自检告警推送失败：HTTP ${res.status}，code=${code !== null && code !== void 0 ? code : 'n/a'}`, constants_1.loggerCtx);
-                }
+            const res = await feishuFetch(webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify(payload),
+            });
+            const json = await res.json().catch(() => null);
+            const code = (_b = json === null || json === void 0 ? void 0 : json.code) !== null && _b !== void 0 ? _b : json === null || json === void 0 ? void 0 : json.StatusCode;
+            if (res.ok && (code === 0 || code === undefined)) {
+                core_1.Logger.info('时区列自检告警已推送飞书（webhook）', constants_1.loggerCtx);
             }
-            finally {
-                clearTimeout(timer);
+            else {
+                core_1.Logger.warn(`时区列自检告警推送失败（webhook）：HTTP ${res.status}，code=${code !== null && code !== void 0 ? code : 'n/a'}`, constants_1.loggerCtx);
             }
         }
         catch (e) {
-            core_1.Logger.warn(`时区列自检告警推送异常：${String((_e = e === null || e === void 0 ? void 0 : e.message) !== null && _e !== void 0 ? _e : e)}`, constants_1.loggerCtx);
+            core_1.Logger.warn(`时区列自检告警推送异常（webhook）：${String((_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e)}`, constants_1.loggerCtx);
+        }
+    }
+    /** 自建应用模式：tenant_access_token -> im/v1/messages（receive_id_type=chat_id） */
+    async notifyViaApp(appId, appSecret, chatId, text) {
+        var _a, _b, _c, _d;
+        try {
+            const token = await this.tenantToken(appId, appSecret);
+            if (!token)
+                return;
+            const res = await feishuFetch('https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    receive_id: chatId,
+                    msg_type: 'text',
+                    content: JSON.stringify({ text }),
+                }),
+            });
+            const json = await res.json().catch(() => null);
+            const code = json === null || json === void 0 ? void 0 : json.code;
+            if (res.ok && code === 0) {
+                core_1.Logger.info(`时区列自检告警已推送飞书（app）message_id=${(_b = (_a = json === null || json === void 0 ? void 0 : json.data) === null || _a === void 0 ? void 0 : _a.message_id) !== null && _b !== void 0 ? _b : 'unknown'}`, constants_1.loggerCtx);
+            }
+            else {
+                core_1.Logger.warn(`时区列自检告警推送失败（app）：HTTP ${res.status}，`
+                    + `code=${code !== null && code !== void 0 ? code : 'n/a'} msg=${(_c = json === null || json === void 0 ? void 0 : json.msg) !== null && _c !== void 0 ? _c : 'n/a'}`, constants_1.loggerCtx);
+            }
+        }
+        catch (e) {
+            core_1.Logger.warn(`时区列自检告警推送异常（app）：${String((_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e)}`, constants_1.loggerCtx);
+        }
+    }
+    async tenantToken(appId, appSecret) {
+        var _a, _b, _c, _d;
+        const cached = TimezoneDriftCheck_1.appToken;
+        if (cached && cached.expiresAt > Date.now())
+            return cached.value;
+        try {
+            const res = await feishuFetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+            });
+            const json = await res.json().catch(() => null);
+            if (!(json === null || json === void 0 ? void 0 : json.tenant_access_token)) {
+                core_1.Logger.warn(`时区列自检告警：获取 tenant_access_token 失败 code=${(_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : 'n/a'} `
+                    + `msg=${(_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : 'n/a'}`, constants_1.loggerCtx);
+                return null;
+            }
+            const ttl = Number((_c = json.expire) !== null && _c !== void 0 ? _c : 7200) * 1000;
+            TimezoneDriftCheck_1.appToken = {
+                value: json.tenant_access_token,
+                expiresAt: Date.now() + ttl - 5 * 60000,
+            };
+            return json.tenant_access_token;
+        }
+        catch (e) {
+            core_1.Logger.warn(`时区列自检告警：获取 tenant_access_token 异常 ${String((_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e)}`, constants_1.loggerCtx);
+            return null;
         }
     }
 };
 exports.TimezoneDriftCheck = TimezoneDriftCheck;
-exports.TimezoneDriftCheck = TimezoneDriftCheck = __decorate([
+exports.TimezoneDriftCheck = TimezoneDriftCheck = TimezoneDriftCheck_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [core_1.TransactionalConnection])
 ], TimezoneDriftCheck);
