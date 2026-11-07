@@ -2,25 +2,67 @@ import { Body, Controller, Get, Inject, Post, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import WxPay from 'wechatpay-node-v3';
 import {
+    Channel,
     Logger,
     Order,
     OrderService,
     ChannelService,
     Payment,
-    PaymentMethodService,
+    PaymentMethod,
     RequestContext,
     RequestContextService,
     TransactionalConnection,
     isGraphQlErrorResult,
 } from '@vendure/core';
 // 断开循环依赖（同 wechatpay-handler.ts 注释）：从叶子模块导入，不经 cjk 主入口
-import { findChannelByDomain } from '@vendure/cjk-plugin/lib/src/tenant/domain-resolver.service';
 import { getPaymentOverride } from '@vendure/cjk-plugin/lib/src/payment/payment-config';
 import type { WechatpayCredentials } from '@vendure/cjk-plugin';
 
 import { WECHATPAY_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { WechatpayPluginOptions } from './types';
 import { WechatpaySettlementRegistry } from './wechatpay-settlement';
+
+/** 回调解密后的最小字段集（仅用于类型约束，不做业务透传） */
+interface DecryptedNotify {
+    out_trade_no?: string;
+    transaction_id?: string;
+    appid?: string;
+    mchid?: string;
+    attach?: string;
+    trade_state?: string;
+    amount?: { total?: number; currency?: string; payer_total?: number };
+}
+
+/** 一条可用于回调验签解密的商户凭证。
+ *  来源二选一：渠道 payConfig 覆盖（channelOverride）或界面上配置的 PaymentMethod（paymentMethod）。
+ *  凭证只用于内存中试解，绝不写日志。 */
+interface NotifyCredential {
+    channelId: number;
+    source: 'channelOverride' | 'paymentMethod';
+    methodCode?: string;
+    appId: string;
+    mchId: string;
+    apiKey: string;
+    publicKey: string;
+    privateKey: string;
+    serialNo: string;
+}
+
+interface NotifyMatch {
+    credential: NotifyCredential;
+    decrypted: DecryptedNotify;
+}
+
+/** 可预期的回调拒绝：统一映射到微信可识别的失败响应 + 结构化日志 */
+class NotifyReject extends Error {
+    constructor(
+        readonly reason: string,
+        readonly status = 500,
+        readonly fields: Record<string, unknown> = {},
+    ) {
+        super(reason);
+    }
+}
 
 @Controller('wechatpay')
 export class WechatpayController {
@@ -29,19 +71,11 @@ export class WechatpayController {
         private orderService: OrderService,
         private channelService: ChannelService,
         private connection: TransactionalConnection,
-        private paymentMethodService: PaymentMethodService,
         private requestContextService: RequestContextService,
         private settlementRegistry: WechatpaySettlementRegistry,
     ) {}
 
-    /** 回调请求所属租户的 ctx：按请求域名（渠道 customFields.customDomains）解析，
-     *  解析不到回退默认渠道，兼容历史单店部署。
-     *  验签/解密/结算必须用「下单时那个租户」的商户凭证，否则 apiKey 不匹配解不开密。 */
-    private async callbackCtx(req: Request): Promise<RequestContext> {
-        const host = req.hostname || (req.headers.host as string) || '';
-        const channel =
-            (await findChannelByDomain(this.channelService, host)) ??
-            (await this.channelService.getDefaultChannel());
+    private ctxFor(channel: Channel): RequestContext {
         return new RequestContext({
             apiType: 'admin',
             channel,
@@ -50,20 +84,198 @@ export class WechatpayController {
         });
     }
 
-    /** 结算路由：非订单前缀（如 RC-）交给注册的结算器，否则默认结 Vendure Order。
+    /** 回调结构化日志：单行 JSON，禁止输出私钥/apiKey/密文 */
+    private logNotify(
+        level: 'info' | 'warn' | 'error',
+        reason: string,
+        fields: Record<string, unknown>,
+    ): void {
+        const payload = JSON.stringify({ scope: 'wechatpay.notify', reason, ...fields });
+        if (level === 'error') {
+            Logger.error(payload, loggerCtx);
+        } else if (level === 'warn') {
+            Logger.warn(payload, loggerCtx);
+        } else {
+            Logger.info(payload, loggerCtx);
+        }
+    }
+
+    /**
+     * 收集所有可用商户凭证（与域名无关）。
+     * 微信 v3 回调的 out_trade_no 在密文里，解密前无法反查订单，
+     * 故先枚举凭证并用 GCM 认证做鉴别（错误密钥必然解密失败），
+     * 解密成功后再用 out_trade_no 反查 order → channel 做最终裁决。
+     */
+    private async collectCredentials(baseCtx: RequestContext): Promise<NotifyCredential[]> {
+        const out: NotifyCredential[] = [];
+
+        // 1) 渠道级覆盖：channel.customFields.payConfig.wechatpayJson
+        const channels = await this.connection.getRepository(baseCtx, Channel).find();
+        for (const channel of channels) {
+            const override = getPaymentOverride(this.ctxFor(channel), 'wechatpay') as
+                | WechatpayCredentials
+                | null;
+            if (!override?.apiKey || !override.appId || !override.mchId) continue;
+            out.push({
+                channelId: Number(channel.id),
+                source: 'channelOverride',
+                appId: override.appId,
+                mchId: override.mchId,
+                apiKey: override.apiKey,
+                publicKey: override.publicKey || '',
+                privateKey: override.privateKey || '',
+                serialNo: override.serialNo || '',
+            });
+        }
+
+        // 2) PaymentMethod 级凭证：handler.args 里的商户参数 + 其绑定渠道
+        const methods = await this.connection
+            .getRepository(baseCtx, PaymentMethod)
+            .find({ relations: ['channels'] });
+        for (const pm of methods) {
+            let handler: any = pm.handler;
+            if (typeof handler === 'string') {
+                try {
+                    handler = JSON.parse(handler);
+                } catch {
+                    continue;
+                }
+            }
+            if (!String(handler?.code ?? '').includes('wechat')) continue;
+            const args: Array<{ name: string; value: string }> = handler?.args ?? [];
+            const getArg = (name: string) => args.find(a => a.name === name)?.value || '';
+            const appId = getArg('appId');
+            const mchId = getArg('mchId');
+            const apiKey = getArg('apiKey');
+            if (!appId || !mchId || !apiKey) continue;
+            const isWechatHandler = handler.code === 'wechatpay';
+            if (!isWechatHandler) continue;
+            for (const channel of pm.channels ?? []) {
+                out.push({
+                    channelId: Number(channel.id),
+                    source: 'paymentMethod',
+                    methodCode: pm.code,
+                    appId,
+                    mchId,
+                    apiKey,
+                    publicKey: getArg('publicKey'),
+                    privateKey: getArg('privateKey'),
+                    serialNo: getArg('serialNo'),
+                });
+            }
+        }
+
+        // 去重（同一渠道同一套凭证只试一次）
+        const seen = new Set<string>();
+        return out.filter(c => {
+            const key = [c.channelId, c.source, c.methodCode ?? '', c.appId, c.mchId, c.serialNo].join('|');
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    private buildWxPay(cred: NotifyCredential): WxPay {
+        return new WxPay({
+            appid: cred.appId,
+            mchid: cred.mchId,
+            publicKey: Buffer.from(cred.publicKey),
+            privateKey: Buffer.from(cred.privateKey),
+            key: cred.apiKey,
+            serial_no: cred.serialNo,
+        });
+    }
+
+    /**
+     * 由 out_trade_no 反查渠道（不做任何 Host 解析）。
+     * 结算类前缀（CS-/BP- 等）优先走注册器；否则按全局订单号查 order.channels，
+     * 并与「凭证试解成功的渠道集合」取交集，交集为空即拒绝（防跨渠道结算）。
+     */
+    private async resolveChannelForOutTradeNo(
+        baseCtx: RequestContext,
+        outTradeNo: string,
+        matchedChannelIds: number[],
+    ): Promise<Channel> {
+        const uniqueMatched = Array.from(new Set(matchedChannelIds));
+        const settlement = this.settlementRegistry.find(outTradeNo);
+
+        if (settlement) {
+            if (uniqueMatched.length !== 1) {
+                throw new NotifyReject('AMBIGUOUS_CHANNEL', 500, {
+                    outTradeNo,
+                    registryPrefix: settlement.prefix,
+                    matchedChannelIds: uniqueMatched,
+                });
+            }
+            const channel = await this.channelService.findOne(baseCtx, uniqueMatched[0]);
+            if (!channel) {
+                throw new NotifyReject('CHANNEL_NOT_FOUND', 500, {
+                    outTradeNo,
+                    matchedChannelIds: uniqueMatched,
+                });
+            }
+            return channel;
+        }
+
+        const order = await this.connection.getRepository(baseCtx, Order).findOne({
+            where: { code: outTradeNo },
+            relations: ['channels'],
+        });
+        if (!order) {
+            throw new NotifyReject('ORDER_NOT_FOUND', 500, {
+                outTradeNo,
+                matchedChannelIds: uniqueMatched,
+            });
+        }
+        const orderChannels = order.channels ?? [];
+        const orderChannelIds = orderChannels.map(c => Number(c.id));
+        const intersection = orderChannels.filter(c => uniqueMatched.includes(Number(c.id)));
+        if (intersection.length === 0) {
+            throw new NotifyReject('CHANNEL_MISMATCH', 500, {
+                outTradeNo,
+                matchedChannelIds: uniqueMatched,
+                orderChannelIds,
+            });
+        }
+        if (intersection.length > 1) {
+            // 订单同时挂多个渠道且这些渠道凭证都能解密（共享商户号）：无法唯一判定时不冒险结算
+            throw new NotifyReject('AMBIGUOUS_CHANNEL', 500, {
+                outTradeNo,
+                matchedChannelIds: uniqueMatched,
+                orderChannelIds,
+            });
+        }
+        return intersection[0];
+    }
+
+    /** 仅用于 dev 端点：按订单号取所属渠道 ctx（回调正式路径不用） */
+    private async resolveOrderChannelCtx(
+        baseCtx: RequestContext,
+        outTradeNo: string,
+    ): Promise<RequestContext | null> {
+        const order = await this.connection.getRepository(baseCtx, Order).findOne({
+            where: { code: outTradeNo },
+            relations: ['channels'],
+        });
+        const channel = order?.channels?.[0];
+        return channel ? this.ctxFor(channel) : null;
+    }
+
+    /** 结算路由：非订单前缀（如 CS-/BP-）交给注册的结算器，否则默认结 Vendite Order。
      *  expectedAmountCents：微信回调解密出的金额（分），用于与 Authorized 支付金额比对。 */
     private async routeSettlement(
         ctx: RequestContext,
         outTradeNo: string,
         transactionId: string,
         expectedAmountCents?: number,
+        trace: Record<string, unknown> = {},
     ): Promise<void> {
         const settlement = this.settlementRegistry.find(outTradeNo);
         if (settlement) {
             await settlement.settle(ctx, outTradeNo, transactionId);
             return;
         }
-        await this.settleOrderPayment(ctx, outTradeNo, expectedAmountCents);
+        await this.settleOrderPayment(ctx, outTradeNo, expectedAmountCents, trace);
     }
 
     /**
@@ -77,36 +289,15 @@ export class WechatpayController {
         ctx: RequestContext,
         orderCode: string,
         expectedAmountCents?: number,
+        trace: Record<string, unknown> = {},
     ): Promise<void> {
-        // 回调域名解析出的渠道未必是下单渠道（如 t1 站点回调落 www.youshop.cn 时回退默认渠道），
-        // 而 OrderService.findOne 会按 ctx 渠道过滤 → 查不到单，微信已扣款却不结单。
-        // 故先全局按 code 取单和它所属渠道，再切到该渠道 ctx 去查单/结算。
-        const base = await this.connection.getRepository(ctx, Order).findOne({
-            where: { code: orderCode },
-            relations: ['channels'],
-        });
-        if (!base) {
-            Logger.error(`settleOrderPayment: order ${orderCode} not found (any channel)`, loggerCtx);
-            throw new Error(`order ${orderCode} not found`);
-        }
-        const orderChannel =
-            base.channels?.find(c => Number(c.id) === Number(ctx.channelId)) ?? base.channels?.[0];
-        const orderCtx =
-            orderChannel && Number(orderChannel.id) !== Number(ctx.channelId)
-                ? new RequestContext({
-                      apiType: 'admin',
-                      channel: orderChannel,
-                      isAuthorized: true,
-                      authorizedAsOwnerOnly: false,
-                  })
-                : ctx;
-        const order = await this.orderService.findOneByCode(orderCtx, orderCode, ['payments']);
+        const order = await this.orderService.findOneByCode(ctx, orderCode, ['payments']);
         if (!order) {
-            Logger.error(
-                `settleOrderPayment: order ${orderCode} not found in channel ${orderCtx.channelId}`,
-                loggerCtx,
-            );
-            throw new Error(`order ${orderCode} not found in channel ${orderCtx.channelId}`);
+            throw new NotifyReject('ORDER_NOT_FOUND', 500, {
+                ...trace,
+                orderCode,
+                channelId: Number(ctx.channelId),
+            });
         }
         const payments = order.payments || [];
         const authorized = payments.filter(p => p.state === 'Authorized');
@@ -114,10 +305,13 @@ export class WechatpayController {
         // 不能因无 Authorized 支付而误判失败、导致平台无限重投）
         if (expectedAmountCents != undefined && authorized.length > 0) {
             if (!authorized.some(p => Number(p.amount) === expectedAmountCents)) {
-                const amounts = authorized.map(p => `${p.id}:${p.amount}`).join(', ');
-                throw new Error(
-                    `amount mismatch for order ${orderCode}: notify=${expectedAmountCents}, authorized=[${amounts}]`,
-                );
+                throw new NotifyReject('AMOUNT_MISMATCH', 500, {
+                    ...trace,
+                    orderCode,
+                    channelId: Number(ctx.channelId),
+                    notifyAmount: expectedAmountCents,
+                    authorizedPayments: authorized.map(p => ({ paymentId: p.id, amount: p.amount })),
+                });
             }
         }
         let settledCount = 0;
@@ -126,92 +320,55 @@ export class WechatpayController {
             if (payment.state !== 'Authorized') {
                 continue;
             }
-            const result = await this.orderService.settlePayment(orderCtx, payment.id);
+            const result = await this.orderService.settlePayment(ctx, payment.id);
             if (isGraphQlErrorResult(result)) {
                 // 并发重复通知：另一路已抢先结算成功时重查状态，已 Settled 视为幂等成功
                 const fresh = await this.connection
-                    .getRepository(orderCtx, Payment)
+                    .getRepository(ctx, Payment)
                     .findOne({ where: { id: payment.id } });
                 if (fresh?.state === 'Settled') {
-                    Logger.info(
-                        `Payment ${payment.id} already settled by concurrent notify, skip (outTradeNo=${orderCode})`,
-                        loggerCtx,
-                    );
+                    this.logNotify('info', 'ALREADY_SETTLED', {
+                        ...trace,
+                        orderCode,
+                        channelId: Number(ctx.channelId),
+                        paymentId: payment.id,
+                    });
                     continue;
                 }
-                throw new Error(
-                    `settlePayment failed for order ${orderCode} payment ${payment.id}: ${result.message}`,
-                );
+                throw new NotifyReject('SETTLE_FAILED', 500, {
+                    ...trace,
+                    orderCode,
+                    channelId: Number(ctx.channelId),
+                    paymentId: payment.id,
+                    detail: result.message,
+                });
             }
             settledCount++;
-            Logger.info(`Settled payment ${payment.id} for order ${orderCode}`, loggerCtx);
+            this.logNotify('info', 'PAYMENT_SETTLED', {
+                ...trace,
+                orderCode,
+                channelId: Number(ctx.channelId),
+                paymentId: payment.id,
+            });
         }
         if (settledCount === 0) {
-            Logger.info(
-                `No Authorized payment to settle for order ${orderCode} (idempotent skip)`,
-                loggerCtx,
-            );
+            this.logNotify('info', 'NO_AUTHORIZED_PAYMENT', {
+                ...trace,
+                orderCode,
+                channelId: Number(ctx.channelId),
+                payments: payments.map(p => ({ paymentId: p.id, state: p.state })),
+            });
         }
-    }
-
-    /**
-     * 构造 WxPay 实例用于通知回调中验签解密。
-     * 凭证路由（分端分支付方案）：
-     * 1. Host 命中 options.callbackMethodMap → 直接用该 PaymentMethod 的 args
-     *    （同一 Host 下多个 method 共用商户时 apiKey 相同，任取其一即可解密验签）
-     * 2. 未命中 → 渠道 override（payConfig.wechatpayJson）+ code='wechatpay' 的 PaymentMethod args
-     */
-    private async buildWxPay(ctx: RequestContext, host: string): Promise<{
-        pay: WxPay;
-        apiKey: string;
-        appId: string;
-        mchId: string;
-    }> {
-        const mapCode = this.options?.callbackMethodMap?.[host];
-        const pms = await this.paymentMethodService.findAll(ctx);
-        const mapped = mapCode ? pms.items.find(p => p.code === mapCode) : undefined;
-        const mappedApiKey = mapped?.handler?.args?.find(a => a.name === 'apiKey')?.value || '';
-        // 映射到的方法若没有商户凭证（如仅作占位、未填 key 的 wechatpay-xxx），不能只用它验签：
-        // apiKey 为空会让验签恒失败、回调 401（微信重试后仍失败 → 已付款但不结单/不发券）。
-        // 此时回退到「渠道 override + wechatpay」这条既有主链。
-        const useMapped = !!mapped && !!mappedApiKey;
-        let override: WechatpayCredentials | null = null;
-        let methodCode = 'wechatpay';
-        if (useMapped) {
-            methodCode = mapCode as string;
-        } else {
-            override = getPaymentOverride(ctx, 'wechatpay') as WechatpayCredentials | null;
-            if (mapCode && !useMapped) {
-                Logger.warn(
-                    `callbackMethodMap[${host}]=${mapCode} 缺少商户凭证，回退 wechatpay 验签`,
-                    loggerCtx,
-                );
-            }
-        }
-        const pm = pms.items.find(p => p.code === methodCode);
-        const args = pm?.handler?.args || [];
-        const getArg = (name: string) => args.find(a => a.name === name)?.value || '';
-        const apiKey = override?.apiKey || getArg('apiKey');
-        const appId = override?.appId || getArg('appId');
-        const mchId = override?.mchId || getArg('mchId');
-
-        const pay = new WxPay({
-            appid: appId,
-            mchid: mchId,
-            publicKey: Buffer.from(override?.publicKey || getArg('publicKey')),
-            privateKey: Buffer.from(override?.privateKey || getArg('privateKey')),
-            key: apiKey,
-            serial_no: override?.serialNo || getArg('serialNo'),
-        });
-
-        return { pay, apiKey, appId, mchId };
     }
 
     /**
      * 生产环境：V3 通知验签 + AES-GCM 解密
+     * 渠道归属完全由报文内的 out_trade_no 决定（凭证试解 → 订单反查），与回调域名无关。
      */
     @Post('notify')
     async notify(@Req() req: Request, @Res() res: Response, @Body() body: any) {
+        const notifyId = body?.id;
+        const eventType = body?.event_type;
         try {
             const {
                 'wechatpay-timestamp': timestamp,
@@ -224,66 +381,127 @@ export class WechatpayController {
             if (!resource) {
                 return res.status(400).json({ code: 'FAIL', message: 'missing resource' });
             }
-
-            const ctx = await this.callbackCtx(req);
-            const host = req.hostname || (req.headers.host as string) || '';
-            const { pay, apiKey, appId, mchId } = await this.buildWxPay(ctx, host);
-
-            // 1. 验签（verifySign 返回 Promise，必须 await，否则恒为真 = 验签失效）
-            const bodyStr = JSON.stringify(body);
-            const verified = await pay.verifySign({
-                timestamp,
-                nonce,
-                body: bodyStr,
-                serial,
-                signature,
-                apiSecret: apiKey,
-            });
-            if (!verified) {
-                Logger.warn('WeChat Pay notify signature verification failed', loggerCtx);
-                return res.status(401).json({ code: 'FAIL', message: '签名验证失败' });
+            if (!timestamp || !nonce || !signature || !serial) {
+                this.logNotify('warn', 'MISSING_SIGNATURE_HEADERS', { notifyId, eventType });
+                return res.status(400).json({ code: 'FAIL', message: 'missing signature headers' });
             }
 
-            // 2. AES-GCM 解密
-            const decrypted = pay.decipher_gcm(
-                resource.ciphertext,
-                resource.associated_data,
-                resource.nonce,
-            ) as {
-                out_trade_no?: string;
-                transaction_id?: string;
-                appid?: string;
-                mchid?: string;
-                amount?: { total?: number; currency?: string };
-            };
+            // 微信验签基于原始报文字节；Nest rawBody 未开启时回退到 JSON.stringify（可能因空白差异失败）
+            const rawBody: Buffer | undefined = (req as any).rawBody;
+            if (!rawBody) {
+                this.logNotify('warn', 'RAW_BODY_FALLBACK', { notifyId, eventType });
+            }
+            const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : JSON.stringify(body);
+
+            const baseCtx = await this.requestContextService.create({ apiType: 'admin' });
+            const credentials = await this.collectCredentials(baseCtx);
+
+            // 逐凭证试验签 + 试解密：GCM 认证标签让错误密钥必然失败，可作为天然鉴别器
+            const matches: NotifyMatch[] = [];
+            for (const credential of credentials) {
+                const pay = this.buildWxPay(credential);
+                let verified = false;
+                try {
+                    verified = await pay.verifySign({
+                        timestamp,
+                        nonce,
+                        body: bodyStr,
+                        serial,
+                        signature,
+                        apiSecret: credential.apiKey,
+                    });
+                } catch {
+                    verified = false;
+                }
+                if (!verified) continue;
+
+                let decrypted: DecryptedNotify;
+                try {
+                    decrypted = pay.decipher_gcm(
+                        resource.ciphertext,
+                        resource.associated_data,
+                        resource.nonce,
+                    ) as DecryptedNotify;
+                } catch {
+                    continue;
+                }
+                // 商户归属校验：报文 appid/mchid 必须与该渠道凭证一致
+                if (decrypted?.appid && decrypted.appid !== credential.appId) continue;
+                if (decrypted?.mchid && decrypted.mchid !== credential.mchId) continue;
+                matches.push({ credential, decrypted });
+            }
+
+            if (matches.length === 0) {
+                this.logNotify('error', 'NO_CREDENTIAL_MATCH', {
+                    notifyId,
+                    eventType,
+                    platformSerial: serial,
+                    candidateCount: credentials.length,
+                });
+                return res.status(401).json({ code: 'FAIL', message: 'NO_CREDENTIAL_MATCH' });
+            }
+
+            const decrypted = matches[0].decrypted;
             const outTradeNo = decrypted?.out_trade_no;
-            const transactionId = decrypted?.transaction_id;
+            const transactionId = decrypted?.transaction_id || '';
+            const matchedChannelIds = matches.map(m => m.credential.channelId);
+            const trace = { notifyId, outTradeNo, transactionId };
 
-            Logger.info(
-                `WeChat Pay trade success: ${outTradeNo}, txId: ${transactionId}`,
-                loggerCtx,
-            );
-
-            // 3. 处理支付结果
-            if (body?.event_type === 'TRANSACTION.SUCCESS' && outTradeNo) {
-                // 商户归属校验：通知的 appid/mchid 必须与验签所用凭证一致
-                if ((decrypted.appid && decrypted.appid !== appId) ||
-                    (decrypted.mchid && decrypted.mchid !== mchId)) {
-                    throw new Error(
-                        `merchant mismatch for ${outTradeNo}: appid=${String(decrypted.appid)}/${appId}, mchid=${String(decrypted.mchid)}/${mchId}`,
-                    );
-                }
-                const amountTotal = decrypted.amount?.total;
-                if (typeof amountTotal !== 'number' || !Number.isFinite(amountTotal)) {
-                    throw new Error(`missing amount in wechat notify for ${outTradeNo}`);
-                }
-                await this.routeSettlement(ctx, outTradeNo, transactionId || '', amountTotal);
+            if (!outTradeNo) {
+                throw new NotifyReject('MISSING_OUT_TRADE_NO', 500, { notifyId, eventType });
             }
+
+            // 非支付成功事件（退款等）仅确认收到，不做结算
+            if (eventType !== 'TRANSACTION.SUCCESS') {
+                this.logNotify('info', 'IGNORED_EVENT', { ...trace, eventType, matchedChannelIds });
+                return res.status(200).json({ code: 'SUCCESS', message: 'OK' });
+            }
+            if (decrypted.trade_state && decrypted.trade_state !== 'SUCCESS') {
+                this.logNotify('info', 'NON_SUCCESS_TRADE_STATE', {
+                    ...trace,
+                    eventType,
+                    tradeState: decrypted.trade_state,
+                    matchedChannelIds,
+                });
+                return res.status(200).json({ code: 'SUCCESS', message: 'OK' });
+            }
+
+            const amountTotal = decrypted.amount?.total;
+            if (typeof amountTotal !== 'number' || !Number.isFinite(amountTotal)) {
+                throw new NotifyReject('MISSING_AMOUNT', 500, { ...trace, eventType });
+            }
+            if (decrypted.amount?.currency && decrypted.amount.currency !== 'CNY') {
+                throw new NotifyReject('CURRENCY_MISMATCH', 500, {
+                    ...trace,
+                    currency: decrypted.amount.currency,
+                });
+            }
+
+            const channel = await this.resolveChannelForOutTradeNo(baseCtx, outTradeNo, matchedChannelIds);
+            const ctx = this.ctxFor(channel);
+            this.logNotify('info', 'RESOLVED', {
+                ...trace,
+                eventType,
+                channelId: Number(channel.id),
+                matchedChannelIds,
+                source: matches[0].credential.source,
+                methodCode: matches[0].credential.methodCode,
+                amount: amountTotal,
+            });
+
+            await this.routeSettlement(ctx, outTradeNo, transactionId, amountTotal, {
+                ...trace,
+                channelId: Number(channel.id),
+            });
 
             res.status(200).json({ code: 'SUCCESS', message: 'OK' });
         } catch (e: any) {
-            Logger.error(`WeChat Pay notify error: ${e.message}`, loggerCtx);
-            res.status(500).json({ code: 'FAIL', message: e.message });
+            if (e instanceof NotifyReject) {
+                this.logNotify('error', e.reason, { notifyId, eventType, ...e.fields });
+                return res.status(e.status).json({ code: 'FAIL', message: e.reason });
+            }
+            this.logNotify('error', 'INTERNAL_ERROR', { notifyId, eventType, detail: e?.message });
+            return res.status(500).json({ code: 'FAIL', message: e?.message ?? 'ERROR' });
         }
     }
 
@@ -353,11 +571,18 @@ export class WechatpayController {
             if (!outTradeNo) {
                 return res.status(400).json({ code: 'FAIL', message: 'missing outTradeNo' });
             }
-            await this.routeSettlement(await this.callbackCtx(req), outTradeNo, 'DEV-TX');
+            const baseCtx = await this.requestContextService.create({ apiType: 'admin' });
+            // dev 端点同样按订单反查渠道，保持与正式回调一致的渠道语义
+            const ctx = (await this.resolveOrderChannelCtx(baseCtx, outTradeNo)) ?? baseCtx;
+            await this.routeSettlement(ctx, outTradeNo, 'DEV-TX');
             res.status(200).json({ code: 'SUCCESS', message: 'OK' });
         } catch (e: any) {
-            Logger.error(`WeChat Pay dev-notify error: ${e.message}`, loggerCtx);
-            res.status(500).json({ code: 'FAIL', message: e.message });
+            if (e instanceof NotifyReject) {
+                this.logNotify('error', e.reason, { outTradeNo, ...e.fields });
+                return res.status(500).json({ code: 'FAIL', message: e.reason });
+            }
+            this.logNotify('error', 'DEV_NOTIFY_ERROR', { outTradeNo, detail: e?.message });
+            res.status(500).json({ code: 'FAIL', message: e?.message });
         }
     }
 }

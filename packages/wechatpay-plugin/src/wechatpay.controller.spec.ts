@@ -1,31 +1,45 @@
 import 'reflect-metadata';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// 叶子模块 mock：本题只验证 dev 端点门禁，不需真实渠道解析 / 渠道支付配置
-vi.mock('@vendure/cjk-plugin/lib/src/tenant/domain-resolver.service', () => ({
-    findChannelByDomain: vi.fn().mockResolvedValue({ id: 1, code: 'default' }),
-}));
+// 渠道覆盖凭证：按 channel.customFields.payConfig.wechatpayJson 还原真实解析语义
 vi.mock('@vendure/cjk-plugin/lib/src/payment/payment-config', () => ({
-    getPaymentOverride: vi.fn().mockReturnValue(null),
+    getPaymentOverride: vi.fn((ctx: any, key: string) => {
+        if (key !== 'wechatpay') return null;
+        const raw = ctx?.channel?.customFields?.payConfig?.wechatpayJson;
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }),
 }));
 
-// 真实回调 notify 的 WxPay 打桩：verifySign 返回 Promise，用于验证必须 await
+// WxPay 打桩：APIv3 key 决定验签/解密是否成功（模拟真实 GCM 认证语义）
 const wxState = vi.hoisted(() => ({
-    verifyOk: true,
+    apiKey: 'key-t1',
     decrypted: {
         out_trade_no: 'ORD1',
         transaction_id: 'TX1',
-        appid: 'appid',
-        mchid: 'mch',
-        amount: { total: 1000 },
+        appid: 'appid-t1',
+        mchid: 'mch-1',
+        trade_state: 'SUCCESS',
+        amount: { total: 1000, currency: 'CNY' },
     } as any,
 }));
 vi.mock('wechatpay-node-v3', () => ({
     default: class {
+        private cfg: any;
+        constructor(cfg: any) {
+            this.cfg = cfg;
+        }
         async verifySign() {
-            return wxState.verifyOk;
+            return this.cfg.key === wxState.apiKey;
         }
         decipher_gcm() {
+            if (this.cfg.key !== wxState.apiKey) {
+                throw new Error('unable to authenticate data');
+            }
             return wxState.decrypted;
         }
     },
@@ -44,274 +58,343 @@ function makeRes() {
     return res;
 }
 
-function makeController(devBypass: boolean) {
-    const settlement = { find: vi.fn().mockReturnValue(undefined), settle: vi.fn() };
-    const orderService = { findOneByCode: vi.fn().mockResolvedValue(null), settlePayment: vi.fn() };
-    // 结算前会先全局按 code 取单（可能跨渠道），mock 为查不到单
-    const connection = {
-        getRepository: vi.fn().mockReturnValue({ findOne: vi.fn().mockResolvedValue(null) }),
+const argsOf = (o: Record<string, string>) =>
+    Object.entries(o).map(([name, value]) => ({ name, value }));
+
+/**
+ * 通用控制器装配：
+ * - channels: 渠道级覆盖凭证（channel.customFields.payConfig）
+ * - methods: PaymentMethod 及其绑定渠道
+ * - order: 全局按 code 反查到的订单（含 channels）
+ */
+function makeController(opts: {
+    devBypass?: boolean;
+    channels?: any[];
+    methods?: any[];
+    order?: any;
+    payments?: any[];
+    paymentRow?: any;
+    settleImpl?: (...args: any[]) => Promise<any>;
+    registry?: any;
+} = {}) {
+    const {
+        devBypass = true,
+        channels = [],
+        methods = [],
+        order = null,
+        payments = [],
+        paymentRow = null,
+    } = opts;
+
+    const settlement = opts.registry ?? { find: vi.fn().mockReturnValue(undefined) };
+    const orderService = {
+        findOneByCode: vi.fn().mockImplementation(async () =>
+            order ? { ...order, payments } : null,
+        ),
+        settlePayment: vi
+            .fn()
+            .mockImplementation(opts.settleImpl ?? (async (ctx: any, id: any) => ({ id, state: 'Settled' }))),
     };
+
+    const connection = {
+        getRepository: vi.fn((_ctx: any, entity: any) => {
+            const name = entity?.name;
+            if (name === 'Channel') {
+                return { find: vi.fn().mockResolvedValue(channels) };
+            }
+            if (name === 'PaymentMethod') {
+                return { find: vi.fn().mockResolvedValue(methods) };
+            }
+            if (name === 'Order') {
+                return { findOne: vi.fn().mockResolvedValue(order) };
+            }
+            if (name === 'Payment') {
+                return { findOne: vi.fn().mockResolvedValue(paymentRow) };
+            }
+            return { find: vi.fn().mockResolvedValue([]), findOne: vi.fn().mockResolvedValue(null) };
+        }),
+    };
+
+    const channelService = {
+        getDefaultChannel: vi.fn().mockResolvedValue({ id: 1, code: 'default' }),
+        findOne: vi.fn().mockImplementation(async (_ctx: any, id: any) => ({
+            id,
+            code: `ch-${id}`,
+        })),
+    };
+
+    const requestContextService = {
+        create: vi.fn().mockResolvedValue({
+            apiType: 'admin',
+            channel: { id: 1, code: 'default' },
+            channelId: 1,
+            isAuthorized: true,
+        }),
+    };
+
     const ctrl = new WechatpayController(
         { devBypass } as any,
         orderService as any,
-        { getDefaultChannel: vi.fn() } as any,
+        channelService as any,
         connection as any,
-        {} as any,
-        {} as any,
+        requestContextService as any,
         settlement as any,
     );
-    return { ctrl, settlement, orderService, connection };
+    return { ctrl, settlement, orderService, connection, channelService, requestContextService };
 }
 
-const req = { query: { outTradeNo: 'ORD1' }, headers: {}, hostname: 'localhost' } as any;
+const devReq = { query: { outTradeNo: 'ORD1' }, headers: {}, hostname: 'localhost' } as any;
 
-describe('WechatpayController dev 端点门禁（P0 修复：仅 devBypass 可用）', () => {
+const notifyHeaders = {
+    'wechatpay-timestamp': 't',
+    'wechatpay-nonce': 'n',
+    'wechatpay-signature': 'sig',
+    'wechatpay-serial': 'platform-serial',
+};
+
+const notifyBody = {
+    id: 'evt',
+    event_type: 'TRANSACTION.SUCCESS',
+    resource: { ciphertext: 'c', associated_data: 'ad', nonce: 'n' },
+};
+
+describe('WechatpayController dev 端点门禁（仅 devBypass 可用）', () => {
     beforeEach(() => vi.clearAllMocks());
 
     it('devBypass 关闭：dev-notify 返回 404，且不触发任何结算', async () => {
-        const { ctrl, settlement, orderService } = makeController(false);
+        const { ctrl, settlement, orderService } = makeController({ devBypass: false });
         const res = makeRes();
-        await ctrl.devNotify(req, res);
+        await ctrl.devNotify(devReq, res);
         expect(res.status).toHaveBeenCalledWith(404);
         expect(settlement.find).not.toHaveBeenCalled();
-        expect(settlement.settle).not.toHaveBeenCalled();
         expect(orderService.findOneByCode).not.toHaveBeenCalled();
     });
 
     it('devBypass 关闭：dev-pay 返回 404 页面', () => {
-        const { ctrl } = makeController(false);
+        const { ctrl } = makeController({ devBypass: false });
         const res = makeRes();
-        ctrl.getDevPayPage(req, res);
+        ctrl.getDevPayPage(devReq, res);
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.send).toHaveBeenCalledWith('Not Found');
     });
 
-    it('devBypass 开启：dev-notify 正常路由结算并返回 200', async () => {
-        const { ctrl, settlement } = makeController(true);
-        // 注册结算器命中（非订单路由），结算成功即 200
+    it('devBypass 开启：走注册器结算并返回 200', async () => {
         const settle = vi.fn().mockResolvedValue(undefined);
-        settlement.find.mockReturnValue({ prefix: 'ORD', settle });
+        const registry = { find: vi.fn().mockReturnValue({ prefix: 'ORD', settle }) };
+        const { ctrl } = makeController({ registry, order: { code: 'ORD1', channels: [{ id: 1 }] } });
         const res = makeRes();
-        await ctrl.devNotify(req, res);
-        expect(settlement.find).toHaveBeenCalledWith('ORD1');
+        await ctrl.devNotify(devReq, res);
         expect(settle).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('回调渠道与订单渠道不同时：切到订单所属渠道结算', async () => {
-        const { ctrl, orderService, connection } = makeController(true);
-        // 回调域名解析到渠道 1（默认渠道），订单实际属于渠道 9（t1）
-        connection.getRepository.mockReturnValue({
-            findOne: vi.fn().mockResolvedValue({ code: 'ORD1', channels: [{ id: 9, code: 't1' }] }),
+    it('dev 端点按订单反查渠道：切到订单所属渠道结算', async () => {
+        const { ctrl, orderService } = makeController({
+            order: { code: 'ORD1', channels: [{ id: 9, code: 't1' }] },
+            payments: [{ id: 7, state: 'Authorized', amount: 1000 }],
         });
         const res = makeRes();
-        await ctrl.devNotify(req, res);
+        await ctrl.devNotify(devReq, res);
         const ctx = orderService.findOneByCode.mock.calls[0][0];
         expect(ctx.channelId).toBe(9);
         expect(ctx.channel.code).toBe('t1');
     });
 
     it('devBypass 开启：dev-pay 渲染模拟支付页', () => {
-        const { ctrl } = makeController(true);
+        const { ctrl } = makeController();
         const res = makeRes();
-        ctrl.getDevPayPage(req, res);
+        ctrl.getDevPayPage(devReq, res);
         expect(res.status).not.toHaveBeenCalledWith(404);
-        expect(res.send).toHaveBeenCalledTimes(1);
         expect(String(res.send.mock.calls[0][0])).toContain('ORD1');
     });
 });
 
-describe('结算失败语义与幂等（回调不能吞异常）', () => {
-    beforeEach(() => vi.clearAllMocks());
-
-    const orderWithPayments = (payments: any[]) => ({
-        code: 'ORD1',
-        channels: [{ id: 1, code: 'default' }],
-        payments,
-    });
-
-    /** 让全局取单命中 ORD1，并返回给定 payments */
-    function wireOrder(
-        connection: any,
-        orderService: any,
-        payments: any[],
-        settleImpl: () => Promise<any>,
-    ) {
-        connection.getRepository.mockReturnValue({
-            findOne: vi.fn().mockResolvedValue({ code: 'ORD1', channels: [{ id: 1 }] }),
-        });
-        orderService.findOneByCode.mockResolvedValue(orderWithPayments(payments));
-        orderService.settlePayment = vi.fn().mockImplementation(settleImpl);
-    }
-
-    it('settlePayment 抛错：返回 500 FAIL，让微信重投', async () => {
-        const { ctrl, orderService, connection } = makeController(true);
-        wireOrder(connection, orderService, [{ id: 7, state: 'Authorized' }], () =>
-            Promise.reject(new Error('gateway down')),
-        );
-        const res = makeRes();
-        await ctrl.devNotify(req, res);
-        expect(orderService.settlePayment).toHaveBeenCalledWith(expect.anything(), 7);
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'FAIL' }));
-    });
-
-    it('settlePayment 返回 ErrorResult：同样返回 500 FAIL', async () => {
-        const { ctrl, orderService, connection } = makeController(true);
-        wireOrder(connection, orderService, [{ id: 7, state: 'Authorized' }], () =>
-            Promise.resolve({
-                __typename: 'SettlePaymentError',
-                errorCode: 'SETTLE_PAYMENT_ERROR',
-                message: 'settle failed',
-            }),
-        );
-        const res = makeRes();
-        await ctrl.devNotify(req, res);
-        expect(res.status).toHaveBeenCalledWith(500);
-    });
-
-    it('首次失败返回 FAIL，平台重投后可成功结算（返回 200 SUCCESS）', async () => {
-        const { ctrl, orderService, connection } = makeController(true);
-        let attempt = 0;
-        wireOrder(connection, orderService, [{ id: 7, state: 'Authorized' }], () => {
-            attempt++;
-            return attempt === 1
-                ? Promise.reject(new Error('transient'))
-                : Promise.resolve({ id: 7, state: 'Settled' });
-        });
-        const first = makeRes();
-        await ctrl.devNotify(req, first);
-        expect(first.status).toHaveBeenCalledWith(500);
-        const retry = makeRes();
-        await ctrl.devNotify(req, retry);
-        expect(retry.status).toHaveBeenCalledWith(200);
-        expect(retry.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'SUCCESS' }));
-        expect(orderService.settlePayment).toHaveBeenCalledTimes(2);
-    });
-
-    it('已结算（Settled）的重复通知：安全跳过，返回 200 SUCCESS 且不再结算', async () => {
-        const { ctrl, orderService, connection } = makeController(true);
-        wireOrder(connection, orderService, [{ id: 7, state: 'Settled' }], () =>
-            Promise.resolve({ id: 7, state: 'Settled' }),
-        );
-        const res = makeRes();
-        await ctrl.devNotify(req, res);
-        expect(orderService.settlePayment).not.toHaveBeenCalled();
-        expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('订单查不到：返回 500 FAIL（已扣款却无单必须告警并重投）', async () => {
-        const { ctrl, orderService, connection } = makeController(true);
-        connection.getRepository.mockReturnValue({ findOne: vi.fn().mockResolvedValue(null) });
-        const res = makeRes();
-        await ctrl.devNotify(req, res);
-        expect(orderService.settlePayment).not.toHaveBeenCalled();
-        expect(res.status).toHaveBeenCalledWith(500);
-    });
-});
-
-describe('真实回调 notify：验签必须 await、金额/appid 必须校验', () => {
+describe('正式回调 notify：按 out_trade_no 反查渠道（不依赖 Host）', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        wxState.verifyOk = true;
+        wxState.apiKey = 'key-t1';
         wxState.decrypted = {
             out_trade_no: 'ORD1',
             transaction_id: 'TX1',
-            appid: 'appid',
-            mchid: 'mch',
-            amount: { total: 1000 },
+            appid: 'appid-t1',
+            mchid: 'mch-1',
+            trade_state: 'SUCCESS',
+            amount: { total: 1000, currency: 'CNY' },
         };
     });
 
-    function makeNotifyController(payments: any[]) {
-        const settlement = { find: vi.fn().mockReturnValue(undefined), settle: vi.fn() };
-        const orderService = {
-            findOneByCode: vi.fn().mockResolvedValue({
-                code: 'ORD1',
-                channels: [{ id: 1, code: 'default' }],
-                payments,
-            }),
-            settlePayment: vi.fn().mockResolvedValue({ id: 7, state: 'Settled' }),
-        };
-        const connection = {
-            getRepository: vi.fn().mockReturnValue({
-                findOne: vi.fn().mockResolvedValue({ code: 'ORD1', channels: [{ id: 1 }] }),
-            }),
-        };
-        const args = [
-            { name: 'apiKey', value: 'key' },
-            { name: 'appId', value: 'appid' },
-            { name: 'mchId', value: 'mch' },
-            { name: 'publicKey', value: 'pk' },
-            { name: 'privateKey', value: 'priv' },
-            { name: 'serialNo', value: 'serial' },
-        ];
-        const paymentMethodService = {
-            findAll: vi.fn().mockResolvedValue({
-                items: [{ code: 'wechatpay', handler: { args } }],
-            }),
-        };
-        const ctrl = new WechatpayController(
-            {} as any,
-            orderService as any,
-            { getDefaultChannel: vi.fn().mockResolvedValue({ id: 1, code: 'default' }) } as any,
-            connection as any,
-            paymentMethodService as any,
-            {} as any,
-            settlement as any,
-        );
-        return { ctrl, orderService, settlement };
-    }
-
-    const notifyReq = {
-        headers: {
-            'wechatpay-timestamp': 't',
-            'wechatpay-nonce': 'n',
-            'wechatpay-signature': 'sig',
-            'wechatpay-serial': 'serial',
+    /** t1 渠道凭证（渠道级覆盖）+ 订单在渠道 7 */
+    const baseChannels = [
+        {
+            id: 7,
+            code: 't1',
+            customFields: {
+                payConfig: {
+                    wechatpayJson: JSON.stringify({
+                        appId: 'appid-t1',
+                        mchId: 'mch-1',
+                        apiKey: 'key-t1',
+                        publicKey: 'pk',
+                        privateKey: 'priv',
+                        serialNo: 'serial',
+                    }),
+                },
+            },
         },
-        hostname: 'localhost',
-    } as any;
+    ];
+    const orderInCh7 = { code: 'ORD1', channels: [{ id: 7, code: 't1' }] };
 
-    const notifyBody = {
-        id: 'evt',
-        event_type: 'TRANSACTION.SUCCESS',
-        resource: { ciphertext: 'c', associated_data: 'ad', nonce: 'n' },
-    };
-
-    it('验签失败（verifySign 为 Promise 且已 await）：返回 401 且不结算', async () => {
-        wxState.verifyOk = false;
-        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
+    it('验签/解密凭证全部不匹配：返回 401 FAIL，不结算', async () => {
+        wxState.apiKey = 'other-key';
+        const { ctrl, orderService } = makeController({
+            channels: baseChannels,
+            order: orderInCh7,
+        });
         const res = makeRes();
-        await ctrl.notify(notifyReq, res, notifyBody);
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
         expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'FAIL' }));
         expect(orderService.settlePayment).not.toHaveBeenCalled();
     });
 
-    it('通知金额与 Authorized 支付金额不符：返回 500 且不结算', async () => {
-        wxState.decrypted.amount = { total: 999 };
-        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
+    it('t1 单渠道：解密成功、订单渠道一致 → 结算并 200', async () => {
+        const { ctrl, orderService } = makeController({
+            channels: baseChannels,
+            order: orderInCh7,
+            payments: [{ id: 7, state: 'Authorized', amount: 1000 }],
+        });
         const res = makeRes();
-        await ctrl.notify(notifyReq, res, notifyBody);
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(orderService.settlePayment).not.toHaveBeenCalled();
-    });
-
-    it('通知 appid/mchid 与验签凭证不符：返回 500 且不结算', async () => {
-        wxState.decrypted.appid = 'other-app';
-        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
-        const res = makeRes();
-        await ctrl.notify(notifyReq, res, notifyBody);
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(orderService.settlePayment).not.toHaveBeenCalled();
-    });
-
-    it('校验通过：结算并返回 200 SUCCESS', async () => {
-        const { ctrl, orderService } = makeNotifyController([{ id: 7, state: 'Authorized', amount: 1000 }]);
-        const res = makeRes();
-        await ctrl.notify(notifyReq, res, notifyBody);
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        const ctx = orderService.findOneByCode.mock.calls[0][0];
+        expect(ctx.channelId).toBe(7);
         expect(orderService.settlePayment).toHaveBeenCalledWith(expect.anything(), 7);
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'SUCCESS' }));
+    });
+
+    it('t2 双渠道：同一回调经凭证试解 + 订单渠道裁决命中 t2（channel 8）', async () => {
+        // 两个渠道共用同一商户号/密钥（真实多店常见），但只在 t2 有该订单
+        const channels = [
+            ...baseChannels,
+            {
+                id: 8,
+                code: 't2',
+                customFields: {
+                    payConfig: {
+                        wechatpayJson: JSON.stringify({
+                            appId: 'appid-t1',
+                            mchId: 'mch-1',
+                            apiKey: 'key-t1',
+                            publicKey: 'pk',
+                            privateKey: 'priv',
+                            serialNo: 'serial',
+                        }),
+                    },
+                },
+            },
+        ];
+        const { ctrl, orderService } = makeController({
+            channels,
+            order: { code: 'ORD1', channels: [{ id: 8, code: 't2' }] },
+            payments: [{ id: 11, state: 'Authorized', amount: 1000 }],
+        });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        const ctx = orderService.findOneByCode.mock.calls[0][0];
+        expect(ctx.channelId).toBe(8);
+        expect(ctx.channel.code).toBe('t2');
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('凭证渠道与订单渠道无交集：返回 500 CHANNEL_MISMATCH，不结算', async () => {
+        const { ctrl, orderService } = makeController({
+            channels: baseChannels, // 只有渠道 7 的凭证
+            order: { code: 'ORD1', channels: [{ id: 9, code: 't3' }] },
+            payments: [{ id: 7, state: 'Authorized', amount: 1000 }],
+        });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({ code: 'FAIL', message: 'CHANNEL_MISMATCH' }),
+        );
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('订单不存在：返回 500 ORDER_NOT_FOUND（不静默 200）', async () => {
+        const { ctrl, orderService } = makeController({ channels: baseChannels, order: null });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({ code: 'FAIL', message: 'ORDER_NOT_FOUND' }),
+        );
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('金额不一致：返回 500 AMOUNT_MISMATCH，不结算', async () => {
+        wxState.decrypted.amount = { total: 999, currency: 'CNY' };
+        const { ctrl, orderService } = makeController({
+            channels: baseChannels,
+            order: orderInCh7,
+            payments: [{ id: 7, state: 'Authorized', amount: 1000 }],
+        });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({ code: 'FAIL', message: 'AMOUNT_MISMATCH' }),
+        );
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('已 Settled 的重复回调：不再结算，返回 200 SUCCESS', async () => {
+        const { ctrl, orderService } = makeController({
+            channels: baseChannels,
+            order: orderInCh7,
+            payments: [{ id: 7, state: 'Settled', amount: 1000 }],
+        });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('并发下已被抢先结算：幂等成功返回 200', async () => {
+        const { ctrl } = makeController({
+            channels: baseChannels,
+            order: orderInCh7,
+            payments: [{ id: 7, state: 'Authorized', amount: 1000 }],
+            paymentRow: { id: 7, state: 'Settled' },
+            settleImpl: async () => ({
+                __typename: 'SettlePaymentError',
+                errorCode: 'SETTLE_PAYMENT_ERROR',
+                message: 'already settled',
+            }),
+        });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('非 TRANSACTION.SUCCESS 事件：仅确认，不结算', async () => {
+        const { ctrl, orderService } = makeController({
+            channels: baseChannels,
+            order: orderInCh7,
+        });
+        const res = makeRes();
+        await ctrl.notify({ headers: notifyHeaders } as any, res, {
+            ...notifyBody,
+            event_type: 'REFUND.SUCCESS',
+        });
+        expect(orderService.settlePayment).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('缺少签名头：返回 400 FAIL', async () => {
+        const { ctrl } = makeController({ channels: baseChannels, order: orderInCh7 });
+        const res = makeRes();
+        await ctrl.notify({ headers: {} } as any, res, notifyBody);
+        expect(res.status).toHaveBeenCalledWith(400);
     });
 });

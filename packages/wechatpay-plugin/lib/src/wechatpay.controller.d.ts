@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { OrderService, ChannelService, PaymentMethodService, RequestContextService, TransactionalConnection } from '@vendure/core';
+import { OrderService, ChannelService, RequestContextService, TransactionalConnection } from '@vendure/core';
 import { WechatpayPluginOptions } from './types';
 import { WechatpaySettlementRegistry } from './wechatpay-settlement';
 export declare class WechatpayController {
@@ -7,15 +7,29 @@ export declare class WechatpayController {
     private orderService;
     private channelService;
     private connection;
-    private paymentMethodService;
     private requestContextService;
     private settlementRegistry;
-    constructor(options: WechatpayPluginOptions, orderService: OrderService, channelService: ChannelService, connection: TransactionalConnection, paymentMethodService: PaymentMethodService, requestContextService: RequestContextService, settlementRegistry: WechatpaySettlementRegistry);
-    /** 回调请求所属租户的 ctx：按请求域名（渠道 customFields.customDomains）解析，
-     *  解析不到回退默认渠道，兼容历史单店部署。
-     *  验签/解密/结算必须用「下单时那个租户」的商户凭证，否则 apiKey 不匹配解不开密。 */
-    private callbackCtx;
-    /** 结算路由：非订单前缀（如 RC-）交给注册的结算器，否则默认结 Vendure Order。
+    constructor(options: WechatpayPluginOptions, orderService: OrderService, channelService: ChannelService, connection: TransactionalConnection, requestContextService: RequestContextService, settlementRegistry: WechatpaySettlementRegistry);
+    private ctxFor;
+    /** 回调结构化日志：单行 JSON，禁止输出私钥/apiKey/密文 */
+    private logNotify;
+    /**
+     * 收集所有可用商户凭证（与域名无关）。
+     * 微信 v3 回调的 out_trade_no 在密文里，解密前无法反查订单，
+     * 故先枚举凭证并用 GCM 认证做鉴别（错误密钥必然解密失败），
+     * 解密成功后再用 out_trade_no 反查 order → channel 做最终裁决。
+     */
+    private collectCredentials;
+    private buildWxPay;
+    /**
+     * 由 out_trade_no 反查渠道（不做任何 Host 解析）。
+     * 结算类前缀（CS-/BP- 等）优先走注册器；否则按全局订单号查 order.channels，
+     * 并与「凭证试解成功的渠道集合」取交集，交集为空即拒绝（防跨渠道结算）。
+     */
+    private resolveChannelForOutTradeNo;
+    /** 仅用于 dev 端点：按订单号取所属渠道 ctx（回调正式路径不用） */
+    private resolveOrderChannelCtx;
+    /** 结算路由：非订单前缀（如 CS-/BP-）交给注册的结算器，否则默认结 Vendite Order。
      *  expectedAmountCents：微信回调解密出的金额（分），用于与 Authorized 支付金额比对。 */
     private routeSettlement;
     /**
@@ -27,15 +41,8 @@ export declare class WechatpayController {
      */
     private settleOrderPayment;
     /**
-     * 构造 WxPay 实例用于通知回调中验签解密。
-     * 凭证路由（分端分支付方案）：
-     * 1. Host 命中 options.callbackMethodMap → 直接用该 PaymentMethod 的 args
-     *    （同一 Host 下多个 method 共用商户时 apiKey 相同，任取其一即可解密验签）
-     * 2. 未命中 → 渠道 override（payConfig.wechatpayJson）+ code='wechatpay' 的 PaymentMethod args
-     */
-    private buildWxPay;
-    /**
      * 生产环境：V3 通知验签 + AES-GCM 解密
+     * 渠道归属完全由报文内的 out_trade_no 决定（凭证试解 → 订单反查），与回调域名无关。
      */
     notify(req: Request, res: Response, body: any): Promise<Response<any, Record<string, any>> | undefined>;
     /**
