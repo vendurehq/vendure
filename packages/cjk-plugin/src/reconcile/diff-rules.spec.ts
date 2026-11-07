@@ -84,4 +84,64 @@ describe('diffOrder', () => {
         };
         expect(diffOrder(input)).not.toContain('D3');
     });
+
+    it('取消单不产 D1/D3（无配送记录、无实收属正常）', () => {
+        const input: DiffOrderInput = {
+            order: { ...baseOrder, state: 'Cancelled' },
+            deliveryRecords: [],
+            ledgerOuts: [],
+            settlements: [],
+            mirrorDiff: 0,
+        };
+        expect(diffOrder(input)).toEqual([]);
+    });
+
+    it('取消单仍可检出 D4 镜像不平', () => {
+        const input: DiffOrderInput = {
+            order: { ...baseOrder, state: 'Cancelled' },
+            deliveryRecords: [],
+            ledgerOuts: [],
+            settlements: [],
+            mirrorDiff: 3,
+        };
+        expect(diffOrder(input)).toEqual(['D4']);
+    });
+
+    it('草稿单（AddingItems）不产任何差异', () => {
+        const input: DiffOrderInput = {
+            order: { ...baseOrder, state: 'AddingItems' },
+            deliveryRecords: [],
+            ledgerOuts: [{ sourceLocationId: 'l1', quantity: 1 }],
+            settlements: [],
+            mirrorDiff: 5,
+        };
+        expect(diffOrder(input)).toEqual([]);
+    });
+
+    it('已结算订单仍能检出 D1/D3 真实差异（豁免不越界）', () => {
+        const input: DiffOrderInput = {
+            order: { ...baseOrder, state: 'PaymentSettled' },
+            deliveryRecords: [],
+            ledgerOuts: [{ sourceLocationId: 'l1', quantity: 1 }],
+            settlements: [{ status: 'PAID', amount: 8000 }],
+            mirrorDiff: 0,
+        };
+        const diffs = diffOrder(input);
+        expect(diffs).toContain('D1');
+        expect(diffs).toContain('D3');
+    });
+
+    it('已交付订单仍能检出 D2/D3 真实差异（豁免不越界）', () => {
+        const input: DiffOrderInput = {
+            order: { ...baseOrder, state: 'Delivered' },
+            deliveryRecords: [{ mode: 'self', sourceLocationId: 'l2', status: 'Delivered' }],
+            ledgerOuts: [{ sourceLocationId: 'l1', quantity: 1 }],
+            settlements: [{ status: 'PAID', amount: 9000 }],
+            mirrorDiff: 0,
+        };
+        const diffs = diffOrder(input);
+        expect(diffs).toContain('D2');
+        expect(diffs).toContain('D3');
+        expect(diffs).not.toContain('D1');
+    });
 });

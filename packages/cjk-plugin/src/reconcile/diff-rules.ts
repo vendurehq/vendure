@@ -25,10 +25,19 @@ export function diffOrder(input: DiffOrderInput): DiffType[] {
     const diffs: DiffType[] = [];
     const { order, deliveryRecords, ledgerOuts, settlements, mirrorDiff, cancelled } = input;
 
+    // 草稿单（AddingItems）从未下单，不参与对账：加购/浏览阶段不应产生任何待处理差异
+    if (order.state === 'AddingItems') {
+        return diffs;
+    }
+
+    // 取消单不参与 D1/D3：取消的订单没有配送记录是必然结果，不是差异；
+    // 取消后也不再产生应收，继续判金额不平只会制造噪音
+    const isCancelled = cancelled === true || order.state === 'Cancelled';
+
     const openRecords = deliveryRecords.filter(
         r => ['self', 'express', 'pickup'].includes(r.mode) && r.status !== 'Draft',
     );
-    if (openRecords.length === 0) {
+    if (!isCancelled && openRecords.length === 0) {
         diffs.push('D1');
     }
 
@@ -40,7 +49,7 @@ export function diffOrder(input: DiffOrderInput): DiffType[] {
         }
     }
 
-    if (!cancelled) {
+    if (!isCancelled) {
         // COD（PENDING_SIGN）为在途应收，计入台账总额；仅当台账应收合计与订单应付不等才判 D3
         const settledAmount = settlements.reduce((sum, s) => sum + s.amount, 0);
         if (settledAmount !== order.totalWithTax) {
