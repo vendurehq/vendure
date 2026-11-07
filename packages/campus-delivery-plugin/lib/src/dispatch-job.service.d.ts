@@ -83,17 +83,16 @@ export declare class DispatchJobService implements OnApplicationShutdown {
      */
     scan(ctx: RequestContext): Promise<void>;
     /**
-     * 异常上报超时升级：骑手上报异常后运营未在 SLA 内处置（inProgressSlaMinutes，默认 45）→
-     * 自动回大厅重新派单（等价运营「重派」处置），避免订单卡死在 exception 占用骑手与履约时效。
-     * 单条 CAS 完成「回厅 + 清异常痕迹」：类型/照片/说明保留供追责存疑——不，重派即新骑手接手，
-     * 旧骑手的异常标记必须清掉，否则新骑手端会继续显示「异常单」且本轮会再次命中本规则。
-     * 异常类型/说明随订单日志已留痕；campusCause=exception_timeout 供运营复盘。
+     * 异常上报超时升级（改人工介入）：异常单超 SLA 未处置时**不再自动回大厅**，
+     * 保持异常标记与状态不变，只发升级告警进人工介入队列（调度墙 exception 列表），
+     * 避免「餐可能仍在骑手手上」被系统自动重派造成丢餐。
+     * 告警 dedupe 按订单 code 收敛，重复轮询不会重复刷屏。
      */
     private sweepExceptionTimeout;
     /**
-     * 骑手已取货（in_progress）超 SLA 兜底：旧实现只处理 in_progress 的 SLA 告警，状态本身没有任何出口，
-     * 骑手失联/不送达时订单会永久占用骑手与单量。这里超 1×SLA 先告警联系骑手，超 2×SLA 转 exception，
-     * 之后由异常超时规则再回厅重派（不直接回厅：餐在骑手手上，需运营先确认）。
+     * 骑手已取餐（in_progress）超 SLA 兜底（改人工介入）：已取餐意味着餐在骑手手上，
+     * 15 分钟回收与 2×SLA 自动转异常一律禁用——只告警，状态全程不变，等运营人工介入。
+     * 时钟只认 pickedUpAt（缺失退回 assignedAt），缺失时跳过，绝不回退 createdAt。
      */
     private sweepRiderInProgress;
     /**

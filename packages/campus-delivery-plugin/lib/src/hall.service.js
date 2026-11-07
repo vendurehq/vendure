@@ -154,14 +154,15 @@ let HallService = HallService_1 = class HallService {
                 await enter({ hallStatus: 'scheduled' });
                 return;
             }
-            if (await enter({ hallStatus: 'pending_merchant' })) {
+            if (await enter({ hallStatus: 'pending_merchant', hallEnteredAt: new Date() })) {
                 core_2.Logger.info(`Order ${order.code} awaiting merchant (R1/${snapshot.deliveryPlan})`, 'CampusHall');
             }
             return;
         }
         // R2：固定外部快递，但必须先经商户接单/出餐（出餐闸门），cookingDone 后才推送外部快递
         if (route === 'R2' && !degrade) {
-            if (await enter({ hallStatus: deferred ? 'scheduled' : 'pending_merchant' })) {
+            const target = deferred ? 'scheduled' : 'pending_merchant';
+            if (await enter(Object.assign({ hallStatus: target }, (deferred ? {} : { hallEnteredAt: new Date() })))) {
                 core_2.Logger.info(`Order ${order.code} awaiting merchant (R2 cooking gate)`, 'CampusHall');
             }
             return;
@@ -173,19 +174,19 @@ let HallService = HallService_1 = class HallService {
             return;
         }
         if (leg1 === 'external_courier') {
-            if (await enter({ hallStatus: 'pending_dispatch' })) {
+            if (await enter({ hallStatus: 'pending_dispatch', hallEnteredAt: new Date() })) {
                 core_2.Logger.info(`Order ${order.code} awaiting external push (R3)`, 'CampusHall');
             }
             return;
         }
         if (leg1 === 'owned') {
-            if (await enter({ hallStatus: 'owned_pool' })) {
+            if (await enter({ hallStatus: 'owned_pool', hallEnteredAt: new Date() })) {
                 core_2.Logger.info(`Order ${order.code} in owned pool (R3)`, 'CampusHall');
             }
             return;
         }
         if (cfg === null || cfg === void 0 ? void 0 : cfg.merchantConfirmEnabled) {
-            await enter({ hallStatus: 'pending_merchant' });
+            await enter({ hallStatus: 'pending_merchant', hallEnteredAt: new Date() });
             return;
         }
         if (!(await enter({ hallStatus: 'open', hallEnteredAt: new Date() })))

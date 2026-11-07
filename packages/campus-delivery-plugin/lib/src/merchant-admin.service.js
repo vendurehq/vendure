@@ -1046,8 +1046,8 @@ let MerchantAdminService = class MerchantAdminService {
             patch = { hallStatus: 'pending_dispatch', assignedAt: new Date() };
         }
         else if (plan === 'owned') {
-            // R3-自营：进自营快递池抢单
-            patch = { hallStatus: 'owned_pool' };
+            // R3-自营：进自营快递池抢单（写计时锚点，避免下游超时兜底回退 createdAt）
+            patch = { hallStatus: 'owned_pool', hallEnteredAt: new Date() };
         }
         else {
             // R3-传信者：正常入抢单大厅
@@ -1106,6 +1106,11 @@ let MerchantAdminService = class MerchantAdminService {
     async acceptOwned(ctx, orderId) {
         await this.assertAnyChannelOrder(ctx, orderId);
         return this.thirdParty.acceptOwned(ctx, orderId);
+    }
+    /** 自营快递确认取餐（assigned → in_progress + pickedUpAt） */
+    async pickupOwned(ctx, orderId) {
+        await this.assertAnyChannelOrder(ctx, orderId);
+        return this.thirdParty.pickupOwned(ctx, orderId);
     }
     /** R1：商户把餐送到校园交接点 → 传信者接力 */
     async markHandoverArrived(ctx, orderId) {
@@ -5848,6 +5853,7 @@ let MerchantAdminService = class MerchantAdminService {
                 provider: cf.thirdPartyProvider || null,
                 thirdPartyNo: cf.thirdPartyNo || null,
                 handoverCode: cf.handoverCode || null,
+                deliveryStatus: cf.deliveryStatus || null,
                 urged: isUrgePending(cf.urged, urgedAt, (_h = ackMap.get(String(o.id))) !== null && _h !== void 0 ? _h : null),
                 urgedAt,
                 // 脱敏口径与号码保护一致：11 位保留前 3 后 4，绝不外泄明文

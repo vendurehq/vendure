@@ -65,7 +65,7 @@ let AddressChangeService = class AddressChangeService {
                 throw new core_2.ForbiddenError();
             this.assertNotCancelledOrDelivered(order);
             const cf = ((_b = order.customFields) !== null && _b !== void 0 ? _b : {});
-            if (cf.deliveryStatus === 'in_progress')
+            if (cf.deliveryStatus === 'in_progress' || cf.pickedUpAt)
                 throw new core_2.UserInputError('骑手已取货，无法自助改址，请联系客服');
             if (THIRD_PARTY_LOCKED.includes(cf.thirdPartyState))
                 throw new core_2.UserInputError('外部配送已接单，无法自助改址');

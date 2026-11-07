@@ -186,21 +186,29 @@ export class DispatchAdminService {
                 }
             } else if (cf.deliveryStatus === 'in_progress') {
                 activeOrders.push(o);
-                const at = cf.assignedAt ?? cf.hallEnteredAt;
+                const at = cf.pickedUpAt ?? cf.assignedAt ?? cf.hallEnteredAt;
                 if (at && now - new Date(at).getTime() > (cfg?.inProgressSlaMinutes ?? 45) * 60_000) {
+                    const over2x = now - new Date(at).getTime() > (cfg?.inProgressSlaMinutes ?? 45) * 2 * 60_000;
                     alerts.push({
                         orderId: String(o.id),
                         orderCode: o.code,
                         type: 'sla_breach',
-                        detail: `配送超 SLA（>${cfg?.inProgressSlaMinutes ?? 45} 分钟）`,
+                        detail: over2x
+                            ? `配送超 2×SLA，已转人工介入（系统不再自动回收）`
+                            : `配送超 SLA（>${cfg?.inProgressSlaMinutes ?? 45} 分钟）`,
                     });
                 }
             } else if (cf.deliveryStatus === 'exception') {
+                const reportedAt = cf.exceptionReportedAt ? new Date(cf.exceptionReportedAt).getTime() : NaN;
+                const overdue = !Number.isNaN(reportedAt)
+                    && now - reportedAt > (cfg?.inProgressSlaMinutes ?? 45) * 60_000;
                 alerts.push({
                     orderId: String(o.id),
                     orderCode: o.code,
                     type: 'exception',
-                    detail: cf.exceptionType ?? '骑手上报异常',
+                    detail: overdue
+                        ? `${cf.exceptionType ?? '骑手上报异常'}（超 SLA 未处置，已转人工介入）`
+                        : (cf.exceptionType ?? '骑手上报异常'),
                     exceptionNote: cf.exceptionNote ?? null,
                     exceptionPhotos: cf.exceptionPhotos ?? null,
                 });

@@ -20,8 +20,10 @@ exports.campusCancelGuardProcess = {
             throw new core_1.UserInputError('订单已送达，无法取消，请申请售后');
         }
         const deliveryInFlight = cf.deliveryStatus === 'assigned' || cf.deliveryStatus === 'in_progress';
+        // 已取餐（pickedUpAt）即餐在骑手手上：即使 deliveryStatus 被异常清空也必须锁死自助取消
+        const pickedUp = !!cf.pickedUpAt;
         const thirdPartyInFlight = IN_FLIGHT_THIRD_PARTY_STATES.includes(String((_b = cf.thirdPartyState) !== null && _b !== void 0 ? _b : ''));
-        if (deliveryInFlight || thirdPartyInFlight || IN_FLIGHT_HALL_STATUSES.includes(String((_c = cf.hallStatus) !== null && _c !== void 0 ? _c : ''))) {
+        if (deliveryInFlight || pickedUp || thirdPartyInFlight || IN_FLIGHT_HALL_STATUSES.includes(String((_c = cf.hallStatus) !== null && _c !== void 0 ? _c : ''))) {
             throw new core_1.UserInputError('骑手已接单或配送中，无法取消，请联系客服或申请售后');
         }
     },

@@ -121,6 +121,7 @@ const create_campus_tables_1 = require("./migrations/create-campus-tables");
 const backfill_waimai_industry_1 = require("./migrations/backfill-waimai-industry");
 const add_route_delivery_config_1 = require("./migrations/add-route-delivery-config");
 const add_third_party_base_fee_1 = require("./migrations/add-third-party-base-fee");
+const add_picked_up_at_1 = require("./migrations/add-picked-up-at");
 const cancel_guard_process_1 = require("./cancel-guard.process");
 const min_order_process_1 = require("./min-order.process");
 const packing_fee_process_1 = require("./packing-fee.process");
@@ -382,6 +383,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             create_campus_tables_1.CreateCampusTablesMigration,
             add_route_delivery_config_1.AddRouteDeliveryConfigMigration,
             add_third_party_base_fee_1.AddThirdPartyBaseFeeMigration,
+            add_picked_up_at_1.AddPickedUpAtMigration,
             add_address_change_pricing_1.AddAddressChangePricingMigration,
             add_address_change_settle_proof_1.AddAddressChangeSettleProofMigration,
             p3_data_cleanup_1.P3DataCleanupMigration,
@@ -631,6 +633,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     provider: String
                     thirdPartyNo: String
                     handoverCode: String
+                    """配送状态：assigned=已接单未取餐 / in_progress=已取餐在途"""
+                    deliveryStatus: String
                     """顾客手机号（脱敏，号码保护同口径）；工作台检索/联系用"""
                     customerPhone: String
                     """顾客催单待处理（§78）：顾客催过且商家未「已知晓」"""
@@ -3061,6 +3065,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     """运营中心取消外部快递"""
                     campusAdminCancelExternal(orderId: ID!, reason: String): CampusExternalCancelResult!
                     campusMerchantAcceptOwned(orderId: ID!): CampusMerchantOpResult!
+                    """自营快递确认取餐（assigned → in_progress）"""
+                    campusMerchantPickupOwned(orderId: ID!): CampusMerchantOpResult!
                     campusMerchantMarkHandoverArrived(orderId: ID!): CampusFirstLegResult!
                     campusMerchantMarkOwnedArrived(orderId: ID!): CampusFirstLegResult!
                     approveRiderWithdraw(id: ID!, remark: String, payoutRef: String, payoutProof: String): RiderWithdrawalRequest!

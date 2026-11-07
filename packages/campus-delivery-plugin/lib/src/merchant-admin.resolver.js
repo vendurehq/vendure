@@ -554,6 +554,10 @@ let MerchantAdminResolver = class MerchantAdminResolver {
     async campusMerchantAcceptOwned(ctx, orderId) {
         return this.merchant.acceptOwned(ctx, orderId);
     }
+    /** 自营快递确认取餐（assigned → in_progress，写 pickedUpAt）：商户可确认，运营调度也可代确认 */
+    async campusMerchantPickupOwned(ctx, orderId) {
+        return this.merchant.pickupOwned(ctx, orderId);
+    }
     /** R1：商户送达校园交接点（之后由传信者接力） */
     async campusMerchantMarkHandoverArrived(ctx, orderId) {
         return this.merchant.markHandoverArrived(ctx, orderId);
@@ -1781,6 +1785,15 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext, Object]),
     __metadata("design:returntype", Promise)
 ], MerchantAdminResolver.prototype, "campusMerchantAcceptOwned", null);
+__decorate([
+    (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(permissions_1.CampusPermissions.CampusMerchant, permissions_1.CampusPermissions.CampusDispatch),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('orderId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object]),
+    __metadata("design:returntype", Promise)
+], MerchantAdminResolver.prototype, "campusMerchantPickupOwned", null);
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Allow)(permissions_1.CampusPermissions.CampusMerchant),

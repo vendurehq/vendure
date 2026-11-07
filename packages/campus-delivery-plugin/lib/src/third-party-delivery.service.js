@@ -456,11 +456,25 @@ let ThirdPartyDeliveryService = class ThirdPartyDeliveryService {
         const moved = await this.hall.transitionFrom(ctx, orderId, ['pending_merchant', 'open', 'owned_pool'], {
             deliveryPlan: 'owned',
             hallStatus: 'owned_dispatched',
+            deliveryStatus: 'assigned', // 已接单未取餐：独立于在途(in_progress)的计时阶段
             assignedAt: new Date(),
+            pickedUpAt: null,
             campusCause: 'owned_accepted',
         });
         if (!moved)
             throw new core_2.UserInputError('订单状态已变更（可能已取消），请刷新后重试');
+        return { ok: true };
+    }
+    /** 自营快递确认取餐：assigned → in_progress + 写 pickedUpAt。
+     * 条件写保证重复点击/并发取消时不会把已脱厅单改成在途；pickedUpAt 是在途时钟唯一锚点。 */
+    async pickupOwned(_ctx, orderId) {
+        const out = await this.connection.rawConnection.query(`UPDATE "order" SET ${cfColumn('deliveryStatus')} = $1, ${cfColumn('pickedUpAt')} = $2 `
+            + `WHERE id = $3 AND COALESCE(${cfColumn('hallStatus')}, '') = 'owned_dispatched' `
+            + `AND ${cfColumn('deliveryStatus')} = 'assigned' AND "state" <> 'Cancelled' RETURNING id`, ['in_progress', new Date(), orderId]);
+        const rows = Array.isArray(out) && Array.isArray(out[0]) ? out[0] : out;
+        if (!Array.isArray(rows) || !rows.length) {
+            throw new core_2.UserInputError('订单当前状态不可确认取餐（需自营快递已接单未取餐）');
+        }
         return { ok: true };
     }
     /** 第一段（商户 / 自营快递）送达校园交接点：R1/R2 进大厅接力，R3 直接完成 */

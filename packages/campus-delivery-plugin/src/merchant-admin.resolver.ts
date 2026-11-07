@@ -1289,6 +1289,13 @@ export class MerchantAdminResolver {
         return this.merchant.acceptOwned(ctx, orderId);
     }
 
+    /** 自营快递确认取餐（assigned → in_progress，写 pickedUpAt）：商户可确认，运营调度也可代确认 */
+    @Mutation()
+    @Allow(CampusPermissions.CampusMerchant as any, CampusPermissions.CampusDispatch as any)
+    async campusMerchantPickupOwned(@Ctx() ctx: RequestContext, @Args('orderId') orderId: ID) {
+        return this.merchant.pickupOwned(ctx, orderId);
+    }
+
     /** R1：商户送达校园交接点（之后由传信者接力） */
     @Mutation()
     @Allow(CampusPermissions.CampusMerchant as any)

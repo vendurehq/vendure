@@ -323,6 +323,10 @@ export declare class MerchantAdminResolver {
     campusMerchantAcceptOwned(ctx: RequestContext, orderId: ID): Promise<{
         ok: boolean;
     }>;
+    /** 自营快递确认取餐（assigned → in_progress，写 pickedUpAt）：商户可确认，运营调度也可代确认 */
+    campusMerchantPickupOwned(ctx: RequestContext, orderId: ID): Promise<{
+        ok: boolean;
+    }>;
     /** R1：商户送达校园交接点（之后由传信者接力） */
     campusMerchantMarkHandoverArrived(ctx: RequestContext, orderId: ID): Promise<{
         ok: boolean;

@@ -78,6 +78,11 @@ export declare class ThirdPartyDeliveryService implements OnApplicationBootstrap
     acceptOwned(ctx: RequestContext, orderId: number): Promise<{
         ok: boolean;
     }>;
+    /** 自营快递确认取餐：assigned → in_progress + 写 pickedUpAt。
+     * 条件写保证重复点击/并发取消时不会把已脱厅单改成在途；pickedUpAt 是在途时钟唯一锚点。 */
+    pickupOwned(_ctx: RequestContext, orderId: number): Promise<{
+        ok: boolean;
+    }>;
     /** 第一段（商户 / 自营快递）送达校园交接点：R1/R2 进大厅接力，R3 直接完成 */
     completeFirstLeg(ctx: RequestContext, orderId: number, cause: string): Promise<{
         ok: boolean;

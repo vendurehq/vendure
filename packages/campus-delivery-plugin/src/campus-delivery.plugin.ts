@@ -122,6 +122,7 @@ import { CreateCampusTablesMigration } from './migrations/create-campus-tables';
 import { BackfillWaimaiIndustryMigration } from './migrations/backfill-waimai-industry';
 import { AddRouteDeliveryConfigMigration } from './migrations/add-route-delivery-config';
 import { AddThirdPartyBaseFeeMigration } from './migrations/add-third-party-base-fee';
+import { AddPickedUpAtMigration } from './migrations/add-picked-up-at';
 import { campusCancelGuardProcess } from './cancel-guard.process';
 import { bindMinOrderConnection, campusMinOrderProcess } from './min-order.process';
 import { bindPackingFeeDeps, campusPackingFeeProcess } from './packing-fee.process';
@@ -207,6 +208,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         CreateCampusTablesMigration,
         AddRouteDeliveryConfigMigration,
         AddThirdPartyBaseFeeMigration,
+        AddPickedUpAtMigration,
         AddAddressChangePricingMigration,
         AddAddressChangeSettleProofMigration,
         P3DataCleanupMigration,
@@ -456,6 +458,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     provider: String
                     thirdPartyNo: String
                     handoverCode: String
+                    """配送状态：assigned=已接单未取餐 / in_progress=已取餐在途"""
+                    deliveryStatus: String
                     """顾客手机号（脱敏，号码保护同口径）；工作台检索/联系用"""
                     customerPhone: String
                     """顾客催单待处理（§78）：顾客催过且商家未「已知晓」"""
@@ -2886,6 +2890,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     """运营中心取消外部快递"""
                     campusAdminCancelExternal(orderId: ID!, reason: String): CampusExternalCancelResult!
                     campusMerchantAcceptOwned(orderId: ID!): CampusMerchantOpResult!
+                    """自营快递确认取餐（assigned → in_progress）"""
+                    campusMerchantPickupOwned(orderId: ID!): CampusMerchantOpResult!
                     campusMerchantMarkHandoverArrived(orderId: ID!): CampusFirstLegResult!
                     campusMerchantMarkOwnedArrived(orderId: ID!): CampusFirstLegResult!
                     approveRiderWithdraw(id: ID!, remark: String, payoutRef: String, payoutProof: String): RiderWithdrawalRequest!

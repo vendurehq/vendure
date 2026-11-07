@@ -80,6 +80,8 @@ export interface MerchantBoardOrder {
     provider: string | null; // 外部快递：dada / meituan（运营中心派单后写入）
     thirdPartyNo: string | null; // 外部快递平台单号
     handoverCode: string | null; // 交接码（第一段送达交接点后生成，骑手取货时核对）
+    /** 配送状态：assigned=已接单未取餐 / in_progress=已取餐在途 / exception=异常 */
+    deliveryStatus: string | null;
     /** 顾客手机号（脱敏，与号码保护同口径）：工作台检索用，不返回明文 */
     customerPhone: string | null;
     /** 顾客催单待处理（§78）：顾客催过且商家尚未「已知晓」 */
@@ -2153,8 +2155,8 @@ export class MerchantAdminService {
             // R2 与 R3-外部：等运营中心推送外部快递（assignedAt 标记出餐时刻，未推送超时从此计时）
             patch = { hallStatus: 'pending_dispatch', assignedAt: new Date() };
         } else if (plan === 'owned') {
-            // R3-自营：进自营快递池抢单
-            patch = { hallStatus: 'owned_pool' };
+            // R3-自营：进自营快递池抢单（写计时锚点，避免下游超时兜底回退 createdAt）
+            patch = { hallStatus: 'owned_pool', hallEnteredAt: new Date() };
         } else {
             // R3-传信者：正常入抢单大厅
             patch = { hallStatus: 'open', hallEnteredAt: new Date() };
@@ -2214,6 +2216,12 @@ export class MerchantAdminService {
     async acceptOwned(ctx: RequestContext, orderId: ID) {
         await this.assertAnyChannelOrder(ctx, orderId);
         return this.thirdParty.acceptOwned(ctx, orderId as any);
+    }
+
+    /** 自营快递确认取餐（assigned → in_progress + pickedUpAt） */
+    async pickupOwned(ctx: RequestContext, orderId: ID) {
+        await this.assertAnyChannelOrder(ctx, orderId);
+        return this.thirdParty.pickupOwned(ctx, orderId as any);
     }
 
     /** R1：商户把餐送到校园交接点 → 传信者接力 */
@@ -7464,6 +7472,7 @@ export class MerchantAdminService {
                 provider: cf.thirdPartyProvider || null,
                 thirdPartyNo: cf.thirdPartyNo || null,
                 handoverCode: cf.handoverCode || null,
+                deliveryStatus: cf.deliveryStatus || null,
                 urged: isUrgePending(cf.urged, urgedAt, ackMap.get(String(o.id)) ?? null),
                 urgedAt,
                 // 脱敏口径与号码保护一致：11 位保留前 3 后 4，绝不外泄明文

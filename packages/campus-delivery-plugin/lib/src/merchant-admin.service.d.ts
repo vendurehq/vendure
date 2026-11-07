@@ -33,6 +33,8 @@ export interface MerchantBoardOrder {
     provider: string | null;
     thirdPartyNo: string | null;
     handoverCode: string | null;
+    /** 配送状态：assigned=已接单未取餐 / in_progress=已取餐在途 / exception=异常 */
+    deliveryStatus: string | null;
     /** 顾客手机号（脱敏，与号码保护同口径）：工作台检索用，不返回明文 */
     customerPhone: string | null;
     /** 顾客催单待处理（§78）：顾客催过且商家尚未「已知晓」 */
@@ -1184,6 +1186,10 @@ export declare class MerchantAdminService {
     }>;
     /** 自营快递接单（R1 商户超时转自营 / R3 自营池） */
     acceptOwned(ctx: RequestContext, orderId: ID): Promise<{
+        ok: boolean;
+    }>;
+    /** 自营快递确认取餐（assigned → in_progress + pickedUpAt） */
+    pickupOwned(ctx: RequestContext, orderId: ID): Promise<{
         ok: boolean;
     }>;
     /** R1：商户把餐送到校园交接点 → 传信者接力 */

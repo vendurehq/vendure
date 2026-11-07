@@ -499,14 +499,13 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
         }
     }
     /**
-     * 异常上报超时升级：骑手上报异常后运营未在 SLA 内处置（inProgressSlaMinutes，默认 45）→
-     * 自动回大厅重新派单（等价运营「重派」处置），避免订单卡死在 exception 占用骑手与履约时效。
-     * 单条 CAS 完成「回厅 + 清异常痕迹」：类型/照片/说明保留供追责存疑——不，重派即新骑手接手，
-     * 旧骑手的异常标记必须清掉，否则新骑手端会继续显示「异常单」且本轮会再次命中本规则。
-     * 异常类型/说明随订单日志已留痕；campusCause=exception_timeout 供运营复盘。
+     * 异常上报超时升级（改人工介入）：异常单超 SLA 未处置时**不再自动回大厅**，
+     * 保持异常标记与状态不变，只发升级告警进人工介入队列（调度墙 exception 列表），
+     * 避免「餐可能仍在骑手手上」被系统自动重派造成丢餐。
+     * 告警 dedupe 按订单 code 收敛，重复轮询不会重复刷屏。
      */
     async sweepExceptionTimeout(ctx, cfg, orders, now) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f, _g;
         const slaMs = ((_a = cfg.inProgressSlaMinutes) !== null && _a !== void 0 ? _a : 45) * 60000;
         // P1 提前告警：兜底前 1/6 时间点（原值 1/3，缩短一倍；默认 7.5min 先推群）
         const alertMs = Math.max(30000, Math.floor(slaMs / 6));
@@ -517,46 +516,24 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             const at = cf.exceptionReportedAt ? new Date(cf.exceptionReportedAt).getTime() : NaN;
             if (Number.isNaN(at))
                 continue;
-            // P1 提前告警：异常已上报但还没到自动回厅时间（dedupe 5min 窗口）
+            // P1 提前告警：异常已上报但还没到人工介入升级时间（dedupe 5min 窗口）
             if (now - at >= alertMs && now - at < slaMs) {
                 const mins = Math.round((now - at) / 60000);
                 const dedupeKey = `exception_alert:${o.code}`;
-                void ((_b = this.feishu) === null || _b === void 0 ? void 0 : _b.pushEvent('alert', '🚨 异常待处置', `订单 ${o.code} 异常上报 ${mins} 分钟未处置（${(_c = cf.exceptionType) !== null && _c !== void 0 ? _c : '未知类型'}），${(_d = cfg.inProgressSlaMinutes) !== null && _d !== void 0 ? _d : 45} 分钟后将自动回大厅。`, o.code, dedupeKey));
+                void ((_b = this.feishu) === null || _b === void 0 ? void 0 : _b.pushEvent('alert', '🚨 异常待处置', `订单 ${o.code} 异常上报 ${mins} 分钟未处置（${(_c = cf.exceptionType) !== null && _c !== void 0 ? _c : '未知类型'}），${(_d = cfg.inProgressSlaMinutes) !== null && _d !== void 0 ? _d : 45} 分钟后升级人工介入。`, o.code, dedupeKey));
             }
-            if (now - at <= slaMs)
+            if (now - at < slaMs)
                 continue;
-            try {
-                const enteredAt = new Date();
-                const moved = await this.hall.transitionFrom(ctx, Number(o.id), hall_service_1.ACTIVE_HALL_STATUSES, {
-                    hallStatus: 'open',
-                    hallEnteredAt: enteredAt, // 重置避免同轮 T4 立即按超时退款
-                    deliveryStatus: null,
-                    deliveryStaffId: null,
-                    assignedAt: null,
-                    exceptionType: null,
-                    exceptionPhotos: null,
-                    exceptionNote: null,
-                    exceptionReportedAt: null,
-                    campusCause: 'exception_timeout',
-                });
-                if (!moved)
-                    continue; // 期间已取消/已送达
-                cf.hallStatus = 'open';
-                cf.deliveryStatus = null;
-                cf.hallEnteredAt = enteredAt;
-                cf.exceptionReportedAt = null;
-                core_2.Logger.warn(`Order ${o.code} exception not handled in ${(_e = cfg.inProgressSlaMinutes) !== null && _e !== void 0 ? _e : 45}min → back to hall`, 'CampusDispatch');
-                void ((_f = this.feishu) === null || _f === void 0 ? void 0 : _f.pushEvent('exception', '异常超时自动回厅', `订单 ${o.code} 异常上报 ${(_g = cfg.inProgressSlaMinutes) !== null && _g !== void 0 ? _g : 45} 分钟未处置，已回大厅重新派单。`, o.code, o.code));
-            }
-            catch (e) {
-                core_2.Logger.error(`exception timeout sweep failed for order ${(_h = o.code) !== null && _h !== void 0 ? _h : o.id}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
-            }
+            // 到点只升级告警，不改状态、不回大厅（人工介入队列 = 调度墙 exception 列表）
+            // dedupe：按 30 分钟分桶，同一异常单每半小时最多再提醒一次
+            const bucket = Math.floor((now - at) / (30 * 60000));
+            void ((_e = this.feishu) === null || _e === void 0 ? void 0 : _e.pushEvent('exception', '异常超时待人工介入', `订单 ${o.code} 异常上报 ${(_f = cfg.inProgressSlaMinutes) !== null && _f !== void 0 ? _f : 45} 分钟未处置（${(_g = cf.exceptionType) !== null && _g !== void 0 ? _g : '未知类型'}），系统不再自动回厅，请运营人工介入。`, o.code, `exception_manual:${o.code}:${bucket}`));
         }
     }
     /**
-     * 骑手已取货（in_progress）超 SLA 兜底：旧实现只处理 in_progress 的 SLA 告警，状态本身没有任何出口，
-     * 骑手失联/不送达时订单会永久占用骑手与单量。这里超 1×SLA 先告警联系骑手，超 2×SLA 转 exception，
-     * 之后由异常超时规则再回厅重派（不直接回厅：餐在骑手手上，需运营先确认）。
+     * 骑手已取餐（in_progress）超 SLA 兜底（改人工介入）：已取餐意味着餐在骑手手上，
+     * 15 分钟回收与 2×SLA 自动转异常一律禁用——只告警，状态全程不变，等运营人工介入。
+     * 时钟只认 pickedUpAt（缺失退回 assignedAt），缺失时跳过，绝不回退 createdAt。
      */
     async sweepRiderInProgress(ctx, cfg, orders, now) {
         var _a, _b, _c, _d, _e;
@@ -565,35 +542,23 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             const cf = o.customFields;
             if (cf.deliveryStatus !== 'in_progress')
                 continue;
-            const at = cf.assignedAt ? new Date(cf.assignedAt).getTime() : NaN;
+            const anchor = (_b = cf.pickedUpAt) !== null && _b !== void 0 ? _b : cf.assignedAt;
+            const at = anchor ? new Date(anchor).getTime() : NaN;
             if (Number.isNaN(at))
                 continue;
             const elapsed = now - at;
             if (elapsed < slaMs)
                 continue;
+            const mins = Math.round(elapsed / 60000);
             if (elapsed < slaMs * 2) {
-                const mins = Math.round(elapsed / 60000);
-                void ((_b = this.feishu) === null || _b === void 0 ? void 0 : _b.pushEvent('alert', '🚴 配送超 SLA', `订单 ${o.code} 骑手已取货 ${mins} 分钟未送达（SLA ${(_c = cfg.inProgressSlaMinutes) !== null && _c !== void 0 ? _c : 45} 分钟），请及时联系骑手；超时将自动转异常单。`, o.code, `rider_sla:${o.code}`));
+                void ((_c = this.feishu) === null || _c === void 0 ? void 0 : _c.pushEvent('alert', '🚴 配送超 SLA', `订单 ${o.code} 骑手已取餐 ${mins} 分钟未送达（SLA ${(_d = cfg.inProgressSlaMinutes) !== null && _d !== void 0 ? _d : 45} 分钟），请及时联系骑手。`, o.code, `rider_sla:${o.code}`));
                 continue;
             }
-            try {
-                const moved = await this.hall.transitionFrom(ctx, Number(o.id), hall_service_1.ACTIVE_HALL_STATUSES, {
-                    deliveryStatus: 'exception',
-                    exceptionType: 'rider_lost',
-                    exceptionNote: '骑手配送超 SLA 未送达，自动转异常待运营处置',
-                    exceptionReportedAt: new Date(now),
-                    campusCause: 'rider_in_progress_timeout',
-                });
-                if (!moved)
-                    continue; // 期间已送达/已取消
-                cf.deliveryStatus = 'exception';
-                cf.exceptionReportedAt = new Date(now);
-                core_2.Logger.warn(`Order ${o.code} rider in_progress over 2×SLA → exception`, 'CampusDispatch');
-                void ((_d = this.feishu) === null || _d === void 0 ? void 0 : _d.pushEvent('exception', '骑手配送超时转异常', `订单 ${o.code} 骑手已取货超过 ${Math.round((slaMs * 2) / 60000)} 分钟未送达，已转异常单；异常超时后自动回大厅重派。`, o.code, o.code));
-            }
-            catch (e) {
-                core_2.Logger.error(`rider in_progress sweep failed for order ${(_e = o.code) !== null && _e !== void 0 ? _e : o.id}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
-            }
+            // 超 2×SLA：只升级人工介入告警，不改 deliveryStatus / hallStatus（不再自动转异常）
+            // dedupe：按 30 分钟分桶，同一订单每半小时最多再提醒一次，避免每个 tick 刷屏
+            const bucket = Math.floor(elapsed / (30 * 60000));
+            core_2.Logger.warn(`Order ${o.code} rider in_progress over 2×SLA → manual intervention (state kept)`, 'CampusDispatch');
+            void ((_e = this.feishu) === null || _e === void 0 ? void 0 : _e.pushEvent('exception', '骑手配送超时待人工介入', `订单 ${o.code} 骑手已取餐 ${mins} 分钟未送达（超 2×SLA），系统不再自动改派，请运营人工介入。`, o.code, `rider_manual:${o.code}:${bucket}`));
         }
     }
     /**
@@ -607,7 +572,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
      * 6) owned_dispatched 超 merchantAutoOpenMinutes 未送达交接点 → 回大厅并清空骑手
      */
     async sweepRouteTimeouts(ctx, cfg, orders, now) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24;
         const minutes = (v, def) => (v !== null && v !== void 0 ? v : def) * 60000;
         const acceptMs = minutes(cfg.merchantAcceptMinutes, 5);
         const deliverMs = minutes(cfg.merchantAutoOpenMinutes, 15);
@@ -851,8 +816,9 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     cf.hallEnteredAt = enteredAt;
                     continue;
                 }
-                // 6) 自营快递已派出但久未送达交接点 → 回抢单大厅（传信者到店取餐兜底）
+                // 6) 自营快递已派出但久未送达交接点 → 回抢单大厅（已取餐在途单除外：只告警、不回收）
                 if (cf.hallStatus === 'owned_dispatched' && cf.assignedAt
+                    && String((_18 = cf.deliveryStatus) !== null && _18 !== void 0 ? _18 : '') !== 'in_progress'
                     && now - new Date(cf.assignedAt).getTime() > deliverMs) {
                     const enteredAt = new Date();
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['owned_dispatched'], {
@@ -868,8 +834,8 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     if (!moved)
                         continue;
                     core_2.Logger.warn(`Order ${o.code} owned courier timeout → hall`, 'CampusDispatch');
-                    void ((_18 = this.feishu) === null || _18 === void 0 ? void 0 : _18.pushEvent('exception', '自营快递送达超时', `订单 ${o.code} 自营快递 ${(_19 = cfg.merchantAutoOpenMinutes) !== null && _19 !== void 0 ? _19 : 15} 分钟未送达交接点，已回抢单大厅。`, o.code, o.code));
-                    (_20 = this.notify) === null || _20 === void 0 ? void 0 : _20.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_21 = cfg.h5BaseUrl) !== null && _21 !== void 0 ? _21 : undefined);
+                    void ((_19 = this.feishu) === null || _19 === void 0 ? void 0 : _19.pushEvent('exception', '自营快递送达超时', `订单 ${o.code} 自营快递 ${(_20 = cfg.merchantAutoOpenMinutes) !== null && _20 !== void 0 ? _20 : 15} 分钟未送达交接点，已回抢单大厅。`, o.code, o.code));
+                    (_21 = this.notify) === null || _21 === void 0 ? void 0 : _21.user(ctx, Number(o.id), 'deliveryFallback', '超时转传信者配送', (_22 = cfg.h5BaseUrl) !== null && _22 !== void 0 ? _22 : undefined);
                     cf.hallStatus = 'open';
                     cf.hallEnteredAt = enteredAt;
                 }
@@ -892,7 +858,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                                 cf.thirdPartyState = res.state;
                                 await this.thirdParty.onDeliveryStatus(ctx, {
                                     orderId: Number(o.id),
-                                    thirdPartyNo: String((_22 = cf.thirdPartyNo) !== null && _22 !== void 0 ? _22 : ''),
+                                    thirdPartyNo: String((_23 = cf.thirdPartyNo) !== null && _23 !== void 0 ? _23 : ''),
                                     status: res.state,
                                 });
                                 core_2.Logger.info(`Order ${o.code} external status synced → ${res.state}`, 'CampusDispatch');
@@ -905,7 +871,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 }
             }
             catch (e) {
-                core_2.Logger.error(`route timeout sweep failed for order ${(_23 = o.code) !== null && _23 !== void 0 ? _23 : o.id}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
+                core_2.Logger.error(`route timeout sweep failed for order ${(_24 = o.code) !== null && _24 !== void 0 ? _24 : o.id}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
             }
         }
     }

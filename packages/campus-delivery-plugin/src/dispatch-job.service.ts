@@ -539,11 +539,10 @@ export class DispatchJobService implements OnApplicationShutdown {
     }
 
     /**
-     * 异常上报超时升级：骑手上报异常后运营未在 SLA 内处置（inProgressSlaMinutes，默认 45）→
-     * 自动回大厅重新派单（等价运营「重派」处置），避免订单卡死在 exception 占用骑手与履约时效。
-     * 单条 CAS 完成「回厅 + 清异常痕迹」：类型/照片/说明保留供追责存疑——不，重派即新骑手接手，
-     * 旧骑手的异常标记必须清掉，否则新骑手端会继续显示「异常单」且本轮会再次命中本规则。
-     * 异常类型/说明随订单日志已留痕；campusCause=exception_timeout 供运营复盘。
+     * 异常上报超时升级（改人工介入）：异常单超 SLA 未处置时**不再自动回大厅**，
+     * 保持异常标记与状态不变，只发升级告警进人工介入队列（调度墙 exception 列表），
+     * 避免「餐可能仍在骑手手上」被系统自动重派造成丢餐。
+     * 告警 dedupe 按订单 code 收敛，重复轮询不会重复刷屏。
      */
     private async sweepExceptionTimeout(
         ctx: RequestContext,
@@ -559,56 +558,36 @@ export class DispatchJobService implements OnApplicationShutdown {
             if (cf.deliveryStatus !== 'exception') continue;
             const at = cf.exceptionReportedAt ? new Date(cf.exceptionReportedAt).getTime() : NaN;
             if (Number.isNaN(at)) continue;
-            // P1 提前告警：异常已上报但还没到自动回厅时间（dedupe 5min 窗口）
+            // P1 提前告警：异常已上报但还没到人工介入升级时间（dedupe 5min 窗口）
             if (now - at >= alertMs && now - at < slaMs) {
                 const mins = Math.round((now - at) / 60_000);
                 const dedupeKey = `exception_alert:${o.code}`;
                 void this.feishu?.pushEvent(
                     'alert',
                     '🚨 异常待处置',
-                    `订单 ${o.code} 异常上报 ${mins} 分钟未处置（${cf.exceptionType ?? '未知类型'}），${cfg.inProgressSlaMinutes ?? 45} 分钟后将自动回大厅。`,
+                    `订单 ${o.code} 异常上报 ${mins} 分钟未处置（${cf.exceptionType ?? '未知类型'}），${cfg.inProgressSlaMinutes ?? 45} 分钟后升级人工介入。`,
                     o.code,
                     dedupeKey,
                 );
             }
-            if (now - at <= slaMs) continue;
-            try {
-                const enteredAt = new Date();
-                const moved = await this.hall.transitionFrom(ctx, Number(o.id), ACTIVE_HALL_STATUSES, {
-                    hallStatus: 'open',
-                    hallEnteredAt: enteredAt, // 重置避免同轮 T4 立即按超时退款
-                    deliveryStatus: null,
-                    deliveryStaffId: null,
-                    assignedAt: null,
-                    exceptionType: null,
-                    exceptionPhotos: null,
-                    exceptionNote: null,
-                    exceptionReportedAt: null,
-                    campusCause: 'exception_timeout',
-                });
-                if (!moved) continue; // 期间已取消/已送达
-                cf.hallStatus = 'open';
-                cf.deliveryStatus = null;
-                cf.hallEnteredAt = enteredAt;
-                cf.exceptionReportedAt = null;
-                Logger.warn(`Order ${o.code} exception not handled in ${cfg.inProgressSlaMinutes ?? 45}min → back to hall`, 'CampusDispatch');
-                void this.feishu?.pushEvent(
-                    'exception',
-                    '异常超时自动回厅',
-                    `订单 ${o.code} 异常上报 ${cfg.inProgressSlaMinutes ?? 45} 分钟未处置，已回大厅重新派单。`,
-                    o.code,
-                    o.code,
-                );
-            } catch (e: any) {
-                Logger.error(`exception timeout sweep failed for order ${o.code ?? o.id}: ${e?.message}`, 'CampusDispatch');
-            }
+            if (now - at < slaMs) continue;
+            // 到点只升级告警，不改状态、不回大厅（人工介入队列 = 调度墙 exception 列表）
+            // dedupe：按 30 分钟分桶，同一异常单每半小时最多再提醒一次
+            const bucket = Math.floor((now - at) / (30 * 60_000));
+            void this.feishu?.pushEvent(
+                'exception',
+                '异常超时待人工介入',
+                `订单 ${o.code} 异常上报 ${cfg.inProgressSlaMinutes ?? 45} 分钟未处置（${cf.exceptionType ?? '未知类型'}），系统不再自动回厅，请运营人工介入。`,
+                o.code,
+                `exception_manual:${o.code}:${bucket}`,
+            );
         }
     }
 
     /**
-     * 骑手已取货（in_progress）超 SLA 兜底：旧实现只处理 in_progress 的 SLA 告警，状态本身没有任何出口，
-     * 骑手失联/不送达时订单会永久占用骑手与单量。这里超 1×SLA 先告警联系骑手，超 2×SLA 转 exception，
-     * 之后由异常超时规则再回厅重派（不直接回厅：餐在骑手手上，需运营先确认）。
+     * 骑手已取餐（in_progress）超 SLA 兜底（改人工介入）：已取餐意味着餐在骑手手上，
+     * 15 分钟回收与 2×SLA 自动转异常一律禁用——只告警，状态全程不变，等运营人工介入。
+     * 时钟只认 pickedUpAt（缺失退回 assignedAt），缺失时跳过，绝不回退 createdAt。
      */
     private async sweepRiderInProgress(
         ctx: RequestContext,
@@ -620,43 +599,33 @@ export class DispatchJobService implements OnApplicationShutdown {
         for (const o of orders) {
             const cf = o.customFields as any;
             if (cf.deliveryStatus !== 'in_progress') continue;
-            const at = cf.assignedAt ? new Date(cf.assignedAt).getTime() : NaN;
+            const anchor = cf.pickedUpAt ?? cf.assignedAt;
+            const at = anchor ? new Date(anchor).getTime() : NaN;
             if (Number.isNaN(at)) continue;
             const elapsed = now - at;
             if (elapsed < slaMs) continue;
+            const mins = Math.round(elapsed / 60_000);
             if (elapsed < slaMs * 2) {
-                const mins = Math.round(elapsed / 60_000);
                 void this.feishu?.pushEvent(
                     'alert',
                     '🚴 配送超 SLA',
-                    `订单 ${o.code} 骑手已取货 ${mins} 分钟未送达（SLA ${cfg.inProgressSlaMinutes ?? 45} 分钟），请及时联系骑手；超时将自动转异常单。`,
+                    `订单 ${o.code} 骑手已取餐 ${mins} 分钟未送达（SLA ${cfg.inProgressSlaMinutes ?? 45} 分钟），请及时联系骑手。`,
                     o.code,
                     `rider_sla:${o.code}`,
                 );
                 continue;
             }
-            try {
-                const moved = await this.hall.transitionFrom(ctx, Number(o.id), ACTIVE_HALL_STATUSES, {
-                    deliveryStatus: 'exception',
-                    exceptionType: 'rider_lost',
-                    exceptionNote: '骑手配送超 SLA 未送达，自动转异常待运营处置',
-                    exceptionReportedAt: new Date(now),
-                    campusCause: 'rider_in_progress_timeout',
-                });
-                if (!moved) continue;          // 期间已送达/已取消
-                cf.deliveryStatus = 'exception';
-                cf.exceptionReportedAt = new Date(now);
-                Logger.warn(`Order ${o.code} rider in_progress over 2×SLA → exception`, 'CampusDispatch');
-                void this.feishu?.pushEvent(
-                    'exception',
-                    '骑手配送超时转异常',
-                    `订单 ${o.code} 骑手已取货超过 ${Math.round((slaMs * 2) / 60_000)} 分钟未送达，已转异常单；异常超时后自动回大厅重派。`,
-                    o.code,
-                    o.code,
-                );
-            } catch (e: any) {
-                Logger.error(`rider in_progress sweep failed for order ${o.code ?? o.id}: ${e?.message}`, 'CampusDispatch');
-            }
+            // 超 2×SLA：只升级人工介入告警，不改 deliveryStatus / hallStatus（不再自动转异常）
+            // dedupe：按 30 分钟分桶，同一订单每半小时最多再提醒一次，避免每个 tick 刷屏
+            const bucket = Math.floor(elapsed / (30 * 60_000));
+            Logger.warn(`Order ${o.code} rider in_progress over 2×SLA → manual intervention (state kept)`, 'CampusDispatch');
+            void this.feishu?.pushEvent(
+                'exception',
+                '骑手配送超时待人工介入',
+                `订单 ${o.code} 骑手已取餐 ${mins} 分钟未送达（超 2×SLA），系统不再自动改派，请运营人工介入。`,
+                o.code,
+                `rider_manual:${o.code}:${bucket}`,
+            );
         }
     }
 
@@ -994,8 +963,9 @@ export class DispatchJobService implements OnApplicationShutdown {
                     continue;
                 }
 
-                // 6) 自营快递已派出但久未送达交接点 → 回抢单大厅（传信者到店取餐兜底）
+                // 6) 自营快递已派出但久未送达交接点 → 回抢单大厅（已取餐在途单除外：只告警、不回收）
                 if (cf.hallStatus === 'owned_dispatched' && cf.assignedAt
+                    && String(cf.deliveryStatus ?? '') !== 'in_progress'
                     && now - new Date(cf.assignedAt).getTime() > deliverMs) {
                     const enteredAt = new Date();
                     const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['owned_dispatched'], {

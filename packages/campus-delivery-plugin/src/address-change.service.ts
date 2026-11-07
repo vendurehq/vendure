@@ -72,7 +72,7 @@ export class AddressChangeService {
             this.assertNotCancelledOrDelivered(order);
 
             const cf = (order.customFields ?? {}) as any;
-            if (cf.deliveryStatus === 'in_progress') throw new UserInputError('骑手已取货，无法自助改址，请联系客服');
+            if (cf.deliveryStatus === 'in_progress' || cf.pickedUpAt) throw new UserInputError('骑手已取货，无法自助改址，请联系客服');
             if (THIRD_PARTY_LOCKED.includes(cf.thirdPartyState)) throw new UserInputError('外部配送已接单，无法自助改址');
 
             await this.assertNoUnpaidDiff(ctx, customer.id, Number(order.id));

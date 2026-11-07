@@ -69,7 +69,7 @@ let DispatchAdminService = class DispatchAdminService {
         return (_c = this.feishuSvc) !== null && _c !== void 0 ? _c : null;
     }
     async board(ctx) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
         const cfg = await this.connection
             .getRepository(ctx, campus_fulfillment_config_entity_1.CampusFulfillmentConfig)
             .findOne({ where: { channelId: ctx.channelId } });
@@ -156,24 +156,32 @@ let DispatchAdminService = class DispatchAdminService {
             }
             else if (cf.deliveryStatus === 'in_progress') {
                 activeOrders.push(o);
-                const at = (_e = cf.assignedAt) !== null && _e !== void 0 ? _e : cf.hallEnteredAt;
-                if (at && now - new Date(at).getTime() > ((_f = cfg === null || cfg === void 0 ? void 0 : cfg.inProgressSlaMinutes) !== null && _f !== void 0 ? _f : 45) * 60000) {
+                const at = (_f = (_e = cf.pickedUpAt) !== null && _e !== void 0 ? _e : cf.assignedAt) !== null && _f !== void 0 ? _f : cf.hallEnteredAt;
+                if (at && now - new Date(at).getTime() > ((_g = cfg === null || cfg === void 0 ? void 0 : cfg.inProgressSlaMinutes) !== null && _g !== void 0 ? _g : 45) * 60000) {
+                    const over2x = now - new Date(at).getTime() > ((_h = cfg === null || cfg === void 0 ? void 0 : cfg.inProgressSlaMinutes) !== null && _h !== void 0 ? _h : 45) * 2 * 60000;
                     alerts.push({
                         orderId: String(o.id),
                         orderCode: o.code,
                         type: 'sla_breach',
-                        detail: `配送超 SLA（>${(_g = cfg === null || cfg === void 0 ? void 0 : cfg.inProgressSlaMinutes) !== null && _g !== void 0 ? _g : 45} 分钟）`,
+                        detail: over2x
+                            ? `配送超 2×SLA，已转人工介入（系统不再自动回收）`
+                            : `配送超 SLA（>${(_j = cfg === null || cfg === void 0 ? void 0 : cfg.inProgressSlaMinutes) !== null && _j !== void 0 ? _j : 45} 分钟）`,
                     });
                 }
             }
             else if (cf.deliveryStatus === 'exception') {
+                const reportedAt = cf.exceptionReportedAt ? new Date(cf.exceptionReportedAt).getTime() : NaN;
+                const overdue = !Number.isNaN(reportedAt)
+                    && now - reportedAt > ((_k = cfg === null || cfg === void 0 ? void 0 : cfg.inProgressSlaMinutes) !== null && _k !== void 0 ? _k : 45) * 60000;
                 alerts.push({
                     orderId: String(o.id),
                     orderCode: o.code,
                     type: 'exception',
-                    detail: (_h = cf.exceptionType) !== null && _h !== void 0 ? _h : '骑手上报异常',
-                    exceptionNote: (_j = cf.exceptionNote) !== null && _j !== void 0 ? _j : null,
-                    exceptionPhotos: (_k = cf.exceptionPhotos) !== null && _k !== void 0 ? _k : null,
+                    detail: overdue
+                        ? `${(_l = cf.exceptionType) !== null && _l !== void 0 ? _l : '骑手上报异常'}（超 SLA 未处置，已转人工介入）`
+                        : ((_m = cf.exceptionType) !== null && _m !== void 0 ? _m : '骑手上报异常'),
+                    exceptionNote: (_o = cf.exceptionNote) !== null && _o !== void 0 ? _o : null,
+                    exceptionPhotos: (_p = cf.exceptionPhotos) !== null && _p !== void 0 ? _p : null,
                 });
             }
             else {
@@ -222,7 +230,7 @@ let DispatchAdminService = class DispatchAdminService {
                 handledBy: (_f = cf.exceptionHandledBy) !== null && _f !== void 0 ? _f : '',
             };
         });
-        return { paused: (_l = cfg === null || cfg === void 0 ? void 0 : cfg.paused) !== null && _l !== void 0 ? _l : false, alerts, hallOrders, activeOrders, ridersOnline, handledOrders };
+        return { paused: (_q = cfg === null || cfg === void 0 ? void 0 : cfg.paused) !== null && _q !== void 0 ? _q : false, alerts, hallOrders, activeOrders, ridersOnline, handledOrders };
     }
     /** 手动派单/改派：目标骑手须在职（approved）且信用分达标，避免把单派给封禁/低分骑手。
      * 跨店守卫：只能操作本渠道订单（与 address-change 同源校验）。
