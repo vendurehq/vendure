@@ -1,0 +1,61 @@
+packages/affiliate-plugin/src/affiliate-relation.entity.ts| @Column({ type: 'timestamp' })
+packages/affiliate-plugin/src/affiliate-withdrawal.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'completedAt', type: 'timestamp', isNullable: true },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'createdAt', type: 'timestamp', isNullable: false, default: 'CURRENT_TIMESTAMP' },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'occurredAt', type: 'timestamp', isNullable: false },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'paidAt', type: 'timestamp', isNullable: true },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'quoteExpireAt', type: 'timestamp', isNullable: true },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'refundedAt', type: 'timestamp', isNullable: true },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'settledAt', type: 'timestamp', isNullable: true },
+packages/bill-pay-plugin/src/migrations/create-bill-pay-tables.ts| { name: 'updatedAt', type: 'timestamp', isNullable: false, default: 'CURRENT_TIMESTAMP' },
+packages/campus-delivery-plugin/src/campus-address-change.entity.ts| @Column({ nullable: true, type: 'timestamp' }) settledAt: Date | null;
+packages/campus-delivery-plugin/src/compensation-task.entity.ts| @Column({ type: 'timestamp', nullable: true }) nextAttemptAt: Date | null;
+packages/campus-delivery-plugin/src/migrations/add-address-change-pricing.ts| "createdAt" timestamp NOT NULL DEFAULT now(),
+packages/campus-delivery-plugin/src/migrations/add-address-change-pricing.ts| "settledAt" timestamp,
+packages/campus-delivery-plugin/src/migrations/add-address-change-pricing.ts| "updatedAt" timestamp NOT NULL DEFAULT now(),
+packages/campus-delivery-plugin/src/migrations/add-withdraw-payout.ts| "reviewedAt" timestamp,
+packages/campus-delivery-plugin/src/migrations/p13-auto-accept.ts|ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "customFieldsAutoacceptedat" timestamp;
+packages/campus-delivery-plugin/src/migrations/p36-compensation-task.ts| "createdAt" timestamp NOT NULL DEFAULT now(),
+packages/campus-delivery-plugin/src/migrations/p36-compensation-task.ts| "nextAttemptAt" timestamp,
+packages/campus-delivery-plugin/src/migrations/p36-compensation-task.ts| "updatedAt" timestamp NOT NULL DEFAULT now()
+packages/campus-delivery-plugin/src/migrations/p4-ops-hardening.ts|ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "customFieldsExceptionreportedat" timestamp;
+packages/campus-delivery-plugin/src/migrations/p5-timestamp-timezone.ts| AND data_type='timestamp without time zone'
+packages/campus-delivery-plugin/src/migrations/p9-p5-rider-compliance.ts|ALTER TABLE "customer" ADD COLUMN IF NOT EXISTS "customFieldsRiderbackgroundcheckat" timestamp
+packages/campus-delivery-plugin/src/migrations/p9-p5-rider-compliance.ts|ALTER TABLE "customer" ADD COLUMN IF NOT EXISTS "customFieldsRiderhealthcertexpiry" timestamp;
+packages/campus-delivery-plugin/src/migrations/p9-p5-rider-compliance.ts|ALTER TABLE "customer" ADD COLUMN IF NOT EXISTS "customFieldsRiderinsuranceexpiry" timestamp;
+packages/campus-delivery-plugin/src/rider-withdrawal.entity.ts| @Column({ type: 'timestamp', nullable: true }) reviewedAt: Date | null;
+packages/cjk-plugin/src/delivery/delivery-record.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/inventory/stock-reservation.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/migrations/migrate-hotel-booking-reschedule-columns.ts| { name: 'rescheduledAt', type: 'timestamp', isNullable: true },
+packages/cjk-plugin/src/migrations/migrate-pick-batch-handover-columns.ts| const wanted: Array<{ property: string; type: 'timestamp' | 'varchar'; length?: number }> = [
+packages/cjk-plugin/src/migrations/migrate-pick-batch-handover-columns.ts| { property: 'exceptionAt', type: 'timestamp' },
+packages/cjk-plugin/src/migrations/migrate-pick-batch-handover-columns.ts| { property: 'handoverAt', type: 'timestamp' },
+packages/cjk-plugin/src/migrations/migrate-pick-batch-handover-columns.ts| { property: 'reviewedAt', type: 'timestamp' },
+packages/cjk-plugin/src/migrations/migrate-pickup-store-link-soft-delete.ts| `ALTER TABLE ${Q('pickup_location')} ADD COLUMN ${Q('deletedAt')} ${timestamp} NULL`,
+packages/cjk-plugin/src/migrations/migrate-reservation-expires-at.ts| new TableColumn({ name: columnName, type: 'timestamp', isNullable: true }),
+packages/cjk-plugin/src/migrations/migrate-tenant-member-column.ts| await ensure('resetPasswordExpiresAt', 'timestamp', true, undefined);
+packages/cjk-plugin/src/order/merchant-settlement-ledger.entity.ts| @Column({ type: 'timestamp' })
+packages/cjk-plugin/src/order/merchant-settlement-ledger.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/picking/pick-batch.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/picking/pick-batch-order.entity.ts| @Column({ type: 'timestamp' })
+packages/cjk-plugin/src/reconcile/reconciliation.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/stocktake/stocktake-line.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/stocktake/stocktake-task.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/stocktake/stocktake-wave.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/cjk-plugin/src/tenant/tenant-member.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/community-plugin/src/community-activity.entity.ts| @Column({ type: 'timestamp' })
+packages/coupon-plugin/src/migrations/add-coupon-promo-fields.ts| { table: customer, name: 'customFieldsStudentreviewedat', type: 'timestamp', orphan: 'studentReviewedAt' },
+packages/live-streaming-plugin/src/live-room.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/merchant-plugin/src/migrations/add-merchant-deleted-at.ts| `ALTER TABLE ${Q('merchant')} ADD COLUMN ${Q('deletedAt')} ${timestamp} NULL`,
+packages/merchant-plugin/src/migrations/create-merchant-tables.ts| private get dateColumnType(): 'timestamp' | 'datetime' {
+packages/merchant-plugin/src/migrations/create-merchant-tables.ts| return this.connection.options.type === 'postgres' ? 'timestamp' : 'datetime';
+packages/review-plugin/src/review.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/subscription-plugin/src/migrations/migrate-subscription-tables.ts| const ts = pg ? 'timestamp' : 'datetime';
+packages/subscription-plugin/src/subscription.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/subscription-plugin/src/subscription-occurrence.entity.ts| @Column({ type: 'timestamp' })
+packages/vcash-offline-plugin/src/entities/offline-sync-queue.entity.ts| @Column({ nullable: true, type: 'timestamp' }) syncedAt?: Date;
+packages/vcash-offline-plugin/src/entities/offline-sync-queue.entity.ts| @Column({ type: 'timestamp' }) clientCreatedAt!: Date;
+packages/vcash-offline-plugin/src/entities/offline-sync-queue.entity.ts| @Column({ type: 'timestamp' }) clientUpdatedAt!: Date;
+packages/voucher-plugin/src/migrations/migrate-voucher-tables.ts| const ts = pg ? 'timestamp' : 'datetime';
+packages/voucher-plugin/src/service-voucher.entity.ts| @Column({ type: 'timestamp', nullable: true })
+packages/voucher-plugin/src/voucher-booking.entity.ts| @Column({ type: 'timestamp' })

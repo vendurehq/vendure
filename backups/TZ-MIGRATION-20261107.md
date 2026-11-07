@@ -65,3 +65,53 @@ bash tz-reverse.sh backups/tz-map-20261107-165803.tsv
 - 销售按日、配送完成、售后 SLA、KDS 待出餐、巡检 P95 与改前一致
 - telemetry 日报为北京日界修正：11-03 531→526、11-04 65→70、11-05 4→3、11-06 37→33、11-07 14→19，
   差异全部来自北京时间 00:00–08:00 的事件归位，满足 `OLD(d) = NEW(d) − early(d) + early(d+1)`，无丢失无重复
+
+## 后续：防回归护栏（2026-11-07 补装）
+
+### A. 启动自检（`packages/harden-plugin/src/timezone-drift-check.ts`）
+
+每次启动在现有时区自检之后追加一条：
+
+```sql
+SELECT table_name, column_name FROM information_schema.columns
+WHERE table_schema='public' AND data_type='timestamp without time zone'
+```
+
+- 列数为 0 → `info` 日志「时区列自检通过：timestamp without time zone 列数 0」（证明检查真的跑了）
+- 列数 > 0 → `error` 日志列出最多 20 个 `表.列`，并尝试推送飞书（复用 `FEISHU_ENABLED` / `FEISHU_WEBHOOK` / `FEISHU_SECRET`，
+  与 FeishuClient 同一 webhook、同一 `HMAC-SHA256(timestamp\nsecret)` 签名；未配置时只留一行「告警未发送」日志）
+- **只告警、不抛错、不阻塞启动**（新建表当天不能把服务卡死），超时 5 秒
+
+### B. 发布前预检（`scripts/tz-guard.sh`）
+
+```bash
+scripts/tz-guard.sh            # 发布前必跑：新增命中即 exit 1
+scripts/tz-guard.sh --all      # 连历史基线一起判失败（全量清账）
+scripts/tz-guard.sh --bootstrap  # 重新生成基线（维护用）
+```
+
+三块检查：
+
+1. 数据库 `public` schema 的 `timestamp without time zone` 列（任何命中即失败，不受基线影响）
+2. 实体 `.entity.ts` 里的 `'timestamp'`（排除注释与 `timestamptz`）
+3. 迁移文件里的 `timestamp` 建列（排除注释、`lib/` 构建产物与 `timestamptz` / `timestamp with time zone`）
+
+存量历史写法冻结在 `scripts/tz-guard-baseline.txt`（61 条：迁移已应用、`synchronize=false` 不会落库），
+默认只对**不在基线内**的新增命中判失败；`--all` 可查全量欠账。
+
+标准发布流程：
+
+```bash
+cd /www/apps/vendure && scripts/tz-guard.sh && pm2 restart vendure
+```
+
+环境变量：`TZ_GUARD_CONTAINER`(默认 `1Panel-postgresql-pIe0`)、`TZ_GUARD_DB`(默认 `vendure`)、
+`TZ_GUARD_USER`(默认 `vendure`)；无 docker 时回退到 `PGHOST/PGPORT/PGUSER` 直连。
+
+### 已验证
+
+- 造 `tz_guard_probe("createdAt" timestamp without time zone)` → 重启：`error 时区列自检失败：发现 1 个 …tz_guard_probe.createdAt`，
+  `/health` 200（未阻塞启动）；`tz-guard.sh` exit 1 并列出该列
+- 删表 → `tz-guard.sh` exit 0「RESULT: PASS」；再重启：`info 时区列自检通过：列数 0`
+- 最终：`timestamp without time zone = 0`，无 `tz_guard*` 临时表残留
+
