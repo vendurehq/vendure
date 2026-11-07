@@ -2,6 +2,7 @@ import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { Channel, EventBus, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 import { AfterSalesMerchantNotifyEvent } from '@vendure/after-sales-plugin';
 import { withAdvisoryLock } from './advisory-lock';
+import { dbNowWallToInstant } from './db-now-wall';
 import { PeriodicFallback } from './periodic-fallback';
 
 const loggerCtx = 'CampusAfterSalesSlaAlert';
@@ -93,7 +94,8 @@ export class AfterSalesSlaAlertJob implements OnApplicationShutdown {
                 // 与商家端「售后规则」同源：未配置按 48h / 12h；0 = 关闭该类提醒
                 const timeoutHours = Number(cf.afterSalesTimeoutHours ?? DEFAULT_TIMEOUT_HOURS) || DEFAULT_TIMEOUT_HOURS;
                 const dueSoonHours = Number(cf.afterSalesDueSoonHours ?? DEFAULT_DUE_SOON_HOURS) || 0;
-                const createdAt = new Date(r.createdAt).getTime();
+                // 申请时间由 DB now() 写入（UTC 墙钟），按原始 Date 参与运算会早 8 小时触发超时提醒
+                const createdAt = dbNowWallToInstant(r.createdAt).getTime();
                 // §95：已累计暂停时长顺延截止时间
                 const deadline = createdAt + timeoutHours * 3600_000 + (Number(r.slaPausedMs) || 0);
                 const kind = now >= deadline

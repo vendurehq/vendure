@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { Channel, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 import { businessDeadline } from './after-sales-sla';
+import { dbNowWallToInstant } from './db-now-wall';
 import { closureDateKeys } from './closure-calendar';
 import { withAdvisoryLock } from './advisory-lock';
 import { CampusConfigService } from './campus-config.service';
@@ -89,7 +90,14 @@ export class AfterSalesSlaDeadlineJob implements OnApplicationShutdown {
         const list: any[] = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
         if (!Array.isArray(list) || !list.length) return;
         for (const r of list) {
-            const deadline = businessDeadline(new Date(r.createdAt), timeoutHours, businessHours, Number(r.paused), closureDates);
+            // 申请时间由 DB now() 写入（UTC 墙钟），必须还原为绝对时刻，否则截止时间整体提前 8 小时
+            const deadline = businessDeadline(
+                dbNowWallToInstant(r.createdAt),
+                timeoutHours,
+                businessHours,
+                Number(r.paused),
+                closureDates,
+            );
             await raw.query(
                 'UPDATE after_sales_request SET "slaDeadlineAt" = to_timestamp($2 / 1000.0) '
                 + 'WHERE id = $1 AND "slaDeadlineAt" IS DISTINCT FROM to_timestamp($2 / 1000.0)',

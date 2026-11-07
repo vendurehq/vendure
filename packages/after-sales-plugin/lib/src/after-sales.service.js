@@ -14,6 +14,7 @@ exports.AfterSalesService = void 0;
 const common_1 = require("@nestjs/common");
 const node_stream_1 = require("node:stream");
 const typeorm_1 = require("typeorm");
+const db_now_wall_1 = require("./db-now-wall");
 const core_1 = require("@vendure/core");
 const constants_1 = require("./constants");
 const after_sales_request_entity_1 = require("./after-sales-request.entity");
@@ -181,8 +182,11 @@ let AfterSalesService = AfterSalesService_1 = class AfterSalesService {
         const cf = ((_e = order.customFields) !== null && _e !== void 0 ? _e : {});
         const gate = (_f = this.options) === null || _f === void 0 ? void 0 : _f.requireOrderCustomField;
         const hasDeliveryArchive = !!(gate === null || gate === void 0 ? void 0 : gate.field) && cf[gate.field] != null;
+        // 口径：前三个 customFields 是 timestamptz（绝对时刻，直接可用）；
+        // order.createdAt 是 timestamp + DB DEFAULT now()，库里存 UTC 墙钟，
+        // 必须先按 UTC 墙钟还原，否则会被当成 8 小时前，导致售后窗口提前关闭。
         const orderDate = cf.fulfillmentCompletedAt || cf.fulfillmentDeliveredAt || cf.deliveredAt
-            || order.createdAt;
+            || (0, db_now_wall_1.dbNowWallToInstant)(order.createdAt);
         const windowHours = (_h = (_g = this.options) === null || _g === void 0 ? void 0 : _g.afterSalesWindowHours) !== null && _h !== void 0 ? _h : 0;
         if (windowHours > 0 && hasDeliveryArchive) {
             const hoursSince = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60);
@@ -1099,7 +1103,10 @@ let AfterSalesService = AfterSalesService_1 = class AfterSalesService {
             .andWhere('r.createdAt <= :to', { to: toDate })
             .getRawMany();
         const hours = refundedRows
-            .map((r) => (new Date(r.refundedAt).getTime() - new Date(r.createdAt).getTime()) / 3600000)
+            .map(
+        // refundedAt 由 JS 写入（北京墙钟，读回即真实时刻）；createdAt 由 DB now() 写入（UTC 墙钟）。
+        // 不做换算会把处理时长整体多算 8 小时。
+        (r) => (new Date(r.refundedAt).getTime() - (0, db_now_wall_1.dbNowWallToInstant)(r.createdAt).getTime()) / 3600000)
             .filter((h) => Number.isFinite(h) && h >= 0);
         const avgHandleHours = hours.length
             ? Math.round((hours.reduce((a, b) => a + b, 0) / hours.length) * 100) / 100

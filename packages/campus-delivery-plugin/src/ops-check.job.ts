@@ -12,10 +12,12 @@ interface CheckMetric {
 }
 
 /** 各履约状态桶的滞留时长 P95（分钟），仅日志输出，帮助判断积压是否长期化 */
+// 口径：customFieldsHallenteredat 是 timestamptz（绝对时刻）；createdAt 是 timestamp + DB now()（UTC 墙钟）。
+// 显式 AT TIME ZONE 'UTC' 把 UTC 墙钟还原成绝对时刻，避免依赖会话 TimeZone。
 const BACKLOG_P95_SQL = `
 SELECT "customFieldsHallstatus" AS bucket,
        COALESCE(percentile_cont(0.95) WITHIN GROUP (
-           ORDER BY EXTRACT(EPOCH FROM (now() - COALESCE("customFieldsHallenteredat"::timestamptz, "createdAt"))) / 60
+           ORDER BY EXTRACT(EPOCH FROM (now() - COALESCE("customFieldsHallenteredat", ("createdAt" AT TIME ZONE 'UTC'))) / 60
        ), 0)::int AS p95_min,
        COUNT(*)::int AS n
 FROM "order"

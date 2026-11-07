@@ -315,6 +315,9 @@ export class TelemetryService {
 
     private async dayCounts(ctx: RequestContext, table: string, channelId: number, from: Date) {
         const manager = this.connection.getRepository(ctx, CampusTrackEvent).manager;
+        // 口径说明（勿再叠加偏移）：campus_track_event / campus_error_report 的 createdAt 是
+        // timestamptz（绝对时刻），SQL 里 +8 hours 只用于把绝对时刻落成北京自然日；
+        // 传入的 from 也是绝对时刻，可直接比较。两处都不需要按 timestamp 的墙钟口径再换算。
         const raw = await manager.query(
             `SELECT to_char((("createdAt" + interval '8 hours')::date), 'YYYY-MM-DD') AS day, COUNT(*)::int AS cnt
              FROM ${table} WHERE "channelId" = $1 AND "createdAt" >= $2 GROUP BY 1`,

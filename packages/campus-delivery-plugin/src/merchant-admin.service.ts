@@ -27,6 +27,7 @@ import { CampusConfigService } from './campus-config.service';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { CampusNotifyService } from './campus-notify.service';
 import { campusDayKey, campusHour, startOfCampusDay } from './campus-time';
+import { dbNowWallToInstant } from './db-now-wall';
 import { BusinessTransition, isWithinBusinessHours, nextBusinessTransition, parseBusinessHours } from './business-hours';
 import { ExternalProviderCode } from './route-matrix';
 import { HallService } from './hall.service';
@@ -5838,7 +5839,8 @@ export class MerchantAdminService {
             if (hours <= 0) {
                 task.status = AfterSalesTimeoutStatus.CANCELLED;
             } else {
-                task.dueAt = new Date(new Date(req.createdAt).getTime() + hours * 3_600_000);
+                // 售后申请时间由 DB now() 写入（UTC 墙钟）：不换算会让超时任务提前 8 小时执行
+                task.dueAt = new Date(dbNowWallToInstant(req.createdAt).getTime() + hours * 3_600_000);
             }
             await taskRepo.save(task);
         }
@@ -6827,7 +6829,13 @@ export class MerchantAdminService {
         );
         const list: any[] = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
         for (const r of Array.isArray(list) ? list : []) {
-            const deadline = businessDeadline(new Date(r.createdAt), timeoutHours, businessHours, Number(r.paused), closureDates);
+            const deadline = businessDeadline(
+                dbNowWallToInstant(r.createdAt),
+                timeoutHours,
+                businessHours,
+                Number(r.paused),
+                closureDates,
+            );
             await raw.query(
                 'UPDATE after_sales_request SET "slaDeadlineAt" = to_timestamp($2 / 1000.0) WHERE id = $1',
                 [Number(r.id), deadline],
@@ -6845,7 +6853,7 @@ export class MerchantAdminService {
         const r = Array.isArray(list) ? list[0] : null;
         if (!r) return;
         const deadline = businessDeadline(
-            new Date(r.createdAt),
+            dbNowWallToInstant(r.createdAt),
             this.afterSalesTimeoutHours(ctx),
             await this.channelBusinessHours(ctx),
             Number(r.paused),
@@ -7072,7 +7080,12 @@ export class MerchantAdminService {
         const slaPaused = Boolean(sla?.paused);
         // §95：暂停累计时长顺延截止时间；暂停中不再判超时/临期
         // §99：只统计门店营业时段，非营业时间不计入处理时长
-        const deadline = businessDeadline(row.createdAt, timeoutHours, opts.businessHours, sla?.pausedMs ?? 0);
+        const deadline = businessDeadline(
+            dbNowWallToInstant(row.createdAt),
+            timeoutHours,
+            opts.businessHours,
+            sla?.pausedMs ?? 0,
+        );
         const assignee = opts.assignees?.get(Number(row.id));
         return {
             id: String(row.id),

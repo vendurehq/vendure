@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import { In, Not } from 'typeorm';
+import { dbNowWallToInstant } from './db-now-wall';
 import {
     ID,
     Injector,
@@ -215,8 +216,11 @@ export class AfterSalesService {
         const cf: Record<string, any> = (order.customFields ?? {}) as any;
         const gate = this.options?.requireOrderCustomField;
         const hasDeliveryArchive = !!gate?.field && cf[gate.field] != null;
+        // 口径：前三个 customFields 是 timestamptz（绝对时刻，直接可用）；
+        // order.createdAt 是 timestamp + DB DEFAULT now()，库里存 UTC 墙钟，
+        // 必须先按 UTC 墙钟还原，否则会被当成 8 小时前，导致售后窗口提前关闭。
         const orderDate: Date = cf.fulfillmentCompletedAt || cf.fulfillmentDeliveredAt || cf.deliveredAt
-            || order.createdAt;
+            || dbNowWallToInstant(order.createdAt);
         const windowHours = this.options?.afterSalesWindowHours ?? 0;
         if (windowHours > 0 && hasDeliveryArchive) {
             const hoursSince = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60);
@@ -1218,8 +1222,10 @@ export class AfterSalesService {
             .getRawMany();
         const hours = refundedRows
             .map(
+                // refundedAt 由 JS 写入（北京墙钟，读回即真实时刻）；createdAt 由 DB now() 写入（UTC 墙钟）。
+                // 不做换算会把处理时长整体多算 8 小时。
                 (r: any) =>
-                    (new Date(r.refundedAt).getTime() - new Date(r.createdAt).getTime()) / 3600000,
+                    (new Date(r.refundedAt).getTime() - dbNowWallToInstant(r.createdAt).getTime()) / 3600000,
             )
             .filter((h: number) => Number.isFinite(h) && h >= 0);
         const avgHandleHours = hours.length
