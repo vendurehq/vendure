@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Logger } from '@vendure/core';
 import { CampusDedupeService } from './campus-dedupe.service';
 
 function memoryService(): CampusDedupeService {
@@ -94,5 +95,34 @@ describe('CampusDedupeService（db）', () => {
         const svc = dbService(query);
         await svc.setJson('k', { a: 1 }, 60_000);
         expect(await svc.getJson('k')).toEqual({ a: 1 });
+    });
+
+    it('10 年量级 TTL 能正常落库（bigint），不回退内存', async () => {
+        const TEN_YEARS_MS = 3650 * 24 * 3600_000;
+        const store = new Map<string, { value: unknown }>();
+        // 模拟 pg：参数若仍按 int 传输，10 年毫秒会溢出（线上曾报 value "315360000000" is out of range for type integer）
+        const query = vi.fn(async (sql: string, params: any[]) => {
+            if (!String(sql).includes('::bigint') && params?.[1] > 2_147_483_647) {
+                throw new Error(`value "${params[1]}" is out of range for type integer`);
+            }
+            if (String(sql).includes('INSERT INTO')) {
+                store.set(params[0], { value: JSON.parse(params[2]) });
+                return [[]];
+            }
+            if (String(sql).includes('SELECT "value"')) {
+                return [[store.get(params[0])]];
+            }
+            return [[]];
+        });
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation((() => undefined) as any);
+        const svc = dbService(query);
+        await svc.setJson('campus:refund_retry:installed_at', { at: '2026-11-08T00:00:00.000Z' }, TEN_YEARS_MS);
+        expect(await svc.getJson('campus:refund_retry:installed_at')).toEqual({ at: '2026-11-08T00:00:00.000Z' });
+        const insert = query.mock.calls.find(c => String(c[0]).includes('INSERT INTO'))!;
+        expect(String(insert[0])).toContain('::bigint');
+        expect(String(insert[0])).not.toContain('::int');
+        expect(insert[1][1]).toBe(TEN_YEARS_MS);
+        // 未触发「去重表不可用」降级告警 → 没有回退到内存实现
+        expect(warn.mock.calls.some(c => String(c[0]).includes('去重表不可用'))).toBe(false);
     });
 });

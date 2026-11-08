@@ -231,8 +231,9 @@ let CampusDedupeService = class CampusDedupeService {
     }
     async dbMark(key, ttlMs) {
         try {
+            // TTL 毫秒按 bigint 传入：int32 上限约 24.8 天，10 年级别的标记（如退款重试安装时间）会溢出报错
             await this.raw().query(`INSERT INTO campus_dedupe_key ("key", "expiresAt", "counter")
-                 VALUES ($1, now() + ($2::int * interval '1 millisecond'), 0)
+                 VALUES ($1, now() + ($2::bigint * interval '1 millisecond'), 0)
                  ON CONFLICT ("key") DO UPDATE SET "expiresAt"=excluded."expiresAt"`, [key, Math.max(1, Math.floor(ttlMs))]);
         }
         catch (e) {
@@ -245,7 +246,7 @@ let CampusDedupeService = class CampusDedupeService {
             // 先清掉过期行，避免过期 key 的冲突被误判为「窗口内已存在」
             await this.raw().query(`DELETE FROM campus_dedupe_key WHERE "key"=$1 AND "expiresAt" <= now()`, [key]);
             const result = await this.raw().query(`INSERT INTO campus_dedupe_key ("key", "expiresAt", "counter")
-                 VALUES ($1, now() + ($2::int * interval '1 millisecond'), 0)
+                 VALUES ($1, now() + ($2::bigint * interval '1 millisecond'), 0)
                  ON CONFLICT ("key") DO NOTHING
                  RETURNING "key"`, [key, Math.max(1, Math.floor(ttlMs))]);
             // 抢占成功（有返回行）→ 不是重复；冲突（无返回行）→ 已存在
@@ -262,7 +263,7 @@ let CampusDedupeService = class CampusDedupeService {
     async dbIncr(key, windowMs) {
         try {
             const result = await this.raw().query(`INSERT INTO campus_dedupe_key ("key", "expiresAt", "counter")
-                 VALUES ($1, now() + ($2::int * interval '1 millisecond'), 1)
+                 VALUES ($1, now() + ($2::bigint * interval '1 millisecond'), 1)
                  ON CONFLICT ("key") DO UPDATE SET
                      "counter" = CASE WHEN campus_dedupe_key."expiresAt" <= now()
                                       THEN 1 ELSE campus_dedupe_key."counter" + 1 END,
@@ -286,7 +287,7 @@ let CampusDedupeService = class CampusDedupeService {
     async dbSetJson(key, value, ttlMs) {
         try {
             await this.raw().query(`INSERT INTO campus_dedupe_key ("key", "expiresAt", "counter", "value")
-                 VALUES ($1, now() + ($2::int * interval '1 millisecond'), 0, $3::jsonb)
+                 VALUES ($1, now() + ($2::bigint * interval '1 millisecond'), 0, $3::jsonb)
                  ON CONFLICT ("key") DO UPDATE SET
                      "expiresAt"=excluded."expiresAt", "value"=excluded."value"`, [key, Math.max(1, Math.floor(ttlMs)), JSON.stringify(value !== null && value !== void 0 ? value : null)]);
         }
