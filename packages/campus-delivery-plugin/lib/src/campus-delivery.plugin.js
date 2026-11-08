@@ -189,6 +189,7 @@ const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
 const compensation_retry_job_1 = require("./compensation-retry.job");
+const refund_retry_job_1 = require("./refund-retry.job");
 const ops_check_job_1 = require("./ops-check.job");
 const slot_reconcile_job_1 = require("./slot-reconcile.job");
 const compensation_task_entity_1 = require("./compensation-task.entity");
@@ -328,6 +329,8 @@ let CampusDeliveryPlugin = class CampusDeliveryPlugin {
         this.injector.get(withdraw_reconcile_job_1.WithdrawReconcileJob).start();
         // R2 补偿任务：券/站内信失败落库后退避重试（耗尽才告警）
         this.injector.get(compensation_retry_job_1.CompensationRetryJob).start();
+        // A9 退款重试：refund_failed 有限次退避重试，耗尽升级飞书告警 + 人工工单
+        this.injector.get(refund_retry_job_1.RefundRetryJob).start();
         // R8 遗留巡检：每日把静默卡住的残留量汇总到平台群（只读 COUNT）
         this.injector.get(ops_check_job_1.OpsCheckJob).start();
         // R3 锁位对账：容量与实际占位偏差告警（只读，先观测不自动修复）
@@ -434,6 +437,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,
             compensation_retry_job_1.CompensationRetryJob,
+            refund_retry_job_1.RefundRetryJob,
             ops_check_job_1.OpsCheckJob,
             slot_reconcile_job_1.SlotReconcileJob,
             after_sales_review_service_1.AfterSalesReviewService,

@@ -25,7 +25,7 @@ const loggerCtx = 'CampusSupport';
 export const TICKET_CATEGORIES = ['order', 'delivery', 'refund', 'invoice', 'other'];
 export const TICKET_STATUSES = ['open', 'replied', 'closed'];
 /** 工单来源：顾客提交 / 外部运单异常自动建单 */
-export const TICKET_SOURCES = ['customer', 'third_party_exception'];
+export const TICKET_SOURCES = ['customer', 'third_party_exception', 'refund_retry_exhausted'];
 export const APPEAL_STATUSES = ['pending', 'approved', 'rejected'];
 const MAX_CONTENT = 500;
 const MAX_REPLY = 500;
