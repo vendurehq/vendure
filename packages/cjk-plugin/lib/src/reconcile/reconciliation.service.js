@@ -16,7 +16,14 @@ const typeorm_1 = require("typeorm");
 const reconciliation_entity_1 = require("./reconciliation.entity");
 const diff_rules_1 = require("./diff-rules");
 const loggerCtx = 'ReconciliationService';
-const rowsOf = (out) => { var _a; return (Array.isArray(out) ? (_a = out[0]) !== null && _a !== void 0 ? _a : [] : []); };
+// TypeORM DataSource.query 对 PostgreSQL 返回的是「行对象数组」（不是 [rows] 嵌套）；兼容查询器结构化返回形态
+const rowsOf = (out) => {
+    if (Array.isArray(out))
+        return out;
+    if (Array.isArray(out === null || out === void 0 ? void 0 : out.rows))
+        return out.rows;
+    return [];
+};
 let ReconciliationService = class ReconciliationService {
     constructor(connection) {
         this.connection = connection;
@@ -47,11 +54,7 @@ let ReconciliationService = class ReconciliationService {
             order: { id: 'ASC' },
             take: 500,
         });
-        // D1 数据源护栏：delivery_record 全表 0 或近 7 天 0 写入 → 不判 D1（否则数据源缺失会被误判成业务差异）
-        const d1SourceMissing = await this.deliverySourceMissing();
-        if (d1SourceMissing) {
-            core_1.Logger.warn('对账 D1 数据源缺失：delivery_record 全表 0 条或近 7 天 0 写入，本轮跳过 D1 判定，需先修复数据源', loggerCtx);
-        }
+        // D1 三证：发货单 ∪ 自提核销 ∪ 校园配送实际送达；均取自订单/独立插件，不再依赖 delivery_record 死表
         const lineRepo = this.connection.getRepository(ctx, reconciliation_entity_1.ReconciliationOrderLine);
         let d1 = 0, d2 = 0, d3 = 0, d4 = 0;
         for (const order of orders) {
@@ -67,11 +70,11 @@ let ReconciliationService = class ReconciliationService {
                 ledgerOuts: data.ledgerOuts,
                 hasShipment: data.hasShipment,
                 pickupCollected: data.pickupCollected,
+                campusDelivered: data.campusDelivered,
                 paidSettled: data.paidSettled,
                 settledRefunds: data.settledRefunds,
                 mirrorDiff: data.mirrorDiff,
                 cancelled: order.state === 'Cancelled',
-                d1SourceMissing,
             });
             if (diffs.length) {
                 await lineRepo.save(new reconciliation_entity_1.ReconciliationOrderLine({
@@ -99,7 +102,7 @@ let ReconciliationService = class ReconciliationService {
     }
     /** 采集一单四流数据（数据源：Order / OrderStockLedger / DeliveryRecord / Fulfillment / pickup_redemption / Payment+Refund） */
     async collectOrderData(ctx, order) {
-        var _a;
+        var _a, _b;
         const lineIds = ((_a = order.lines) !== null && _a !== void 0 ? _a : []).map((l) => l.id);
         const outs = [];
         const mirrors = [];
@@ -115,31 +118,15 @@ let ReconciliationService = class ReconciliationService {
         return {
             deliveryRecords: records.map((r) => ({ mode: r.mode, sourceLocationId: r.sourceLocationId, status: r.status })),
             ledgerOuts: outs.map((l) => ({ sourceLocationId: l.stockLocationId, quantity: l.quantity })),
-            // D1 证据补充：发货单（Vendure fulfillment）+ 自提核销
+            // D1 三证补充：发货单（Vendure fulfillment）+ 自提核销 + 校园配送实际送达状态
             hasShipment: Array.isArray(order.fulfillments) ? order.fulfillments.length > 0 : false,
             pickupCollected: await this.pickupCollected(order.id),
+            campusDelivered: ((_b = order.customFields) === null || _b === void 0 ? void 0 : _b.deliveryStatus) === 'delivered',
             // D3 实收口径：已结算支付 − 已结算退款（不再取 MerchantSettlementLedger）
             paidSettled: totals.paidSettled,
             settledRefunds: totals.settledRefunds,
             mirrorDiff: mirrors.reduce((sum, m) => sum + (m.direction === 'in' ? m.quantity : -m.quantity), 0),
         };
-    }
-    /** D1 数据源护栏：delivery_record 全表 0 条或近 7 天 0 写入 → 视为数据源缺失 */
-    async deliverySourceMissing() {
-        var _a, _b, _c, _d, _e;
-        try {
-            const rows = rowsOf(await this.connection.rawConnection.query(`SELECT count(*)::int AS total,
-                        count(*) FILTER (WHERE "createdAt" >= now() - interval '7 days')::int AS recent
-                   FROM delivery_record`));
-            const total = Number((_b = (_a = rows[0]) === null || _a === void 0 ? void 0 : _a.total) !== null && _b !== void 0 ? _b : 0);
-            const recent = Number((_d = (_c = rows[0]) === null || _c === void 0 ? void 0 : _c.recent) !== null && _d !== void 0 ? _d : 0);
-            return total === 0 || recent === 0;
-        }
-        catch (e) {
-            // 探测失败不阻断对账，也不据此跳过 D1（保守按有数据源处理）
-            core_1.Logger.warn(`对账 D1 数据源探测失败，按有数据源处理：${String((_e = e === null || e === void 0 ? void 0 : e.message) !== null && _e !== void 0 ? _e : e)}`, loggerCtx);
-            return false;
-        }
     }
     /** 自提核销证据：pickup_redemption 属独立插件，表不存在/查询失败按「无证据」处理 */
     async pickupCollected(orderId) {
@@ -189,7 +176,6 @@ let ReconciliationService = class ReconciliationService {
             throw new Error(`订单不存在: ${line.orderId}`);
         }
         const data = await this.collectOrderData(ctx, order);
-        const d1SourceMissing = await this.deliverySourceMissing();
         const diffs = (0, diff_rules_1.diffOrder)({
             order: {
                 id: String(order.id),
@@ -201,11 +187,11 @@ let ReconciliationService = class ReconciliationService {
             ledgerOuts: data.ledgerOuts,
             hasShipment: data.hasShipment,
             pickupCollected: data.pickupCollected,
+            campusDelivered: data.campusDelivered,
             paidSettled: data.paidSettled,
             settledRefunds: data.settledRefunds,
             mirrorDiff: data.mirrorDiff,
             cancelled: order.state === 'Cancelled',
-            d1SourceMissing,
         });
         line.diffTypes = JSON.stringify(diffs);
         line.status = diffs.length ? 'pending' : 'closed';

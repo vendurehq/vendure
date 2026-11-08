@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Logger } from '@vendure/core';
 import { ReconciliationService } from './reconciliation.service';
 
 describe('ReconciliationService', () => {
@@ -13,7 +12,11 @@ describe('ReconciliationService', () => {
             collectOrderData: vi.fn(async () => ({
                 deliveryRecords: [],
                 ledgerOuts: [{ sourceLocationId: 'l1', quantity: 1 }],
-                settlements: [{ status: 'PAID', amount: 10000 }],
+                hasShipment: false,
+                pickupCollected: false,
+                campusDelivered: false,
+                paidSettled: 10000,
+                settledRefunds: 0,
                 mirrorDiff: 0,
             })),
             ...overrides,
@@ -81,10 +84,13 @@ describe('ReconciliationService', () => {
         expect(orderRepo.find).toHaveBeenCalledWith(expect.objectContaining({ order: { id: 'ASC' }, take: 500 }));
     });
 
-    it('D1 数据源缺失：delivery_record 全表 0 时不判 D1，也不落差异行', async () => {
-        vi.spyOn(Logger, 'warn').mockImplementation((() => undefined) as any);
+    it('D1 不再依赖 delivery_record：三证皆无时照常判 D1', async () => {
         const savedLines: any[] = [];
-        const repo = { findOne: vi.fn().mockResolvedValue(null), save: vi.fn(async (e: any) => e) };
+        const repo = {
+            findOne: vi.fn().mockResolvedValue(null),
+            save: vi.fn(async (e: any) => e),
+            find: vi.fn().mockResolvedValue([]),
+        };
         const lineRepo = { find: vi.fn().mockResolvedValue([]), save: vi.fn(async (e: any) => { savedLines.push(e); return e; }) };
         const orderRepo = {
             find: vi.fn().mockResolvedValue([
@@ -101,11 +107,53 @@ describe('ReconciliationService', () => {
                     return repo;
                 }),
                 getEntityOrThrow: vi.fn(),
-                rawConnection: { query: vi.fn().mockResolvedValue([[{ total: 0, recent: 0 }]]) },
+                // 真实返回形态：对象数组（不是 [[row]]）
+                rawConnection: {
+                    query: vi.fn(async (sql: string) => (
+                        sql.includes('pickup_redemption') ? [{ collected: false }] : [{ paid: 10000, refunded: 0 }]
+                    )),
+                },
             },
         });
         const batch = await svc.runBatch({ channel: { id: 'c1', code: 't1' } } as any, '2026-09-16', 'manual');
-        expect(batch.d1Count).toBe(0);
-        expect(savedLines.some(l => JSON.parse(l.diffTypes).includes('D1'))).toBe(false);
+        expect(batch.d1Count).toBe(1);
+        expect(savedLines.some(l => JSON.parse(l.diffTypes).includes('D1'))).toBe(true);
+    });
+
+    it('回归：rowsOf 按 TypeORM 真实返回（对象数组）解析，D3 实收足额不误报', async () => {
+        // 该单已由校园配送实际送达（D1 不判），实收 10000 = 应收 10000，退款 0
+        // 旧实现 rowsOf 取 out[0] 得到行对象，会把实收解析成 0 并误报 D3
+        const repo = {
+            findOne: vi.fn().mockResolvedValue(null),
+            save: vi.fn(async (e: any) => e),
+            find: vi.fn().mockResolvedValue([]),
+        };
+        const savedLines: any[] = [];
+        const lineRepo = { find: vi.fn().mockResolvedValue([]), save: vi.fn(async (e: any) => { savedLines.push(e); return e; }) };
+        const orderRepo = {
+            find: vi.fn().mockResolvedValue([
+                { id: 'o1', totalWithTax: 10000, state: 'Delivered', customFields: { deliveryStatus: 'delivered' }, fulfillments: [] },
+            ]),
+        };
+        const svc = makeService({
+            connection: {
+                getRepository: vi.fn((_ctx: any, name: any) => {
+                    const n = typeof name === 'string' ? name : name?.name;
+                    if (n === 'ReconciliationBatch') return repo;
+                    if (n === 'ReconciliationOrderLine') return lineRepo;
+                    if (n === 'Order') return orderRepo;
+                    return repo;
+                }),
+                getEntityOrThrow: vi.fn(),
+                rawConnection: {
+                    query: vi.fn(async (sql: string) => (
+                        sql.includes('pickup_redemption') ? [{ collected: false }] : [{ paid: 10000, refunded: 0 }]
+                    )),
+                },
+            },
+        });
+        const batch = await svc.runBatch({ channel: { id: 'c1', code: 't1' } } as any, '2026-09-17', 'manual');
+        expect(batch.d3Count).toBe(0);
+        expect(savedLines.some(l => JSON.parse(l.diffTypes).includes('D3'))).toBe(false);
     });
 });

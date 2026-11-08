@@ -11,8 +11,8 @@ exports.D3_SETTLED_STATES = ['PaymentSettled', 'Delivered'];
 /**
  * 四流逐单比对：
  * D1 缺履约凭证：仅「已发货语义」订单（Shipped/PartiallyShipped/Delivered/PartiallyDelivered）判定，
- *    凭证为「发货单 ∪ 配送记录 ∪ 自提核销」三者都不存在才算差异；
- *    数据源护栏：delivery_record 全表 0 或近 7 天无写入时整轮跳过 D1（否则会把数据源缺失误判成业务差异）。
+ *    凭证为「发货单 ∪ 自提核销 ∪ 校园配送实际送达」三者都不存在才算差异；
+ *    不再依赖从未写入的 delivery_record 表，也不因该表为空而整轮跳过 D1。
  * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致
  * D3 实收不平：仅已实收状态（PaymentSettled/Delivered）判「实收支付 − 已结算退款」是否等于订单应付；
  *    PaymentAuthorized 等未实收状态不判；分账台账（MerchantSettlementLedger）不再混入 D3，另立独立规则。
@@ -31,11 +31,10 @@ function diffOrder(input) {
     const isCancelled = cancelled === true || order.state === 'Cancelled';
     const openRecords = deliveryRecords.filter(r => ['self', 'express', 'pickup'].includes(r.mode) && r.status !== 'Draft');
     if (!isCancelled
-        && !input.d1SourceMissing
         && exports.D1_SHIPPED_STATES.includes(order.state)
         && !input.hasShipment
         && !input.pickupCollected
-        && openRecords.length === 0) {
+        && !input.campusDelivered) {
         diffs.push('D1');
     }
     const firstOut = ledgerOuts[0];

@@ -16,6 +16,7 @@ const full = (overrides: Partial<DiffOrderInput> = {}): DiffOrderInput => ({
     settledRefunds: 0,
     hasShipment: false,
     pickupCollected: false,
+    campusDelivered: true,
     mirrorDiff: 0,
     ...overrides,
 });
@@ -26,22 +27,23 @@ describe('diffOrder', () => {
     });
 
     it('D1 已发货语义订单缺三种凭证', () => {
-        expect(diffOrder(full({ deliveryRecords: [] }))).toContain('D1');
+        expect(diffOrder(full({ deliveryRecords: [], campusDelivered: false }))).toContain('D1');
     });
 
-    it('D1 凭证三者取其一即可：发货单 / 配送记录 / 自提核销', () => {
-        expect(diffOrder(full({ deliveryRecords: [], hasShipment: true }))).not.toContain('D1');
-        expect(diffOrder(full({ deliveryRecords: [], pickupCollected: true }))).not.toContain('D1');
-        expect(diffOrder(full({ deliveryRecords: [{ mode: 'self', sourceLocationId: 'l1', status: 'Delivered' }] }))).not.toContain('D1');
+    it('D1 凭证三者取其一即可：发货单 / 自提核销 / 校园配送实际送达', () => {
+        expect(diffOrder(full({ deliveryRecords: [], campusDelivered: false, hasShipment: true }))).not.toContain('D1');
+        expect(diffOrder(full({ deliveryRecords: [], campusDelivered: false, pickupCollected: true }))).not.toContain('D1');
+        expect(diffOrder(full({ deliveryRecords: [], campusDelivered: true }))).not.toContain('D1');
+    });
+
+    it('D1 不再依赖 delivery_record：该表为空也照常判定', () => {
+        // deliveryRecords 为空只影响 D2 取仓，不再作为 D1 凭证，也不触发整轮跳过
+        expect(diffOrder(full({ deliveryRecords: [], campusDelivered: false })).filter(d => d === 'D1')).toEqual(['D1']);
     });
 
     it('D1 只判已发货语义状态：Pending/AddingItems 不判', () => {
         expect(diffOrder(full({ order: { ...baseOrder, state: 'Pending' }, deliveryRecords: [], ledgerOuts: [] })).filter(d => d === 'D1')).toEqual([]);
         expect(diffOrder(full({ order: { ...baseOrder, state: 'AddingItems' }, deliveryRecords: [] })).filter(d => d === 'D1')).toEqual([]);
-    });
-
-    it('D1 数据源缺失护栏：delivery_record 无数据时整轮不判 D1', () => {
-        expect(diffOrder(full({ deliveryRecords: [], d1SourceMissing: true }))).not.toContain('D1');
     });
 
     it('D2 扣仓不一致', () => {
