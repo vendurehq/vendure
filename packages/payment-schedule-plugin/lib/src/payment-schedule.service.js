@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("typeorm");
 const core_1 = require("@vendure/core");
 const notification_1 = require("./notification");
+const payment_schedule_runtime_1 = require("./payment-schedule-runtime");
 const constants_1 = require("./constants");
 const order_payment_schedule_entity_1 = require("./order-payment-schedule.entity");
 const order_schedule_item_entity_1 = require("./order-schedule-item.entity");
@@ -22,6 +23,10 @@ const schedule_config_1 = require("./schedule-config");
 const PAYABLE_SOURCE_STATES = ['ArrangingPayment', 'Deposited', 'PartiallyPaid', 'PaymentSettled'];
 const OPEN_SCHEDULE_STATUSES = ['pending', 'in_progress'];
 const TERMINAL_ITEM_STATUSES = ['paid', 'refunded', 'waived', 'forfeited'];
+/** 无原路退款能力的处理器：货到付款的现金已由骑手/门店收走，网关退不了，只能人工现金退还 */
+const NO_REFUND_HANDLER_CODES = ['cash-on-delivery'];
+/** 退款单结算失败终态（不计入已退总额，保留审计痕迹） */
+const REFUND_FAILED_STATE = 'Failed';
 let PaymentScheduleService = class PaymentScheduleService {
     constructor(connection, listQueryBuilder, orderService, paymentService) {
         this.connection = connection;
@@ -541,10 +546,14 @@ let PaymentScheduleService = class PaymentScheduleService {
             for (const it of all) {
                 if (it.status === 'paid') {
                     const payment = ((_a = order.payments) !== null && _a !== void 0 ? _a : []).find(p => (0, core_1.idsAreEqual)(p.id, it.paymentId) && p.state === 'Settled');
+                    let refunded = true;
                     if (payment) {
-                        await this.refundPaymentOnce(ctx, order, payment, it.amount, 'group buy failed refund');
+                        refunded = await this.refundPaymentOnce(ctx, order, payment, it.amount, 'group buy failed refund');
+                        if (!refunded) {
+                            core_1.Logger.warn(`Group buy refund failed for item ${it.id}, kept as paid for manual handling`, constants_1.loggerCtx);
+                        }
                     }
-                    it.status = 'refunded';
+                    it.status = refunded ? 'refunded' : 'paid';
                 }
                 else if (['locked', 'payable', 'overdue'].includes(it.status)) {
                     it.status = 'waived';
@@ -738,12 +747,14 @@ let PaymentScheduleService = class PaymentScheduleService {
             const payment = ((_a = order.payments) !== null && _a !== void 0 ? _a : []).find(p => (0, core_1.idsAreEqual)(p.id, item.paymentId) && p.state === 'Settled');
             if (!payment)
                 continue;
-            if (depositItem && (0, core_1.idsAreEqual)(item.id, depositItem.id) && (rule === null || rule === void 0 ? void 0 : rule.kind) === 'legal_deposit') {
-                await this.refundPaymentOnce(ctx, order, payment, item.amount, 'seller breach: principal refund');
-                await this.recordCompensationRefund(ctx, payment, item.amount, 'seller breach: statutory compensation (double refund)');
+            const isLegalDepositItem = !!depositItem && (0, core_1.idsAreEqual)(item.id, depositItem.id) && (rule === null || rule === void 0 ? void 0 : rule.kind) === 'legal_deposit';
+            const ok = await this.refundPaymentOnce(ctx, order, payment, item.amount, isLegalDepositItem ? 'seller breach: principal refund' : 'seller breach: full refund');
+            if (!ok) {
+                core_1.Logger.warn(`Seller breach refund failed for item ${item.id}, kept as paid for manual handling`, constants_1.loggerCtx);
+                continue;
             }
-            else {
-                await this.refundPaymentOnce(ctx, order, payment, item.amount, 'seller breach: full refund');
+            if (isLegalDepositItem) {
+                await this.recordCompensationRefund(ctx, payment, item.amount, 'seller breach: statutory compensation (double refund)');
             }
             item.status = 'refunded';
         }
@@ -877,9 +888,18 @@ let PaymentScheduleService = class PaymentScheduleService {
             core_1.Logger.warn(`Cancel order ${orderId} failed: ${(_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : e}`, constants_1.loggerCtx);
         }
     }
-    /** 原路退（Vendure PaymentService.createRefund；shipping/adjustment 为 NOT NULL 必须显式置 0） */
+    /**
+     * 退款（能力闸门 + 立即结算）。原先只 createRefund 不 settleRefund，退款单永远停在 Pending：
+     * - 货到付款等无原路退能力的方式：不建待退款单，改落人工现金退还工单（含订单号/金额/原因）；
+     * - 有退款能力：建单后立即 settleRefund 真实打款，并回读终态；
+     *   结算抛错或回读未达 Settled → 退款单置 Failed（保留审计痕迹）并告警，返回 false 交上层人工处理。
+     */
     async refundPayment(ctx, order, payment, amount, reason) {
         var _a;
+        if (!(await this.paymentSupportsRefund(ctx, payment))) {
+            await this.createManualCashRefundTask(ctx, order, payment, amount, reason);
+            return false;
+        }
         try {
             const result = await this.paymentService.createRefund(ctx, { paymentId: payment.id, amount, reason, shipping: 0, adjustment: 0 }, order, payment);
             if (result instanceof Error) {
@@ -890,11 +910,81 @@ let PaymentScheduleService = class PaymentScheduleService {
                 core_1.Logger.warn(`Refund for payment ${payment.id} failed: ${result.message}`, constants_1.loggerCtx);
                 return false;
             }
-            return true;
+            return await this.settleRefundAndVerify(ctx, result, payment);
         }
         catch (e) {
             core_1.Logger.error(`Failed to refund payment ${payment.id}: ${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}`, constants_1.loggerCtx);
             return false;
+        }
+    }
+    /** 支付方式是否具备原路退款能力（按处理器 handler code 判定；查不到方式时按具备处理，保持原行为） */
+    async paymentSupportsRefund(ctx, payment) {
+        var _a, _b, _c;
+        try {
+            const methods = await this.connection
+                .getRepository(ctx, core_1.PaymentMethod)
+                .find({ where: { code: payment.method } });
+            const handlerCode = (_b = (_a = methods[0]) === null || _a === void 0 ? void 0 : _a.handler) === null || _b === void 0 ? void 0 : _b.code;
+            if (!handlerCode) {
+                core_1.Logger.warn(`Payment method ${payment.method} not found, assume refundable`, constants_1.loggerCtx);
+                return true;
+            }
+            return !NO_REFUND_HANDLER_CODES.includes(String(handlerCode));
+        }
+        catch (e) {
+            core_1.Logger.warn(`Resolve payment method ${payment.method} failed: ${(_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e}`, constants_1.loggerCtx);
+            return true;
+        }
+    }
+    /** settleRefund 打款 + 回读终态（与 campus settleRefundOrMarkFailed 同口径） */
+    async settleRefundAndVerify(ctx, refund, payment) {
+        var _a, _b;
+        try {
+            await this.orderService.settleRefund(ctx, { id: refund.id, transactionId: payment.id });
+            const fresh = await this.connection.getRepository(ctx, core_1.Refund).findOne({ where: { id: refund.id } });
+            if (String(fresh === null || fresh === void 0 ? void 0 : fresh.state) === 'Settled') {
+                return true;
+            }
+            await this.markRefundFailed(ctx, refund.id, `settle returned state ${(_a = fresh === null || fresh === void 0 ? void 0 : fresh.state) !== null && _a !== void 0 ? _a : 'missing'}`);
+            return false;
+        }
+        catch (e) {
+            await this.markRefundFailed(ctx, refund.id, (_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : String(e));
+            return false;
+        }
+    }
+    async markRefundFailed(ctx, refundId, reason) {
+        core_1.Logger.error(`Refund ${refundId} settle failed: ${reason} (order needs manual handling)`, constants_1.loggerCtx);
+        await this.connection
+            .getRepository(ctx, core_1.Refund)
+            .update(refundId, { state: REFUND_FAILED_STATE })
+            .catch(() => undefined);
+    }
+    /** 无退款能力方式（货到付款）：落人工现金退还工单（软依赖 campus SupportService，未安装时只告警） */
+    async createManualCashRefundTask(ctx, order, payment, amount, reason) {
+        var _a, _b;
+        const detail = `货到付款订单需人工现金退还：订单 ${order.code}，支付单 ${payment.id}，金额 ${amount} 分，原因：${reason}`;
+        core_1.Logger.warn(detail, constants_1.loggerCtx);
+        try {
+            const { SupportService } = require('@vendure/campus-delivery-plugin');
+            const svc = (0, payment_schedule_runtime_1.tryGetProvider)(SupportService);
+            if (!(svc === null || svc === void 0 ? void 0 : svc.createSystemTicket)) {
+                core_1.Logger.warn('campus SupportService unavailable, manual cash refund left to alarm only', constants_1.loggerCtx);
+                return;
+            }
+            const ticket = await svc.createSystemTicket(ctx, {
+                dedupeKey: `payment-schedule:cash-refund:${payment.id}:${amount}`,
+                orderCode: String(order.code),
+                orderId: Number(order.id),
+                category: 'refund_manual_cash',
+                source: 'payment-schedule',
+                content: detail,
+                channelId: ctx.channelId,
+            });
+            core_1.Logger.warn(`${detail} → 工单 ${(_a = ticket === null || ticket === void 0 ? void 0 : ticket.id) !== null && _a !== void 0 ? _a : 'n/a'}`, constants_1.loggerCtx);
+        }
+        catch (e) {
+            core_1.Logger.warn(`${detail}（人工任务落库失败：${(_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : e}）`, constants_1.loggerCtx);
         }
     }
     /** 幂等退款：已 Settled 退款合计 + 本次 > 支付额 时拒绝（防团购与调度双通道重复退款） */

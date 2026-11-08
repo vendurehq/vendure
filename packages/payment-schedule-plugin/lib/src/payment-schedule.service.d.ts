@@ -162,8 +162,20 @@ export declare class PaymentScheduleService {
     private notifyTailOpened;
     private transition;
     private cancelOrderSafe;
-    /** 原路退（Vendure PaymentService.createRefund；shipping/adjustment 为 NOT NULL 必须显式置 0） */
+    /**
+     * 退款（能力闸门 + 立即结算）。原先只 createRefund 不 settleRefund，退款单永远停在 Pending：
+     * - 货到付款等无原路退能力的方式：不建待退款单，改落人工现金退还工单（含订单号/金额/原因）；
+     * - 有退款能力：建单后立即 settleRefund 真实打款，并回读终态；
+     *   结算抛错或回读未达 Settled → 退款单置 Failed（保留审计痕迹）并告警，返回 false 交上层人工处理。
+     */
     private refundPayment;
+    /** 支付方式是否具备原路退款能力（按处理器 handler code 判定；查不到方式时按具备处理，保持原行为） */
+    private paymentSupportsRefund;
+    /** settleRefund 打款 + 回读终态（与 campus settleRefundOrMarkFailed 同口径） */
+    private settleRefundAndVerify;
+    private markRefundFailed;
+    /** 无退款能力方式（货到付款）：落人工现金退还工单（软依赖 campus SupportService，未安装时只告警） */
+    private createManualCashRefundTask;
     /** 幂等退款：已 Settled 退款合计 + 本次 > 支付额 时拒绝（防团购与调度双通道重复退款） */
     private refundPaymentOnce;
     /**
