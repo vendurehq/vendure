@@ -15,6 +15,7 @@ import { CampusDedupeService } from './campus-dedupe.service';
 import { CampusNotifyService } from './campus-notify.service';
 import { ERRAND_TIP_SURCHARGE_DESC } from './errand.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
+import { isHandoverCodeExpired } from './handover-code';
 import { HallService } from './hall.service';
 import { PrivacyNumberService } from './privacy-number.service';
 import { CREDIT_COMPLETE, RiderCreditService } from './rider-credit.service';
@@ -24,8 +25,7 @@ import { RiderService } from './rider.service';
 /** 校园骑手平均速度（m/s）：约 15km/h，用于 ETA 粗估 */
 const RIDER_SPEED_MPS = 4.2;
 
-/** 交接码有效期 / 连续错误上限 / 锁定时长（进程内计数，pm2 单实例足够） */
-const HANDOVER_CODE_TTL_MS = 10 * 60_000;
+/** 交接码连续错误上限 / 锁定时长（进程内计数，pm2 单实例足够）；有效期见 handover-code.ts */
 const HANDOVER_MAX_FAILS = 5;
 const HANDOVER_LOCK_MS = 10 * 60_000;
 
@@ -266,8 +266,7 @@ export class RiderTaskService {
         const expected = String(cf.handoverCode ?? '');
         if (expected) {
             const orderKey = Number(order.id);
-            const issuedAt = cf.handoverCodeAt ? new Date(cf.handoverCodeAt).getTime() : NaN;
-            if (!Number.isNaN(issuedAt) && Date.now() - issuedAt > HANDOVER_CODE_TTL_MS) {
+            if (isHandoverCodeExpired(cf.handoverCodeAt)) {
                 throw new UserInputError('交接码已过期，请联系交接点重新核对');
             }
             if (await this.handoverLocked(orderKey)) {

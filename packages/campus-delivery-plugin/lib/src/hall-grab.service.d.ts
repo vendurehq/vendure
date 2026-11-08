@@ -20,6 +20,14 @@ export declare class HallGrabService {
         id: ID;
     }): Promise<boolean>;
     /**
+     * 派单成功时写入的 customFields（A2）。
+     * 接力单（第一段已生成 handoverCode）在派单这一刻重签新码：交接码是「骑手对餐凭证」，
+     * 有效期从骑手实际拿到任务起算，才不会出现「10 分钟 TTL 撞上 10 分钟强派阈值、
+     * 骑手一接单码就过期」。旧码随这次 UPDATE 被覆盖，不存在新旧码并存。
+     * 非接力单（无 handoverCode）不生成，保持 R3 无需输码的既有流程。
+     */
+    private assignmentPatch;
+    /**
      * 大厅列表：当前渠道 open 状态订单（含跑腿单）。
      * T1: 滞留 > 5min 加急置顶，其次小费降序，再按入厅时间升序（JS 排序，避免 customFields
      * 物理列名在 SQL 排序中的风险）。customFields 为嵌入式物理列，QueryBuilder 中必须用

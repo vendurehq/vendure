@@ -147,6 +147,87 @@ describe('HallGrabService.grab 整组抢单（plan 3.3）', () => {
     });
 });
 
+// A2：派单成功时重签交接码（TTL 从骑手拿到任务起算），避免强派时拿到过期码
+describe('HallGrabService 派单重签交接码（A2）', () => {
+    it('手动抢单：接力单重签新码，签发时间=派单时间', async () => {
+        const rand = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+        try {
+            const relay = {
+                ...openOrder,
+                customFields: { hallStatus: 'open', handoverCode: '1234', handoverCodeAt: new Date(Date.now() - 20 * 60_000) },
+            };
+            const { svc, updated } = makeSvc(relay);
+            await svc.grab({ channelId: 1 } as any, 10 as any);
+            expect(updated[0].customFields.handoverCode).toBe('5500');
+            expect(updated[0].customFields.handoverCodeAt).toBeInstanceOf(Date);
+            expect(updated[0].customFields.handoverCodeAt.getTime()).toBeGreaterThan(Date.now() - 5_000);
+        } finally {
+            rand.mockRestore();
+        }
+    });
+
+    it('手动抢单：非接力单（无 handoverCode）不生成码', async () => {
+        const { svc, updated } = makeSvc(openOrder);
+        await svc.grab({ channelId: 1 } as any, 10 as any);
+        expect(updated[0].customFields.handoverCode).toBeUndefined();
+    });
+
+    it('自动强派：接力单同样重签新码', async () => {
+        const rand = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+        try {
+            const relay = {
+                ...openOrder,
+                customFields: { hallStatus: 'open', handoverCode: '1234', handoverCodeAt: new Date(Date.now() - 20 * 60_000) },
+            };
+            const { svc, updated } = makeSvc(relay);
+            await expect(svc.grabByRider({ channelId: 1 } as any, 10 as any, { id: 9 })).resolves.toBe(true);
+            expect(updated[0].customFields.handoverCode).toBe('5500');
+            expect(updated[0].customFields.deliveryStaffId).toBe('9');
+        } finally {
+            rand.mockRestore();
+        }
+    });
+
+    it('整组抢单：每单各自重签，互不复用同一个码', async () => {
+        const rand = vi.spyOn(Math, 'random').mockReturnValueOnce(0.1).mockReturnValueOnce(0.9);
+        try {
+            const main = {
+                id: 10, code: 'A1', customer: { id: 7 }, customerId: 7,
+                customFields: { hallStatus: 'open', routeGroupId: 'rg-x', handoverCode: '1111' },
+            };
+            // 复用整组测试的构造器：mates 通过 qb.getMany 返回
+            const updates: any[] = [];
+            const em = {
+                getRepository: () => ({
+                    findOne: vi.fn().mockResolvedValue(main),
+                    update: vi.fn((id: any, patch: any) => {
+                        updates.push({ id, ...patch.customFields });
+                        return Promise.resolve();
+                    }),
+                    createQueryBuilder: () => ({
+                        where: vi.fn().mockReturnThis(),
+                        andWhere: vi.fn().mockReturnThis(),
+                        orderBy: vi.fn().mockReturnThis(),
+                        setLock: vi.fn().mockReturnThis(),
+                        getMany: vi.fn().mockResolvedValue([
+                            { id: 11, customerId: 8, customFields: { hallStatus: 'open', routeGroupId: 'rg-x', handoverCode: '2222' } },
+                        ]),
+                    }),
+                }),
+            };
+            const conn = {
+                getRepository: () => ({ findOne: vi.fn().mockResolvedValue(null), find: vi.fn().mockResolvedValue([]) }),
+                rawConnection: { transaction: (fn: any) => fn(em) },
+            } as any;
+            const svc = new HallGrabService(conn, { assertApprovedRider: vi.fn().mockResolvedValue({ id: 9 }) } as any, { user: vi.fn() } as any);
+            await svc.grab({ channelId: 1 } as any, 10 as any);
+            expect(updates.map(u => [u.id, u.handoverCode]).sort()).toEqual([[10, '1900'], [11, '9100']]);
+        } finally {
+            rand.mockRestore();
+        }
+    });
+});
+
 // F5 聚合大厅：一次带回全渠道（非默认渠道+有履约配置+未暂停）open 单并附店铺渠道信息
 describe('HallGrabService.hallAll（F5 聚合大厅）', () => {
     function makeHallAllEnv(orders: any[], channels: any[], configs: any[]) {

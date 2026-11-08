@@ -9,6 +9,7 @@ import { CapacityService } from './capacity.service';
 import { CampusNotifyService } from './campus-notify.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { SlotLockService } from './slot-lock.service';
+import { generateHandoverCode } from './handover-code';
 import { resolveHandoverPoint, resolveRoutePlan } from './route-matrix';
 
 /** 仍在履约链路上的大厅状态（取消脱厅/回厅/条件状态迁移共用）。
@@ -268,7 +269,7 @@ export class HallService {
             Logger.warn(`enterHallForHandover 订单不存在 #${orderId}`, 'CampusHall');
             return '';
         }
-        const handoverCode = String(Math.floor(1000 + Math.random() * 9000));
+        const handoverCode = generateHandoverCode();
         const moved = await this.transitionFrom(ctx, orderId, from, {
             ...extra,
             hallStatus: 'open',
@@ -303,7 +304,7 @@ export class HallService {
     async resendHandoverCode(ctx: RequestContext, orderId: number): Promise<string> {
         const key = Number(orderId);
         await this.claimResendWindow(key);
-        const handoverCode = String(Math.floor(1000 + Math.random() * 9000));
+        const handoverCode = generateHandoverCode();
         const res: any = await this.connection.rawConnection.query(
             'UPDATE "order" SET "customFieldsHandovercode" = $1, "customFieldsHandovercodeat" = $2 '
             + 'WHERE id = $3 AND "customFieldsHallstatus" = $4 AND "state" <> $5 RETURNING id',

@@ -22,6 +22,7 @@ const capacity_service_1 = require("./capacity.service");
 const campus_notify_service_1 = require("./campus-notify.service");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
 const slot_lock_service_1 = require("./slot-lock.service");
+const handover_code_1 = require("./handover-code");
 const route_matrix_1 = require("./route-matrix");
 /** 仍在履约链路上的大厅状态（取消脱厅/回厅/条件状态迁移共用）。
  * 终态（delivered/cancelled/no_rider_final/exception_final）不在其中，任何写入都不应把终态单改回流转态。 */
@@ -242,7 +243,7 @@ let HallService = HallService_1 = class HallService {
             core_2.Logger.warn(`enterHallForHandover 订单不存在 #${orderId}`, 'CampusHall');
             return '';
         }
-        const handoverCode = String(Math.floor(1000 + Math.random() * 9000));
+        const handoverCode = (0, handover_code_1.generateHandoverCode)();
         const moved = await this.transitionFrom(ctx, orderId, from, Object.assign(Object.assign({}, extra), { hallStatus: 'open', hallEnteredAt: new Date(), deliveryStatus: 'pending', assignedAt: null, deliveryStaffId: null, campusCause: cause, handoverCode, handoverCodeAt: new Date() }));
         if (!moved) {
             core_2.Logger.warn(`订单 ${order.code} 交接入厅被跳过（已取消或状态已变更，from=${from.join('/')}）`, 'CampusHall');
@@ -264,7 +265,7 @@ let HallService = HallService_1 = class HallService {
         var _a;
         const key = Number(orderId);
         await this.claimResendWindow(key);
-        const handoverCode = String(Math.floor(1000 + Math.random() * 9000));
+        const handoverCode = (0, handover_code_1.generateHandoverCode)();
         const res = await this.connection.rawConnection.query('UPDATE "order" SET "customFieldsHandovercode" = $1, "customFieldsHandovercodeat" = $2 '
             + 'WHERE id = $3 AND "customFieldsHallstatus" = $4 AND "state" <> $5 RETURNING id', [handoverCode, new Date(), key, 'open', 'Cancelled']);
         const rows = Array.isArray(res) && Array.isArray(res[0]) ? res[0] : res;

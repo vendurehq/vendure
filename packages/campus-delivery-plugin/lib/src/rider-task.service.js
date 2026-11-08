@@ -19,6 +19,7 @@ const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const campus_notify_service_1 = require("./campus-notify.service");
 const errand_service_1 = require("./errand.service");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
+const handover_code_1 = require("./handover-code");
 const hall_service_1 = require("./hall.service");
 const privacy_number_service_1 = require("./privacy-number.service");
 const rider_credit_service_1 = require("./rider-credit.service");
@@ -26,8 +27,7 @@ const rider_earning_entity_1 = require("./rider-earning.entity");
 const rider_service_1 = require("./rider.service");
 /** 校园骑手平均速度（m/s）：约 15km/h，用于 ETA 粗估 */
 const RIDER_SPEED_MPS = 4.2;
-/** 交接码有效期 / 连续错误上限 / 锁定时长（进程内计数，pm2 单实例足够） */
-const HANDOVER_CODE_TTL_MS = 10 * 60000;
+/** 交接码连续错误上限 / 锁定时长（进程内计数，pm2 单实例足够）；有效期见 handover-code.ts */
 const HANDOVER_MAX_FAILS = 5;
 const HANDOVER_LOCK_MS = 10 * 60000;
 /** 骑手异常上报类型白名单（与 H5 上报面板四类一致）：防任意字符串污染调度墙与追责记录 */
@@ -257,8 +257,7 @@ let RiderTaskService = class RiderTaskService {
         const expected = String((_b = cf.handoverCode) !== null && _b !== void 0 ? _b : '');
         if (expected) {
             const orderKey = Number(order.id);
-            const issuedAt = cf.handoverCodeAt ? new Date(cf.handoverCodeAt).getTime() : NaN;
-            if (!Number.isNaN(issuedAt) && Date.now() - issuedAt > HANDOVER_CODE_TTL_MS) {
+            if ((0, handover_code_1.isHandoverCodeExpired)(cf.handoverCodeAt)) {
                 throw new core_1.UserInputError('交接码已过期，请联系交接点重新核对');
             }
             if (await this.handoverLocked(orderKey)) {

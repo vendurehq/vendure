@@ -1,6 +1,7 @@
 // 纯逻辑单测：状态机（assigned 可开始 / 状态不符拒）、分成计算（100% 与 80%）、照片必传、非本骑手拒
 import { describe, expect, it, vi } from 'vitest';
 import { CampusDedupeService } from './campus-dedupe.service';
+import { HANDOVER_CODE_TTL_MS, generateHandoverCode, isHandoverCodeExpired } from './handover-code';
 import { RiderTaskService } from './rider-task.service';
 
 /** 内存驱动去重后端（单测共享同一实例即模拟「多实例共享同一后端」） */
@@ -78,6 +79,41 @@ describe('RiderTaskService', () => {
         };
         const { svc } = make(relay);
         await expect(svc.start({ channelId: 1 } as any, 10 as any, '1234')).rejects.toThrow('交接码已过期');
+    });
+    it('交接码有效期边界：恰好 TTL 仍有效，TTL+1ms 过期', async () => {
+        vi.useFakeTimers();
+        try {
+            const now = new Date('2026-11-08T02:00:00.000Z');
+            vi.setSystemTime(now);
+            const atTtl = {
+                ...assigned,
+                customFields: {
+                    ...assigned.customFields,
+                    handoverCode: '1234',
+                    handoverCodeAt: new Date(now.getTime() - HANDOVER_CODE_TTL_MS),
+                },
+            };
+            const c1 = make(atTtl);
+            await expect(c1.svc.start({ channelId: 1 } as any, 10 as any, '1234')).resolves.toBeTruthy();
+
+            const overTtl = {
+                ...assigned,
+                customFields: {
+                    ...assigned.customFields,
+                    handoverCode: '1234',
+                    handoverCodeAt: new Date(now.getTime() - HANDOVER_CODE_TTL_MS - 1),
+                },
+            };
+            const c2 = make(overTtl);
+            await expect(c2.svc.start({ channelId: 1 } as any, 10 as any, '1234')).rejects.toThrow('交接码已过期');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+    it('交接码无签发时间（历史单）→ 不按过期处理', async () => {
+        const legacy = { ...assigned, customFields: { ...assigned.customFields, handoverCode: '1234' } };
+        const { svc } = make(legacy);
+        await expect(svc.start({ channelId: 1 } as any, 10 as any, '1234')).resolves.toBeTruthy();
     });
     it('接力单交接码连续错误 5 次 → 锁定，正确码也拒绝', async () => {
         const relay = {
@@ -232,5 +268,36 @@ describe('RiderTaskService', () => {
         rawQuery.mockResolvedValueOnce([[], []]);
         await expect(svc.reportException({ channelId: 1 } as any, 10 as any, 'food_spilled', ['p1']))
             .rejects.toThrow('订单已被取消或改派');
+    });
+});
+
+describe('handover-code 共享规则（A2/A3）', () => {
+    it('generateHandoverCode：始终是 4 位数字（1000–9999）', () => {
+        const lo = vi.spyOn(Math, 'random').mockReturnValue(0);
+        try {
+            expect(generateHandoverCode()).toBe('1000');
+        } finally {
+            lo.mockRestore();
+        }
+        const hi = vi.spyOn(Math, 'random').mockReturnValue(0.999999);
+        try {
+            const code = generateHandoverCode();
+            expect(code).toMatch(/^\d{4}$/);
+            expect(Number(code)).toBeLessThanOrEqual(9999);
+        } finally {
+            hi.mockRestore();
+        }
+    });
+
+    it('isHandoverCodeExpired：支持 Date / 毫秒数 / ISO 字符串，无时间戳不过期', () => {
+        const t = new Date('2026-11-08T02:00:00.000Z');
+        expect(isHandoverCodeExpired(null, t.getTime() + 60_000)).toBe(false);
+        expect(isHandoverCodeExpired(undefined, t.getTime() + 60_000)).toBe(false);
+        expect(isHandoverCodeExpired(t, t.getTime() + 60_000)).toBe(false);
+        expect(isHandoverCodeExpired(t.toISOString(), t.getTime() + 60_000)).toBe(false);
+        expect(isHandoverCodeExpired(t.getTime(), t.getTime() + 60_000)).toBe(false);
+        expect(isHandoverCodeExpired(t, t.getTime() + HANDOVER_CODE_TTL_MS)).toBe(false);
+        expect(isHandoverCodeExpired(t, t.getTime() + HANDOVER_CODE_TTL_MS + 1)).toBe(true);
+        expect(isHandoverCodeExpired(t.toISOString(), t.getTime() + HANDOVER_CODE_TTL_MS + 1)).toBe(true);
     });
 });

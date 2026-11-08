@@ -14,6 +14,7 @@ import { CampusNotifyService } from './campus-notify.service';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
 import { CampusRiderShift } from './rider-ops.entities';
 import { addDays, localDateKey, shiftCoversNow } from './rider-shift-window';
+import { generateHandoverCode } from './handover-code';
 
 /** F5 聚合大厅单量上限（超限截断 + 告警，防单量增长拖垮小机） */
 const HALL_ALL_LIMIT = 500;
@@ -61,16 +62,12 @@ export class HallGrabService {
                     .getMany();
             }
             const targets = [order, ...mates.filter(m => m.id !== order.id && m.customerId !== rider.id)];
-            const patch = {
-                customFields: {
-                    hallStatus: 'grabbed',
-                    deliveryStaffId: String(rider.id),
-                    deliveryStatus: 'assigned',
-                    assignedAt: new Date(),
-                },
-            };
+            const assignedAt = new Date();
             for (const t of targets) {
-                await em.getRepository(Order).update(t.id, patch as any);
+                // A2：逐单写 patch（不能共用一份），接力单在派单成功时重签交接码
+                await em.getRepository(Order).update(t.id, {
+                    customFields: this.assignmentPatch(t.customFields as any, rider.id, assignedAt),
+                } as any);
             }
             return { order, targetIds: targets.map(t => t.id) };
         });
@@ -96,18 +93,34 @@ export class HallGrabService {
             if (!order || cf?.hallStatus !== 'open') return false;
             if ((order as any).state === 'Cancelled') return false;
             await em.getRepository(Order).update(order.id, {
-                customFields: {
-                    hallStatus: 'grabbed',
-                    deliveryStaffId: String(rider.id),
-                    deliveryStatus: 'assigned',
-                    assignedAt: new Date(),
-                },
+                customFields: this.assignmentPatch(cf, rider.id, new Date()),
             } as any);
             return true;
         });
         // 事务提交后通知下单用户（T2 自动强派/手动强派共用此触点）；后缀带骑手 id + 时间戳防改派被去重吞掉
         if (ok) this.notify.user(ctx, orderId, 'riderAssigned', undefined, undefined, `r${rider.id}_${Date.now()}`);
         return ok;
+    }
+
+    /**
+     * 派单成功时写入的 customFields（A2）。
+     * 接力单（第一段已生成 handoverCode）在派单这一刻重签新码：交接码是「骑手对餐凭证」，
+     * 有效期从骑手实际拿到任务起算，才不会出现「10 分钟 TTL 撞上 10 分钟强派阈值、
+     * 骑手一接单码就过期」。旧码随这次 UPDATE 被覆盖，不存在新旧码并存。
+     * 非接力单（无 handoverCode）不生成，保持 R3 无需输码的既有流程。
+     */
+    private assignmentPatch(cf: any, riderId: ID, assignedAt: Date): Record<string, any> {
+        const patch: Record<string, any> = {
+            hallStatus: 'grabbed',
+            deliveryStaffId: String(riderId),
+            deliveryStatus: 'assigned',
+            assignedAt,
+        };
+        if (cf?.handoverCode) {
+            patch.handoverCode = generateHandoverCode();
+            patch.handoverCodeAt = assignedAt;
+        }
+        return patch;
     }
 
     /**

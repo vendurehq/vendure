@@ -18,6 +18,7 @@ const campus_notify_service_1 = require("./campus-notify.service");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const rider_ops_entities_1 = require("./rider-ops.entities");
 const rider_shift_window_1 = require("./rider-shift-window");
+const handover_code_1 = require("./handover-code");
 /** F5 聚合大厅单量上限（超限截断 + 告警，防单量增长拖垮小机） */
 const HALL_ALL_LIMIT = 500;
 let HallGrabService = class HallGrabService {
@@ -65,16 +66,12 @@ let HallGrabService = class HallGrabService {
                     .getMany();
             }
             const targets = [order, ...mates.filter(m => m.id !== order.id && m.customerId !== rider.id)];
-            const patch = {
-                customFields: {
-                    hallStatus: 'grabbed',
-                    deliveryStaffId: String(rider.id),
-                    deliveryStatus: 'assigned',
-                    assignedAt: new Date(),
-                },
-            };
+            const assignedAt = new Date();
             for (const t of targets) {
-                await em.getRepository(core_1.Order).update(t.id, patch);
+                // A2：逐单写 patch（不能共用一份），接力单在派单成功时重签交接码
+                await em.getRepository(core_1.Order).update(t.id, {
+                    customFields: this.assignmentPatch(t.customFields, rider.id, assignedAt),
+                });
             }
             return { order, targetIds: targets.map(t => t.id) };
         });
@@ -101,12 +98,7 @@ let HallGrabService = class HallGrabService {
             if (order.state === 'Cancelled')
                 return false;
             await em.getRepository(core_1.Order).update(order.id, {
-                customFields: {
-                    hallStatus: 'grabbed',
-                    deliveryStaffId: String(rider.id),
-                    deliveryStatus: 'assigned',
-                    assignedAt: new Date(),
-                },
+                customFields: this.assignmentPatch(cf, rider.id, new Date()),
             });
             return true;
         });
@@ -114,6 +106,26 @@ let HallGrabService = class HallGrabService {
         if (ok)
             this.notify.user(ctx, orderId, 'riderAssigned', undefined, undefined, `r${rider.id}_${Date.now()}`);
         return ok;
+    }
+    /**
+     * 派单成功时写入的 customFields（A2）。
+     * 接力单（第一段已生成 handoverCode）在派单这一刻重签新码：交接码是「骑手对餐凭证」，
+     * 有效期从骑手实际拿到任务起算，才不会出现「10 分钟 TTL 撞上 10 分钟强派阈值、
+     * 骑手一接单码就过期」。旧码随这次 UPDATE 被覆盖，不存在新旧码并存。
+     * 非接力单（无 handoverCode）不生成，保持 R3 无需输码的既有流程。
+     */
+    assignmentPatch(cf, riderId, assignedAt) {
+        const patch = {
+            hallStatus: 'grabbed',
+            deliveryStaffId: String(riderId),
+            deliveryStatus: 'assigned',
+            assignedAt,
+        };
+        if (cf === null || cf === void 0 ? void 0 : cf.handoverCode) {
+            patch.handoverCode = (0, handover_code_1.generateHandoverCode)();
+            patch.handoverCodeAt = assignedAt;
+        }
+        return patch;
     }
     /**
      * 大厅列表：当前渠道 open 状态订单（含跑腿单）。
