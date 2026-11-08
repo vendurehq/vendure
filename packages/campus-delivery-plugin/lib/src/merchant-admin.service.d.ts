@@ -895,7 +895,7 @@ export interface KitchenTicketLine {
 export interface KitchenTicket {
     id: string;
     code: string;
-    stage: 'pending' | 'cooking';
+    stage: 'pending' | 'cooking' | 'cooking_assigned';
     createdAt: Date;
     waitingMinutes: number;
     /** normal=<15min，warn=15-25min，late=>25min */
@@ -1251,7 +1251,7 @@ export declare class MerchantAdminService {
     cloudPrintTest(ctx: RequestContext): Promise<import("./cloud-print.service").CloudPrintResult>;
     /** 最近云打印任务（排障） */
     printJobs(ctx: RequestContext, limit?: number): Promise<import("./cloud-print.service").CloudPrintJobRow[]>;
-    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管的 owned_pool 单也进备餐中 */
+    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管（owned_pool / owned_dispatched 未取餐）单也进备餐中 */
     kitchenQueue(ctx: RequestContext): Promise<KitchenQueue>;
     /**
      * 备餐汇总（§79）：今日「待接单 + 备餐中」按商品聚合待做份数，

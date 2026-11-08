@@ -980,7 +980,7 @@ export interface KitchenTicketLine {
 export interface KitchenTicket {
     id: string;
     code: string;
-    stage: 'pending' | 'cooking';
+    stage: 'pending' | 'cooking' | 'cooking_assigned';
     createdAt: Date;
     waitingMinutes: number;
     /** normal=<15min，warn=15-25min，late=>25min */
@@ -2356,18 +2356,29 @@ export class MerchantAdminService {
         return this.cloud.recentJobs(ctx, limit);
     }
 
-    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管的 owned_pool 单也进备餐中 */
+    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管（owned_pool / owned_dispatched 未取餐）单也进备餐中 */
     async kitchenQueue(ctx: RequestContext): Promise<KitchenQueue> {
-        const orders = await this.connection.getRepository(ctx, Order)
+        const rows = await this.connection.getRepository(ctx, Order)
             .createQueryBuilder('order')
             .leftJoin('order.channels', 'channel')
             .where('channel.id = :ch', { ch: ctx.channelId as any })
-            // owned_pool：R3-自营直接入池、系统已自动接管（无需商家接单），同样要出现在厨房队列
-            .andWhere("order.customFields.hallStatus IN ('pending_merchant','accepted','owned_pool')")
+            // owned_pool：R3-自营直接入池、系统已自动接管（无需商家接单），同样要出现在厨房队列；
+            // owned_dispatched：骑手已接单但尚未取餐，仍需后厨出餐，取餐后再从看板清除
+            .andWhere("order.customFields.hallStatus IN ('pending_merchant','accepted','owned_pool','owned_dispatched')")
+            .andWhere(
+                "NOT (order.customFields.hallStatus = 'owned_dispatched' AND " +
+                "(order.customFields.deliveryStatus = 'in_progress' OR order.customFields.pickedUpAt IS NOT NULL))",
+            )
             .leftJoinAndSelect('order.lines', 'lines')
             .leftJoinAndSelect('lines.productVariant', 'variant')
             .orderBy('order.createdAt', 'ASC')
             .getMany();
+        // 已取餐的 owned_dispatched 必须从看板清除（查询已排除，这里再兜一层，防查询口径漂移）
+        const orders = rows.filter(o => {
+            const cf = o.customFields as any;
+            const pickedUp = cf.deliveryStatus === 'in_progress' || !!cf.pickedUpAt;
+            return !(cf.hallStatus === 'owned_dispatched' && pickedUp);
+        });
         const buildingIds = new Set<string>();
         for (const o of orders) {
             const id = (o.customFields as any).buildingId;
@@ -2381,15 +2392,19 @@ export class MerchantAdminService {
         const ackMap = await this.urgeAckMap(ctx, orders.map(o => Number(o.id)));
         const tickets: KitchenTicket[] = orders.map(o => {
             const cf = o.customFields as any;
-            const autoTaken = cf.hallStatus === 'owned_pool';
+            // 系统已自动接管：owned_pool（无骑手）与 owned_dispatched（骑手已接单未取餐）都无需商家接单
+            const autoTaken = cf.hallStatus === 'owned_pool' || cf.hallStatus === 'owned_dispatched';
             const urgedAt = cf.urgedAt ? new Date(cf.urgedAt) : null;
             // createdAt 是 DB DEFAULT now() 写入的 UTC 墙钟：先还原成绝对时刻，再算等待分钟
             const waitingMinutes = Math.max(0, Math.floor((now - (o.createdAt).getTime()) / 60000));
             return {
                 id: String(o.id),
                 code: o.code,
-                // owned_pool 已被系统自动接管（无需商家接单），直接视为备餐中
-                stage: cf.hallStatus === 'accepted' || autoTaken ? 'cooking' : 'pending',
+                // owned_pool/owned_dispatched 已被系统接管（无需商家接单），直接视为备餐中；
+                // 两类单用不同 stage 区分：骑手已接单未取餐为 cooking_assigned，避免与纯自营池混为一谈
+                stage: cf.hallStatus === 'owned_dispatched'
+                    ? 'cooking_assigned'
+                    : cf.hallStatus === 'accepted' || autoTaken ? 'cooking' : 'pending',
                 createdAt: (o.createdAt),
                 waitingMinutes,
                 urgency: waitingMinutes >= KDS_LATE_MINUTES ? 'late' : waitingMinutes >= KDS_WARN_MINUTES ? 'warn' : 'normal',
@@ -2416,7 +2431,7 @@ export class MerchantAdminService {
         return {
             tickets,
             pendingCount: tickets.filter(t => t.stage === 'pending').length,
-            cookingCount: tickets.filter(t => t.stage === 'cooking').length,
+            cookingCount: tickets.filter(t => t.stage === 'cooking' || t.stage === 'cooking_assigned').length,
             lateCount: tickets.filter(t => t.urgency === 'late').length,
             urgedCount: tickets.filter(t => t.urged).length,
             warnMinutes: KDS_WARN_MINUTES,

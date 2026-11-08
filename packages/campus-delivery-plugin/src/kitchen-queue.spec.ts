@@ -59,8 +59,12 @@ describe('kitchenQueue（KDS 出餐屏队列）', () => {
 
         const queue = await svc.kitchenQueue({ channelId: 'c1' } as any);
 
-        // 查询口径必须包含 owned_pool（否则自动接管单在出餐屏永远不可见）
+        // 查询口径必须包含 owned_pool / owned_dispatched（否则自动接管单在出餐屏永远不可见）
         expect(qb.andWhere).toHaveBeenCalledWith(expect.stringContaining('owned_pool'));
+        expect(qb.andWhere).toHaveBeenCalledWith(expect.stringContaining('owned_dispatched'));
+        // 已取餐（in_progress / pickedUpAt）必须被查询排除
+        expect(qb.andWhere).toHaveBeenCalledWith(expect.stringContaining("deliveryStatus = 'in_progress'"));
+        expect(qb.andWhere).toHaveBeenCalledWith(expect.stringContaining('pickedUpAt IS NOT NULL'));
 
         const owned = queue.tickets.find(t => t.id === '100')!;
         expect(owned.stage).toBe('cooking');
@@ -76,5 +80,46 @@ describe('kitchenQueue（KDS 出餐屏队列）', () => {
 
         expect(queue.pendingCount).toBe(1);
         expect(queue.cookingCount).toBe(2);
+    });
+
+    it('owned_dispatched 已接单未取餐：仍在备餐中列，stage 与纯净池区分且 autoTaken', async () => {
+        const { svc } = makeSvc([
+            {
+                id: 200, code: 'DISP1', createdAt: minutesAgo(6), total: 2200,
+                customFields: { hallStatus: 'owned_dispatched', deliveryStatus: 'assigned', buildingId: null },
+                lines: [{ quantity: 1, productVariant: { name: '牛肉面' }, customFields: {} }],
+            },
+        ]);
+
+        const queue = await svc.kitchenQueue({ channelId: 'c1' } as any);
+
+        expect(queue.tickets).toHaveLength(1);
+        const t = queue.tickets[0];
+        expect(t.stage).toBe('cooking_assigned');
+        expect(t.autoTaken).toBe(true);
+        // 仍计入备餐中，不落到待接单
+        expect(queue.cookingCount).toBe(1);
+        expect(queue.pendingCount).toBe(0);
+    });
+
+    it('owned_dispatched 已取餐（in_progress / pickedUpAt）：不在屏上', async () => {
+        const { svc } = makeSvc([
+            {
+                id: 300, code: 'PICK1', createdAt: minutesAgo(9), total: 2600,
+                customFields: { hallStatus: 'owned_dispatched', deliveryStatus: 'in_progress', buildingId: null },
+                lines: [{ quantity: 1, productVariant: { name: '饺子' }, customFields: {} }],
+            },
+            {
+                id: 301, code: 'PICK2', createdAt: minutesAgo(7), total: 2400,
+                customFields: { hallStatus: 'owned_dispatched', deliveryStatus: 'assigned', pickedUpAt: minutesAgo(1), buildingId: null },
+                lines: [{ quantity: 1, productVariant: { name: '粥' }, customFields: {} }],
+            },
+        ]);
+
+        const queue = await svc.kitchenQueue({ channelId: 'c1' } as any);
+
+        // 即使查询返回了已取餐单，也不得挂在看板上
+        expect(queue.tickets).toHaveLength(0);
+        expect(queue.cookingCount).toBe(0);
     });
 });
