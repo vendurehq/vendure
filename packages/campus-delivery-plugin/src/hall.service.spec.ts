@@ -277,6 +277,21 @@ describe('HallService.exitHall 取消脱厅（3.3）', () => {
         env.rawQuery.mockResolvedValueOnce([[], []]);
         await expect(env.svc.exitHall({} as any, order)).resolves.toBeUndefined();
     });
+
+    it('refund_failed 单取消也能脱厅（否则会被退款重试任务重新捞起）', async () => {
+        const env = makeEnv();
+        await env.svc.exitHall({ channelId: 1 } as any, order);
+        const [sql, params] = env.rawQuery.mock.calls[0];
+        expect(sql).toContain(`"customFieldsHallstatus" = 'cancelled'`);
+        expect(params[1]).toContain('refund_failed');
+        // 终态仍不可被覆盖
+        expect(params[1]).not.toContain('no_rider_final');
+        expect(params[1]).not.toContain('exception_final');
+        // 只在脱厅放开：回厅（backToHall）不得把退款失败单拉回大厅
+        await env.svc.backToHall({ channelId: 1 } as any, 9);
+        const backParams = env.rawQuery.mock.calls[1][1];
+        expect(backParams[backParams.length - 1]).not.toContain('refund_failed');
+    });
 });
 
 // R5 交接码一键重发：CAS 仅待交接单可重发、同单 10 分钟限流、顾客只能重发自己的单

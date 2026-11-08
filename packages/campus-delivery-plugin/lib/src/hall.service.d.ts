@@ -82,7 +82,8 @@ export declare class HallService {
     transitionFrom(_ctx: RequestContext, orderId: number, from: string[], patch: Record<string, unknown>): Promise<boolean>;
     /** 取消脱厅（3.3 冒烟实测缺陷）：订单取消终态时清 hallStatus，使其退出大厅/打包扫描/整组抢单/调度台。
      * 单条条件写：仅活跃流转态可脱厅——先读后写会被 T4 mark() 写 no_rider_final 的竞态覆盖；
-     * grabbed 单连带清骑手指派字段（CASE 表达式读同一语句的旧值）。 */
+     * grabbed 单连带清骑手指派字段（CASE 表达式读同一语句的旧值）。
+     * refund_failed 虽已退出自动履约，取消时同样要脱厅：留在 refund_failed 会被退款重试任务重新捞起。 */
     exitHall(_ctx: RequestContext, order: Order): Promise<void>;
     /** 通用订单更新（T4 退款终态标记等复用） */
     updateOrder(ctx: RequestContext, orderId: number, patch: any): Promise<import("typeorm").UpdateResult>;

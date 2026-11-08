@@ -19,6 +19,11 @@ export const ACTIVE_HALL_STATUSES = [
     'merchant_delivering', 'owned_pool', 'owned_dispatched', 'pending_dispatch',
 ];
 
+/** 取消脱厅额外覆盖的非流转态：refund_failed 已退出自动履约，但仍是「未收口」状态，
+ * 不脱厅就会被退款重试任务持续捞起（订单 467 即此路径）。只用于 exitHall，不并入 ACTIVE_HALL_STATUSES
+ * （否则 backToHall/异常回滚会把退款失败单重新拉回大厅）。 */
+const CANCELLABLE_EXTRA_STATUSES = ['refund_failed'];
+
 /** customFields 字段名 → 物理列名（Vendure 规则：customFields + 首字母大写 + 其余小写）
  * 例：hallStatus → customFieldsHallstatus；thirdPartyDispatchAt → customFieldsThirdpartydispatchat */
 const orderColumn = (field: string) => `"customFields${field.charAt(0).toUpperCase()}${field.slice(1).toLowerCase()}"`;
@@ -401,7 +406,8 @@ export class HallService {
 
     /** 取消脱厅（3.3 冒烟实测缺陷）：订单取消终态时清 hallStatus，使其退出大厅/打包扫描/整组抢单/调度台。
      * 单条条件写：仅活跃流转态可脱厅——先读后写会被 T4 mark() 写 no_rider_final 的竞态覆盖；
-     * grabbed 单连带清骑手指派字段（CASE 表达式读同一语句的旧值）。 */
+     * grabbed 单连带清骑手指派字段（CASE 表达式读同一语句的旧值）。
+     * refund_failed 虽已退出自动履约，取消时同样要脱厅：留在 refund_failed 会被退款重试任务重新捞起。 */
     async exitHall(_ctx: RequestContext, order: Order) {
         const hsCol = orderColumn('hallStatus');
         const clearIfGrabbed = (field: string) =>
@@ -411,7 +417,7 @@ export class HallService {
             + `${clearIfGrabbed('deliveryStaffId')}, ${clearIfGrabbed('deliveryStatus')}, `
             + `${clearIfGrabbed('assignedAt')} `
             + `WHERE id = $1 AND COALESCE(${hsCol}, '') = ANY($2::text[]) RETURNING id`,
-            [order.id, ACTIVE_HALL_STATUSES],
+            [order.id, [...ACTIVE_HALL_STATUSES, ...CANCELLABLE_EXTRA_STATUSES]],
         );
         const rows = Array.isArray(out) && Array.isArray(out[0]) ? out[0] : out;
         if (!Array.isArray(rows) || !rows.length) return;
