@@ -1,4 +1,8 @@
 export type DiffType = 'D1' | 'D2' | 'D3' | 'D4';
+/** D1 判定的「已发货语义」状态：只有这些状态才要求存在发货/配送/核销凭证 */
+export declare const D1_SHIPPED_STATES: ReadonlyArray<string>;
+/** D3 判定的「已实收」状态：仅这些状态比较实收金额；PaymentAuthorized 等未实收状态不判 */
+export declare const D3_SETTLED_STATES: ReadonlyArray<string>;
 export interface DiffOrderInput {
     order: {
         id: string;
@@ -15,18 +19,27 @@ export interface DiffOrderInput {
         sourceLocationId: string | null;
         quantity: number;
     }>;
-    settlements: Array<{
-        status: string;
-        amount: number;
-    }>;
+    /** 发货单证据（Vendure fulfillment 记录） */
+    hasShipment?: boolean;
+    /** 自提核销证据（pickup_redemption.collected = true） */
+    pickupCollected?: boolean;
+    /** 实收支付合计（分）：仅 state='Settled' 的 payment */
+    paidSettled?: number;
+    /** 已结算退款合计（分）：仅 state='Settled' 的 refund.total */
+    settledRefunds?: number;
     mirrorDiff: number;
     cancelled?: boolean;
+    /** delivery_record 数据源缺失（全表 0 条或近 7 天 0 写入）：本轮不判 D1，由跑批层报「数据源缺失」 */
+    d1SourceMissing?: boolean;
 }
 /**
  * 四流逐单比对：
- * D1 缺配送记录：已发货/已交付订单必须有 mode∈{self,express,pickup} 且非 Draft 的记录
+ * D1 缺履约凭证：仅「已发货语义」订单（Shipped/PartiallyShipped/Delivered/PartiallyDelivered）判定，
+ *    凭证为「发货单 ∪ 配送记录 ∪ 自提核销」三者都不存在才算差异；
+ *    数据源护栏：delivery_record 全表 0 或近 7 天无写入时整轮跳过 D1（否则会把数据源缺失误判成业务差异）。
  * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致
- * D3 金额不平：台账应收合计（PAID 实收 + PENDING_SIGN 在途）≠ 订单应付；退款单跳过
+ * D3 实收不平：仅已实收状态（PaymentSettled/Delivered）判「实收支付 − 已结算退款」是否等于订单应付；
+ *    PaymentAuthorized 等未实收状态不判；分账台账（MerchantSettlementLedger）不再混入 D3，另立独立规则。
  * D4 镜像不平：虚拟仓 onHand ≠ Σ 绑定物理仓 onHand（由批次扫描传入）
  */
 export declare function diffOrder(input: DiffOrderInput): DiffType[];
