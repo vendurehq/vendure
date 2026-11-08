@@ -191,6 +191,7 @@ import { WithdrawReconcileJob } from './withdraw-reconcile.job';
 import { CompensationTaskService } from './compensation-task.service';
 import { CompensationRetryJob } from './compensation-retry.job';
 import { RefundRetryJob } from './refund-retry.job';
+import { PendingRefundAuditJob } from './pending-refund-audit.job';
 import { OpsCheckJob } from './ops-check.job';
 import { SlotReconcileJob } from './slot-reconcile.job';
 import { CampusCompensationTask } from './compensation-task.entity';
@@ -261,6 +262,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         CompensationTaskService,
         CompensationRetryJob,
         RefundRetryJob,
+        PendingRefundAuditJob,
         OpsCheckJob,
         SlotReconcileJob,
         AfterSalesReviewService,
@@ -3874,6 +3876,8 @@ export class CampusDeliveryPlugin implements OnApplicationBootstrap {
         this.injector.get(CompensationRetryJob).start();
         // A9 退款重试：refund_failed 有限次退避重试，耗尽升级飞书告警 + 人工工单
         this.injector.get(RefundRetryJob).start();
+        // 全局待退款巡检：退款单 Pending 超 24 小时只读告警（不自动退款）
+        this.injector.get(PendingRefundAuditJob).start();
         // R8 遗留巡检：每日把静默卡住的残留量汇总到平台群（只读 COUNT）
         this.injector.get(OpsCheckJob).start();
         // R3 锁位对账：容量与实际占位偏差告警（只读，先观测不自动修复）
