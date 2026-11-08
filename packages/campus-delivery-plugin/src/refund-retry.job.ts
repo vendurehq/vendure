@@ -1,4 +1,5 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
     ID,
     Injector,
@@ -91,8 +92,13 @@ export class RefundRetryJob implements OnApplicationShutdown {
         private readonly feishu: FeishuNotifyService,
         private readonly support: SupportService,
         private readonly requestContextService: RequestContextService,
-        private readonly injector: Injector,
+        private readonly moduleRef: ModuleRef,
     ) {}
+
+    /** vendure Injector 需由 ModuleRef 构造（Nest 不直接提供 Injector 作为可注入项，直接注入会导致插件启动失败） */
+    private get injector(): Injector {
+        return new Injector(this.moduleRef);
+    }
 
     start(intervalMs = 60_000): void {
         if (this.fallback) return;

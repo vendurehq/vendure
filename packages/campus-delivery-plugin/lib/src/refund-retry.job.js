@@ -11,7 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefundRetryJob = exports.RETRY_STATE_TTL_MS = exports.REFUND_RETRY_BACKOFF_MINUTES = exports.REFUND_RETRY_MAX_ATTEMPTS = void 0;
 const common_1 = require("@nestjs/common");
-const core_1 = require("@vendure/core");
+const core_1 = require("@nestjs/core");
+const core_2 = require("@vendure/core");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
 const periodic_fallback_1 = require("./periodic-fallback");
@@ -60,18 +61,22 @@ function rowsOf(result) {
     return Array.isArray(result) && Array.isArray(result[0]) ? result[0] : Array.isArray(result) ? result : [];
 }
 let RefundRetryJob = class RefundRetryJob {
-    constructor(connection, dedupe, feishu, support, requestContextService, injector) {
+    constructor(connection, dedupe, feishu, support, requestContextService, moduleRef) {
         this.connection = connection;
         this.dedupe = dedupe;
         this.feishu = feishu;
         this.support = support;
         this.requestContextService = requestContextService;
-        this.injector = injector;
+        this.moduleRef = moduleRef;
         this.fallback = null;
         /** 单测注入点：替换 OrderService（避免构造整个 Vendure 容器） */
         this.orderSvcOverride = null;
         /** 单测注入点：固定存量隔离时间 */
         this.cutoffOverride = null;
+    }
+    /** vendure Injector 需由 ModuleRef 构造（Nest 不直接提供 Injector 作为可注入项，直接注入会导致插件启动失败） */
+    get injector() {
+        return new core_2.Injector(this.moduleRef);
     }
     start(intervalMs = 60000) {
         if (this.fallback)
@@ -124,12 +129,12 @@ let RefundRetryJob = class RefundRetryJob {
             }
             catch (e) {
                 // 单条异常不影响其余扫描
-                core_1.Logger.error(`退款重试扫描单条失败 order=${order.id}: ${String((_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e)}`, loggerCtx);
+                core_2.Logger.error(`退款重试扫描单条失败 order=${order.id}: ${String((_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e)}`, loggerCtx);
                 result.skipped += 1;
             }
         }
         if (scanned.length) {
-            core_1.Logger.info(`退款重试轮次：扫描 ${scanned.length}，完成 ${result.done}，待重试 ${result.retried}，`
+            core_2.Logger.info(`退款重试轮次：扫描 ${scanned.length}，完成 ${result.done}，待重试 ${result.retried}，`
                 + `升级人工 ${result.escalated}，跳过 ${result.skipped}`, loggerCtx);
         }
         return result;
@@ -186,14 +191,14 @@ let RefundRetryJob = class RefundRetryJob {
             }
             await this.markResolved(fresh);
             await this.clearState(fresh.id);
-            core_1.Logger.warn(`退款重试成功 order=${fresh.code} attempts=${attempts}`
+            core_2.Logger.warn(`退款重试成功 order=${fresh.code} attempts=${attempts}`
                 + (refundable.length ? '' : '（无待退余额，仅补取消/落终态）'), loggerCtx);
             return 'done';
         }
         catch (e) {
             const message = String((_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e);
             await this.dedupe.setJson(ERROR_KEY(fresh.id), { message, at: new Date().toISOString() }, exports.RETRY_STATE_TTL_MS);
-            core_1.Logger.error(`退款重试失败 order=${fresh.code} attempt=${attempts}/${exports.REFUND_RETRY_MAX_ATTEMPTS}: ${message}`, loggerCtx);
+            core_2.Logger.error(`退款重试失败 order=${fresh.code} attempt=${attempts}/${exports.REFUND_RETRY_MAX_ATTEMPTS}: ${message}`, loggerCtx);
             if (attempts >= exports.REFUND_RETRY_MAX_ATTEMPTS) {
                 await this.escalate(fresh, attempts, message);
                 return 'escalated';
@@ -216,7 +221,7 @@ let RefundRetryJob = class RefundRetryJob {
                 await orderSvc.settleRefund(ctx, { id: row.id, transactionId: row.paymentId });
             }
             catch (e) {
-                core_1.Logger.warn(`遗留 Pending 退款结算失败 order=${orderId} refund=${row.id}，置 Failed 后重算余额: ${String((_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e)}`, loggerCtx);
+                core_2.Logger.warn(`遗留 Pending 退款结算失败 order=${orderId} refund=${row.id}，置 Failed 后重算余额: ${String((_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e)}`, loggerCtx);
                 await this.connection.rawConnection
                     .query(`UPDATE refund SET state = 'Failed' WHERE id = $1 AND state = 'Pending'`, [row.id])
                     .catch(() => undefined);
@@ -244,7 +249,7 @@ let RefundRetryJob = class RefundRetryJob {
                         RETURNING id`, [order.id]));
         if (!updated.length) {
             // 锁内被其他路径改写（如人工认领）：退款已完成，仅告警不重试
-            core_1.Logger.warn(`退款重试完成但订单状态已被改写，跳过落终态 order=${order.code}`, loggerCtx);
+            core_2.Logger.warn(`退款重试完成但订单状态已被改写，跳过落终态 order=${order.code}`, loggerCtx);
         }
     }
     /** 耗尽升级：飞书告警 + 系统工单（人工待办），只会发一次 */
@@ -262,7 +267,7 @@ let RefundRetryJob = class RefundRetryJob {
             remaining = list.reduce((sum, p) => sum + p.remaining, 0);
         }
         catch (e) {
-            core_1.Logger.warn(`退款重试升级金额核算失败 order=${order.code}: ${String((_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e)}`, loggerCtx);
+            core_2.Logger.warn(`退款重试升级金额核算失败 order=${order.code}: ${String((_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e)}`, loggerCtx);
         }
         const yuan = (fen) => (fen / 100).toFixed(2);
         const detail = [
@@ -288,15 +293,15 @@ let RefundRetryJob = class RefundRetryJob {
             ticketId = (_e = ticket === null || ticket === void 0 ? void 0 : ticket.id) !== null && _e !== void 0 ? _e : null;
         }
         catch (e) {
-            core_1.Logger.error(`退款重试升级建工单失败 order=${order.code}: ${String((_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e)}`, loggerCtx);
+            core_2.Logger.error(`退款重试升级建工单失败 order=${order.code}: ${String((_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e)}`, loggerCtx);
         }
         try {
             await this.feishu.pushEvent('exception', '退款自动重试耗尽，转人工', `${detail}${ticketId ? `；工单 ${ticketId}` : '；工单创建失败，请直接在调度台认领'}`, order.code, `refund_retry_exhausted:${order.code}`);
         }
         catch (e) {
-            core_1.Logger.error(`退款重试升级飞书告警失败 order=${order.code}: ${String((_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : e)}`, loggerCtx);
+            core_2.Logger.error(`退款重试升级飞书告警失败 order=${order.code}: ${String((_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : e)}`, loggerCtx);
         }
-        core_1.Logger.error(`退款自动重试耗尽转人工 order=${order.code} attempts=${attempts}: ${reason}`, loggerCtx);
+        core_2.Logger.error(`退款自动重试耗尽转人工 order=${order.code} attempts=${attempts}: ${reason}`, loggerCtx);
     }
     async lastError(orderId) {
         var _a;
@@ -311,7 +316,7 @@ let RefundRetryJob = class RefundRetryJob {
     }
     orderSvc() {
         var _a;
-        return (_a = this.orderSvcOverride) !== null && _a !== void 0 ? _a : this.injector.get(core_1.OrderService);
+        return (_a = this.orderSvcOverride) !== null && _a !== void 0 ? _a : this.injector.get(core_2.OrderService);
     }
     /** 存量隔离：只自动处理「作业安装后」进入/刷新到 refund_failed 的单 */
     async cutoff() {
@@ -325,18 +330,18 @@ let RefundRetryJob = class RefundRetryJob {
         }
         const at = new Date();
         await this.dedupe.setJson(INSTALLED_KEY, { at: at.toISOString() }, INSTALLED_TTL_MS);
-        core_1.Logger.warn(`退款重试作业首次启用，存量隔离时间=${at.toISOString()}（更早的 refund_failed 需人工处置）`, loggerCtx);
+        core_2.Logger.warn(`退款重试作业首次启用，存量隔离时间=${at.toISOString()}（更早的 refund_failed 需人工处置）`, loggerCtx);
         return at;
     }
 };
 exports.RefundRetryJob = RefundRetryJob;
 exports.RefundRetryJob = RefundRetryJob = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [core_1.TransactionalConnection,
+    __metadata("design:paramtypes", [core_2.TransactionalConnection,
         campus_dedupe_service_1.CampusDedupeService,
         feishu_notify_service_1.FeishuNotifyService,
         support_service_1.SupportService,
-        core_1.RequestContextService,
-        core_1.Injector])
+        core_2.RequestContextService,
+        core_1.ModuleRef])
 ], RefundRetryJob);
 //# sourceMappingURL=refund-retry.job.js.map

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Payment } from '@vendure/core';
+import { ModuleRef } from '@nestjs/core';
+import { Injector, Payment } from '@vendure/core';
 import { REFUND_RETRY_MAX_ATTEMPTS, RefundRetryJob } from './refund-retry.job';
 
 interface SetupOptions {
@@ -102,6 +103,13 @@ function setup(opts: SetupOptions = {}) {
 }
 
 describe('RefundRetryJob (A9)', () => {
+    it('构造器不直接依赖 Injector（插件模块不提供该 provider，须用 ModuleRef 构造）', () => {
+        const types = Reflect.getMetadata('design:paramtypes', RefundRetryJob) as any[];
+        expect(types).toBeDefined();
+        expect(types.includes(Injector)).toBe(false);
+        expect(types.includes(ModuleRef)).toBe(true);
+    });
+
     it('重试成功：按余额退款、结算、取消并落终态，并清理重试状态', async () => {
         const { job, orderSvc, dedupe, rawQuery } = setup();
         const res = await job.runOnce();

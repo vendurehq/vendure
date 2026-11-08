@@ -1,5 +1,6 @@
 import { OnApplicationShutdown } from '@nestjs/common';
-import { Injector, RequestContextService, TransactionalConnection } from '@vendure/core';
+import { ModuleRef } from '@nestjs/core';
+import { RequestContextService, TransactionalConnection } from '@vendure/core';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { SupportService } from './support.service';
@@ -43,13 +44,15 @@ export declare class RefundRetryJob implements OnApplicationShutdown {
     private readonly feishu;
     private readonly support;
     private readonly requestContextService;
-    private readonly injector;
+    private readonly moduleRef;
     private fallback;
     /** 单测注入点：替换 OrderService（避免构造整个 Vendure 容器） */
     orderSvcOverride: Pick<any, 'refundOrder' | 'settleRefund' | 'cancelOrder'> | null;
     /** 单测注入点：固定存量隔离时间 */
     cutoffOverride: Date | null;
-    constructor(connection: TransactionalConnection, dedupe: CampusDedupeService, feishu: FeishuNotifyService, support: SupportService, requestContextService: RequestContextService, injector: Injector);
+    constructor(connection: TransactionalConnection, dedupe: CampusDedupeService, feishu: FeishuNotifyService, support: SupportService, requestContextService: RequestContextService, moduleRef: ModuleRef);
+    /** vendure Injector 需由 ModuleRef 构造（Nest 不直接提供 Injector 作为可注入项，直接注入会导致插件启动失败） */
+    private get injector();
     start(intervalMs?: number): void;
     onApplicationShutdown(): void;
     /** 手动触发一轮（运维/单测） */
