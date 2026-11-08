@@ -50,13 +50,31 @@ describe('diffOrder', () => {
         expect(diffOrder(full({ deliveryRecords: [{ mode: 'self', sourceLocationId: 'l2', status: 'Delivered' }] }))).toContain('D2');
     });
 
-    it('D3 实收口径：已结算支付 − 已结算退款', () => {
-        // 实收足额
-        expect(diffOrder(full({ paidSettled: 10000, settledRefunds: 0 }))).not.toContain('D3');
-        // 退过款：实收 10000 − 已退 3000 = 7000 ≠ 应付 10000 → 差异
-        expect(diffOrder(full({ paidSettled: 10000, settledRefunds: 3000 }))).toContain('D3');
-        // 少收
+    it('D3 只判实收≠应付（少收/多收）', () => {
+        expect(diffOrder(full({ paidSettled: 10000 }))).not.toContain('D3');
         expect(diffOrder(full({ paidSettled: 8000 }))).toContain('D3');
+        expect(diffOrder(full({ paidSettled: 11000 }))).toContain('D3');
+    });
+
+    it('D3 认合法部分退款：退款 ≤ 实收不报差异', () => {
+        // 实收足额、退 3000（部分退款）→ 不是差异
+        expect(diffOrder(full({ paidSettled: 10000, settledRefunds: 3000 }))).not.toContain('D3');
+    });
+
+    it('D3 认合法全额退款：退款 = 实收不报差异', () => {
+        expect(diffOrder(full({ paidSettled: 10000, settledRefunds: 10000 }))).not.toContain('D3');
+    });
+
+    it('D3 多退仍报差异：退款合计 > 实收', () => {
+        expect(diffOrder(full({ paidSettled: 10000, settledRefunds: 11000 }))).toContain('D3');
+    });
+
+    it('D1 历史凭证白名单按显式 id 豁免，新订单三证皆无仍报 D1', () => {
+        // 白名单内（字段启用前历史单）：三证皆无也不报 D1
+        expect(diffOrder(full({ order: { ...baseOrder, id: '165' }, deliveryRecords: [], campusDelivered: false }))).not.toContain('D1');
+        expect(diffOrder(full({ order: { ...baseOrder, id: '5' }, deliveryRecords: [], campusDelivered: false }))).not.toContain('D1');
+        // 白名单外（新订单）：三证皆无照常报 D1
+        expect(diffOrder(full({ order: { ...baseOrder, id: '1001' }, deliveryRecords: [], campusDelivered: false }))).toContain('D1');
     });
 
     it('D3 不判未实收状态（PaymentAuthorized / PaymentPending）', () => {
