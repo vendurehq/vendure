@@ -67,6 +67,16 @@ export declare function resolveRoutePlan(route: string, cfg: RouteConfig, extern
 export declare function resolvePickup(_route: CampusRoute, cfg: RouteConfig): GeoPointLike | null;
 /** 归一某路线的交接点列表：兼容历史「单点对象」写法，剔除缺名称/坐标的脏数据 */
 export declare function listHandoverPoints(route: CampusRoute, cfg: RouteConfig): HandoverPointConfig[];
+/**
+ * 路线是否可交付（A1）：
+ * 「可用交接点」判定条件（前后端唯一定义）：
+ *   1) 配置中存在该路线的交接点（数组或历史单点对象均可）；
+ *   2) name 去空格后非空；
+ *   3) lat / lng 均非空且可转换为有限数字（排除脏数据/空坐标，避免用无效点派单）。
+ * R1/R2 必须有至少一个可用交接点；其余路线不依赖交接点，恒为可交付。
+ * C 端 waimaiStoreList.r1Available、下单闸门 order-gate 共用此函数，避免口径漂移。
+ */
+export declare function isRouteDeliverable(route: CampusRoute, cfg: RouteConfig | null | undefined): boolean;
 /** 两点间球面距离（米），用于按收货楼栋挑最近交接点 */
 export declare function haversineMeters(a: {
     lat: number;

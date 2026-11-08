@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.campusOrderGateProcess = exports.BLACKLIST_MESSAGE = void 0;
+exports.campusOrderGateProcess = exports.CampusR1NoHandoverError = exports.R1_NO_HANDOVER_CODE = exports.R1_NO_HANDOVER_MESSAGE = exports.BLACKLIST_MESSAGE = void 0;
 exports.bindOrderGateConnection = bindOrderGateConnection;
 exports.isBlacklisted = isBlacklisted;
 exports.findSoldOutProductName = findSoldOutProductName;
 exports.findTodayClosure = findTodayClosure;
+exports.findChannelRouteConfig = findChannelRouteConfig;
 const core_1 = require("@vendure/core");
 const business_hours_1 = require("./business-hours");
 const daily_limit_1 = require("./daily-limit");
@@ -62,6 +63,40 @@ async function findTodayClosure(conn, channelId, now = Date.now()) {
         return null;
     return (0, closure_calendar_1.closedToday)((0, closure_calendar_1.safeClosureDates)(raw, now), now);
 }
+exports.R1_NO_HANDOVER_MESSAGE = '当前门店未配置 R1 配送交接点，暂不可选择 R1，请改选 R3 或到店自取';
+/** A1：前端/告警可依据 GraphQL extensions.code 区分原因（文案面向顾客） */
+exports.R1_NO_HANDOVER_CODE = 'CAMPUS_R1_NO_HANDOVER_POINT';
+/** A1：R1 渠道缺少可用交接点（Vendure 的 UserInputError 固定 code=USER_INPUT_ERROR，
+ *  这里在 extensions 上补一个可机读的业务码，message 保持面向顾客可读）。 */
+class CampusR1NoHandoverError extends core_1.UserInputError {
+    constructor() {
+        super(exports.R1_NO_HANDOVER_MESSAGE);
+        this.extensions.code = exports.R1_NO_HANDOVER_CODE;
+    }
+}
+exports.CampusR1NoHandoverError = CampusR1NoHandoverError;
+/**
+ * 读取渠道交接点配置（只读）。
+ * simple-json 列经 pg 驱动可能回传对象，也可能回传字符串，统一解析成 RouteConfig。
+ */
+async function findChannelRouteConfig(conn, channelId) {
+    var _a;
+    const rows = await conn.rawConnection.query('SELECT "handoverPoints" FROM campus_fulfillment_config WHERE "channelId" = $1 LIMIT 1', [channelId]);
+    const list = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
+    const raw = (_a = list === null || list === void 0 ? void 0 : list[0]) === null || _a === void 0 ? void 0 : _a.handoverPoints;
+    if (raw == null)
+        return { handoverPoints: null };
+    let parsed = raw;
+    if (typeof raw === 'string') {
+        try {
+            parsed = JSON.parse(raw);
+        }
+        catch (_b) {
+            parsed = null;
+        }
+    }
+    return { handoverPoints: (parsed !== null && parsed !== void 0 ? parsed : null) };
+}
 exports.campusOrderGateProcess = {
     async onTransitionStart(fromState, toState, { ctx, order }) {
         var _a, _b, _c, _d, _e;
@@ -117,6 +152,13 @@ exports.campusOrderGateProcess = {
                 }
                 if (['R1', 'R2', 'R3'].includes(route) && cf.buildingId == null) {
                     throw new core_1.UserInputError('请先选择配送楼栋后再提交订单');
+                }
+                // 5b) A1：R1 依赖交接点。未配置时下单前明确拒绝，避免支付后被静默降级为单段直送却仍收 R1 运费。
+                if (route === 'R1') {
+                    const routeCfg = await findChannelRouteConfig(conn, Number(ctx.channelId));
+                    if (!(0, route_matrix_1.isRouteDeliverable)('R1', routeCfg)) {
+                        throw new CampusR1NoHandoverError();
+                    }
                 }
             }
         }

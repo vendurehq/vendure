@@ -224,6 +224,7 @@ let WaimaiStoreService = class WaimaiStoreService {
                 promoText: (_d = cf.waimaiPromoText) !== null && _d !== void 0 ? _d : null,
                 paused: cfg.paused,
                 routesEnabled: (_e = cfg.routesEnabled) !== null && _e !== void 0 ? _e : [],
+                r1Available: (0, route_matrix_1.isRouteDeliverable)('R1', cfg),
                 deliveryMinutes: (_f = cfg.deliveryMinutes) !== null && _f !== void 0 ? _f : null,
                 minOrderAmount: (_g = cfg.minOrderAmount) !== null && _g !== void 0 ? _g : null,
                 deliveryFee: (_h = cfg.deliveryFee) !== null && _h !== void 0 ? _h : null,

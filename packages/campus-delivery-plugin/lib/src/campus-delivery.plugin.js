@@ -3397,6 +3397,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     promoText: String
                     paused: Boolean!
                     routesEnabled: [String!]!
+                    r1Available: Boolean!
                     deliveryMinutes: Int
                     minOrderAmount: Int
                     deliveryFee: Int

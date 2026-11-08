@@ -9,6 +9,8 @@ export interface WaimaiStore {
     promoText: string | null;
     paused: boolean;
     routesEnabled: string[];
+    /** R1 是否可售：routesEnabled 之外还要求已配置可用交接点（与下单闸门同一判据，A1） */
+    r1Available: boolean;
     deliveryMinutes: number | null;
     minOrderAmount: number | null;
     deliveryFee: number | null;
