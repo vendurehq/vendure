@@ -639,6 +639,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     total: Int!
                     """顾客催单待处理（§78）：出餐屏置顶并标红"""
                     urged: Boolean!
+                    """系统已自动接管（R3-自营直接落池）：无需商家接单，仅需出餐"""
+                    autoTaken: Boolean!
                     lines: [CampusKitchenLine!]!
                 }
 

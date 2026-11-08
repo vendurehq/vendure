@@ -993,6 +993,8 @@ export interface KitchenTicket {
     total: number;
     /** 顾客催单待处理（§78）：出餐屏置顶并标「顾客催单」 */
     urged: boolean;
+    /** 系统已自动接管（R3-自营直接落 owned_pool）：显示为备餐中，无需商家接单 */
+    autoTaken: boolean;
     lines: KitchenTicketLine[];
 }
 
@@ -2354,13 +2356,14 @@ export class MerchantAdminService {
         return this.cloud.recentJobs(ctx, limit);
     }
 
-    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红） */
+    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管的 owned_pool 单也进备餐中 */
     async kitchenQueue(ctx: RequestContext): Promise<KitchenQueue> {
         const orders = await this.connection.getRepository(ctx, Order)
             .createQueryBuilder('order')
             .leftJoin('order.channels', 'channel')
             .where('channel.id = :ch', { ch: ctx.channelId as any })
-            .andWhere("order.customFields.hallStatus IN ('pending_merchant','accepted')")
+            // owned_pool：R3-自营直接入池、系统已自动接管（无需商家接单），同样要出现在厨房队列
+            .andWhere("order.customFields.hallStatus IN ('pending_merchant','accepted','owned_pool')")
             .leftJoinAndSelect('order.lines', 'lines')
             .leftJoinAndSelect('lines.productVariant', 'variant')
             .orderBy('order.createdAt', 'ASC')
@@ -2378,13 +2381,15 @@ export class MerchantAdminService {
         const ackMap = await this.urgeAckMap(ctx, orders.map(o => Number(o.id)));
         const tickets: KitchenTicket[] = orders.map(o => {
             const cf = o.customFields as any;
+            const autoTaken = cf.hallStatus === 'owned_pool';
             const urgedAt = cf.urgedAt ? new Date(cf.urgedAt) : null;
             // createdAt 是 DB DEFAULT now() 写入的 UTC 墙钟：先还原成绝对时刻，再算等待分钟
             const waitingMinutes = Math.max(0, Math.floor((now - (o.createdAt).getTime()) / 60000));
             return {
                 id: String(o.id),
                 code: o.code,
-                stage: cf.hallStatus === 'accepted' ? 'cooking' : 'pending',
+                // owned_pool 已被系统自动接管（无需商家接单），直接视为备餐中
+                stage: cf.hallStatus === 'accepted' || autoTaken ? 'cooking' : 'pending',
                 createdAt: (o.createdAt),
                 waitingMinutes,
                 urgency: waitingMinutes >= KDS_LATE_MINUTES ? 'late' : waitingMinutes >= KDS_WARN_MINUTES ? 'warn' : 'normal',
@@ -2395,6 +2400,7 @@ export class MerchantAdminService {
                 printedAt: (cf.waimaiPrintedAt as Date | undefined) ?? null,
                 total: o.total,
                 urged: isUrgePending(cf.urged, urgedAt, ackMap.get(String(o.id)) ?? null),
+                autoTaken,
                 lines: (o.lines ?? []).map(l => {
                     const addonsText = addonDisplayText((l.customFields as any)?.waimaiAddons);
                     return {

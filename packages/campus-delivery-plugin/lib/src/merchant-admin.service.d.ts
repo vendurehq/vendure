@@ -908,6 +908,8 @@ export interface KitchenTicket {
     total: number;
     /** 顾客催单待处理（§78）：出餐屏置顶并标「顾客催单」 */
     urged: boolean;
+    /** 系统已自动接管（R3-自营直接落 owned_pool）：显示为备餐中，无需商家接单 */
+    autoTaken: boolean;
     lines: KitchenTicketLine[];
 }
 export interface KitchenQueue {
@@ -1249,7 +1251,7 @@ export declare class MerchantAdminService {
     cloudPrintTest(ctx: RequestContext): Promise<import("./cloud-print.service").CloudPrintResult>;
     /** 最近云打印任务（排障） */
     printJobs(ctx: RequestContext, limit?: number): Promise<import("./cloud-print.service").CloudPrintJobRow[]>;
-    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红） */
+    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管的 owned_pool 单也进备餐中 */
     kitchenQueue(ctx: RequestContext): Promise<KitchenQueue>;
     /**
      * 备餐汇总（§79）：今日「待接单 + 备餐中」按商品聚合待做份数，

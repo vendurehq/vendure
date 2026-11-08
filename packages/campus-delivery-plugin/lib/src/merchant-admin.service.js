@@ -1228,13 +1228,14 @@ let MerchantAdminService = class MerchantAdminService {
     async printJobs(ctx, limit) {
         return this.cloud.recentJobs(ctx, limit);
     }
-    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红） */
+    /** KDS 出餐屏队列：待接单 + 备餐中（按支付先后出票，超时标红）；已自动接管的 owned_pool 单也进备餐中 */
     async kitchenQueue(ctx) {
         const orders = await this.connection.getRepository(ctx, core_2.Order)
             .createQueryBuilder('order')
             .leftJoin('order.channels', 'channel')
             .where('channel.id = :ch', { ch: ctx.channelId })
-            .andWhere("order.customFields.hallStatus IN ('pending_merchant','accepted')")
+            // owned_pool：R3-自营直接入池、系统已自动接管（无需商家接单），同样要出现在厨房队列
+            .andWhere("order.customFields.hallStatus IN ('pending_merchant','accepted','owned_pool')")
             .leftJoinAndSelect('order.lines', 'lines')
             .leftJoinAndSelect('lines.productVariant', 'variant')
             .orderBy('order.createdAt', 'ASC')
@@ -1254,13 +1255,15 @@ let MerchantAdminService = class MerchantAdminService {
         const tickets = orders.map(o => {
             var _a, _b, _c, _d, _e, _f, _g;
             const cf = o.customFields;
+            const autoTaken = cf.hallStatus === 'owned_pool';
             const urgedAt = cf.urgedAt ? new Date(cf.urgedAt) : null;
             // createdAt 是 DB DEFAULT now() 写入的 UTC 墙钟：先还原成绝对时刻，再算等待分钟
             const waitingMinutes = Math.max(0, Math.floor((now - (o.createdAt).getTime()) / 60000));
             return {
                 id: String(o.id),
                 code: o.code,
-                stage: cf.hallStatus === 'accepted' ? 'cooking' : 'pending',
+                // owned_pool 已被系统自动接管（无需商家接单），直接视为备餐中
+                stage: cf.hallStatus === 'accepted' || autoTaken ? 'cooking' : 'pending',
                 createdAt: (o.createdAt),
                 waitingMinutes,
                 urgency: waitingMinutes >= exports.KDS_LATE_MINUTES ? 'late' : waitingMinutes >= exports.KDS_WARN_MINUTES ? 'warn' : 'normal',
@@ -1271,6 +1274,7 @@ let MerchantAdminService = class MerchantAdminService {
                 printedAt: (_e = cf.waimaiPrintedAt) !== null && _e !== void 0 ? _e : null,
                 total: o.total,
                 urged: isUrgePending(cf.urged, urgedAt, (_f = ackMap.get(String(o.id))) !== null && _f !== void 0 ? _f : null),
+                autoTaken,
                 lines: ((_g = o.lines) !== null && _g !== void 0 ? _g : []).map(l => {
                     var _a, _b, _c;
                     const addonsText = (0, addon_fee_1.addonDisplayText)((_a = l.customFields) === null || _a === void 0 ? void 0 : _a.waimaiAddons);
