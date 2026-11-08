@@ -170,6 +170,23 @@ export function listHandoverPoints(route: CampusRoute, cfg: RouteConfig): Handov
     return arr.filter(p => !!p && !!String(p.name ?? '').trim() && p.lat != null && p.lng != null);
 }
 
+/**
+ * 路线是否可交付（A1）：
+ * 「可用交接点」判定条件（前后端唯一定义）：
+ *   1) 配置中存在该路线的交接点（数组或历史单点对象均可）；
+ *   2) name 去空格后非空；
+ *   3) lat / lng 均非空且可转换为有限数字（排除脏数据/空坐标，避免用无效点派单）。
+ * R1/R2 必须有至少一个可用交接点；其余路线不依赖交接点，恒为可交付。
+ * C 端 waimaiStoreList.r1Available、下单闸门 order-gate 共用此函数，避免口径漂移。
+ */
+export function isRouteDeliverable(route: CampusRoute, cfg: RouteConfig | null | undefined): boolean {
+    if (route !== 'R1' && route !== 'R2') return true;
+    if (!cfg) return false;
+    return listHandoverPoints(route, cfg).some(
+        p => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)),
+    );
+}
+
 /** 两点间球面距离（米），用于按收货楼栋挑最近交接点 */
 export function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
     const R = 6371000;

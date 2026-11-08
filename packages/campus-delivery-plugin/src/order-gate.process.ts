@@ -2,7 +2,7 @@ import { Order, OrderProcess, RequestContext, TransactionalConnection, UserInput
 import { isWithinBusinessHours } from './business-hours';
 import { findDailyLimitViolation } from './daily-limit';
 import { ClosureDate, closedToday, safeClosureDates } from './closure-calendar';
-import { CAMPUS_ROUTES } from './route-matrix';
+import { CAMPUS_ROUTES, isRouteDeliverable, type RouteConfig } from './route-matrix';
 
 /**
  * 下单前置闸门（进入 ArrangingPayment 时校验）：
@@ -80,6 +80,46 @@ export async function findTodayClosure(
     return closedToday(safeClosureDates(raw, now), now);
 }
 
+export const R1_NO_HANDOVER_MESSAGE = '当前门店未配置 R1 配送交接点，暂不可选择 R1，请改选 R3 或到店自取';
+
+/** A1：前端/告警可依据 GraphQL extensions.code 区分原因（文案面向顾客） */
+export const R1_NO_HANDOVER_CODE = 'CAMPUS_R1_NO_HANDOVER_POINT';
+
+/** A1：R1 渠道缺少可用交接点（Vendure 的 UserInputError 固定 code=USER_INPUT_ERROR，
+ *  这里在 extensions 上补一个可机读的业务码，message 保持面向顾客可读）。 */
+export class CampusR1NoHandoverError extends UserInputError {
+    constructor() {
+        super(R1_NO_HANDOVER_MESSAGE);
+        (this.extensions as Record<string, unknown>).code = R1_NO_HANDOVER_CODE;
+    }
+}
+
+/**
+ * 读取渠道交接点配置（只读）。
+ * simple-json 列经 pg 驱动可能回传对象，也可能回传字符串，统一解析成 RouteConfig。
+ */
+export async function findChannelRouteConfig(
+    conn: TransactionalConnection,
+    channelId: number,
+): Promise<RouteConfig | null> {
+    const rows: any = await conn.rawConnection.query(
+        'SELECT "handoverPoints" FROM campus_fulfillment_config WHERE "channelId" = $1 LIMIT 1',
+        [channelId],
+    );
+    const list = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
+    const raw = list?.[0]?.handoverPoints;
+    if (raw == null) return { handoverPoints: null };
+    let parsed: unknown = raw;
+    if (typeof raw === 'string') {
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            parsed = null;
+        }
+    }
+    return { handoverPoints: (parsed ?? null) as RouteConfig['handoverPoints'] };
+}
+
 export const campusOrderGateProcess: OrderProcess<any> = {
     async onTransitionStart(fromState, toState, { ctx, order }: { ctx: RequestContext; order: any }) {
         if (toState !== 'ArrangingPayment') return;
@@ -138,6 +178,13 @@ export const campusOrderGateProcess: OrderProcess<any> = {
                 }
                 if (['R1', 'R2', 'R3'].includes(route) && cf.buildingId == null) {
                     throw new UserInputError('请先选择配送楼栋后再提交订单');
+                }
+                // 5b) A1：R1 依赖交接点。未配置时下单前明确拒绝，避免支付后被静默降级为单段直送却仍收 R1 运费。
+                if (route === 'R1') {
+                    const routeCfg = await findChannelRouteConfig(conn, Number(ctx.channelId));
+                    if (!isRouteDeliverable('R1', routeCfg)) {
+                        throw new CampusR1NoHandoverError();
+                    }
                 }
             }
         }

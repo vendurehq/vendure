@@ -42,6 +42,7 @@ describe('WaimaiStoreService.listStores', () => {
             logo: '/static/a.webp', tags: ['米饭快餐', '夜宵'], monthlySales: 320,
             promoText: '满20减4',
             paused: false, routesEnabled: ['R1', 'R3'],
+            r1Available: false,
             deliveryMinutes: 35, minOrderAmount: 1500, deliveryFee: 200,
             storeAddress: '东门 1 号楼', storePhone: '13800000000', storeNotice: '周末出餐慢',
             businessHours: null,
@@ -57,6 +58,21 @@ describe('WaimaiStoreService.listStores', () => {
             packingFeeCap: null, packingFeeLabel: null,
         });
     });
+    it('A1：R1 可售看「可用交接点」而非仅看 routesEnabled', async () => {
+        const env = makeEnv({
+            configs: [
+                { channelId: 7, paused: false, routesEnabled: ['R1'], handoverPoints: { R1: { name: '东门岗亭', lat: 30.1, lng: 120.2 } } },
+                { channelId: 8, paused: false, routesEnabled: ['R1'], handoverPoints: { R1: { name: '东门岗亭' } } },
+            ],
+            channels: [
+                { id: 7, token: 'r1', code: 'R1 店', customFields: { industryType: 'catering' } },
+                { id: 8, token: 'r1-dirty', code: 'R1 脏数据店', customFields: { industryType: 'catering' } },
+            ],
+        });
+        const list = await env.svc.listStores({} as any);
+        expect(list.map(s => [s.channelId, s.r1Available])).toEqual([[7, true], [8, false]]);
+    });
+
     it('空 tags/缺月售/缺新字段容错（全 null），paused 透传', async () => {
         const env = makeEnv({
             configs: [{ channelId: 9, paused: true, routesEnabled: [] }],

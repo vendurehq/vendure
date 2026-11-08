@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Channel, RequestContext, TransactionalConnection, UserInputError } from '@vendure/core';
 import { CampusFulfillmentConfig, STORE_NOTICE_MAX_LENGTH } from './campus-fulfillment-config.entity';
-import { CampusRoute, normalizeRouteFirstLeg, ROUTE_FIRST_LEG_OPTIONS } from './route-matrix';
+import { CampusRoute, isRouteDeliverable, normalizeRouteFirstLeg, ROUTE_FIRST_LEG_OPTIONS } from './route-matrix';
 import { isWithinBusinessHours } from './business-hours';
 import { normalizePackingFeeMode, PACKING_FEE_MODES } from './packing-fee';
 import { normalizeDeliveryFeeTiers } from './delivery-fee-tiers';
@@ -18,6 +18,8 @@ export interface WaimaiStore {
     promoText: string | null;
     paused: boolean;
     routesEnabled: string[];
+    /** R1 是否可售：routesEnabled 之外还要求已配置可用交接点（与下单闸门同一判据，A1） */
+    r1Available: boolean;
     deliveryMinutes: number | null;
     minOrderAmount: number | null;
     deliveryFee: number | null;
@@ -382,6 +384,7 @@ export class WaimaiStoreService {
                 promoText: cf.waimaiPromoText ?? null,
                 paused: cfg.paused,
                 routesEnabled: cfg.routesEnabled ?? [],
+                r1Available: isRouteDeliverable('R1', cfg as any),
                 deliveryMinutes: cfg.deliveryMinutes ?? null,
                 minOrderAmount: cfg.minOrderAmount ?? null,
                 deliveryFee: cfg.deliveryFee ?? null,

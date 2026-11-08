@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    isRouteDeliverable,
     normalizeRouteFirstLeg,
     resolveRoutePlan,
     resolveDropoff,
@@ -165,5 +166,59 @@ describe('route-matrix', () => {
         expect(normalizeRouteFirstLeg('R2', 'dada')).toBeNull();
         expect(resolveRoutePlan('R6' as any, base)).toBeNull();
         expect(resolveRoutePlan('R9' as any, base)).toBeNull();
+    });
+});
+
+describe('isRouteDeliverable（A1：可用交接点判定）', () => {
+    it('R1 有可用交接点（单点对象 / 数组）→ true', () => {
+        expect(isRouteDeliverable('R1', base)).toBe(true);
+        expect(isRouteDeliverable('R1', { ...base, handoverPoints: { R1: [handoverPoints.R1] } })).toBe(true);
+    });
+
+    it('R1 未配置 / 配置为空 → false', () => {
+        expect(isRouteDeliverable('R1', null)).toBe(false);
+        expect(isRouteDeliverable('R1', undefined)).toBe(false);
+        expect(isRouteDeliverable('R1', {})).toBe(false);
+        expect(isRouteDeliverable('R1', { handoverPoints: null })).toBe(false);
+        expect(isRouteDeliverable('R1', { handoverPoints: {} })).toBe(false);
+        expect(isRouteDeliverable('R1', { handoverPoints: { R1: [] } })).toBe(false);
+    });
+
+    it('R1 交接点缺名称 / 缺经纬度 / 坐标非数字 → 视为不可用', () => {
+        expect(
+            isRouteDeliverable('R1', { handoverPoints: { R1: { name: '   ', lat: 30.1, lng: 120.2 } } }),
+        ).toBe(false);
+        expect(
+            isRouteDeliverable('R1', { handoverPoints: { R1: { name: '东门岗亭', lng: 120.2 } } as any }),
+        ).toBe(false);
+        expect(
+            isRouteDeliverable('R1', { handoverPoints: { R1: { name: '东门岗亭', lat: 'abc', lng: 120.2 } } as any }),
+        ).toBe(false);
+    });
+
+    it('一个脏点 + 一个可用点 → true（只要存在可用交接点即可）', () => {
+        const cfg = {
+            handoverPoints: {
+                R1: [
+                    { name: '', lat: 30.1, lng: 120.2 },
+                    { name: '东门岗亭', lat: 30.1, lng: 120.2 },
+                ],
+            },
+        } as any;
+        expect(isRouteDeliverable('R1', cfg)).toBe(true);
+    });
+
+    it('经纬度为数字字符串 → 仍视为可用（兼容历史配置）', () => {
+        expect(
+            isRouteDeliverable('R1', { handoverPoints: { R1: { name: '东门岗亭', lat: '30.1', lng: '120.2' } } } as any),
+        ).toBe(true);
+    });
+
+    it('R2 与 R1 同判据；R3/R4/R5 不依赖交接点', () => {
+        expect(isRouteDeliverable('R2', { handoverPoints: { R1: handoverPoints.R1 } })).toBe(false);
+        expect(isRouteDeliverable('R2', base)).toBe(true);
+        expect(isRouteDeliverable('R3', null)).toBe(true);
+        expect(isRouteDeliverable('R4', null)).toBe(true);
+        expect(isRouteDeliverable('R5', null)).toBe(true);
     });
 });
