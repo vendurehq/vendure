@@ -43,12 +43,18 @@ export interface DiffOrderInput {
     cancelled?: boolean;
 }
 /**
+ * D2 数据源缺失：有扣仓账本，但取不到配送仓（无可用配送记录，或记录 sourceLocationId 为空）。
+ * 属取数缺口，不产出差异行；由批次汇总 WARN 体现跳过数量。
+ */
+export declare const isDeliverySourceMissing: (input: Pick<DiffOrderInput, "deliveryRecords" | "ledgerOuts">) => boolean;
+/**
  * 四流逐单比对：
  * D1 缺履约凭证：仅「已发货语义」订单（Shipped/PartiallyShipped/Delivered/PartiallyDelivered）判定，
  *    凭证为「发货单 ∪ 自提核销 ∪ 校园配送实际送达」三者都不存在才算差异；
  *    不再依赖从未写入的 delivery_record 表，也不因该表为空而整轮跳过 D1；
  *    字段启用前已完结的历史单按显式 id 白名单豁免（见 isD1ProofExempt）。
- * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致
+ * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致；
+ *    仅「两边都取到仓且不同」才判差异，取不到配送仓属数据源缺失（批次 WARN 统计，不产出差异行）。
  * D3 实收不平：仅已实收状态（PaymentSettled/Delivered）判两类真差异：
  *    ① 实收（Settled 支付合计）≠ 应付 → 少收/多收；② 已结算退款合计 > 实收 → 多退。
  *    合法部分退款、合法全额退款（退款 ≤ 实收）不再报差异；

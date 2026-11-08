@@ -45,13 +45,31 @@ export interface DiffOrderInput {
     cancelled?: boolean;
 }
 
+/** D2 可用配送记录：仅自提/快递/校园配送且非草稿 */
+const openDeliveryRecords = (records: DiffOrderInput['deliveryRecords']) =>
+    records.filter(r => ['self', 'express', 'pickup'].includes(r.mode) && r.status !== 'Draft');
+
+/**
+ * D2 数据源缺失：有扣仓账本，但取不到配送仓（无可用配送记录，或记录 sourceLocationId 为空）。
+ * 属取数缺口，不产出差异行；由批次汇总 WARN 体现跳过数量。
+ */
+export const isDeliverySourceMissing = (
+    input: Pick<DiffOrderInput, 'deliveryRecords' | 'ledgerOuts'>,
+): boolean => {
+    if (!input.ledgerOuts[0]) {
+        return false;
+    }
+    return openDeliveryRecords(input.deliveryRecords).find(r => r.sourceLocationId)?.sourceLocationId == null;
+};
+
 /**
  * 四流逐单比对：
  * D1 缺履约凭证：仅「已发货语义」订单（Shipped/PartiallyShipped/Delivered/PartiallyDelivered）判定，
  *    凭证为「发货单 ∪ 自提核销 ∪ 校园配送实际送达」三者都不存在才算差异；
  *    不再依赖从未写入的 delivery_record 表，也不因该表为空而整轮跳过 D1；
  *    字段启用前已完结的历史单按显式 id 白名单豁免（见 isD1ProofExempt）。
- * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致
+ * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致；
+ *    仅「两边都取到仓且不同」才判差异，取不到配送仓属数据源缺失（批次 WARN 统计，不产出差异行）。
  * D3 实收不平：仅已实收状态（PaymentSettled/Delivered）判两类真差异：
  *    ① 实收（Settled 支付合计）≠ 应付 → 少收/多收；② 已结算退款合计 > 实收 → 多退。
  *    合法部分退款、合法全额退款（退款 ≤ 实收）不再报差异；
@@ -71,9 +89,6 @@ export function diffOrder(input: DiffOrderInput): DiffType[] {
     // 取消后也不再产生应收，继续判金额不平只会制造噪音
     const isCancelled = cancelled === true || order.state === 'Cancelled';
 
-    const openRecords = deliveryRecords.filter(
-        r => ['self', 'express', 'pickup'].includes(r.mode) && r.status !== 'Draft',
-    );
     if (
         !isCancelled
         && D1_SHIPPED_STATES.includes(order.state)
@@ -87,8 +102,10 @@ export function diffOrder(input: DiffOrderInput): DiffType[] {
 
     const firstOut = ledgerOuts[0];
     if (firstOut) {
-        const recLoc = openRecords.find(r => r.sourceLocationId)?.sourceLocationId ?? null;
-        if (recLoc == null || String(recLoc) !== String(firstOut.sourceLocationId)) {
+        // D2 判据：账本出仓与配送仓「两边都取到了但不同」才是真差异；
+        // 取不到配送仓（无配送记录 / 记录无 sourceLocationId）属数据源缺失，由批次 WARN 统计，不产出差异行
+        const recLoc = openDeliveryRecords(deliveryRecords).find(r => r.sourceLocationId)?.sourceLocationId ?? null;
+        if (recLoc != null && String(recLoc) !== String(firstOut.sourceLocationId)) {
             diffs.push('D2');
         }
     }

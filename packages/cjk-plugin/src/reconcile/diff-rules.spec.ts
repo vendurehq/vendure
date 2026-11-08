@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DiffOrderInput, diffOrder } from './diff-rules';
+import { DiffOrderInput, diffOrder, isDeliverySourceMissing } from './diff-rules';
 
 const baseOrder: DiffOrderInput['order'] = {
     id: 'o1',
@@ -48,6 +48,28 @@ describe('diffOrder', () => {
 
     it('D2 扣仓不一致', () => {
         expect(diffOrder(full({ deliveryRecords: [{ mode: 'self', sourceLocationId: 'l2', status: 'Delivered' }] }))).toContain('D2');
+    });
+
+    it('D2 取不到配送仓属数据源缺失：不报差异', () => {
+        // 无配送记录
+        expect(diffOrder(full({ deliveryRecords: [], campusDelivered: true }))).not.toContain('D2');
+        // 有记录但 sourceLocationId 为空
+        expect(diffOrder(full({ deliveryRecords: [{ mode: 'self', sourceLocationId: null as any, status: 'Delivered' }], campusDelivered: true }))).not.toContain('D2');
+    });
+
+    it('D2 不吃 D1 历史白名单：白名单订单配送仓不一致仍报 D2', () => {
+        // 165 在 D1 白名单内，但 D2 是取数机制问题，不按 id 豁免
+        expect(diffOrder(full({
+            order: { ...baseOrder, id: '165' },
+            deliveryRecords: [{ mode: 'self', sourceLocationId: 'l2', status: 'Delivered' }],
+            campusDelivered: true,
+        }) as any)).toContain('D2');
+    });
+
+    it('D2 数据源缺失判定与 diffOrder 一致', () => {
+        expect(isDeliverySourceMissing(full({ deliveryRecords: [] }))).toBe(true);
+        expect(isDeliverySourceMissing(full({ deliveryRecords: [{ mode: 'self', sourceLocationId: 'l1', status: 'Delivered' }] }))).toBe(false);
+        expect(isDeliverySourceMissing(full({ ledgerOuts: [] }))).toBe(false);
     });
 
     it('D3 只判实收≠应付（少收/多收）', () => {

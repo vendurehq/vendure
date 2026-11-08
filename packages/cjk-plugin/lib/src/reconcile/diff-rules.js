@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isD1ProofExempt = exports.D1_HISTORICAL_PROOF_EXEMPT_ORDER_IDS = exports.D3_SETTLED_STATES = exports.D1_SHIPPED_STATES = void 0;
+exports.isDeliverySourceMissing = exports.isD1ProofExempt = exports.D1_HISTORICAL_PROOF_EXEMPT_ORDER_IDS = exports.D3_SETTLED_STATES = exports.D1_SHIPPED_STATES = void 0;
 exports.diffOrder = diffOrder;
 /** D1 判定的「已发货语义」状态：只有这些状态才要求存在发货/配送/核销凭证 */
 exports.D1_SHIPPED_STATES = [
@@ -21,13 +21,28 @@ exports.D1_HISTORICAL_PROOF_EXEMPT_ORDER_IDS = new Set([
 /** 该单是否属于 D1 历史凭证豁免（字段启用前已完结，三证当时不存在） */
 const isD1ProofExempt = (orderId) => exports.D1_HISTORICAL_PROOF_EXEMPT_ORDER_IDS.has(String(orderId));
 exports.isD1ProofExempt = isD1ProofExempt;
+/** D2 可用配送记录：仅自提/快递/校园配送且非草稿 */
+const openDeliveryRecords = (records) => records.filter(r => ['self', 'express', 'pickup'].includes(r.mode) && r.status !== 'Draft');
+/**
+ * D2 数据源缺失：有扣仓账本，但取不到配送仓（无可用配送记录，或记录 sourceLocationId 为空）。
+ * 属取数缺口，不产出差异行；由批次汇总 WARN 体现跳过数量。
+ */
+const isDeliverySourceMissing = (input) => {
+    var _a;
+    if (!input.ledgerOuts[0]) {
+        return false;
+    }
+    return ((_a = openDeliveryRecords(input.deliveryRecords).find(r => r.sourceLocationId)) === null || _a === void 0 ? void 0 : _a.sourceLocationId) == null;
+};
+exports.isDeliverySourceMissing = isDeliverySourceMissing;
 /**
  * 四流逐单比对：
  * D1 缺履约凭证：仅「已发货语义」订单（Shipped/PartiallyShipped/Delivered/PartiallyDelivered）判定，
  *    凭证为「发货单 ∪ 自提核销 ∪ 校园配送实际送达」三者都不存在才算差异；
  *    不再依赖从未写入的 delivery_record 表，也不因该表为空而整轮跳过 D1；
  *    字段启用前已完结的历史单按显式 id 白名单豁免（见 isD1ProofExempt）。
- * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致
+ * D2 扣仓不一致：账本 order:out 仓与配送记录 sourceLocationId 必须一致；
+ *    仅「两边都取到仓且不同」才判差异，取不到配送仓属数据源缺失（批次 WARN 统计，不产出差异行）。
  * D3 实收不平：仅已实收状态（PaymentSettled/Delivered）判两类真差异：
  *    ① 实收（Settled 支付合计）≠ 应付 → 少收/多收；② 已结算退款合计 > 实收 → 多退。
  *    合法部分退款、合法全额退款（退款 ≤ 实收）不再报差异；
@@ -45,7 +60,6 @@ function diffOrder(input) {
     // 取消单不参与 D1/D3：取消的订单没有配送记录是必然结果，不是差异；
     // 取消后也不再产生应收，继续判金额不平只会制造噪音
     const isCancelled = cancelled === true || order.state === 'Cancelled';
-    const openRecords = deliveryRecords.filter(r => ['self', 'express', 'pickup'].includes(r.mode) && r.status !== 'Draft');
     if (!isCancelled
         && exports.D1_SHIPPED_STATES.includes(order.state)
         && !(0, exports.isD1ProofExempt)(order.id)
@@ -56,8 +70,10 @@ function diffOrder(input) {
     }
     const firstOut = ledgerOuts[0];
     if (firstOut) {
-        const recLoc = (_b = (_a = openRecords.find(r => r.sourceLocationId)) === null || _a === void 0 ? void 0 : _a.sourceLocationId) !== null && _b !== void 0 ? _b : null;
-        if (recLoc == null || String(recLoc) !== String(firstOut.sourceLocationId)) {
+        // D2 判据：账本出仓与配送仓「两边都取到了但不同」才是真差异；
+        // 取不到配送仓（无配送记录 / 记录无 sourceLocationId）属数据源缺失，由批次 WARN 统计，不产出差异行
+        const recLoc = (_b = (_a = openDeliveryRecords(deliveryRecords).find(r => r.sourceLocationId)) === null || _a === void 0 ? void 0 : _a.sourceLocationId) !== null && _b !== void 0 ? _b : null;
+        if (recLoc != null && String(recLoc) !== String(firstOut.sourceLocationId)) {
             diffs.push('D2');
         }
     }

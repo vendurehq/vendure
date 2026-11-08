@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ID, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 import { In } from 'typeorm';
 import { ReconciliationBatch, ReconciliationOrderLine } from './reconciliation.entity';
-import { diffOrder, DiffType } from './diff-rules';
+import { diffOrder, DiffType, isDeliverySourceMissing } from './diff-rules';
 
 const loggerCtx = 'ReconciliationService';
 
@@ -51,8 +51,16 @@ export class ReconciliationService {
         // D1 三证：发货单 ∪ 自提核销 ∪ 校园配送实际送达；均取自订单/独立插件，不再依赖 delivery_record 死表
         const lineRepo = this.connection.getRepository(ctx, ReconciliationOrderLine);
         let d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+        // D2 数据源缺失（取不到配送仓，如订单 48）：不产差异行，仅汇总 WARN，避免污染订单列表
+        const d2MissingIds: string[] = [];
         for (const order of orders) {
             const data = await this.collectOrderData(ctx, order as any);
+            if ((order as any).state !== 'AddingItems' && isDeliverySourceMissing({
+                deliveryRecords: data.deliveryRecords,
+                ledgerOuts: data.ledgerOuts,
+            })) {
+                d2MissingIds.push(String(order.id));
+            }
             const diffs = diffOrder({
                 order: {
                     id: String(order.id),
@@ -92,6 +100,13 @@ export class ReconciliationService {
         batch.orderTotal = orders.length;
         batch.finishedAt = new Date();
         await batchRepo.save(batch);
+        if (d2MissingIds.length) {
+            const preview = d2MissingIds.slice(0, 10).join(',');
+            Logger.warn(
+                `对账 D2 数据源缺失跳过 ${d2MissingIds.length} 单（有扣仓账本但取不到配送仓，未产差异行）: ${preview}${d2MissingIds.length > 10 ? '…' : ''}`,
+                loggerCtx,
+            );
+        }
         Logger.info(`对账批次完成: ${date} 订单=${orders.length} D1=${d1} D2=${d2} D3=${d3} D4=${d4}`, loggerCtx);
         return batch;
     }

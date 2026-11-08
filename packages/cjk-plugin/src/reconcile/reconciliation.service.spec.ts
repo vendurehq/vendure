@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Logger } from '@vendure/core';
 import { ReconciliationService } from './reconciliation.service';
 
 describe('ReconciliationService', () => {
@@ -118,6 +119,53 @@ describe('ReconciliationService', () => {
         const batch = await svc.runBatch({ channel: { id: 'c1', code: 't1' } } as any, '2026-09-16', 'manual');
         expect(batch.d1Count).toBe(1);
         expect(savedLines.some(l => JSON.parse(l.diffTypes).includes('D1'))).toBe(true);
+    });
+
+    it('D2 无配送仓：不产差异行，仅批次 WARN 统计跳过数量', async () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation((() => undefined) as any);
+        const repo = {
+            findOne: vi.fn().mockResolvedValue(null),
+            save: vi.fn(async (e: any) => e),
+            find: vi.fn().mockResolvedValue([]),
+        };
+        const savedLines: any[] = [];
+        const lineRepo = { find: vi.fn().mockResolvedValue([]), save: vi.fn(async (e: any) => { savedLines.push(e); return e; }) };
+        const orderRepo = {
+            find: vi.fn().mockResolvedValue([
+                { id: '48', totalWithTax: 10000, state: 'Delivered', customFields: { deliveryStatus: 'delivered' }, fulfillments: [] },
+            ]),
+        };
+        const svc = makeService({
+            // 有扣仓账本，但取不到配送仓（delivery_record 为空）
+            collectOrderData: vi.fn(async () => ({
+                deliveryRecords: [],
+                ledgerOuts: [{ sourceLocationId: '3', quantity: 1 }],
+                hasShipment: false,
+                pickupCollected: false,
+                campusDelivered: true,
+                paidSettled: 10000,
+                settledRefunds: 0,
+                mirrorDiff: 0,
+            })),
+            connection: {
+                getRepository: vi.fn((_ctx: any, name: any) => {
+                    const n = typeof name === 'string' ? name : name?.name;
+                    if (n === 'ReconciliationBatch') return repo;
+                    if (n === 'ReconciliationOrderLine') return lineRepo;
+                    if (n === 'Order') return orderRepo;
+                    return repo;
+                }),
+                getEntityOrThrow: vi.fn(),
+            },
+        });
+        const batch = await svc.runBatch({ channel: { id: 'c1', code: 't1' } } as any, '2026-09-18', 'manual');
+        expect(batch.d2Count).toBe(0);
+        expect(savedLines.length).toBe(0);
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining('D2 数据源缺失跳过 1 单'),
+            'ReconciliationService',
+        );
+        warn.mockRestore();
     });
 
     it('回归：rowsOf 按 TypeORM 真实返回（对象数组）解析，D3 实收足额不误报', async () => {
