@@ -97,7 +97,7 @@ export declare class DispatchJobService implements OnApplicationShutdown {
     private sweepRiderInProgress;
     /**
      * 路线超时兜底：
-     * 1) R1 pending_merchant 超 merchantAcceptMinutes → 自动转自营快递（owned_dispatched）
+     * 1) R1 pending_merchant 超 merchantAcceptMinutes → 转自营快递池（owned_pool，等人接单）
      * 2) merchant_delivering 超 merchantAutoOpenMinutes → 回抢单大厅（传信者到档口取餐）
      * 3) pending_dispatch 超 externalPushTimeoutMinutes → 回抢单大厅
      * 4) third_party 超 externalFallbackMinutes → 取消外部快递；R2 回待推送换一家，R3 回大厅

@@ -574,7 +574,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
     }
     /**
      * 路线超时兜底：
-     * 1) R1 pending_merchant 超 merchantAcceptMinutes → 自动转自营快递（owned_dispatched）
+     * 1) R1 pending_merchant 超 merchantAcceptMinutes → 转自营快递池（owned_pool，等人接单）
      * 2) merchant_delivering 超 merchantAutoOpenMinutes → 回抢单大厅（传信者到档口取餐）
      * 3) pending_dispatch 超 externalPushTimeoutMinutes → 回抢单大厅
      * 4) third_party 超 externalFallbackMinutes → 取消外部快递；R2 回待推送换一家，R3 回大厅
@@ -610,17 +610,28 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 if (cf.hallStatus === 'pending_merchant' && (route === 'R1' || route === 'R2') && acceptMs > 0
                     && now - enteredAt > acceptMs) {
                     if (route === 'R1') {
+                        // 转自营快递池，而不是 owned_dispatched：后者语义为「已指派某骑手」，
+                        // acceptOwned/pickupOwned 均以 deliveryStatus='assigned' 为前提；
+                        // 此处尚无骑手，写 owned_dispatched 会让接单与取餐两个接口全部拒绝。
+                        // hallEnteredAt 是自营池无人接单的计时锚点（不可沿用 createdAt，否则下一轮立即判超时）。
+                        // 同时清空骑手指派/取餐残留，避免旧值让取餐判断错。
+                        const enteredAt = new Date();
                         const moved = await this.hall.transitionFrom(ctx, Number(o.id), ['pending_merchant'], {
-                            hallStatus: 'owned_dispatched',
+                            hallStatus: 'owned_pool',
+                            hallEnteredAt: enteredAt,
                             deliveryPlan: 'owned',
-                            assignedAt: new Date(),
+                            deliveryStaffId: null,
+                            deliveryStatus: null,
+                            assignedAt: null,
+                            pickedUpAt: null,
                             campusCause: 'merchant_accept_timeout',
                         });
                         if (!moved)
                             continue;
-                        core_2.Logger.warn(`Order ${o.code} merchant accept timeout → owned courier`, 'CampusDispatch');
-                        void ((_d = this.feishu) === null || _d === void 0 ? void 0 : _d.pushEvent('exception', '商户接单超时（转自营）', `订单 ${o.code} 商户 ${(_e = cfg.merchantAcceptMinutes) !== null && _e !== void 0 ? _e : 5} 分钟未接单，已转自营快递。`, o.code, o.code));
-                        cf.hallStatus = 'owned_dispatched';
+                        core_2.Logger.warn(`Order ${o.code} merchant accept timeout → owned pool`, 'CampusDispatch');
+                        void ((_d = this.feishu) === null || _d === void 0 ? void 0 : _d.pushEvent('exception', '商户接单超时（转自营）', `订单 ${o.code} 商户 ${(_e = cfg.merchantAcceptMinutes) !== null && _e !== void 0 ? _e : 5} 分钟未接单，已转自营快递池等待骑手接单。`, o.code, o.code));
+                        cf.hallStatus = 'owned_pool';
+                        cf.hallEnteredAt = enteredAt;
                         cf.deliveryPlan = 'owned';
                     }
                     else {

@@ -492,15 +492,21 @@ describe('DispatchJobService.scan 多单顺路打包 T1.5（plan 3.3）', () => 
 describe('DispatchJobService.scan 路线超时兜底（R1–R3）', () => {
     const cfg = { channelId: 1, autoAssignMinutes: 10, autoRefundMinutes: 30 };
 
-    it('R1 商户接单超时 → 转自营快递（owned_dispatched）', async () => {
+    it('R1 商户接单超时 → 转自营快递池（owned_pool，等待骑手接单）', async () => {
         const env = makeEnv({
             openOrders: [{ id: 21, code: 'R1T', createdAt: dbMinAgo(10), customFields: { hallStatus: 'pending_merchant', fulfillmentRoute: 'R1', deliveryPlan: 'merchant' } }],
             cfg: { ...cfg, merchantAcceptMinutes: 5 },
         });
         await env.svc.scan({ channelId: 1 } as any);
         expect(env.hallSvc.transitionFrom).toHaveBeenCalledWith(expect.anything(), 21, ['pending_merchant'], expect.objectContaining({
-            hallStatus: 'owned_dispatched',
+            hallStatus: 'owned_pool',
+            hallEnteredAt: expect.any(Date),
             deliveryPlan: 'owned',
+            // 尚未指派骑手：旧骑手指派/取餐残留必须清空，否则取餐/接单校验误判
+            deliveryStaffId: null,
+            deliveryStatus: null,
+            assignedAt: null,
+            pickedUpAt: null,
             campusCause: 'merchant_accept_timeout',
         }));
     });
@@ -1120,7 +1126,7 @@ describe('DispatchJobService.tick 多实例扫描锁', () => {
             expect.anything(),
             3001,
             ['pending_merchant'],
-            expect.objectContaining({ hallStatus: 'owned_dispatched' }),
+            expect.objectContaining({ hallStatus: 'owned_pool' }),
         );
         const call = feishu.pushEvent.mock.calls.find((c: any[]) => c[4] === 'dispatch_backlog:1');
         expect(call![2]).toContain('open(200)');

@@ -83,6 +83,114 @@ describe('ThirdPartyDeliveryService.completeFirstLeg 状态前置校验', () => 
     });
 });
 
+describe('ThirdPartyDeliveryService 商户接单超时转自营池后的接单/取餐/送达', () => {
+    const ctx = { channelId: 1 } as any;
+
+    function makeEnv(order: any, opts: { moved?: boolean; pickupRows?: any[] } = {}) {
+        const orderRepo = { findOne: vi.fn().mockResolvedValue(order) };
+        const hall = {
+            transitionFrom: vi.fn().mockResolvedValue(opts.moved ?? true),
+            enterHallForHandover: vi.fn().mockResolvedValue('1234'),
+            updateOrder: vi.fn(),
+        };
+        const rawQuery = vi.fn().mockResolvedValue(opts.pickupRows ?? [[{ id: order.id }], []]);
+        const conn = { getRepository: vi.fn(() => orderRepo), rawConnection: { query: rawQuery } } as any;
+        const svc = new ThirdPartyDeliveryService(conn, hall as any, { user: vi.fn() } as any, {} as any);
+        return { svc, hall, rawQuery };
+    }
+
+    it('自营池（owned_pool）接单成功 → 写 assigned 并清空 pickedUpAt', async () => {
+        const { svc, hall } = makeEnv({ id: 5, code: 'R1T', customFields: { hallStatus: 'owned_pool', deliveryPlan: 'owned', fulfillmentRoute: 'R1' } });
+        await expect(svc.acceptOwned(ctx, 5)).resolves.toEqual({ ok: true });
+        expect(hall.transitionFrom).toHaveBeenCalledWith(ctx, 5, ['pending_merchant', 'open', 'owned_pool'], expect.objectContaining({
+            hallStatus: 'owned_dispatched',
+            deliveryStatus: 'assigned',
+            assignedAt: expect.any(Date),
+            pickedUpAt: null,
+        }));
+    });
+
+    it('已指派骑手（owned_dispatched）重复接单 → 拒绝且不写状态', async () => {
+        const { svc, hall } = makeEnv({ id: 6, code: 'R1D', customFields: { hallStatus: 'owned_dispatched', deliveryPlan: 'owned', deliveryStatus: 'assigned' } });
+        await expect(svc.acceptOwned(ctx, 6)).rejects.toThrow('订单当前状态不可由自营快递接单');
+        expect(hall.transitionFrom).not.toHaveBeenCalled();
+    });
+
+    it('已接单但未指派态（deliveryStatus 非 assigned）确认取餐 → 条件写不命中，拒绝', async () => {
+        const { svc, rawQuery } = makeEnv(
+            { id: 7, code: 'R1N', customFields: { hallStatus: 'owned_dispatched', deliveryPlan: 'owned', deliveryStatus: null } },
+            { pickupRows: [[], []] },
+        );
+        await expect(svc.pickupOwned(ctx, 7)).rejects.toThrow('订单当前状态不可确认取餐');
+        // 条件写必须同时限定「自营配送中 + 已接单未取餐」，不能放宽
+        const [sql] = rawQuery.mock.calls[0];
+        expect(sql).toContain("'owned_dispatched'");
+        expect(sql).toContain("'assigned'");
+    });
+
+    it('R3：owned_pool → 接单 → 确认取餐 → 送达（全链路）', async () => {
+        const order: any = { id: 9, code: 'R3T', customFields: { hallStatus: 'owned_pool', deliveryPlan: 'owned', fulfillmentRoute: 'R3' } };
+        const orderRepo = { findOne: vi.fn(async () => order) };
+        const hall = {
+            transitionFrom: vi.fn(async (_c: any, _id: number, _from: string[], patch: any) => {
+                Object.assign(order.customFields, patch);
+                return true;
+            }),
+            enterHallForHandover: vi.fn().mockResolvedValue('1234'),
+            updateOrder: vi.fn(),
+        };
+        const rawQuery = vi.fn(async (_sql: string, params: any[]) => {
+            order.customFields.deliveryStatus = params[0];
+            order.customFields.pickedUpAt = params[1];
+            return [[{ id: order.id }], []];
+        });
+        const svc = new ThirdPartyDeliveryService(
+            { getRepository: vi.fn(() => orderRepo), rawConnection: { query: rawQuery } } as any,
+            hall as any,
+            { user: vi.fn() } as any,
+            {} as any,
+        );
+
+        await svc.acceptOwned(ctx, 9);
+        expect(order.customFields).toMatchObject({ hallStatus: 'owned_dispatched', deliveryStatus: 'assigned', pickedUpAt: null });
+        await svc.pickupOwned(ctx, 9);
+        expect(order.customFields.deliveryStatus).toBe('in_progress');
+        expect(order.customFields.pickedUpAt).toBeInstanceOf(Date);
+        await expect(svc.completeFirstLeg(ctx, 9, 'owned_handover')).resolves.toEqual({ ok: true, done: true });
+        expect(order.customFields.hallStatus).toBe('delivered');
+        expect(order.customFields.deliveryStatus).toBe('delivered');
+    });
+
+    it('R1：owned_pool → 接单 → 确认取餐 → 送达交接点（入厅接力）', async () => {
+        const order: any = { id: 10, code: 'R1T', customFields: { hallStatus: 'owned_pool', deliveryPlan: 'owned', fulfillmentRoute: 'R1' } };
+        const orderRepo = { findOne: vi.fn(async () => order) };
+        const hall = {
+            transitionFrom: vi.fn(async (_c: any, _id: number, _from: string[], patch: any) => {
+                Object.assign(order.customFields, patch);
+                return true;
+            }),
+            enterHallForHandover: vi.fn().mockResolvedValue('1234'),
+            updateOrder: vi.fn(),
+        };
+        const rawQuery = vi.fn(async (_sql: string, params: any[]) => {
+            order.customFields.deliveryStatus = params[0];
+            order.customFields.pickedUpAt = params[1];
+            return [[{ id: order.id }], []];
+        });
+        const svc = new ThirdPartyDeliveryService(
+            { getRepository: vi.fn(() => orderRepo), rawConnection: { query: rawQuery } } as any,
+            hall as any,
+            { user: vi.fn() } as any,
+            {} as any,
+        );
+
+        await svc.acceptOwned(ctx, 10);
+        await svc.pickupOwned(ctx, 10);
+        await expect(svc.completeFirstLeg(ctx, 10, 'owned_handover')).resolves.toEqual({ ok: true, done: false });
+        expect(hall.enterHallForHandover).toHaveBeenCalledWith(ctx, 10, 'owned_handover', ['owned_dispatched'], expect.anything());
+    });
+});
+
 describe('ThirdPartyDeliveryService.onDeliveryStatus 回调幂等', () => {
     function makeEnv(order: any) {
         const orderRepo = { findOne: vi.fn().mockResolvedValue(order) };
