@@ -46,6 +46,8 @@ export declare class RiderTaskShopResolver {
     }>;
     /** R5 顾客侧重发交接码：订单归属校验在 service，仅待交接订单可重发（同单 10 分钟限流）。 */
     campusResendHandoverCode(ctx: RequestContext, orderId: ID): Promise<string>;
+    /** A3 骑手侧重发交接码：仅本单骑手、已派单未取餐可重发（同单 3 分钟限频）。 */
+    campusRiderResendHandoverCode(ctx: RequestContext, orderId: ID): Promise<string>;
     /** 用户催单（plan 2.4）：状态/频率校验在 service，标记 urged=true + urgedAt。 */
     campusUrgeOrder(ctx: RequestContext, orderId: ID): Promise<import("@vendure/core").Order>;
 }

@@ -3629,6 +3629,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     campusDeliverTask(orderId: ID!, photos: [String!]!, note: String): Order!
                     """R5 顾客侧重发交接码（仅本人待交接订单，10 分钟限流）"""
                     campusResendHandoverCode(orderId: ID!): String!
+                    """A3 骑手侧重发交接码（仅本单骑手、已派单未取餐，3 分钟限频）"""
+                    campusRiderResendHandoverCode(orderId: ID!): String!
                     campusRiderReportLocation(orderId: ID!, lat: Float!, lng: Float!): Order!
                     campusUrgeOrder(orderId: ID!): Order!
                     campusReportException(orderId: ID!, type: String!, photos: [String!]!, note: String): Order!

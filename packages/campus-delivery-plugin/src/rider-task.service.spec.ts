@@ -301,3 +301,78 @@ describe('handover-code 共享规则（A2/A3）', () => {
         expect(isHandoverCodeExpired(t.toISOString(), t.getTime() + HANDOVER_CODE_TTL_MS + 1)).toBe(true);
     });
 });
+
+describe('RiderTaskService A3：骑手重发交接码', () => {
+    const relay = {
+        ...assigned,
+        customFields: {
+            ...assigned.customFields,
+            handoverCode: '1234',
+            handoverCodeAt: new Date(Date.now() - 20 * 60_000),
+        },
+    };
+
+    it('已派单未取餐：生成新码，单条 CAS UPDATE 覆盖旧码（旧码即刻失效）', async () => {
+        const rand = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+        try {
+            const dedupe = { incr: vi.fn().mockResolvedValue(1), del: vi.fn().mockResolvedValue(undefined) };
+            const { svc, rawQuery } = make(relay, undefined, undefined, dedupe);
+            await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).resolves.toBe('5500');
+            const call = rawQuery.mock.calls[0];
+            expect(call[0]).toContain('"customFieldsHandovercode"');
+            expect(call[0]).toContain('"customFieldsHandovercodeat"');
+            expect(call[0]).toContain('RETURNING id');
+            expect(call[1]).toEqual(['5500', expect.any(Date), 10, 'assigned', '9', 'grabbed']);
+            expect(dedupe.incr).toHaveBeenCalledWith(
+                'handover_rider_resend:10',
+                RiderTaskService.HANDOVER_RIDER_RESEND_MS,
+            );
+        } finally {
+            rand.mockRestore();
+        }
+    });
+
+    it('同单 3 分钟内再次重发 → 限频拒绝，且不写库', async () => {
+        const dedupe = { incr: vi.fn().mockResolvedValue(2), del: vi.fn() };
+        const { svc, rawQuery } = make(relay, undefined, undefined, dedupe);
+        await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).rejects.toThrow('3 分钟后再试');
+        expect(rawQuery).not.toHaveBeenCalled();
+    });
+
+    it('未注入 dedupe：进程内 3 分钟限频（过窗口后可再发）', async () => {
+        vi.useFakeTimers();
+        try {
+            vi.setSystemTime(new Date('2026-11-08T02:00:00.000Z'));
+            const { svc } = make(relay);
+            await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).resolves.toMatch(/^\d{4}$/);
+            await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).rejects.toThrow('3 分钟后再试');
+            vi.setSystemTime(new Date('2026-11-08T02:03:00.000Z'));
+            await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).resolves.toMatch(/^\d{4}$/);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('非接力单（无交接码）→ 拒绝重发', async () => {
+        const dedupe = { incr: vi.fn(), del: vi.fn() };
+        const { svc } = make(assigned, undefined, undefined, dedupe);
+        await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).rejects.toThrow('无需交接码');
+        expect(dedupe.incr).not.toHaveBeenCalled();
+    });
+
+    it('状态已变（CAS 未命中：已取餐/取消/改派）→ 拒绝并释放限频窗口', async () => {
+        const dedupe = { incr: vi.fn().mockResolvedValue(1), del: vi.fn().mockResolvedValue(undefined) };
+        const { svc, rawQuery } = make(relay, undefined, undefined, dedupe);
+        rawQuery.mockResolvedValueOnce([[], []]);
+        await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).rejects.toThrow('无法重发交接码');
+        expect(dedupe.del).toHaveBeenCalledWith('handover_rider_resend:10');
+    });
+
+    it('非本单骑手 → 403（归属校验先于限频）', async () => {
+        const other = { ...relay, customFields: { ...relay.customFields, deliveryStaffId: '8' } };
+        const dedupe = { incr: vi.fn(), del: vi.fn() };
+        const { svc } = make(other, undefined, undefined, dedupe);
+        await expect(svc.resendHandoverCode({ channelId: 1 } as any, 10 as any)).rejects.toThrow();
+        expect(dedupe.incr).not.toHaveBeenCalled();
+    });
+});

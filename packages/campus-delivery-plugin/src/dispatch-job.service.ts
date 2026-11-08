@@ -17,6 +17,7 @@ import { CampusNotifyService } from './campus-notify.service';
 import { CompensationTaskService } from './compensation-task.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { HallGrabService } from './hall-grab.service';
+import { HANDOVER_CODE_TTL_MS } from './handover-code';
 import { ACTIVE_HALL_STATUSES, HallService } from './hall.service';
 import { refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
 import { ThirdPartyDeliveryService } from './third-party-delivery.service';
@@ -331,7 +332,32 @@ export class DispatchJobService implements OnApplicationShutdown {
                         // 条件回厅：并发取消/送达时不得把终态单改回 open，也不应再扣骑手信用分
                         const back = await this.hall.backToHall(ctx, o.id as any);
                         if (!back) continue;
-                        await this.credit.adjust(ctx, Number(cf.deliveryStaffId), CREDIT_TIMEOUT, 'timeout_not_picked', o.id as any);
+                        // A3 责任区分：派单那一刻交接码就已过期 = 系统原因（历史单/旧流程码没重签），
+                        // 骑手拿到的码本来就不可能用，回厅不扣骑手信用分；
+                        // 只有在派单时码仍有效（A2 后 assignedAt=handoverCodeAt，必然有效）却 15min 未取餐，
+                        // 才算骑手真超时，照常扣分。
+                        const issuedAt = cf.handoverCodeAt ? new Date(cf.handoverCodeAt).getTime() : NaN;
+                        const assignedAt = cf.assignedAt ? new Date(cf.assignedAt).getTime() : NaN;
+                        const codeExpiredAtAssign = !!cf.handoverCode
+                            && Number.isFinite(issuedAt) && Number.isFinite(assignedAt)
+                            && assignedAt - issuedAt > HANDOVER_CODE_TTL_MS;
+                        if (codeExpiredAtAssign) {
+                            Logger.warn(
+                                `Order ${o.code} back to hall without credit deduction: handover code already expired at assignment `
+                                + `(issued ${Math.round((assignedAt - issuedAt) / 60_000)}min before assignment)`,
+                                'CampusDispatch',
+                            );
+                            void this.feishu?.pushEvent(
+                                'alert',
+                                '骑手超时回厅（交接码过期/系统原因，未扣分）',
+                                `订单 ${o.code} 派单时交接码已过期（早于派单 ${Math.round((assignedAt - issuedAt) / 60_000)} 分钟），`
+                                + `已回抢单大厅重派，未扣骑手信用分，请核对派单链路。`,
+                                o.code,
+                                `handover_code_expired:${o.code}`,
+                            );
+                        } else {
+                            await this.credit.adjust(ctx, Number(cf.deliveryStaffId), CREDIT_TIMEOUT, 'timeout_not_picked', o.id as any);
+                        }
                         Logger.warn(`Order ${o.code} reassigned (rider ${cf.deliveryStaffId} not picked in ${NOT_PICKED_TIMEOUT_MIN}min)`, 'CampusDispatch');
                         void this.feishu?.pushEvent(
                             'exception',

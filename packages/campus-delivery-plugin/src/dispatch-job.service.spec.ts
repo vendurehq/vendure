@@ -189,6 +189,38 @@ describe('DispatchJobService.scan', () => {
         await svc.scan({ channelId: 1 } as any);
         expect(hallSvc.backToHall).not.toHaveBeenCalled();
     });
+
+    it('A3：派单时交接码就已过期（系统原因）→ 回大厅但不扣骑手信用分', async () => {
+        const { svc, hallSvc, creditSvc } = makeEnv({
+            assignedOrders: [{
+                id: 2, code: 'A2',
+                customFields: {
+                    hallStatus: 'grabbed', deliveryStatus: 'assigned', deliveryStaffId: '9',
+                    assignedAt: minAgo(16), hallEnteredAt: minAgo(20),
+                    handoverCode: '1234', handoverCodeAt: minAgo(30),
+                },
+            }],
+        });
+        await svc.scan({ channelId: 1 } as any);
+        expect(hallSvc.backToHall).toHaveBeenCalledWith(expect.anything(), 2);
+        expect(creditSvc.adjust).not.toHaveBeenCalled();
+    });
+
+    it('A3：派单时码有效、骑手 15min 仍未取餐（真超时）→ 照常扣分', async () => {
+        const { svc, hallSvc, creditSvc } = makeEnv({
+            assignedOrders: [{
+                id: 2, code: 'A3',
+                customFields: {
+                    hallStatus: 'grabbed', deliveryStatus: 'assigned', deliveryStaffId: '9',
+                    assignedAt: minAgo(16), hallEnteredAt: minAgo(20),
+                    handoverCode: '1234', handoverCodeAt: minAgo(16),
+                },
+            }],
+        });
+        await svc.scan({ channelId: 1 } as any);
+        expect(hallSvc.backToHall).toHaveBeenCalledWith(expect.anything(), 2);
+        expect(creditSvc.adjust).toHaveBeenCalledWith(expect.anything(), 9, -10, 'timeout_not_picked', 2);
+    });
 });
 
 describe('DispatchJobService.scan 预约单放量（plan 3.1）', () => {

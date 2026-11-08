@@ -112,6 +112,13 @@ export class RiderTaskShopResolver {
         return this.hall.resendHandoverCodeForCustomer(ctx, Number(orderId));
     }
 
+    /** A3 骑手侧重发交接码：仅本单骑手、已派单未取餐可重发（同单 3 分钟限频）。 */
+    @Mutation()
+    @Allow(Permission.Authenticated)
+    async campusRiderResendHandoverCode(@Ctx() ctx: RequestContext, @Args('orderId') orderId: ID) {
+        return this.riderTaskService.resendHandoverCode(ctx, orderId);
+    }
+
     /** 用户催单（plan 2.4）：状态/频率校验在 service，标记 urged=true + urgedAt。 */
     @Mutation()
     @Allow(Permission.Authenticated)

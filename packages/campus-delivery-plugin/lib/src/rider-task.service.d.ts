@@ -16,9 +16,13 @@ export declare class RiderTaskService {
     private feishu?;
     /** M5 跨实例交接码防爆破（多实例下失败计数与锁止共享）；未注入退回进程内 Map */
     private dedupe?;
+    /** A3：骑手主动重发交接码的限频窗口（同单 3 分钟）；跨实例用 dedupe，未注入时退回进程内 Map */
+    static readonly HANDOVER_RIDER_RESEND_MS: number;
     /** 交接码连续错误计数 / 锁止截止时间（orderId 维度；M5 经 dedupe 跨实例，未注入时退回进程内 Map） */
     private handoverFails;
     private handoverLockUntil;
+    /** 进程内重发限频（未注入 dedupe 时使用） */
+    private riderResendAt;
     constructor(connection: TransactionalConnection, riderService: RiderService, credit: RiderCreditService, hall: HallService, notify: CampusNotifyService, privacy: PrivacyNumberService, feishu?: FeishuNotifyService | undefined, 
     /** M5 跨实例交接码防爆破（多实例下失败计数与锁止共享）；未注入退回进程内 Map */
     dedupe?: CampusDedupeService | undefined);
@@ -74,6 +78,18 @@ export declare class RiderTaskService {
     /** 交接码读取（R1/R2 第二段起送必填）：仅本单骑手、assigned/in_progress 可读。
      *  原实现交接码只写入不暴露，骑手只能线下向交接点口头索取，取不到就卡在 grabbed 直到超时回厅。 */
     handoverCode(ctx: RequestContext, orderId: ID): Promise<string | null>;
+    /**
+     * A3：骑手在「已派单、未取餐」时主动重发交接码。
+     * - 复用 A2 同一生成器与 TTL（新码 10 分钟内有效）；
+     * - 单条 CAS 覆盖 handoverCode/handoverCodeAt：旧码即刻失效，不存在新旧码同时可用；
+     * - 限频：同单 3 分钟内只能重发一次（dedupe 跨实例计数，未注入退回进程内 Map），防无限刷新；
+     * - 成功后清空交接码错误计数/锁止，避免旧码连错 5 次的锁止影响新码。
+     * 仅本单骑手（assertOwner 校验归属与 assigned 状态）。
+     */
+    resendHandoverCode(ctx: RequestContext, orderId: ID): Promise<string>;
+    /** 同单 3 分钟限频：dedupe 走原子计数（跨实例），未注入退回进程内 Map */
+    private claimRiderResendWindow;
+    private releaseRiderResendWindow;
     /** 送达：拍照必传 → delivered → 分成入余额（0 分成单跳过入账） */
     deliver(ctx: RequestContext, orderId: ID, photos: string[], note?: string): Promise<Order>;
     /** 异常上报：仅配送中（已接单/配送中）可上报，记录上报时间供调度扫描超时升级 */

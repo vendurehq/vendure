@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var RiderTaskService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RiderTaskService = void 0;
 const common_1 = require("@nestjs/common");
@@ -42,7 +43,7 @@ function haversineMeters(a, b) {
         Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(s));
 }
-let RiderTaskService = class RiderTaskService {
+let RiderTaskService = RiderTaskService_1 = class RiderTaskService {
     constructor(connection, riderService, credit, hall, notify, privacy, feishu, 
     /** M5 跨实例交接码防爆破（多实例下失败计数与锁止共享）；未注入退回进程内 Map */
     dedupe) {
@@ -57,6 +58,8 @@ let RiderTaskService = class RiderTaskService {
         /** 交接码连续错误计数 / 锁止截止时间（orderId 维度；M5 经 dedupe 跨实例，未注入时退回进程内 Map） */
         this.handoverFails = new Map();
         this.handoverLockUntil = new Map();
+        /** 进程内重发限频（未注入 dedupe 时使用） */
+        this.riderResendAt = new Map();
     }
     /** 骑手侧顾客联系方式（号码保护）：仅本单骑手可查，真实号不出服务端。
      * 未开启号码保护时返回真实号（行为与旧版一致），前端统一用 display/callable 展示与拨号。 */
@@ -329,6 +332,56 @@ let RiderTaskService = class RiderTaskService {
             return null;
         return cf.handoverCode ? String(cf.handoverCode) : null;
     }
+    /**
+     * A3：骑手在「已派单、未取餐」时主动重发交接码。
+     * - 复用 A2 同一生成器与 TTL（新码 10 分钟内有效）；
+     * - 单条 CAS 覆盖 handoverCode/handoverCodeAt：旧码即刻失效，不存在新旧码同时可用；
+     * - 限频：同单 3 分钟内只能重发一次（dedupe 跨实例计数，未注入退回进程内 Map），防无限刷新；
+     * - 成功后清空交接码错误计数/锁止，避免旧码连错 5 次的锁止影响新码。
+     * 仅本单骑手（assertOwner 校验归属与 assigned 状态）。
+     */
+    async resendHandoverCode(ctx, orderId) {
+        var _a, _b;
+        const order = await this.assertOwner(ctx, orderId, 'assigned');
+        const cf = ((_a = order.customFields) !== null && _a !== void 0 ? _a : {});
+        if (!cf.handoverCode)
+            throw new core_1.UserInputError('该订单无需交接码（非两段接力单）');
+        const orderKey = Number(order.id);
+        await this.claimRiderResendWindow(orderKey);
+        const code = (0, handover_code_1.generateHandoverCode)();
+        const res = await this.connection.rawConnection.query('UPDATE "order" SET "customFieldsHandovercode" = $1, "customFieldsHandovercodeat" = $2 '
+            + 'WHERE id = $3 AND "customFieldsDeliverystatus" = $4 '
+            + 'AND "customFieldsDeliverystaffid" = $5 AND "customFieldsHallstatus" = $6 '
+            + `AND "state" <> 'Cancelled' RETURNING id`, [code, new Date(), orderKey, 'assigned', String((_b = cf.deliveryStaffId) !== null && _b !== void 0 ? _b : ''), 'grabbed']);
+        const rows = Array.isArray(res) && Array.isArray(res[0]) ? res[0] : res;
+        if (!Array.isArray(rows) || !rows.length) {
+            // 状态已变（已取餐/取消/改派）：不占用限频窗口
+            await this.releaseRiderResendWindow(orderKey);
+            throw new core_1.UserInputError('订单已开始配送、已取消或已改派，无法重发交接码');
+        }
+        await this.clearHandoverGuard(orderKey);
+        common_1.Logger.log(`骑手重发交接码 order=${orderKey} rider=${cf.deliveryStaffId}（明文不落日志）`, 'RiderTask');
+        return code;
+    }
+    /** 同单 3 分钟限频：dedupe 走原子计数（跨实例），未注入退回进程内 Map */
+    async claimRiderResendWindow(orderKey) {
+        if (this.dedupe) {
+            const n = await this.dedupe.incr(`handover_rider_resend:${orderKey}`, RiderTaskService_1.HANDOVER_RIDER_RESEND_MS);
+            if (n > 1)
+                throw new core_1.UserInputError('交接码重发过于频繁，请 3 分钟后再试');
+            return;
+        }
+        const last = this.riderResendAt.get(orderKey);
+        if (last != null && Date.now() - last < RiderTaskService_1.HANDOVER_RIDER_RESEND_MS) {
+            throw new core_1.UserInputError('交接码重发过于频繁，请 3 分钟后再试');
+        }
+        this.riderResendAt.set(orderKey, Date.now());
+    }
+    async releaseRiderResendWindow(orderKey) {
+        this.riderResendAt.delete(orderKey);
+        if (this.dedupe)
+            await this.dedupe.del(`handover_rider_resend:${orderKey}`);
+    }
     /** 送达：拍照必传 → delivered → 分成入余额（0 分成单跳过入账） */
     async deliver(ctx, orderId, photos, note) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
@@ -487,7 +540,9 @@ let RiderTaskService = class RiderTaskService {
     }
 };
 exports.RiderTaskService = RiderTaskService;
-exports.RiderTaskService = RiderTaskService = __decorate([
+/** A3：骑手主动重发交接码的限频窗口（同单 3 分钟）；跨实例用 dedupe，未注入时退回进程内 Map */
+RiderTaskService.HANDOVER_RIDER_RESEND_MS = 3 * 60000;
+exports.RiderTaskService = RiderTaskService = RiderTaskService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [core_1.TransactionalConnection,
         rider_service_1.RiderService,

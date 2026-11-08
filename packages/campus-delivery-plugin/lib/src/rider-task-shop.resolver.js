@@ -66,6 +66,10 @@ let RiderTaskShopResolver = class RiderTaskShopResolver {
     async campusResendHandoverCode(ctx, orderId) {
         return this.hall.resendHandoverCodeForCustomer(ctx, Number(orderId));
     }
+    /** A3 骑手侧重发交接码：仅本单骑手、已派单未取餐可重发（同单 3 分钟限频）。 */
+    async campusRiderResendHandoverCode(ctx, orderId) {
+        return this.riderTaskService.resendHandoverCode(ctx, orderId);
+    }
     /** 用户催单（plan 2.4）：状态/频率校验在 service，标记 urged=true + urgedAt。 */
     async campusUrgeOrder(ctx, orderId) {
         return this.riderTaskService.urgeOrder(ctx, orderId);
@@ -181,6 +185,15 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext, Object]),
     __metadata("design:returntype", Promise)
 ], RiderTaskShopResolver.prototype, "campusResendHandoverCode", null);
+__decorate([
+    (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(core_1.Permission.Authenticated),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('orderId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object]),
+    __metadata("design:returntype", Promise)
+], RiderTaskShopResolver.prototype, "campusRiderResendHandoverCode", null);
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Allow)(core_1.Permission.Authenticated),
