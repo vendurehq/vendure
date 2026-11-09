@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventBus, LanguageCode, mergeConfig, type RefundDestinationStrategy, RefundEvent } from '@vendure/core';
+import {
+    EventBus,
+    LanguageCode,
+    mergeConfig,
+    type RefundDestinationStrategy,
+    RefundEvent,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
