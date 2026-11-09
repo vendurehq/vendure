@@ -67,6 +67,21 @@ const SETTLE_PAYMENT = gql`
     }
 `;
 
+const CANCEL_PAYMENT = gql`
+    mutation CancelPayment($id: ID!) {
+        cancelPayment(id: $id) {
+            ... on Payment {
+                id
+                state
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`;
+
 const REFUND_ORDER = gql`
     mutation RefundOrder($input: RefundOrderInput!) {
         refundOrder(input: $input) {
@@ -131,6 +146,7 @@ describe('Payments of a disabled PaymentMethod', () => {
         await adminClient.query(UPDATE_PAYMENT_METHOD, { input: { id: method.id, enabled } });
     }
 
+    // OSS-937 — disabling a method must not block settling, cancelling or refunding its existing payments
     it('settles an Authorized payment after its method is disabled', async () => {
         const order = await placeOrder(twoStagePaymentMethod.code);
         expect(order.payments[0].state).toBe('Authorized');
@@ -157,5 +173,29 @@ describe('Payments of a disabled PaymentMethod', () => {
             },
         });
         expect(refundOrder.state).toBe('Settled');
+    });
+
+    it('cancels an Authorized payment after its method is disabled', async () => {
+        await setEnabled(twoStagePaymentMethod.code, true);
+        const order = await placeOrder(twoStagePaymentMethod.code);
+        expect(order.payments[0].state).toBe('Authorized');
+
+        await setEnabled(twoStagePaymentMethod.code, false);
+
+        const { cancelPayment } = await adminClient.query(CANCEL_PAYMENT, { id: order.payments[0].id });
+        expect(cancelPayment.state).toBe('Cancelled');
+    });
+
+    // #3382 — a disabled method must still reject new payments
+    it('does not accept a new payment with a disabled method', async () => {
+        await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        await proceedToArrangingPayment(shopClient);
+
+        await expect(
+            shopClient.query(addPaymentDocument, {
+                input: { method: twoStagePaymentMethod.code, metadata: {} },
+            }),
+        ).rejects.toThrow('error.payment-method-not-found');
     });
 });
