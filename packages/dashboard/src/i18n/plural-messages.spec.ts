@@ -89,9 +89,10 @@ function countTernaryLines(file: string): string[] {
 }
 
 /**
- * `file: name` for each variable which holds a translated fragment and is spliced into a
- * plural message, such as `const destination = t\`top level\`` used in
- * `` other={`Moving # collections into ${destination}`} ``.
+ * `file: name` for each `const` whose initializer contains a `t` template literal and which is
+ * spliced into a plural message, such as `const destination = t\`top level\`` used in
+ * `` other={`Moving # collections into ${destination}`} ``. Fragments built with `let`,
+ * `t({ message })` or `<Trans>` are not detected.
  */
 function splicedFragments(file: string): string[] {
     const source = readFileSync(file, 'utf-8');
