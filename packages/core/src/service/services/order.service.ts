@@ -91,10 +91,10 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -130,6 +130,7 @@ import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
 import {
     assertOrderIsInChannel,
     getOrdersFromLines,
+    orderTotalIsCovered,
     totalCoveredByPayments,
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -1465,6 +1466,8 @@ export class OrderService implements OnApplicationBootstrap {
      * @description
      * Adds a new Payment to the Order. If the Order totalWithTax is covered by Payments, then the Order
      * state will get automatically transitioned to the `PaymentSettled` or `PaymentAuthorized` state.
+     * If the Payments cover the total but that transition is refused (for example by a custom
+     * {@link OrderProcess}), an `OrderStateTransitionError` is returned. The Payment is kept.
      */
     async addPaymentToOrder(
         ctx: RequestContext,
@@ -1534,7 +1537,51 @@ export class OrderService implements OnApplicationBootstrap {
             return new PaymentDeclinedError({ paymentErrorMessage: payment.errorMessage || '' });
         }
 
+        const refusedTransition = await this.retryRefusedPaymentTransition(
+            ctx,
+            freshOrder.id,
+            freshOrder.state,
+        );
+        if (refusedTransition) {
+            return refusedTransition;
+        }
+
         return assertFound(this.findOne(ctx, freshOrder.id));
+    }
+
+    /**
+     * The PaymentProcess moves the Order to `PaymentSettled` or `PaymentAuthorized` once its Payments
+     * cover the total. If an OrderProcess refused that transition, the Order is still in the state it
+     * had before the Payment, and the Payment has already been taken. The PaymentProcess cannot report
+     * the refusal, so the transition is attempted again here to obtain the error for the caller.
+     * In that case the OrderProcess `onTransitionStart` hooks run twice.
+     *
+     * `ArrangingAdditionalPayment` is skipped because the default PaymentProcess does not transition
+     * out of it.
+     */
+    private async retryRefusedPaymentTransition(
+        ctx: RequestContext,
+        orderId: ID,
+        stateBeforePayment: OrderState,
+    ): Promise<OrderStateTransitionError | undefined> {
+        if (stateBeforePayment === 'ArrangingAdditionalPayment') {
+            return;
+        }
+        const order = await this.getOrderOrThrow(ctx, orderId);
+        if (order.state !== stateBeforePayment) {
+            return;
+        }
+        order.payments = await this.getOrderPayments(ctx, orderId);
+        const targetState: OrderState | undefined = orderTotalIsCovered(order, 'Settled')
+            ? 'PaymentSettled'
+            : orderTotalIsCovered(order, ['Authorized', 'Settled'])
+              ? 'PaymentAuthorized'
+              : undefined;
+        if (!targetState || targetState === order.state) {
+            return;
+        }
+        const result = await this.transitionToState(ctx, orderId, targetState);
+        return isGraphQlErrorResult(result) ? result : undefined;
     }
 
     /**

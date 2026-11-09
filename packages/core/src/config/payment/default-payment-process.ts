@@ -74,6 +74,8 @@ export const defaultPaymentProcess: PaymentProcess<PaymentState> = {
             },
         });
 
+        // A refused Order transition cannot be returned from here. `OrderService.addPaymentToOrder()`
+        // detects the refusal and returns it. Other callers, such as `settlePayment`, do not.
         if (
             orderTotalIsCovered(order, 'Settled') &&
             order.state !== 'PaymentSettled' &&
