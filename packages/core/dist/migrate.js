@@ -191,6 +191,7 @@ async function checkMigrationStatus(connection) {
     const droppedColumnKeys = new Set(items.filter(item => item.kind === 'column' && /DROP COLUMN/i.test(item.sql)).map(item => item.key));
     const expectedItems = new Set();
     let expectedPairs = 0;
+    const expectedKeys = new Set();
     items.forEach((item, index) => {
         if (item.kind !== 'column' || !item.declaredType || !item.table || !item.column) {
             return;
@@ -200,7 +201,14 @@ async function checkMigrationStatus(connection) {
         }
         if (columnTypes.get(`${item.table}.${item.column}`) === 'timestamp with time zone') {
             expectedItems.add(index);
+            expectedKeys.add(item.key);
             expectedPairs++;
+        }
+    });
+    // 成对的 DROP COLUMN 一侧没有类型声明，按 key 一并折叠，避免只折叠 ADD 一侧
+    items.forEach((item, index) => {
+        if (item.kind === 'column' && expectedKeys.has(item.key)) {
+            expectedItems.add(index);
         }
     });
     const registered = [];

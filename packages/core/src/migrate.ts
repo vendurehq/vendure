@@ -239,6 +239,7 @@ async function checkMigrationStatus(connection: Connection) {
     );
     const expectedItems = new Set<number>();
     let expectedPairs = 0;
+    const expectedKeys = new Set<string>();
     items.forEach((item, index) => {
         if (item.kind !== 'column' || !item.declaredType || !item.table || !item.column) {
             return;
@@ -248,7 +249,14 @@ async function checkMigrationStatus(connection: Connection) {
         }
         if (columnTypes.get(`${item.table}.${item.column}`) === 'timestamp with time zone') {
             expectedItems.add(index);
+            expectedKeys.add(item.key);
             expectedPairs++;
+        }
+    });
+    // 成对的 DROP COLUMN 一侧没有类型声明，按 key 一并折叠，避免只折叠 ADD 一侧
+    items.forEach((item, index) => {
+        if (item.kind === 'column' && expectedKeys.has(item.key)) {
+            expectedItems.add(index);
         }
     });
 
