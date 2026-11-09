@@ -360,7 +360,9 @@ function getRowActions(
 type CellRenderer = (cellContext: CellContext<any, any>) => ReactNode;
 
 // Copied from @tanstack/table-core 8.21 `_getDefaultColumnDef`, used when an additional
-// column supplies no `cell` of its own.
+// column supplies no `cell` of its own. Setting it explicitly means a `defaultColumn.cell`
+// passed to the table does not reach these columns, and an upgrade of TanStack's own default
+// does not either.
 const renderDefaultCell: CellRenderer = cellContext => cellContext.renderValue()?.toString?.() ?? null;
 
 /**
