@@ -44,10 +44,11 @@ let P43RiderFeishuBindingMigration = class P43RiderFeishuBindingMigration {
                 for (const statement of exports.p43RiderFeishuBindingSql.split(';').map(s => s.trim()).filter(Boolean)) {
                     await qr.query(statement);
                 }
-                // 存量列已是旧写法（timestamp without time zone）时幂等转换；列不存在则跳过
+                // 存量列不是 timestamptz 时幂等转换；列不存在则跳过
                 const rows = await qr.query(boundAtTypeSql);
                 const dataType = Array.isArray(rows) && rows[0] ? rows[0].data_type : null;
-                if (dataType === 'timestamp without time zone') {
+                const isTimestamptz = dataType === 'timestamp with time zone';
+                if (dataType && !isTimestamptz) {
                     await qr.query(alterBoundAtToTimestamptzSql);
                     // eslint-disable-next-line no-console
                     console.log('[P43RiderFeishuBindingMigration] customFieldsRiderfeishuboundat → timestamptz');
