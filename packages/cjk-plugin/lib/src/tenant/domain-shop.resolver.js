@@ -26,9 +26,10 @@ let DomainShopResolver = class DomainShopResolver {
     async resolveChannelByCode(ctx, code) {
         return this.domainResolverService.resolveByCode(ctx, code);
     }
-    /** 全部「可用店铺」列表（已停用渠道不返回）：多租户路由判定 + 店铺切换器的公开数据源 */
+    /** 全部「可用店铺」列表（已停用渠道不返回）：多租户路由判定 + 店铺切换器的公开数据源。
+     *  token 仅当前渠道有值，其余为 null（避免公开批量下发全部渠道 token）。 */
     async shopChannels(ctx) {
-        return this.domainResolverService.listShopChannels();
+        return this.domainResolverService.listShopChannels(ctx);
     }
 };
 exports.DomainShopResolver = DomainShopResolver;

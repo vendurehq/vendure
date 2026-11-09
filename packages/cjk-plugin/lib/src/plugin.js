@@ -2480,7 +2480,7 @@ exports.CjkPlugin = CjkPlugin = CjkPlugin_1 = __decorate([
 
                 type ShopChannel {
                     code: String!
-                    token: String!
+                    token: String
                     name: String
                     tenantNo: Int
                     isOfficial: Boolean!

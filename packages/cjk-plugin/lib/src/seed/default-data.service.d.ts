@@ -28,9 +28,25 @@ export declare class DefaultDataService {
     private paymentTemplateService;
     constructor(connection: TransactionalConnection, requestContextService: RequestContextService, shippingMethodService: ShippingMethodService, paymentMethodService: PaymentMethodService, shippingTemplateService: ShippingTemplateService, shippingProfileService: ShippingProfileService, paymentProfileService: PaymentProfileService, paymentTemplateService: PaymentTemplateService);
     /**
-     * 幂等创建默认数据。任何单项失败仅记日志，不阻塞应用启动。
+     * 幂等创建默认数据。
+     *
+     * 每个步骤独立执行（见 runSeedSteps）：单步失败只记录步骤名与错误，继续执行后续步骤，
+     * 最后汇总一条日志列出失败步骤。这样「全局配送档案」这类需要 SuperAdmin 的步骤失败时，
+     * 不会再把官方租户播种等关键步骤一起作废。
      */
     seed(): Promise<void>;
+    /**
+     * 播种上下文：优先带「超管用户」，而不是裸 admin ctx。
+     *
+     * 原因：全局档案（isGlobal=true）的 create/update/delete 会被
+     * assertProfileGlobalPermissions（shipping-profile.service.ts）要求 SuperAdmin 权限，
+     * 而 RequestContextService.create({ apiType: 'admin' }) 不带 session user，
+     * ctx.userHasPermissions([Permission.SuperAdmin]) 恒为 false —— 这正是本库
+     * seedStorePickupProfile 抛「仅超级管理员可创建全局档案」、并连带阻断官方租户播种的根因。
+     *
+     * 找不到超管角色/用户时退回原行为（只警告，不阻断启动），后续步骤由 runSeedSteps 隔离。
+     */
+    private createSeedContext;
     /** 默认门店自提点 */
     private seedPickupLocation;
     /** 门店自提配送方式 */
