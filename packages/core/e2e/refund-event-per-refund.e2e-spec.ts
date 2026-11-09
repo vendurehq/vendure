@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventBus, mergeConfig, RefundEvent } from '@vendure/core';
+import { EventBus, LanguageCode, mergeConfig, type RefundDestinationStrategy, RefundEvent } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -13,10 +13,22 @@ import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-defin
 import { proceedToArrangingPayment } from './utils/test-order-utils';
 
 /**
- * OrderService.refundOrder() publishes a RefundEvent only for the first Refund returned by
- * PaymentService.createRefund(), although a multi-target refund creates several. Refunds created by
- * modifyOrder() go through PaymentService.createRefund() directly and publish no RefundEvent.
+ * OSS-939: a RefundEvent is published once for every Refund created, whether by refundOrder() or by
+ * modifyOrder(), including the Refunds created before a later target of a multi-target refund fails.
  */
+
+class ThrowingDestination implements RefundDestinationStrategy {
+    readonly code = 'throwing';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Always fails' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(): never {
+        throw new Error('Voucher service unavailable');
+    }
+}
 
 const GET_ORDER = gql`
     query GetOrder($id: ID!) {
@@ -44,6 +56,9 @@ const REFUND_ORDER = gql`
             ... on Refund {
                 id
                 total
+            }
+            ... on RefundIncompleteError {
+                failedTargetIndex
             }
             ... on ErrorResult {
                 errorCode
@@ -95,6 +110,7 @@ describe('RefundEvent', () => {
         mergeConfig(testConfig(), {
             paymentOptions: {
                 paymentMethodHandlers: [partialPaymentMethod, singleStageRefundablePaymentMethod],
+                refundDestinations: [new ThrowingDestination()],
             },
         }),
     );
@@ -137,7 +153,7 @@ describe('RefundEvent', () => {
         await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    it('fires once per Refund created by a multi-target refundOrder', async () => {
+    async function placeOrderWithTwoPayments() {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 2 });
         const orderId = await proceedToArrangingPayment(shopClient);
@@ -152,6 +168,12 @@ describe('RefundEvent', () => {
         const refundablePayment = order.payments.find(
             (p: any) => p.method === singleStageRefundablePaymentMethod.code,
         );
+        return { orderId, partialPayment, refundablePayment };
+    }
+
+    // OSS-939
+    it('fires once per Refund created by a multi-target refundOrder', async () => {
+        const { orderId, partialPayment, refundablePayment } = await placeOrderWithTwoPayments();
 
         const { refundOrder } = await adminClient.query(REFUND_ORDER, {
             input: {
@@ -173,6 +195,53 @@ describe('RefundEvent', () => {
         expect(refundEvents.map(e => e.refund.total).sort()).toEqual([300, 700]);
     });
 
+    // OSS-939
+    it('fires for the Refunds created before a later target fails', async () => {
+        const { partialPayment, refundablePayment } = await placeOrderWithTwoPayments();
+
+        const { refundOrder } = await adminClient.query(REFUND_ORDER, {
+            input: {
+                paymentId: partialPayment.id,
+                reason: 'fails on second target',
+                targets: [
+                    { paymentId: partialPayment.id, amount: 100 },
+                    { paymentId: refundablePayment.id, amount: 100, destination: 'throwing' },
+                ],
+            },
+        });
+        expect(refundOrder.errorCode).toBe('REFUND_INCOMPLETE_ERROR');
+        expect(refundOrder.failedTargetIndex).toBe(1);
+        await waitForEvents();
+
+        expect(refundEvents.map(e => e.refund.total)).toEqual([100]);
+    });
+
+    // OSS-939
+    it('does not fire when the first target fails and nothing is refunded', async () => {
+        const { partialPayment, refundablePayment } = await placeOrderWithTwoPayments();
+
+        const { errors } = await adminClient
+            .query(REFUND_ORDER, {
+                input: {
+                    paymentId: refundablePayment.id,
+                    reason: 'fails on first target',
+                    targets: [
+                        { paymentId: refundablePayment.id, amount: 100, destination: 'throwing' },
+                        { paymentId: partialPayment.id, amount: 100 },
+                    ],
+                },
+            })
+            .then(
+                () => ({ errors: undefined }),
+                (e: any) => ({ errors: e }),
+            );
+        expect(String(errors?.message)).toContain('Voucher service unavailable');
+        await waitForEvents();
+
+        expect(refundEvents.length).toBe(0);
+    });
+
+    // OSS-939
     it('fires for a Refund created by modifyOrder', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 2 });
