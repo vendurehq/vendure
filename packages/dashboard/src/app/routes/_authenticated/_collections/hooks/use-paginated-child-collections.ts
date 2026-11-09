@@ -37,6 +37,11 @@ export function usePaginatedChildCollections<T>({
     const {
         settings: { contentLanguage },
     } = useUserSettings();
+    // The query key uses `childrenLanguage`, which follows `contentLanguage` one render later.
+    // The api client reads the content language from localStorage, and UserSettingsProvider
+    // writes it there in its own effect. Delaying the key change makes the refetch start after
+    // that write. Removing the old queries stops a cached entry from an earlier language being
+    // served again when the user switches back.
     const [childrenLanguage, setChildrenLanguage] = useState(contentLanguage);
 
     const childQueryKey = (parentId: string, page: number) => [
