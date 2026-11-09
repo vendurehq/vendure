@@ -13,6 +13,7 @@ import {
     AddFulfillmentToOrderResult,
     AddManualPaymentToOrderResult,
     AddNoteToOrderInput,
+    AdjustmentType,
     CancelOrderInput,
     CancelOrderResult,
     CancelPaymentResult,
@@ -51,7 +52,12 @@ import { RequestContextCacheService } from '../../cache/request-context-cache.se
 import { LocalizedStringArray } from '../../common/configurable-operation';
 import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
+import {
+    EntityNotFoundError,
+    IllegalOperationError,
+    InternalServerError,
+    UserInputError,
+} from '../../common/error/errors';
 import {
     CancelPaymentError,
     EmptyOrderLineSelectionError,
@@ -1949,7 +1955,10 @@ export class OrderService implements OnApplicationBootstrap {
         if (allOrderItemsCancelled) {
             const transitionResult = await this.transitionToState(ctx, input.orderId, 'Cancelled');
             if (isGraphQlErrorResult(transitionResult)) {
-                return transitionResult;
+                // checkCancelledTransition() allowed this transition, but the OrderProcess refused it
+                // once the lines were cancelled. Throw, so the transaction rolls back the cancelled
+                // lines and stock movements instead of committing them with the Order left uncancelled.
+                throw new IllegalOperationError(transitionResult.transitionError);
             }
         }
         return assertFound(this.findOne(ctx, input.orderId));
@@ -1958,50 +1967,76 @@ export class OrderService implements OnApplicationBootstrap {
     /**
      * Lines are cancelled (and stock movements written) before the Order transitions to `Cancelled`,
      * and that transition is the step an OrderProcess may refuse. So when the cancellation will cancel
-     * every line, the transition guards are run first, against an in-memory copy of the Order with the
-     * cancelled quantities applied. A refusal is returned before anything is changed.
+     * every line, the transition guards are run first, against an unsaved copy of the Order with the
+     * cancellation applied. A refusal is returned before anything is changed.
      */
     private async checkCancelledTransition(
         ctx: RequestContext,
         input: CancelOrderInput,
     ): Promise<OrderStateTransitionError | undefined> {
-        const order = await this.getOrderOrThrow(ctx, input.orderId);
-        if (order.active) {
-            // An active Order is either transitioned without touching its lines, or rejected by
-            // cancelOrderByOrderLines with a CancelActiveOrderError.
-            return;
-        }
-        for (const line of order.lines) {
-            const cancelledQuantity =
-                input.lines == null
-                    ? line.quantity
-                    : summate(
-                          input.lines.filter(l => idsAreEqual(l.orderLineId, line.id)),
-                          'quantity',
-                      );
-            line.quantity = Math.max(0, line.quantity - cancelledQuantity);
-        }
-        if (!orderLinesAreAllCancelled(order)) {
-            // A partial cancellation does not transition the Order.
-            return;
-        }
-        order.payments = await this.getOrderPayments(ctx, order.id);
-        const fromState = order.state;
-        const toState: OrderState = 'Cancelled';
-        try {
-            await this.orderStateMachine.transition(ctx, order, toState);
-        } catch (e: any) {
-            const transitionError = ctx.translate(e.message, { fromState, toState });
-            return new OrderStateTransitionError({ transitionError, fromState, toState });
-        }
-        if (order.state !== toState) {
-            // An OrderProcess returned `false` from onTransitionStart.
-            const transitionError = ctx.translate('message.cannot-transition-order-from-to', {
-                fromState,
-                toState,
-            });
-            return new OrderStateTransitionError({ transitionError, fromState, toState });
-        }
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const order = await this.getOrderOrThrow(txCtx, input.orderId);
+            if (order.active) {
+                // An active Order is either transitioned without touching its lines, or rejected by
+                // cancelOrderByOrderLines with a CancelActiveOrderError.
+                return;
+            }
+            const lineInputs =
+                input.lines ?? order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity }));
+            const inputIsValid =
+                0 < summate(lineInputs, 'quantity') &&
+                lineInputs.every(lineInput => {
+                    const line = order.lines.find(l => idsAreEqual(l.id, lineInput.orderLineId));
+                    return line && lineInput.quantity <= line.quantity;
+                });
+            if (!inputIsValid) {
+                // Leave it to cancelOrderByOrderLines to return the matching validation error.
+                return;
+            }
+            for (const line of order.lines) {
+                const cancelledQuantity = summate(
+                    lineInputs.filter(l => idsAreEqual(l.orderLineId, line.id)),
+                    'quantity',
+                );
+                line.setQuantityRescalingAdjustments(line.quantity - cancelledQuantity);
+            }
+            if (!orderLinesAreAllCancelled(order)) {
+                // A partial cancellation does not transition the Order.
+                return;
+            }
+            // Mirrors the shipping cancellation and totals update in cancelOrderByOrderLines.
+            if (input.cancelShipping === true) {
+                for (const shippingLine of order.shippingLines) {
+                    shippingLine.adjustments.push({
+                        adjustmentSource: 'CANCEL_ORDER',
+                        type: AdjustmentType.OTHER,
+                        description: 'shipping cancellation',
+                        amount: shippingLine.listPriceIncludesTax
+                            ? -shippingLine.discountedPriceWithTax
+                            : -shippingLine.discountedPrice,
+                        data: {},
+                    });
+                }
+            }
+            this.orderCalculator.calculateOrderTotals(order);
+            order.payments = await this.getOrderPayments(txCtx, order.id);
+            const fromState = order.state;
+            const toState: OrderState = 'Cancelled';
+            try {
+                await this.orderStateMachine.transition(txCtx, order, toState);
+            } catch (e: any) {
+                const transitionError = txCtx.translate(e.message, { fromState, toState });
+                return new OrderStateTransitionError({ transitionError, fromState, toState });
+            }
+            if (order.state !== toState) {
+                // An OrderProcess returned `false` from onTransitionStart.
+                const transitionError = txCtx.translate('message.cannot-transition-order-from-to', {
+                    fromState,
+                    toState,
+                });
+                return new OrderStateTransitionError({ transitionError, fromState, toState });
+            }
+        });
     }
 
     private async cancelOrderById(ctx: RequestContext, input: CancelOrderInput) {
