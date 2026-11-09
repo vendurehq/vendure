@@ -22,10 +22,13 @@ import {
     DOCKER_COMMAND_TIMEOUT_MS,
     DOCKER_COMPOSE_TIMEOUT_MS,
     DOCKER_PROBE_TIMEOUT_MS,
+    DOCKER_START_POLL_INTERVAL_MS,
     DOCKER_START_WAIT_MS,
+    DOCKER_STOP_TIMEOUT_MS,
     OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
+    PG_READY_TIMEOUT_MS,
     SOCKET_TIMEOUT_MS,
     TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
@@ -739,7 +742,8 @@ export async function probeDockerDaemon(): Promise<DockerDaemonStatus> {
 }
 
 export const DOCKER_NOT_RESPONDING_MESSAGE =
-    'Docker is not running or not responding. Start Docker, then run the create command again.';
+    'Docker is not running or not responding. Start Docker, remove the project directory, ' +
+    'then run the create command again.';
 
 /**
  * Check to see if Docker is installed and running.
@@ -800,9 +804,9 @@ export async function isDockerAvailable(): Promise<{ result: 'not-found' | Docke
             dockerSpinner.stop('Docker is running');
             return { result: 'running' };
         }
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, DOCKER_START_POLL_INTERVAL_MS));
         attempts++;
-    } while (attempts < 100 && Date.now() < deadline);
+    } while (Date.now() < deadline);
     dockerSpinner.stop('Docker daemon could not be started');
     return { result: 'not-running' };
 }
@@ -873,8 +877,8 @@ export async function startPostgresDatabase(root: string, projectName: string): 
             );
             log(
                 'Start or restart Docker, then check it with:\n' +
-                    `  docker compose -f ${composeFile} up -d postgres_db\n` +
-                    'Then run the same create command again; it reuses the files already created.',
+                    `  docker compose -f "${composeFile}" up -d postgres_db\n` +
+                    'Then remove the project directory and run the create command again.',
             );
             return false;
         }
@@ -885,7 +889,8 @@ export async function startPostgresDatabase(root: string, projectName: string): 
     postgresContainerSpinner.message(`Waiting for PostgreSQL database to be ready...`);
     // Bounded by time as well as attempts: each `docker exec` can take up to
     // DOCKER_COMMAND_TIMEOUT_MS when the daemon stops answering.
-    const readyDeadline = Date.now() + PG_READY_MAX_ATTEMPTS * PG_READY_POLL_INTERVAL_MS;
+    const readyStarted = Date.now();
+    const readyDeadline = readyStarted + PG_READY_TIMEOUT_MS;
     let attempts = 1;
     let isReady = false;
     do {
@@ -919,7 +924,7 @@ export async function startPostgresDatabase(root: string, projectName: string): 
         postgresContainerSpinner.stop(
             pc.red(
                 `PostgreSQL database did not become ready within ${Math.round(
-                    (PG_READY_MAX_ATTEMPTS * PG_READY_POLL_INTERVAL_MS) / 1000,
+                    (Date.now() - readyStarted) / 1000,
                 )} seconds`,
             ),
         );
@@ -1031,8 +1036,8 @@ export function checkCancel<T>(value: T | symbol): value is T {
 export function cleanUpDockerResources(name: string) {
     const labelFilter = `label=io.vendure.create.name=${name}`;
     // Runs the user's own `docker` from PATH, like every other Docker call in this CLI.
-    const docker = (args: string[], stdio?: 'ignore') =>
-        execFileSync('docker', args, { stdio, timeout: DOCKER_COMMAND_TIMEOUT_MS }); // NOSONAR
+    const docker = (args: string[], stdio?: 'ignore', timeout = DOCKER_COMMAND_TIMEOUT_MS) =>
+        execFileSync('docker', args, { stdio, timeout }); // NOSONAR
     const listIds = (args: string[]): string[] =>
         docker(args)
             .toString()
@@ -1042,7 +1047,7 @@ export function cleanUpDockerResources(name: string) {
     try {
         const containerIds = listIds(['ps', '-a', '-q', '--filter', labelFilter]);
         if (containerIds.length) {
-            docker(['stop', ...containerIds], 'ignore');
+            docker(['stop', ...containerIds], 'ignore', DOCKER_STOP_TIMEOUT_MS);
             docker(['rm', ...containerIds], 'ignore');
         }
         const volumeIds = listIds(['volume', 'ls', '-q', '--filter', labelFilter]);

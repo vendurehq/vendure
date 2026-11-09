@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,8 +39,10 @@ const FAKE_DOCKER = `#!/bin/sh
 case "$1" in
   -v) echo "Docker version 99.0.0"; exit 0 ;;
 esac
+[ -n "$FAKE_DOCKER_CALLS" ] && echo "$*" >> "$FAKE_DOCKER_CALLS"
 case "$FAKE_DOCKER_DAEMON" in
   up) exit 0 ;;
+  boot) [ -e "$FAKE_DOCKER_READY_MARKER" ] && exit 0; echo "Cannot connect to the Docker daemon" >&2; exit 1 ;;
   down) echo "Cannot connect to the Docker daemon" >&2; exit 1 ;;
   hang) exec /bin/sleep 30 ;;
 esac
@@ -81,6 +83,8 @@ describe('Docker helpers with an unresponsive daemon', () => {
         process.env.PATH = originalPath;
         delete process.env.FAKE_DOCKER_DAEMON;
         delete process.env.FAKE_DOCKER_START_MARKER;
+        delete process.env.FAKE_DOCKER_CALLS;
+        delete process.env.FAKE_DOCKER_READY_MARKER;
     });
 
     afterAll(() => {
@@ -125,6 +129,26 @@ describe('Docker helpers with an unresponsive daemon', () => {
             expect(existsSync(startMarker)).toBe(true);
         });
 
+        // A started daemon can take most of DOCKER_START_WAIT_MS to answer. The checks while it
+        // boots are spaced out rather than run back to back.
+        it('waits for a started daemon without probing it in a tight loop', async () => {
+            process.env.FAKE_DOCKER_DAEMON = 'boot';
+            const calls = path.join(workDir, 'calls');
+            const readyMarker = path.join(workDir, 'ready');
+            rmSync(calls, { force: true });
+            rmSync(readyMarker, { force: true });
+            process.env.FAKE_DOCKER_CALLS = calls;
+            process.env.FAKE_DOCKER_READY_MARKER = readyMarker;
+            const timer = setTimeout(() => writeFileSync(readyMarker, ''), 600);
+
+            expect(await isDockerAvailable()).toEqual({ result: 'running' });
+
+            clearTimeout(timer);
+            expect(existsSync(startMarker)).toBe(true);
+            const probes = readFileSync(calls, 'utf8').trim().split('\n');
+            expect(probes.length).toBeLessThanOrEqual(4);
+        });
+
         // CLO-1224 - Docker Desktop's processes run, so starting it again does nothing.
         it('reports an unresponsive daemon as not responding without trying to start it', async () => {
             process.env.FAKE_DOCKER_DAEMON = 'hang';
@@ -156,11 +180,9 @@ describe('Docker helpers with an unresponsive daemon', () => {
             expect(Date.now() - started).toBeLessThan(5_000);
             const output = loggedText();
             expect(output).toContain(
-                `docker compose -f ${path.join(root, 'docker-compose.yml')} up -d postgres_db`,
+                `docker compose -f "${path.join(root, 'docker-compose.yml')}" up -d postgres_db`,
             );
-            expect(output).toContain(
-                'run the same create command again; it reuses the files already created',
-            );
+            expect(output).toContain('remove the project directory and run the create command again');
         });
     });
 });
