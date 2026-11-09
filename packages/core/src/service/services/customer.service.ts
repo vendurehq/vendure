@@ -703,12 +703,19 @@ export class CustomerService {
     async requestCustomerPasswordReset(ctx: RequestContext, customerId: ID): Promise<void> {
         const customer = await this.connection.getEntityOrThrow(ctx, Customer, customerId, {
             channelId: ctx.channelId,
-            relations: ['user', 'user.authenticationMethods'],
+            relations: ['user'],
         });
         if (!customer.user) {
             throw new UserInputError('error.customer-has-no-user-account');
         }
-        const user = await this.userService.setPasswordResetTokenForUser(ctx, customer.user);
+        // Loaded separately rather than as the `user.authenticationMethods` relation of the Customer
+        // query: TypeORM 0.3.29+ drops that nested relation when it is merged into the already
+        // loaded `user`.
+        const userWithAuthMethods = await this.userService.getUserById(ctx, customer.user.id);
+        if (!userWithAuthMethods) {
+            throw new UserInputError('error.customer-has-no-user-account');
+        }
+        const user = await this.userService.setPasswordResetTokenForUser(ctx, userWithAuthMethods);
         if (!user) {
             throw new UserInputError('error.cannot-set-password-without-native-credential');
         }
