@@ -24,6 +24,7 @@ import { PaymentTemplate } from '../payment/payment-template.entity';
 import { PaymentTemplateService } from '../payment/payment-template.service';
 import { TenantMember } from '../tenant/tenant-member.entity';
 import { OFFICIAL_ROLE_TEMPLATES, RoleTemplate } from '../tenant/role-templates';
+import { findTenantNoOccupant, runSeedSteps } from './seed-steps';
 
 export { OFFICIAL_ROLE_TEMPLATES, RoleTemplate };
 
@@ -53,39 +54,83 @@ export class DefaultDataService {
     ) {}
 
     /**
-     * 幂等创建默认数据。任何单项失败仅记日志，不阻塞应用启动。
+     * 幂等创建默认数据。
+     *
+     * 每个步骤独立执行（见 runSeedSteps）：单步失败只记录步骤名与错误，继续执行后续步骤，
+     * 最后汇总一条日志列出失败步骤。这样「全局配送档案」这类需要 SuperAdmin 的步骤失败时，
+     * 不会再把官方租户播种等关键步骤一起作废。
      */
     async seed(): Promise<void> {
+        let ctx: RequestContext;
         try {
-            const ctx = await this.requestContextService.create({ apiType: 'admin' });
-            Logger.info('开始初始化购物配送/支付默认数据', loggerCtx);
-            await this.seedPickupLocation(ctx);
-            await this.seedStorePickupMethod(ctx);
-            await this.seedStorePickupTemplate(ctx);
-            await this.seedStorePickupProfile(ctx);
-            await this.seedCashierPaymentMethod(ctx);
-            await this.seedCashierPaymentProfile(ctx);
-            // 全局方案池：配送模板（自提点/职工自提/同城/邮寄）
-            await this.seedPickupPointTemplate(ctx);
-            await this.seedEmployeePickupTemplate(ctx);
-            await this.seedLocalDeliveryTemplate(ctx);
-            await this.seedMailTemplate(ctx);
-            // 全局方案池：支付模板（货到付款/余额支付/聚合码）
-            await this.seedCashOnDeliveryPaymentTemplate(ctx);
-            await this.seedBalancePayPaymentTemplate(ctx);
-            await this.seedAggregatePaymentTemplate(ctx);
-            await this.seedFixedAggregatePaymentTemplate(ctx);
-            // 前 20 个官方自营租户（幂等）
-            await this.seedOfficialTenants(ctx);
-            // 为官方内置角色补齐 Authenticated 权限（幂等）
-            await this.ensureOfficialRolesAuthenticated(ctx);
-            // 按角色模板补齐存量角色权限（模板新增权限时同步到存量角色，幂等、只增不减）
-            await this.syncRolePermissionsFromTemplates(ctx);
-            // 修复历史破损官方管理员（补齐 user+authentication_method 使可登录；幂等）
-            await this.repairOfficialAdminAccounts(ctx);
-            Logger.info('购物配送/支付默认数据初始化完成', loggerCtx);
+            ctx = await this.createSeedContext();
         } catch (e: any) {
-            Logger.error(`默认数据初始化失败: ${e.message}`, loggerCtx);
+            Logger.error(`默认数据初始化中止：播种上下文创建失败: ${e?.message ?? e}`, loggerCtx);
+            return;
+        }
+        Logger.info('开始初始化购物配送/支付默认数据', loggerCtx);
+        await runSeedSteps<RequestContext>(ctx, [
+            { name: '默认自提点', run: c => this.seedPickupLocation(c) },
+            { name: '门店自提配送方式', run: c => this.seedStorePickupMethod(c) },
+            { name: '门店自提配送模板', run: c => this.seedStorePickupTemplate(c) },
+            { name: '门店自提配送档案', run: c => this.seedStorePickupProfile(c) },
+            { name: '门店收银支付方式', run: c => this.seedCashierPaymentMethod(c) },
+            { name: '门店收银支付档案', run: c => this.seedCashierPaymentProfile(c) },
+            // 全局方案池：配送模板（自提点/职工自提/同城/邮寄）
+            { name: '自提点配送模板', run: c => this.seedPickupPointTemplate(c) },
+            { name: '职工自提配送模板', run: c => this.seedEmployeePickupTemplate(c) },
+            { name: '同城配送模板', run: c => this.seedLocalDeliveryTemplate(c) },
+            { name: '邮寄配送模板', run: c => this.seedMailTemplate(c) },
+            // 全局方案池：支付模板（货到付款/余额支付/聚合码）
+            { name: '货到付款支付模板', run: c => this.seedCashOnDeliveryPaymentTemplate(c) },
+            { name: '余额支付模板', run: c => this.seedBalancePayPaymentTemplate(c) },
+            { name: '聚合码支付模板', run: c => this.seedAggregatePaymentTemplate(c) },
+            { name: '固定聚合码支付模板', run: c => this.seedFixedAggregatePaymentTemplate(c) },
+            // 前 20 个官方自营租户（幂等，写入前检测 tenantNo 占用）
+            { name: '官方自营租户 1-20', run: c => this.seedOfficialTenants(c) },
+            // 为官方内置角色补齐 Authenticated 权限（幂等）
+            { name: '官方角色 Authenticated 权限', run: c => this.ensureOfficialRolesAuthenticated(c) },
+            // 按角色模板补齐存量角色权限（模板新增权限时同步到存量角色，幂等、只增不减）
+            { name: '存量角色权限同步', run: c => this.syncRolePermissionsFromTemplates(c) },
+            // 修复历史破损官方管理员（补齐 user+authentication_method 使可登录；幂等）
+            { name: '破损官方管理员修复', run: c => this.repairOfficialAdminAccounts(c) },
+        ]);
+    }
+
+    /**
+     * 播种上下文：优先带「超管用户」，而不是裸 admin ctx。
+     *
+     * 原因：全局档案（isGlobal=true）的 create/update/delete 会被
+     * assertProfileGlobalPermissions（shipping-profile.service.ts）要求 SuperAdmin 权限，
+     * 而 RequestContextService.create({ apiType: 'admin' }) 不带 session user，
+     * ctx.userHasPermissions([Permission.SuperAdmin]) 恒为 false —— 这正是本库
+     * seedStorePickupProfile 抛「仅超级管理员可创建全局档案」、并连带阻断官方租户播种的根因。
+     *
+     * 找不到超管角色/用户时退回原行为（只警告，不阻断启动），后续步骤由 runSeedSteps 隔离。
+     */
+    private async createSeedContext(): Promise<RequestContext> {
+        const fallback = async () => {
+            Logger.warn('未找到可用的超级管理员上下文，默认数据中的全局档案步骤可能失败', loggerCtx);
+            return this.requestContextService.create({ apiType: 'admin' });
+        };
+        try {
+            const { User, Role } = await this.ensureCoreEntities(['User', 'Role']);
+            const roleRepo = this.connection.rawConnection.getRepository(Role);
+            const roles: any[] = await roleRepo.find({ relations: ['channels'] });
+            const superRole = roles.find(r => (r.permissions || []).includes(Permission.SuperAdmin));
+            if (!superRole) return fallback();
+
+            const userRepo = this.connection.rawConnection.getRepository(User);
+            const users: any[] = await userRepo.find({ relations: ['roles', 'roles.channels'], take: 200 } as any);
+            const superUser = users.find(
+                u => (u.roles || []).some((r: any) => String(r.id) === String(superRole.id)),
+            );
+            if (!superUser) return fallback();
+
+            return await this.requestContextService.create({ apiType: 'admin', user: superUser });
+        } catch (e: any) {
+            Logger.warn(`播种上下文构建失败（${e?.message ?? e}），退回无用户上下文`, loggerCtx);
+            return fallback();
         }
     }
 
@@ -350,6 +395,10 @@ export class DefaultDataService {
         const channelRepo = this.connection.getRepository(ctx, Channel);
         const roleRepo = this.connection.getRepository(ctx, Role);
 
+        // tenantNo 在数据库上没有唯一约束：业务租户（如 t1）可能已经占用了 1..20 的号位，
+        // 直接写入会静默出现两个渠道同号。故先一次性载入现有渠道做占用检测。
+        const existingChannels: any[] = await channelRepo.find({} as any);
+
         for (let i = 1; i <= 20; i++) {
             const code = `official-${String(i).padStart(2, '0')}`;
             const token = `official-${i}`;
@@ -358,6 +407,22 @@ export class DefaultDataService {
             const exists = await channelRepo.findOne({ where: [{ code }, { token }] } as any);
             if (exists) {
                 Logger.info(`官方自营租户 ${code} 已存在，跳过`, loggerCtx);
+                continue;
+            }
+
+            const occupant = findTenantNoOccupant(existingChannels, i);
+            if (occupant) {
+                if (occupant.isOfficial) {
+                    Logger.warn(
+                        `官方位 ${i} 已被官方渠道 ${occupant.code} 占用（tenantNo=${i}），跳过创建 ${code}`,
+                        loggerCtx,
+                    );
+                } else {
+                    Logger.error(
+                        `tenantNo=${i} 已被非官方渠道占用（code=${occupant.code}），跳过官方位 ${i}`,
+                        loggerCtx,
+                    );
+                }
                 continue;
             }
 
@@ -376,6 +441,7 @@ export class DefaultDataService {
                     },
                 } as any),
             );
+            existingChannels.push(channel);
             Logger.info(`已创建官方自营租户 ${code}`, loggerCtx);
 
             // 3 个内置角色（限定该 channel；权限清单来自单一模板）
