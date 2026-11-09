@@ -45,14 +45,17 @@ permissions: {}
 jobs:
     check:
         name: check CLA signatures
-        # contains() is case-insensitive. The script matches the exact phrases.
+        # A loose filter, so that no runner starts for unrelated comments. contains() is
+        # case-insensitive. The script matches the sign phrase with any whitespace.
         if: >-
             github.event_name == 'pull_request_target' ||
             (github.event.issue.pull_request &&
-             (contains(github.event.comment.body, 'hereby sign the CLA') || contains(github.event.comment.body, 'recheck')))
+             (contains(github.event.comment.body, 'CLA') || contains(github.event.comment.body, 'recheck')))
         runs-on: ubuntu-latest
-        # One run at a time per pull request. Runs for different pull requests can still write
-        # the signatures file at the same time; scripts/cla/run.mjs retries on a conflict.
+        # One run at a time per pull request. GitHub keeps only the newest queued run, so every
+        # run reads all of the pull request's sign comments. Runs for different pull requests can
+        # still write the signatures file at the same time; scripts/cla/run.mjs retries on a
+        # conflict.
         concurrency:
             group: cla-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
             cancel-in-progress: false

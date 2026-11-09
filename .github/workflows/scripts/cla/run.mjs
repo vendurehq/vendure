@@ -33,25 +33,32 @@ export async function run({ github, context, core, options }) {
     }
 
     const signers = await getSignersForPull(github, { owner, repo, pull });
-    const store = signatureStore(github, options);
-    let { signatures } = await store.read();
-
-    if (comment && isSignComment(comment.body)) {
-        signatures = await recordSignature(store, {
-            signers,
-            signatures,
-            comment,
-            core,
-            repoId: context.payload.repository.id,
-            pullNumber,
-            pullRef: `${owner}/${repo}#${pullNumber}`,
-        });
-    }
+    const comments = await github.paginate(github.rest.issues.listComments, {
+        owner,
+        repo,
+        issue_number: pullNumber,
+        per_page: 100,
+    });
+    const signatures = await recordSignatures(signatureStore(github, options), {
+        signers,
+        comments,
+        core,
+        repoId: context.payload.repository.id,
+        pullNumber,
+        pullRef: `${owner}/${repo}#${pullNumber}`,
+    });
 
     const unsigned = getUnsigned(signers, signatures);
     await reportStatus(github, { owner, repo, sha: pull.head.sha, unsigned, options, core });
     if (options.postComment) {
-        await upsertComment(github, { owner, repo, pullNumber, unsigned, documentUrl: options.documentUrl });
+        await upsertComment(github, {
+            owner,
+            repo,
+            pullNumber,
+            comments,
+            unsigned,
+            documentUrl: options.documentUrl,
+        });
     }
 }
 
@@ -68,12 +75,7 @@ function isRelevantComment(context, comment, core) {
 }
 
 async function getSignersForPull(github, { owner, repo, pull }) {
-    const commits = await github.paginate(github.rest.pulls.listCommits, {
-        owner,
-        repo,
-        pull_number: pull.number,
-        per_page: 100,
-    });
+    const commits = await listPullCommits(github, { owner, repo, pull });
     return getRequiredSigners({
         prAuthor: toUser(pull.user),
         commits: commits.map(c => ({ sha: c.sha, author: c.author ? toUser(c.author) : null })),
@@ -85,28 +87,55 @@ async function getSignersForPull(github, { owner, repo, pull }) {
     });
 }
 
+// pulls.listCommits returns at most 250 commits.
+const MAX_LISTED_PULL_COMMITS = 250;
+
 /**
- * Adds the commenter's signature when they still have to sign for this
- * pull request, and returns the signatures afterwards.
+ * Lists every commit of the pull request. For a larger pull request, the
+ * commits come from comparing its base and head, which has no such limit.
+ * Both list the commits on the head that are not on the base.
  */
-async function recordSignature(store, { signers, signatures, comment, core, repoId, pullNumber, pullRef }) {
-    const signer = getUnsigned(signers, signatures).find(s => s.id === comment.user.id);
-    if (!signer) {
-        core.info(
-            `@${comment.user.login} does not need to sign for this pull request, or has already signed.`,
-        );
-        return signatures;
+async function listPullCommits(github, { owner, repo, pull }) {
+    if (pull.commits <= MAX_LISTED_PULL_COMMITS) {
+        return github.paginate(github.rest.pulls.listCommits, {
+            owner,
+            repo,
+            pull_number: pull.number,
+            per_page: 100,
+        });
     }
-    const signature = createSignature({
-        user: toUser(comment.user),
-        commentId: comment.id,
-        createdAt: comment.created_at,
-        repoId,
-        pullRequestNo: pullNumber,
-    });
-    const updated = await store.add(signature, `@${signer.login} has signed the CLA in ${pullRef}`);
-    core.info(`Recorded the signature of @${signer.login}.`);
-    return updated;
+    return github.paginate(
+        github.rest.repos.compareCommitsWithBasehead,
+        { owner, repo, basehead: `${pull.base.sha}...${pull.head.sha}`, per_page: 100 },
+        response => response.data.commits,
+    );
+}
+
+/**
+ * Records a signature for everyone who still has to sign and has posted the
+ * sign phrase on the pull request, and returns the signatures afterwards.
+ * Every run reads all comments, because GitHub drops a queued run when a
+ * newer one for the same pull request is queued behind it. The comment that
+ * triggered the dropped run is then picked up by the newer run.
+ */
+async function recordSignatures(store, { signers, comments, core, repoId, pullNumber, pullRef }) {
+    let { signatures } = await store.read();
+    for (const signer of getUnsigned(signers, signatures)) {
+        const comment = comments.find(c => c.user?.id === signer.id && isSignComment(c.body));
+        if (!comment) {
+            continue;
+        }
+        const signature = createSignature({
+            user: toUser(comment.user),
+            commentId: comment.id,
+            createdAt: comment.created_at,
+            repoId,
+            pullRequestNo: pullNumber,
+        });
+        signatures = await store.add(signature, `@${signer.login} has signed the CLA in ${pullRef}`);
+        core.info(`Recorded the signature of @${signer.login}.`);
+    }
+    return signatures;
 }
 
 async function reportStatus(github, { owner, repo, sha, unsigned, options, core }) {
@@ -185,13 +214,7 @@ function signatureStore(github, { signaturesRepo, signaturesPath, signaturesBran
  * is only posted when someone still has to sign, so pull requests from
  * people who signed earlier get no comment at all.
  */
-async function upsertComment(github, { owner, repo, pullNumber, unsigned, documentUrl }) {
-    const comments = await github.paginate(github.rest.issues.listComments, {
-        owner,
-        repo,
-        issue_number: pullNumber,
-        per_page: 100,
-    });
+async function upsertComment(github, { owner, repo, pullNumber, comments, unsigned, documentUrl }) {
     const existing = comments.find(c => c.user?.type === 'Bot' && c.body?.includes(COMMENT_MARKER));
     const body = renderComment({ unsigned, documentUrl });
 

@@ -8,7 +8,8 @@ export const COMMENT_MARKER = '<!-- vendure-cla-check -->';
 // Accounts whose commits never need a signature. AI agents are listed because
 // the person who opens the PR submits the agent's work, so the PR author's
 // signature covers those commits. `web-flow` is GitHub's own committer for
-// merges and edits made in the web UI.
+// merges and edits made in the web UI. A PR opened by one of these accounts
+// still needs its signature, so that some signature covers its commits.
 export const SKIPPED_LOGINS = ['claude', 'copilot-swe-agent', 'cursoragent', 'web-flow'];
 
 /**
@@ -20,11 +21,12 @@ export const SKIPPED_LOGINS = ['claude', 'copilot-swe-agent', 'cursoragent', 'we
  * @typedef {{ login: string, id: number, reasons: string[] }} Signer
  */
 
-export function isSkipped(user) {
-    if (user.type === 'Bot' || user.login.endsWith('[bot]')) {
-        return true;
-    }
-    return SKIPPED_LOGINS.includes(user.login.toLowerCase());
+export function isBot(user) {
+    return user.type === 'Bot' || user.login.endsWith('[bot]');
+}
+
+export function isSkippedCommitAuthor(user) {
+    return isBot(user) || SKIPPED_LOGINS.includes(user.login.toLowerCase());
 }
 
 const RELEASE_BRANCHES = new Set(['master', 'minor', 'major']);
@@ -43,7 +45,7 @@ export function isBackMerge({ headRef, headRepo, baseRepo }) {
 
 /**
  * Returns everyone who must sign for this pull request, signed or not.
- * The PR author must always sign. Every other commit author with a GitHub
+ * The PR author must always sign, unless the PR author is a bot. Every other commit author with a GitHub
  * account must sign as well, except in a back-merge. Commits whose author
  * email is linked to no GitHub account are covered by the PR author's
  * signature.
@@ -55,9 +57,6 @@ export function getRequiredSigners({ prAuthor, commits, backMerge = false }) {
     /** @type {Map<number, Signer>} */
     const signers = new Map();
     const add = (user, reason) => {
-        if (isSkipped(user)) {
-            return;
-        }
         const signer = signers.get(user.id) ?? { login: user.login, id: user.id, reasons: [] };
         if (!signer.reasons.includes(reason)) {
             signer.reasons.push(reason);
@@ -65,12 +64,14 @@ export function getRequiredSigners({ prAuthor, commits, backMerge = false }) {
         signers.set(user.id, signer);
     };
 
-    add(prAuthor, 'opened this pull request');
+    if (!isBot(prAuthor)) {
+        add(prAuthor, 'opened this pull request');
+    }
     if (backMerge) {
         return [...signers.values()];
     }
     for (const commit of commits) {
-        if (commit.author) {
+        if (commit.author && !isSkippedCommitAuthor(commit.author)) {
             add(commit.author, 'authored commits');
         }
     }

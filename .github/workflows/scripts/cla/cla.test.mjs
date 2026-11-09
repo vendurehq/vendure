@@ -57,6 +57,11 @@ describe('getRequiredSigners', () => {
         assert.deepEqual(logins(signers), ['alice']);
     });
 
+    it('requires an AI agent account that opens a PR itself', () => {
+        const signers = getRequiredSigners({ prAuthor: claude, commits: [commit(claude)] });
+        assert.deepEqual(logins(signers), ['claude']);
+    });
+
     it('requires no one for a PR opened by a bot', () => {
         assert.deepEqual(getRequiredSigners({ prAuthor: renovate, commits: [commit(renovate)] }), []);
     });
