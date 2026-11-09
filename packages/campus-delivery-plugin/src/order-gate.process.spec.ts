@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     bindOrderGateConnection,
     campusOrderGateProcess,
+    CampusNoZoneError,
     CampusR1NoHandoverError,
+    CAMPUS_NO_ZONE_CODE,
+    CAMPUS_NO_ZONE_MESSAGE,
     findChannelRouteConfig,
     findSoldOutProductName,
     isBlacklisted,
@@ -106,11 +109,24 @@ describe('campusOrderGateProcess', () => {
     describe('配送路线闸门（防支付后永不进厅）', () => {
         beforeEach(() => query.mockResolvedValue([]));
 
-        /** 只让「渠道交接点配置」查询返回指定值，其余查询仍返回空（未休业/无黑名单/无沽清/无限量） */
+        /** 只让「渠道交接点配置」查询返回指定值，其余查询仍返回空（未休业/无黑名单/无沽清/无限量）。
+         *  分区查询默认返回有分区（「东区」），单独用 mockZones 覆盖。 */
         function mockHandoverPoints(rows: any[]) {
-            query.mockImplementation((sql: string) =>
-                Promise.resolve(String(sql).includes('"handoverPoints"') ? rows : []),
-            );
+            query.mockImplementation((sql: string) => {
+                const text = String(sql);
+                if (text.includes('campus_zone')) return Promise.resolve([{ exists: 1 }]);
+                return Promise.resolve(text.includes('"handoverPoints"') ? rows : []);
+            });
+        }
+
+        /** 覆盖分区查询：rows=[] 表示该渠道没有分区 */
+        function mockZones(rows: any[]) {
+            query.mockImplementation((sql: string) => {
+                const text = String(sql);
+                if (text.includes('campus_zone')) return Promise.resolve(rows);
+                if (text.includes('"handoverPoints"')) return Promise.resolve([]);
+                return Promise.resolve([]);
+            });
         }
 
         it('已选校园交付点但路线为空 → 拦截', async () => {
@@ -173,10 +189,12 @@ describe('campusOrderGateProcess', () => {
             ).rejects.toThrow(R1_NO_HANDOVER_MESSAGE);
         });
 
-        it('R3 + 楼栋齐全 → 不校验交接点，直接放行', async () => {
+        it('R3 + 楼栋齐全 + 有分区 → 不校验交接点，直接放行', async () => {
             const queried: string[] = [];
             query.mockImplementation((sql: string) => {
-                queried.push(String(sql));
+                const text = String(sql);
+                queried.push(text);
+                if (text.includes('campus_zone')) return Promise.resolve([{ exists: 1 }]);
                 return Promise.resolve([]);
             });
             await expect(
@@ -186,6 +204,55 @@ describe('campusOrderGateProcess', () => {
                 ),
             ).resolves.toBeUndefined();
             expect(queried.some(s => s.includes('"handoverPoints"'))).toBe(false);
+        });
+
+        it('R3 渠道无配送分区 → 拦截（防静默 0 元运费成交）', async () => {
+            mockZones([]);
+            const err: any = await campusOrderGateProcess
+                .onTransitionStart!(
+                    'AddingItems', 'ArrangingPayment',
+                    data({ cf: { fulfillmentRoute: 'R3', campusZone: '东区', buildingId: '7' } }),
+                )
+                .catch(e => e);
+            expect(err).toBeInstanceOf(CampusNoZoneError);
+            expect(err.message).toBe(CAMPUS_NO_ZONE_MESSAGE);
+            expect(err.extensions.code).toBe(CAMPUS_NO_ZONE_CODE);
+        });
+
+        it('R1 有交接点但无配送分区 → 拦截（防静默 0 元运费成交）', async () => {
+            query.mockImplementation((sql: string) => {
+                const text = String(sql);
+                if (text.includes('campus_zone')) return Promise.resolve([]);
+                if (text.includes('"handoverPoints"')) {
+                    return Promise.resolve([{ handoverPoints: { R1: { name: '东门岗亭', lat: 30.1, lng: 120.2 } } }]);
+                }
+                return Promise.resolve([]);
+            });
+            const err: any = await campusOrderGateProcess
+                .onTransitionStart!(
+                    'AddingItems', 'ArrangingPayment',
+                    data({ cf: { fulfillmentRoute: 'R1', campusZone: '东区', buildingId: '7' } }),
+                )
+                .catch(e => e);
+            expect(err).toBeInstanceOf(CampusNoZoneError);
+            expect(err.extensions.code).toBe(CAMPUS_NO_ZONE_CODE);
+        });
+
+        it('R1 已配置交接点但所选分区不在本渠道 → 拦截（防按默认分区静默成交）', async () => {
+            query.mockImplementation((sql: string) => {
+                const text = String(sql);
+                if (text.includes('campus_zone')) return Promise.resolve([]); // 名字匹配失败
+                if (text.includes('"handoverPoints"')) {
+                    return Promise.resolve([{ handoverPoints: { R1: { name: '东门岗亭', lat: 30.1, lng: 120.2 } } }]);
+                }
+                return Promise.resolve([]);
+            });
+            await expect(
+                campusOrderGateProcess.onTransitionStart!(
+                    'AddingItems', 'ArrangingPayment',
+                    data({ cf: { fulfillmentRoute: 'R1', campusZone: '东区', buildingId: '7' } }),
+                ),
+            ).rejects.toThrow(CAMPUS_NO_ZONE_MESSAGE);
         });
 
         it('无校园交付意图（普通快递/到店自取）→ 不校验路线', async () => {

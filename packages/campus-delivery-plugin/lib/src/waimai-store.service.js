@@ -15,6 +15,7 @@ exports.normalizeMpListingStatus = normalizeMpListingStatus;
 exports.normalizePrintMode = normalizePrintMode;
 exports.privacyProviderStatus = privacyProviderStatus;
 exports.isCateringIndustry = isCateringIndustry;
+exports.channelShopDisplayName = channelShopDisplayName;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
@@ -94,6 +95,12 @@ function isCateringIndustry(cf) {
     var _a;
     const industry = String((_a = cf === null || cf === void 0 ? void 0 : cf.industryType) !== null && _a !== void 0 ? _a : '').trim();
     return !industry || industry === 'catering';
+}
+/** 店铺展示名：渠道自定义字段 shopName（运营填写）→ 渠道 code。
+ *  shopName 为空/空白时不能让 C 端或后台出现空白店名，统一兜底为渠道 code。 */
+function channelShopDisplayName(cf, code) {
+    const name = typeof (cf === null || cf === void 0 ? void 0 : cf.shopName) === 'string' ? cf.shopName.trim() : '';
+    return name || code;
 }
 /** 食安量化分级：A/B/C（空=未评级） */
 const FOOD_GRADES = ['A', 'B', 'C'];
@@ -206,6 +213,7 @@ let WaimaiStoreService = class WaimaiStoreService {
             if (ch.code === '__default_channel__')
                 continue; // 默认渠道是平台会话渠道，不是店铺（防脏配置污染 C 端列表/骑手大厅）
             const cf = ((_a = ch.customFields) !== null && _a !== void 0 ? _a : {});
+            const displayName = channelShopDisplayName(cf, ch.code);
             // 外卖准入：仅餐饮行业租户展示（设计文档 2026-10-09 §4.2；存量由 BackfillWaimaiIndustryMigration 刷数）。
             // 仅过滤 C 端列表；listStoreConfigs（admin 配置视图）不过滤，避免管理员看不到已配履约的非餐饮渠道。
             // L2：未设置行业按餐饮处理（只有显式非餐饮才剔除）。
@@ -215,7 +223,7 @@ let WaimaiStoreService = class WaimaiStoreService {
             const closure = (0, closure_calendar_1.closedToday)((0, closure_calendar_1.safeClosureDates)(cfg.closureDates, now), now);
             stores.push({
                 channelId: Number(ch.id),
-                name: ch.code,
+                name: displayName,
                 logo: (_b = cf.waimaiLogo) !== null && _b !== void 0 ? _b : null,
                 tags: typeof cf.waimaiTags === 'string' && cf.waimaiTags.length
                     ? cf.waimaiTags.split(',').map((t) => t.trim()).filter(Boolean)
@@ -306,6 +314,7 @@ let WaimaiStoreService = class WaimaiStoreService {
     }
     /** admin：全店铺配置（跨渠道，join Channel 取店铺名/token；默认渠道是平台会话渠道，跳过） */
     async listStoreConfigs(ctx) {
+        var _a;
         const configs = await this.connection.getRepository(ctx, campus_fulfillment_config_entity_1.CampusFulfillmentConfig).find();
         const byChannel = new Map(configs.map(c => [Number(c.channelId), c]));
         const channels = await this.connection.getRepository(ctx, core_1.Channel).find();
@@ -314,13 +323,13 @@ let WaimaiStoreService = class WaimaiStoreService {
             if (ch.code === '__default_channel__')
                 continue;
             const cfg = byChannel.get(Number(ch.id));
-            out.push(this.toConfigView(Number(ch.id), ch.code, ch.token, cfg));
+            out.push(this.toConfigView(Number(ch.id), channelShopDisplayName(((_a = ch.customFields) !== null && _a !== void 0 ? _a : {}), ch.code), ch.token, cfg));
         }
         return out;
     }
     /** admin：按 channelId upsert（幂等），routesEnabled 白名单 R1-R5，负数金额拒绝 */
     async updateStoreConfig(ctx, channelId, input) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16;
         // 路线去重：重复项会让开点校验/前端渲染出现重复楼层
         const routes = Array.from(new Set(((_a = input.routesEnabled) !== null && _a !== void 0 ? _a : []).map(r => String(r))));
         const bad = routes.filter(r => !ROUTE_WHITELIST.includes(r));
@@ -448,7 +457,7 @@ let WaimaiStoreService = class WaimaiStoreService {
                     try {
                         raw = JSON.parse(text);
                     }
-                    catch (_16) {
+                    catch (_17) {
                         throw new core_1.UserInputError('配送费阶梯不是合法 JSON');
                     }
                 }
@@ -549,7 +558,7 @@ let WaimaiStoreService = class WaimaiStoreService {
                 try {
                     parsed = JSON.parse(input.dynamicPricing);
                 }
-                catch (_17) {
+                catch (_18) {
                     throw new core_1.UserInputError('动态计价配置不是合法 JSON');
                 }
                 if (!parsed || typeof parsed !== 'object')
@@ -705,7 +714,7 @@ let WaimaiStoreService = class WaimaiStoreService {
             // R4：同步幂等 upsert 本渠道门店自提点（名称=店铺名，地址=storeAddress），核销走 pickup_redemption 零新表
             await this.upsertStorePickupLocation(Number(channelId), ch.code, address, ((_15 = input.storePhone) !== null && _15 !== void 0 ? _15 : '').trim() || null);
         }
-        return this.toConfigView(channelId, ch.code, ch.token, cfg);
+        return this.toConfigView(channelId, channelShopDisplayName(((_16 = ch.customFields) !== null && _16 !== void 0 ? _16 : {}), ch.code), ch.token, cfg);
     }
     /** 经 rawConnection 按实体名取 repo（避免对 cjk-plugin 的构建期依赖；PickupLocation 由 cjk-plugin 注册于同一进程）。
      * 可见性：isPublic=false + ownerChannelId=本渠道 + channels 含本渠道 → shop 端 applyVisibility 对本渠道可见（cjk pickup-location.service.ts:35）。 */

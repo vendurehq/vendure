@@ -12,6 +12,13 @@ export declare function findTodayClosure(conn: TransactionalConnection, channelI
 export declare const R1_NO_HANDOVER_MESSAGE = "\u5F53\u524D\u95E8\u5E97\u672A\u914D\u7F6E R1 \u914D\u9001\u4EA4\u63A5\u70B9\uFF0C\u6682\u4E0D\u53EF\u9009\u62E9 R1\uFF0C\u8BF7\u6539\u9009 R3 \u6216\u5230\u5E97\u81EA\u53D6";
 /** A1：前端/告警可依据 GraphQL extensions.code 区分原因（文案面向顾客） */
 export declare const R1_NO_HANDOVER_CODE = "CAMPUS_R1_NO_HANDOVER_POINT";
+/** 分区运费闸门：R1/R3 依赖渠道配送分区（CampusZone）出运费；
+ *  无分区时 shipping calculator 返回 undefined，会落到其他运费方式，存在按 0 元成交的风险。 */
+export declare const CAMPUS_NO_ZONE_MESSAGE = "\u5F53\u524D\u5E97\u94FA\u672A\u5F00\u901A\u6821\u56ED\u914D\u9001\uFF08\u672A\u914D\u7F6E\u914D\u9001\u5206\u533A\u6216\u6240\u9009\u5206\u533A\u5DF2\u5931\u6548\uFF09\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u914D\u9001\u65B9\u5F0F";
+export declare const CAMPUS_NO_ZONE_CODE = "CAMPUS_ZONE_NOT_CONFIGURED";
+export declare class CampusNoZoneError extends UserInputError {
+    constructor();
+}
 /** A1：R1 渠道缺少可用交接点（Vendure 的 UserInputError 固定 code=USER_INPUT_ERROR，
  *  这里在 extensions 上补一个可机读的业务码，message 保持面向顾客可读）。 */
 export declare class CampusR1NoHandoverError extends UserInputError {
@@ -22,4 +29,7 @@ export declare class CampusR1NoHandoverError extends UserInputError {
  * simple-json 列经 pg 驱动可能回传对象，也可能回传字符串，统一解析成 RouteConfig。
  */
 export declare function findChannelRouteConfig(conn: TransactionalConnection, channelId: number): Promise<RouteConfig | null>;
+/** 渠道是否已配置配送分区：R1/R3 运费依赖分区，无分区时必须在下单前拦截。
+ *  zoneName 非空时同时校验该分区仍属于本渠道（防止改配置后旧购物车按默认分区静默成交）。 */
+export declare function hasChannelCampusZone(conn: TransactionalConnection, channelId: number, zoneName?: string | null): Promise<boolean>;
 export declare const campusOrderGateProcess: OrderProcess<any>;

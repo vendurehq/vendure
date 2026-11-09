@@ -85,6 +85,18 @@ export const R1_NO_HANDOVER_MESSAGE = '当前门店未配置 R1 配送交接点�
 /** A1：前端/告警可依据 GraphQL extensions.code 区分原因（文案面向顾客） */
 export const R1_NO_HANDOVER_CODE = 'CAMPUS_R1_NO_HANDOVER_POINT';
 
+/** 分区运费闸门：R1/R3 依赖渠道配送分区（CampusZone）出运费；
+ *  无分区时 shipping calculator 返回 undefined，会落到其他运费方式，存在按 0 元成交的风险。 */
+export const CAMPUS_NO_ZONE_MESSAGE = '当前店铺未开通校园配送（未配置配送分区或所选分区已失效），请重新选择配送方式';
+export const CAMPUS_NO_ZONE_CODE = 'CAMPUS_ZONE_NOT_CONFIGURED';
+
+export class CampusNoZoneError extends UserInputError {
+    constructor() {
+        super(CAMPUS_NO_ZONE_MESSAGE);
+        (this.extensions as Record<string, unknown>).code = CAMPUS_NO_ZONE_CODE;
+    }
+}
+
 /** A1：R1 渠道缺少可用交接点（Vendure 的 UserInputError 固定 code=USER_INPUT_ERROR，
  *  这里在 extensions 上补一个可机读的业务码，message 保持面向顾客可读）。 */
 export class CampusR1NoHandoverError extends UserInputError {
@@ -118,6 +130,22 @@ export async function findChannelRouteConfig(
         }
     }
     return { handoverPoints: (parsed ?? null) as RouteConfig['handoverPoints'] };
+}
+
+/** 渠道是否已配置配送分区：R1/R3 运费依赖分区，无分区时必须在下单前拦截。
+ *  zoneName 非空时同时校验该分区仍属于本渠道（防止改配置后旧购物车按默认分区静默成交）。 */
+export async function hasChannelCampusZone(
+    conn: TransactionalConnection,
+    channelId: number,
+    zoneName?: string | null,
+): Promise<boolean> {
+    const sql = zoneName
+        ? 'SELECT 1 FROM campus_zone WHERE "channelId" = $1 AND name = $2 LIMIT 1'
+        : 'SELECT 1 FROM campus_zone WHERE "channelId" = $1 LIMIT 1';
+    const params = zoneName ? [channelId, zoneName] : [channelId];
+    const rows: any = await conn.rawConnection.query(sql, params);
+    const list = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
+    return Array.isArray(list) && list.length > 0;
 }
 
 export const campusOrderGateProcess: OrderProcess<any> = {
@@ -185,6 +213,16 @@ export const campusOrderGateProcess: OrderProcess<any> = {
                     if (!isRouteDeliverable('R1', routeCfg)) {
                         throw new CampusR1NoHandoverError();
                     }
+                }
+                // 5c) 分区闸门：R1/R3 运费只由分区出价，无分区时 calculator 返回 undefined，
+                //     Vendure 会落到其他运费方式（可能 0 元成交）。没有分区的渠道直接拒绝。
+                if (route === 'R1' || route === 'R3') {
+                    const hasZone = await hasChannelCampusZone(
+                        conn,
+                        Number(ctx.channelId),
+                        cf.campusZone != null ? String(cf.campusZone) : null,
+                    );
+                    if (!hasZone) throw new CampusNoZoneError();
                 }
             }
         }

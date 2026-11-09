@@ -3295,6 +3295,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     detail: String
                     zoneId: ID!
                     channelId: ID!
+                    """楼栋是否已配置经纬度；false 时交接点按默认点兜底（C 端据此提示）"""
+                    hasCoords: Boolean!
                 }
 
                 type RiderProfile {

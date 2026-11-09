@@ -198,6 +198,9 @@ export declare function privacyProviderStatus(cfg: {
  * 避免已有履约配置的店铺从 C 端列表与进店换取里静默消失。
  */
 export declare function isCateringIndustry(cf: any): boolean;
+/** 店铺展示名：渠道自定义字段 shopName（运营填写）→ 渠道 code。
+ *  shopName 为空/空白时不能让 C 端或后台出现空白店名，统一兜底为渠道 code。 */
+export declare function channelShopDisplayName(cf: any, code: string): string;
 export declare class WaimaiStoreService {
     private connection;
     private readonly entryRate;

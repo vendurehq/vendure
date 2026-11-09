@@ -58,5 +58,5 @@ export declare class RiderShopResolver {
         id: any;
         name: string;
     }[]>;
-    campusBuildings(ctx: RequestContext, zoneId?: ID): Promise<import("./campus-building.entity").CampusBuilding[]>;
+    campusBuildings(ctx: RequestContext, zoneId?: ID): Promise<any[]>;
 }

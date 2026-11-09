@@ -109,6 +109,8 @@ export class RiderShopResolver {
     @Query()
     @Allow(Permission.Public)
     async campusBuildings(@Ctx() ctx: RequestContext, @Args({ name: 'zoneId', nullable: true }) zoneId?: ID) {
-        return this.configService.listBuildings(ctx, zoneId != null ? Number(zoneId) : undefined);
+        const buildings = await this.configService.listBuildings(ctx, zoneId != null ? Number(zoneId) : undefined);
+        // 楼栋经纬度可能为 NULL（历史数据未标点）：只下发布尔标记，避免 C 端拿到坐标缺失时误以为能送到楼下
+        return buildings.map((b: any) => ({ ...b, hasCoords: b.lat != null && b.lng != null }));
     }
 }

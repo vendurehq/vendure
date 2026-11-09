@@ -251,6 +251,13 @@ export function isCateringIndustry(cf: any): boolean {
     return !industry || industry === 'catering';
 }
 
+/** 店铺展示名：渠道自定义字段 shopName（运营填写）→ 渠道 code。
+ *  shopName 为空/空白时不能让 C 端或后台出现空白店名，统一兜底为渠道 code。 */
+export function channelShopDisplayName(cf: any, code: string): string {
+    const name = typeof cf?.shopName === 'string' ? cf.shopName.trim() : '';
+    return name || code;
+}
+
 /** 食安量化分级：A/B/C（空=未评级） */
 const FOOD_GRADES = ['A', 'B', 'C'] as const;
 
@@ -367,6 +374,7 @@ export class WaimaiStoreService {
             if (!cfg) continue;
             if (ch.code === '__default_channel__') continue;   // 默认渠道是平台会话渠道，不是店铺（防脏配置污染 C 端列表/骑手大厅）
             const cf = (ch.customFields ?? {}) as any;
+            const displayName = channelShopDisplayName(cf, ch.code);
             // 外卖准入：仅餐饮行业租户展示（设计文档 2026-10-09 §4.2；存量由 BackfillWaimaiIndustryMigration 刷数）。
             // 仅过滤 C 端列表；listStoreConfigs（admin 配置视图）不过滤，避免管理员看不到已配履约的非餐饮渠道。
             // L2：未设置行业按餐饮处理（只有显式非餐饮才剔除）。
@@ -375,7 +383,7 @@ export class WaimaiStoreService {
             const closure = closedToday(safeClosureDates(cfg.closureDates, now), now);
             stores.push({
                 channelId: Number(ch.id),
-                name: ch.code,
+                name: displayName,
                 logo: cf.waimaiLogo ?? null,
                 tags: typeof cf.waimaiTags === 'string' && cf.waimaiTags.length
                     ? cf.waimaiTags.split(',').map((t: string) => t.trim()).filter(Boolean)
@@ -473,7 +481,7 @@ export class WaimaiStoreService {
         for (const ch of channels) {
             if (ch.code === '__default_channel__') continue;
             const cfg = byChannel.get(Number(ch.id));
-            out.push(this.toConfigView(Number(ch.id), ch.code, ch.token, cfg));
+            out.push(this.toConfigView(Number(ch.id), channelShopDisplayName((ch.customFields ?? {}) as any, ch.code), ch.token, cfg));
         }
         return out;
     }
@@ -907,7 +915,7 @@ export class WaimaiStoreService {
             // R4：同步幂等 upsert 本渠道门店自提点（名称=店铺名，地址=storeAddress），核销走 pickup_redemption 零新表
             await this.upsertStorePickupLocation(Number(channelId), ch.code, address, (input.storePhone ?? '').trim() || null);
         }
-        return this.toConfigView(channelId, ch.code, ch.token, cfg);
+        return this.toConfigView(channelId, channelShopDisplayName((ch.customFields ?? {}) as any, ch.code), ch.token, cfg);
     }
 
     /** 经 rawConnection 按实体名取 repo（避免对 cjk-plugin 的构建期依赖；PickupLocation 由 cjk-plugin 注册于同一进程）。

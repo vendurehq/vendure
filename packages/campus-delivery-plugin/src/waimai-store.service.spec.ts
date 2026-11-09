@@ -58,6 +58,27 @@ describe('WaimaiStoreService.listStores', () => {
             packingFeeCap: null, packingFeeLabel: null,
         });
     });
+    it('店铺名：shopName 为空/空白时兜底渠道 code，不出现空白店名', async () => {
+        const env = makeEnv({
+            configs: [
+                { channelId: 21, paused: false, routesEnabled: ['R3'] },
+                { channelId: 22, paused: false, routesEnabled: ['R3'] },
+                { channelId: 23, paused: false, routesEnabled: ['R3'] },
+            ],
+            channels: [
+                { id: 21, token: 't21', code: 'canteen-21', customFields: { industryType: 'catering' } },
+                { id: 22, token: 't22', code: 'canteen-22', customFields: { industryType: 'catering', shopName: '   ' } },
+                { id: 23, token: 't23', code: 'canteen-23', customFields: { industryType: 'catering', shopName: '  老王食堂  ' } },
+            ],
+        });
+        const list = await env.svc.listStores({} as any);
+        expect(list.map(s => [s.channelId, s.name])).toEqual([
+            [21, 'canteen-21'],
+            [22, 'canteen-22'],
+            [23, '老王食堂'],
+        ]);
+    });
+
     it('A1：R1 可售看「可用交接点」而非仅看 routesEnabled', async () => {
         const env = makeEnv({
             configs: [

@@ -69,7 +69,9 @@ let RiderShopResolver = class RiderShopResolver {
         return (0, shipping_calculator_1.quoteZonesForShop)(this.connection, ctx.channelId, zones);
     }
     async campusBuildings(ctx, zoneId) {
-        return this.configService.listBuildings(ctx, zoneId != null ? Number(zoneId) : undefined);
+        const buildings = await this.configService.listBuildings(ctx, zoneId != null ? Number(zoneId) : undefined);
+        // 楼栋经纬度可能为 NULL（历史数据未标点）：只下发布尔标记，避免 C 端拿到坐标缺失时误以为能送到楼下
+        return buildings.map((b) => (Object.assign(Object.assign({}, b), { hasCoords: b.lat != null && b.lng != null })));
     }
 };
 exports.RiderShopResolver = RiderShopResolver;
