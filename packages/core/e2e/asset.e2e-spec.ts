@@ -674,8 +674,7 @@ describe('Asset resolver', () => {
         });
     });
 
-    // An Asset created with translations but no custom fields was returned untranslated,
-    // so selecting the non-nullable `name` field failed.
+    // createAssets with translations and no custom fields returns the translated Asset.
     describe('createAssets with translations', () => {
         const createAssetsWithTranslationsDocument = graphql(`
             mutation CreateAssetsWithTranslations($input: [CreateAssetInput!]!) {
