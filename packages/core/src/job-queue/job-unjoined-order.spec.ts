@@ -14,12 +14,15 @@ describe('Job data holding an Order loaded without lines', () => {
     it('can be queued', () => {
         const order = new Order({ id: 1, code: 'ABC123', subTotal: 1000, shipping: 0 });
 
-        const createJob = () =>
-            new Job({
-                queueName: 'send-email',
-                data: { type: 'order-day-moved', templateVars: { order } },
-            });
+        const job = new Job({
+            queueName: 'send-email',
+            data: { templateVars: { order } },
+        });
 
-        expect(createJob).not.toThrow();
+        const serializedOrder = (job.data as any).templateVars.order;
+        expect(serializedOrder).toMatchObject({ id: 1, code: 'ABC123', subTotal: 1000, shipping: 0 });
+        expect(serializedOrder).not.toHaveProperty('totalQuantity');
+        expect(serializedOrder).not.toHaveProperty('discounts');
+        expect(serializedOrder).not.toHaveProperty('taxSummary');
     });
 });

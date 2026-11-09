@@ -280,10 +280,13 @@ export class Job<T extends JobData<T> = any> {
                         if (typeof descriptor.get === 'function') {
                             try {
                                 output[name] = (data as any)[name];
-                            } catch {
+                            } catch (e: any) {
                                 // Some getters throw when the data they depend on is not loaded,
                                 // e.g. `Order.totalQuantity` when `lines` is not joined. Skip them
                                 // so that the job can still be queued.
+                                Logger.debug(
+                                    `Job [${this.queueName}] skipped getter "${path.concat(name).join('.')}": ${String(e?.message)}`,
+                                );
                             }
                         }
                     }
