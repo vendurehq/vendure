@@ -26,6 +26,14 @@ const wechatpay_node_v3_1 = __importDefault(require("wechatpay-node-v3"));
 const payment_config_1 = require("@vendure/cjk-plugin/lib/src/payment/payment-config");
 const constants_1 = require("./constants");
 /**
+ * 结算币种：按请求所属渠道取（CT-05 要求 ONE BRIDGE 走 KRW，不得硬编码 CNY）。
+ * 未传 ctx 的历史调用（内部对账等）沿用微信默认结算币种 CNY。
+ */
+function resolveCurrency(ctx) {
+    var _a;
+    return ((_a = ctx === null || ctx === void 0 ? void 0 : ctx.channel) === null || _a === void 0 ? void 0 : _a.defaultCurrencyCode) || 'CNY';
+}
+/**
  * 进程内 WechatpayService 引用（沿用本项目 `setWechatpayGateway` / `getPaymentOverride`
  * 的注册模式），供支付 handler 与其它插件在无 DI 上下文处推导 openid。
  * 未注册（未装载 WechatpayPlugin）时为 null，推导一律返回 undefined。
@@ -170,7 +178,8 @@ let WechatpayService = class WechatpayService {
             notify_url: notifyUrl,
             // 单位：input.amount 为「分」（见 BarePaymentInput 定义），微信 V3 amount.total 同为
             // 「分」，故直接透传，切勿再 /100（否则少收 100 倍）。
-            amount: { total: Math.round(input.amount), currency: 'CNY' },
+            // 币种按渠道取（CT-05：ONE BRIDGE 为 KRW）；未传 ctx 时沿用微信默认结算币种 CNY。
+            amount: { total: Math.round(input.amount), currency: resolveCurrency(ctx) },
         };
         const type = input.tradeType || tradeType;
         if (type === 'NATIVE') {
@@ -226,7 +235,7 @@ let WechatpayService = class WechatpayService {
             out_trade_no: input.outTradeNo,
             out_refund_no: input.outRefundNo,
             reason: input.reason,
-            amount: { refund: Math.round(input.refund), total: Math.round(input.total), currency: 'CNY' },
+            amount: { refund: Math.round(input.refund), total: Math.round(input.total), currency: resolveCurrency(ctx) },
         }));
         const data = (_b = r === null || r === void 0 ? void 0 : r.data) !== null && _b !== void 0 ? _b : {};
         if (!data.refund_id) {

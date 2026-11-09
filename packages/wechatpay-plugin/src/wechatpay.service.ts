@@ -19,6 +19,15 @@ import type { WechatpayCredentials } from '@vendure/cjk-plugin';
 import { WECHATPAY_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { WechatpayPluginOptions } from './types';
 
+/**
+ * 结算币种：按请求所属渠道取（CT-05 要求 ONE BRIDGE 走 KRW，不得硬编码 CNY）。
+ * 未传 ctx 的历史调用（内部对账等）沿用微信默认结算币种 CNY。
+ */
+function resolveCurrency(ctx?: RequestContext): string {
+    return ctx?.channel?.defaultCurrencyCode || 'CNY';
+}
+
+
 export interface BarePaymentInput {
     outTradeNo: string;
     /** 金额：分 */
@@ -226,7 +235,8 @@ export class WechatpayService {
             notify_url: notifyUrl,
             // 单位：input.amount 为「分」（见 BarePaymentInput 定义），微信 V3 amount.total 同为
             // 「分」，故直接透传，切勿再 /100（否则少收 100 倍）。
-            amount: { total: Math.round(input.amount), currency: 'CNY' },
+            // 币种按渠道取（CT-05：ONE BRIDGE 为 KRW）；未传 ctx 时沿用微信默认结算币种 CNY。
+            amount: { total: Math.round(input.amount), currency: resolveCurrency(ctx) },
         };
         const type = input.tradeType || tradeType;
 
@@ -290,7 +300,7 @@ export class WechatpayService {
             out_trade_no: input.outTradeNo,
             out_refund_no: input.outRefundNo,
             reason: input.reason,
-            amount: { refund: Math.round(input.refund), total: Math.round(input.total), currency: 'CNY' },
+            amount: { refund: Math.round(input.refund), total: Math.round(input.total), currency: resolveCurrency(ctx) },
         })) as any;
         const data = r?.data ?? {};
         if (!data.refund_id) {
