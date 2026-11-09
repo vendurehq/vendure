@@ -361,8 +361,8 @@ export class PaymentService {
      * without any funds having been moved.
      *
      * A {@link RefundEvent} is published for every Refund created, including those created before
-     * a later target fails. Callers must not publish a RefundEvent themselves for the Refunds
-     * created here.
+     * a later target fails and a Refund whose state transition fails. Callers must not publish a
+     * RefundEvent themselves for the Refunds created here.
      *
      * When creating a Refund in the context of an Order, it is
      * preferable to use the {@link OrderService} `refundOrder()` method, which performs additional
@@ -396,29 +396,7 @@ export class PaymentService {
         }
 
         const createdRefunds: Refund[] = [];
-        // Refunds whose state transition succeeded. A RefundEvent is published for each of them
-        // once all targets have been processed, so that within this call no event is published
-        // for a Refund which is then rolled back because a later target threw.
-        const completedRefunds: Refund[] = [];
-        const publishRefundEvents = async (keepRefundsIfHandlerFails = false) => {
-            for (const refund of completedRefunds) {
-                try {
-                    await this.eventBus.publish(new RefundEvent(ctx, order, refund, 'created'));
-                } catch (e: any) {
-                    if (!keepRefundsIfHandlerFails) {
-                        throw e;
-                    }
-                    // The funds for these Refunds have already moved, so a failing blocking
-                    // event handler must not roll back the record of them. See #4686.
-                    Logger.error(
-                        `A RefundEvent handler failed for Refund ${refund.id} of Order ${order.code}: ` +
-                            String(e?.message ?? e),
-                        undefined,
-                        e?.stack,
-                    );
-                }
-            }
-        };
+        let failure: RefundStateTransitionError | RefundIncompleteError | undefined;
         for (let i = 0; i < targets.length; i++) {
             let result: { refund: Refund; transitionError?: RefundStateTransitionError };
             try {
@@ -444,32 +422,35 @@ export class PaymentService {
                     undefined,
                     e?.stack,
                 );
-                await publishRefundEvents(true);
-                return new RefundIncompleteError({
+                failure = new RefundIncompleteError({
                     refunds: createdRefunds,
                     failedTargetIndex: i,
                     failureReason: String(e?.message ?? e),
                 });
+                break;
             }
             createdRefunds.push(result.refund);
             if (result.transitionError) {
                 // Refunds created by earlier targets are deliberately left in place. A
                 // PaymentMethodHandler or RefundDestinationStrategy may already have moved real
                 // funds, and discarding the Refund would lose the record of it. See #4686.
-                await publishRefundEvents(true);
-                if (!useTargets || i === 0) {
-                    return result.transitionError;
-                }
-                return new RefundIncompleteError({
-                    refunds: createdRefunds,
-                    failedTargetIndex: i,
-                    failureReason: result.transitionError.transitionError,
-                });
+                failure =
+                    !useTargets || i === 0
+                        ? result.transitionError
+                        : new RefundIncompleteError({
+                              refunds: createdRefunds,
+                              failedTargetIndex: i,
+                              failureReason: result.transitionError.transitionError,
+                          });
+                break;
             }
-            completedRefunds.push(result.refund);
         }
-        await publishRefundEvents();
-        return createdRefunds[0];
+        // Published once every target has been processed, so that blocking event handlers are not
+        // called for a Refund which is rolled back because a later target throws.
+        for (const refund of createdRefunds) {
+            await this.eventBus.publish(new RefundEvent(ctx, order, refund, 'created'));
+        }
+        return failure ?? createdRefunds[0];
     }
 
     /**
