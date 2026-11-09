@@ -99,7 +99,7 @@ describe('createVendureApp() Console hint', () => {
         probeDockerDaemonMock.mockResolvedValue('not-responding');
         // The stubbed project has no email templates, and copying them calls process.exit(0),
         // so only the exit(1) under test stops the run.
-        const exit = vi.spyOn(process, 'exit').mockImplementation((code => {
+        const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
             if (code === 1) {
                 throw new Error('process.exit');
             }
