@@ -12,13 +12,13 @@ This project was generated with `@vendure/create`.
 - Start only the storefront: `npm run dev:storefront`
 - Backend custom code belongs in `apps/server/src/plugins`
 - Backend runtime configuration is in `apps/server/src/vendure-config.ts`
-- Backend static assets and email templates live in `apps/server/static`
+- Backend static assets live in `apps/server/static`
 {{else}}
 ## Project Layout
 
 - Custom backend code belongs in `src/plugins`
 - Runtime configuration is in `src/vendure-config.ts`
-- Static assets and email templates live in `static`
+- Static assets live in `static`
 {{/if}}
 
 ## Vendure Development
@@ -30,6 +30,18 @@ This project was generated with `@vendure/create`.
 - Pass `RequestContext` to Vendure services and `TransactionalConnection` methods when it is available.
 - Do not commit `.env` values or generated runtime data.
 - Do not use `dbConnectionOptions.synchronize: true` for production data.
+
+## Emails
+
+- Emails are sent by the `EmailPlugin`. The default emails use React templates from `@vendure/email-plugin`, styled through the `branding` template variable in `vendure-config.ts`.
+- Custom templates are React components (`.tsx`) created with `defineEmailTemplate()` and set on a handler with `.setTemplate()`. Build them from the components exported by `@vendure/email-plugin`, such as `EmailLayout`, `EmailText`, `EmailButton` and `OrderSummary`.
+- In development the plugin runs in dev mode: no email is sent, and every email is recorded in an outbox. Check emails with the `vendure email` commands while the server{{#if isMonorepo}} (run them from `apps/server`){{/if}} and worker are running:
+  - `npx vendure email list`: the email types and where their sample data comes from.
+  - `npx vendure email render <type> [--language de] [--arg order=CODE]`: render an email from real database data, without sending it. Prints the subject and recipient, and the paths of the HTML and text files.
+  - `npx vendure email send <type> [--to address]`: send an email through the real pipeline (job queue, worker, transport) and wait for it to arrive.
+  - `npx vendure email outbox --since 5m --to <address> --wait 15`: to check that an action you performed (e.g. a GraphQL mutation) sends an email, run the action, then wait for the email here. Exits with code 1 if none arrives.
+  - `npx vendure email check --language en,de`: render every email type and fail if any template errors. Run it after changing templates or template variables.
+- These commands print JSON when their output is not a terminal. A failure names the stage it happened at (`filter`, `loadData`, `render`, `queue`, ...).
 
 ## Commands
 

@@ -45,6 +45,7 @@ import {
     getPackageManagerInfo,
     getPnpmWorkspaceYaml,
     getServerPackageScripts,
+    getVendureCliConfig,
     getSingleProjectPackageJson,
     getYarnRcYml,
     installPackages,
@@ -301,6 +302,7 @@ export async function createVendureApp(
             version: DEFAULT_PROJECT_VERSION,
             private: true,
             scripts: getServerPackageScripts(),
+            vendure: getVendureCliConfig(),
         };
         fs.writeFileSync(
             path.join(serverRoot, 'package.json'),
@@ -450,8 +452,7 @@ export async function createVendureApp(
             )
             .then(() => fs.writeFile(path.join(serverRoot, 'vite.config.mts'), viteConfigSource))
             .then(() => writeFileIfMissing(path.join(root, 'AGENTS.md'), agentsSource))
-            .then(() => createDirectoryStructure(serverRoot))
-            .then(() => copyEmailTemplates(serverRoot));
+            .then(() => createDirectoryStructure(serverRoot));
     } catch (e: any) {
         outro(pc.red(`Failed to create app scaffold: ${e.message as string}`));
         process.exit(1);
@@ -874,21 +875,6 @@ function runPreChecks(name: string | undefined): name is string {
 async function createDirectoryStructure(root: string) {
     await fs.ensureDir(path.join(root, 'static', 'email', 'test-emails'));
     await fs.ensureDir(path.join(root, 'static', 'assets'));
-}
-
-/**
- * Copy the email templates into the app
- */
-async function copyEmailTemplates(root: string) {
-    const emailPackageDirname = resolvePackageRootDir('@vendure/email-plugin', root);
-    const templateDir = path.join(emailPackageDirname, 'templates');
-    try {
-        await fs.copy(templateDir, path.join(root, 'static', 'email', 'templates'));
-    } catch (err: any) {
-        log(pc.red('Failed to copy email templates.'));
-        log(err);
-        process.exit(0);
-    }
 }
 
 async function writeFileIfMissing(filePath: string, contents: string) {

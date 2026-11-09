@@ -5,7 +5,7 @@ import {
     DefaultSearchPlugin,
     VendureConfig,
 } from '@vendure/core';
-import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
+import { defaultEmailHandlers, EmailPlugin } from '@vendure/email-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
@@ -104,9 +104,17 @@ export const config: VendureConfig = {
                     outputPath: path.join(__dirname, '../static/email/test-emails'),
                 },
             }),
+            // The default handlers come with React email templates. To customize them, change the
+            // `branding` below, or write your own templates: https://docs.vendure.io/guides/core-concepts/email/
             handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
             globalTemplateVars: {
+                // Shown in the header and footer of every email.
+                branding: {
+                    name: '{{ name }}',
+                    // logoUrl: 'https://example.com/logo.png',
+                    // primaryColor: '#375a67',
+                    // footerText: 'My Company Ltd, 1 High Street, London',
+                },
                 // The following variables will change depending on your storefront implementation.
 {{#if isMonorepo}}
                 // These point at the storefront created alongside this server, on the port it

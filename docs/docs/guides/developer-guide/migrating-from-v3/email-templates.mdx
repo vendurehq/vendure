@@ -1,0 +1,184 @@
+---
+title: "Email Templates"
+metaTitle: "Vendure v4 Email Templates - Migrating from Handlebars and MJML to React Email"
+metaDescription: "Vendure v4 renders emails with React Email. How to keep existing Handlebars/MJML templates working, migrate them one at a time, and update custom generators and template loaders."
+order: 7
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+In v4 the [EmailPlugin](/reference/core-plugins/email-plugin) renders emails with [React Email](https://react.email/). The default emails are React components that ship with `@vendure/email-plugin`, so new projects no longer copy Handlebars/MJML templates into the project.
+
+Handlebars/MJML templates still work, but they are deprecated and will be removed in a later v4 release. `handlebars` and `mjml` are now optional peer dependencies. With React Email only, the plugin installs 110 packages instead of 302.
+
+## What to do
+
+| Your project | What to do |
+|---|---|
+| Uses the default templates in `static/email/templates` without changes | [Switch to the React defaults](#switching-to-the-react-defaults). |
+| Has customized `.hbs` templates | [Keep them working](#keeping-handlebars-templates-working), then [migrate them one at a time](#migrating-a-template). |
+| Implements `EmailGenerator` or `TemplateLoader`, or calls `setMockEvent()` | [Update your custom code](#updating-custom-code). |
+
+**Done when:** `npx vendure email check` passes for every language you send emails in. See [Checking your templates](#checking-your-templates).
+
+## Switching to the React defaults
+
+Remove the `templateLoader` (or `templatePath`) option, and set your shop's branding as a global template variable:
+
+```diff title="src/vendure-config.ts"
+ EmailPlugin.init({
+     handlers: defaultEmailHandlers,
+-    templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
+     globalTemplateVars: {
+         fromAddress: '"My Shop" <noreply@myshop.com>',
++        branding: {
++            name: 'My Shop',
++            logoUrl: 'https://myshop.com/logo.png',
++            primaryColor: '#0b7285',
++            footerText: 'My Shop Ltd, 1 High Street, London',
++        },
+         // ...
+     },
+ }),
+```
+
+Then delete `static/email/templates`. The `[company header]` and `[footer text]` placeholders of the old templates are replaced by `branding`. If `branding` is not set, the emails have no header or footer.
+
+## Keeping Handlebars templates working
+
+Install the optional peer dependencies:
+
+```bash
+npm install handlebars mjml
+```
+
+Your `FileBasedTemplateLoader` keeps working, and the deprecated [HandlebarsMjmlGenerator](/reference/core-plugins/email-plugin/email-generator#handlebarsmjmlgenerator) renders the templates it loads. The plugin logs a deprecation warning the first time it renders one. If the packages are not installed, sending an email that uses a Handlebars template fails with an error that names them.
+
+Templates you load take precedence over the React templates of the default handlers. For each email, the EmailPlugin uses the first of:
+
+1. The template returned by a configured `TemplateLoader`.
+2. The React template set on the handler with `setTemplate()`.
+
+The `FileBasedTemplateLoader` returns nothing for an email type that has no `.hbs` file. So you can migrate one email at a time: delete its `.hbs` file, and the handler's React template takes over.
+
+## Migrating a template
+
+1. Write the template as a React component with `defineEmailTemplate()`. Build it from the components exported by `@vendure/email-plugin`. See [Email templates](/core-concepts/email/#email-templates).
+2. Set it on the handler with `setTemplate()`. For a default email you customized, set it on the default handler, e.g. `orderConfirmationHandler.setTemplate(MyOrderConfirmationEmail)`.
+3. Delete the `.hbs` file for that email type.
+4. Run `npx vendure email render <type>` and compare the output with the old email.
+
+Your project's `tsconfig.json` needs `"jsx": "react-jsx"`, and its `include` must cover `.tsx` files.
+
+### Translating Handlebars to React
+
+| Handlebars/MJML | React |
+|---|---|
+| `{{ order.code }}` | `{order.code}` |
+| `{{#each order.lines}} ... {{/each}}` | `{order.lines.map(line => ...)}` |
+| `{{#if order.shippingAddress}} ... {{/if}}` | `{order.shippingAddress ? ... : null}` |
+| `{{> header title="..." }}` and `{{> footer }}` | `<EmailLayout title="..." branding={branding}>...</EmailLayout>` |
+| `{{ formatMoney total order.currencyCode 'en' }}` | `<Money value={total} currencyCode={order.currencyCode} />` |
+| `{{ formatDate order.orderPlacedAt }}` | `<FormattedDate value={order.orderPlacedAt} />` |
+| `<mj-section>`, `<mj-text>`, `<mj-button href="...">` | `<EmailSection>`, `<EmailText>`, `<EmailButton href="...">` |
+| `<mj-raw><style>...</style></mj-raw>` | `style` props |
+| `addTemplate()` per language | `useEmailContext().languageCode` in the component, or a custom `TemplateLoader` |
+
+`Money` and `FormattedDate` format in the language of the email. The Handlebars templates used `'en'` throughout.
+
+The template receives the same data as the Handlebars template did: the global template variables and the result of `setTemplateVars()`, as props. The data has passed through the job queue, so dates are ISO strings and entity getters (such as `order.totalWithTax`) are plain properties.
+
+Subject lines and "from" addresses keep their `{{ path.to.value }}` placeholders. Handlebars helpers and block expressions are not supported there for React templates; use `setSubject()` with a function instead.
+
+### Example
+
+The `email-verification` template, before and after:
+
+```hbs title="static/email/templates/email-verification/body.hbs"
+{{> header title="Verify Your Email Address" }}
+<mj-section>
+    <mj-column>
+        <mj-text>Click the button below to verify this email address:</mj-text>
+        <mj-button href="{{ verifyEmailAddressUrl }}?token={{ verificationToken }}">Verify Me!</mj-button>
+    </mj-column>
+</mj-section>
+{{> footer }}
+```
+
+```tsx title="src/email/email-verification.tsx"
+import {
+    defineEmailTemplate,
+    EmailBranding,
+    EmailButton,
+    EmailLayout,
+    EmailSection,
+    EmailText,
+    urlWithToken,
+} from '@vendure/email-plugin';
+
+export const MyEmailVerificationEmail = defineEmailTemplate<{
+    verifyEmailAddressUrl: string;
+    verificationToken: string;
+    branding?: EmailBranding;
+}>(({ verifyEmailAddressUrl, verificationToken, branding }) => (
+    <EmailLayout title="Verify Your Email Address" branding={branding}>
+        <EmailSection>
+            <EmailText>Click the button below to verify this email address:</EmailText>
+            <EmailButton href={urlWithToken(verifyEmailAddressUrl, verificationToken)}>Verify Me!</EmailButton>
+        </EmailSection>
+    </EmailLayout>
+));
+```
+
+```ts title="src/vendure-config.ts"
+import { emailVerificationHandler } from '@vendure/email-plugin';
+import { MyEmailVerificationEmail } from './email/email-verification';
+
+// ...
+handlers: [
+    ...defaultEmailHandlers.filter(h => h !== emailVerificationHandler),
+    emailVerificationHandler.setTemplate(MyEmailVerificationEmail),
+],
+```
+
+## Updating custom code
+
+Search your project:
+
+```bash
+rg -n "implements EmailGenerator|implements TemplateLoader|HandlebarsMjmlGenerator|setMockEvent|templatePath"
+```
+
+| Match | What to do |
+|---|---|
+| `implements EmailGenerator` | `generate()` now takes one object: `{ ctx, type, languageCode, channelCode, template, from, subject, templateVars }`. The template is an `EmailTemplateSource`: `{ kind: 'react', component }` or `{ kind: 'string', body }`. Add `canGenerate(template)`, returning `true` for the kinds your generator renders. Custom generators are tried before the defaults, and `emailGenerator` accepts an array. |
+| `implements TemplateLoader` | `loadTemplate()` may return a string (a Handlebars template, as before), an `EmailTemplateSource`, or `undefined` to fall back to the next loader and then to the handler's template. Its input now includes `languageCode` and `channelCode`. `templateLoader` accepts an array. |
+| `HandlebarsMjmlGenerator` | Deprecated. Install `handlebars` and `mjml` while you still use it. |
+| `setMockEvent` | Still works, but prefer `setSampleEvent()`, which builds the event from your database for the dev tooling. See [Developing and testing emails](/core-concepts/email/#developing-and-testing-emails). |
+| `templatePath` | Deprecated since v2. Use `templateLoader: new FileBasedTemplateLoader(path)` while you migrate. Neither is required any more. |
+
+## Checking your templates
+
+With the server and worker running in dev mode, render every email from sample data:
+
+```bash
+npx vendure email check --language en,de
+```
+
+It fails if any template throws. Enable the command by adding `@vendure/email-plugin` to the CLI plugins in your `package.json`:
+
+```json title="package.json"
+{
+    "vendure": {
+        "cli": {
+            "plugins": ["@vendure/email-plugin"]
+        }
+    }
+}
+```
+
+<Callout type="info">
+New projects created with `@vendure/create` already enable it.
+</Callout>
+
+**Done when:** `npx vendure email check` passes for every language you send emails in, and `rg "FileBasedTemplateLoader|HandlebarsMjmlGenerator"` finds nothing, or only the templates you plan to migrate later.

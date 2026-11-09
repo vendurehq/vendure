@@ -13,6 +13,7 @@ This section contains guides for migrating from Vendure v3 to v4. Follow the ste
 |---|---|---|
 | Roles are granted per Channel through role assignments. Customers no longer hold a Customer role. | Database, plugins, Admin API clients, multi-channel storefronts | [Role assignments](/developer-guide/migrating-from-v3/role-assignments) |
 | TypeORM v1 is the default dependency. TypeORM 0.3 is still supported. | Plugins with custom entities, queries or migrations | [TypeORM v1](/developer-guide/migrating-from-v3/typeorm-v1) |
+| The EmailPlugin renders React Email templates. Handlebars/MJML templates are deprecated, and `handlebars` and `mjml` are optional dependencies. | Projects with customized email templates, custom `EmailGenerator`s or `TemplateLoader`s | [Email templates](/developer-guide/migrating-from-v3/email-templates) |
 
 ## Migration steps
 

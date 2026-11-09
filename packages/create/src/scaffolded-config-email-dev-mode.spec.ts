@@ -74,7 +74,15 @@ describe('scaffolded vendure-config EmailPlugin devMode', () => {
                 outputPath: path.join(SRC_DIR, '../static/email/test-emails'),
             });
             expect(options.handlers).toBeDefined();
-            expect(options.templateLoader).toBeDefined();
         },
     );
+
+    // The default handlers come with React templates, so no Handlebars templates are copied into
+    // the project or loaded from disk.
+    it('uses the React default templates, branded with the project name', () => {
+        const options = getEmailPluginOptions(configSource, 'dev');
+
+        expect(options.templateLoader).toBeUndefined();
+        expect(options.globalTemplateVars.branding).toEqual({ name: PROJECT_ROOT });
+    });
 });

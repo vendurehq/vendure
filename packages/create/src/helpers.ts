@@ -403,8 +403,17 @@ export function getSingleProjectPackageJson(
         version: DEFAULT_PROJECT_VERSION,
         private: true,
         scripts: getServerPackageScripts(),
+        vendure: getVendureCliConfig(),
     };
     return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
+}
+
+/**
+ * The `vendure` field of the server's package.json. Enables the CLI plugins of the scaffolded
+ * dependencies, such as the `vendure email` commands of the EmailPlugin.
+ */
+export function getVendureCliConfig() {
+    return { cli: { plugins: ['@vendure/email-plugin'] } };
 }
 
 /**
