@@ -2,7 +2,7 @@
 import { JobState } from '@vendure/common/lib/generated-types';
 import { lastValueFrom } from 'rxjs';
 import { tap, toArray } from 'rxjs/operators';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InMemoryJobQueueStrategy } from './in-memory-job-queue-strategy';
 import { Job } from './job';
@@ -72,15 +72,8 @@ describe('SubscribableJob', () => {
                 ),
             );
             // Wait for each value to be emitted before changing it, so a late poll cannot skip one.
-            const emitted = async (progress: number) => {
-                const deadline = Date.now() + 5_000;
-                while (!seen.includes(progress)) {
-                    if (Date.now() > deadline) {
-                        throw new Error(`updates() did not emit progress ${progress}`);
-                    }
-                    await sleep(10);
-                }
-            };
+            const emitted = (progress: number) =>
+                vi.waitFor(() => expect(seen).toContain(progress), { timeout: 5_000, interval: 10 });
 
             const running = await strategy.next('test');
             await strategy.update(running!);
