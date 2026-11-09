@@ -164,20 +164,26 @@ describe('PollingJobQueueStrategy', () => {
 
         await strategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
         activeProcess = process;
-        await strategy.start('test', process);
-        await vi.waitFor(() => expect(sawNext).toBe(true), { timeout: 2000, interval: 10 });
+        let stopPromise: Promise<unknown> | undefined;
+        try {
+            await strategy.start('test', process);
+            await vi.waitFor(() => expect(sawNext).toBe(true), { timeout: 2000, interval: 10 });
 
-        let stopped = false;
-        const stopPromise = strategy.stop('test', process).then(() => (stopped = true));
-        activeProcess = undefined;
-        releaseNext?.();
+            let stopped = false;
+            stopPromise = strategy.stop('test', process).then(() => (stopped = true));
+            activeProcess = undefined;
+            releaseNext?.();
 
-        // stop() always sleeps 1s before resolving, so wait past that to prove it is
-        // still waiting on the claimed job rather than on its own delay.
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        expect(stopped).toBe(false);
-
-        releaseProcess?.();
+            // stop() always sleeps 1s before resolving, so wait past that to prove it is
+            // still waiting on the claimed job rather than on its own delay.
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            expect(stopped).toBe(false);
+        } finally {
+            // Release both gates even when an assertion above fails, so stop() is not
+            // left waiting out its 20s timeout in the background.
+            releaseNext?.();
+            releaseProcess?.();
+        }
         await stopPromise;
         const settled = await strategy.findOne('job-1');
         expect(settled?.state).toBe(JobState.COMPLETED);
@@ -208,17 +214,99 @@ describe('PollingJobQueueStrategy', () => {
             processed.push(job.id as string);
             return true;
         };
-        await concurrentStrategy.start('test', process);
-        await vi.waitFor(() => expect(sawNext).toBe(true), { timeout: 2000, interval: 10 });
+        let stopPromise: Promise<void> | undefined;
+        try {
+            await concurrentStrategy.start('test', process);
+            await vi.waitFor(() => expect(sawNext).toBe(true), { timeout: 2000, interval: 10 });
 
-        const stopPromise = concurrentStrategy.stop('test', process);
-        releaseNext?.();
-        await stopPromise;
+            stopPromise = concurrentStrategy.stop('test', process);
+            releaseNext?.();
+            await stopPromise;
 
-        expect(processed).toEqual(['job-1']);
-        expect((await concurrentStrategy.findOne('job-2'))?.state).toBe(JobState.PENDING);
-        concurrentStrategy.destroy();
+            expect(processed).toEqual(['job-1']);
+            expect((await concurrentStrategy.findOne('job-2'))?.state).toBe(JobState.PENDING);
+        } finally {
+            // This strategy is not covered by afterEach, so stop its polling loop here
+            // even when the waitFor above times out.
+            releaseNext?.();
+            await (stopPromise ?? concurrentStrategy.stop('test', process));
+            concurrentStrategy.destroy();
+        }
     });
+
+    // #4949 — a claim still in flight when the graceful shutdown times out must not start the job
+    it.each([
+        ['next() claim', 'next'],
+        ['initial update()', 'update'],
+    ] as const)(
+        'defers a job whose %s outlasts the graceful shutdown timeout instead of running it',
+        async (_label, slowMethod) => {
+            const shortTimeoutStrategy = new InMemoryJobQueueStrategy({
+                concurrency: 1,
+                pollInterval: 10,
+                gracefulShutdownTimeout: 100,
+            });
+            shortTimeoutStrategy.init({ get: () => ({ isWorker: false }) } as any);
+            let releaseGate: (() => void) | undefined;
+            const gate = new Promise<void>(resolve => {
+                releaseGate = resolve;
+            });
+            let sawSlowCall = false;
+            if (slowMethod === 'next') {
+                const originalNext = shortTimeoutStrategy.next.bind(shortTimeoutStrategy);
+                vi.spyOn(shortTimeoutStrategy, 'next').mockImplementation(async (queueName: string) => {
+                    if (!sawSlowCall) {
+                        sawSlowCall = true;
+                        await gate;
+                    }
+                    return originalNext(queueName);
+                });
+            }
+            // Record every state the queue persists for the job, so the assertion waits for the
+            // queue to actually act on the claimed job rather than reading it before it is claimed.
+            const persistedStates: JobState[] = [];
+            const originalUpdate = shortTimeoutStrategy.update.bind(shortTimeoutStrategy);
+            vi.spyOn(shortTimeoutStrategy, 'update').mockImplementation(async (job: Job) => {
+                if (slowMethod === 'update' && !job.isSettled && !sawSlowCall) {
+                    sawSlowCall = true;
+                    await gate;
+                }
+                await originalUpdate(job);
+                persistedStates.push(job.state);
+            });
+
+            await shortTimeoutStrategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+            const processed: string[] = [];
+            const process = async (job: Job) => {
+                processed.push(job.id as string);
+                return true;
+            };
+            try {
+                await shortTimeoutStrategy.start('test', process);
+                await vi.waitFor(() => expect(sawSlowCall).toBe(true), { timeout: 2000, interval: 10 });
+
+                // stop() gives up after 100ms and resolves while the slow call is still pending.
+                await shortTimeoutStrategy.stop('test', process);
+                releaseGate?.();
+
+                await vi.waitFor(
+                    () =>
+                        expect(
+                            persistedStates.some(
+                                state => state === JobState.PENDING || state === JobState.COMPLETED,
+                            ),
+                        ).toBe(true),
+                    { timeout: 2000, interval: 10 },
+                );
+                expect(persistedStates).not.toContain(JobState.COMPLETED);
+                expect((await shortTimeoutStrategy.findOne('job-1'))?.state).toBe(JobState.PENDING);
+                expect(processed).toEqual([]);
+            } finally {
+                releaseGate?.();
+                shortTimeoutStrategy.destroy();
+            }
+        },
+    );
 
     // #5440 — a job cancelled while running stays CANCELLED whatever its process function returns
     it.each([
