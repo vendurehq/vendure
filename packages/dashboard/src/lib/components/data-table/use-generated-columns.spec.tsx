@@ -11,10 +11,14 @@ import { CellContext, flexRender, getCoreRowModel, useReactTable } from '@tansta
 import { act, type ReactNode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AdditionalColumns } from '../shared/paginated-list-data-table.js';
 import { useGeneratedColumns } from './use-generated-columns.js';
+
+vi.mock('virtual:admin-api-schema', () => {
+    return import('../../framework/document-introspection/testing-utils.js').then(m => m.getMockSchemaInfo());
+});
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -180,6 +184,65 @@ describe('useGeneratedColumns display component precedence', () => {
         });
 
         expect(renderCell(column)).toBe('<span>late-registered</span>');
+    });
+});
+
+describe('useGeneratedColumns custom field columns', () => {
+    // #5346 — a display component over a custom-field column's core cell must get the value
+    // from row.original.customFields, as CellWrapper does for columns without a core cell
+    it('passes the custom field value to a display component that overrides a core-supplied cell', () => {
+        const pageId = 'test-page-custom-field-value';
+        const captured: { columns?: Array<{ id?: string; cell?: any; meta?: any }> } = {};
+
+        function Harness() {
+            const { columns } = useGeneratedColumns({
+                fields: [
+                    {
+                        name: 'customFields',
+                        type: 'ProductCustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                    },
+                ],
+                customizeColumns: { custom1: { cell: () => <span>core-custom-field-cell</span> } } as any,
+                includeSelectionColumn: false,
+                includeActionsColumn: false,
+            });
+            captured.columns = columns as any;
+            return null;
+        }
+
+        renderToStaticMarkup(
+            <I18nProvider i18n={i18n}>
+                <PageContext.Provider value={{ pageId }}>
+                    <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
+                        <Harness />
+                    </PageBlockContext.Provider>
+                </PageContext.Provider>
+            </I18nProvider>,
+        );
+
+        addDisplayComponent({
+            pageId,
+            blockId: BLOCK_ID,
+            field: 'custom1',
+            component: ({ value }) => <span>{`value:${value as string}`}</span>,
+        });
+
+        const column = captured.columns?.find(c => c.id === 'custom1');
+        if (!column) {
+            throw new Error('Column "custom1" was not generated');
+        }
+        expect(column.meta?.isCustomField).toBe(true);
+        // A custom field is not a property of the row itself, so the accessor yields undefined.
+        const customFieldContext = {
+            cell: { getValue: () => undefined },
+            column: { id: column.id, columnDef: column },
+            row: { original: { customFields: { custom1: 'custom-field-value' } } },
+        } as unknown as CellContext<any, any>;
+        expect(renderCell(column, customFieldContext)).toBe('<span>value:custom-field-value</span>');
     });
 });
 
