@@ -7,6 +7,7 @@ import { HandlebarsMjmlGenerator } from './handlebars-mjml-generator';
  * (which uses `noEscape`). A subject variable containing `&` reaches the inbox as `&amp;`.
  */
 describe('HandlebarsMjmlGenerator subject', () => {
+    // OSS-946 — the subject is plain text and must not be HTML-escaped
     it('does not HTML-escape interpolated values in the subject', async () => {
         const generator = new HandlebarsMjmlGenerator();
 
