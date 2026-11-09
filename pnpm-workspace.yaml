@@ -9,6 +9,11 @@ linkWorkspacePackages: true
 # 未在 dev-server 显式声明，靠提升解析；过滤安装后布局与历史 hybrid 布局兼容）
 shamefullyHoist: true
 
+# pnpm 11 默认不再提升 workspace 包：dashboard 构建时 dev-config 从临时目录加载，
+# 需经根 node_modules 解析 @vendure/* 私有插件（新增插件否则报 Cannot find module）。
+# 显式开启，与仓库既有 81 个根链接布局保持一致。
+hoistWorkspacePackages: true
+
 # 关闭 peer 自动安装：跨插件 peer（如 inventory-plugin peer shop-plugin）全部由
 # dev-server 的显式依赖满足；否则 lockfile-only 全仓解析时 peer 会被送去 registry
 # 解析，私有包 404 + 无限重试导致卡死

@@ -1549,6 +1549,9 @@ importers:
       '@vendure/notification-plugin':
         specifier: 0.0.1
         version: link:../notification-plugin
+      '@vendure/onebridge-plugin':
+        specifier: 0.0.1
+        version: link:../onebridge-plugin
       '@vendure/operations-plugin':
         specifier: 1.0.0
         version: link:../operations-plugin
@@ -2133,6 +2136,30 @@ importers:
       '@vendure/coupon-plugin':
         specifier: workspace:*
         version: link:../coupon-plugin
+      rimraf:
+        specifier: ^5.0.5
+        version: 5.0.5
+      typescript:
+        specifier: 5.8.2
+        version: 5.8.2
+
+  packages/onebridge-plugin:
+    devDependencies:
+      '@vendure/common':
+        specifier: workspace:*
+        version: link:../common
+      '@vendure/core':
+        specifier: workspace:*
+        version: link:../core
+      '@vendure/testing':
+        specifier: workspace:*
+        version: link:../testing
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      graphql-tag:
+        specifier: ^2.12.6
+        version: 2.12.7(graphql@16.14.2)
       rimraf:
         specifier: ^5.0.5
         version: 5.0.5

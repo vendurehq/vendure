@@ -75,6 +75,7 @@
         "@vendure/message-plugin": "0.0.1",
         "@vendure/notification-plugin": "0.0.1",
         "@vendure/operations-plugin": "1.0.0",
+        "@vendure/onebridge-plugin": "0.0.1",
         "@vendure/order-timeout-plugin": "0.0.1",
         "@vendure/oss-plugin": "0.0.1",
         "@vendure/payment-schedule-plugin": "0.0.1",
