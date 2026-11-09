@@ -6,6 +6,7 @@ export * from './campus-fulfillment-config.entity';
 export * from './delivery-slot.entity';
 export * from './rider-credit-log.entity';
 export * from './support.entities';
+export * from './cod-receipt.entities';
 export * from './rider-ops.entities';
 export * from './support.service';
 export * from './rider-ops.service';

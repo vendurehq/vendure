@@ -189,6 +189,8 @@ import { P41ReviewGiftChannelColumnsMigration } from './migrations/p41-review-gi
 import { P42ChannelAfterSalesRuleColumnsMigration } from './migrations/p42-channel-aftersales-rule-columns';
 import { P43RiderFeishuBindingMigration } from './migrations/p43-rider-feishu-binding';
 import { P44OrderCancelAuditMigration } from './migrations/p44-order-cancel-audit';
+import { P45CodReceiptLedgerMigration } from './migrations/p45-cod-receipt-ledger';
+import { CampusCodReceipt, CampusCodRefundLink } from './cod-receipt.entities';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { WithdrawReconcileJob } from './withdraw-reconcile.job';
 import { CompensationTaskService } from './compensation-task.service';
@@ -208,7 +210,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
 
 @VendurePlugin({
     imports: [PluginCommonModule],
-    entities: [CampusZone, CampusBuilding, RiderEarning, CampusFulfillmentConfig, DeliverySlot, RiderCreditLog, RiderWithdrawalRequest, PaymentTimeoutTask, CampusAddressChange, CampusSupportTicket, CampusRiderAppeal, CampusBlacklist, CampusChatConversation, CampusChatMessage, CampusRiderShift, CampusRiderSession, CampusRiderReview, CampusRiderLocation, CampusPrintJob, CampusAdCampaign, CampusLockerStation, CampusTrackEvent, CampusErrorReport, CampusCompensationTask],
+    entities: [CampusZone, CampusBuilding, RiderEarning, CampusFulfillmentConfig, DeliverySlot, RiderCreditLog, RiderWithdrawalRequest, PaymentTimeoutTask, CampusAddressChange, CampusSupportTicket, CampusRiderAppeal, CampusBlacklist, CampusChatConversation, CampusChatMessage, CampusRiderShift, CampusRiderSession, CampusRiderReview, CampusRiderLocation, CampusPrintJob, CampusAdCampaign, CampusLockerStation, CampusTrackEvent, CampusErrorReport, CampusCompensationTask, CampusCodReceipt, CampusCodRefundLink],
     providers: [
         CreateCampusTablesMigration,
         AddRouteDeliveryConfigMigration,
@@ -262,6 +264,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P42ChannelAfterSalesRuleColumnsMigration,
         P43RiderFeishuBindingMigration,
         P44OrderCancelAuditMigration,
+        P45CodReceiptLedgerMigration,
         CampusDedupeService,
         WithdrawReconcileJob,
         CompensationTaskService,

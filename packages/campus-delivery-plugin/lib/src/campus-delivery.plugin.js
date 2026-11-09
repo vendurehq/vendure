@@ -188,6 +188,8 @@ const p41_review_gift_channel_columns_1 = require("./migrations/p41-review-gift-
 const p42_channel_aftersales_rule_columns_1 = require("./migrations/p42-channel-aftersales-rule-columns");
 const p43_rider_feishu_binding_1 = require("./migrations/p43-rider-feishu-binding");
 const p44_order_cancel_audit_1 = require("./migrations/p44-order-cancel-audit");
+const p45_cod_receipt_ledger_1 = require("./migrations/p45-cod-receipt-ledger");
+const cod_receipt_entities_1 = require("./cod-receipt.entities");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -387,7 +389,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin;
 exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
     (0, core_1.VendurePlugin)({
         imports: [core_1.PluginCommonModule],
-        entities: [campus_zone_entity_1.CampusZone, campus_building_entity_1.CampusBuilding, rider_earning_entity_1.RiderEarning, campus_fulfillment_config_entity_1.CampusFulfillmentConfig, delivery_slot_entity_1.DeliverySlot, rider_credit_log_entity_1.RiderCreditLog, rider_withdrawal_entity_1.RiderWithdrawalRequest, payment_timeout_entity_1.PaymentTimeoutTask, campus_address_change_entity_1.CampusAddressChange, support_entities_1.CampusSupportTicket, support_entities_1.CampusRiderAppeal, support_entities_1.CampusBlacklist, chat_entities_1.CampusChatConversation, chat_entities_1.CampusChatMessage, rider_ops_entities_1.CampusRiderShift, rider_ops_entities_1.CampusRiderSession, rider_ops_entities_1.CampusRiderReview, campus_rider_location_entity_1.CampusRiderLocation, campus_print_job_entity_1.CampusPrintJob, campus_ad_entity_1.CampusAdCampaign, campus_locker_entity_1.CampusLockerStation, telemetry_entities_1.CampusTrackEvent, telemetry_entities_1.CampusErrorReport, compensation_task_entity_1.CampusCompensationTask],
+        entities: [campus_zone_entity_1.CampusZone, campus_building_entity_1.CampusBuilding, rider_earning_entity_1.RiderEarning, campus_fulfillment_config_entity_1.CampusFulfillmentConfig, delivery_slot_entity_1.DeliverySlot, rider_credit_log_entity_1.RiderCreditLog, rider_withdrawal_entity_1.RiderWithdrawalRequest, payment_timeout_entity_1.PaymentTimeoutTask, campus_address_change_entity_1.CampusAddressChange, support_entities_1.CampusSupportTicket, support_entities_1.CampusRiderAppeal, support_entities_1.CampusBlacklist, chat_entities_1.CampusChatConversation, chat_entities_1.CampusChatMessage, rider_ops_entities_1.CampusRiderShift, rider_ops_entities_1.CampusRiderSession, rider_ops_entities_1.CampusRiderReview, campus_rider_location_entity_1.CampusRiderLocation, campus_print_job_entity_1.CampusPrintJob, campus_ad_entity_1.CampusAdCampaign, campus_locker_entity_1.CampusLockerStation, telemetry_entities_1.CampusTrackEvent, telemetry_entities_1.CampusErrorReport, compensation_task_entity_1.CampusCompensationTask, cod_receipt_entities_1.CampusCodReceipt, cod_receipt_entities_1.CampusCodRefundLink],
         providers: [
             create_campus_tables_1.CreateCampusTablesMigration,
             add_route_delivery_config_1.AddRouteDeliveryConfigMigration,
@@ -441,6 +443,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p42_channel_aftersales_rule_columns_1.P42ChannelAfterSalesRuleColumnsMigration,
             p43_rider_feishu_binding_1.P43RiderFeishuBindingMigration,
             p44_order_cancel_audit_1.P44OrderCancelAuditMigration,
+            p45_cod_receipt_ledger_1.P45CodReceiptLedgerMigration,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,
