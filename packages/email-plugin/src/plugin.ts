@@ -435,7 +435,11 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
                 await this.testingProcessor.process(result);
             }
         } catch (e: any) {
-            Logger.error(e.message, loggerCtx, e.stack);
+            Logger.error(
+                `Could not handle event "${event.constructor.name}" with the "${handler.type}" email handler: ${e.message as string}`,
+                loggerCtx,
+                e.stack,
+            );
         }
     }
 }

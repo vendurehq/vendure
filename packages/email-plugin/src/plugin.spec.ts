@@ -956,6 +956,34 @@ describe('EmailPlugin', () => {
             await pause();
             expect(testingLogger.errorSpy.mock.calls[0][0]).toContain('something went horribly wrong!');
         });
+
+        // OSS-940 — the error log names the email handler and the event
+        it('names the handler type and the event when handling an event fails', async () => {
+            const ctx = RequestContext.deserialize({
+                _channel: { code: DEFAULT_CHANNEL_CODE },
+                _languageCode: LanguageCode.en,
+            } as any);
+            testingLogger.errorSpy.mockClear();
+
+            const handler = new EmailEventListener('failing-handler')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello');
+
+            await initPluginWithHandlers([handler], {
+                globalTemplateVars: () => {
+                    throw new Error('boom');
+                },
+            });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            const message = testingLogger.errorSpy.mock.calls[0][0];
+            expect(message).toContain('"failing-handler"');
+            expect(message).toContain('"MockEvent"');
+            expect(message).toContain('boom');
+        });
     });
 
     describe('custom sender', () => {
