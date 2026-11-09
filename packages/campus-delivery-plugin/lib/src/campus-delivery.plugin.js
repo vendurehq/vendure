@@ -186,6 +186,7 @@ const p39_trust_copy_1 = require("./migrations/p39-trust-copy");
 const p40_review_gift_choice_1 = require("./migrations/p40-review-gift-choice");
 const p41_review_gift_channel_columns_1 = require("./migrations/p41-review-gift-channel-columns");
 const p42_channel_aftersales_rule_columns_1 = require("./migrations/p42-channel-aftersales-rule-columns");
+const p43_rider_feishu_binding_1 = require("./migrations/p43-rider-feishu-binding");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -437,6 +438,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p40_review_gift_choice_1.P40ReviewGiftChoiceMigration,
             p41_review_gift_channel_columns_1.P41ReviewGiftChannelColumnsMigration,
             p42_channel_aftersales_rule_columns_1.P42ChannelAfterSalesRuleColumnsMigration,
+            p43_rider_feishu_binding_1.P43RiderFeishuBindingMigration,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,

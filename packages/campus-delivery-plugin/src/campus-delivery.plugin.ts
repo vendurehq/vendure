@@ -187,6 +187,7 @@ import { P39TrustCopyMigration } from './migrations/p39-trust-copy';
 import { P40ReviewGiftChoiceMigration } from './migrations/p40-review-gift-choice';
 import { P41ReviewGiftChannelColumnsMigration } from './migrations/p41-review-gift-channel-columns';
 import { P42ChannelAfterSalesRuleColumnsMigration } from './migrations/p42-channel-aftersales-rule-columns';
+import { P43RiderFeishuBindingMigration } from './migrations/p43-rider-feishu-binding';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { WithdrawReconcileJob } from './withdraw-reconcile.job';
 import { CompensationTaskService } from './compensation-task.service';
@@ -258,6 +259,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P40ReviewGiftChoiceMigration,
         P41ReviewGiftChannelColumnsMigration,
         P42ChannelAfterSalesRuleColumnsMigration,
+        P43RiderFeishuBindingMigration,
         CampusDedupeService,
         WithdrawReconcileJob,
         CompensationTaskService,
