@@ -50,12 +50,178 @@ async function runMigrations(userConfig) {
     }
     return migrationsRan;
 }
+const schemaDiffModes = ['off', 'summary', 'full'];
+function getSchemaDiffMode() {
+    var _a;
+    const raw = ((_a = process.env.VENDURE_SCHEMA_DIFF) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+    if (!raw) {
+        return 'summary';
+    }
+    if (schemaDiffModes.includes(raw)) {
+        return raw;
+    }
+    log(picocolors_1.default.yellow(`[schema] 未识别的 VENDURE_SCHEMA_DIFF="${raw}"，按 summary 处理（可选 off | summary | full）`));
+    return 'summary';
+}
+/**
+ * SUMMARY 模式下的显式白名单。文件由 VENDURE_SCHEMA_DIFF_WHITELIST 指定，
+ * 每条登记项都必须写明保留原因；白名单之外的差异一律按 ERROR 级别上报。
+ */
+function loadSchemaDiffWhitelist(filePath) {
+    var _a, _b, _c, _d;
+    const whitelist = new Map();
+    if (!filePath) {
+        return whitelist;
+    }
+    let raw;
+    try {
+        raw = fs_extra_1.default.readFileSync(filePath, 'utf8');
+    }
+    catch (e) {
+        console.error(picocolors_1.default.red(`[schema][ERROR] 白名单文件无法读取：${filePath}（${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}）`));
+        return whitelist;
+    }
+    try {
+        const parsed = JSON.parse(raw);
+        const entries = Array.isArray(parsed) ? parsed : (_b = parsed === null || parsed === void 0 ? void 0 : parsed.entries) !== null && _b !== void 0 ? _b : [];
+        for (const entry of entries) {
+            if (entry && typeof entry.key === 'string' && entry.key) {
+                whitelist.set(entry.key, (_c = entry.reason) !== null && _c !== void 0 ? _c : '');
+            }
+        }
+    }
+    catch (e) {
+        console.error(picocolors_1.default.red(`[schema][ERROR] 白名单文件解析失败：${filePath}（${(_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e}）`));
+    }
+    return whitelist;
+}
+function parseSchemaDiffItem(sql) {
+    const statement = sql.trim();
+    const indexDrop = /^DROP INDEX "[^"]+"\."([^"]+)"/.exec(statement);
+    if (indexDrop) {
+        return { sql: statement, key: `index:${indexDrop[1]}`, kind: 'index' };
+    }
+    const indexCreate = /^CREATE (?:UNIQUE )?INDEX "([^"]+)" ON "([^"]+)"/.exec(statement);
+    if (indexCreate) {
+        return { sql: statement, key: `index:${indexCreate[1]}`, kind: 'index', table: indexCreate[2] };
+    }
+    const columnDrop = /^ALTER TABLE "([^"]+)" DROP COLUMN "([^"]+)"/.exec(statement);
+    if (columnDrop) {
+        return {
+            sql: statement,
+            key: `col:${columnDrop[1]}.${columnDrop[2]}`,
+            kind: 'column',
+            table: columnDrop[1],
+            column: columnDrop[2],
+        };
+    }
+    const columnAdd = /^ALTER TABLE "([^"]+)" ADD "([^"]+)" (.+)$/.exec(statement);
+    if (columnAdd) {
+        return {
+            sql: statement,
+            key: `col:${columnAdd[1]}.${columnAdd[2]}`,
+            kind: 'column',
+            table: columnAdd[1],
+            column: columnAdd[2],
+            declaredType: columnAdd[3],
+        };
+    }
+    const columnAlter = /^ALTER TABLE "([^"]+)" ALTER COLUMN "([^"]+)"/.exec(statement);
+    if (columnAlter) {
+        return {
+            sql: statement,
+            key: `null:${columnAlter[1]}.${columnAlter[2]}`,
+            kind: 'columnNullability',
+            table: columnAlter[1],
+            column: columnAlter[2],
+        };
+    }
+    const constraint = /^ALTER TABLE "([^"]+)" (?:ADD|DROP) CONSTRAINT "([^"]+)"/.exec(statement);
+    if (constraint) {
+        return { sql: statement, key: `con:${constraint[1]}.${constraint[2]}`, kind: 'constraint', table: constraint[1] };
+    }
+    return { sql: statement, key: `other:${statement}`, kind: 'other' };
+}
+/**
+ * 读取差异涉及列的真实类型。时区对必须靠库里的事实确认，而不是按 SQL 文本猜。
+ */
+async function loadSchemaDiffColumnTypes(connection, items) {
+    const types = new Map();
+    const tables = Array.from(new Set(items.filter(item => item.kind === 'column' && item.table).map(item => item.table)));
+    if (!tables.length) {
+        return types;
+    }
+    const rows = await connection.query(`SELECT table_name, column_name, data_type FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = ANY($1)`, [tables]);
+    for (const row of rows) {
+        types.set(`${row.table_name}.${row.column_name}`, String(row.data_type).toLowerCase());
+    }
+    return types;
+}
 async function checkMigrationStatus(connection) {
+    var _a;
+    const mode = getSchemaDiffMode();
+    if (mode === 'off') {
+        return;
+    }
     const builderLog = await connection.driver.createSchemaBuilder().log();
-    if (builderLog.upQueries.length) {
+    const upQueries = builderLog.upQueries;
+    if (!upQueries.length) {
+        return;
+    }
+    if (mode === 'full') {
         log(picocolors_1.default.yellow('Your database schema does not match your current configuration. Generate a new migration for the following changes:'));
-        for (const query of builderLog.upQueries) {
+        for (const query of upQueries) {
             log(' - ' + picocolors_1.default.yellow(query.query));
+        }
+        return;
+    }
+    const whitelist = loadSchemaDiffWhitelist(process.env.VENDURE_SCHEMA_DIFF_WHITELIST);
+    const items = upQueries.map(query => parseSchemaDiffItem(query.query));
+    let columnTypes;
+    try {
+        columnTypes = await loadSchemaDiffColumnTypes(connection, items);
+    }
+    catch (e) {
+        columnTypes = new Map();
+        console.error(picocolors_1.default.red(`[schema][ERROR] 读取 information_schema 失败，时区对按未登记处理：${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}`));
+    }
+    // 预期差异：同一列的 DROP COLUMN + ADD COLUMN 成对出现，实体要 timestamp，
+    // 而库里实际是 timestamptz —— 这是时区治理的既定结果，DDL 无法对齐。
+    const droppedColumnKeys = new Set(items.filter(item => item.kind === 'column' && /DROP COLUMN/i.test(item.sql)).map(item => item.key));
+    const expectedItems = new Set();
+    let expectedPairs = 0;
+    items.forEach((item, index) => {
+        if (item.kind !== 'column' || !item.declaredType || !item.table || !item.column) {
+            return;
+        }
+        if (!/^TIMESTAMP/i.test(item.declaredType) || !droppedColumnKeys.has(item.key)) {
+            return;
+        }
+        if (columnTypes.get(`${item.table}.${item.column}`) === 'timestamp with time zone') {
+            expectedItems.add(index);
+            expectedPairs++;
+        }
+    });
+    const registered = [];
+    const unregistered = [];
+    items.forEach((item, index) => {
+        if (expectedItems.has(index)) {
+            return;
+        }
+        if (whitelist.has(item.key)) {
+            registered.push(item);
+        }
+        else {
+            unregistered.push(item);
+        }
+    });
+    log(picocolors_1.default.cyan(`[schema] ${items.length} 项差异：预期时区 ${expectedPairs} 组（${expectedItems.size} 项）/ ` +
+        `已登记 ${registered.length} 项 / 未登记 ${unregistered.length} 项`));
+    if (unregistered.length) {
+        console.error(picocolors_1.default.red(`[schema][ERROR] 未登记差异 ${unregistered.length} 项（白名单之外出现的结构漂移）：`));
+        for (const item of unregistered) {
+            console.error(picocolors_1.default.red(' - ' + item.sql));
         }
     }
 }

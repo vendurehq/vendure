@@ -189,6 +189,7 @@ const p42_channel_aftersales_rule_columns_1 = require("./migrations/p42-channel-
 const p43_rider_feishu_binding_1 = require("./migrations/p43-rider-feishu-binding");
 const p44_order_cancel_audit_1 = require("./migrations/p44-order-cancel-audit");
 const p45_cod_receipt_ledger_1 = require("./migrations/p45-cod-receipt-ledger");
+const p47_schema_diff_alignment_1 = require("./migrations/p47-schema-diff-alignment");
 const cod_receipt_entities_1 = require("./cod-receipt.entities");
 const cod_receipt_service_1 = require("./cod-receipt.service");
 const cod_receipt_resolver_1 = require("./cod-receipt.resolver");
@@ -472,6 +473,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p43_rider_feishu_binding_1.P43RiderFeishuBindingMigration,
             p44_order_cancel_audit_1.P44OrderCancelAuditMigration,
             p45_cod_receipt_ledger_1.P45CodReceiptLedgerMigration,
+            p47_schema_diff_alignment_1.P47SchemaDiffAlignmentMigration,
             cod_receipt_service_1.CodCollectionService,
             cod_refund_policy_service_1.CodRefundPolicyService,
             campus_dedupe_service_1.CampusDedupeService,

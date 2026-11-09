@@ -190,6 +190,7 @@ import { P42ChannelAfterSalesRuleColumnsMigration } from './migrations/p42-chann
 import { P43RiderFeishuBindingMigration } from './migrations/p43-rider-feishu-binding';
 import { P44OrderCancelAuditMigration } from './migrations/p44-order-cancel-audit';
 import { P45CodReceiptLedgerMigration } from './migrations/p45-cod-receipt-ledger';
+import { P47SchemaDiffAlignmentMigration } from './migrations/p47-schema-diff-alignment';
 import { CampusCodReceipt, CampusCodRefundLink } from './cod-receipt.entities';
 import { CodCollectionService } from './cod-receipt.service';
 import { CodReceiptAdminResolver } from './cod-receipt.resolver';
@@ -270,6 +271,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P43RiderFeishuBindingMigration,
         P44OrderCancelAuditMigration,
         P45CodReceiptLedgerMigration,
+        P47SchemaDiffAlignmentMigration,
         CodCollectionService,
         CodRefundPolicyService,
         CampusDedupeService,

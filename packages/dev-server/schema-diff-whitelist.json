@@ -1,0 +1,252 @@
+{
+  "entries": [
+    {
+      "key": "index:IDX_campus_cod_receipt_payment_confirmed",
+      "reason": "手工性能索引，﻿campus_cod_receipt(\"paymentId\")，元数据无对应；保留避免删除在用查询路径（部分索引）"
+    },
+    {
+      "key": "index:IDX_campus_cod_receipt_idem",
+      "reason": "手工性能索引，campus_cod_receipt(\"idempotencyKey\")，元数据无对应；保留避免删除在用查询路径（部分索引）"
+    },
+    {
+      "key": "index:IDX_campus_cod_receipt_collected",
+      "reason": "手工性能索引，campus_cod_receipt(\"collectedAt\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_stock_reservation_orderid",
+      "reason": "手工性能索引，stock_reservation(\"orderId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:IDX_campus_cod_refund_link_refund",
+      "reason": "手工性能索引，campus_cod_refund_link(\"refundId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:IDX_campus_cod_refund_link_payment",
+      "reason": "手工性能索引，campus_cod_refund_link(\"paymentId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_stocktake_task_posted_doc",
+      "reason": "手工性能索引，stocktake_task(\"tenantChannelId\", \"postedStockDocId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_payment_profile_method_profileid",
+      "reason": "手工性能索引，payment_profile_method(\"profileId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_coupon_reconcile_channel_run",
+      "reason": "手工性能索引，coupon_settlement_reconcile_diff(\"channelId\", \"runId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_coupon_reconcile_channel_severity",
+      "reason": "手工性能索引，coupon_settlement_reconcile_diff(\"channelId\", severity)，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_shop_template_version_templateId",
+      "reason": "手工性能索引，shop_template_version(\"templateId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_binding_template",
+      "reason": "手工性能索引，product_coupon_binding(\"couponTemplateId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_coupon_template_claim_code",
+      "reason": "手工性能索引，coupon_template(\"claimCode\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_binding_product",
+      "reason": "手工性能索引，product_coupon_binding(\"productId\", \"channelId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_in_store_bill_code",
+      "reason": "手工性能索引，in_store_bill(\"couponCode\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_in_store_bill_customer",
+      "reason": "手工性能索引，in_store_bill(\"customerId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_customer_coupon_customer_template",
+      "reason": "手工性能索引，customer_coupon(\"customerId\", \"templateId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_campus_review_alert_channel",
+      "reason": "手工性能索引，campus_review_alert(\"channelId\", status)，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:ux_coupon_settlement_coupon",
+      "reason": "UNIQUE 索引，coupon_settlement_order(\"customerCouponId\")，是唯一性约束的数据完整性保障，元数据无对应；保留"
+    },
+    {
+      "key": "index:ux_coupon_settlement_no",
+      "reason": "UNIQUE 索引，coupon_settlement_order(\"settlementNo\")，是唯一性约束的数据完整性保障，元数据无对应；保留"
+    },
+    {
+      "key": "index:idx_coupon_settlement_channel_status",
+      "reason": "手工性能索引，coupon_settlement_order(\"channelId\", status)，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_coupon_settlement_sale_order",
+      "reason": "手工性能索引，coupon_settlement_order(\"saleOrderId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_coupon_redemption_template",
+      "reason": "手工性能索引，coupon_redemption(\"templateId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_campus_track_event_channel_time",
+      "reason": "手工性能索引，campus_track_event(\"channelId\", \"createdAt\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_campus_track_event_channel_name",
+      "reason": "手工性能索引，campus_track_event(\"channelId\", \"eventName\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_campus_error_report_channel_time",
+      "reason": "手工性能索引，campus_error_report(\"channelId\", \"createdAt\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:IDX_campus_support_ticket_dedupe",
+      "reason": "手工性能索引，campus_support_ticket(\"dedupeKey\")，元数据无对应；保留避免删除在用查询路径（部分索引）"
+    },
+    {
+      "key": "index:IDX_campus_print_job_channel_created",
+      "reason": "手工性能索引，campus_print_job(\"channelId\", \"createdAt\" DESC)，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:IDX_campus_support_ticket_assignee",
+      "reason": "手工性能索引，campus_support_ticket(\"assigneeId\")，元数据无对应；保留避免删除在用查询路径（部分索引）"
+    },
+    {
+      "key": "index:idx_in_store_bill_shop",
+      "reason": "手工性能索引，in_store_bill(\"shopId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:IDX_coupon_daily_claim_channel_customer_template_date",
+      "reason": "手工性能索引，coupon_daily_claim_record(\"channelId\", \"customerId\", \"templateId\", \"claimDate\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_campus_support_ticket_aftersales",
+      "reason": "手工性能索引，campus_support_ticket(\"afterSalesRequestId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:IDX_coupon_fission_record_channel_invitee",
+      "reason": "手工性能索引，coupon_fission_record(\"channelId\", \"inviteeCustomerId\")，元数据无对应；保留避免删除在用查询路径"
+    },
+    {
+      "key": "index:idx_campus_ad_channel_slot",
+      "reason": "campus_ad_campaign(\"channelId\", slot, status) 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_2fdbe0767f419fa3b723493472",
+      "reason": "after_sales_timeout_task(status, \"dueAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_46803e3d60c3de02858f2fd87e",
+      "reason": "content_item(\"deletedAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_1bc1bb6361b74a4b3518dfe6cc",
+      "reason": "in_store_bill(\"channelId\", \"billedAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_86bc376c56af8cefd41a847a95",
+      "reason": "job_record(\"createdAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_e0624b66e3ec03a4bbbfd0c7e0",
+      "reason": "message_delivery(\"customerId\", \"readAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_af13739f4962eab899bdff34be",
+      "reason": "order(\"orderPlacedAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_4aae2bd30d0e59a94ca01a9122",
+      "reason": "points_order_payment(\"channelId\", \"refundStatus\", \"updatedAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:idx_campus_rider_earning_rider_created",
+      "reason": "rider_earning(\"riderCustomerId\", \"createdAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:idx_campus_rider_earning_channel_created",
+      "reason": "rider_earning(\"channelId\", \"createdAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_43e8b210e76fef208782cd0220",
+      "reason": "tcm_follow_up_task(status, \"dueAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "index:IDX_5d3ac6a5d77a17fe071dffdc0c",
+      "reason": "wechat_support_ticket(status, \"createdAt\") 同名索引定义漂移，属列类型差异的连带产物，暂不重建"
+    },
+    {
+      "key": "col:campus_review_alert.tags",
+      "reason": "campus_review_alert.tags 库内为 jsonb（SQL 迁移建），实体声明 text；执行会把 jsonb 降级成 text 并破坏 JSON 查询"
+    },
+    {
+      "key": "col:campus_fulfillment_config.deliveryFeeTiers",
+      "reason": "campus_fulfillment_config.deliveryFeeTiers 库内为 jsonb（SQL 迁移建），实体声明 text；执行会把 jsonb 降级成 text 并破坏 JSON 查询"
+    },
+    {
+      "key": "col:channel.customFieldsWaimaisoldoutautorestore",
+      "reason": "channel.customFieldsWaimaisoldoutautorestore 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:tenant_member.must_change_password",
+      "reason": "tenant_member.must_change_password 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:tenant_member.shipping_profile_ids",
+      "reason": "tenant_member.shipping_profile_ids 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:after_sales_request.slaPausedAt",
+      "reason": "after_sales_request.slaPausedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:after_sales_request.slaPausedMs",
+      "reason": "after_sales_request.slaPausedMs 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:after_sales_request.autoRuleAppliedAt",
+      "reason": "after_sales_request.autoRuleAppliedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:after_sales_request.autoRuleId",
+      "reason": "after_sales_request.autoRuleId 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:after_sales_request.slaDeadlineAt",
+      "reason": "after_sales_request.slaDeadlineAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:after_sales_request.slaPausedReason",
+      "reason": "after_sales_request.slaPausedReason 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:service_voucher.deletedAt",
+      "reason": "service_voucher.deletedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:voucher_booking.deletedAt",
+      "reason": "voucher_booking.deletedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:subscription_occurrence.deletedAt",
+      "reason": "subscription_occurrence.deletedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:subscription_plan.deletedAt",
+      "reason": "subscription_plan.deletedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "col:subscription.deletedAt",
+      "reason": "subscription.deletedAt 未进 TypeORM 元数据，但运行时代码仍引用，删列需单独审批"
+    },
+    {
+      "key": "con:campus_review_alert_rule.campus_review_alert_rule_channelId_key",
+      "reason": "campus_review_alert_rule 由 p10-review-alert 迁移显式创建的「每渠道一条规则」唯一约束，属业务不变量，不随元数据删除"
+    }
+  ]
+}
