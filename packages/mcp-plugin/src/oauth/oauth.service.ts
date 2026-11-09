@@ -720,7 +720,7 @@ export class McpOauthService {
         const now = new Date();
         const accessPlaintext = randomToken();
         const refreshPlaintext = randomToken();
-        const createdSession = await this.grantSessions.createVendureSession(ctx, user);
+        const createdSession = await this.grantSessions.createVendureSession(ctx, user, actorType);
         await this.connection.getRepository(ctx, McpOauthGrant).save(
             new McpOauthGrant({
                 accessTokenHash: this.hashLookup(accessPlaintext),
