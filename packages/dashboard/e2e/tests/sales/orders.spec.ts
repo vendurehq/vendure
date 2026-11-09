@@ -203,15 +203,17 @@ test.describe('Orders', () => {
         const { productVariants } = await client.gql(
             `query { productVariants(options: { take: 1 }) { items { id } } }`,
         );
+        const { customers } = await client.gql(`query { customers(options: { take: 1 }) { items { id } } }`);
+        const customerId: string = customers.items[0].id;
         await client.gql(
             `
-            mutation ($orderId: ID!, $variantId: ID!) {
+            mutation ($orderId: ID!, $variantId: ID!, $customerId: ID!) {
                 addItemToDraftOrder(orderId: $orderId, input: {
-                    productVariantId: $variantId, quantity: 1
+                    productVariantId: $variantId, quantity: 1, customFields: { giftFromId: $customerId }
                 }) { ... on Order { id } ... on ErrorResult { errorCode message } }
             }
         `,
-            { orderId, variantId: productVariants.items[0].id },
+            { orderId, variantId: productVariants.items[0].id, customerId },
         );
 
         await page.goto(`/orders/draft/${orderId}`);
@@ -227,6 +229,14 @@ test.describe('Orders', () => {
         const body = await (await adjustResponse).json();
         expect(body.errors).toBeUndefined();
         expect(body.data.adjustDraftOrderLine.__typename).toBe('Order');
+
+        // The relation must survive the quantity change rather than being cleared
+        const { order } = await client.gql(
+            `query ($id: ID!) { order(id: $id) { lines { quantity customFields { giftFrom { id } } } } }`,
+            { id: orderId },
+        );
+        expect(order.lines[0].quantity).toBe(2);
+        expect(order.lines[0].customFields.giftFrom?.id).toBe(customerId);
     });
 
     // #5253 — eligible shipping methods must refresh after a line is added, without
