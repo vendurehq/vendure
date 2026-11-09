@@ -429,6 +429,22 @@ BEGIN
         ALTER TABLE "campus_ad_campaign" ALTER COLUMN "status" SET NOT NULL;
     END IF;
 END $$`,
+    `DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM "campus_review_alert" WHERE "couponStatus" IS NULL) THEN
+        RAISE NOTICE '[p47] campus_review_alert.couponStatus 存在 NULL，跳过 SET NOT NULL';
+    ELSE
+        ALTER TABLE "campus_review_alert" ALTER COLUMN "couponStatus" SET NOT NULL;
+    END IF;
+END $$`,
+    `DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM "campus_review_alert" WHERE "status" IS NULL) THEN
+        RAISE NOTICE '[p47] campus_review_alert.status 存在 NULL，跳过 SET NOT NULL';
+    ELSE
+        ALTER TABLE "campus_review_alert" ALTER COLUMN "status" SET NOT NULL;
+    END IF;
+END $$`,
 ];
 // 回滚语句（手工执行，顺序：先恢复索引/列类型，再删约束）
 exports.p47RollbackSql = [
@@ -587,6 +603,8 @@ exports.p47RollbackSql = [
     `ALTER TABLE "campus_fulfillment_config" ALTER COLUMN "trustServiceEnabled" SET NOT NULL`,
     `ALTER TABLE "campus_fulfillment_config" ALTER COLUMN "trustTimeEnabled" SET NOT NULL`,
     `ALTER TABLE "campus_ad_campaign" ALTER COLUMN "status" SET NOT NULL`,
+    `ALTER TABLE "campus_review_alert" ALTER COLUMN "couponStatus" DROP NOT NULL`,
+    `ALTER TABLE "campus_review_alert" ALTER COLUMN "status" DROP NOT NULL`,
 ];
 let P47SchemaDiffAlignmentMigration = class P47SchemaDiffAlignmentMigration {
     constructor(connection) {

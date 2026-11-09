@@ -17,6 +17,9 @@ exports.SubscriptionTablesMigration = void 0;
 // 生产（PostgreSQL）与本地开发（SQLite）都可能关闭 synchronize，故用 IF NOT EXISTS 兜底；
 // 列名/类型与 subscription-plan/subscription/subscription-occurrence 实体及 TypeORM 默认命名对齐。
 // simple-json 列统一用 text 承载。建表失败不阻塞启动，等待下次启动重试。
+// 注意：本迁移只建表，不建索引。框架命名索引（IDX_*）由实体 @Index 元数据统一维护，
+// 手工命名的 idx_subscription_* 会与框架索引重复，p47 每次启动都会删除它们，
+// 若此处继续创建会形成「删了又建」的互踩，导致启动差异告警长期非零。
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
@@ -50,8 +53,6 @@ let SubscriptionTablesMigration = class SubscriptionTablesMigration {
                 `${Q('periodPrice')} integer NOT NULL, ` +
                 `${Q('templateItems')} text NULL, ` +
                 `${Q('enabled')} boolean NOT NULL DEFAULT ${pg ? 'true' : '1'})`);
-            await queryRunner.query(`CREATE INDEX IF NOT EXISTS ${Q('idx_subscription_plan_channel_shop')} ` +
-                `ON ${Q('subscription_plan')} (${Q('channelId')}, ${Q('shopId')})`);
             await queryRunner.query(`CREATE TABLE IF NOT EXISTS ${Q('subscription')} (` +
                 base +
                 `${Q('channelId')} integer NOT NULL, ` +
@@ -66,8 +67,6 @@ let SubscriptionTablesMigration = class SubscriptionTablesMigration {
                 `${Q('purchasedTotal')} integer NOT NULL DEFAULT 0, ` +
                 `${Q('payOrderId')} integer NULL, ` +
                 `${Q('status')} varchar NOT NULL DEFAULT 'draft')`);
-            await queryRunner.query(`CREATE INDEX IF NOT EXISTS ${Q('idx_subscription_channel_customer')} ` +
-                `ON ${Q('subscription')} (${Q('channelId')}, ${Q('customerId')})`);
             await queryRunner.query(`CREATE TABLE IF NOT EXISTS ${Q('subscription_occurrence')} (` +
                 base +
                 `${Q('channelId')} integer NOT NULL, ` +
@@ -79,8 +78,6 @@ let SubscriptionTablesMigration = class SubscriptionTablesMigration {
                 `${Q('orderCode')} varchar NULL, ` +
                 `${Q('skipReason')} varchar NULL, ` +
                 `${Q('status')} varchar NOT NULL DEFAULT 'pending')`);
-            await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS ${Q('idx_subscription_occurrence_period')} ` +
-                `ON ${Q('subscription_occurrence')} (${Q('subscriptionId')}, ${Q('periodNo')})`);
             for (const [joinTable, ownerCol] of [
                 ['subscription_plan_channels_channel', 'subscriptionPlanId'],
                 ['subscription_channels_channel', 'subscriptionId'],
@@ -90,10 +87,6 @@ let SubscriptionTablesMigration = class SubscriptionTablesMigration {
                     `${Q(ownerCol)} integer NOT NULL, ` +
                     `${Q('channelId')} integer NOT NULL, ` +
                     `PRIMARY KEY (${Q(ownerCol)}, ${Q('channelId')}))`);
-                await queryRunner.query(`CREATE INDEX IF NOT EXISTS ${Q(`idx_${joinTable}_${ownerCol}`)} ` +
-                    `ON ${Q(joinTable)} (${Q(ownerCol)})`);
-                await queryRunner.query(`CREATE INDEX IF NOT EXISTS ${Q(`idx_${joinTable}_channelId`)} ` +
-                    `ON ${Q(joinTable)} (${Q('channelId')})`);
             }
         }
         catch (e) {
