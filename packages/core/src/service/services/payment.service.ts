@@ -32,6 +32,7 @@ import { PaymentMethod } from '../../entity/payment-method/payment-method.entity
 import { Refund } from '../../entity/refund/refund.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { PaymentStateTransitionEvent } from '../../event-bus/events/payment-state-transition-event';
+import { RefundEvent } from '../../event-bus/events/refund-event';
 import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-transition-event';
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { PaymentStateMachine } from '../helpers/payment-state-machine/payment-state-machine';
@@ -359,6 +360,9 @@ export class PaymentService {
      * validated before any Refund is created, so an invalid target rejects the whole operation
      * without any funds having been moved.
      *
+     * A {@link RefundEvent} is published for every Refund created, including those created before
+     * a later target fails.
+     *
      * When creating a Refund in the context of an Order, it is
      * preferable to use the {@link OrderService} `refundOrder()` method, which performs additional
      * validation.
@@ -391,6 +395,15 @@ export class PaymentService {
         }
 
         const createdRefunds: Refund[] = [];
+        // Refunds whose state transition succeeded. A RefundEvent is published for each of them
+        // once the loop has finished, so that no event is published for a Refund which is then
+        // rolled back because a later target threw.
+        const completedRefunds: Refund[] = [];
+        const publishRefundEvents = async () => {
+            for (const refund of completedRefunds) {
+                await this.eventBus.publish(new RefundEvent(ctx, order, refund, 'created'));
+            }
+        };
         for (let i = 0; i < targets.length; i++) {
             let result: { refund: Refund; transitionError?: RefundStateTransitionError };
             try {
@@ -416,6 +429,7 @@ export class PaymentService {
                     undefined,
                     e?.stack,
                 );
+                await publishRefundEvents();
                 return new RefundIncompleteError({
                     refunds: createdRefunds,
                     failedTargetIndex: i,
@@ -427,6 +441,7 @@ export class PaymentService {
                 // Refunds created by earlier targets are deliberately left in place. A
                 // PaymentMethodHandler or RefundDestinationStrategy may already have moved real
                 // funds, and discarding the Refund would lose the record of it. See #4686.
+                await publishRefundEvents();
                 if (!useTargets || i === 0) {
                     return result.transitionError;
                 }
@@ -436,7 +451,9 @@ export class PaymentService {
                     failureReason: result.transitionError.transitionError,
                 });
             }
+            completedRefunds.push(result.refund);
         }
+        await publishRefundEvents();
         return createdRefunds[0];
     }
 
