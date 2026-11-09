@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import { Session } from '@vendure/core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
@@ -7,24 +7,24 @@ import { McpPluginOptions } from '../types';
 import { McpAccessTokenExpiredError } from './oauth-error';
 import { McpOauthMetadataService } from './oauth-metadata.service';
 import { McpOauthService } from './oauth.service';
-import { deriveHashKey, hashToken } from './token-hash';
+import { deriveHashKey, hashLookupToken, hashToken } from './token-hash';
 
 const ISSUER = 'https://shop.example.com';
 
 function createService(
     opts: { oauth?: McpPluginOptions['oauth']; shopAccess?: McpPluginOptions['shopAccess'] } = {},
-    customDeps: Partial<{ connection: any; sessionService: any }> = {},
+    customDeps: Partial<{ connection: any }> = {},
 ): McpOauthService {
     const options: McpPluginOptions = {
         oauth: opts.oauth === undefined ? undefined : { issuer: ISSUER, ...opts.oauth },
         shopAccess: opts.shopAccess,
     };
-    // The methods exercised here validate input / read options before touching any
-    // injected dependency, so the DB/session deps (and the CIMD resolver) can be omitted.
+    // Most methods exercised here validate input / read options before touching any injected
+    // dependency, so the deps can be omitted. The grant lookup tests pass a mocked connection.
     const deps = {
         connection: customDeps.connection ?? (undefined as any),
         requestContextService: undefined as any,
-        sessionService: customDeps.sessionService ?? (undefined as any),
+        sessionService: undefined as any,
         channelService: undefined as any,
         userService: undefined as any,
         options: resolveMcpPluginOptions(options),
@@ -132,12 +132,12 @@ describe('McpOauthService findGrantAndSessionToken', () => {
         const res = await service.findGrantAndSessionToken({} as any, 'raw-access-token');
         expect(res).toEqual({ grant: mockGrant, sessionToken: 'sess-token-abc' });
         expect(grantRepo.findOne).toHaveBeenCalledWith({
-            where: { accessTokenHash: expect.any(String) },
+            where: { accessTokenHash: hashLookupToken('raw-access-token', deriveHashKey('s')) },
             relations: { oauthClient: true },
         });
         expect(sessionRepo.findOne).toHaveBeenCalledWith({
             where: { id: 'sess-uuid-1' },
-            select: ['id', 'token'],
+            select: { id: true, token: true },
         });
     });
 

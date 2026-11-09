@@ -475,7 +475,11 @@ export class McpOauthService {
         }
     }
 
-    /** Looks up the grant and its Vendure session token, supporting both numeric and UUID id strategies on Postgres. */
+    /**
+     * Looks up the session in a second query rather than joining it: with UuidIdStrategy on Postgres, `Session.id` is a
+     * uuid column while `vendureSessionId` is varchar, and Postgres has no operator comparing the two. A missing session
+     * still returns the grant, so the caller can replace the session.
+     */
     private async findGrantAndSessionToken(
         ctx: RequestContext,
         accessToken: string,
@@ -491,7 +495,7 @@ export class McpOauthService {
         if (grant.vendureSessionId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: grant.vendureSessionId },
-                select: ['id', 'token'],
+                select: { id: true, token: true },
             });
             sessionToken = session?.token ?? null;
         }
