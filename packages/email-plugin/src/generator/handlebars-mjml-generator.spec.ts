@@ -14,7 +14,7 @@ const bodyWith = (content: string) =>
 async function generatorWithPartial(name: string, content: string) {
     const generator = new HandlebarsMjmlGenerator();
     await generator.onInit({
-        templateLoader: { loadPartials: async () => [{ name, content }] },
+        templateLoader: { loadPartials: () => Promise.resolve([{ name, content }]) },
     } as unknown as InitializedEmailPluginOptions);
     return generator;
 }
@@ -37,12 +37,9 @@ describe('HandlebarsMjmlGenerator', () => {
 
     // OSS-946 — every character that Handlebars would escape stays as typed
     it('keeps <, >, quotes, backticks and = in the subject as typed', async () => {
-        const { subject } = await generator.generate(
-            'noreply@test.com',
-            '{{ name }}',
-            emptyTemplate,
-            { name: `<b>"it's" a=\`b\`</b>` },
-        );
+        const { subject } = await generator.generate('noreply@test.com', '{{ name }}', emptyTemplate, {
+            name: `<b>"it's" a=\`b\`</b>`,
+        });
 
         expect(subject).toBe(`<b>"it's" a=\`b\`</b>`);
     });
@@ -60,16 +57,16 @@ describe('HandlebarsMjmlGenerator', () => {
     // OSS-946 — Handlebars caches a partial compiled by the first template that uses it.
     // A partial first used in the subject must not be cached without escaping for the body.
     it('HTML-escapes a partial in the body after the subject used it', async () => {
-        const generator = await generatorWithPartial('subjectFirstShopName', '{{ shopName }}');
+        const generatorUsingPartial = await generatorWithPartial('subjectFirstShopName', '{{ shopName }}');
         const templateVars = { shopName: '<script>alert(1)</script>' };
 
-        const first = await generator.generate(
+        const first = await generatorUsingPartial.generate(
             'noreply@test.com',
             '{{> subjectFirstShopName }}',
             emptyTemplate,
             templateVars,
         );
-        const second = await generator.generate(
+        const second = await generatorUsingPartial.generate(
             'noreply@test.com',
             'Subject',
             bodyWith('{{> subjectFirstShopName }}'),
@@ -83,16 +80,16 @@ describe('HandlebarsMjmlGenerator', () => {
 
     // OSS-946 — the reverse order: a partial the body compiled first stays unescaped in the subject
     it('does not HTML-escape a partial in the subject after the body used it', async () => {
-        const generator = await generatorWithPartial('bodyFirstShopName', '{{ shopName }}');
+        const generatorUsingPartial = await generatorWithPartial('bodyFirstShopName', '{{ shopName }}');
         const templateVars = { shopName: 'Mac & Cheese' };
 
-        const first = await generator.generate(
+        const first = await generatorUsingPartial.generate(
             'noreply@test.com',
             'Subject',
             bodyWith('{{> bodyFirstShopName }}'),
             templateVars,
         );
-        const second = await generator.generate(
+        const second = await generatorUsingPartial.generate(
             'noreply@test.com',
             'Your order from {{> bodyFirstShopName }}',
             emptyTemplate,
