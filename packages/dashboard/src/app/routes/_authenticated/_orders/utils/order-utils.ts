@@ -93,7 +93,7 @@ export function getSeller<T>(order: { channels: Array<{ code: string; seller: T 
     return sellerChannel?.seller;
 }
 
-type CustomFieldInputConfig = { name: string; type: string; list?: boolean };
+type CustomFieldInputConfig = Parameters<typeof getGraphQlInputName>[0];
 
 /**
  * Converts OrderLine custom field values, as returned by the order queries, to the shape of
