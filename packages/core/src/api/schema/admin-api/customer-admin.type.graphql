@@ -1,4 +1,6 @@
 type Customer implements Node {
     groups: [CustomerGroup!]!
     history(options: HistoryEntryListOptions): HistoryEntryList!
+    "The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0"
+    identityScope: String!
 }

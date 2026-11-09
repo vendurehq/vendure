@@ -9,6 +9,7 @@ import { MockConfigService } from '../../../config/config.service.mock';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Customer } from '../../../entity/customer/customer.entity';
 import { ChannelService } from '../../services/channel.service';
+import { IdentityScopeService } from '../identity-scope/identity-scope.service';
 import { CustomerService } from '../../services/customer.service';
 
 import { CustomerChannelAssignmentService } from './customer-channel-assignment.service';
@@ -48,6 +49,7 @@ describe('CustomerChannelAssignmentService', () => {
                 { provide: ConfigService, useClass: MockConfigService },
                 { provide: CustomerService, useValue: { findOneByUserId } },
                 { provide: ChannelService, useValue: { assignToChannels } },
+                { provide: IdentityScopeService, useValue: { isCustomerInChannelScope: () => true } },
             ],
         }).compile();
 
