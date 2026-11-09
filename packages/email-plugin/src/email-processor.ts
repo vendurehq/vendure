@@ -72,6 +72,7 @@ export class EmailProcessor {
             );
             emailDetails = {
                 ...generated,
+                text: data.text,
                 recipient: data.recipient,
                 attachments: deserializeAttachments(data.attachments),
                 cc: data.cc,

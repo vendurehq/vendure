@@ -42,7 +42,7 @@ implements a loyalty points system, you could name it `@acme/vendure-plugin-loya
 ### Dependencies
 
 Your plugin should **not** include Vendure packages as dependencies in the `package.json` file. You _may_ declare them as a peer dependencies, but this is not
-a must. The same goes for any of the transitive dependencies of Vendure core such as `@nestjs/graphql`, `@nestjs/common`, `typeorm` etc. You can assume
+a must. The same goes for any of the transitive dependencies of the Vendure Framework such as `@nestjs/graphql`, `@nestjs/common`, `typeorm` etc. You can assume
 that these dependencies will be available in the Vendure project that uses your plugin.
 
 As for version compatibility, you should use the

@@ -68,7 +68,7 @@ export class ZoneService {
             refresh: {
                 fn: ctx =>
                     this.connection.getRepository(ctx, Zone).find({
-                        relations: ['members'],
+                        relations: { members: true },
                     }),
                 defaultArgs: [RequestContext.empty()],
             },
@@ -97,7 +97,7 @@ export class ZoneService {
             .getRepository(ctx, Zone)
             .findOne({
                 where: { id: zoneId },
-                relations: ['members'],
+                relations: { members: true },
             })
             .then(zone => {
                 if (zone) {

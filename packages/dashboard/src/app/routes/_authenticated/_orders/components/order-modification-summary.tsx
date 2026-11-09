@@ -3,6 +3,7 @@ import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import { Textarea } from '@/vdb/components/ui/textarea.js';
 import { Trans } from '@lingui/react/macro';
 import { ResultOf, VariablesOf } from 'gql.tada';
+
 import { modifyOrderDocument, orderDetailDocument } from '../orders.graphql.js';
 
 type OrderFragment = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
@@ -63,7 +64,7 @@ export function OrderModificationSummary({
             }
             return null;
         })
-        .filter(Boolean) as Array<LineAdjustment>;
+        .filter(Boolean) as LineAdjustment[];
 
     // Added lines: from addItems
     const addedLines = (modifyOrderInput.addItems ?? [])

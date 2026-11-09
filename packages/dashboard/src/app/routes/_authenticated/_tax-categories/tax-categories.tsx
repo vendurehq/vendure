@@ -1,9 +1,9 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { DeleteTaxCategoriesBulkAction } from './components/tax-category-bulk-actions.js';
@@ -15,6 +15,7 @@ export const Route = createFileRoute('/_authenticated/_tax-categories/tax-catego
 });
 
 function TaxCategoryListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             pageId="tax-category-list"
@@ -25,6 +26,7 @@ function TaxCategoryListPage() {
                 name: true,
                 isDefault: true,
             }}
+            searchPlaceholder={t`Search tax categories...`}
             onSearchTermChange={searchTerm => {
                 if (searchTerm === '') {
                     return {};
@@ -39,11 +41,13 @@ function TaxCategoryListPage() {
                     cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,
                 },
                 isDefault: {
-                    cell: ({ row }) => (
-                        <Badge variant={row.original.isDefault ? 'success' : 'secondary'}>
-                            <Trans>{row.original.isDefault ? 'Yes' : 'No'}</Trans>
-                        </Badge>
-                    ),
+                    // Only the single default row is noteworthy — the rest stay blank.
+                    cell: ({ row }) =>
+                        row.original.isDefault ? (
+                            <StatusBadge tone="info">
+                                <Trans>Default</Trans>
+                            </StatusBadge>
+                        ) : null,
                 },
             }}
             bulkActions={[

@@ -1,6 +1,6 @@
 {
     "name": "@vendure/graphiql-plugin",
-    "version": "3.7.3",
+    "version": "3.8.1",
     "license": "GPL-3.0-or-later",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -9,12 +9,14 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/vendurehq/vendure"
+        "url": "git+https://github.com/vendurehq/vendure.git",
+        "directory": "packages/graphiql-plugin"
     },
     "scripts": {
         "watch": "tsc -p ./tsconfig.build.json --watch",
-        "build": "rimraf dist && npm run build:app && tsc -p ./tsconfig.build.json",
+        "build": "rimraf dist && vite build && tsc -p ./tsconfig.build.json",
         "build:app": "vite build",
+        "ci": "npm run build",
         "dev": "vite",
         "lint": "eslint --fix .",
         "test": "vitest --config vitest.config.mts --run",
@@ -33,8 +35,8 @@
         "@types/express": "^5.0.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
-        "@vendure/common": "3.7.3",
-        "@vendure/core": "3.7.3",
+        "@vendure/common": "3.8.1",
+        "@vendure/core": "3.8.1",
         "@vitejs/plugin-react": "^5.0.4",
         "graphiql": "^4.0.2",
         "react": "^19.0.0",

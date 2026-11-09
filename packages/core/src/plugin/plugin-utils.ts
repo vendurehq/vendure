@@ -1,5 +1,4 @@
 import { RequestHandler } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 
 import { Logger } from '../config';
 
@@ -35,6 +34,10 @@ import { Logger } from '../config';
  * @docsPage Plugin Utilities
  */
 export function createProxyHandler(options: ProxyOptions): RequestHandler {
+    // Required lazily so that the http-proxy-middleware package is only loaded
+    // when a plugin actually proxies a route.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createProxyMiddleware } = require('http-proxy-middleware');
     const route = options.route.charAt(0) === '/' ? options.route : '/' + options.route;
     const proxyHostname = options.hostname || 'localhost';
     const middleware = createProxyMiddleware({

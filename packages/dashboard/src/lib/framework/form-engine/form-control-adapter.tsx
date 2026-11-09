@@ -11,7 +11,7 @@ import {
     ConfigurableFieldDef,
     DashboardFormComponent,
 } from '@/vdb/framework/form-engine/form-engine-types.js';
-import { isCustomFieldConfig } from '@/vdb/framework/form-engine/utils.js';
+import { isCustomFieldConfig, resolveInputComponentId } from '@/vdb/framework/form-engine/utils.js';
 import { DefaultInputForType } from './default-input-for-type.js';
 import { selectListInputComponent } from './list-input-selection.js';
 import { transformValue, ValueMode } from './value-transformers.js';
@@ -151,7 +151,7 @@ function renderListField(
 export function FormControlAdapter({ fieldDef, field, valueMode, ...rest }: Readonly<FormControlAdapterProps> & { placeholder?: string }) {
     const isList = fieldDef.list ?? false;
     const isReadonly = isCustomFieldConfig(fieldDef) ? fieldDef.readonly === true : false;
-    const componentId = fieldDef.ui?.component as string | undefined;
+    const componentId = resolveInputComponentId(fieldDef);
 
     const fieldWithTransform = useMemo(() => {
         const fieldOnChange = field.onChange.bind(field);

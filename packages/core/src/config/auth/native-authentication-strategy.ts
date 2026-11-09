@@ -113,14 +113,14 @@ export class NativeAuthenticationStrategy implements AuthenticationStrategy<Nati
     async verifyUserPassword(ctx: RequestContext, userId: ID, password: string): Promise<boolean> {
         const user = await this.connection.getRepository(ctx, User).findOne({
             where: { id: userId },
-            relations: ['authenticationMethods'],
+            relations: { authenticationMethods: true },
         });
         const nativeAuthMethod = user?.getNativeAuthenticationMethod(false);
         const storedHash = nativeAuthMethod
             ? (
                   await this.connection.getRepository(ctx, NativeAuthenticationMethod).findOne({
                       where: { id: nativeAuthMethod.id },
-                      select: ['passwordHash'],
+                      select: { passwordHash: true },
                   })
               )?.passwordHash
             : undefined;

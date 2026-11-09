@@ -11,6 +11,7 @@ import { Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Plus } from 'lucide-react';
 import { useState } from 'react';
+
 import { addressFragment } from '../../_customers/customers.graphql.js';
 import { getCustomerAddressesDocument } from '../orders.graphql.js';
 
@@ -79,7 +80,7 @@ export function CustomerAddressSelector({
         placeholderData: undefined,
     });
 
-    const addresses: ResultOf<typeof addressFragment>[] = data?.customer?.addresses || [];
+    const addresses: Array<ResultOf<typeof addressFragment>> = data?.customer?.addresses || [];
     // Existing addresses are only selectable when a customer with saved addresses is present.
     // Otherwise, the admin can only enter a new ad-hoc address (matching the Angular admin-ui).
     const canSelectExisting = !!customerId && addresses.length > 0;

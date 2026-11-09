@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filteren op facetwaarden",
+        "args": {
+          "facetValueIds": {
+            "label": "Facetwaarden"
+          },
+          "containsAny": {
+            "label": "Bevat een van de waarden",
+            "description": "Indien aangevinkt moeten productvarianten ten minste een van de geselecteerde facetwaarden hebben. Indien niet aangevinkt moet de variant alle geselecteerde waarden hebben."
+          },
+          "combineWithAnd": {
+            "label": "Combinatiemodus",
+            "description": "Als dit filter met andere filters wordt gecombineerd, moet dan aan alle voorwaarden worden voldaan (AND) of slechts aan een daarvan (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filteren op productvariantnaam",
+        "args": {
+          "combineWithAnd": {
+            "label": "Combinatiemodus",
+            "description": "Als dit filter met andere filters wordt gecombineerd, moet dan aan alle voorwaarden worden voldaan (AND) of slechts aan een daarvan (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Productvarianten handmatig selecteren",
+        "args": {
+          "variantIds": {
+            "label": "Productvarianten"
+          },
+          "combineWithAnd": {
+            "label": "Combinatiemodus",
+            "description": "Als dit filter met andere filters wordt gecombineerd, moet dan aan alle voorwaarden worden voldaan (AND) of slechts aan een daarvan (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Producten handmatig selecteren",
+        "args": {
+          "productIds": {
+            "label": "Producten"
+          },
+          "combineWithAnd": {
+            "label": "Combinatiemodus",
+            "description": "Als dit filter met andere filters wordt gecombineerd, moet dan aan alle voorwaarden worden voldaan (AND) of slechts aan een daarvan (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Standaardduplicator voor producten",
+        "args": {
+          "includeVariants": {
+            "label": "Varianten opnemen"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Standaardduplicator voor collecties"
+      },
+      "facet-duplicator": {
+        "description": "Standaardduplicator voor facetten",
+        "args": {
+          "includeFacetValues": {
+            "label": "Facetwaarden opnemen"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Standaardduplicator voor promoties"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Fulfilmentgegevens handmatig invoeren"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Een dummy-betaalprovider die uitsluitend bedoeld is voor testen en ontwikkeling.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autoriseren en afhandelen in 1 stap",
+            "description": "Indien ingeschakeld worden betalingen aangemaakt met de status \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Voorbeeld-betaalprovider"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Bestelling korten met een vast bedrag"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine korten met een vast bedrag"
+      },
+      "order_percentage_discount": {
+        "description": "Bestelling korten met { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Producten met deze facetten korten met { discount }%"
+      },
+      "products_percentage_discount": {
+        "description": "Opgegeven producten korten met { discount }%",
+        "args": {
+          "productVariantIds": {
+            "label": "Productvarianten"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Gratis verzending"
+      },
+      "buy_x_get_y_free": {
+        "description": "Koop X producten, ontvang Y producten gratis"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Als het bestelbedrag hoger is dan { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Koop ten minste { minimum } producten met de opgegeven facetten"
+      },
+      "contains_products": {
+        "description": "Koop ten minste { minimum } van de opgegeven producten",
+        "args": {
+          "productVariantIds": {
+            "label": "Productvarianten"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Klant is lid van de opgegeven groep",
+        "args": {
+          "customerGroupId": {
+            "label": "Klantengroep"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Koop X producten, ontvang Y producten gratis",
+        "args": {
+          "variantIdsX": {
+            "label": "Koop amountX van deze varianten"
+          },
+          "variantIdsY": {
+            "label": "Ontvang amountY van deze varianten gratis"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Standaard verzendcalculator met vast tarief",
+        "args": {
+          "rate": {
+            "label": "Verzendprijs"
+          },
+          "includesTax": {
+            "label": "Prijs is inclusief belasting",
+            "options": {
+              "include": {
+                "label": "Inclusief belasting"
+              },
+              "exclude": {
+                "label": "Exclusief belasting"
+              },
+              "auto": {
+                "label": "Automatisch (op basis van kanaal)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Belastingtarief"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Standaard controle van verzendgeschiktheid",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimale bestelwaarde",
+            "description": "De bestelling komt alleen in aanmerking als het totaal groter dan of gelijk aan deze waarde is"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+---
+title: "McpDnsRebindingOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="209" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Protects the MCP transport against DNS rebinding. Both options take bare hostnames, never
+full URLs or header values. Omitting an option, or giving it an empty array, applies no
+check at all.
+
+```ts title="Signature"
+interface McpDnsRebindingOptions {
+    allowedHosts?: string[];
+    allowedOrigins?: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### allowedHosts
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+Hostnames the `Host` header of an MCP request may name. Drop the port, and bracket an
+IPv6 address, for example `[::1]`. A request naming any other host is refused with HTTP
+`403` before the MCP handler runs.
+### allowedOrigins
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+Hostnames the `Origin` header of an MCP request may name. Drop the scheme and the port, and
+bracket an IPv6 address, for example `[::1]`. A request naming any other origin is refused
+with HTTP `403` before the MCP handler runs.
+
+A request with no `Origin` header passes, since non-browser MCP clients don't send one, so
+this option constrains browsers only, not every caller.
+
+
+</div>

@@ -16,6 +16,7 @@ import {
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -47,11 +48,12 @@ import {
     unsetShippingAddressForDraftOrderDocument,
 } from './orders.graphql.js';
 import { loadDraftOrder } from './utils/order-detail-loaders.js';
+import { toCustomFieldsInput } from './utils/order-utils.js';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders_/draft/$id')({
     component: DraftOrderPage,
     loader: ({ context, params }) => loadDraftOrder(context, params),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function DraftOrderPage() {
@@ -59,6 +61,7 @@ function DraftOrderPage() {
     const { t } = useLingui();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const orderLineCustomFields = useCustomFieldConfig('OrderLine');
 
     const { entity, refreshEntity, form } = useDetailPage({
         queryDocument: addCustomFields(orderDetailDocument, {
@@ -83,7 +86,7 @@ function DraftOrderPage() {
     const { form: orderCustomFieldsForm } = useGeneratedForm({
         document: setDraftOrderCustomFieldsDocument,
         varName: undefined,
-        entity: entity,
+        entity,
         setValues: entity => {
             return {
                 orderId: entity.id,
@@ -397,6 +400,7 @@ function DraftOrderPage() {
                     <ConfirmationDialog
                         title={t`Delete draft order`}
                         description={t`Are you sure you want to delete this draft order?`}
+                        destructive
                         onConfirm={() => {
                             deleteDraftOrder({ orderId: entity.id });
                         }}
@@ -454,7 +458,7 @@ function DraftOrderPage() {
                                 input: {
                                     orderLineId: e.lineId,
                                     quantity: e.quantity,
-                                    customFields: e.customFields,
+                                    customFields: toCustomFieldsInput(e.customFields, orderLineCustomFields),
                                 } as any,
                             })
                         }

@@ -1,8 +1,9 @@
 import { log, spinner } from '@clack/prompts';
-import { MigrationDiagnostic, runMigrations } from '@vendure/core';
+import type { MigrationDiagnostic } from '@vendure/core';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
+import { requireProjectCore } from '../../../shared/project-core';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 import { buildMigrationReport } from '../migration-report';
@@ -25,7 +26,7 @@ async function runRunMigration(configFile?: string): Promise<CliCommandReturnVal
     const runSpinner = spinner();
     runSpinner.start('Running migrations...');
     const diagnostics: MigrationDiagnostic[] = [];
-    const migrationsRan = await runMigrations(config, {
+    const migrationsRan = await requireProjectCore().runMigrations(config, {
         onDiagnostic: diagnostic => diagnostics.push(diagnostic),
     });
     const report = buildMigrationReport(migrationsRan, diagnostics);

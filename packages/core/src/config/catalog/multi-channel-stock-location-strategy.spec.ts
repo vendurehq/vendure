@@ -1,3 +1,4 @@
+import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { Subject } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +7,8 @@ import { RequestContext } from '../../api/common/request-context';
 import { Cache } from '../../cache/cache';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Channel } from '../../entity/channel/channel.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Product } from '../../entity/product/product.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
@@ -236,5 +239,54 @@ describe('MultiChannelStockLocationStrategy', () => {
 
         await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
+    });
+
+    // GHSA-8ghm-q833-cmgp: only a tracked variant's stock figures decide the allocation, so only
+    // a tracked variant's StockLevels are locked.
+    describe('forAllocation()', () => {
+        function setUpAllocation(trackInventory: GlobalFlag) {
+            const unlockedFind = vi.fn(() => Promise.resolve([stockLevel]));
+            const lockedRead = vi.fn(() => Promise.resolve([stockLevel]));
+            (strategy as any).connection = {
+                getEntityOrThrow: (_ctx: any, entity: any) =>
+                    Promise.resolve(
+                        entity === ProductVariant
+                            ? new ProductVariant({
+                                  id: 1,
+                                  trackInventory,
+                                  useGlobalOutOfStockThreshold: true,
+                              })
+                            : new StockLocation({ id: 1, channels: channelsInDb }),
+                    ),
+                getRepository: () => ({ find: unlockedFind }),
+            };
+            (strategy as any).globalSettingsService = {
+                getSettings: () => Promise.resolve({ trackInventory: true, outOfStockThreshold: 0 }),
+            };
+            (strategy as any).stockLevelService = { getLockedStockLevelsForVariant: lockedRead };
+            return { unlockedFind, lockedRead };
+        }
+
+        const orderLine = new OrderLine({ id: 1, productVariantId: 1 });
+
+        it('reads the StockLevels under a lock for a tracked variant', async () => {
+            const { unlockedFind, lockedRead } = setUpAllocation(GlobalFlag.TRUE);
+
+            const result = await strategy.forAllocation(ctxChannel1, [stockLocation], orderLine, 3);
+
+            expect(lockedRead).toHaveBeenCalledTimes(1);
+            expect(unlockedFind).not.toHaveBeenCalled();
+            expect(result).toEqual([{ location: stockLocation, quantity: 3 }]);
+        });
+
+        it('reads the StockLevels without a lock for an untracked variant', async () => {
+            const { unlockedFind, lockedRead } = setUpAllocation(GlobalFlag.FALSE);
+
+            const result = await strategy.forAllocation(ctxChannel1, [stockLocation], orderLine, 3);
+
+            expect(lockedRead).not.toHaveBeenCalled();
+            expect(unlockedFind).toHaveBeenCalledTimes(1);
+            expect(result).toEqual([{ location: stockLocation, quantity: 3 }]);
+        });
     });
 });

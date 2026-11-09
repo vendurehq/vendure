@@ -1,4 +1,4 @@
-import { VendurePluginMetadata } from '@vendure/core';
+import type { VendurePluginMetadata } from '@vendure/core';
 import {
     ClassDeclaration,
     InterfaceDeclaration,

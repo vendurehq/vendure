@@ -23,10 +23,11 @@ import {
     ProductVariant,
     RequestContext,
     ShippingCalculator,
+    StockLevelService,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -44,7 +45,7 @@ import {
     orderWithLinesFragment,
     orderWithModificationsFragment,
 } from './graphql/fragments-admin';
-import { graphql as adminGraphql, FragmentOf } from './graphql/graphql-admin';
+import { graphql as adminGraphql, FragmentOf, ResultOf } from './graphql/graphql-admin';
 import { graphql, VariablesOf } from './graphql/graphql-shop';
 import {
     addManualPaymentToOrderDocument,
@@ -86,6 +87,30 @@ const addItemToOrderWithCustomFieldsDocument = graphql(`
         ) {
             ... on Order {
                 id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const modifyOrderWithLineCustomFieldsDocument = adminGraphql(`
+    mutation ModifyOrderWithLineCustomFields($input: ModifyOrderInput!) {
+        modifyOrder(input: $input) {
+            ... on Order {
+                id
+                lines {
+                    id
+                    productVariant {
+                        id
+                    }
+                    customFields {
+                        defaultedField
+                        readonlyField
+                    }
+                }
             }
             ... on ErrorResult {
                 errorCode
@@ -311,7 +336,12 @@ describe('Order modification', () => {
             },
             customFields: {
                 Order: [{ name: 'points', type: 'int', defaultValue: 0 }],
-                OrderLine: [{ name: 'color', type: 'string', nullable: true }],
+                OrderLine: [
+                    { name: 'color', type: 'string', nullable: true },
+                    { name: 'defaultedField', type: 'string', nullable: true, defaultValue: 'default value' },
+                    { name: 'validatedField', type: 'string', nullable: true, pattern: '^[a-z]+$' },
+                    { name: 'readonlyField', type: 'string', readonly: true, defaultValue: 'readonly value' },
+                ],
             },
         }),
     );
@@ -863,6 +893,38 @@ describe('Order modification', () => {
             await assertOrderIsUnchanged(order!);
         });
 
+        // GHSA-8ghm-q833-cmgp: a dry run allocates in the same transaction before rolling back, so
+        // it must take its stock locks up front in the shared order, like a wet run.
+        it('locks the stock of every added variant up front, in ascending id order', async () => {
+            const stockLevelService = server.app.get(StockLevelService);
+            const lockedIds: string[] = [];
+            const lockStockLevels = stockLevelService.getLockedStockLevelsForVariant.bind(stockLevelService);
+            const lockSpy = vi
+                .spyOn(stockLevelService, 'getLockedStockLevelsForVariant')
+                .mockImplementation((ctx, productVariantId) => {
+                    lockedIds.push(String(productVariantId));
+                    return lockStockLevels(ctx, productVariantId);
+                });
+            try {
+                const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                    input: {
+                        dryRun: true,
+                        orderId,
+                        addItems: [
+                            { productVariantId: 'T_3', quantity: 1 },
+                            { productVariantId: 'T_1', quantity: 1 },
+                        ],
+                    },
+                });
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                // The first two locks are the up-front ones; the per-line checks follow in line order.
+                expect(lockedIds.slice(0, 2)).toEqual(['1', '3']);
+            } finally {
+                lockSpy.mockRestore();
+            }
+        });
+
         it('does not add a history entry', async () => {
             const { order } = await adminClient.query(getOrderDocument, {
                 id: orderId,
@@ -1351,7 +1413,9 @@ describe('Order modification', () => {
             orderWithModificationsGuard.assertSuccess(addManualPaymentToOrder);
 
             expect(addManualPaymentToOrder.payments?.length).toBe(2);
-            expect(omit(addManualPaymentToOrder.payments![1], ['id'])).toEqual({
+            // Payments are not returned in a guaranteed order, so identify the new one by transactionId
+            const manualPayment = addManualPaymentToOrder.payments!.find(p => p.transactionId === 'ABC123')!;
+            expect(omit(manualPayment, ['id'])).toEqual({
                 transactionId: 'ABC123',
                 state: 'Settled',
                 amount: 300,
@@ -1363,9 +1427,7 @@ describe('Order modification', () => {
                 refunds: [],
             });
             expect(addManualPaymentToOrder.modifications[0].isSettled).toBe(true);
-            expect(addManualPaymentToOrder.modifications[0].payment?.id).toBe(
-                addManualPaymentToOrder.payments![1].id,
-            );
+            expect(addManualPaymentToOrder.modifications[0].payment?.id).toBe(manualPayment.id);
         });
 
         it('transition back to original state', async () => {
@@ -1450,6 +1512,7 @@ describe('Order modification', () => {
     describe('refunds for multiple payments', () => {
         let orderId2: string;
         let orderLineId: string;
+        let originalPaymentId: string;
         let additionalPaymentId: string;
 
         beforeAll(async () => {
@@ -1502,7 +1565,10 @@ describe('Order modification', () => {
                 },
             });
             orderWithModificationsGuard.assertSuccess(addManualPaymentToOrder);
-            additionalPaymentId = addManualPaymentToOrder.payments![1].id!;
+            // Payments are not returned in a guaranteed order, so identify them by transactionId
+            const payments = addManualPaymentToOrder.payments!;
+            additionalPaymentId = payments.find(p => p.transactionId === 'ABC123')!.id;
+            originalPaymentId = payments.find(p => p.id !== additionalPaymentId)!.id;
 
             const transitionOrderToState2 = await adminTransitionOrderToState(orderId2, 'PaymentSettled');
             orderGuard.assertSuccess(transitionOrderToState2);
@@ -1577,10 +1643,10 @@ describe('Order modification', () => {
             // the refund being calculated, so the individual OrderItem had only 1/2 the full order discount
             // applied to it (300). Now, the pro-ration is applied to the single remaining item and therefore the
             // entire discount of 600 gets moved over to the remaining item.
-            expect(modifyOrder?.payments?.find(p => p.id !== additionalPaymentId)?.refunds).toEqual([
+            expect(modifyOrder?.payments?.find(p => p.id === originalPaymentId)?.refunds).toEqual([
                 {
                     id: 'T_6',
-                    paymentId: 'T_15',
+                    paymentId: originalPaymentId,
                     state: 'Pending',
                     total: 600,
                     reason: 'test 2',
@@ -2893,6 +2959,190 @@ describe('Order modification', () => {
             expect(orderLevelShareOf(remainingLines.get('T_4')!)).toBe(
                 orderLevelShareOf(placedLines.get('T_4')!),
             );
+        });
+    });
+
+    // #5513 — modifyOrder nests OrderLineCustomFieldsInput in AddItemInput and OrderLineInput
+    describe('OrderLine custom field defaults and validation', () => {
+        type ModifiedOrder = ResultOf<typeof modifyOrderWithLineCustomFieldsDocument>['modifyOrder'];
+
+        async function modifyOrder(input: Record<string, any>) {
+            const result = await adminClient.query(modifyOrderWithLineCustomFieldsDocument, {
+                input: { dryRun: false, ...input } as any,
+            });
+            const order = result.modifyOrder as Extract<ModifiedOrder, { lines: unknown }>;
+            if (!order.lines) {
+                throw new Error(`modifyOrder failed: ${JSON.stringify(result.modifyOrder)}`);
+            }
+            return order;
+        }
+
+        it('applies the default to a null field in addItems', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                addItems: [{ productVariantId: 'T_2', quantity: 1, customFields: { defaultedField: null } }],
+            });
+
+            const addedLine = modified.lines.find(line => line.productVariant.id === 'T_2');
+            expect(addedLine?.customFields.defaultedField).toBe('default value');
+        });
+
+        it('keeps a null field null in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                {
+                    productVariantId: 'T_1',
+                    quantity: 1,
+                    customFields: { defaultedField: 'explicit value' },
+                } as any,
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                adjustOrderLines: [
+                    { orderLineId: order.lines[0].id, quantity: 2, customFields: { defaultedField: null } },
+                ],
+            });
+
+            const adjustedLine = modified.lines.find(line => line.id === order.lines[0].id);
+            expect(adjustedLine?.customFields.defaultedField).toBeNull();
+        });
+
+        it('rejects an invalid value in addItems', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    addItems: [
+                        {
+                            productVariantId: 'T_2',
+                            quantity: 1,
+                            customFields: { validatedField: 'Not Valid' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('does not match the pattern');
+        });
+
+        it('rejects an invalid value in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    adjustOrderLines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 2,
+                            customFields: { validatedField: 'Not Valid' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('does not match the pattern');
+        });
+
+        // The Dashboard sends every OrderLine custom field for an added line, each set to null.
+        it('accepts the whole customFields object of an added line, readonly field included', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                addItems: [
+                    {
+                        productVariantId: 'T_2',
+                        quantity: 2,
+                        customFields: {
+                            color: null,
+                            defaultedField: null,
+                            validatedField: null,
+                            readonlyField: null,
+                        },
+                    },
+                ],
+            });
+
+            const addedLine = modified.lines.find(line => line.productVariant.id === 'T_2');
+            expect(addedLine?.customFields).toEqual({
+                defaultedField: 'default value',
+                readonlyField: 'readonly value',
+            });
+        });
+
+        // The Dashboard sends a line's whole customFields object back when it changes the quantity.
+        it('accepts an unchanged readonly field in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                adjustOrderLines: [
+                    {
+                        orderLineId: order.lines[0].id,
+                        quantity: 2,
+                        customFields: {
+                            color: null,
+                            defaultedField: 'default value',
+                            validatedField: null,
+                            readonlyField: 'readonly value',
+                        },
+                    },
+                ],
+            });
+
+            const adjustedLine = modified.lines.find(line => line.id === order.lines[0].id);
+            expect(adjustedLine?.customFields.readonlyField).toBe('readonly value');
+        });
+
+        // cancelOrder ignores the custom fields of its OrderLineInput lines, so the interceptor does not
+        // validate them.
+        it('accepts a stale readonly field in cancelOrder lines', async () => {
+            const order = await createOrderAndCheckout([{ productVariantId: 'T_1', quantity: 2 }]);
+
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId: order.id,
+                    lines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 1,
+                            customFields: { readonlyField: 'stale value' },
+                        } as any,
+                    ],
+                },
+            });
+
+            canceledOrderGuard.assertSuccess(cancelOrder);
+            expect(cancelOrder.lines[0].quantity).toBe(1);
+        });
+
+        it('rejects a changed readonly field in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    adjustOrderLines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 2,
+                            customFields: { readonlyField: 'changed value' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('The custom field "readonlyField" is readonly');
         });
     });
 

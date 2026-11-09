@@ -17,6 +17,8 @@ VENDURE_PACKAGES=(
   "@vendure/graphiql-plugin"
   "@vendure/harden-plugin"
   "@vendure/job-queue-plugin"
+  "@vendure/mcp-plugin"
+  "@vendure/mcp-sdk"
   "@vendure/telemetry-plugin"
   "@vendure/testing"
   "@vendure/ui-devkit"

@@ -102,7 +102,7 @@ export function looksTrivial(s) {
     const stripped = s.replace(/[\s\d\p{P}\p{S}]/gu, '');
     if (stripped.length < 2) return true;
     // Looks like a pure placeholder string ("{count}", "%s", "{0} of {1}")?
-    if (/^[\s{}\d%a-zA-Z_,\-]*$/.test(s) && !/[a-z]{4,}/i.test(s)) return true;
+    if (/^[\s{}\d%a-zA-Z_,-]*$/.test(s) && !/[a-z]{4,}/i.test(s)) return true;
     return false;
 }
 

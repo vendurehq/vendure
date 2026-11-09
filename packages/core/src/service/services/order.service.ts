@@ -21,6 +21,7 @@ import {
     DeletionResult,
     FulfillOrderInput,
     HistoryEntryType,
+    LanguageCode,
     ManualPaymentInput,
     ModifyOrderInput,
     ModifyOrderResult,
@@ -38,6 +39,7 @@ import {
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
+import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
 import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
@@ -46,7 +48,8 @@ import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { CacheKey, TRANSACTION_MANAGER_KEY } from '../../common/constants';
+import { LocalizedStringArray } from '../../common/configurable-operation';
+import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import {
@@ -79,17 +82,19 @@ import { Instrument } from '../../common/instrument-decorator';
 import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
+import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
-import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Order } from '../../entity/order/order.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -110,7 +115,7 @@ import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { FulfillmentState } from '../helpers/fulfillment-state-machine/fulfillment-state';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
-import { OrderCalculator } from '../helpers/order-calculator/order-calculator';
+import { ApplyPriceAdjustmentsOptions, OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { OrderMerger } from '../helpers/order-merger/order-merger';
 import { OrderModifier } from '../helpers/order-modifier/order-modifier';
 import { OrderState } from '../helpers/order-state-machine/order-state';
@@ -128,8 +133,8 @@ import {
     totalCoveredByPayments,
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
+import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
 
-import { RelationCustomFieldConfig } from '../../config';
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
 import { CustomerService } from './customer.service';
@@ -290,7 +295,7 @@ export class OrderService implements OnApplicationBootstrap {
             .map(r => r.replace('lines.', ''));
 
         qb.setFindOptions({
-            relations: orderRelations,
+            relations: findOptionsArrayToObject<Order>(orderRelations),
             relationLoadStrategy: 'query',
         })
             .leftJoin('order.channels', 'channel')
@@ -308,7 +313,7 @@ export class OrderService implements OnApplicationBootstrap {
                 const linesQb = this.connection.getRepository(ctx, OrderLine).createQueryBuilder('line');
                 linesQb
                     .setFindOptions({
-                        relations: lineRelations,
+                        relations: findOptionsArrayToObject<OrderLine>(lineRelations),
                     })
                     .where('line.orderId = :orderId', { orderId })
                     .addOrderBy('line.createdAt', 'ASC')
@@ -340,7 +345,7 @@ export class OrderService implements OnApplicationBootstrap {
         relations?: RelationPaths<Order>,
     ): Promise<Order | undefined> {
         const order = await this.connection.getRepository(ctx, Order).findOne({
-            relations: ['customer'],
+            relations: { customer: true },
             where: {
                 code: orderCode,
             },
@@ -391,7 +396,7 @@ export class OrderService implements OnApplicationBootstrap {
      */
     getOrderPayments(ctx: RequestContext, orderId: ID): Promise<Payment[]> {
         return this.connection.getRepository(ctx, Payment).find({
-            relations: ['refunds'],
+            relations: { refunds: true },
             where: {
                 order: { id: orderId } as any,
             },
@@ -407,7 +412,7 @@ export class OrderService implements OnApplicationBootstrap {
             where: {
                 order: { id: orderId },
             },
-            relations: ['lines', 'payment', 'refund', 'surcharges'],
+            relations: { lines: true, payment: true, refund: true, surcharges: true },
         });
     }
 
@@ -428,7 +433,7 @@ export class OrderService implements OnApplicationBootstrap {
             where: {
                 aggregateOrderId: order.id,
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
     }
 
@@ -437,7 +442,10 @@ export class OrderService implements OnApplicationBootstrap {
             ? undefined
             : this.connection
                   .getRepository(ctx, Order)
-                  .findOne({ where: { id: order.aggregateOrderId }, relations: ['channels', 'lines'] })
+                  .findOne({
+                      where: { id: order.aggregateOrderId },
+                      relations: { channels: true, lines: true },
+                  })
                   .then(result => result ?? undefined);
     }
 
@@ -881,12 +889,6 @@ export class OrderService implements OnApplicationBootstrap {
                 }
 
                 orderLine.customFields = mergedCustomFields;
-                await this.customFieldRelationService.updateRelations(
-                    ctx,
-                    OrderLine,
-                    { customFields: mergedCustomFields },
-                    orderLine,
-                );
             }
             const existingQuantityInOtherLines = summate(
                 order.lines.filter(
@@ -910,6 +912,16 @@ export class OrderService implements OnApplicationBootstrap {
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, deletedOrderLine, 'deleted'));
             } else {
                 await this.orderModifier.updateOrderLineQuantity(ctx, orderLine, correctedQuantity, order);
+                if (customFields != null) {
+                    // This must run after the OrderLine has been saved with the merged custom field
+                    // values, since it re-loads the entity from the database to resolve the relations.
+                    await this.customFieldRelationService.updateRelations(
+                        ctx,
+                        OrderLine,
+                        { customFields },
+                        orderLine,
+                    );
+                }
                 updatedOrderLines.push(orderLine);
             }
             const quantityWasAdjustedDown = correctedQuantity < quantity;
@@ -1064,9 +1076,9 @@ export class OrderService implements OnApplicationBootstrap {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const surcharge = await this.connection.getEntityOrThrow(ctx, Surcharge, surchargeId);
         if (order.surcharges.find(s => idsAreEqual(s.id, surcharge.id))) {
+            await this.connection.getRepository(ctx, Surcharge).remove(surcharge);
             order.surcharges = order.surcharges.filter(s => !idsAreEqual(s.id, surchargeId));
             const updatedOrder = await this.applyPriceAdjustments(ctx, order);
-            await this.connection.getRepository(ctx, Surcharge).remove(surcharge);
             return updatedOrder;
         } else {
             return order;
@@ -1857,7 +1869,7 @@ export class OrderService implements OnApplicationBootstrap {
             where: {
                 id: In(input.lines.map(l => l.orderLineId)),
             },
-            relations: ['productVariant'],
+            relations: { productVariant: true },
         });
 
         for (const line of lines) {
@@ -1963,7 +1975,8 @@ export class OrderService implements OnApplicationBootstrap {
         if (
             (!input.lines || input.lines.length === 0 || summate(input.lines, 'quantity') === 0) &&
             input.shipping === 0 &&
-            !input.amount
+            !input.amount &&
+            !input.targets?.length
         ) {
             return new NothingToRefundError();
         }
@@ -1998,6 +2011,77 @@ export class OrderService implements OnApplicationBootstrap {
             await this.eventBus.publish(new RefundEvent(ctx, order, createdRefund, 'created'));
         }
         return createdRefund;
+    }
+
+    /**
+     * @description
+     * Returns the available refund destinations for the given order. Includes
+     * the default destination (original payment method) plus any custom
+     * destinations registered via {@link RefundDestinationStrategy}.
+     */
+    async getRefundDestinations(
+        ctx: RequestContext,
+        orderId: ID,
+    ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
+        const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
+            relations: REFUND_ORDER_RELATIONS,
+            channelId: ctx.channelId,
+        });
+        // Only Settled Payments are listed, since those are the only ones a refund target or a
+        // refund destination is allowed to draw on.
+        const refundablePayments = order.payments.filter(p => {
+            if (p.state !== 'Settled') {
+                return false;
+            }
+            const nonFailedRefunds = p.refunds?.filter(r => r.state !== 'Failed') ?? [];
+            const refundTotal = summate(nonFailedRefunds, 'total');
+            return refundTotal < p.amount;
+        });
+        const defaultDescription: LocalizedStringArray = [
+            { languageCode: LanguageCode.en, value: 'Refund to original payment method' },
+        ];
+        const results = [
+            {
+                code: DEFAULT_REFUND_DESTINATION_CODE,
+                description: this.localizeDescription(ctx, defaultDescription),
+                availableForPaymentIds: refundablePayments.map(p => p.id),
+            },
+        ];
+        const strategies = this.configService.paymentOptions.refundDestinations ?? [];
+        for (const strategy of strategies) {
+            // Availability is resolved per Payment rather than per Order, because a destination may
+            // be valid for one of the Order's payments but not another. The administrator must draw
+            // the refund from one of the Payments listed here.
+            const availableForPaymentIds: ID[] = [];
+            for (const payment of refundablePayments) {
+                if (await strategy.isAvailable(ctx, order, payment)) {
+                    availableForPaymentIds.push(payment.id);
+                }
+            }
+            if (availableForPaymentIds.length) {
+                results.push({
+                    code: strategy.code,
+                    description: this.localizeDescription(ctx, strategy.description),
+                    availableForPaymentIds,
+                });
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Resolves the language-specific value of a refund destination description, falling back to the
+     * channel default language, then English, then whichever entry the strategy defined first.
+     */
+    private localizeDescription(ctx: RequestContext, description: LocalizedStringArray): string {
+        const preference = [ctx.languageCode, ctx.channel.defaultLanguageCode, DEFAULT_LANGUAGE_CODE];
+        for (const languageCode of preference) {
+            const match = description.find(x => x.languageCode === languageCode);
+            if (match) {
+                return match.value;
+            }
+        }
+        return description[0]?.value ?? '';
     }
 
     /**
@@ -2119,9 +2203,10 @@ export class OrderService implements OnApplicationBootstrap {
         const orderToDelete =
             orderOrId instanceof Order
                 ? orderOrId
-                : await this.connection
-                      .getRepository(ctx, Order)
-                      .findOneOrFail({ where: { id: orderOrId }, relations: ['lines', 'shippingLines'] });
+                : await this.connection.getRepository(ctx, Order).findOneOrFail({
+                      where: { id: orderOrId },
+                      relations: { lines: true, shippingLines: true },
+                  });
         // If there is a Session referencing the Order to be deleted, we must first remove that
         // reference in order to avoid a foreign key error. See https://github.com/vendurehq/vendure/issues/1454
         const sessions = await this.connection
@@ -2362,6 +2447,11 @@ export class OrderService implements OnApplicationBootstrap {
      * Applies promotions, taxes and shipping to the Order. If the `updatedOrderLines` argument is passed in,
      * then all of those OrderLines will have their prices re-calculated using the configured {@link OrderItemPriceCalculationStrategy}.
      *
+     * The Order's Surcharges are reloaded from the database before the totals are calculated, so the
+     * totals always include every Surcharge row attached to the Order, including any added by an event
+     * handler or a concurrent request after the Order was loaded. A Surcharge must therefore be saved
+     * before calling this method: one which only exists in the `order.surcharges` array is not included.
+     *
      * Pass `options.recalculateShipping: false` to leave the Order's existing ShippingLine prices
      * untouched. This is needed when the Order's ShippingMethods cannot be resolved in the current
      * Channel, e.g. for a seller Order whose ShippingLines were already calculated on the aggregate
@@ -2384,7 +2474,7 @@ export class OrderService implements OnApplicationBootstrap {
         order: Order,
         updatedOrderLines?: OrderLine[],
         relations?: RelationPaths<Order>,
-        options?: { recalculateShipping?: boolean; recalculateShippingPromotions?: boolean },
+        options?: ApplyPriceAdjustmentsOptions,
     ): Promise<Order> {
         const allPromotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
@@ -2442,6 +2532,12 @@ export class OrderService implements OnApplicationBootstrap {
             }
         }
 
+        // A blocking event handler or a concurrent request can add or remove a Surcharge after
+        // this Order was loaded. Reload them so the totals include every persisted row.
+        order.surcharges = await this.connection.getRepository(ctx, Surcharge).find({
+            where: { order: { id: order.id } },
+        });
+
         // Get the shipping line IDs before doing the order calculation
         // step, which can in some cases change the applied shipping lines.
         const shippingLineIdsPre = order.shippingLines.map(l => l.id);
@@ -2461,6 +2557,7 @@ export class OrderService implements OnApplicationBootstrap {
         // a race condition where changing one or the other in parallel can
         // overwrite the other's changes. The other omissions prevent the save
         // function from doing more work than necessary.
+        updatedOrder.pricingUpdatedAt = new Date();
         await this.connection
             .getRepository(ctx, Order)
             .save(
@@ -2485,6 +2582,67 @@ export class OrderService implements OnApplicationBootstrap {
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
 
         return assertFound(this.findOne(ctx, order.id, relations));
+    }
+
+    /**
+     * @description
+     * Recalculates the given active Order's prices, promotions, taxes and shipping promotions if the
+     * configured {@link OrderRecalculationStrategy} reports it as stale. The shipping *method* and
+     * *rate* are deliberately NOT re-evaluated on this read path — the customer's chosen method is
+     * never silently swapped; those are re-evaluated when the Order transitions to `ArrangingPayment`.
+     * Only Orders in the `AddingItems` state are eligible; no-ops (returning the Order unchanged)
+     * otherwise. Invoked on the active-order read path.
+     *
+     * @since 3.8.0
+     */
+    async applyPriceAdjustmentsIfStale(ctx: RequestContext, order: Order): Promise<Order> {
+        if (!order.active || order.state !== 'AddingItems') {
+            return order;
+        }
+        const { orderRecalculationStrategy } = this.configService.orderOptions;
+        const stale = await orderRecalculationStrategy.shouldRecalculate(ctx, order);
+        if (!stale) {
+            return order;
+        }
+        return this.connection.withTransaction(ctx, async txCtx => {
+            // Acquire a pessimistic write lock on the Order row to serialize concurrent reads.
+            // On SQLite the lock is not supported; SQLite serializes writes at the engine level.
+            let lockedOrder: Order | null = null;
+            try {
+                lockedOrder = await this.connection
+                    .getRepository(txCtx, Order)
+                    .createQueryBuilder('order')
+                    .setLock('pessimistic_write')
+                    .where('order.id = :id', { id: order.id })
+                    .getOne();
+            } catch (e) {
+                if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
+                    throw e;
+                }
+                // Lock not supported (e.g. SQLite) — continue without it
+                lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
+                    where: { id: order.id },
+                });
+            }
+            if (!lockedOrder) {
+                return order;
+            }
+            // Double-checked locking: re-evaluate staleness after acquiring the lock.
+            // Another concurrent request may have already recalculated the order.
+            const stillStale = await orderRecalculationStrategy.shouldRecalculate(ctx, lockedOrder);
+            if (!stillStale) {
+                return assertFound(this.findOne(txCtx, order.id));
+            }
+            // Load full relations required for recalculation.
+            const fullOrder = await this.getOrderOrThrow(txCtx, order.id);
+            return this.applyPriceAdjustments(txCtx, fullOrder, fullOrder.lines, undefined, {
+                // Freeze the chosen shipping method/rate on read (never swap it silently),
+                // but still re-test shipping promotions so a disabled promotion's discount
+                // is cleared instead of surviving on the order.
+                recalculateShipping: false,
+                recalculateShippingPromotions: true,
+            });
+        });
     }
 
     /**
@@ -2558,13 +2716,11 @@ export class OrderService implements OnApplicationBootstrap {
 
             const orders = await this.connection.getRepository(orderCtx, Order).find({
                 where: { id: In(affectedOrders.map(o => o.id)) },
-                relations: [
-                    'lines',
-                    'lines.productVariant',
-                    'lines.productVariant.productVariantPrices',
-                    'shippingLines',
-                    'surcharges',
-                ],
+                relations: {
+                    lines: { productVariant: { productVariantPrices: true } },
+                    shippingLines: true,
+                    surcharges: true,
+                },
             });
 
             for (const order of orders) {
@@ -2602,7 +2758,9 @@ export class OrderService implements OnApplicationBootstrap {
     ) {
         const linesWithRelations = await this.connection.getRepository(txCtx, OrderLine).find({
             where: { id: In(order.lines.map(l => l.id)) },
-            relations: relationFields.map(config => `customFields.${config.name}`),
+            relations: findOptionsArrayToObject<OrderLine>(
+                relationFields.map(config => `customFields.${config.name}`),
+            ),
         });
         const relationCustomFields = new Map<ID, Record<string, ID | ID[]>>();
         for (const line of linesWithRelations) {

@@ -6,6 +6,7 @@ export {
     LS_KEY_SHIPPING_TEST_ADDRESS,
     LS_KEY_SHIPPING_TEST_ORDER,
     LS_KEY_USER_SETTINGS,
+    SETTINGS_STORE_KEY_USER_SETTINGS,
 } from './storage-keys.js';
 
 export const NEW_ENTITY_PATH = 'new';

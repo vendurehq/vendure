@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Plugin } from 'vite';
@@ -15,7 +16,11 @@ import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader
  */
 function resolveVendureUiSourcePath(): string | undefined {
     try {
-        const resolved = import.meta.resolve('@vendure-io/ui/components/ui/button');
+        const specifier = '@vendure-io/ui/components/atoms/button';
+        const resolved =
+            typeof import.meta.resolve === 'function'
+                ? import.meta.resolve(specifier)
+                : createRequire(import.meta.url).resolve(specifier);
         // fileURLToPath decodes percent-encoding (e.g. spaces) and handles Windows drive letters.
         const filePath = resolved.startsWith('file:') ? fileURLToPath(resolved) : resolved;
         return path.resolve(filePath, '../../../');
@@ -38,8 +43,8 @@ export interface DashboardTailwindSourcePluginOptions {
      */
     packageRoot?: string;
     /**
-     * When true, also emit a `@source` directive pointing at the dashboard's
-     * pre-built JS bundle so Tailwind picks up the dashboard's own utility
+     * When true, also emit a `@source` directive into `styles.css` pointing at
+     * the dashboard's pre-built JS bundle so Tailwind picks up the dashboard's own utility
      * classes (which are otherwise invisible to consumer-side scanning since
      * the bundle lives in node_modules).
      */
@@ -51,9 +56,7 @@ export interface DashboardTailwindSourcePluginOptions {
  * for each dashboard extension's source directory. This allows Tailwind CSS to
  * include styles from these extensions when processing the CSS.
  */
-export function dashboardTailwindSourcePlugin(
-    options: DashboardTailwindSourcePluginOptions = {},
-): Plugin {
+export function dashboardTailwindSourcePlugin(options: DashboardTailwindSourcePluginOptions = {}): Plugin {
     const { packageRoot, useExperimentalBundle } = options;
     let configLoaderApi: ConfigLoaderApi;
     let loadVendureConfigResult: CompileResult;
@@ -65,9 +68,7 @@ export function dashboardTailwindSourcePlugin(
             configLoaderApi = getConfigLoaderApi(plugins);
         },
         async transform(src, id) {
-            const isMainStyles = /app\/styles.css$/.test(id);
-            const isExtensionStyles = /app\/extension-tailwind.css$/.test(id);
-            if (isMainStyles || isExtensionStyles) {
+            if (/app\/styles.css$/.test(id)) {
                 if (!loadVendureConfigResult) {
                     loadVendureConfigResult = await configLoaderApi.getVendureConfig();
                 }
@@ -80,14 +81,12 @@ export function dashboardTailwindSourcePlugin(
                     dashboardExtensionDirs.push(vendureUiSrcPath);
                 }
 
-                if (isExtensionStyles && useExperimentalBundle && packageRoot) {
+                if (useExperimentalBundle && packageRoot) {
                     // In bundle mode the dashboard's own utility classes live
-                    // inside the published JS chunks rather than the readable
-                    // src files. Point Tailwind at the bundle so those classes
-                    // are also generated.
-                    dashboardExtensionDirs.push(
-                        path.join(packageRoot, 'dist/bundle'),
-                    );
+                    // inside the published JS chunks rather than the src files
+                    // that are part of the module graph. Point Tailwind at the
+                    // bundle so those classes are also generated.
+                    dashboardExtensionDirs.push(path.join(packageRoot, 'dist/bundle'));
                 }
 
                 const sources = dashboardExtensionDirs

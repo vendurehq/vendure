@@ -1447,6 +1447,118 @@
       "created_at": "2026-09-20T17:15:45Z",
       "repoId": 136938012,
       "pullRequestNo": 5413
+    },
+    {
+      "name": "theluckystrike",
+      "id": 51033404,
+      "comment_id": 5975782669,
+      "created_at": "2026-10-04T02:28:19Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5483
+    },
+    {
+      "name": "AyeshaWaseemAhmad",
+      "id": 138691515,
+      "comment_id": 6069464961,
+      "created_at": "2026-10-08T21:32:46Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5506
+    },
+    {
+      "name": "codamon",
+      "id": 3380337,
+      "comment_id": 6075091107,
+      "created_at": "2026-10-09T05:44:23Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5507
+    },
+    {
+      "name": "allanmongej",
+      "id": 5621164,
+      "comment_id": 6083610313,
+      "created_at": "2026-10-09T15:07:16Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5520
+    },
+    {
+      "name": "Haridass30",
+      "id": 143880379,
+      "comment_id": 6143066921,
+      "created_at": "2026-10-13T10:00:18Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5557
+    },
+    {
+      "name": "oschweitzer",
+      "id": 2411238,
+      "comment_id": 6310642187,
+      "created_at": "2026-10-21T07:34:38Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5622
+    },
+    {
+      "name": "haranishi",
+      "id": 223786623,
+      "comment_id": 6330315471,
+      "created_at": "2026-10-22T01:17:37Z",
+      "repoId": 1151583258,
+      "pullRequestNo": 62
+    },
+    {
+      "name": "youssefKetata",
+      "id": 95935030,
+      "comment_id": 6351664335,
+      "created_at": "2026-10-22T21:25:50Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5642
+    },
+    {
+      "name": "ayoubkrmt",
+      "id": 24393735,
+      "comment_id": 6395612705,
+      "created_at": "2026-10-25T08:51:56Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5666
+    },
+    {
+      "name": "mwafakturk",
+      "id": 104566844,
+      "comment_id": 6416639818,
+      "created_at": "2026-10-26T13:01:48Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5674
+    },
+    {
+      "name": "Tyagiquamar",
+      "id": 104281681,
+      "comment_id": 6434947415,
+      "created_at": "2026-10-27T05:58:54Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5672
+    },
+    {
+      "name": "smonist",
+      "id": 7086613,
+      "comment_id": 6662932873,
+      "created_at": "2026-11-05T16:12:05Z",
+      "repoId": 1151583258,
+      "pullRequestNo": 66
+    },
+    {
+      "name": "Borales",
+      "id": 1118933,
+      "comment_id": 6666075678,
+      "created_at": "2026-11-05T18:35:52Z",
+      "repoId": 1151583258,
+      "pullRequestNo": 67
+    },
+    {
+      "name": "nigrosimone",
+      "id": 310077,
+      "comment_id": 6727132151,
+      "created_at": "2026-11-08T21:07:15Z",
+      "repoId": 136938012,
+      "pullRequestNo": 5732
     }
   ]
 }

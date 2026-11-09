@@ -1,0 +1,34 @@
+---
+title: "DataSourceHolder"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/get-data-source.ts" sourceLine="14" packageName="@vendure/core" since="3.8.0" />
+
+A TypeORM object which knows the `DataSource` it belongs to, such as a QueryBuilder,
+EntityManager, QueryRunner or EntityMetadata. TypeORM 0.3 names that property `connection`.
+TypeORM 1 renames it to `dataSource` and keeps `connection` as a deprecated alias on some,
+but not all, of those classes. Code which has to run on both versions therefore reads the
+DataSource via [getDataSource](/reference/typescript-api/data-access/get-data-source#getdatasource) rather than naming either property directly.
+
+```ts title="Signature"
+type DataSourceHolder = {
+    connection?: DataSource;
+    dataSource?: DataSource
+}
+```
+
+<div className="members-wrapper">
+
+### connection
+
+<MemberInfo kind="property" type={`DataSource`}   />
+
+
+### dataSource
+
+<MemberInfo kind="property" type={`DataSource`}   />
+
+
+
+
+</div>

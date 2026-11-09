@@ -1,0 +1,60 @@
+---
+title: "Page"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/list-helpers.ts" sourceLine="63" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Builds the result a list tool returns: `{ items, total, hasMore }`. `total` counts the
+matches on all pages. `hasMore` is true when more items follow this page.
+
+*Example*
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { Customer, CustomerService, Permission, RequestContext } from '@vendure/core';
+import { listOptions, McpTool, McpToolHandler, page, paginationFields } from '@vendure/mcp-sdk';
+import { z } from 'zod';
+
+const listCustomersInput = z.strictObject({ ...paginationFields('customers') });
+type ListCustomersInput = z.infer<typeof listCustomersInput>;
+
+@McpTool({
+    name: 'list_customers',
+    toolset: 'admin',
+    description: 'List customer records.',
+    permissions: [Permission.ReadCustomer],
+    behavior: 'readonly',
+    inputSchema: listCustomersInput,
+})
+@Injectable()
+export class ListCustomersTool implements McpToolHandler<ListCustomersInput> {
+    constructor(private readonly customerService: CustomerService) {}
+
+    async execute(ctx: RequestContext, input: ListCustomersInput) {
+        const result = await this.customerService.findAll(ctx, listOptions<Customer>(input));
+        return page(
+            result.items.map(customer => ({ id: customer.id, emailAddress: customer.emailAddress })),
+            result.totalItems,
+            input,
+        );
+    }
+}
+```
+
+```ts title="Signature"
+function page<T>(items: T[], totalItems: number, input: { offset?: number }): { items: T[]; total: number; hasMore: boolean }
+```
+Parameters
+
+### items
+
+<MemberInfo kind="parameter" type={`T[]`} />
+
+### totalItems
+
+<MemberInfo kind="parameter" type={`number`} />
+
+### input
+
+<MemberInfo kind="parameter" type={`{ offset?: number }`} />
+

@@ -8,5 +8,9 @@
   },
   "include": [
     "plugin/**/*"
+  ],
+  "exclude": [
+    "plugin/**/*.e2e-spec.ts",
+    "plugin/**/*.spec.ts"
   ]
 }

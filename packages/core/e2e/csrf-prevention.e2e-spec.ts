@@ -10,6 +10,9 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 const config = mergeConfig(testConfig(), {
     apiOptions: {
         csrfPrevention: true,
+        // The deprecated debug flags must not turn stack traces back on for either API.
+        adminApiDebug: true,
+        shopApiDebug: true,
     },
     authOptions: {
         tokenMethod: 'cookie' as const,
@@ -18,6 +21,7 @@ const config = mergeConfig(testConfig(), {
 });
 
 const ADMIN_URL = `http://localhost:${config.apiOptions.port}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
+const SHOP_URL = `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath ?? 'shop-api'}`;
 
 const LOGIN_MUTATION =
     `mutation { login(username: "${SUPER_ADMIN_USER_IDENTIFIER}", password: "${SUPER_ADMIN_USER_PASSWORD}") ` +
@@ -51,8 +55,14 @@ function multipartBody(boundary: string) {
 
 describe('apiOptions.csrfPrevention', () => {
     const { server } = createTestEnvironment(config);
+    const originalNodeEnv = process.env.NODE_ENV;
 
     beforeAll(async () => {
+        // Apollo Server falls back to including stack traces in error responses whenever
+        // NODE_ENV is not "production" or "test", and reads it when the server is constructed.
+        // Running under "development" lets the stack trace tests below catch that fallback.
+        // This applies to the whole suite, and the CSRF tests behave the same under either value.
+        process.env.NODE_ENV = 'development';
         await server.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
@@ -62,6 +72,7 @@ describe('apiOptions.csrfPrevention', () => {
 
     afterAll(async () => {
         await server.destroy();
+        process.env.NODE_ENV = originalNodeEnv;
     });
 
     it('rejects a form-urlencoded login and sets no session cookie', async () => {
@@ -124,5 +135,49 @@ describe('apiOptions.csrfPrevention', () => {
 
         expect(res.status).toBe(200);
         expect((await res.json()).errors).toBeUndefined();
+    });
+
+    describe('error responses', () => {
+        // Requests which Apollo rejects before running the GraphQL pipeline are formatted by
+        // Apollo itself, so they must not expose a stack trace (and with it server file paths).
+        it('omits the stack trace from a rejected CSRF request', async () => {
+            const res = await post('text/plain', JSON.stringify({ query: LOGIN_MUTATION }));
+            const body = await res.json();
+
+            expect(res.status).toBe(400);
+            expect(body.errors[0].extensions.code).toBe('BAD_REQUEST');
+            expect(body.errors[0].extensions.stacktrace).toBeUndefined();
+        });
+
+        for (const [apiName, url] of [
+            ['admin', ADMIN_URL],
+            ['shop', SHOP_URL],
+        ]) {
+            it(`omits the stack trace from a request with an empty body (${apiName} API)`, async () => {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: '',
+                });
+                const body = await res.json();
+
+                expect(res.status).toBe(400);
+                expect(body.errors[0].extensions.code).toBe('BAD_REQUEST');
+                expect(body.errors[0].extensions.stacktrace).toBeUndefined();
+            });
+
+            it(`omits the stack trace from a resolver error (${apiName} API)`, async () => {
+                // An anonymous `me` query is rejected by the auth guard during execution.
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ query: '{ me { id } }' }),
+                });
+                const body = await res.json();
+
+                expect(body.errors[0].extensions.code).toBe('FORBIDDEN');
+                expect(body.errors[0].extensions.stacktrace).toBeUndefined();
+            });
+        }
     });
 });

@@ -1,0 +1,29 @@
+---
+title: "ConfigurableOperationTranslator"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="76" packageName="@vendure/core" since="3.8.0" />
+
+Supplies translations for [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef) descriptions and arg labels from the
+server-side message catalogs. Implemented by the `I18nService` and provided under the
+`CONFIGURABLE_OPERATION_TRANSLATOR` token.
+
+```ts title="Signature"
+interface ConfigurableOperationTranslator {
+    getConfigurableOperationTranslation(languageCode: string, keyPath: string[]): string | undefined;
+}
+```
+
+<div className="members-wrapper">
+
+### getConfigurableOperationTranslation
+
+<MemberInfo kind="method" type={`(languageCode: string, keyPath: string[]) => string | undefined`}   />
+
+Returns the string stored at the given path within the `configurableOperation` namespace of
+the catalog for `languageCode`, or `undefined` if there is no entry there. The value is
+returned verbatim, without ICU formatting, since operation descriptions contain
+`{ argName }` placeholders which are interpolated by the client.
+
+
+</div>

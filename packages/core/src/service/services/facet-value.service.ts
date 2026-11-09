@@ -8,9 +8,12 @@ import {
     UpdateFacetValueInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
+import { unique } from '@vendure/common/lib/unique';
+import DataLoader from 'dataloader';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
+import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
@@ -49,6 +52,7 @@ export class FacetValueService {
         private eventBus: EventBus,
         private translator: TranslatorService,
         private listQueryBuilder: ListQueryBuilder,
+        private requestCache: RequestContextCacheService,
     ) {}
 
     /**
@@ -72,7 +76,7 @@ export class FacetValueService {
         const globalDefaultLanguageCode = this.configService.defaultLanguageCode;
         return repository
             .find({
-                relations: ['facet'],
+                relations: { facet: true },
             })
             .then(facetValues =>
                 facetValues.map(facetValue =>
@@ -119,7 +123,7 @@ export class FacetValueService {
             .getRepository(ctx, FacetValue)
             .findOne({
                 where: { id },
-                relations: ['facet'],
+                relations: { facet: true },
             })
             .then(
                 facetValue =>
@@ -134,6 +138,71 @@ export class FacetValueService {
         return facetValues.then(values =>
             values.map(facetValue => this.translator.translate(facetValue, ctx, ['facet'])),
         );
+    }
+
+    /**
+     * @description
+     * Returns the FacetValues assigned to the given Product which are available in the
+     * Channel of the RequestContext. Concurrent calls in the same request are batched into
+     * a fixed number of queries.
+     *
+     * @since 3.8.0
+     */
+    findByProductId(ctx: RequestContext, productId: ID): Promise<Array<Translated<FacetValue>>> {
+        return this.getProductFacetValuesLoader(ctx).load(productId);
+    }
+
+    /**
+     * Resolving `Product.facetValues` on a product list costs several queries per product
+     * otherwise. Held against the RequestContext which also supplies the channel filter, so a
+     * single loader cannot mix channels. `cache: false` batches without memoizing, so a write
+     * earlier in the request is not masked.
+     */
+    private getProductFacetValuesLoader(ctx: RequestContext): DataLoader<ID, Array<Translated<FacetValue>>> {
+        return this.requestCache.get(
+            ctx,
+            'FacetValueService.facetValuesByProductId',
+            () =>
+                new DataLoader<ID, Array<Translated<FacetValue>>>(
+                    ids => this.batchLoadProductFacetValues(ctx, ids as ID[]),
+                    { cache: false },
+                ),
+        );
+    }
+
+    private async batchLoadProductFacetValues(
+        ctx: RequestContext,
+        productIds: ID[],
+    ): Promise<Array<Array<Translated<FacetValue>>>> {
+        const links: Array<{ productId: ID; facetValueId: ID }> = await this.connection
+            .getRepository(ctx, Product)
+            .createQueryBuilder('product')
+            .innerJoin('product.facetValues', 'facetValue')
+            .select('product.id', 'productId')
+            .addSelect('facetValue.id', 'facetValueId')
+            .where('product.id IN (:...productIds)', { productIds: unique(productIds) })
+            // An IN (...) query gives no row order guarantee, so sort to keep the order of
+            // `Product.facetValues` stable for API clients.
+            .orderBy('facetValue.id', 'ASC')
+            .getRawMany();
+        // One channel-filtered read for the whole batch.
+        const facetValues = await this.findByIds(ctx, unique(links.map(link => link.facetValueId)));
+        const facetValuesById = new Map(facetValues.map(facetValue => [String(facetValue.id), facetValue]));
+        const byProductId = new Map<string, Array<Translated<FacetValue>>>();
+        for (const { productId, facetValueId } of links) {
+            const facetValue = facetValuesById.get(String(facetValueId));
+            if (!facetValue) {
+                // Not in the Channel of the RequestContext
+                continue;
+            }
+            const existing = byProductId.get(String(productId));
+            if (existing) {
+                existing.push(facetValue);
+            } else {
+                byProductId.set(String(productId), [facetValue]);
+            }
+        }
+        return productIds.map(id => byProductId.get(String(id)) ?? []);
     }
 
     /**

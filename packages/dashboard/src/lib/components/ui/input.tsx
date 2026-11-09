@@ -1,25 +1,18 @@
 import * as React from 'react';
-
-import { cn } from '@/vdb/lib/utils.js';
+import { Input as UiInput } from '@vendure-io/ui/components/atoms/input';
 
 /**
- * Plain `<input>` instead of @vendure-io/ui's Input, which wraps Base UI's
- * Field.Control and conflicts with react-hook-form's isDirty detection.
- * Classes synced from @vendure-io/ui v1.0.5.
+ * Thin wrapper around the v2 `@vendure-io/ui` Input atom that null-coalesces
+ * `value`. The v2 atom passes `value` straight through to the underlying control,
+ * so a `null` field value triggers React's "value prop should not be null" warning
+ * and a controlled→uncontrolled flip. Several dashboard routes render
+ * `<Input {...field} />` where the react-hook-form `field.value` can be `null`, so
+ * we coerce `null` (only) to an empty string here. `undefined` is preserved so
+ * uncontrolled usages stay uncontrolled. See input.spec.tsx for the regression
+ * tests, including confirmation that the v1 isDirty conflict no longer reproduces.
  */
-function Input({ className, type, value, ...props }: React.ComponentProps<'input'>) {
-    return (
-        <input
-            type={type}
-            data-slot="input"
-            value={value === null ? '' : value}
-            className={cn(
-                'dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 file:text-foreground placeholder:text-muted-foreground h-9 w-full min-w-0 rounded-md border bg-transparent px-2.5 py-1 text-base transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-3 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3 md:text-sm',
-                className,
-            )}
-            {...props}
-        />
-    );
+function Input({ value, ...props }: React.ComponentProps<typeof UiInput>) {
+    return <UiInput value={value === null ? '' : value} {...props} />;
 }
 
 export { Input };

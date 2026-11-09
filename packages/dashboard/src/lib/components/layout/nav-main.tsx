@@ -11,28 +11,16 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from '@/vdb/components/ui/sidebar.js';
-import {
-    NavMenuItem,
-    NavMenuSection,
-    NavMenuSectionPlacement,
-} from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
-import { usePermissions } from '@/vdb/hooks/use-permissions.js';
+import { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
+import { resolveNavMenu } from '@/vdb/framework/nav-menu/resolve-nav-menu.js';
+import { useDashboardUserContext } from '@/vdb/hooks/use-dashboard-user-context.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react';
 import { Link, useRouter, useRouterState } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import { NavItemWrapper } from './nav-item-wrapper.js';
-
-// Utility to sort items & sections by the optional `order` prop (ascending) and then alphabetically by title
-function sortByOrder<T extends { order?: number; title: string }>(a: T, b: T) {
-    const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
-    const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
-    if (orderA === orderB) {
-        return a.title.localeCompare(b.title);
-    }
-    return orderA - orderB;
-}
+import { buildShortcutMap, isEditableTarget } from './navigation-shortcuts.js';
 
 /**
  * Escapes special regex characters in a string to be used as a literal pattern
@@ -44,6 +32,14 @@ function escapeRegexChars(str: string): string {
 const HOVER_OPEN_DELAY = 150;
 const HOVER_CLOSE_DELAY = 250;
 
+function ShortcutBadge({ shortcut }: { shortcut?: string }) {
+    return shortcut ? (
+        <kbd className="ms-auto inline-flex min-w-5 items-center justify-center rounded border bg-background px-1 font-mono text-[10px] text-muted-foreground shadow-xs">
+            {shortcut.toUpperCase()}
+        </kbd>
+    ) : null;
+}
+
 function CollapsedSectionMenu({
     item,
     isPathActive,
@@ -54,16 +50,16 @@ function CollapsedSectionMenu({
     const { i18n } = useLingui();
     return (
         <HoverCard>
-            <HoverCardTrigger delay={HOVER_OPEN_DELAY} render={<SidebarMenuButton isActive={item.items?.some(subItem => isPathActive(subItem.url))} />}>
-                    {item.icon && <item.icon />}
-                    <span>{i18n.t(item.title)}</span>
-            </HoverCardTrigger>
-            <HoverCardContent
-                side="right"
-                align="start"
-                sideOffset={4}
-                className="w-auto min-w-[8rem] p-1"
+            <HoverCardTrigger
+                delay={HOVER_OPEN_DELAY}
+                render={
+                    <SidebarMenuButton isActive={item.items?.some(subItem => isPathActive(subItem.url))} />
+                }
             >
+                {item.icon && <item.icon />}
+                <span>{i18n.t(item.title)}</span>
+            </HoverCardTrigger>
+            <HoverCardContent side="right" align="start" sideOffset={4} className="w-auto min-w-[8rem] p-1">
                 <p className="px-2 py-1.5 text-sm font-semibold" data-testid="sidebar-hover-title">
                     {i18n.t(item.title)}
                 </p>
@@ -94,9 +90,21 @@ function CollapsedSectionMenu({
 export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavMenuItem> }>) {
     const router = useRouter();
     const routerState = useRouterState();
-    const { hasPermissions } = usePermissions();
+    // With no isVisible predicate anywhere, the resolved output cannot depend on
+    // administrator custom fields, so a vanilla install skips that request entirely.
+    const hasUserDependentRules = React.useMemo(
+        () =>
+            items.some(
+                entry =>
+                    entry.isVisible !== undefined ||
+                    ('items' in entry && (entry.items ?? []).some(i => i.isVisible !== undefined)),
+            ),
+        [items],
+    );
+
+    const { ctx, ready } = useDashboardUserContext({ includeCustomFields: hasUserDependentRules });
     const { i18n } = useLingui();
-    const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
+    const { state: sidebarState, isMobile, setOpenMobile, open, setOpen } = useSidebar();
     const isCollapsed = sidebarState === 'collapsed' && !isMobile;
     const currentPath = routerState.location.pathname;
     const basePath = router.basepath || '';
@@ -149,62 +157,123 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         [isPathActive],
     );
 
+    const resolved = React.useMemo(
+        () =>
+            resolveNavMenu({ sections: items }, ctx, {
+                // Withhold only the entries with a predicate until the context has
+                // loaded: a rule reading customFields would otherwise briefly see them
+                // absent. Everything else renders immediately.
+                userContextPending: hasUserDependentRules && !ready,
+            }),
+        [items, ctx, ready, hasUserDependentRules],
+    );
+
     // Initialize state with active sections on mount
     const [openBottomSectionId, setOpenBottomSectionId] = React.useState<string | null>(() => {
-        const { activeBottomSection } = findActiveSections(items);
+        const { activeBottomSection } = findActiveSections(resolved);
         return activeBottomSection;
     });
 
     const [openTopSectionIds, setOpenTopSectionIds] = React.useState<Set<string>>(() => {
-        const { activeTopSections } = findActiveSections(items);
+        const { activeTopSections } = findActiveSections(resolved);
         return activeTopSections;
     });
 
-    // Helper to check if an item is allowed based on permissions
-    const isItemAllowed = React.useCallback(
-        (item: NavMenuItem) => {
-            if (!item.requiresPermission) {
-                return true;
+    const topSections = React.useMemo(() => resolved.filter(s => s.placement === 'top'), [resolved]);
+    const bottomSections = React.useMemo(() => resolved.filter(s => s.placement === 'bottom'), [resolved]);
+
+    const shortcutMap = React.useMemo(
+        () => buildShortcutMap([...topSections, ...bottomSections]),
+        [topSections, bottomSections],
+    );
+    const [navigationChordActive, setNavigationChordActive] = React.useState(false);
+    const navigationChordActiveRef = React.useRef(false);
+    const previousSidebarOpenRef = React.useRef(open);
+    const previousTopSectionsRef = React.useRef<Set<string>>(new Set());
+    const previousBottomSectionRef = React.useRef<string | null>(null);
+
+    const cancelNavigationChord = React.useCallback(() => {
+        navigationChordActiveRef.current = false;
+        setNavigationChordActive(false);
+        setOpen(previousSidebarOpenRef.current);
+        setOpenTopSectionIds(previousTopSectionsRef.current);
+        setOpenBottomSectionId(previousBottomSectionRef.current);
+    }, [setOpen]);
+
+    const startNavigationChord = React.useCallback(() => {
+        previousSidebarOpenRef.current = open;
+        previousTopSectionsRef.current = new Set(openTopSectionIds);
+        previousBottomSectionRef.current = openBottomSectionId;
+        navigationChordActiveRef.current = true;
+        setNavigationChordActive(true);
+        setOpen(true);
+
+        const shortcutSections = [...topSections, ...bottomSections].filter(
+            (item): item is NavMenuSection =>
+                'items' in item &&
+                item.items?.some(child => shortcutMap.get(child.shortcut ?? '') === child) === true,
+        );
+        setOpenTopSectionIds(
+            new Set(shortcutSections.filter(item => item.placement === 'top').map(item => item.id)),
+        );
+        // Keep the less frequently used administration navigation out of the way while
+        // showing keytips. Its previous state is restored when the chord is cancelled.
+        setOpenBottomSectionId(null);
+    }, [bottomSections, open, openBottomSectionId, openTopSectionIds, setOpen, shortcutMap, topSections]);
+
+    React.useEffect(() => {
+        if (isMobile) {
+            return;
+        }
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (
+                event.defaultPrevented ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.altKey ||
+                isEditableTarget(event.target)
+            ) {
+                return;
             }
-            const permissions = Array.isArray(item.requiresPermission)
-                ? item.requiresPermission
-                : [item.requiresPermission];
-            return hasPermissions(permissions);
-        },
-        [hasPermissions],
-    );
-
-    // Helper to build a sorted list of sections for a given placement, memoized for stability
-    const getSortedSections = React.useCallback(
-        (placement: NavMenuSectionPlacement) => {
-            return items
-                .filter(item => item.placement === placement)
-                .slice()
-                .sort(sortByOrder)
-                .map(section => {
-                    if ('items' in section) {
-                        // Filter items based on permissions
-                        const allowedItems = (section.items ?? [])
-                            .filter(item => isItemAllowed(item))
-                            .sort(sortByOrder);
-                        return { ...section, items: allowedItems };
-                    }
-                    return section;
-                })
-                .filter(section => {
-                    // Drop sections that have no items after permission filtering
-                    if ('items' in section) {
-                        return section.items && section.items.length > 0;
-                    }
-                    // For single items, check if they're allowed
-                    return isItemAllowed(section as NavMenuItem);
-                });
-        },
-        [items, isItemAllowed],
-    );
-
-    const topSections = React.useMemo(() => getSortedSections('top'), [getSortedSections]);
-    const bottomSections = React.useMemo(() => getSortedSections('bottom'), [getSortedSections]);
+            const key = event.key.toLowerCase();
+            if (key === 'g') {
+                event.preventDefault();
+                if (!navigationChordActiveRef.current && !event.repeat) {
+                    startNavigationChord();
+                }
+                return;
+            }
+            if (!navigationChordActiveRef.current) {
+                return;
+            }
+            if (key === 'escape') {
+                event.preventDefault();
+                cancelNavigationChord();
+                return;
+            }
+            const destination = shortcutMap.get(key);
+            if (destination) {
+                event.preventDefault();
+                cancelNavigationChord();
+                router.navigate({ to: destination.url });
+            }
+        };
+        const onKeyUp = (event: KeyboardEvent) => {
+            if (event.key.toLowerCase() === 'g' && navigationChordActiveRef.current) {
+                event.preventDefault();
+                cancelNavigationChord();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        const onBlur = () => navigationChordActiveRef.current && cancelNavigationChord();
+        window.addEventListener('blur', onBlur);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+            window.removeEventListener('blur', onBlur);
+        };
+    }, [cancelNavigationChord, isMobile, router, shortcutMap, startNavigationChord]);
 
     // Handle top section open/close (only one section open at a time)
     const handleTopSectionToggle = (sectionId: string, isOpen: boolean) => {
@@ -226,17 +295,29 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         }
     };
 
-    // Update open sections when route changes (for client-side navigation)
-    React.useEffect(() => {
-        const { activeTopSections, activeBottomSection } = findActiveSections(items);
+    // Update open sections when the route changes, and when `resolved` gains the entries
+    // withheld while the user context loaded. useLayoutEffect, not useEffect: the entry
+    // holding the active route can arrive after mount, so the state initializers above
+    // cannot know the active section, and correcting it after paint would flash every
+    // section collapsed for one frame.
+    React.useLayoutEffect(() => {
+        const { activeTopSections, activeBottomSection } = findActiveSections(resolved);
 
-        // Replace open sections with only the active one
-        setOpenTopSectionIds(activeTopSections);
+        // Replace open sections with only the active one. Return the previous Set when
+        // the contents match so React bails out of the re-render: this effect is keyed
+        // on `resolved`, and an unconditional fresh Set would turn any future
+        // destabilisation of `ctx` from wasted work into an infinite render loop.
+        setOpenTopSectionIds(prev => {
+            if (prev.size === activeTopSections.size && [...activeTopSections].every(id => prev.has(id))) {
+                return prev;
+            }
+            return activeTopSections;
+        });
 
         if (activeBottomSection) {
             setOpenBottomSectionId(activeBottomSection);
         }
-    }, [currentPath, items, findActiveSections]);
+    }, [currentPath, resolved, findActiveSections]);
 
     // Close mobile sidebar on route change
     const prevPathRef = React.useRef(currentPath);
@@ -261,8 +342,9 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                             render={<Link to={item.url} />}
                             isActive={isPathActive(item.url)}
                         >
-                                {item.icon && <item.icon />}
-                                <span>{i18n.t(item.title)}</span>
+                            {item.icon && <item.icon />}
+                            <span>{i18n.t(item.title)}</span>
+                            {navigationChordActive ? <ShortcutBadge shortcut={item.shortcut} /> : null}
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </NavItemWrapper>
@@ -288,9 +370,9 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                 >
                     <SidebarMenuItem>
                         <CollapsibleTrigger render={<SidebarMenuButton tooltip={i18n.t(item.title)} />}>
-                                {item.icon && <item.icon />}
-                                <span>{i18n.t(item.title)}</span>
-                                <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-open/collapsible:rotate-90" />
+                            {item.icon && <item.icon />}
+                            <span>{i18n.t(item.title)}</span>
+                            <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-open/collapsible:rotate-90" />
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
@@ -306,7 +388,10 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                                                 render={<Link to={subItem.url} />}
                                                 isActive={isPathActive(subItem.url)}
                                             >
-                                                    <span>{i18n.t(subItem.title)}</span>
+                                                <span>{i18n.t(subItem.title)}</span>
+                                                {navigationChordActive ? (
+                                                    <ShortcutBadge shortcut={subItem.shortcut} />
+                                                ) : null}
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
                                     </NavItemWrapper>
@@ -319,10 +404,11 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         );
     };
 
-
-
     return (
         <>
+            <span className="sr-only" aria-live="polite">
+                {navigationChordActive ? 'Navigation shortcuts available. Press a highlighted key.' : ''}
+            </span>
             {/* Top sections */}
             <SidebarGroup>
                 <SidebarMenu>
@@ -338,11 +424,7 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                     <SidebarGroupLabel>Administration</SidebarGroupLabel>
                     <SidebarMenu>
                         {bottomSections.map(item =>
-                            renderSection(
-                                item,
-                                openBottomSectionId === item.id,
-                                handleBottomSectionToggle,
-                            ),
+                            renderSection(item, openBottomSectionId === item.id, handleBottomSectionToggle),
                         )}
                     </SidebarMenu>
                 </SidebarGroup>

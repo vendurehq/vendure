@@ -19,10 +19,18 @@ import * as tar from 'tar';
 import {
     CONCURRENTLY_VERSION,
     DEFAULT_PROJECT_VERSION,
+    DOCKER_COMMAND_TIMEOUT_MS,
+    DOCKER_COMPOSE_TIMEOUT_MS,
+    DOCKER_PROBE_TIMEOUT_MS,
+    DOCKER_START_POLL_INTERVAL_MS,
+    DOCKER_START_WAIT_MS,
+    DOCKER_STOP_TIMEOUT_MS,
     OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
+    PG_READY_TIMEOUT_MS,
     SOCKET_TIMEOUT_MS,
+    TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
@@ -386,10 +394,7 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];
     }
-    if (pmInfo.name === 'yarn') {
-        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
-    }
-    return pkg;
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
 }
 
 /**
@@ -406,19 +411,19 @@ export function getSingleProjectPackageJson(
         private: true,
         scripts: getServerPackageScripts(),
     };
-    if (pmInfo.name === 'yarn') {
-        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
-    }
-    return pkg;
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
 }
 
 /**
  * Native dependencies whose install/build scripts must run for the scaffolded project to
  * work — otherwise e.g. better-sqlite3's native binding is never compiled and the server
- * crashes on startup. pnpm (v10+) and yarn (v4.14+) block dependency build scripts unless
- * allowlisted, so this list feeds their respective allowlist mechanisms.
+ * crashes on startup. npm (v12+), pnpm (v10+), yarn (v4.14+) and bun block dependency
+ * build scripts unless allowlisted, so this list feeds their respective allowlist mechanisms
+ * (`allowScripts`, `onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
- * SQLite adds `better-sqlite3`.
+ * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
+ * guaranteed linear time; without its native binding those filters fall back to the built-in
+ * RegExp engine, which is vulnerable to ReDoS on SQLite backends (GHSA-jgm3-qmp2-c4p7).
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
@@ -426,9 +431,30 @@ export function getSingleProjectPackageJson(
 export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
-        deps.push('better-sqlite3');
+        deps.push('better-sqlite3', 're2');
     }
     return deps.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Returns the root package.json fields that allowlist native dependency build scripts for
+ * the given package manager. pnpm gets none: its allowlist lives in pnpm-workspace.yaml
+ * (see `getPnpmWorkspaceYaml()`).
+ */
+export function getBuildScriptAllowlistFields(
+    pmInfo: PackageManagerInfo,
+    dbType: DbType,
+): Record<string, unknown> {
+    switch (pmInfo.name) {
+        case 'npm':
+            return { allowScripts: getNpmAllowScripts(dbType) };
+        case 'yarn':
+            return { dependenciesMeta: getYarnDependenciesMeta(dbType) };
+        case 'bun':
+            return { trustedDependencies: getNativeBuildDependencies(dbType) };
+        case 'pnpm':
+            return {};
+    }
 }
 
 /**
@@ -437,6 +463,16 @@ export function getNativeBuildDependencies(dbType: DbType): string[] {
  */
 export function getYarnDependenciesMeta(dbType: DbType): Record<string, { built: true }> {
     return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, { built: true }]));
+}
+
+/**
+ * npm ≥12 does not run dependency install scripts unless they are allowlisted via
+ * `allowScripts` in the top-level package.json. Entries are name-only (not pinned to a
+ * version) so they keep matching as dependencies are upgraded. Older npm versions ignore
+ * the field.
+ */
+export function getNpmAllowScripts(dbType: DbType): Record<string, true> {
+    return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, true]));
 }
 
 /**
@@ -559,6 +595,7 @@ export function installPackages(options: {
 export function getDependencies(
     dbType: DbType,
     vendurePkgVersion = '',
+    packageManager?: PackageManager,
 ): { dependencies: string[]; devDependencies: string[] } {
     const dependencies = [
         `@vendure/core${vendurePkgVersion}`,
@@ -567,6 +604,10 @@ export function getDependencies(
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
         'dotenv',
+        // Generated migrations import from `typeorm`. Only pnpm's strict node_modules fails to
+        // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
+        // node-modules linker), so declare it directly for pnpm only. See #4960.
+        ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [
@@ -683,25 +724,38 @@ async function checkPostgresDbExists(options: any, root: string): Promise<true> 
     return true;
 }
 
+export type DockerDaemonStatus = 'running' | 'not-running' | 'not-responding';
+
+/**
+ * Asks the Docker daemon for a response, giving up after `DOCKER_PROBE_TIMEOUT_MS`.
+ * A stopped daemon refuses the connection at once ('not-running'). A daemon whose
+ * processes run but which does not answer makes `docker` hang with no error
+ * ('not-responding').
+ */
+export async function probeDockerDaemon(): Promise<DockerDaemonStatus> {
+    try {
+        await promisify(execFile)('docker', ['stats', '--no-stream'], { timeout: DOCKER_PROBE_TIMEOUT_MS });
+        return 'running';
+    } catch (e: any) {
+        return e.killed ? 'not-responding' : 'not-running';
+    }
+}
+
+export const DOCKER_NOT_RESPONDING_MESSAGE =
+    'Docker is not running or not responding. Start Docker, remove the project directory, ' +
+    'then run the create command again.';
+
 /**
  * Check to see if Docker is installed and running.
- * If not, attempt to start it.
- * If that is not possible, return false.
+ * If it is installed but stopped, attempt to start it.
+ * If it is installed but does not respond, report that without trying to start it:
+ * its processes are already running, so starting it again does nothing.
  *
  * Refs:
  * - https://stackoverflow.com/a/48843074/772859
  */
-export async function isDockerAvailable(): Promise<{ result: 'not-found' | 'not-running' | 'running' }> {
+export async function isDockerAvailable(): Promise<{ result: 'not-found' | DockerDaemonStatus }> {
     const dockerSpinner = spinner();
-
-    function isDaemonRunning(): boolean {
-        try {
-            execFileSync('docker', ['stats', '--no-stream'], { stdio: 'ignore' });
-            return true;
-        } catch (e: any) {
-            return false;
-        }
-    }
 
     dockerSpinner.start('Checking for Docker');
     try {
@@ -712,10 +766,16 @@ export async function isDockerAvailable(): Promise<{ result: 'not-found' | 'not-
         return { result: 'not-found' };
     }
     // Now we need to check if the docker daemon is running
-    const isRunning = isDaemonRunning();
-    if (isRunning) {
+    const status = await probeDockerDaemon();
+    if (status === 'running') {
         dockerSpinner.stop('Docker is running');
         return { result: 'running' };
+    }
+    if (status === 'not-responding') {
+        dockerSpinner.stop(
+            `Docker is not responding (no answer within ${DOCKER_PROBE_TIMEOUT_MS / 1000} seconds)`,
+        );
+        return { result: 'not-responding' };
     }
     dockerSpinner.message('Docker daemon is not running. Attempting to start');
     // detect the current OS
@@ -735,17 +795,18 @@ export async function isDockerAvailable(): Promise<{ result: 'not-found' | 'not-
         return { result: 'not-running' };
     }
     // Verify that the daemon is now running
+    const deadline = Date.now() + DOCKER_START_WAIT_MS;
     let attempts = 1;
     do {
         log(`Checking for Docker daemon... (attempt ${attempts})`, { level: 'verbose' });
-        if (isDaemonRunning()) {
+        if ((await probeDockerDaemon()) === 'running') {
             log(`Docker daemon is now running (after ${attempts} attempts).`, { level: 'verbose' });
             dockerSpinner.stop('Docker is running');
             return { result: 'running' };
         }
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, DOCKER_START_POLL_INTERVAL_MS));
         attempts++;
-    } while (attempts < 100);
+    } while (Date.now() < deadline);
     dockerSpinner.stop('Docker daemon could not be started');
     return { result: 'not-running' };
 }
@@ -780,15 +841,13 @@ export async function startPostgresDatabase(root: string, projectName: string): 
     let containerName: string | undefined;
     const postgresContainerSpinner = spinner();
     postgresContainerSpinner.start('Starting PostgreSQL database');
+    const composeFile = path.join(root, 'docker-compose.yml');
     try {
-        const composePromise = promisify(execFile)(`docker`, [
-            `compose`,
-            `-f`,
-            path.join(root, 'docker-compose.yml'),
-            `up`,
-            `-d`,
-            `postgres_db`,
-        ]);
+        const composePromise = promisify(execFile)(
+            `docker`,
+            [`compose`, `-f`, composeFile, `up`, `-d`, `postgres_db`],
+            { timeout: DOCKER_COMPOSE_TIMEOUT_MS },
+        );
         // `docker compose up` can ask interactive questions (e.g. "Volume exists but
         // doesn't match configuration. Recreate?"). Close stdin so it gets EOF instead
         // of blocking forever on a prompt the user cannot see.
@@ -812,11 +871,26 @@ export async function startPostgresDatabase(root: string, projectName: string): 
             });
         }
     } catch (e: any) {
+        if (e.killed) {
+            postgresContainerSpinner.stop(
+                pc.red(`Docker did not respond within ${DOCKER_COMPOSE_TIMEOUT_MS / 60_000} minutes`),
+            );
+            log(
+                'Start or restart Docker, then check it with:\n' +
+                    `  docker compose -f "${composeFile}" up -d postgres_db\n` +
+                    'Then remove the project directory and run the create command again.',
+            );
+            return false;
+        }
         log(pc.red(`Failed to start PostgreSQL database: ${e.message as string}`));
         postgresContainerSpinner.stop('Failed to start PostgreSQL database');
         return false;
     }
     postgresContainerSpinner.message(`Waiting for PostgreSQL database to be ready...`);
+    // Bounded by time as well as attempts: each `docker exec` can take up to
+    // DOCKER_COMMAND_TIMEOUT_MS when the daemon stops answering.
+    const readyStarted = Date.now();
+    const readyDeadline = readyStarted + PG_READY_TIMEOUT_MS;
     let attempts = 1;
     let isReady = false;
     do {
@@ -825,14 +899,11 @@ export async function startPostgresDatabase(root: string, projectName: string): 
         // temporary server that only listens on the unix socket, and a socket-based
         // pg_isready would report "ready" before the real server is up.
         try {
-            const result = execFileSync(`docker`, [
-                `exec`,
-                `-i`,
-                containerName,
-                `pg_isready`,
-                `-h`,
-                `localhost`,
-            ]);
+            const result = execFileSync(
+                `docker`,
+                [`exec`, `-i`, containerName, `pg_isready`, `-h`, `localhost`],
+                { timeout: DOCKER_COMMAND_TIMEOUT_MS },
+            );
             isReady = result?.toString().includes('accepting connections');
             if (!isReady) {
                 log(pc.yellow(`PostgreSQL database not yet ready. Attempt ${attempts}...`), {
@@ -848,12 +919,12 @@ export async function startPostgresDatabase(root: string, projectName: string): 
         }
         await new Promise(resolve => setTimeout(resolve, PG_READY_POLL_INTERVAL_MS));
         attempts++;
-    } while (attempts <= PG_READY_MAX_ATTEMPTS);
+    } while (attempts <= PG_READY_MAX_ATTEMPTS && Date.now() < readyDeadline);
     if (!isReady) {
         postgresContainerSpinner.stop(
             pc.red(
                 `PostgreSQL database did not become ready within ${Math.round(
-                    (PG_READY_MAX_ATTEMPTS * PG_READY_POLL_INTERVAL_MS) / 1000,
+                    (Date.now() - readyStarted) / 1000,
                 )} seconds`,
             ),
         );
@@ -964,8 +1035,11 @@ export function checkCancel<T>(value: T | symbol): value is T {
 
 export function cleanUpDockerResources(name: string) {
     const labelFilter = `label=io.vendure.create.name=${name}`;
+    // Runs the user's own `docker` from PATH, like every other Docker call in this CLI.
+    const docker = (args: string[], stdio?: 'ignore', timeout = DOCKER_COMMAND_TIMEOUT_MS) =>
+        execFileSync('docker', args, { stdio, timeout }); // NOSONAR
     const listIds = (args: string[]): string[] =>
-        execFileSync('docker', args)
+        docker(args)
             .toString()
             .split('\n')
             .map(line => line.trim())
@@ -973,12 +1047,12 @@ export function cleanUpDockerResources(name: string) {
     try {
         const containerIds = listIds(['ps', '-a', '-q', '--filter', labelFilter]);
         if (containerIds.length) {
-            execFileSync('docker', ['stop', ...containerIds], { stdio: 'ignore' });
-            execFileSync('docker', ['rm', ...containerIds], { stdio: 'ignore' });
+            docker(['stop', ...containerIds], 'ignore', DOCKER_STOP_TIMEOUT_MS);
+            docker(['rm', ...containerIds], 'ignore');
         }
         const volumeIds = listIds(['volume', 'ls', '-q', '--filter', labelFilter]);
         if (volumeIds.length) {
-            execFileSync('docker', ['volume', 'rm', ...volumeIds], { stdio: 'ignore' });
+            docker(['volume', 'rm', ...volumeIds], 'ignore');
         }
     } catch (e) {
         log(pc.yellow(`Could not clean up Docker resources`), { level: 'verbose' });
