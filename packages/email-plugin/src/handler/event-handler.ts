@@ -5,6 +5,7 @@ import { Injector, Logger } from '@vendure/core';
 import { serializeAttachments } from '../attachment-utils';
 import { loggerCtx } from '../constants';
 import { EmailEventListener } from '../event-listener';
+import { ReactEmailTemplate } from '../template/email-template';
 import {
     EmailAttachment,
     EmailTemplateConfig,
@@ -167,6 +168,7 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         bcc?: string;
     };
     private _mockEvent: Omit<Event, 'ctx' | 'data'> | undefined;
+    private _template: ReactEmailTemplate | undefined;
 
     constructor(
         public listener: EmailEventListener<T>,
@@ -176,6 +178,14 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
     /** @internal */
     get type(): T {
         return this.listener.type;
+    }
+
+    /**
+     * @description
+     * The template set with `setTemplate()`, if any.
+     */
+    get template(): ReactEmailTemplate | undefined {
+        return this._template;
     }
 
     /** @internal */
@@ -340,6 +350,31 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
 
     /**
      * @description
+     * Sets the React template used to render this email. Create one with {@link defineEmailTemplate}.
+     * The template variables defined with `setTemplateVars()` (and the global template variables) are
+     * passed to the component as props.
+     *
+     * Templates returned by a configured {@link TemplateLoader} take precedence over this one, so a loader
+     * can override it, e.g. for a particular channel or language. To vary the template by language in code,
+     * use the {@link useEmailContext} hook inside the component.
+     *
+     * @example
+     * ```ts
+     * const myHandler = new EmailEventListener('welcome')
+     *     .on(AccountVerifiedEvent)
+     *     // ...
+     *     .setTemplate(WelcomeEmail);
+     * ```
+     *
+     * @since 4.0.0
+     */
+    setTemplate(template: ReactEmailTemplate<any>): EmailEventHandler<T, Event> {
+        this._template = template;
+        return this;
+    }
+
+    /**
+     * @description
      * Add configuration for another template other than the default `"body.hbs"`. Use this method to define specific
      * templates for channels or languageCodes other than the default.
      *
@@ -390,6 +425,7 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         asyncHandler.defaultSubject = this.defaultSubject;
         asyncHandler.from = this.from;
         asyncHandler._mockEvent = this._mockEvent as any;
+        asyncHandler._template = this._template;
         return asyncHandler;
     }
 
@@ -478,6 +514,8 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
             templateVars: allTemplateVars,
             subject,
             templateFile: configuration ? configuration.templateFile : 'body.hbs',
+            languageCode,
+            channelCode: ctx.channel.code,
             attachments,
             metadata,
             ...optionalAddressFields,

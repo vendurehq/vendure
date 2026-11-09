@@ -86,12 +86,20 @@ export interface EmailPluginOptions {
     templatePath?: string;
     /**
      * @description
-     * An optional TemplateLoader which can be used to load templates from a custom location or async service.
-     * The default uses the FileBasedTemplateLoader which loads templates from `<project root>/vendure/email/templates`
+     * One or more {@link TemplateLoader}s which can be used to load templates from a custom location,
+     * a database or an async service.
+     *
+     * To find the template for an email, the loaders are tried in order, and the first one which returns
+     * a template wins. If none do, the template set on the {@link EmailEventHandler} with `setTemplate()`
+     * is used. This means loaders act as overrides of the templates defined in code: for example a
+     * {@link FileBasedTemplateLoader} pointing at existing Handlebars/MJML templates, or a loader which
+     * returns templates edited and stored at runtime.
+     *
+     * Since v4.0 this is optional. The default handlers come with React templates.
      *
      * @since 2.0.0
      */
-    templateLoader?: TemplateLoader;
+    templateLoader?: TemplateLoader | TemplateLoader[];
     /**
      * @description
      * Configures how the emails are sent.
@@ -126,19 +134,22 @@ export interface EmailPluginOptions {
     emailSender?: EmailSender;
     /**
      * @description
-     * An optional allowed EmailGenerator, used to allow custom email generation functionality to
-     * better match with custom email sending functionality.
+     * One or more custom {@link EmailGenerator}s. For each email, the first generator whose `canGenerate()`
+     * method accepts the template is used. Custom generators are tried before the defaults, which are the
+     * {@link ReactEmailGenerator} for React templates and the deprecated {@link HandlebarsMjmlGenerator}
+     * for string templates.
      *
-     * @default HandlebarsMjmlGenerator
+     * @default [ReactEmailGenerator, HandlebarsMjmlGenerator]
      */
-    emailGenerator?: EmailGenerator;
+    emailGenerator?: EmailGenerator | EmailGenerator[];
 }
 
 /**
- * EmailPLuginOptions type after initialization, where templateLoader and themeInjector are no longer optional
+ * EmailPluginOptions after initialization, with the template loaders and generators normalized to arrays.
  */
 export type InitializedEmailPluginOptions = EmailPluginOptions & {
-    templateLoader: TemplateLoader;
+    templateLoaders: TemplateLoader[];
+    emailGenerators: EmailGenerator[];
 };
 
 /**
@@ -392,6 +403,11 @@ export type IntermediateEmailDetails = {
     subject: string;
     text?: string;
     templateFile: string;
+    /**
+     * Added in v4.0. Jobs queued by an earlier version don't have these, so readers fall back to the ctx.
+     */
+    languageCode?: string;
+    channelCode?: string;
     attachments: SerializedAttachment[];
     cc?: string;
     bcc?: string;
@@ -451,6 +467,21 @@ export interface LoadTemplateInput {
      * the `addTemplate()` method, and will default to `body.hbs`
      */
     templateName: string;
+    /**
+     * @description
+     * The language of the email. This is the value set by the EmailEventHandler's `setLanguageCode()`
+     * method, or else the language of the RequestContext.
+     *
+     * @since 4.0.0
+     */
+    languageCode: LanguageCode;
+    /**
+     * @description
+     * The code of the Channel the email is being sent for.
+     *
+     * @since 4.0.0
+     */
+    channelCode: string;
     /**
      * @description
      * The variables defined by the globalTemplateVars as well as any variables defined in the

@@ -22,10 +22,13 @@ import { ensureConfigLoaded } from '@vendure/core/dist/config/config-helpers';
 import { TestingLogger } from '@vendure/testing';
 import { createReadStream, readFileSync } from 'fs';
 import path from 'path';
+import { createElement } from 'react';
 import { Readable } from 'stream';
 import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { EmailProcessor } from './email-processor';
+import { EmailRenderService } from './email-render.service';
+import { EmailGenerator, EmailGeneratorInput } from './generator/email-generator';
 import { EmailEventListener } from './event-listener';
 import { NoopEmailGenerator } from './generator/noop-email-generator';
 import { orderConfirmationHandler } from './handler/default-email-handlers';
@@ -34,6 +37,8 @@ import { EmailPlugin } from './plugin';
 import { EmailSender } from './sender/email-sender';
 import { FileBasedTemplateLoader } from './template-loader/file-based-template-loader';
 import { TemplateLoader } from './template-loader/template-loader';
+import { useEmailContext } from './template/email-context';
+import { defineEmailTemplate, EmailTemplateSource } from './template/email-template';
 import {
     EmailDetails,
     Partial as EmailPartial,
@@ -806,8 +811,10 @@ describe('EmailPlugin', () => {
             await eventBus.publish(new MockEvent(ctx, true));
             await pause();
 
-            expect(testingLogger.warnSpy.mock.calls[0][0]).toContain(
-                "Email has a large 'content' attachment (64k). Consider using the 'path' instead for improved performance.",
+            expect(testingLogger.warnSpy.mock.calls.map(call => call[0])).toContainEqual(
+                expect.stringContaining(
+                    "Email has a large 'content' attachment (64k). Consider using the 'path' instead for improved performance.",
+                ),
             );
         });
     });
@@ -911,7 +918,9 @@ describe('EmailPlugin', () => {
 
             await eventBus.publish(new MockEvent(ctx, true));
             await pause();
-            expect(testingLogger.errorSpy.mock.calls[0][0]).toContain('ENOENT: no such file or directory');
+            const message = testingLogger.errorSpy.mock.calls[0][0];
+            expect(message).toContain('No template found for email type "no-template"');
+            expect(message).toContain('FileBasedTemplateLoader');
         });
 
         it('Logs a Handlebars error if the template is invalid', async () => {
@@ -1178,6 +1187,185 @@ describe('EmailPlugin', () => {
         });
     });
 
+    describe('React templates', () => {
+        const ctx = RequestContext.deserialize({
+            _channel: { code: DEFAULT_CHANNEL_CODE },
+            _languageCode: LanguageCode.en,
+        } as any);
+
+        const GreetingEmail = defineEmailTemplate<{ name: string }>(({ name }) =>
+            createElement('p', { className: 'greeting' }, `Hello ${name}, thanks for your order`),
+        );
+
+        function greetingHandler(type = 'react-test') {
+            return new EmailEventListener(type)
+                .on(MockEvent)
+                .setFrom('"{{ shopName }}" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hi {{ name }} & welcome')
+                .setTemplateVars(() => ({ name: 'Zoë', shopName: 'Test Shop' }))
+                .setTemplate(GreetingEmail);
+        }
+
+        it('renders the template set on the handler, with template vars as props', async () => {
+            await initPluginWithHandlers([greetingHandler()], { templateLoader: [] });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            const email = onSend.mock.calls[0][0];
+            expect(email.body).toContain('<p class="greeting">Hello Zoë, thanks for your order</p>');
+            expect(email.body).toMatch(/^<!DOCTYPE html/);
+        });
+
+        it('interpolates subject and from as plain text, without HTML escaping', async () => {
+            await initPluginWithHandlers([greetingHandler()], { templateLoader: [] });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].subject).toBe('Hi Zoë & welcome');
+            expect(onSend.mock.calls[0][0].from).toBe('"Test Shop" <noreply@test.com>');
+        });
+
+        it('derives a plain text body from the HTML', async () => {
+            await initPluginWithHandlers([greetingHandler()], { templateLoader: [] });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('Hello Zoë, thanks for your order');
+        });
+
+        it('prefers the plain text body set on the handler', async () => {
+            const handler = greetingHandler().setPlainTextBody(() => 'Custom text');
+            await initPluginWithHandlers([handler], { templateLoader: [] });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('Custom text');
+        });
+
+        it('provides the email context to the template', async () => {
+            const ContextEmail = defineEmailTemplate(() => {
+                const { type, languageCode, channelCode } = useEmailContext();
+                return createElement('p', null, `${type}|${languageCode}|${channelCode}`);
+            });
+            const handler = greetingHandler()
+                .setLanguageCode(() => LanguageCode.de)
+                .setTemplate(ContextEmail);
+            await initPluginWithHandlers([handler], { templateLoader: [] });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].body).toContain(`react-test|de|${DEFAULT_CHANNEL_CODE}`);
+        });
+
+        it('falls back to the handler template when the FileBasedTemplateLoader has no file', async () => {
+            // there is no "react-test" directory in test-templates
+            await initPluginWithHandlers([greetingHandler()]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].body).toContain('Hello Zoë');
+        });
+
+        it('a Handlebars template from a loader overrides the handler template', async () => {
+            // test-templates/test/body.hbs exists
+            await initPluginWithHandlers([greetingHandler('test')]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].body).toContain('Default body.');
+            expect(onSend.mock.calls[0][0].body).not.toContain('Hello Zoë');
+        });
+
+        it('loaders are tried in order, and their templates can override the subject', async () => {
+            const calls: string[] = [];
+            const skippingLoader: TemplateLoader = {
+                async loadTemplate() {
+                    calls.push('skipping');
+                    return undefined;
+                },
+            };
+            const overridingLoader: TemplateLoader = {
+                async loadTemplate(_injector, _ctx, input) {
+                    calls.push(`overriding:${input.type}:${input.languageCode}:${input.channelCode}`);
+                    return defineEmailTemplate<{ name: string }>(
+                        ({ name }) => createElement('p', null, `Overridden for ${name}`),
+                        { subject: 'Override for {{ name }}' },
+                    );
+                },
+            };
+            await initPluginWithHandlers([greetingHandler()], {
+                templateLoader: [skippingLoader, overridingLoader],
+            });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(calls).toEqual(['skipping', `overriding:react-test:en:${DEFAULT_CHANNEL_CODE}`]);
+            expect(onSend.mock.calls[0][0].body).toContain('Overridden for Zoë');
+            expect(onSend.mock.calls[0][0].subject).toBe('Override for Zoë');
+        });
+
+        it('uses a custom generator for the templates it accepts', async () => {
+            class UppercaseGenerator implements EmailGenerator {
+                canGenerate(template: EmailTemplateSource) {
+                    return template.kind === 'string' && template.body.startsWith('UPPER:');
+                }
+                generate({ from, subject, template }: EmailGeneratorInput) {
+                    return { from, subject, body: (template as any).body.slice(6).toUpperCase() };
+                }
+            }
+            const upperLoader: TemplateLoader = {
+                async loadTemplate(_injector, _ctx, input) {
+                    return input.type === 'upper' ? 'UPPER:shout' : undefined;
+                },
+            };
+            await initPluginWithHandlers([greetingHandler('upper'), greetingHandler()], {
+                templateLoader: upperLoader,
+                emailGenerator: new UppercaseGenerator(),
+            });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            const bodies = onSend.mock.calls.map(call => call[0].body as string);
+            expect(bodies).toContain('SHOUT');
+            expect(bodies.some(b => b.includes('Hello Zoë'))).toBe(true);
+        });
+
+        it('EmailRenderService renders a template override without sending', async () => {
+            await initPluginWithHandlers([greetingHandler()], { templateLoader: [] });
+            const renderService = module.get(EmailRenderService);
+
+            const result = await renderService.render(ctx, {
+                type: 'react-test',
+                from: 'noreply@test.com',
+                subject: 'Preview for {{ name }}',
+                templateVars: { name: 'Preview' },
+                template: defineEmailTemplate<{ name: string }>(({ name }) =>
+                    createElement('p', null, `Draft for ${name}`),
+                ),
+            });
+
+            expect(result.subject).toBe('Preview for Preview');
+            expect(result.body).toContain('Draft for Preview');
+            expect(result.templateOrigin).toBe('override');
+            expect(result.templateKind).toBe('react');
+            expect(onSend).not.toHaveBeenCalled();
+        });
+
+        it('EmailRenderService reports where the template came from', async () => {
+            await initPluginWithHandlers([greetingHandler()], { templateLoader: [] });
+            const renderService = module.get(EmailRenderService);
+
+            const result = await renderService.render(ctx, {
+                type: 'react-test',
+                from: 'noreply@test.com',
+                subject: 'Hi',
+                templateVars: { name: 'X' },
+            });
+            expect(result.templateOrigin).toBe('handler');
+        });
+    });
+
     describe('devMode production warning', () => {
         const devModeOptions = {
             devMode: true,
@@ -1194,6 +1382,7 @@ describe('EmailPlugin', () => {
                 {} as EventBus,
                 {} as ModuleRef,
                 {} as EmailProcessor,
+                {} as EmailRenderService,
                 {} as JobQueueService,
                 { isServer: true } as ProcessContext,
                 options,

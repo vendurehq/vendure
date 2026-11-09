@@ -23,6 +23,9 @@ import { getDevModeProductionWarning, isDevModeOptions, resolveTransportSettings
 import { EMAIL_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { DevMailbox } from './dev-mailbox';
 import { EmailProcessor } from './email-processor';
+import { EmailRenderService } from './email-render.service';
+import { HandlebarsMjmlGenerator } from './generator/handlebars-mjml-generator';
+import { ReactEmailGenerator } from './generator/react-email-generator';
 import { EmailEventHandler, EmailEventHandlerWithAsyncData } from './handler/event-handler';
 import { FileBasedTemplateLoader } from './template-loader/file-based-template-loader';
 import {
@@ -307,7 +310,12 @@ import {
  */
 @VendurePlugin({
     imports: [PluginCommonModule],
-    providers: [{ provide: EMAIL_PLUGIN_OPTIONS, useFactory: () => EmailPlugin.options }, EmailProcessor],
+    providers: [
+        { provide: EMAIL_PLUGIN_OPTIONS, useFactory: () => EmailPlugin.options },
+        EmailProcessor,
+        EmailRenderService,
+    ],
+    exports: [EmailRenderService],
     compatibility: '^3.0.0',
 })
 export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdown, NestModule {
@@ -321,6 +329,7 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
         private eventBus: EventBus,
         private moduleRef: ModuleRef,
         private emailProcessor: EmailProcessor,
+        private renderService: EmailRenderService,
         private jobQueueService: JobQueueService,
         private processContext: ProcessContext,
         @Inject(EMAIL_PLUGIN_OPTIONS) private options: InitializedEmailPluginOptions,
@@ -330,29 +339,38 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
      * Set the plugin options.
      */
     static init(options: EmailPluginOptions | EmailPluginDevModeOptions): Type<EmailPlugin> {
-        if (options.templateLoader) {
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-            Logger.info(`Using custom template loader '${options.templateLoader.constructor.name}'`);
-        } else if (!options.templateLoader && options.templatePath) {
-            // TODO: this else-if can be removed when deprecated templatePath is removed,
-            // because we will either have a custom template loader, or the default loader with a default path
-            options.templateLoader = new FileBasedTemplateLoader(options.templatePath);
-        } else {
-            throw new Error('You must either supply a templatePath or provide a custom templateLoader');
+        const templateLoaders = toArray(options.templateLoader);
+        if (options.templatePath) {
+            // TODO: remove when the deprecated templatePath option is removed
+            templateLoaders.push(new FileBasedTemplateLoader(options.templatePath));
         }
-        this.options = options as InitializedEmailPluginOptions;
+        this.options = {
+            ...options,
+            templateLoaders,
+            emailGenerators: [
+                ...toArray(options.emailGenerator),
+                new ReactEmailGenerator(),
+                new HandlebarsMjmlGenerator(),
+            ],
+        } as InitializedEmailPluginOptions;
         return EmailPlugin;
     }
 
     /** @internal */
     async onApplicationBootstrap(): Promise<void> {
         await this.initInjectableStrategies();
+        await this.renderService.init();
         await this.setupEventSubscribers();
         const transport = await resolveTransportSettings(this.options, new Injector(this.moduleRef));
         if (!isDevModeOptions(this.options) && transport.type === 'testing') {
             // When running tests, we don't want to go through the JobQueue system,
             // so we just call the email sending logic directly.
-            this.testingProcessor = new EmailProcessor(this.options, this.moduleRef, this.eventBus);
+            this.testingProcessor = new EmailProcessor(
+                this.options,
+                this.moduleRef,
+                this.eventBus,
+                this.renderService,
+            );
             await this.testingProcessor.init();
         } else {
             await this.emailProcessor.init();
@@ -385,18 +403,13 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
 
     private async initInjectableStrategies() {
         const injector = new Injector(this.moduleRef);
-        if (typeof this.options.emailGenerator?.init === 'function') {
-            await this.options.emailGenerator.init(injector);
-        }
         if (typeof this.options.emailSender?.init === 'function') {
             await this.options.emailSender.init(injector);
         }
     }
 
     private async destroyInjectableStrategies() {
-        if (typeof this.options.emailGenerator?.destroy === 'function') {
-            await this.options.emailGenerator.destroy();
-        }
+        await this.renderService.destroy();
         if (typeof this.options.emailSender?.destroy === 'function') {
             await this.options.emailSender.destroy();
         }
@@ -438,4 +451,11 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             Logger.error(e.message, loggerCtx, e.stack);
         }
     }
+}
+
+function toArray<T>(value: T | T[] | undefined): T[] {
+    if (value === undefined) {
+        return [];
+    }
+    return Array.isArray(value) ? [...value] : [value];
 }
