@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { CustomOrderProcess, defaultOrderProcess, mergeConfig } from '@vendure/core';
+import {
+    CustomOrderProcess,
+    defaultOrderProcess,
+    mergeConfig,
+    OrderLine,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -17,13 +23,20 @@ import { proceedToArrangingPayment } from './utils/test-order-utils';
  * Order to Cancelled. When an OrderProcess refuses that transition, nothing may be changed: not the
  * lines, not the stock, not the state.
  */
-let cancelGuard: 'refuse' | 'refuseWithFalse' | 'requireZeroSubTotal' = 'refuse';
+let cancelGuard: 'refuse' | 'refuseWithFalse' | 'requireZeroSubTotal' | 'requireLinesCancelledInDb' =
+    'refuse';
+let cancelGuardCalls = 0;
+let connection: TransactionalConnection;
 
 const guardCancelProcess: CustomOrderProcess<never> = {
-    onTransitionStart(fromState, toState, { order }) {
+    init(injector) {
+        connection = injector.get(TransactionalConnection);
+    },
+    async onTransitionStart(fromState, toState, { ctx, order }) {
         if (toState !== 'Cancelled') {
             return;
         }
+        cancelGuardCalls++;
         switch (cancelGuard) {
             case 'refuse':
                 return 'This order has been released to the kitchen';
@@ -31,6 +44,12 @@ const guardCancelProcess: CustomOrderProcess<never> = {
                 return false;
             case 'requireZeroSubTotal':
                 return order.subTotalWithTax === 0 ? undefined : 'The order still has a subtotal';
+            case 'requireLinesCancelledInDb': {
+                const lines = await connection
+                    .getRepository(ctx, OrderLine)
+                    .find({ where: { order: { id: order.id } } });
+                return lines.every(l => l.quantity === 0) ? undefined : 'The lines are not cancelled';
+            }
         }
     },
 };
@@ -61,6 +80,19 @@ const GET_ORDER = gql`
             lines {
                 id
                 quantity
+            }
+        }
+    }
+`;
+
+const GET_ORDER_HISTORY_TYPES = gql`
+    query GetOrderHistoryTypes($id: ID!) {
+        order(id: $id) {
+            id
+            history {
+                items {
+                    type
+                }
             }
         }
     }
@@ -122,6 +154,20 @@ describe('cancelOrder refused by an OrderProcess', () => {
     let orderId: string;
     let lineId: string;
 
+    async function getHistoryTypes(id: string): Promise<string[]> {
+        const { order } = await adminClient.query(GET_ORDER_HISTORY_TYPES, { id });
+        return order.history.items.map((i: any) => i.type);
+    }
+
+    async function placeOrder(quantity: number) {
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity });
+        const id = await proceedToArrangingPayment(shopClient);
+        await shopClient.query(addPaymentDocument, {
+            input: { method: testSuccessfulPaymentMethod.code, metadata: {} },
+        });
+        return id as string;
+    }
+
     async function getStock() {
         const { productVariant } = await adminClient.query(GET_VARIANT_STOCK, { id: 'T_1' });
         return { stockOnHand: productVariant.stockOnHand, stockAllocated: productVariant.stockAllocated };
@@ -129,11 +175,7 @@ describe('cancelOrder refused by an OrderProcess', () => {
 
     it('leaves the Order lines untouched when the Cancelled transition is refused', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
-        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 2 });
-        orderId = await proceedToArrangingPayment(shopClient);
-        await shopClient.query(addPaymentDocument, {
-            input: { method: testSuccessfulPaymentMethod.code, metadata: {} },
-        });
+        orderId = await placeOrder(2);
         const { order: placedOrder } = await adminClient.query(GET_ORDER, { id: orderId });
         lineId = placedOrder.lines[0].id;
         const stockBefore = await getStock();
@@ -148,6 +190,7 @@ describe('cancelOrder refused by an OrderProcess', () => {
         // Expected: a refused cancel changes nothing.
         expect(order.lines.map((l: any) => l.quantity)).toEqual([2]);
         expect(await getStock()).toEqual(stockBefore);
+        expect(await getHistoryTypes(orderId)).not.toContain('ORDER_CANCELLATION');
     });
 
     it('still cancels some of the lines, since a partial cancel does not transition the Order', async () => {
@@ -204,5 +247,16 @@ describe('cancelOrder refused by an OrderProcess', () => {
         const { order } = await adminClient.query(GET_ORDER, { id: orderId });
         expect(order.lines.map((l: any) => l.quantity)).toEqual([0]);
         expect((await getStock()).stockAllocated).toBe(0);
+    });
+
+    it('runs the guards once, against the cancelled lines as saved in the database', async () => {
+        cancelGuard = 'requireLinesCancelledInDb';
+        cancelGuardCalls = 0;
+        const secondOrderId = await placeOrder(1);
+
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId: secondOrderId } });
+        expect(cancelOrder.state).toBe('Cancelled');
+        expect(cancelGuardCalls).toBe(1);
+        expect(await getHistoryTypes(secondOrderId)).toContain('ORDER_CANCELLATION');
     });
 });
