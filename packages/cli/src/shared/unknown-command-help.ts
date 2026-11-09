@@ -1,7 +1,6 @@
 import {
     findEnabledPluginDeclaringCommand,
     findInactivePluginProvidingCommand,
-    listInactiveCliPlugins,
     pluginsCommandFor,
     ResolveCliPluginsOptions,
 } from './resolve-cli-plugins';
@@ -29,25 +28,18 @@ export function unknownCommandHelp(
             ? `It failed to ${failedStep}; see the error above.`
             : `Its vendure.cliCommands lists "${commandName}", but the plugin does not provide it.`;
         lines.push(`${enabled.packageName} is enabled but did not register "${commandName}". ${cause}`);
-        return lines;
     }
 
+    // Checked even when an enabled plugin declares the command, because
+    // enabling this package is what would make the command available.
     const provider = findInactivePluginProvidingCommand(commandName, options);
     if (provider) {
-        lines.push(`It is provided by ${provider.packageName}, which is installed but not enabled.`);
+        const subject = enabled ? `"${commandName}" is also` : 'It is';
+        lines.push(`${subject} provided by ${provider.packageName}, which is installed but not enabled.`);
         lines.push(`Enable it with: ${pluginsCommandFor('add', provider.packageName, provider.scope)}`);
-        return lines;
     }
 
-    // A package that declares no commands might provide this one; one that
-    // declares others does not.
-    const undeclared = listInactiveCliPlugins(options).filter(plugin => !plugin.declaredCommands);
-    if (undeclared.length === 1) {
-        lines.push('1 package provides CLI commands but is not enabled. Run "vendure plugins" to review it.');
-    } else if (undeclared.length > 1) {
-        lines.push(
-            `${undeclared.length} packages provide CLI commands but are not enabled. Run "vendure plugins" to review them.`,
-        );
-    }
+    // Inactive packages that declare no commands are not named here. The
+    // startup hint printed before this already counts every inactive package.
     return lines;
 }
