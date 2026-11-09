@@ -327,22 +327,36 @@ export class PaymentMethodService {
         return results;
     }
 
+    /**
+     * @description
+     * Returns the PaymentMethod with the given code in the current Channel, along with its
+     * handler and eligibility checker. By default only enabled methods are found.
+     *
+     * Pass `includeDisabled: true` when operating on an existing Payment (settle, cancel, refund),
+     * so that disabling a method only stops new payments. An enabled method is preferred when
+     * several share the code.
+     */
     async getMethodAndOperations(
         ctx: RequestContext,
         method: string,
+        options?: { includeDisabled?: boolean },
     ): Promise<{
         paymentMethod: PaymentMethod;
         handler: PaymentMethodHandler;
         checker: PaymentMethodEligibilityChecker | null;
     }> {
-        const paymentMethod = await this.connection
+        const qb = this.connection
             .getRepository(ctx, PaymentMethod)
             .createQueryBuilder('method')
             .leftJoin('method.channels', 'channel')
             .where('method.code = :code', { code: method })
-            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
-            .andWhere('method.enabled IS true')
-            .getOne();
+            .andWhere('channel.id = :channelId', { channelId: ctx.channelId });
+        if (options?.includeDisabled) {
+            qb.orderBy('method.enabled', 'DESC');
+        } else {
+            qb.andWhere('method.enabled IS true');
+        }
+        const paymentMethod = await qb.getOne();
         if (!paymentMethod) {
             throw new UserInputError('error.payment-method-not-found', { method });
         }

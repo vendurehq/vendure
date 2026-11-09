@@ -205,6 +205,7 @@ export class PaymentService {
         const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperations(
             ctx,
             payment.method,
+            { includeDisabled: true },
         );
         const settlePaymentResult = await handler.settlePayment(
             ctx,
@@ -230,6 +231,7 @@ export class PaymentService {
         const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperations(
             ctx,
             payment.method,
+            { includeDisabled: true },
         );
         const cancelPaymentResult = await handler.cancelPayment(
             ctx,
@@ -654,6 +656,7 @@ export class PaymentService {
             const methodAndHandler = await this.paymentMethodService.getMethodAndOperations(
                 ctx,
                 payment.method,
+                { includeDisabled: true },
             );
             paymentMethod = methodAndHandler.paymentMethod;
             handler = methodAndHandler.handler;
