@@ -921,10 +921,25 @@ describe('AuthenticationStrategy', () => {
 
     // https://github.com/vendurehq/vendure/issues/5621
     describe('input naming no strategy', () => {
+        const invalidCredentials = {
+            authenticationError: '',
+            errorCode: ErrorCode.INVALID_CREDENTIALS_ERROR,
+            message: 'The provided credentials are invalid',
+        };
+
+        beforeAll(async () => {
+            await adminClient.asAnonymousUser();
+            await shopClient.asAnonymousUser();
+        });
+
+        afterAll(async () => {
+            await adminClient.asSuperAdmin();
+        });
+
         it('returns InvalidCredentialsError on the Shop API for an empty input', async () => {
             const { authenticate } = await shopClient.query(authenticateDocument, { input: {} });
 
-            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            expect(authenticate).toEqual(invalidCredentials);
         });
 
         it('returns InvalidCredentialsError on the Shop API for a strategy with null data', async () => {
@@ -932,13 +947,13 @@ describe('AuthenticationStrategy', () => {
                 input: { test_strategy: null },
             });
 
-            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            expect(authenticate).toEqual(invalidCredentials);
         });
 
         it('returns InvalidCredentialsError on the Admin API for an empty input', async () => {
             const { authenticate } = await adminClient.query(authenticateDocument, { input: {} });
 
-            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            expect(authenticate).toEqual(invalidCredentials);
         });
 
         it('returns InvalidCredentialsError on the Admin API for a strategy with null data', async () => {
@@ -946,7 +961,16 @@ describe('AuthenticationStrategy', () => {
                 input: { native: null },
             });
 
-            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            expect(authenticate).toEqual(invalidCredentials);
+        });
+
+        it('does not create a session on either API', async () => {
+            await expect(shopClient.query(MeDocument)).rejects.toThrow(
+                'You are not currently authorized to perform this action',
+            );
+            await expect(adminClient.query(MeDocument)).rejects.toThrow(
+                'You are not currently authorized to perform this action',
+            );
         });
     });
 });
