@@ -31,6 +31,7 @@ import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Role } from '../../entity/role/role.entity';
@@ -151,7 +152,7 @@ export class RoleService {
             .getRepository(ctx, Role)
             .findOne({
                 where: { id: roleId },
-                relations: relations ?? [],
+                relations: findOptionsArrayToObject<Role>(relations ?? []),
             })
             .then(async result => {
                 if (result && (await this.activeUserCanReadRole(ctx, result))) {

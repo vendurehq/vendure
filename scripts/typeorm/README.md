@@ -1,7 +1,9 @@
 # TypeORM version test harness
 
-Vendure supports both TypeORM v0.3 and v1 from the same source, so that existing projects can
-stay on v0.3 while new ones adopt v1. These scripts run the database-backed test suites against
+Vendure supports both TypeORM v0.3 and v1 from the same source. v1 is the default: it is what
+the committed lockfile installs and what new projects get, while the `typeorm` range in
+`@vendure/core` (`^0.3.21 || ^1.1.2`) still admits v0.3 so that existing projects can stay on it.
+These scripts run the database-backed test suites against
 either version.
 
 ## Why the version has to be forced
@@ -17,8 +19,8 @@ later (earlier releases declare a `typeorm` peer range of `^0.3.0`) and `better-
 ## Running the suites
 
 ```sh
-# Switch the workspace to TypeORM v1 and install
-bun run typeorm:use 1
+# Switch the workspace to TypeORM v0.3 and install (v1 is the default install)
+bun run typeorm:use 0.3
 
 # Run the unit and e2e suites against whichever profile is active
 bun run test:db                  # sqljs
@@ -63,19 +65,21 @@ to report what fails once the code is running.
 
 The `.github/actions/setup` action takes a `typeorm` input naming a profile. With no input it
 installs the committed lockfile, which is what `build_and_test.yml` does and what gives the
-project its v0.3 coverage.
+project its v1 coverage.
 
-The v1 runs live in `typeorm_v1.yml`, kept separate from `build_and_test.yml` so that the
-second TypeORM version does not double the cost of every pull request. They run after a merge
-to `master`, `minor` or `major`, on demand, and when the `typeorm-v1` label is added to a pull
-request. Add that label to work touching entities, repositories, migrations or query building,
-where a version difference is most likely to show. Adding the label is the only pull request
-trigger, so pushing further commits does not produce a new result; remove and re-add the label
-when you want one.
+The v0.3 runs live in `typeorm_v0_3.yml`, kept separate from `build_and_test.yml` so that the
+second TypeORM version does not double the cost of every pull request. They always run on pull
+requests into `major`, and on pushes to `master`, `minor` and `major` and on demand. On pull
+requests into `master` or `minor` they run when the `typeorm-v0-3` label is on the pull request.
+Add that label to work touching entities, repositories, migrations or query building, where a
+version difference is most likely to show. Pushing to a labelled pull request re-runs them.
 
-The v1 jobs cover one database per TypeORM dialect family — postgres, mariadb and sqljs. mysql
+To make a v0.3 break block merges into `major`, mark the workflow's jobs (build, unit tests and
+the e2e jobs) as required status checks in the branch protection rules for `major`.
+
+The v0.3 jobs cover one database per TypeORM dialect family — postgres, mariadb and sqljs. mysql
 is left out because it goes through the same TypeORM driver as mariadb, so it would repeat that
-coverage rather than add to it. The full four-database matrix stays on v0.3 in
+coverage rather than add to it. The full four-database matrix runs on v1 in
 `build_and_test.yml`.
 
 ## Adding a version
