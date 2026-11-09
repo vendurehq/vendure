@@ -36,6 +36,9 @@ const CANCEL_ORDER = gql`
                 errorCode
                 message
             }
+            ... on OrderStateTransitionError {
+                transitionError
+            }
         }
     }
 `;
@@ -53,6 +56,25 @@ const GET_ORDER = gql`
     }
 `;
 
+const TRACK_VARIANT_INVENTORY = gql`
+    mutation TrackVariantInventory($id: ID!) {
+        updateProductVariants(input: [{ id: $id, trackInventory: TRUE }]) {
+            id
+        }
+    }
+`;
+
+const GET_VARIANT_STOCK = gql`
+    query GetVariantStock($id: ID!) {
+        productVariant(id: $id) {
+            id
+            stockOnHand
+            stockAllocated
+        }
+    }
+`;
+
+// OSS-938 — a cancel refused by an OrderProcess must not cancel lines or release stock
 describe('cancelOrder refused by an OrderProcess', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
@@ -80,26 +102,66 @@ describe('cancelOrder refused by an OrderProcess', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
+        await adminClient.query(TRACK_VARIANT_INVENTORY, { id: 'T_1' });
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
         await server.destroy();
     });
 
+    let orderId: string;
+    let lineId: string;
+
+    async function getStock() {
+        const { productVariant } = await adminClient.query(GET_VARIANT_STOCK, { id: 'T_1' });
+        return { stockOnHand: productVariant.stockOnHand, stockAllocated: productVariant.stockAllocated };
+    }
+
     it('leaves the Order lines untouched when the Cancelled transition is refused', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 2 });
-        const orderId = await proceedToArrangingPayment(shopClient);
+        orderId = await proceedToArrangingPayment(shopClient);
         await shopClient.query(addPaymentDocument, {
             input: { method: testSuccessfulPaymentMethod.code, metadata: {} },
         });
+        const { order: placedOrder } = await adminClient.query(GET_ORDER, { id: orderId });
+        lineId = placedOrder.lines[0].id;
+        const stockBefore = await getStock();
+        expect(stockBefore.stockAllocated).toBe(2);
 
         const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
         expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+        expect(cancelOrder.transitionError).toBe('This order has been released to the kitchen');
 
         const { order } = await adminClient.query(GET_ORDER, { id: orderId });
         expect(order.state).toBe('PaymentSettled');
         // Expected: a refused cancel changes nothing.
         expect(order.lines.map((l: any) => l.quantity)).toEqual([2]);
+        expect(await getStock()).toEqual(stockBefore);
+    });
+
+    it('still cancels some of the lines, since a partial cancel does not transition the Order', async () => {
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+            input: { orderId, lines: [{ orderLineId: lineId, quantity: 1 }] },
+        });
+        expect(cancelOrder.state).toBe('PaymentSettled');
+
+        const { order } = await adminClient.query(GET_ORDER, { id: orderId });
+        expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
+        expect((await getStock()).stockAllocated).toBe(1);
+    });
+
+    it('leaves the Order lines untouched when the given lines would cancel every line', async () => {
+        const stockBefore = await getStock();
+
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+            input: { orderId, lines: [{ orderLineId: lineId, quantity: 1 }] },
+        });
+        expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+
+        const { order } = await adminClient.query(GET_ORDER, { id: orderId });
+        expect(order.state).toBe('PaymentSettled');
+        expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
+        expect(await getStock()).toEqual(stockBefore);
     });
 });
