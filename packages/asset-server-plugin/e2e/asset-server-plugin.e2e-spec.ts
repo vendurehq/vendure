@@ -283,6 +283,7 @@ describe('AssetServerPlugin', () => {
             const cacheFileDir = path.join(__dirname, TEST_ASSET_DIR, 'cache', path.dirname(sourceKey));
             const cachedFileName = new RegExp(`^${path.basename(sourceKey, '.svg')}[0-9a-f]{32}\\.png$`);
 
+            let cachedFileMtime: number | undefined;
             for (const pass of ['generated', 'from cache']) {
                 const res = await fetch(`${svgAsset.source}?w=100`);
 
@@ -292,6 +293,10 @@ describe('AssetServerPlugin', () => {
                 expect(res.headers.get('content-security-policy'), pass).toBe(BASE_CSP);
                 const cachedFiles = (await fs.readdir(cacheFileDir)).filter(f => cachedFileName.test(f));
                 expect(cachedFiles.length, pass).toBe(1);
+                // An unchanged mtime shows the second response was read from the cache, not regenerated.
+                const { mtimeMs } = await fs.stat(path.join(cacheFileDir, cachedFiles[0]));
+                expect(mtimeMs, pass).toBe(cachedFileMtime ?? mtimeMs);
+                cachedFileMtime = mtimeMs;
             }
         });
     });
