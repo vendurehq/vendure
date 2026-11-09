@@ -1,18 +1,15 @@
 name: TypeORM v0.3 compatibility
 
-# TypeORM v1 is the default, so Build & Test runs the database-backed suites against
-# it across the full database matrix. This workflow keeps the still-supported v0.3
-# covered, kept separate so that the second TypeORM version does not double the cost
-# of every pull request.
+# TypeORM v1 is the default on this branch, so Build & Test runs the database-backed
+# suites against it across the full database matrix. This workflow keeps the
+# still-supported v0.3 covered, kept separate so that the second TypeORM version does
+# not double the cost of Build & Test.
 #
 # One database per TypeORM dialect family is enough to expose a version difference,
 # so mysql is left out: it goes through the same TypeORM driver as mariadb.
 #
-# Pull requests into `major` always run this workflow, so a v0.3 break blocks the merge
-# once its jobs are required checks on that branch. Pull requests into `master` and
-# `minor` opt in with the `typeorm-v0-3` label, which is worth adding to anything
-# touching entities, repositories, migrations or query building. Merged changes on all
-# three branches also run it via the push trigger.
+# It runs on every pull request into `major` and on every push to it, so a change that
+# breaks TypeORM v0.3 cannot merge unnoticed once these jobs are required checks.
 #
 # There is deliberately no `schedule` trigger. scripts/typeorm/profiles.json pins
 # exact versions, so a run with no repository change can only repeat the previous
@@ -22,8 +19,6 @@ on:
     workflow_dispatch:
     push:
         branches:
-            - master
-            - minor
             - major
         paths:
             - 'packages/**'
@@ -37,16 +32,9 @@ on:
             - 'scripts/typeorm/**'
             - '.github/actions/setup/**'
             - '.github/workflows/typeorm_v0_3.yml'
-    # Pull requests into `major` always run these jobs, so a change that breaks TypeORM
-    # v0.3 cannot merge there. Pull requests into `master` and `minor` opt in with the
-    # `typeorm-v0-3` label; for them the job-level `if` below skips the run, which shows
-    # as a skipped check. Pushing to a labelled pull request re-runs the jobs.
     pull_request:
         branches:
-            - master
             - major
-            - minor
-        types: [opened, synchronize, reopened, labeled]
 
 env:
     CI: true
@@ -61,7 +49,6 @@ concurrency:
 jobs:
     build:
         name: build
-        if: github.event_name != 'pull_request' || github.base_ref == 'major' || contains(github.event.pull_request.labels.*.name, 'typeorm-v0-3')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -75,7 +62,6 @@ jobs:
 
     unit-tests:
         name: unit tests
-        if: github.event_name != 'pull_request' || github.base_ref == 'major' || contains(github.event.pull_request.labels.*.name, 'typeorm-v0-3')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -91,7 +77,6 @@ jobs:
 
     e2e-sqljs:
         name: e2e (sqljs)
-        if: github.event_name != 'pull_request' || github.base_ref == 'major' || contains(github.event.pull_request.labels.*.name, 'typeorm-v0-3')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -115,7 +100,6 @@ jobs:
 
     e2e-mariadb:
         name: e2e (mariadb)
-        if: github.event_name != 'pull_request' || github.base_ref == 'major' || contains(github.event.pull_request.labels.*.name, 'typeorm-v0-3')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -147,7 +131,6 @@ jobs:
 
     e2e-postgres:
         name: e2e (postgres)
-        if: github.event_name != 'pull_request' || github.base_ref == 'major' || contains(github.event.pull_request.labels.*.name, 'typeorm-v0-3')
         runs-on: ubuntu-latest
         permissions:
             contents: read

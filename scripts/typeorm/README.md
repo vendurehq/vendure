@@ -68,11 +68,8 @@ installs the committed lockfile, which is what `build_and_test.yml` does and wha
 project its v1 coverage.
 
 The v0.3 runs live in `typeorm_v0_3.yml`, kept separate from `build_and_test.yml` so that the
-second TypeORM version does not double the cost of every pull request. They always run on pull
-requests into `major`, and on pushes to `master`, `minor` and `major` and on demand. On pull
-requests into `master` or `minor` they run when the `typeorm-v0-3` label is on the pull request.
-Add that label to work touching entities, repositories, migrations or query building, where a
-version difference is most likely to show. Pushing to a labelled pull request re-runs them.
+second TypeORM version does not double the cost of every pull request. They run on every pull
+request into `major` and on every push to it, and on demand.
 
 To make a v0.3 break block merges into `major`, mark the workflow's jobs (build, unit tests and
 the e2e jobs) as required status checks in the branch protection rules for `major`.
