@@ -434,11 +434,12 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             } else if (this.testingProcessor) {
                 await this.testingProcessor.process(result);
             }
-        } catch (e: any) {
+        } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
             Logger.error(
-                `Could not handle event "${handler.event.name}" with the "${handler.type}" email handler: ${e.message as string}`,
+                `Could not handle event "${handler.event.name}" with the "${handler.type}" email handler: ${message}`,
                 loggerCtx,
-                e.stack,
+                e instanceof Error ? e.stack : undefined,
             );
         }
     }

@@ -957,7 +957,6 @@ describe('EmailPlugin', () => {
             expect(testingLogger.errorSpy.mock.calls[0][0]).toContain('something went horribly wrong!');
         });
 
-        // OSS-940 — the error log names the email handler and the event
         it('names the handler type and the event when handling an event fails', async () => {
             const ctx = RequestContext.deserialize({
                 _channel: { code: DEFAULT_CHANNEL_CODE },
