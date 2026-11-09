@@ -49,7 +49,21 @@ export async function run({ github, context, core, options }) {
     });
 
     const unsigned = getUnsigned(signers, signatures);
-    await reportStatus(github, { owner, repo, sha: pull.head.sha, unsigned, options, core });
+    const unsignedForHeadCommit = await addUnsignedFromPullsWithSameHead(github, {
+        owner,
+        repo,
+        pull,
+        unsigned,
+        signatures,
+    });
+    await reportStatus(github, {
+        owner,
+        repo,
+        sha: pull.head.sha,
+        unsigned: unsignedForHeadCommit,
+        options,
+        core,
+    });
     if (options.postComment) {
         await upsertComment(github, {
             owner,
@@ -85,6 +99,35 @@ async function getSignersForPull(github, { owner, repo, pull }) {
             baseRepo: pull.base.repo.full_name,
         }),
     });
+}
+
+/**
+ * A commit status belongs to a commit, not to a pull request. When other open
+ * pull requests have the same head commit, they show the same `cla` status,
+ * so the status has to cover them as well. Otherwise a success for this pull
+ * request would hide someone who has not signed for another one.
+ */
+async function addUnsignedFromPullsWithSameHead(github, { owner, repo, pull, unsigned, signatures }) {
+    const openPulls = await github.paginate(github.rest.pulls.list, {
+        owner,
+        repo,
+        state: 'open',
+        per_page: 100,
+    });
+    const sameHead = openPulls.filter(p => p.number !== pull.number && p.head.sha === pull.head.sha);
+
+    const result = new Map(unsigned.map(s => [s.id, s]));
+    for (const { number } of sameHead) {
+        // The list omits the commit count, which listPullCommits needs.
+        const { data: other } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+        const otherSigners = await getSignersForPull(github, { owner, repo, pull: other });
+        for (const signer of getUnsigned(otherSigners, signatures)) {
+            if (!result.has(signer.id)) {
+                result.set(signer.id, signer);
+            }
+        }
+    }
+    return [...result.values()];
 }
 
 // pulls.listCommits returns at most 250 commits.
@@ -175,7 +218,13 @@ function signatureStore(github, { signaturesRepo, signaturesPath, signaturesBran
             path: signaturesPath,
             ref: signaturesBranch,
         });
-        const file = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
+        // For a file over 1 MB, the contents API returns no content and the
+        // encoding "none". The git blob API returns files up to 100 MB.
+        const content =
+            data.encoding === 'base64'
+                ? data.content
+                : (await github.rest.git.getBlob({ owner, repo, file_sha: data.sha })).data.content;
+        const file = JSON.parse(Buffer.from(content, 'base64').toString('utf8'));
         return { file, signatures: file.signedContributors, sha: data.sha };
     }
 

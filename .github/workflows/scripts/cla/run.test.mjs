@@ -33,6 +33,8 @@ function fakeGitHub({
     conflicts = 0,
     headRef = 'feature',
     commitCount = commitAuthors.length,
+    otherPulls = [],
+    largeFile = false,
 }) {
     const state = {
         file: { signedContributors: signatures },
@@ -42,19 +44,30 @@ function fakeGitHub({
         comments: [...comments],
         writes: [],
     };
+    const pull = (number, user, headSha, authors) => ({
+        number,
+        state: 'open',
+        user,
+        commits: authors.length > 0 ? commitCount : 0,
+        authors,
+        head: { sha: headSha, ref: headRef, repo: { full_name: 'vendurehq/vendure' } },
+        base: { sha: 'base-sha', repo: { full_name: 'vendurehq/vendure' } },
+    });
+    // `otherPulls` are further open pull requests: { number, user, headSha, commitAuthors }.
+    const pulls = [
+        pull(7, prAuthor, 'head-sha', commitAuthors),
+        ...otherPulls.map(p => pull(p.number, p.user, p.headSha, p.commitAuthors)),
+    ];
     const rest = {
         pulls: {
-            get: async () => ({
-                data: {
-                    number: 7,
-                    state: 'open',
-                    user: prAuthor,
-                    commits: commitCount,
-                    head: { sha: 'head-sha', ref: headRef, repo: { full_name: 'vendurehq/vendure' } },
-                    base: { sha: 'base-sha', repo: { full_name: 'vendurehq/vendure' } },
-                },
-            }),
+            get: async ({ pull_number }) => ({ data: pulls.find(p => p.number === pull_number) }),
+            list: 'list',
             listCommits: 'listCommits',
+        },
+        git: {
+            getBlob: async () => ({
+                data: { content: Buffer.from(JSON.stringify(state.file)).toString('base64') },
+            }),
         },
         issues: {
             listComments: 'listComments',
@@ -66,10 +79,13 @@ function fakeGitHub({
         },
         repos: {
             getContent: async () => ({
-                data: {
-                    sha: `v${state.fileVersion}`,
-                    content: Buffer.from(JSON.stringify(state.file)).toString('base64'),
-                },
+                data: largeFile
+                    ? { sha: `v${state.fileVersion}`, encoding: 'none', content: '' }
+                    : {
+                          sha: `v${state.fileVersion}`,
+                          encoding: 'base64',
+                          content: Buffer.from(JSON.stringify(state.file)).toString('base64'),
+                      },
             }),
             createOrUpdateFileContents: async ({ sha, content, message }) => {
                 if (state.conflicts > 0) {
@@ -87,15 +103,19 @@ function fakeGitHub({
             compareCommitsWithBasehead: 'compareCommitsWithBasehead',
         },
     };
-    const commits = commitAuthors.map((author, i) => ({ sha: `sha${i}`, author }));
+    const commitsOf = number =>
+        pulls.find(p => p.number === number).authors.map((author, i) => ({ sha: `sha${i}`, author }));
     const paginate = async (method, params, mapFn) => {
         state.paginated = [...(state.paginated ?? []), method];
+        if (method === 'list') {
+            return pulls;
+        }
         if (method === 'listCommits') {
-            return commits;
+            return commitsOf(params.pull_number);
         }
         if (method === 'compareCommitsWithBasehead') {
             assert.equal(params.basehead, 'base-sha...head-sha');
-            return mapFn({ data: { commits } });
+            return mapFn({ data: { commits: commitsOf(7) } });
         }
         return state.comments;
     };
@@ -262,6 +282,42 @@ describe('run', () => {
         });
         await run({ github, context: withRepo(prEvent), core: logs(), options });
 
+        assert.equal(state.statuses[0].state, 'success');
+    });
+
+    it('fails the status when another open PR with the same head commit has an unsigned author', async () => {
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [alice],
+            signatures: [{ name: 'alice', id: 1 }],
+            otherPulls: [
+                { number: 8, user: bob, headSha: 'head-sha', commitAuthors: [alice] },
+                { number: 9, user: carol, headSha: 'other-sha', commitAuthors: [carol] },
+            ],
+        });
+        await run({ github, context: withRepo(prEvent), core: logs(), options });
+
+        assert.equal(state.statuses[0].state, 'failure');
+        assert.equal(state.statuses[0].description, 'Waiting for @bob to sign the CLA');
+        // The comment on this PR only lists who has to sign for this PR.
+        assert.equal(state.comments.length, 0);
+    });
+
+    it('reads a signatures file over 1 MB through the git blob API', async () => {
+        const signComment = userComment(alice, SIGN_PHRASE);
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [alice],
+            signatures: [{ name: 'carol', id: carol.id }],
+            comments: [signComment],
+            largeFile: true,
+        });
+        await run({ github, context: withRepo(commentEvent(signComment)), core: logs(), options });
+
+        assert.deepEqual(
+            state.file.signedContributors.map(s => s.name),
+            ['carol', 'alice'],
+        );
         assert.equal(state.statuses[0].state, 'success');
     });
 });
