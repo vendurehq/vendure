@@ -286,7 +286,7 @@ describe('Slug uniqueness is scoped per channel', () => {
             let error: any;
             try {
                 await adminClient.query(assignCollections, {
-                    input: { channelId: bChannelId, collectionIds: [cSummer!.id] },
+                    input: { channelId: bChannelId, collectionIds: [cSummer?.id as string] },
                 });
             } catch (e: any) {
                 error = e;

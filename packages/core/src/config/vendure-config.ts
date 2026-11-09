@@ -1330,6 +1330,21 @@ export interface EntityOptions {
      * @default DefaultSlugStrategy
      */
     slugStrategy?: SlugStrategy;
+    /**
+     * @description
+     * Sets the scope within which Product and Collection slugs must be unique (per language).
+     *
+     * - `'channel'`: a slug must be unique in each channel the entity belongs to. Two products
+     *   in different channels can share a slug. The default channel holds every entity, so it is
+     *   only taken into account for entities that belong to no other channel. Lookups by slug in
+     *   the default channel prefer an entity that lives only there, then the lowest id.
+     * - `'global'`: a slug must be unique across all channels. Use this when a single storefront
+     *   shows products from several channels, such as a marketplace built on the default channel.
+     *
+     * @since 4.0.0
+     * @default 'channel'
+     */
+    slugUniqueness?: 'channel' | 'global';
 }
 
 /**
