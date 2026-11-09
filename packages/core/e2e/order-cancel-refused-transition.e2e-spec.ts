@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
     CustomOrderProcess,
     defaultOrderProcess,
@@ -77,6 +76,7 @@ const GET_ORDER = gql`
         order(id: $id) {
             id
             state
+            totalWithTax
             lines {
                 id
                 quantity
@@ -121,7 +121,7 @@ describe('cancelOrder refused by an OrderProcess', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             orderOptions: {
-                process: [defaultOrderProcess, guardCancelProcess] as any,
+                process: [defaultOrderProcess, guardCancelProcess],
             },
             paymentOptions: {
                 paymentMethodHandlers: [testSuccessfulPaymentMethod],
@@ -189,6 +189,7 @@ describe('cancelOrder refused by an OrderProcess', () => {
         expect(order.state).toBe('PaymentSettled');
         // Expected: a refused cancel changes nothing.
         expect(order.lines.map((l: any) => l.quantity)).toEqual([2]);
+        expect(order.totalWithTax).toBe(placedOrder.totalWithTax);
         expect(await getStock()).toEqual(stockBefore);
         expect(await getHistoryTypes(orderId)).not.toContain('ORDER_CANCELLATION');
     });
@@ -258,5 +259,22 @@ describe('cancelOrder refused by an OrderProcess', () => {
         expect(cancelOrder.state).toBe('Cancelled');
         expect(cancelGuardCalls).toBe(1);
         expect(await getHistoryTypes(secondOrderId)).toContain('ORDER_CANCELLATION');
+    });
+
+    it('returns the refusal as an error result for an active Order', async () => {
+        cancelGuard = 'refuse';
+        const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+            productVariantId: 'T_1',
+            quantity: 1,
+        });
+
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+            input: { orderId: addItemToOrder.id },
+        });
+        expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+
+        const { order } = await adminClient.query(GET_ORDER, { id: addItemToOrder.id });
+        expect(order.state).toBe('AddingItems');
+        expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
     });
 });
