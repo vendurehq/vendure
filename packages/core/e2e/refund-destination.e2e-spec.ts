@@ -2,11 +2,14 @@
 
 import { CurrencyCode, ErrorCode, type RefundOrderInput } from '@vendure/common/lib/generated-types';
 import {
+    EventBus,
     LanguageCode,
     mergeConfig,
     type Order,
     type Payment,
+    PaymentMethodHandler,
     type RefundDestinationStrategy,
+    RefundEvent,
     type RequestContext,
 } from '@vendure/core';
 import {
@@ -16,7 +19,7 @@ import {
     type ErrorResultGuard,
 } from '@vendure/testing';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -130,6 +133,39 @@ class ThrowingDestination implements RefundDestinationStrategy {
     }
 }
 
+/**
+ * Reports a state which the Refund cannot transition to from Pending, so the Refund is saved but
+ * its state transition fails.
+ */
+class InvalidStateDestination implements RefundDestinationStrategy {
+    readonly code = 'invalid-state';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Reports an invalid state' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund() {
+        return { state: 'Pending' as const };
+    }
+}
+
+const refundThrowsPaymentMethod = new PaymentMethodHandler({
+    code: 'refund-throws-payment-method',
+    description: [{ languageCode: LanguageCode.en, value: 'Refund always throws' }],
+    args: {},
+    createPayment: (ctx, order, amount, args, metadata) => ({
+        amount,
+        state: 'Settled',
+        transactionId: 'refund-throws',
+        metadata,
+    }),
+    settlePayment: () => ({ success: true }),
+    createRefund: () => {
+        throw new Error('Payment provider unavailable');
+    },
+});
+
 const refundDestinationsDocument = graphql(`
     query GetRefundDestinations($orderId: ID!) {
         refundDestinations(orderId: $orderId) {
@@ -215,6 +251,11 @@ describe('Refund destinations', () => {
     let refundablePaymentId: string;
     let declinedPaymentId: string;
     let orderTotalWithTax: number;
+    // RefundEvents seen by EventBus.ofType(), which only emits once the transaction has committed.
+    const refundEvents: RefundEvent[] = [];
+    // RefundEvents seen by a blocking handler, which runs inside the transaction.
+    const blockingRefundEvents: RefundEvent[] = [];
+    const refundEventTotals = (events: RefundEvent[]) => events.map(e => e.refund.total);
 
     const refundGuard: ErrorResultGuard<{ id: string; total: number }> = createErrorResultGuard(
         input => input.total != null,
@@ -227,12 +268,14 @@ describe('Refund destinations', () => {
                     partialPaymentMethod,
                     singleStageRefundablePaymentMethod,
                     testFailingPaymentMethod,
+                    refundThrowsPaymentMethod,
                 ],
                 refundDestinations: [
                     new StoreCreditDestination(),
                     new RestrictedDestination(),
                     new ThrowingDestination(),
                     new MultiPaymentOnlyDestination(),
+                    new InvalidStateDestination(),
                 ],
             },
         }),
@@ -255,6 +298,10 @@ describe('Refund destinations', () => {
                         name: testFailingPaymentMethod.code,
                         handler: { code: testFailingPaymentMethod.code, arguments: [] },
                     },
+                    {
+                        name: refundThrowsPaymentMethod.code,
+                        handler: { code: refundThrowsPaymentMethod.code, arguments: [] },
+                    },
                 ],
             },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
@@ -262,6 +309,15 @@ describe('Refund destinations', () => {
         });
         await adminClient.asSuperAdmin();
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+        const eventBus = server.app.get(EventBus);
+        eventBus.ofType(RefundEvent).subscribe(event => refundEvents.push(event));
+        eventBus.registerBlockingEventHandler({
+            event: RefundEvent,
+            id: 'refund-destination-spec',
+            handler: event => {
+                blockingRefundEvents.push(event);
+            },
+        });
 
         // Build an Order paid for by two separate Payments, so that per-payment availability and
         // per-payment refundable capacity can be exercised. A declined first attempt is also left on
@@ -295,6 +351,11 @@ describe('Refund destinations', () => {
 
     afterAll(async () => {
         await server.destroy();
+    });
+
+    beforeEach(() => {
+        refundEvents.length = 0;
+        blockingRefundEvents.length = 0;
     });
 
     describe('refundDestinations query', () => {
@@ -469,6 +530,9 @@ describe('Refund destinations', () => {
             const storeCreditRefund = refundablePayment.refunds!.find(r => r.total === 700)!;
             expect(storeCreditRefund.destination).toBe('store-credit');
             expect(storeCreditRefund.state).toBe('Settled');
+
+            // OSS-939: one RefundEvent per Refund, not only for the returned one.
+            await vi.waitFor(() => expect(refundEventTotals(refundEvents)).toEqual([300, 700]));
         });
 
         it('attaches the refund lines only to the first Refund', async () => {
@@ -559,6 +623,29 @@ describe('Refund destinations', () => {
 
             // The first target's Refund was committed, since its funds have already been moved.
             expect(await countRefunds()).toBe(refundCountBefore + 1);
+            // OSS-939: the kept Refund still gets its RefundEvent.
+            await vi.waitFor(() => expect(refundEventTotals(refundEvents)).toEqual([100]));
+        });
+
+        // OSS-939
+        it('publishes a RefundEvent for a saved Refund whose state transition fails', async () => {
+            const refundCountBefore = await countRefunds();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: partialPaymentId,
+                    reason: 'transition fails on second target',
+                    targets: [
+                        { paymentId: partialPaymentId, amount: 50 },
+                        { paymentId: refundablePaymentId, amount: 60, destination: 'invalid-state' },
+                    ],
+                },
+            });
+
+            refundGuard.assertErrorResult(refundOrder);
+            expect(refundOrder.errorCode).toBe(ErrorCode.REFUND_INCOMPLETE_ERROR);
+            expect(await countRefunds()).toBe(refundCountBefore + 2);
+            await vi.waitFor(() => expect(refundEventTotals(refundEvents)).toEqual([50, 60]));
         });
 
         it('creates no Refund when the first target fails', async () => {
@@ -580,6 +667,40 @@ describe('Refund destinations', () => {
             )();
 
             expect(await countRefunds()).toBe(refundCountBefore);
+        });
+
+        // OSS-939
+        it('publishes no RefundEvent for Refunds rolled back when a spilled-over refund throws', async () => {
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 2 });
+            await proceedToArrangingPayment(shopClient, 2);
+            await shopClient.query(addPaymentDocument, {
+                input: { method: partialPaymentMethod.code, metadata: { amount: PARTIAL_PAYMENT_AMOUNT } },
+            });
+            const { addPaymentToOrder: order } = await shopClient.query(addPaymentDocument, {
+                input: { method: refundThrowsPaymentMethod.code, metadata: {} },
+            });
+            const { order: adminOrder } = await adminClient.query(getOrderPaymentsDocument, {
+                id: (order as any).id,
+            });
+            const partialPayment = adminOrder!.payments!.find(p => p.method === partialPaymentMethod.code)!;
+
+            // Refunding the whole line exceeds the partial Payment, so the rest spills over onto the
+            // second Payment, whose handler throws. That rolls back the first Refund as well.
+            await assertThrowsWithMessage(
+                () =>
+                    adminClient.query(refundWithDestinationDocument, {
+                        input: {
+                            paymentId: partialPayment.id,
+                            reason: 'spill-over fails',
+                            lines: [{ orderLineId: adminOrder!.lines[0].id, quantity: 2 }],
+                            shipping: 0,
+                            adjustment: 0,
+                        },
+                    }),
+                'Payment provider unavailable',
+            )();
+
+            expect(blockingRefundEvents).toEqual([]);
         });
     });
 
