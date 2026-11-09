@@ -17,6 +17,7 @@ import { CustomerService } from '../../services/customer.service';
 import { HistoryService } from '../../services/history.service';
 import { RoleAssignmentService } from '../../services/role-assignment.service';
 import { RoleService } from '../../services/role.service';
+import { IdentityScopeService } from '../identity-scope/identity-scope.service';
 import { StoredMediaUpload } from '../stored-media/stored-media.service';
 
 /**
@@ -36,6 +37,7 @@ export class ExternalAuthenticationService {
         private administratorService: AdministratorService,
         private channelService: ChannelService,
         private roleService: RoleService,
+        private identityScopeService: IdentityScopeService,
     ) {}
 
     /**
@@ -53,7 +55,22 @@ export class ExternalAuthenticationService {
         externalIdentifier: string,
         checkCurrentChannelOnly = true,
     ): Promise<User | undefined> {
-        const user = await this.findUser(ctx, strategy, externalIdentifier);
+        // The same external identity can be linked to a different customer User in each identity
+        // scope, so the lookup is limited to Users whose Customer is in the active scope.
+        const user = await this.connection
+            .getRepository(ctx, User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.authenticationMethods', 'aums')
+            .innerJoin('user.authenticationMethods', 'authMethod')
+            .innerJoin(Customer, 'customer', 'customer.userId = user.id')
+            .andWhere('authMethod.externalIdentifier = :externalIdentifier', { externalIdentifier })
+            .andWhere('authMethod.strategy = :strategy', { strategy })
+            .andWhere('user.deletedAt IS NULL')
+            .andWhere('customer.deletedAt IS NULL')
+            .andWhere('customer.identityScope = :identityScope', {
+                identityScope: await this.identityScopeService.getActiveScope(ctx),
+            })
+            .getOne();
 
         if (user) {
             // Ensure this User is associated with a Customer
@@ -167,6 +184,7 @@ export class ExternalAuthenticationService {
         } else {
             customer = new Customer({
                 emailAddress,
+                identityScope: await this.identityScopeService.getActiveScope(ctx),
                 firstName: config.firstName,
                 lastName: config.lastName,
                 user: savedUser,
@@ -352,6 +370,9 @@ export class ExternalAuthenticationService {
             .leftJoin('customer.channels', 'channel')
             .leftJoinAndSelect('user.authenticationMethods', 'authMethod')
             .andWhere('user.deletedAt IS NULL')
+            .andWhere('customer.identityScope = :identityScope', {
+                identityScope: await this.identityScopeService.getActiveScope(ctx),
+            })
             // Use the oldest of several matching Customers, so that the result does not depend
             // on the database.
             .orderBy('customer.createdAt', 'ASC');

@@ -121,7 +121,13 @@ export class RolePermissionResolver {
             relations: { channels: true },
         });
         if (customer) {
+            const { identityScopeStrategy } = this.configService.authOptions;
             for (const channel of customer.channels) {
+                // Every Customer is joined to the default Channel for Admin API visibility. That
+                // membership grants nothing unless the Channel is in the Customer's identity scope.
+                if ((await identityScopeStrategy.getIdentityScope(channel)) !== customer.identityScope) {
+                    continue;
+                }
                 addPermissions(channel, CUSTOMER_PERMISSIONS);
             }
         }

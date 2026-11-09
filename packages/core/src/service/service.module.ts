@@ -12,6 +12,7 @@ import { ChannelAssignmentService } from './helpers/channel-assignment/channel-a
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
 import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
+import { IdentityScopeService } from './helpers/identity-scope/identity-scope.service';
 import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { EntityDuplicatorService } from './helpers/entity-duplicator/entity-duplicator.service';
 import { EntityHydrator } from './helpers/entity-hydrator/entity-hydrator.service';
@@ -149,6 +150,7 @@ const helpers = [
     RolePermissionResolver,
     CustomerChannelAssignmentService,
     ChannelAssignmentService,
+    IdentityScopeService,
     TranslatorService,
     EntityDuplicatorService,
     FacetValueChecker,

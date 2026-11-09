@@ -178,6 +178,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             shopApiKeyStrategy,
             entityAccessControlStrategy,
             customerChannelAssignmentStrategy,
+            identityScopeStrategy,
         } = this.configService.authOptions;
         const { taxZoneStrategy, taxLineCalculationStrategy, orderTaxCalculationStrategy } =
             this.configService.taxOptions;
@@ -279,6 +280,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             orderPlacedStrategy,
             moneyStrategy,
             slugStrategy,
+            identityScopeStrategy,
         ];
     }
 

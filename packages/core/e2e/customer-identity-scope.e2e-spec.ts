@@ -2,14 +2,20 @@
 import { OnModuleInit } from '@nestjs/common';
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
-    CustomerChannelAssignmentStrategy,
+    AuthenticationStrategy,
+    ChannelIdentityScopeStrategy,
     EventBus,
     EventBusModule,
+    ExternalAuthenticationService,
+    Injector,
+    RequestContext,
+    User,
     mergeConfig,
     PasswordResetEvent,
     VendurePlugin,
 } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
+import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -39,23 +45,62 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
  * Two brands share one Vendure instance and must have independent customer bases, so the same
  * email address is a different person (different password, profile and orders) on each brand.
  *
- * Today the closest a deployment can get is a CustomerChannelAssignmentStrategy that never
- * auto-joins a customer to another channel. That stops an existing session from gaining
- * `Authenticated` on the other brand, but identity is still resolved globally by email, so the
- * tests below marked "fails today" show what goes wrong.
+ * Before the prototype, these tests ran with a CustomerChannelAssignmentStrategy that never
+ * auto-joins (the closest a deployment could get). The tests marked "fails today" failed then.
+ * They now run with the prototype's ChannelIdentityScopeStrategy.
  */
 
 const BRAND_A = { code: 'brand-a', token: 'brand-a-token' };
 const BRAND_B = { code: 'brand-b', token: 'brand-b-token' };
 const FORBIDDEN_MESSAGE = 'You are not currently authorized to perform this action';
 
-class NeverAutoJoinStrategy implements CustomerChannelAssignmentStrategy {
-    canAssignCustomerToChannel(): boolean {
-        return false;
+const passwordResetEvents: PasswordResetEvent[] = [];
+
+/** A social-login style strategy that uses the recommended customer lookup. */
+class TestSocialStrategy implements AuthenticationStrategy<{ sub: string; email: string; name: string }> {
+    readonly name = 'social';
+    private external: ExternalAuthenticationService;
+    init(injector: Injector) {
+        this.external = injector.get(ExternalAuthenticationService);
+    }
+    defineInputType() {
+        return gql`
+            input SocialAuthInput {
+                sub: String!
+                email: String!
+                name: String!
+            }
+        `;
+    }
+    async authenticate(ctx: RequestContext, data: { sub: string; email: string; name: string }) {
+        const user = await this.external.findCustomerUser(ctx, this.name, data.sub);
+        if (user) {
+            return user;
+        }
+        return this.external.createCustomerAndUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: data.sub,
+            emailAddress: data.email,
+            firstName: data.name,
+            lastName: 'Social',
+            verified: true,
+        });
     }
 }
 
-const passwordResetEvents: PasswordResetEvent[] = [];
+const SOCIAL_LOGIN = gql`
+    mutation SocialLogin($sub: String!, $email: String!, $name: String!) {
+        authenticate(input: { social: { sub: $sub, email: $email, name: $name } }) {
+            ... on CurrentUser {
+                id
+                identifier
+            }
+            ... on ErrorResult {
+                errorCode
+            }
+        }
+    }
+`;
 
 @VendurePlugin({ imports: [EventBusModule] })
 class CapturePasswordResetPlugin implements OnModuleInit {
@@ -70,7 +115,11 @@ describe('Customer identity scope (OSS-999)', () => {
         mergeConfig(testConfig(), {
             authOptions: {
                 requireVerification: false,
-                customerChannelAssignmentStrategy: new NeverAutoJoinStrategy(),
+                shopAuthenticationStrategy: [
+                    ...testConfig().authOptions.shopAuthenticationStrategy,
+                    new TestSocialStrategy(),
+                ],
+                identityScopeStrategy: new ChannelIdentityScopeStrategy(),
             },
             plugins: [CapturePasswordResetPlugin],
         }),
@@ -232,6 +281,49 @@ describe('Customer identity scope (OSS-999)', () => {
         // Events are published after the transaction commits.
         await new Promise(resolve => setTimeout(resolve, 300));
         expect(passwordResetEvents.length).toBe(0);
+    });
+
+    it('a brand B session does not authenticate on the default channel', async () => {
+        await login(BRAND_B.token, 'alice@test.com', 'alice-b-pass');
+        // Every Customer is joined to the default Channel for Admin API visibility, but that
+        // membership is outside brand B's identity scope and grants nothing in the Shop API.
+        shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        await assertThrowsWithMessage(() => shopClient.query(MeDocument), FORBIDDEN_MESSAGE)();
+        const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
+        expect(activeCustomer).toBeNull();
+    });
+
+    it('the default channel lists customers of every brand in the Admin API', async () => {
+        const all = await customersOn(E2E_DEFAULT_CHANNEL_TOKEN, 'alice@test.com');
+        expect(all.map(c => c.firstName).sort()).toEqual(['AliceA', 'AliceB']);
+    });
+
+    it('login.channels only lists channels in the identity scope', async () => {
+        const result = await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
+        expect((result as any).channels.map((c: any) => c.code)).toEqual([BRAND_A.code]);
+    });
+
+    it('an external login creates a separate account per brand', async () => {
+        const loginWith = async (token: string, name: string) => {
+            shopClient.setChannelToken(token);
+            await shopClient.asAnonymousUser();
+            const { authenticate } = await shopClient.query(SOCIAL_LOGIN, {
+                sub: 'social-123',
+                email: 'gina@test.com',
+                name,
+            });
+            return authenticate;
+        };
+        const a1 = await loginWith(BRAND_A.token, 'GinaA');
+        const b1 = await loginWith(BRAND_B.token, 'GinaB');
+        const a2 = await loginWith(BRAND_A.token, 'ignored');
+        expect(a1.id).toBeDefined();
+        expect(b1.id).not.toBe(a1.id);
+        expect(a2.id).toBe(a1.id);
+        const [onA] = await customersOn(BRAND_A.token, 'gina@test.com');
+        const [onB] = await customersOn(BRAND_B.token, 'gina@test.com');
+        expect(onA.firstName).toBe('GinaA');
+        expect(onB.firstName).toBe('GinaB');
     });
 
     it('password reset on brand A works for the brand A account', async () => {

@@ -25,6 +25,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { User } from '../../entity/user/user.entity';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
+import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
 import { VerificationTokenGenerator } from '../helpers/verification-token-generator/verification-token-generator';
 
 /**
@@ -42,6 +43,7 @@ export class UserService {
         private passwordCipher: PasswordCipher,
         private verificationTokenGenerator: VerificationTokenGenerator,
         private moduleRef: ModuleRef,
+        private identityScopeService: IdentityScopeService,
     ) {}
 
     async getUserById(ctx: RequestContext, userId: ID): Promise<User | undefined> {
@@ -70,6 +72,14 @@ export class UserService {
             .innerJoin(table, table, `${table}.userId = user.id`)
             .leftJoinAndSelect('user.authenticationMethods', 'authenticationMethods')
             .where('user.deletedAt IS NULL');
+
+        if (entity === 'customer') {
+            // Customer identity is scoped: the same email address can belong to a different
+            // Customer (and User) in another identity scope. Administrators are not scoped.
+            qb.andWhere(`${table}.identityScope = :identityScope`, {
+                identityScope: await this.identityScopeService.getActiveScope(ctx),
+            });
+        }
 
         if (isEmailAddressLike(emailAddress)) {
             qb.andWhere('LOWER(user.identifier) = :identifier', {

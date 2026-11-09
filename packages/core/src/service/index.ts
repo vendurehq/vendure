@@ -6,6 +6,7 @@ export * from './helpers/entity-hydrator/entity-hydrator.service';
 export * from './helpers/entity-hydrator/merge-deep';
 export * from './helpers/entity-slug.service';
 export * from './helpers/external-authentication/external-authentication.service';
+export * from './helpers/identity-scope/identity-scope.service';
 export * from './helpers/facet-value-checker/facet-value-checker';
 export * from './helpers/fulfillment-state-machine/fulfillment-state';
 export * from './helpers/list-query-builder/list-query-builder';
