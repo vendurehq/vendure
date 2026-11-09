@@ -11,7 +11,7 @@ foreach ($pkg in $corePkgs) {
     if ($LASTEXITCODE -ne 0) { Pop-Location; throw "$pkg build failed" }
     Pop-Location
 }
-$bizPkgs = @("cjk-plugin","alipay-plugin","wechatpay-plugin","oss-plugin","phone-auth-plugin","wechat-auth-plugin","douyin-auth-plugin","order-timeout-plugin","invoice-plugin","logistics-plugin","group-buy-plugin","flash-sale-plugin","distribution-plugin","redis-stock-plugin","logistics-api-plugin","invoice-pdf-plugin","recharge-card-plugin","after-sales-plugin","member-level-plugin","review-plugin","wechat-subscribe-message-plugin","coupon-plugin","product-survey-plugin","favorite-plugin","campus-delivery-plugin")
+$bizPkgs = @("cjk-plugin","onebridge-plugin","alipay-plugin","wechatpay-plugin","oss-plugin","phone-auth-plugin","wechat-auth-plugin","douyin-auth-plugin","order-timeout-plugin","invoice-plugin","logistics-plugin","group-buy-plugin","flash-sale-plugin","distribution-plugin","redis-stock-plugin","logistics-api-plugin","invoice-pdf-plugin","recharge-card-plugin","after-sales-plugin","member-level-plugin","review-plugin","wechat-subscribe-message-plugin","coupon-plugin","product-survey-plugin","favorite-plugin","campus-delivery-plugin")
 foreach ($pkg in $bizPkgs) {
     Write-Host "`n--- 构建 $pkg ---" -ForegroundColor Yellow
     Push-Location "packages/$pkg"

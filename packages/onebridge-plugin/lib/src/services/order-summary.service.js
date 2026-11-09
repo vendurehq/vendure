@@ -25,7 +25,12 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
     async summary(ctx, orderCode, enforceOwnership) {
         var _a, _b, _c, _d, _e, _f, _g;
         (0, channel_context_1.resolveChannelToken)(ctx);
-        const order = await this.orderService.findOneByCode(ctx, orderCode, ['customer', 'lines', 'lines.productVariant']);
+        const order = await this.orderService.findOneByCode(ctx, orderCode, [
+            'customer',
+            'lines',
+            'lines.productVariant',
+            'lines.productVariant.product',
+        ]);
         if (!order)
             throw errors_1.Errors.orderNotFound(orderCode);
         if (enforceOwnership)
@@ -45,14 +50,14 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
             items: ((_g = order.lines) !== null && _g !== void 0 ? _g : []).map((line) => {
-                var _a, _b, _c, _d, _e, _f;
+                var _a, _b, _c, _d, _e, _f, _g;
                 const variant = line.productVariant;
                 const translated = (_a = variant === null || variant === void 0 ? void 0 : variant.translations) === null || _a === void 0 ? void 0 : _a.find((t) => t.languageCode === ctx.languageCode);
                 return {
                     id: line.id,
                     productVariantId: (_b = variant === null || variant === void 0 ? void 0 : variant.id) !== null && _b !== void 0 ? _b : null,
                     name: (_d = (_c = translated === null || translated === void 0 ? void 0 : translated.name) !== null && _c !== void 0 ? _c : variant === null || variant === void 0 ? void 0 : variant.sku) !== null && _d !== void 0 ? _d : '',
-                    spec: (_f = (_e = variant === null || variant === void 0 ? void 0 : variant.customFields) === null || _e === void 0 ? void 0 : _e.spec) !== null && _f !== void 0 ? _f : null,
+                    spec: (_g = (_f = (_e = variant === null || variant === void 0 ? void 0 : variant.product) === null || _e === void 0 ? void 0 : _e.customFields) === null || _f === void 0 ? void 0 : _f.spec) !== null && _g !== void 0 ? _g : null,
                     qty: line.quantity,
                     price: line.linePriceWithTax,
                 };

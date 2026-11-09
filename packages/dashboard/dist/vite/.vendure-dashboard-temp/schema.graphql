@@ -1552,7 +1552,7 @@ type Mutation {
   campusSetRiderStatus(customerId: ID!, status: String!): CampusSetRiderStatusResult!
 
   """绑定/解绑骑手飞书身份（openId 为空即解绑，可重复重绑）"""
-  campusSetRiderFeishuBinding(customerId: ID!, openId: String): Boolean!
+  campusSetRiderFeishuBinding(customerId: ID!, openId: String, appId: String): Boolean!
 
   """骑手合规登记（P2-5：健康证/保险/背调），返回最新合规判定"""
   campusUpdateRiderCompliance(customerId: ID!, input: RiderComplianceInput!): RiderComplianceResult!
@@ -2845,6 +2845,7 @@ input CustomerFilterParameter {
   riderBackgroundCheck: StringOperators
   riderBackgroundCheckAt: DateOperators
   riderFeishuOpenId: StringOperators
+  riderFeishuAppId: StringOperators
   riderFeishuBoundAt: DateOperators
   avatarUrl: StringOperators
   invoiceTitles: StringOperators
@@ -17741,6 +17742,11 @@ type CustomsRecord implements Node {
   declarationNo: String
   note: String
   docs: [String!]
+  customsDeclaredAt: DateTime
+  customsClearedAt: DateTime
+  customsNote: String
+  customsDocs: [String!]
+  timeline: [StageEvent!]!
   lastSyncedAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -17821,6 +17827,26 @@ type ServiceChannel {
   introCn: String
   color: String
   points: JSON
+  key: String
+  no: String
+  kr: String
+  cn: String
+  en: String
+  headline: String
+  intro: String
+}
+
+type OnebridgeOrderTrack {
+  orderCode: String!
+  fulfillmentId: ID
+  trackingNo: String
+  carrierCode: String
+  carrierName: String
+  status: String!
+  trackInfo: [StageEvent!]!
+  signedAt: DateTime
+  lastSyncedAt: DateTime
+  channelId: ID
 }
 
 type OnebridgeContentEntry implements Node {
@@ -19027,6 +19053,7 @@ input CustomerSortParameter {
   riderBackgroundCheck: SortOrder
   riderBackgroundCheckAt: SortOrder
   riderFeishuOpenId: SortOrder
+  riderFeishuAppId: SortOrder
   riderFeishuBoundAt: SortOrder
   avatarUrl: SortOrder
   invoiceTitles: SortOrder
@@ -21468,6 +21495,7 @@ type CustomerCustomFields {
   riderBackgroundCheck: String
   riderBackgroundCheckAt: DateTime
   riderFeishuOpenId: String
+  riderFeishuAppId: String
   riderFeishuBoundAt: DateTime
   avatarUrl: String
   invoiceTitles: String
@@ -21513,6 +21541,7 @@ input CreateCustomerCustomFieldsInput {
   riderBackgroundCheck: String
   riderBackgroundCheckAt: DateTime
   riderFeishuOpenId: String
+  riderFeishuAppId: String
   riderFeishuBoundAt: DateTime
   avatarUrl: String
   invoiceTitles: String
@@ -21558,6 +21587,7 @@ input UpdateCustomerCustomFieldsInput {
   riderBackgroundCheck: String
   riderBackgroundCheckAt: DateTime
   riderFeishuOpenId: String
+  riderFeishuAppId: String
   riderFeishuBoundAt: DateTime
   avatarUrl: String
   invoiceTitles: String

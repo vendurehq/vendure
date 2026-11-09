@@ -1,1 +1,0 @@
-import{j as s}from"./index-q8xQ09Gk.js";function r({label:e,value:t,className:a}){return s.jsxs("div",{className:"",children:[s.jsx("span",{className:"font-medium text-muted-foreground text-xs",children:e}),s.jsx("div",{className:`col-span-2 text-sm ${a}`,children:t})]})}export{r as L};

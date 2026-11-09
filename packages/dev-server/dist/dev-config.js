@@ -74,6 +74,7 @@ const inventory_plugin_1 = require("@vendure/inventory-plugin");
 const message_plugin_1 = require("@vendure/message-plugin");
 const notification_plugin_1 = require("@vendure/notification-plugin");
 const operations_plugin_1 = require("@vendure/operations-plugin");
+const onebridge_plugin_1 = require("@vendure/onebridge-plugin");
 const pre_sale_plugin_1 = require("@vendure/pre-sale-plugin");
 const payment_schedule_plugin_1 = require("@vendure/payment-schedule-plugin");
 const installment_plugin_1 = require("@vendure/installment-plugin");
@@ -451,6 +452,7 @@ exports.devConfig = {
         plugin_1.DashboardPlugin.init({
             route: 'dashboard',
             appDir: path_1.default.join(devServerDir, './dist'),
+            viteDevServerPort: Number(process.env.DASHBOARD_VITE_PORT || 5173),
         }),
         cjk_plugin_1.CjkPlugin.init({
             i18n: { enabled: true },
@@ -615,6 +617,7 @@ exports.devConfig = {
         customer_service_plugin_1.CustomerServicePlugin.init(),
         inventory_plugin_1.InventoryPlugin.init(),
         operations_plugin_1.OperationsPlugin.init(),
+        onebridge_plugin_1.OnebridgePlugin.init({}),
         message_plugin_1.MessagePlugin.init(),
         notification_plugin_1.NotificationPlugin.init(),
         pre_sale_plugin_1.PreSalePlugin.init({}),

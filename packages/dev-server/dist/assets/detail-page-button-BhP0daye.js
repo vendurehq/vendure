@@ -1,0 +1,1 @@
+import{j as t,B as i,aU as u,s as x}from"./index-DS-sPk4K.js";function j({id:s,href:r,label:e,disabled:n,search:a,className:o}){return!s&&!r?t.jsx("span",{children:e}):t.jsxs(i,{render:t.jsx(x,{to:r??`./${s}`,search:a??{},preload:!1}),variant:"ghost",disabled:n,className:o,children:[e,!n&&t.jsx(u,{className:"h-3 w-3 text-muted-foreground"})]})}export{j as D};
