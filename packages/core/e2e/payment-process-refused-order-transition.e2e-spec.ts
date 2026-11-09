@@ -58,6 +58,7 @@ describe('PaymentProcess with a refused Order transition', () => {
         await server.destroy();
     });
 
+    // OSS-936 — a refused PaymentSettled transition must not be reported as success
     it('addPaymentToOrder reports the refused transition instead of returning the Order', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
