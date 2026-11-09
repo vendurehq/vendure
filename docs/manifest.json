@@ -2342,19 +2342,19 @@
                   "title": "PgNotifyJobQueueStrategy",
                   "slug": "pg-notify-job-queue-strategy",
                   "file": "docs/reference/typescript-api/job-queue/pg-notify-job-queue-strategy.mdx",
-                  "lastModified": "2026-10-28T09:48:06+01:00"
+                  "lastModified": "2026-11-09T12:20:23Z"
                 },
                 {
                   "title": "PgNotifyJobQueueStrategyConfig",
                   "slug": "pg-notify-job-queue-strategy-config",
                   "file": "docs/reference/typescript-api/job-queue/pg-notify-job-queue-strategy-config.mdx",
-                  "lastModified": "2026-10-28T09:48:06+01:00"
+                  "lastModified": "2026-11-09T12:20:23Z"
                 },
                 {
                   "title": "PgNotifyListenerConnection",
                   "slug": "pg-notify-listener-connection",
                   "file": "docs/reference/typescript-api/job-queue/pg-notify-listener-connection.mdx",
-                  "lastModified": "2026-10-28T09:48:06+01:00"
+                  "lastModified": "2026-11-09T12:20:23Z"
                 },
                 {
                   "title": "PollingJobQueueStrategy",
@@ -3254,7 +3254,7 @@
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-11-06T13:46:30Z"
+                  "lastModified": "2026-11-09T12:20:23Z"
                 },
                 {
                   "title": "SearchService",
@@ -3272,7 +3272,7 @@
                   "title": "SessionService",
                   "slug": "session-service",
                   "file": "docs/reference/typescript-api/services/session-service.mdx",
-                  "lastModified": "2026-11-06T13:46:30Z"
+                  "lastModified": "2026-11-09T12:20:23Z"
                 },
                 {
                   "title": "SettingsStoreService",
