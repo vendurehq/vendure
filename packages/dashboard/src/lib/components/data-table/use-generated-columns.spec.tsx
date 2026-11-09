@@ -5,6 +5,8 @@ import {
 import { addDisplayComponent } from '@/vdb/framework/extension-api/display-component-extensions.js';
 import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provider.js';
 import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
+import { setupI18n } from '@lingui/core';
+import { I18nProvider } from '@lingui/react';
 import { CellContext, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { act, type ReactNode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -22,6 +24,8 @@ import { useGeneratedColumns } from './use-generated-columns.js';
 const BLOCK_ID = 'test-block';
 
 const PRICE = 1234;
+
+const i18n = setupI18n({ locale: 'en', messages: { en: {} } });
 
 const fields = [
     { name: 'sku', type: 'String', nullable: false, list: false, isPaginatedList: false, isScalar: true },
@@ -77,11 +81,13 @@ function generateColumn(
     }
 
     renderToStaticMarkup(
-        <PageContext.Provider value={{ pageId }}>
-            <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
-                <Harness />
-            </PageBlockContext.Provider>
-        </PageContext.Provider>,
+        <I18nProvider i18n={i18n}>
+            <PageContext.Provider value={{ pageId }}>
+                <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
+                    <Harness />
+                </PageBlockContext.Provider>
+            </PageContext.Provider>
+        </I18nProvider>,
     );
 
     const column = captured.columns?.find(c => c.id === columnId);

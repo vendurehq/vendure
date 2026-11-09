@@ -1,11 +1,7 @@
-import { GraphQLTypesLoader } from '@nestjs/graphql';
-import {
-    getFinalVendureSchema,
-    RuntimeVendureConfig,
-    VENDURE_ADMIN_API_TYPE_PATHS,
-    VENDURE_SHOP_API_TYPE_PATHS,
-} from '@vendure/core';
+import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
+import type { RuntimeVendureConfig } from '@vendure/core';
 
+import { requireFromProject, requireProjectCore } from '../../../shared/project-core';
 import { CheckResult } from '../types';
 
 /**
@@ -22,13 +18,20 @@ export async function runSchemaCheck(config: RuntimeVendureConfig): Promise<Chec
     // Note: GraphQLTypesLoader is cast to `any` to avoid type mismatch errors
     // when multiple @nestjs/graphql copies exist in the monorepo. This matches
     // the pattern used in the existing schema command.
+    const core = requireProjectCore();
+    // Nest's GraphQL package comes from the project too: it reads the type paths
+    // that this project's core defines, so a mismatched pair reads the wrong
+    // files.
+    const { GraphQLTypesLoader } = requireFromProject<{
+        GraphQLTypesLoader: new () => GraphQLTypesLoaderType;
+    }>('@nestjs/graphql');
     const typesLoader = new GraphQLTypesLoader() as any;
 
     // 1. Build Admin API schema
     try {
-        await getFinalVendureSchema({
+        await core.getFinalVendureSchema({
             config,
-            typePaths: VENDURE_ADMIN_API_TYPE_PATHS,
+            typePaths: core.VENDURE_ADMIN_API_TYPE_PATHS,
             typesLoader,
             apiType: 'admin',
         } as any);
@@ -41,9 +44,9 @@ export async function runSchemaCheck(config: RuntimeVendureConfig): Promise<Chec
 
     // 2. Build Shop API schema
     try {
-        await getFinalVendureSchema({
+        await core.getFinalVendureSchema({
             config,
-            typePaths: VENDURE_SHOP_API_TYPE_PATHS,
+            typePaths: core.VENDURE_SHOP_API_TYPE_PATHS,
             typesLoader,
             apiType: 'shop',
         } as any);

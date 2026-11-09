@@ -1,8 +1,9 @@
-import { EntityMetadata, FindOneOptions, SelectQueryBuilder } from 'typeorm';
+import { EntityMetadata, FindOptionsRelations, SelectQueryBuilder } from 'typeorm';
 import { EntityTarget } from 'typeorm/common/EntityTarget';
 import { DriverUtils } from 'typeorm/driver/DriverUtils';
 
 import { findOptionsObjectToArray } from '../../../connection/find-options-object-to-array';
+import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
 
 /**
@@ -32,7 +33,8 @@ function isTreeEntityMetadata(metadata: EntityMetadata): boolean {
  *
  * @param {SelectQueryBuilder<T>} qb - The query builder instance for joining relations.
  * @param {EntityTarget<T>} entity - The target entity class or schema name, used to access entity metadata.
- * @param {string[]} [requestedRelations=[]] - An array of relation paths (e.g., 'parent.children') to join dynamically.
+ * @param {FindOptionsRelations<T> | string[]} [requestedRelations={}] - The relations to join dynamically, either in
+ * the TypeORM object form or as an array of dotted paths (e.g., 'parent.children').
  * @param {number} [maxEagerDepth=1] - Limits the depth of eager relation joins to avoid excessively deep joins.
  * @returns {Map<string, string>} - A Map of joined relation paths to their aliases, aiding in tracking and preventing duplicates.
  * @template T - The entity type, extending VendureEntity for compatibility with Vendure's data layer.
@@ -53,7 +55,7 @@ function isTreeEntityMetadata(metadata: EntityMetadata): boolean {
 export function joinTreeRelationsDynamically<T extends VendureEntity>(
     qb: SelectQueryBuilder<T>,
     entity: EntityTarget<T>,
-    requestedRelations: FindOneOptions['relations'] = {},
+    requestedRelations: FindOptionsRelations<T> | string[] = {},
     maxEagerDepth: number = 1,
 ): Map<string, string> {
     const joinedRelations = new Map<string, string>();
@@ -62,7 +64,8 @@ export function joinTreeRelationsDynamically<T extends VendureEntity>(
         return joinedRelations;
     }
 
-    const sourceMetadata = qb.connection.getMetadata(entity);
+    const dataSource = getDataSource(qb);
+    const sourceMetadata = dataSource.getMetadata(entity);
     const sourceMetadataIsTree = isTreeEntityMetadata(sourceMetadata);
 
     const processRelation = (
@@ -112,7 +115,7 @@ export function joinTreeRelationsDynamically<T extends VendureEntity>(
             joinConnector = '__';
         }
         const nextAlias = DriverUtils.buildAlias(
-            qb.connection.driver,
+            dataSource.driver,
             { shorten: false, joiner: joinConnector },
             currentAlias,
             part.replace(/\./g, '_'),

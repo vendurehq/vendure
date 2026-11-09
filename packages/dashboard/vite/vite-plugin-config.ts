@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
 import path from 'path';
 import { ConfigEnv, Plugin, UserConfig } from 'vite';
 
@@ -5,6 +7,11 @@ import { singletonSharedDepNames } from './lib-externals.js';
 
 export interface ViteConfigPluginOptions {
     packageRoot: string;
+    /**
+     * The directory that receives the generated GraphQL types, matching what the
+     * caller passes to `vendureDashboardPlugin`. Gives the `@/gql` import a target.
+     */
+    gqlOutputPath?: string;
     /**
      * EXPERIMENTAL — see `vendureDashboardPlugin`'s `useExperimentalBundle` option.
      * When true, the consumer's Vite serves the pre-built dashboard bundle from
@@ -15,23 +22,23 @@ export interface ViteConfigPluginOptions {
     useExperimentalBundle?: boolean;
 }
 
-export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteConfigPluginOptions): Plugin {
+export function viteConfigPlugin({
+    packageRoot,
+    gqlOutputPath,
+    useExperimentalBundle,
+}: ViteConfigPluginOptions): Plugin {
     return {
         name: 'vendure:vite-config-plugin',
         config: (config: UserConfig, env: ConfigEnv) => {
-            // Only set the vite `root` to the dashboard package when running the dev server.
-            // During a production build we still need to reference the dashboard source which
-            // lives in `node_modules`, but we don't want the build output to be emitted in there.
-            // Therefore, we set `root` only for `serve` and, for `build`, we instead make sure that
-            // an `outDir` **outside** of `node_modules` is used (defaulting to the current working
-            // directory if the user did not provide one already).
+            // Vite `root` is set to the dashboard package so that its source can be served and built.
+            // Keep the user's root before replacing it, so that a relative `build.outDir` resolves against it.
+            const userRoot = config.root ? path.resolve(config.root) : process.cwd();
             config.root = packageRoot;
 
             config.publicDir = config.publicDir ?? path.join(packageRoot, 'public');
 
-            // If we are building and no explicit outDir has been provided (or it is a relative path),
-            // set it to an **absolute** path relative to the cwd so that the output never ends up in
-            // `node_modules`.
+            // When building, resolve `outDir` (default `dist`) against the user's root, so that the output
+            // never ends up in the dashboard package inside `node_modules`.
             if (env.command === 'build') {
                 const buildConfig = config.build ?? {};
                 const outDir = buildConfig.outDir;
@@ -42,8 +49,8 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
                 const normalizedOutDir = hasOutDir
                     ? outDirIsAbsolute
                         ? outDir
-                        : path.resolve(process.cwd(), outDir)
-                    : path.resolve(process.cwd(), 'dist');
+                        : path.resolve(userRoot, outDir)
+                    : path.resolve(userRoot, 'dist');
 
                 config.build = {
                     ...buildConfig,
@@ -53,6 +60,7 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
 
             config.resolve = {
                 alias: {
+                    ...(gqlOutputPath ? { '@/gql': path.resolve(gqlOutputPath, 'graphql.ts') } : {}),
                     ...(config.resolve?.alias ?? {}),
                     // See the readme for an explanation of this alias.
                     '@/vdb': path.resolve(packageRoot, './src/lib'),
@@ -66,10 +74,7 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
                     // module resolution at runtime.
                     ...(useExperimentalBundle
                         ? {
-                              '@vendure/dashboard': path.resolve(
-                                  packageRoot,
-                                  './dist/bundle/lib.js',
-                              ),
+                              '@vendure/dashboard': getBundleLibEntry(packageRoot),
                           }
                         : {}),
                 },
@@ -107,6 +112,14 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
                     'use-sync-external-store/shim',
                     'use-sync-external-store/shim/with-selector',
                     '@messageformat/parser',
+                    // The Lingui runtime is only imported by macro-transformed code
+                    // (and, in bundle mode, from within node_modules), so the
+                    // scanner never finds it: it would be discovered late, forcing
+                    // a reload. In bundle mode an un-optimized `@lingui/core` is
+                    // also served raw to the bundle while extension code gets an
+                    // optimized copy, i.e. two `i18n` singletons.
+                    '@lingui/core',
+                    '@lingui/react',
                     // In bundle mode these context/singleton libraries are kept
                     // external from the pre-built bundle (see lib-externals.ts),
                     // so pre-bundle them here to guarantee that main.js, lib.js
@@ -119,4 +132,21 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
             return config;
         },
     };
+}
+
+/**
+ * Returns the bundle's library entry with a `?v=` derived from its contents.
+ * Vite's own `?v=` (added for files in node_modules, served as immutable) does not
+ * change with the bundle, so a rebuilt bundle would be shadowed by a stale cached
+ * `lib.js`. Vite does not add its own `v` when one is present. The chunks have
+ * content-hashed names referenced by `lib.js`, so hashing `lib.js` covers them.
+ */
+function getBundleLibEntry(packageRoot: string): string {
+    const libEntry = path.resolve(packageRoot, './dist/bundle/lib.js');
+    try {
+        const version = createHash('sha256').update(fs.readFileSync(libEntry)).digest('hex').slice(0, 8);
+        return `${libEntry}?v=${version}`;
+    } catch {
+        return libEntry;
+    }
 }

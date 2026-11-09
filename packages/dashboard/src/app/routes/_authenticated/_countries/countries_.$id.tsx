@@ -35,7 +35,7 @@ export const Route = createFileRoute('/_authenticated/_countries/countries_/$id'
             isNew ? <Trans>New country</Trans> : entity?.name,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CountryDetailPage() {

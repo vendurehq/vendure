@@ -1,5 +1,4 @@
 import { cancel, isCancel, log, spinner, text } from '@clack/prompts';
-import { kebabCase } from '../../../utilities/case-utils';
 import path from 'path';
 import {
     ClassDeclaration,
@@ -12,8 +11,10 @@ import {
     VariableDeclaration,
     VariableDeclarationKind,
 } from 'ts-morph';
+import { kebabCase } from '../../../utilities/case-utils';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { EntityRef } from '../../../shared/entity-ref';
 import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
 import { ServiceRef } from '../../../shared/service-ref';
@@ -133,7 +134,7 @@ export async function addApiExtension(
 
     if (!serviceRef) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const modifiedSourceFiles: SourceFile[] = [];
@@ -185,7 +186,7 @@ export async function addApiExtension(
     } else {
         if (!options?.isNonInteractive && isCancel(queryName)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         resolver = createSimpleResolver(project, plugin, serviceRef, queryName, mutationName);
         if (queryName) {

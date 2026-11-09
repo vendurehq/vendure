@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { MiddlewareConsumer } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
@@ -12,6 +14,7 @@ import {
     Order,
     OrderStateTransitionEvent,
     PluginCommonModule,
+    ProcessContext,
     RequestContext,
     VendureEvent,
 } from '@vendure/core';
@@ -24,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { EmailProcessor } from './email-processor';
 import { EmailEventListener } from './event-listener';
+import { NoopEmailGenerator } from './generator/noop-email-generator';
 import { orderConfirmationHandler } from './handler/default-email-handlers';
 import { EmailEventHandler } from './handler/event-handler';
 import { EmailPlugin } from './plugin';
@@ -35,6 +39,7 @@ import {
     Partial as EmailPartial,
     EmailPluginOptions,
     EmailTransportOptions,
+    InitializedEmailPluginOptions,
     LoadTemplateInput,
 } from './types';
 
@@ -348,6 +353,101 @@ describe('EmailPlugin', () => {
             await eventBus.publish(new MockEvent(ctx, true));
             await pause();
             expect(onSend.mock.calls[0][0].subject).toBe('Hello quux');
+        });
+    });
+
+    describe('plain text body', () => {
+        const ctx = RequestContext.deserialize({
+            _channel: { code: DEFAULT_CHANNEL_CODE },
+            _languageCode: LanguageCode.en,
+        } as any);
+
+        it('sends no plain text body when not set', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }));
+
+            await initPluginWithHandlers([handler]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBeUndefined();
+        });
+
+        it('uses the plain text body when set', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }))
+                .setPlainTextBody(() => 'custom plain text');
+
+            await initPluginWithHandlers([handler]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('custom plain text');
+        });
+
+        it('sets the plain text body when using the NoopEmailGenerator', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }))
+                .setPlainTextBody(() => 'custom plain text');
+
+            await initPluginWithHandlers([handler], { emailGenerator: new NoopEmailGenerator() });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('custom plain text');
+        });
+
+        it('passes the template vars to the setPlainTextBody function', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'foo' }))
+                .setPlainTextBody(
+                    (event, templateVars) =>
+                        `${templateVars.globalVar as string} ${templateVars.testVar as string}`,
+                );
+
+            await initPluginWithHandlers([handler], { globalTemplateVars: { globalVar: 'baz' } });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('baz foo');
+        });
+
+        it('logs the error and still sends the email if the setPlainTextBody function throws', async () => {
+            testingLogger.errorSpy.mockClear();
+
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }))
+                .setPlainTextBody(() => {
+                    throw new Error('boom');
+                });
+
+            await initPluginWithHandlers([handler]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(testingLogger.errorSpy.mock.calls[0][0]).toContain('boom');
+            expect(onSend).toHaveBeenCalledTimes(1);
+            expect(onSend.mock.calls[0][0].text).toBeUndefined();
         });
     });
 
@@ -1075,6 +1175,67 @@ describe('EmailPlugin', () => {
             });
 
             expect(result).toContain('German body');
+        });
+    });
+
+    describe('devMode production warning', () => {
+        const devModeOptions = {
+            devMode: true,
+            route: 'mailbox',
+            outputPath: path.join(__dirname, '../test-emails'),
+            handlers: [],
+            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../test-templates')),
+        } as unknown as InitializedEmailPluginOptions;
+
+        function configureServerPlugin(options: InitializedEmailPluginOptions) {
+            Logger.useLogger(testingLogger);
+            testingLogger.warnSpy.mockClear();
+            const plugin = new EmailPlugin(
+                {} as EventBus,
+                {} as ModuleRef,
+                {} as EmailProcessor,
+                {} as JobQueueService,
+                { isServer: true } as ProcessContext,
+                options,
+            );
+            const consumer = { apply: () => ({ forRoutes: () => consumer }) };
+            plugin.configure(consumer as unknown as MiddlewareConsumer);
+        }
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+        });
+
+        it('warns at startup when devMode is enabled and NODE_ENV is production', () => {
+            vi.stubEnv('NODE_ENV', 'production');
+
+            configureServerPlugin(devModeOptions);
+
+            expect(testingLogger.warnSpy).toHaveBeenCalledTimes(1);
+            const [message, context] = testingLogger.warnSpy.mock.calls[0];
+            expect(context).toBe('EmailPlugin');
+            expect(message).toContain('dev mailbox at route "mailbox" has no authentication');
+            expect(message).toContain('/generate/:type/:languageCode');
+            expect(message).toContain('are not sent');
+        });
+
+        it('does not warn when devMode is enabled outside production', () => {
+            vi.stubEnv('NODE_ENV', 'development');
+
+            configureServerPlugin(devModeOptions);
+
+            expect(testingLogger.warnSpy).not.toHaveBeenCalled();
+        });
+
+        it('does not warn in production when a transport is configured instead of devMode', () => {
+            vi.stubEnv('NODE_ENV', 'production');
+
+            configureServerPlugin({
+                handlers: [],
+                transport: { type: 'smtp', host: 'smtp.example.com' },
+            } as unknown as InitializedEmailPluginOptions);
+
+            expect(testingLogger.warnSpy).not.toHaveBeenCalled();
         });
     });
 });

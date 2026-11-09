@@ -4,7 +4,7 @@ generated: true
 ---
 ## PresetOnlyStrategy
 
-<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/preset-only-strategy.ts" sourceLine="85" packageName="@vendure/asset-server-plugin" since="3.1.0" />
+<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/preset-only-strategy.ts" sourceLine="102" packageName="@vendure/asset-server-plugin" since="3.1.0" />
 
 An [ImageTransformStrategy](/reference/core-plugins/asset-server-plugin/image-transform-strategy#imagetransformstrategy) which only allows transformations to be made using
 presets which are defined in the available presets.
@@ -34,6 +34,7 @@ AssetServerPlugin.init({
     permittedQuality: [0, 50, 75, 85, 95],
     permittedFormats: ['jpg', 'webp', 'avif'],
     allowFocalPoint: true,
+    permittedBackgroundColors: ['#ffffff', '#000000'],
   }),
 });
 ```
@@ -76,6 +77,7 @@ interface PresetOnlyStrategyOptions {
     permittedQuality?: number[];
     permittedFormats?: ImageTransformFormat[];
     allowFocalPoint?: boolean;
+    permittedBackgroundColors?: HexColorString[] | 'any';
 }
 ```
 
@@ -103,6 +105,19 @@ If set to an array of strings e.g. `['jpg', 'webp']`, then only those formats ar
 <MemberInfo kind="property" type={`boolean`} default={`false`}   />
 
 Whether to allow the focal point to be specified in the URL.
+### permittedBackgroundColors
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/asset-server-plugin/hex-color-string#hexcolorstring'>HexColorString</a>[] | 'any'`} default={`undefined`}  since="3.8.0"  />
+
+Whether to allow the background color to be specified in the URL.
+If omitted (default), the `bg` parameter is dropped.
+If set to an array of hex color strings (e.g. `['#ffffff', '#000000']`),
+only those colors are permitted — keeping the cache key space bounded.
+If set to `'any'`, any valid hex color is accepted (explicit opt-in to an
+unbounded cache surface).
+
+Comparison is case-insensitive, so `'#FFFFFF'` and `'#ffffff'` are
+treated as the same entry.
 
 
 </div>

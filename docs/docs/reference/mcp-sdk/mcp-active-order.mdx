@@ -1,0 +1,32 @@
+---
+title: "McpActiveOrder"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/active-order.ts" sourceLine="18" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+The result of [findOrCreateActiveOrder](/reference/mcp-sdk/find-or-create-active-order#findorcreateactiveorder).
+
+```ts title="Signature"
+interface McpActiveOrder {
+    order: Order;
+    ctx: RequestContext;
+}
+```
+
+<div className="members-wrapper">
+
+### order
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
+
+The active order of the session. Its lines are not loaded.
+### ctx
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+The request context in the currency of `order`. Pass it to every core call that changes the
+order. Core prices the whole order again in the currency of the request context, so a
+context in another currency moves the order to that currency.
+
+
+</div>

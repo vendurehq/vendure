@@ -34,7 +34,7 @@ function ProductIdWidgetComponent() {
 
 ## Customizing Theme Colors
 
-You can customize the dashboard theme colors by modifying the `theme` configuration in your `vite.config.mts` file. Here's an example showing how to change the primary brand colors:
+You can customize the dashboard theme colors by modifying the `theme` configuration in your `vite.config.mts` file. The `primary` tokens style primary actions, while the `brand` tokens are reserved for identity moments such as logos and branded accents.
 
 ```typescript
 // vite.config.mts
@@ -53,22 +53,22 @@ export default defineConfig({
       // Theme section
       theme: {
         light: {
-          // Change the primary brand color to blue
+          // Primary action colors
           primary: "oklch(0.55 0.18 240)",
           "primary-foreground": "oklch(0.98 0.01 240)",
           
-          // Update the brand colors to match
-          brand: "#2563eb", // Blue-600
-          "brand-lighter": "#93c5fd", // Blue-300
+          // Brand identity colors
+          brand: "oklch(0.55 0.18 240)",
+          "brand-foreground": "oklch(0.98 0.01 240)",
         },
         dark: {
           // Corresponding dark mode colors
           primary: "oklch(0.65 0.16 240)",
           "primary-foreground": "oklch(0.12 0.03 240)",
           
-          // Same brand colors work for both themes
-          brand: "#2563eb",
-          "brand-lighter": "#93c5fd",
+          // Brand colors can be tuned independently for dark mode
+          brand: "oklch(0.65 0.16 240)",
+          "brand-foreground": "oklch(0.12 0.03 240)",
         },
       },
 
@@ -160,8 +160,7 @@ The dashboard defines comprehensive theme variables that are automatically avail
 | Variable | Description |
 |----------|-------------|
 | `--brand` | Primary brand color |
-| `--brand-lighter` | Lighter brand variant |
-| `--brand-darker` | Darker brand variant |
+| `--brand-foreground` | Content displayed on a brand-colored surface |
 
 | Variable | Description |
 |----------|-------------|

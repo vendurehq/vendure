@@ -23,6 +23,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
@@ -158,7 +159,7 @@ export class ProductService {
         const qb = this.connection
             .getRepository(ctx, Product)
             .createQueryBuilder('product')
-            .setFindOptions({ relations: (relations && false) || this.relations });
+            .setFindOptions({ relations: findOptionsArrayToObject<Product>(this.relations) });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         FindOptionsUtils.joinEagerRelations(qb, qb.alias, qb.expressionMap.mainAlias!.metadata);
         return qb
@@ -191,7 +192,7 @@ export class ProductService {
             .getRepository(ctx, Product)
             .findOne({
                 where: { id: productId },
-                relations: ['facetValues'],
+                relations: { facetValues: true },
             })
             .then(product => {
                 if (!product) {
@@ -349,7 +350,7 @@ export class ProductService {
             input.productIds,
             ctx.channelId,
             {
-                relations: ['variants', 'assets', 'optionGroups', 'optionGroups.options'],
+                relations: { variants: true, assets: true, optionGroups: { options: true } },
                 relationLoadStrategy: 'query',
                 loadEagerRelations: false,
             },
@@ -372,9 +373,15 @@ export class ProductService {
             ([] as ID[]).concat(...productsWithVariants.map(p => p.assets.map(a => a.assetId))),
         );
         await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
-        // Also assign option groups and options to the target channel
-        const allOptionGroups = productsWithVariants.flatMap(p => p.optionGroups);
-        const allOptions = allOptionGroups.flatMap(g => g.options);
+        // Also assign option groups and options to the target channel.
+        // deletedAt is a normal column, so the relations above include soft-deleted
+        // rows. assignToChannels throws on those.
+        const allOptionGroups = productsWithVariants
+            .flatMap(p => p.optionGroups)
+            .filter(group => !group.deletedAt);
+        const allOptions = allOptionGroups
+            .flatMap(group => group.options)
+            .filter(option => !option.deletedAt);
         const uniqueGroupIds = unique(allOptionGroups.map(g => g.id));
         const uniqueOptionIds = unique(allOptions.map(o => o.id));
         await Promise.all([
@@ -415,7 +422,7 @@ export class ProductService {
             input.productIds,
             ctx.channelId,
             {
-                relations: ['variants', 'optionGroups', 'optionGroups.options'],
+                relations: { variants: true, optionGroups: { options: true } },
                 relationLoadStrategy: 'query',
                 loadEagerRelations: false,
             },

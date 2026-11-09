@@ -8,4 +8,4 @@ export {
     CommandList,
     CommandSeparator,
     CommandShortcut,
-} from '@vendure-io/ui/components/ui/command';
+} from '@vendure-io/ui/components/atoms/command';

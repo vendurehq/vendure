@@ -43,31 +43,11 @@ jobs:
                   fetch-depth: 0
             - name: Detect changed paths
               id: check
+              env:
+                  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  GITHUB_EVENT_BEFORE: ${{ github.event.before }}
               run: |
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                    echo "packages=true" >> "$GITHUB_OUTPUT"
-                    echo "dashboard=true" >> "$GITHUB_OUTPUT"
-                    exit 0
-                  fi
-
-                  base="${{ github.event.pull_request.base.sha }}"
-                  if [ -z "$base" ]; then base="${{ github.event.before }}"; fi
-                  if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-                    base="HEAD~1"
-                  fi
-                  changed=$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)
-
-                  if echo "$changed" | grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml)'; then
-                    echo "packages=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "packages=false" >> "$GITHUB_OUTPUT"
-                  fi
-
-                  if echo "$changed" | grep -q '^packages/dashboard/'; then
-                    echo "dashboard=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "dashboard=false" >> "$GITHUB_OUTPUT"
-                  fi
+                  bash .github/workflows/scripts/detect-changes.sh
     codegen:
         needs: detect-changes
         if: needs.detect-changes.outputs.packages == 'true'
@@ -119,6 +99,19 @@ jobs:
             - name: Check i18n catalogs are in sync
               working-directory: packages/dashboard
               run: bash scripts/check-i18n-sync.sh
+    dashboard-lint:
+        name: dashboard lint
+        needs: detect-changes
+        if: needs.detect-changes.outputs.dashboard == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+            - name: Lint dashboard
+              working-directory: packages/dashboard
+              run: bun run lint
     dashboard-e2e:
         name: dashboard e2e (${{ matrix.shard }})
         needs: detect-changes
@@ -161,11 +154,6 @@ jobs:
     sonarqube:
         name: SonarQube
         needs: detect-changes
-        # Dependabot pull requests read from the Dependabot secrets store, not
-        # from Actions secrets, so SONAR_TOKEN resolves empty and the scan
-        # fails. Skipping is safe: all-passed counts a skipped job as a pass,
-        # and the scan still runs on the push to master after the merge.
-        #
         # A manual `workflow_dispatch` run carries no pull request context, and
         # the scan action supplies no branch name for that event either, so
         # SonarCloud files the results against the project's main branch.
@@ -175,7 +163,6 @@ jobs:
         # of the long-lived branches.
         if: >-
             needs.detect-changes.outputs.packages == 'true'
-            && github.actor != 'dependabot[bot]'
             && (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
             && (github.event_name != 'workflow_dispatch' || contains(fromJSON('["master","minor","major"]'), github.ref_name))
         runs-on: ubuntu-latest
@@ -351,6 +338,7 @@ jobs:
             - build
             - unit-tests
             - dashboard-i18n
+            - dashboard-lint
             - dashboard-e2e
             - sonarqube
             - e2e-sqljs

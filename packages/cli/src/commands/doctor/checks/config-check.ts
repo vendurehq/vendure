@@ -1,13 +1,8 @@
-import {
-    getCompatibility,
-    preBootstrapConfig,
-    resetConfig,
-    RuntimeVendureConfig,
-    VENDURE_VERSION,
-} from '@vendure/core';
+import type { RuntimeVendureConfig } from '@vendure/core';
 import { satisfies } from 'semver';
 
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
+import { requireProjectCore } from '../../../shared/project-core';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 import { CheckResult } from '../types';
@@ -28,9 +23,18 @@ export interface ConfigCheckResult {
 export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckResult> {
     const details: string[] = [];
     let runtimeConfig: RuntimeVendureConfig | undefined;
+    // Left undefined until the project's core has loaded, so a project that
+    // cannot supply one is reported as a failed check rather than crashing the
+    // whole doctor run.
+    let vendureVersion: string | undefined;
 
     try {
-        resetConfig();
+        // The project's own Vendure, not the CLI's: a check of this project has
+        // to run the code this project would run.
+        const core = requireProjectCore();
+        vendureVersion = core.VENDURE_VERSION;
+
+        core.resetConfig();
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
 
         // 1. Analyze the project (finds tsconfig, creates ts-morph Project)
@@ -49,12 +53,12 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
 
         // 4. Run preBootstrapConfig() -- validates custom fields, registers entities,
         //    runs plugin configuration() hooks, sets strategies
-        runtimeConfig = await preBootstrapConfig(config);
+        runtimeConfig = await core.preBootstrapConfig(config);
         details.push('Custom fields validated');
         details.push('Plugin configuration completed');
 
         // 5. Check plugin compatibility
-        const pluginResults = checkPlugins(runtimeConfig);
+        const pluginResults = checkPlugins(runtimeConfig, core);
         details.push(...pluginResults.details);
 
         const status = pluginResults.hasIncompatible ? 'fail' : pluginResults.hasNoCompat ? 'warn' : 'pass';
@@ -75,7 +79,7 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
         return {
             check: { name: 'Config', status, message, details },
             config: runtimeConfig,
-            vendureVersion: VENDURE_VERSION,
+            vendureVersion,
         };
     } catch (e: any) {
         const errorMessage = e instanceof Error ? e.message : String(e);
@@ -88,7 +92,7 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
                 details,
             },
             config: runtimeConfig,
-            vendureVersion: VENDURE_VERSION,
+            vendureVersion,
         };
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
@@ -106,7 +110,10 @@ interface PluginCheckResult {
  * Checks each plugin's compatibility range against the current Vendure version.
  * Reports results per-plugin instead of throwing on the first incompatible one.
  */
-function checkPlugins(config: RuntimeVendureConfig): PluginCheckResult {
+function checkPlugins(
+    config: RuntimeVendureConfig,
+    core: typeof import('@vendure/core'),
+): PluginCheckResult {
     const details: string[] = [];
     let hasIncompatible = false;
     let hasNoCompat = false;
@@ -122,18 +129,18 @@ function checkPlugins(config: RuntimeVendureConfig): PluginCheckResult {
     for (const plugin of config.plugins) {
         // DynamicModule plugins (e.g. SomePlugin.init()) have the class on .module
         const pluginName = getPluginName(plugin);
-        const compatibility = getCompatibility(plugin);
+        const compatibility = core.getCompatibility(plugin);
 
         if (!compatibility) {
             hasNoCompat = true;
             noCompatCount++;
             details.push(`Plugin "${pluginName}": no compatibility range specified`);
         } else if (
-            !satisfies(VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true })
+            !satisfies(core.VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true })
         ) {
             hasIncompatible = true;
             details.push(
-                `Plugin "${pluginName}": incompatible (requires ${compatibility}, running ${VENDURE_VERSION})`,
+                `Plugin "${pluginName}": incompatible (requires ${compatibility}, running ${core.VENDURE_VERSION})`,
             );
         }
     }

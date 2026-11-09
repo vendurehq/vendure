@@ -1,8 +1,6 @@
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import ms from 'ms';
 import { filter } from 'rxjs/operators';
-import type { GlobalSettingsService } from '../../service/index';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
@@ -40,20 +38,14 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
     /** @internal */
     protected eventBus: EventBus;
     /** @internal */
-    protected globalSettingsService: GlobalSettingsService;
-    /** @internal */
     protected requestContextCache: RequestContextCacheService;
 
     /** @internal */
     async init(injector: Injector) {
-        super.init(injector);
+        await super.init(injector);
         this.eventBus = injector.get(EventBus);
         this.cacheService = injector.get(CacheService);
         this.requestContextCache = injector.get(RequestContextCacheService);
-        // Dynamically import the GlobalSettingsService to avoid circular dependency
-        const GlobalSettingsService = (await import('../../service/services/global-settings.service.js'))
-            .GlobalSettingsService;
-        this.globalSettingsService = injector.get(GlobalSettingsService);
         this.channelIdCache = this.cacheService.createCache({
             options: {
                 ttl: ms('7 days'),
@@ -113,7 +105,6 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const stockLevels = await this.getStockLevelsForVariant(ctx, orderLine.productVariantId);
         const variant = await this.connection.getEntityOrThrow(
             ctx,
             ProductVariant,
@@ -126,6 +117,20 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
             ctx,
             variant,
         );
+        // Only a tracked variant's figures decide how much is allocated, so only those need the lock.
+        let stockLevels: StockLevel[];
+        if (inventoryNotTracked) {
+            stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
+                where: { productVariantId: orderLine.productVariantId },
+                loadEagerRelations: false,
+            });
+        } else {
+            const stockLevelService = await this.getStockLevelService();
+            stockLevels = await stockLevelService.getLockedStockLevelsForVariant(
+                ctx,
+                orderLine.productVariantId,
+            );
+        }
         for (const stockLocation of stockLocations) {
             const stockLevel = stockLevels.find(sl => sl.stockLocationId === stockLocation.id);
             if (stockLevel && (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
@@ -200,35 +205,5 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
                     loggerCtx,
                 ),
             );
-    }
-
-    private getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID): Promise<StockLevel[]> {
-        return this.requestContextCache.get(
-            ctx,
-            `MultiChannelStockLocationStrategy.stockLevels.${productVariantId}`,
-            () =>
-                this.connection.getRepository(ctx, StockLevel).find({
-                    where: {
-                        productVariantId,
-                    },
-                    loadEagerRelations: false,
-                }),
-        );
-    }
-
-    private async getVariantStockSettings(ctx: RequestContext, variant: ProductVariant) {
-        const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
-
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
-        const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
-            ? outOfStockThreshold
-            : variant.outOfStockThreshold;
-
-        return {
-            inventoryNotTracked,
-            effectiveOutOfStockThreshold,
-        };
     }
 }

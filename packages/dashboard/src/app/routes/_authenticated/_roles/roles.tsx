@@ -67,7 +67,7 @@ function RoleListPage() {
                         return (
                             <div className="flex flex-wrap gap-2">
                                 {row.original.channels.map(channel => (
-                                    <Badge variant="secondary" key={channel.code}>
+                                    <Badge variant="default" key={channel.code}>
                                         <LayersIcon /> <ChannelCodeLabel code={channel.code} />
                                     </Badge>
                                 ))}

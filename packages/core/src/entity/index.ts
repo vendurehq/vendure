@@ -1,5 +1,6 @@
 export * from './address/address.entity';
 export * from './administrator/administrator.entity';
+export * from './api-key/api-key-translation.entity';
 export * from './api-key/api-key.entity';
 export * from './asset/asset-translation.entity';
 export * from './asset/asset.entity';
@@ -52,6 +53,7 @@ export * from './region/country.entity';
 export * from './region/province.entity';
 export * from './region/region.entity';
 export * from './role/role.entity';
+export * from './seller/seller-translation.entity';
 export * from './seller/seller.entity';
 export * from './session/anonymous-session.entity';
 export * from './session/authenticated-session.entity';

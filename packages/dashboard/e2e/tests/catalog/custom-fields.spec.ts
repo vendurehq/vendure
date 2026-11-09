@@ -119,6 +119,46 @@ test.describe('Custom Fields', () => {
         await dp.expectNavigatedToExisting();
     });
 
+    // ─── Non-nullable field with a default ───────────────────────────────
+
+    // #5241 — an untouched non-nullable custom field must not block the create form
+    test('should create a product without touching a non-nullable custom field', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Product name', 'Default Warranty Product');
+        await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+        await expect(dp.formItem('Warranty Months').getByRole('spinbutton')).toHaveValue('');
+        await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
+
+        await dp.clickCreate();
+        await dp.expectSuccessToast(/Successfully created product/);
+        await dp.expectNavigatedToExisting();
+
+        // The empty field is omitted from the payload, so the column's SQL DEFAULT is what lands.
+        await page.reload();
+        await expect(dp.formItem('Warranty Months').getByRole('spinbutton')).toHaveValue('12', {
+            timeout: 10_000,
+        });
+    });
+
+    // #5241 — the update form still requires a value for a non-nullable custom field
+    test('should keep the Update button disabled after clearing a non-nullable custom field', async ({
+        page,
+    }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+        const warrantyInput = dp.formItem('Warranty Months').getByRole('spinbutton');
+
+        // A valid edit enables the button, so the assertion below is about validity, not dirtiness.
+        await warrantyInput.fill('24');
+        await expect(dp.updateButton).toBeEnabled({ timeout: 10_000 });
+
+        await warrantyInput.fill('');
+        await expect(dp.updateButton).toBeDisabled({ timeout: 10_000 });
+    });
+
     // ─── Tab grouping ────────────────────────────────────────────────────
 
     test('should display custom field tabs', async ({ page }) => {
@@ -496,35 +536,141 @@ test.describe('Custom Fields', () => {
         await expect(reloadedDim.locator('dd').filter({ hasText: '10' })).toBeVisible();
     });
 
-    // #4393 — datetime picker should have a "Now" button
-    test('datetime picker should display a "Now" button', async ({ page }) => {
+    // #4393 — the v2 datetime picker should expose both date and time controls
+    test('datetime picker should display date and time controls', async ({ page }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const releaseDateItem = dp.formItem('Release Date');
-        await releaseDateItem.getByRole('button').first().click();
+        const picker = releaseDateItem.locator('[data-slot="date-time-picker"]');
+        await expect(picker.locator('input[type="time"]')).toBeVisible();
+        await picker.getByRole('button').first().click();
 
         const popover = page.locator('[data-slot="popover-content"]');
         await expect(popover).toBeVisible();
-        const nowButton = popover.getByRole('button', { name: 'Now' });
-        await expect(nowButton).toBeVisible();
+        await expect(popover.locator('[data-slot="calendar"]')).toBeVisible();
     });
 
-    // #4393 — clicking "Now" should set the datetime and close the popover
-    test('datetime "Now" button should set date and close popover', async ({ page }) => {
+    // #4393 — selecting a date should set the datetime and close the popover
+    test('datetime date selection should set a value and close the popover', async ({ page }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const releaseDateItem = dp.formItem('Release Date');
-        const triggerButton = releaseDateItem.getByRole('button').first();
-        await expect(triggerButton).toContainText('MM/DD/YYYY');
+        const picker = releaseDateItem.locator('[data-slot="date-time-picker"]');
+        const triggerButton = picker.getByRole('button').first();
+        await expect(triggerButton).toContainText('Pick a date and time');
 
         await triggerButton.click();
         const popover = page.locator('[data-slot="popover-content"]');
         await expect(popover).toBeVisible();
-        await popover.getByRole('button', { name: 'Now' }).click();
+        await popover.locator('[data-slot="calendar"] button[data-day]:not([disabled])').first().click();
 
         await expect(popover).not.toBeVisible();
-        await expect(triggerButton).not.toContainText('MM/DD/YYYY');
+        await expect(triggerButton).not.toContainText('Pick a date and time');
+        await expect(picker.locator('input[type="time"]')).toBeEnabled();
     });
 });
+
+// #4741 — when the form is invalid the submit button is disabled, and the page has to say why.
+// Uses the `numericCode` field (pattern `^[0-9]*$`). A stored value which fails the pattern is
+// simulated by rewriting the ProductDetail response, because the server rejects one on write.
+test.describe('Form error summary', () => {
+    const summary = (page: Page) => page.getByRole('alert').filter({ hasText: 'This cannot be saved' });
+
+    /** Serves every ProductDetail response with an invalid `numericCode`, passing each through `edit`. */
+    async function serveInvalidNumericCode(
+        page: Page,
+        edit: (product: any, call: number) => void = () => {},
+    ) {
+        let call = 0;
+        await page.route('**/admin-api**', async route => {
+            if (!/query ProductDetail\b/.test(route.request().postData() ?? '')) {
+                return route.fallback();
+            }
+            const response = await route.fetch();
+            const json = await response.json();
+            const product = json.data?.product;
+            if (product?.customFields) {
+                product.customFields.numericCode = 'not-numeric';
+                edit(product, call++);
+            }
+            await route.fulfill({ response, json });
+        });
+    }
+
+    test('lists an invalid field on the create page and clears once it is fixed', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Product name', 'Form error summary test');
+        await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
+        await expect(summary(page)).toBeHidden();
+
+        await dp.fillInput('Numeric Code', 'abc');
+        await expect(dp.createButton).toBeDisabled();
+        await expect(summary(page)).toContainText('Numeric Code: Value must match pattern: ^[0-9]*$');
+
+        await dp.fillInput('Numeric Code', '12345');
+        await expect(summary(page)).toBeHidden();
+        await expect(dp.createButton).toBeEnabled();
+    });
+
+    test('lists a loaded value which fails validation before any field is touched', async ({ page }) => {
+        await serveInvalidNumericCode(page);
+        await goToProduct(page);
+
+        await expect(summary(page)).toContainText('Numeric Code: Value must match pattern: ^[0-9]*$');
+
+        // A valid edit to another field leaves Update disabled, and the reason stays on the page.
+        await detailPage(page).fillInput('Product name', 'Laptop edited');
+        await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeDisabled();
+        await expect(summary(page)).toBeVisible();
+    });
+
+    test('lists the invalid value again after the same product is refetched', async ({ page }) => {
+        // The refetch returns a different name, so react-hook-form resets the form and clears its
+        // errors. The summary has to come back after that reset.
+        await serveInvalidNumericCode(page, (product, call) => {
+            if (call > 0) {
+                product.name = 'Laptop (refetched)';
+                for (const translation of product.translations ?? []) {
+                    translation.name = 'Laptop (refetched)';
+                }
+            }
+        });
+        await goToProduct(page);
+        await expect(summary(page)).toBeVisible();
+
+        // Leave and re-enter: the cached product renders first, then the stale query refetches.
+        // Suspense queries count as fresh for their first second, so wait that out on the list.
+        await page
+            .getByRole('navigation', { name: 'breadcrumb' })
+            .getByRole('link', { name: 'Products' })
+            .click();
+        const lp = listPage(page);
+        await lp.expectLoaded();
+        await lp.search('Laptop');
+        await page.waitForTimeout(1_500);
+        await lp.clickEntity('Laptop');
+        await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toHaveValue(
+            'Laptop (refetched)',
+            { timeout: 10_000 },
+        );
+        await expect(summary(page)).toBeVisible();
+    });
+});
+
+/** Opens the seeded "Laptop" product without waiting for a clean form, which an invalid value prevents. */
+async function goToProduct(page: Page) {
+    const lp = listPage(page);
+    await lp.goto();
+    await lp.expectLoaded();
+    await lp.search('Laptop');
+    await lp.clickEntity('Laptop');
+    await expect(page).toHaveURL(/\/products\/[^/]+$/);
+    await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toHaveValue('Laptop', {
+        timeout: 10_000,
+    });
+}

@@ -20,7 +20,7 @@ class ProductVariantService {
     getOptionsForVariant(ctx: RequestContext, variantId: ID) => Promise<Array<Translated<ProductOption>>>;
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID) => Promise<Array<Translated<FacetValue>>>;
     getProductForVariant(ctx: RequestContext, variant: ProductVariant) => Promise<Translated<Product>>;
-    getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<number>;
+    getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant, options?: StockLevelReadOptions) => Promise<number>;
     getDisplayStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<string>;
     getFulfillableStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<number>;
     create(ctx: RequestContext, input: CreateProductVariantInput[]) => Promise<Array<Translated<ProductVariant>>>;
@@ -96,11 +96,16 @@ method performs a large multi-table join with all the typical data needed for a 
 page, this method returns only the Product itself.
 ### getSaleableStockLevel
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<number>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, options?: <a href='/reference/typescript-api/services/stock-level-read-options#stocklevelreadoptions'>StockLevelReadOptions</a>) => Promise<number>`}  since="3.7.4 - Added the `options` parameter"  />
 
 Returns the number of saleable units of the ProductVariant, i.e. how many are available
 for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
 as well as the local and global `outOfStockThreshold` settings.
+
+Pass `{ lockStockLevels: true }` when the result is used to decide whether stock may be
+allocated. This holds a write lock on the StockLevel rows until the surrounding
+transaction commits, so that two concurrent checkouts cannot both pass the check and
+then both allocate the same units. See `StockLevelService.getAvailableStock`.
 ### getDisplayStockLevel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<string>`}   />
@@ -162,7 +167,8 @@ Populates the `price` field with the price for the specified channel.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
 
 Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
-[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product and any Assets to the Channel too.
+[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product, any Assets, and the variant's
+ProductOptions and their ProductOptionGroups to the Channel too.
 ### removeProductVariantsFromChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />

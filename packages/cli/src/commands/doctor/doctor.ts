@@ -1,5 +1,5 @@
 import { log } from '@clack/prompts';
-import { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig } from '@vendure/core';
 
 import { runConfigCheck } from './checks/config-check';
 import { runDatabaseCheck } from './checks/database-check';
@@ -49,8 +49,7 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to project check failure',
                 });
             }
-            outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
-            return;
+            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
         }
     }
 
@@ -85,8 +84,7 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to config check failure',
                 });
             }
-            outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
-            return;
+            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
         }
     }
 
@@ -129,7 +127,7 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
+    return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
 }
 
 function resolveChecks(checkFlags?: string[]): string[] {
@@ -168,16 +166,14 @@ function buildReport(
     };
 }
 
-function outputReport(report: DoctorReport, options?: DoctorOptions): void {
+function outputReport(report: DoctorReport, options?: DoctorOptions): number {
     if (options?.format === 'json') {
         formatJsonReport(report);
     } else {
         formatConsoleReport(report);
     }
 
-    if (report.overallStatus === 'failed') {
-        process.exit(1);
-    }
+    return report.overallStatus === 'failed' ? 1 : 0;
 }
 
 function capitalize(s: string): string {

@@ -11,6 +11,7 @@ import {
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { DashboardFormComponent } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
@@ -150,8 +151,8 @@ interface ProductMultiSelectorProps {
 
 function LoadingState() {
     return (
-        <div className="text-center text-muted-foreground">
-            <Trans>Loading...</Trans>
+        <div className="flex items-center justify-center text-muted-foreground">
+            <Spinner />
         </div>
     );
 }
@@ -416,7 +417,7 @@ export function ProductMultiSelectorDialog({
                             <div className="flex items-center justify-between mb-4 flex-shrink-0">
                                 <div className="text-sm font-medium">
                                     <Trans>Selected Items</Trans>
-                                    <Badge variant="secondary" className="ml-2">
+                                    <Badge variant="default" className="ml-2">
                                         {selectedIds.size}
                                     </Badge>
                                 </div>

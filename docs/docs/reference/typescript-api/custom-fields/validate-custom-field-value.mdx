@@ -1,0 +1,33 @@
+---
+title: "ValidateCustomFieldValue"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/api/common/validate-custom-field-value.ts" sourceLine="33" packageName="@vendure/core" since="3.8.0" />
+
+Runs the checks the GraphQL APIs apply to custom field input: `readonly`, `nullable`,
+`requiresPermission`, the `pattern`, `options`, `min` and `max` constraints, and the field's own
+`validate` function. Throws a `UserInputError` on the first failed check.
+
+Use it to validate custom field values that do not arrive through the GraphQL APIs.
+
+```ts title="Signature"
+function validateCustomFieldValue(config: CustomFieldConfig, value: any | any[], injector: Injector, ctx: RequestContext): Promise<void>
+```
+Parameters
+
+### config
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/custom-fields/custom-field-config#customfieldconfig'>CustomFieldConfig</a>`} />
+
+### value
+
+<MemberInfo kind="parameter" type={`any | any[]`} />
+
+### injector
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/common/injector#injector'>Injector</a>`} />
+
+### ctx
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`} />
+

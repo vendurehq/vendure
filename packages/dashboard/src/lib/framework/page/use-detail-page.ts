@@ -8,10 +8,10 @@ import {
     useQueryClient,
     useSuspenseQuery,
 } from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { useParams, useRouter } from '@tanstack/react-router';
 import { ResultOf, VariablesOf } from 'gql.tada';
 import { DocumentNode } from 'graphql';
-import { FormEvent } from 'react';
+import { FormEvent, useMemo } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 
 import { NEW_ENTITY_PATH } from '../../constants.js';
@@ -25,7 +25,12 @@ import {
     getMutationName,
     getQueryName,
 } from '../document-introspection/get-document-structure.js';
-import { useGeneratedForm, WithLooseCustomFields } from '../form-engine/use-generated-form.js';
+import {
+    GeneratedFormSubmitMeta,
+    useGeneratedForm,
+    WithLooseCustomFields,
+} from '../form-engine/use-generated-form.js';
+import { pruneToChangedFields } from '../form-engine/utils.js';
 
 import { DetailEntityPath } from './page-types.js';
 
@@ -101,7 +106,34 @@ export interface DetailPageOptions<
     setValuesForUpdate: (
         entity: NonNullable<ResultOf<T>[EntityField]>,
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
+    /**
+     * @description
+     * The function to set the starting values for the create form, e.g. a parent ID from the
+     * route params. It receives the path params of the matched route, not the `params` option.
+     * It runs again only when the route params change. The starting values count as
+     * unsaved changes, so a submit button disabled on `!form.formState.isDirty` is enabled, and leaving
+     * the page asks the user to confirm.
+     *
+     * @example
+     * ```ts
+     * setValuesForCreate: params => ({ companyId: params.companyId }),
+     * ```
+     *
+     * @since 3.8.0
+     */
+    setValuesForCreate?: NoInfer<
+        (params: Record<string, string>) => WithLooseCustomFields<Partial<VariablesOf<C>[VarNameCreate]>>
+    >;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
+    /**
+     * @description
+     * Adjusts the full set of variables sent to the create mutation, for a create mutation which
+     * takes more than the input object, such as `createCustomer(input:, password:)`. Runs after
+     * `transformCreateInput`, which has already shaped `variables.input`.
+     *
+     * @since 3.8.0
+     */
+    transformCreateVariables?: (variables: VariablesOf<C>) => VariablesOf<C>;
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
     /**
      * @description
@@ -131,6 +163,22 @@ export interface DetailPageOptions<
      * @since 3.7.0
      */
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
+    /**
+     * @description
+     * By default an update mutation sends the full form payload. Set this to `true` to instead send
+     * only the fields the user actually changed, so that an untouched field's stale page-load value
+     * cannot silently overwrite a concurrent change made by another admin or via the API.
+     *
+     * Only enable this for a detail page whose update mutation is patch-style: an absent field must
+     * be left unchanged, and no persisted value may be *derived* from the (now partial) input.
+     * Vendure's built-in Product, Collection and ProductVariant update paths satisfy this; a
+     * resolver that recomputes a field from the input — as `updatePromotion` does for
+     * `priorityScore` — does not, and would corrupt that field when it is omitted.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    sendOnlyChangedFields?: boolean;
     /**
      * @description
      * The function to call when the update is successful.
@@ -284,9 +332,12 @@ export function useDetailPage<
         createDocument,
         updateDocument,
         setValuesForUpdate,
+        setValuesForCreate,
         transformCreateInput,
+        transformCreateVariables,
         transformUpdateInput,
         extendSchema,
+        sendOnlyChangedFields,
         params,
         entityField,
         entityName,
@@ -316,6 +367,14 @@ export function useDetailPage<
     const resetForm = () => {
         form.reset(form.getValues());
     };
+
+    const routeParams = useParams({ strict: false });
+    // Rerun only when the route params change. Rerunning every render would reset the form
+    // whenever the values include something like `new Date()`.
+    const startingValues = useMemo(
+        () => (isNew ? setValuesForCreate?.(routeParams) : undefined),
+        [isNew, routeParams],
+    );
 
     const createMutation = useMutation({
         mutationFn: createDocument ? api.mutate(createDocument) : undefined,
@@ -349,14 +408,25 @@ export function useDetailPage<
         customFieldConfig,
         extendSchema,
         setValues: setValuesForUpdate,
-        onSubmit(values: any) {
+        startingValues,
+        onSubmit(values: any, meta?: GeneratedFormSubmitMeta) {
             const filteredValues = removeReadonlyAndLocalizedCustomFields(values, customFieldConfig || []);
 
             if (isNew) {
                 const finalInput = transformCreateInput?.(filteredValues) ?? filteredValues;
-                createMutation.mutate({ input: finalInput });
+                const variables = { input: finalInput } as VariablesOf<C>;
+                createMutation.mutate(transformCreateVariables?.(variables) ?? variables);
             } else {
-                const finalInput = transformUpdateInput?.(filteredValues) ?? filteredValues;
+                // When the page opts in via `sendOnlyChangedFields`, send only the fields the user
+                // actually changed (plus non-nullable fields, which `changedFields` always
+                // includes), so an untouched field's stale value cannot overwrite a concurrent edit.
+                // The default keeps sending the full payload, which is safe for any update resolver.
+                const prunedValues = pruneToChangedFields(
+                    filteredValues,
+                    meta?.changedFields,
+                    !sendOnlyChangedFields,
+                );
+                const finalInput = transformUpdateInput?.(prunedValues) ?? prunedValues;
                 updateMutation.mutate({ input: finalInput });
             }
         },

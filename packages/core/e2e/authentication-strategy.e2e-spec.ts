@@ -1,8 +1,22 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ErrorCode, HistoryEntryType } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, ErrorCode, HistoryEntryType, LanguageCode } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
-import { mergeConfig, NativeAuthenticationStrategy } from '@vendure/core';
-import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import {
+    Customer,
+    CustomerChannelAssignmentStrategy,
+    ExternalAuthenticationMethod,
+    mergeConfig,
+    NativeAuthenticationMethod,
+    NativeAuthenticationStrategy,
+    TransactionalConnection,
+    User,
+} from '@vendure/core';
+import {
+    createErrorResultGuard,
+    createTestEnvironment,
+    E2E_DEFAULT_CHANNEL_TOKEN,
+    ErrorResultGuard,
+} from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -13,7 +27,9 @@ import {
     TestAuthenticationStrategy,
     TestAuthenticationStrategy2,
     TestSSOStrategyAdmin,
+    TestSSOStrategyAdminAvatarSync,
     TestSSOStrategyShop,
+    TestSSOStrategyShopChannelScoped,
     TestUnverifiedEmailStrategy,
     VALID_AUTH_TOKEN,
 } from './fixtures/test-authentication-strategies';
@@ -22,14 +38,24 @@ import { FragmentOf } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
     authenticateDocument,
+    createChannelDocument,
     createCustomerDocument,
     deleteCustomerDocument,
+    getActiveAdministratorAvatarDocument,
     getCustomerHistoryDocument,
+    getCustomerListDocument,
     getCustomersDocument,
     getCustomerUserAuthDocument,
     MeDocument,
+    updateCustomerDocument,
 } from './graphql/shared-definitions';
-import { registerAccountDocument } from './graphql/shop-definitions';
+import {
+    addItemToOrderDocument,
+    getActiveCustomerDocument,
+    registerAccountDocument,
+    requestUpdateEmailAddressDocument,
+    setCustomerDocument,
+} from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 type CurrentUserFragmentType = FragmentOf<typeof currentUserFragment>;
@@ -42,7 +68,16 @@ const customerGuard: ErrorResultGuard<CustomerFragmentType> = createErrorResultG
     input => input.emailAddress != null,
 );
 
+class TestCustomerChannelAssignmentStrategy implements CustomerChannelAssignmentStrategy {
+    canAssign = true;
+
+    canAssignCustomerToChannel() {
+        return this.canAssign;
+    }
+}
+
 describe('AuthenticationStrategy', () => {
+    const customerChannelAssignmentStrategy = new TestCustomerChannelAssignmentStrategy();
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             authOptions: {
@@ -51,9 +86,15 @@ describe('AuthenticationStrategy', () => {
                     new TestAuthenticationStrategy(),
                     new TestAuthenticationStrategy2(),
                     new TestSSOStrategyShop(),
+                    new TestSSOStrategyShopChannelScoped(),
                     new TestUnverifiedEmailStrategy(),
                 ],
-                adminAuthenticationStrategy: [new NativeAuthenticationStrategy(), new TestSSOStrategyAdmin()],
+                customerChannelAssignmentStrategy,
+                adminAuthenticationStrategy: [
+                    new NativeAuthenticationStrategy(),
+                    new TestSSOStrategyAdmin(),
+                    new TestSSOStrategyAdminAvatarSync(),
+                ],
             },
         }),
     );
@@ -296,6 +337,12 @@ describe('AuthenticationStrategy', () => {
             });
             currentUserGuard.assertSuccess(adminAuth);
 
+            const { activeAdministrator } = await adminClient.query(getActiveAdministratorAvatarDocument);
+            expect(activeAdministrator?.avatar).toMatchObject({
+                mimeType: 'image/png',
+            });
+            expect(activeAdministrator?.avatar?.source).toContain('external-profile.png');
+
             const { authenticate: shopAuth } = await shopClient.query(authenticateDocument, {
                 input: {
                     test_sso_strategy_shop: {
@@ -306,6 +353,48 @@ describe('AuthenticationStrategy', () => {
             currentUserGuard.assertSuccess(shopAuth);
 
             expect(adminAuth.id).not.toBe(shopAuth.id);
+        });
+
+        // A strategy runs while the request is still anonymous, so setAdministratorAvatar() cannot
+        // read the Administrator through a permission-scoped lookup.
+        it('a strategy can synchronize the Administrator avatar during authentication', async () => {
+            const emailAddress = 'avatar-sync@test-domain.com';
+            await adminClient.asAnonymousUser();
+            const { authenticate: firstLogin } = await adminClient.query(authenticateDocument, {
+                input: {
+                    test_sso_strategy_admin_avatar_sync: {
+                        email: emailAddress,
+                        avatarFilename: 'first-profile.png',
+                    },
+                },
+            });
+            currentUserGuard.assertSuccess(firstLogin);
+
+            const { activeAdministrator: afterFirstLogin } = await adminClient.query(
+                getActiveAdministratorAvatarDocument,
+            );
+            expect(afterFirstLogin?.avatar).toMatchObject({
+                mimeType: 'image/png',
+            });
+            expect(afterFirstLogin?.avatar?.source).toContain('first-profile.png');
+
+            // Logging in again syncs a new image, which replaces the one already stored.
+            await adminClient.asAnonymousUser();
+            const { authenticate: secondLogin } = await adminClient.query(authenticateDocument, {
+                input: {
+                    test_sso_strategy_admin_avatar_sync: {
+                        email: emailAddress,
+                        avatarFilename: 'second-profile.png',
+                    },
+                },
+            });
+            currentUserGuard.assertSuccess(secondLogin);
+
+            const { activeAdministrator: afterSecondLogin } = await adminClient.query(
+                getActiveAdministratorAvatarDocument,
+            );
+            expect(afterSecondLogin?.avatar?.source).toContain('second-profile.png');
+            expect(afterSecondLogin?.avatar?.id).not.toBe(afterFirstLogin?.avatar?.id);
         });
     });
 
@@ -353,6 +442,434 @@ describe('AuthenticationStrategy', () => {
             });
             currentUserGuard.assertSuccess(authenticate);
             expect(authenticate.identifier).toBe(newEmail);
+        });
+    });
+
+    // #5559 — external logins should store the email address in lowercase and match it regardless of case
+    describe('email address case of external logins', () => {
+        async function getCustomersByEmail(emailAddress: string) {
+            const { customers } = await adminClient.query(getCustomerListDocument, {
+                options: { filter: { emailAddress: { contains: emailAddress } } },
+            });
+            return customers.items;
+        }
+
+        // Simulates a Customer whose email address and User identifier are stored with capital
+        // letters, as external logins before #5559 could save them
+        async function setStoredEmailAddress(customer: CustomerFragmentType, emailAddress: string) {
+            const { rawConnection } = server.app.get(TransactionalConnection);
+            await rawConnection
+                .getRepository(Customer)
+                .update(customer.id.replace('T_', ''), { emailAddress });
+            await rawConnection
+                .getRepository(User)
+                .update(customer.user!.id.replace('T_', ''), { identifier: emailAddress });
+        }
+
+        it('stores the email address of a new Customer in lowercase', async () => {
+            await shopClient.asAnonymousUser();
+            const { authenticate } = await shopClient.query(authenticateDocument, {
+                input: { test_sso_strategy_shop: { email: 'Case.Test@test-domain.com' } },
+            });
+            currentUserGuard.assertSuccess(authenticate);
+
+            expect(authenticate.identifier).toBe('case.test@test-domain.com');
+            const customers = await getCustomersByEmail('case.test@test-domain.com');
+            expect(customers.map(c => c.emailAddress)).toEqual(['case.test@test-domain.com']);
+        });
+
+        it('links a login with the same email address in different case to the existing Customer', async () => {
+            await shopClient.asAnonymousUser();
+            const { authenticate: first } = await shopClient.query(authenticateDocument, {
+                input: { test_sso_strategy_shop: { email: 'Case.Test@test-domain.com' } },
+            });
+            currentUserGuard.assertSuccess(first);
+
+            await shopClient.asAnonymousUser();
+            const { authenticate: second } = await shopClient.query(authenticateDocument, {
+                input: { test_sso_strategy_shop: { email: 'case.test@test-domain.com' } },
+            });
+            currentUserGuard.assertSuccess(second);
+
+            // MySQL and MariaDB compare the external identifier case-insensitively, so there the second
+            // login finds the existing authentication method and is not linked again. The result is
+            // the same on every database.
+            expect(second.id).toBe(first.id);
+            const customers = await getCustomersByEmail('case.test@test-domain.com');
+            expect(customers).toHaveLength(1);
+        });
+
+        it('finds an existing Customer whose email address was stored with capital letters', async () => {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: {
+                    firstName: 'Legacy',
+                    lastName: 'Case',
+                    emailAddress: 'legacy.login@test-domain.com',
+                },
+            });
+            customerGuard.assertSuccess(createCustomer);
+            await setStoredEmailAddress(createCustomer, 'Legacy.Login@test-domain.com');
+
+            await shopClient.asAnonymousUser();
+            const { authenticate } = await shopClient.query(authenticateDocument, {
+                input: { test_sso_strategy_shop: { email: 'legacy.login@test-domain.com' } },
+            });
+            currentUserGuard.assertSuccess(authenticate);
+
+            const customers = await getCustomersByEmail('legacy.login@test-domain.com');
+            expect(customers.map(c => c.id)).toEqual([createCustomer.id]);
+            expect(customers[0].user?.id).toBe(authenticate.id);
+        });
+
+        it('is not hidden by a guest Customer with the same email address', async () => {
+            // A guest checkout creates a Customer without a User
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+            await shopClient.query(setCustomerDocument, {
+                input: { firstName: 'Guest', lastName: 'Case', emailAddress: 'guest.case@test-domain.com' },
+            });
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: {
+                    firstName: 'Registered',
+                    lastName: 'Case',
+                    emailAddress: 'temp.guest@test-domain.com',
+                },
+            });
+            customerGuard.assertSuccess(createCustomer);
+            await setStoredEmailAddress(createCustomer, 'Guest.Case@test-domain.com');
+
+            await shopClient.asAnonymousUser();
+            const { authenticate } = await shopClient.query(authenticateDocument, {
+                input: { test_sso_strategy_shop: { email: 'guest.case@test-domain.com' } },
+            });
+            currentUserGuard.assertSuccess(authenticate);
+
+            expect(authenticate.id).toBe(createCustomer.user?.id);
+            expect(await getCustomersByEmail('guest.case@test-domain.com')).toHaveLength(2);
+        });
+
+        it('links the oldest of several Customers with the same email address in different case', async () => {
+            const { createCustomer: lowerId } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Lower', lastName: 'Case', emailAddress: 'temp.lower@test-domain.com' },
+            });
+            customerGuard.assertSuccess(lowerId);
+            const { createCustomer: higherId } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Higher', lastName: 'Case', emailAddress: 'temp.higher@test-domain.com' },
+            });
+            customerGuard.assertSuccess(higherId);
+            await setStoredEmailAddress(lowerId, 'Several.Case@test-domain.com');
+            await setStoredEmailAddress(higherId, 'several.case@test-domain.com');
+            // Make the Customer with the higher id the older one, so that the order of the ids
+            // does not decide the result
+            const { rawConnection } = server.app.get(TransactionalConnection);
+            await rawConnection
+                .getRepository(Customer)
+                .update(higherId.id.replace('T_', ''), { createdAt: new Date('2020-01-01') });
+
+            await shopClient.asAnonymousUser();
+            const { authenticate } = await shopClient.query(authenticateDocument, {
+                input: { test_sso_strategy_shop: { email: 'SEVERAL.CASE@test-domain.com' } },
+            });
+            currentUserGuard.assertSuccess(authenticate);
+
+            expect(authenticate.id).toBe(higherId.user?.id);
+        });
+
+        it('rejects linking an unverified login whose email address differs only in case', async () => {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Case', lastName: 'Victim', emailAddress: 'case.victim@test-domain.com' },
+                password: 'victim-password',
+            });
+            customerGuard.assertSuccess(createCustomer);
+
+            await shopClient.asAnonymousUser();
+            await expect(
+                shopClient.query(authenticateDocument, {
+                    input: { test_unverified_strategy: { email: 'Case.Victim@test-domain.com' } },
+                }),
+            ).rejects.toThrow(
+                'Cannot link an unverified external authentication method to an existing account',
+            );
+        });
+
+        it('can save a Customer whose email address was stored with capital letters', async () => {
+            // Two Customers whose email addresses differ only in case, as external logins before
+            // #5559 could create them
+            const { createCustomer: lowercase } = await adminClient.query(createCustomerDocument, {
+                input: {
+                    firstName: 'Lower',
+                    lastName: 'Case',
+                    emailAddress: 'duplicate.case@test-domain.com',
+                },
+            });
+            customerGuard.assertSuccess(lowercase);
+            const { createCustomer: capitalized } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Upper', lastName: 'Case', emailAddress: 'temp.case@test-domain.com' },
+            });
+            customerGuard.assertSuccess(capitalized);
+            await setStoredEmailAddress(capitalized, 'Duplicate.Case@test-domain.com');
+
+            const { updateCustomer } = await adminClient.query(updateCustomerDocument, {
+                input: {
+                    id: capitalized.id,
+                    emailAddress: 'Duplicate.Case@test-domain.com',
+                    firstName: 'Changed',
+                },
+            });
+            customerGuard.assertSuccess(updateCustomer);
+
+            expect(updateCustomer.firstName).toBe('Changed');
+            // The lowercase form is used by the other Customer, so the stored email address is kept
+            expect(updateCustomer.emailAddress).toBe('Duplicate.Case@test-domain.com');
+            expect(updateCustomer.user?.identifier).toBe('Duplicate.Case@test-domain.com');
+            const customers = await getCustomersByEmail('duplicate.case@test-domain.com');
+            expect(customers.map(c => c.emailAddress).sort()).toEqual([
+                'Duplicate.Case@test-domain.com',
+                'duplicate.case@test-domain.com',
+            ]);
+        });
+
+        it('saves the email address in lowercase when only the case differs', async () => {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Single', lastName: 'Case', emailAddress: 'single.case@test-domain.com' },
+                password: 'test',
+            });
+            customerGuard.assertSuccess(createCustomer);
+            await setStoredEmailAddress(createCustomer, 'Single.Case@test-domain.com');
+
+            const { updateCustomer } = await adminClient.query(updateCustomerDocument, {
+                input: { id: createCustomer.id, emailAddress: 'Single.Case@test-domain.com' },
+            });
+            customerGuard.assertSuccess(updateCustomer);
+
+            // The email address, the User identifier and the history all use the lowercase form
+            expect(updateCustomer.emailAddress).toBe('single.case@test-domain.com');
+            expect(updateCustomer.user?.identifier).toBe('single.case@test-domain.com');
+            const { customer } = await adminClient.query(getCustomerHistoryDocument, {
+                id: createCustomer.id,
+                options: { filter: { type: { eq: HistoryEntryType.CUSTOMER_DETAIL_UPDATED } } },
+            });
+            expect(customer?.history.items.map(i => i.data.input.emailAddress)).toEqual([
+                'single.case@test-domain.com',
+            ]);
+        });
+
+        it('keeps a pending email address change when only the case differs', async () => {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: {
+                    firstName: 'Pending',
+                    lastName: 'Case',
+                    emailAddress: 'pending.case@test-domain.com',
+                },
+                password: 'test',
+            });
+            customerGuard.assertSuccess(createCustomer);
+            await shopClient.asUserWithCredentials('pending.case@test-domain.com', 'test');
+            await shopClient.query(requestUpdateEmailAddressDocument, {
+                password: 'test',
+                newEmailAddress: 'pending.new@test-domain.com',
+            });
+            await setStoredEmailAddress(createCustomer, 'Pending.Case@test-domain.com');
+            const getNativeAuthMethod = () =>
+                server.app
+                    .get(TransactionalConnection)
+                    .rawConnection.getRepository(NativeAuthenticationMethod)
+                    .findOneOrFail({ where: { user: { id: createCustomer.user!.id.replace('T_', '') } } });
+            const before = await getNativeAuthMethod();
+            expect(before.identifierChangeToken).toEqual(expect.any(String));
+
+            const { updateCustomer } = await adminClient.query(updateCustomerDocument, {
+                input: { id: createCustomer.id, emailAddress: 'Pending.Case@test-domain.com' },
+            });
+            customerGuard.assertSuccess(updateCustomer);
+
+            const after = await getNativeAuthMethod();
+            expect(after.pendingIdentifier).toBe('pending.new@test-domain.com');
+            expect(after.identifierChangeToken).toBe(before.identifierChangeToken);
+        });
+
+        it('still rejects changing the email address to one used by another Customer', async () => {
+            const { createCustomer: existing } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Taken', lastName: 'Case', emailAddress: 'taken.case@test-domain.com' },
+            });
+            customerGuard.assertSuccess(existing);
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Other', lastName: 'Case', emailAddress: 'other.case@test-domain.com' },
+            });
+            customerGuard.assertSuccess(createCustomer);
+
+            const { updateCustomer } = await adminClient.query(updateCustomerDocument, {
+                input: { id: createCustomer.id, emailAddress: 'Taken.Case@test-domain.com' },
+            });
+            customerGuard.assertErrorResult(updateCustomer);
+
+            expect(updateCustomer.errorCode).toBe(ErrorCode.EMAIL_ADDRESS_CONFLICT_ERROR);
+        });
+
+        describe('in several Channels', () => {
+            const SECOND_CHANNEL_TOKEN = 'email-case-second-channel';
+            const THIRD_CHANNEL_TOKEN = 'email-case-third-channel';
+
+            beforeAll(async () => {
+                for (const token of [SECOND_CHANNEL_TOKEN, THIRD_CHANNEL_TOKEN]) {
+                    await adminClient.query(createChannelDocument, {
+                        input: {
+                            code: token,
+                            token,
+                            defaultLanguageCode: LanguageCode.en,
+                            currencyCode: CurrencyCode.USD,
+                            pricesIncludeTax: true,
+                            defaultShippingZoneId: 'T_1',
+                            defaultTaxZoneId: 'T_1',
+                        },
+                    });
+                }
+            });
+
+            afterAll(() => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            });
+
+            async function createCustomerInChannel(channelToken: string, emailAddress: string) {
+                adminClient.setChannelToken(channelToken);
+                const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                    input: { firstName: 'Channel', lastName: 'Case', emailAddress: `temp.${emailAddress}` },
+                });
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                customerGuard.assertSuccess(createCustomer);
+                await setStoredEmailAddress(createCustomer, emailAddress);
+                return createCustomer;
+            }
+
+            async function authenticateInSecondChannel(
+                emailAddress: string,
+                strategy = 'test_sso_strategy_shop',
+            ) {
+                // Log out first, so that the logout request does not assign the previous User to the Channel
+                await shopClient.asAnonymousUser();
+                shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                const { authenticate } = await shopClient.query(authenticateDocument, {
+                    input: { [strategy]: { email: emailAddress } },
+                });
+                // The Customer is assigned to the Channel on the first request of the new session
+                await shopClient.query(getActiveCustomerDocument);
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                currentUserGuard.assertSuccess(authenticate);
+                return authenticate;
+            }
+
+            async function getCustomerIdsInChannel(channelToken: string, emailAddress: string) {
+                adminClient.setChannelToken(channelToken);
+                const customers = await getCustomersByEmail(emailAddress);
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                return customers.map(c => c.id);
+            }
+
+            it('links a Customer of another Channel and assigns it to the current Channel', async () => {
+                const customer = await createCustomerInChannel(
+                    E2E_DEFAULT_CHANNEL_TOKEN,
+                    'Other.Channel@test-domain.com',
+                );
+
+                const authenticate = await authenticateInSecondChannel('other.channel@test-domain.com');
+
+                expect(authenticate.id).toBe(customer.user?.id);
+                expect(
+                    await getCustomerIdsInChannel(SECOND_CHANNEL_TOKEN, 'other.channel@test-domain.com'),
+                ).toEqual([customer.id]);
+            });
+
+            it('keeps the other Channels of a linked Customer', async () => {
+                const customer = await createCustomerInChannel(
+                    THIRD_CHANNEL_TOKEN,
+                    'Third.Channel@test-domain.com',
+                );
+
+                const authenticate = await authenticateInSecondChannel('third.channel@test-domain.com');
+
+                expect(authenticate.id).toBe(customer.user?.id);
+                for (const token of [THIRD_CHANNEL_TOKEN, SECOND_CHANNEL_TOKEN]) {
+                    expect(await getCustomerIdsInChannel(token, 'third.channel@test-domain.com')).toEqual([
+                        customer.id,
+                    ]);
+                }
+            });
+
+            it('does not assign a linked Customer when the CustomerChannelAssignmentStrategy declines', async () => {
+                const strategy = 'test_sso_strategy_shop_channel_scoped';
+                const customer = await createCustomerInChannel(
+                    THIRD_CHANNEL_TOKEN,
+                    'Gated.Channel@test-domain.com',
+                );
+                customerChannelAssignmentStrategy.canAssign = false;
+                try {
+                    const first = await authenticateInSecondChannel(
+                        'gated.channel@test-domain.com',
+                        strategy,
+                    );
+                    // The strategy does not find the User in this Channel, so it links the account again
+                    const second = await authenticateInSecondChannel(
+                        'gated.channel@test-domain.com',
+                        strategy,
+                    );
+
+                    expect(first.id).toBe(customer.user?.id);
+                    expect(second.id).toBe(customer.user?.id);
+                } finally {
+                    customerChannelAssignmentStrategy.canAssign = true;
+                }
+                expect(
+                    await getCustomerIdsInChannel(SECOND_CHANNEL_TOKEN, 'gated.channel@test-domain.com'),
+                ).toEqual([]);
+
+                // The second login neither adds another authentication method nor another history entry
+                const authMethods = await server.app
+                    .get(TransactionalConnection)
+                    .rawConnection.getRepository(ExternalAuthenticationMethod)
+                    .find({ where: { user: { id: customer.user!.id.replace('T_', '') }, strategy } });
+                expect(authMethods).toHaveLength(1);
+                const { customer: withHistory } = await adminClient.query(getCustomerHistoryDocument, {
+                    id: customer.id,
+                    options: { filter: { type: { eq: HistoryEntryType.CUSTOMER_REGISTERED } } },
+                });
+                expect(withHistory?.history.items.filter(i => i.data.strategy === strategy)).toHaveLength(1);
+            });
+
+            it('lets an unverified external login sign in to another Channel', async () => {
+                const input = {
+                    test_sso_strategy_shop_channel_scoped: {
+                        email: 'unverified.channel@test-domain.com',
+                        verified: false,
+                    },
+                };
+                await shopClient.asAnonymousUser();
+                const { authenticate: first } = await shopClient.query(authenticateDocument, { input });
+                currentUserGuard.assertSuccess(first);
+
+                // The strategy does not find the User in the second Channel, so it calls
+                // createCustomerAndUser() again for the identity which is linked already
+                // Log out first, so that the logout request does not assign the previous User to the Channel
+                await shopClient.asAnonymousUser();
+                shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                const { authenticate: second } = await shopClient.query(authenticateDocument, { input });
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                currentUserGuard.assertSuccess(second);
+
+                expect(second.id).toBe(first.id);
+            });
+
+            it('prefers a Customer of the current Channel', async () => {
+                await createCustomerInChannel(E2E_DEFAULT_CHANNEL_TOKEN, 'Current.Channel@test-domain.com');
+                const inSecondChannel = await createCustomerInChannel(
+                    SECOND_CHANNEL_TOKEN,
+                    'current.channel@test-domain.com',
+                );
+
+                const authenticate = await authenticateInSecondChannel('current.channel@test-domain.com');
+
+                expect(authenticate.id).toBe(inSecondChannel.user?.id);
+            });
         });
     });
 

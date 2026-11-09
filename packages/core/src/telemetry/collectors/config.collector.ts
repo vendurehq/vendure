@@ -123,7 +123,11 @@ export class ConfigCollector {
     private getApiDebugEnabled(): boolean | undefined {
         try {
             const api = this.configService.apiOptions;
-            return !!(api.adminApiDebug || api.shopApiDebug);
+            // adminApiDebug/shopApiDebug stopped reaching Apollo Server when it removed its
+            // `debug` option in v4, so this does not report whether anything is enabled. It
+            // counts the installations still setting the options, which is what tells us when
+            // it is safe to remove them.
+            return !!(api.adminApiDebug || api.shopApiDebug); // NOSONAR
         } catch {
             return undefined;
         }

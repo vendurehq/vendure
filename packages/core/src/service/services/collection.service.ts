@@ -20,12 +20,17 @@ import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { merge } from 'rxjs';
 import { debounceTime, filter } from 'rxjs/operators';
-import { In, IsNull, QueryRunner } from 'typeorm';
+import { In, InsertQueryBuilder, IsNull, ObjectLiteral, QueryRunner } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { TRANSACTION_MANAGER_KEY } from '../../common/constants';
-import { ForbiddenError, IllegalOperationError, UserInputError } from '../../common/error/errors';
+import {
+    ForbiddenError,
+    IllegalOperationError,
+    InternalServerError,
+    UserInputError,
+} from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
@@ -70,6 +75,43 @@ export type ApplyCollectionFiltersJobData = {
     applyToChangedVariantsOnly?: boolean;
 };
 
+type CollectionProductVariantJunction = {
+    tableName: string;
+    collectionIdColumn: string;
+    productVariantIdColumn: string;
+};
+
+/**
+ * `Job.fail()` records only `error.message`, and it goes into a JobRecord column which is a plain
+ * `varchar` — 255 characters on most drivers. The message therefore has to name the underlying
+ * causes itself, on one line and within that budget, or the job list shows which Collections
+ * failed but nothing about why.
+ */
+const MAX_JOB_ERROR_LENGTH = 250;
+const MAX_UNDERLYING_ERROR_LENGTH = 120;
+
+function truncate(value: string, maxLength: number): string {
+    if (maxLength <= 3) {
+        return '';
+    }
+    return value.length <= maxLength ? value : `${value.slice(0, maxLength - 3)}...`;
+}
+
+function summarizeError(e: unknown): string {
+    const message = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    return truncate(message.replace(/\s+/g, ' ').trim(), MAX_UNDERLYING_ERROR_LENGTH);
+}
+
+function summarizeCollectionFilterFailures(
+    failures: Array<{ id: ID; error: string }>,
+    totalCollections: number,
+): string {
+    const prefix = `Could not apply the filters of ${failures.length} of ${totalCollections} Collections (ids: `;
+    const suffix = '). See the preceding errors for details.';
+    const details = failures.map(failure => `${String(failure.id)} (${failure.error})`).join(', ');
+    return prefix + truncate(details, MAX_JOB_ERROR_LENGTH - prefix.length - suffix.length) + suffix;
+}
+
 /**
  * @description
  * Contains methods relating to {@link Collection} entities.
@@ -82,6 +124,7 @@ export class CollectionService implements OnModuleInit {
     private rootCollection: Translated<Collection> | undefined;
     private applyFiltersQueue: JobQueue<ApplyCollectionFiltersJobData>;
     private applyAllFiltersOnProductUpdates = true;
+    private productVariantJunction: CollectionProductVariantJunction | undefined;
 
     constructor(
         private connection: TransactionalConnection,
@@ -147,6 +190,7 @@ export class CollectionService implements OnModuleInit {
                 }
                 Logger.verbose(`Processing ${collectionIds.length} Collections`);
                 let completed = 0;
+                const failures: Array<{ id: ID; error: string }> = [];
                 for (const collectionId of collectionIds) {
                     if (job.state === JobState.CANCELLED) {
                         throw new Error(`Job was cancelled`);
@@ -175,6 +219,7 @@ export class CollectionService implements OnModuleInit {
                                     `the collection "${translatedCollection.name}" (id: ${collection.id})`,
                             );
                             Logger.error(e.message);
+                            failures.push({ id: collection.id, error: summarizeError(e) });
                             continue;
                         }
                         job.setProgress(Math.ceil((completed / collectionIds.length) * 100));
@@ -187,6 +232,13 @@ export class CollectionService implements OnModuleInit {
                             );
                         }
                     }
+                }
+                if (failures.length) {
+                    // The other Collections were still processed, but the contents of these ones are
+                    // now out of sync with their filters and will stay that way until the job is run
+                    // again. Failing the job makes that visible, rather than reporting a successful
+                    // run which silently left stale Collection contents behind.
+                    throw new Error(summarizeCollectionFilterFailures(failures, collectionIds.length));
                 }
                 return { processedCollections: completed };
             },
@@ -264,7 +316,7 @@ export class CollectionService implements OnModuleInit {
         relations?: RelationPaths<Collection>,
     ): Promise<Translated<Collection> | undefined> {
         const translations = await this.connection.getRepository(ctx, CollectionTranslation).find({
-            relations: ['base'],
+            relations: { base: true },
             where: {
                 slug,
                 base: {
@@ -389,6 +441,41 @@ export class CollectionService implements OnModuleInit {
 
     /**
      * @description
+     * Returns a Map of collection IDs to their breadcrumb arrays. This performs a bounded
+     * number of bulk queries (one per tree level present in the batch, not one per collection),
+     * avoiding N+1 query issues when resolving breadcrumbs for multiple collections at once.
+     */
+    async getBreadcrumbsForMany(
+        ctx: RequestContext,
+        collections: Array<Translated<Collection>>,
+    ): Promise<Map<ID, Array<{ name: string; id: ID; slug: string }>>> {
+        const result = new Map<ID, Array<{ name: string; id: ID; slug: string }>>();
+        if (collections.length === 0) {
+            return result;
+        }
+        const rootCollection = await this.getRootCollection(ctx);
+        const pickProps = pick(['id', 'name', 'slug']);
+        const nonRootCollections = collections.filter(c => !idsAreEqual(c.id, rootCollection.id));
+        if (nonRootCollections.length < collections.length) {
+            result.set(rootCollection.id, [pickProps(rootCollection)]);
+        }
+        const ancestorsByCollectionId = await this.getAncestorsForMany(
+            ctx,
+            nonRootCollections.map(c => c.id),
+        );
+        for (const collection of nonRootCollections) {
+            const ancestors = ancestorsByCollectionId.get(collection.id) ?? [];
+            result.set(collection.id, [
+                pickProps(rootCollection),
+                ...ancestors.map(a => pickProps(a)).reverse(),
+                pickProps(collection),
+            ]);
+        }
+        return result;
+    }
+
+    /**
+     * @description
      * Returns all Collections which are associated with the given Product ID.
      */
     async getCollectionsByProductId(
@@ -489,13 +576,124 @@ export class CollectionService implements OnModuleInit {
             });
     }
 
+    /**
+     * @description
+     * Batched version of the ancestor-walking logic used by `getAncestors`. Rather than
+     * recursing one query per level for each collection individually, this walks the whole
+     * set of collections up the tree one level at a time, so the number of queries is bounded
+     * by the deepest collection in the set rather than by (number of collections x depth).
+     */
+    private async getAncestorsForMany(
+        ctx: RequestContext,
+        collectionIds: ID[],
+    ): Promise<Map<ID, Array<Translated<Collection>>>> {
+        const ancestorIdsByCollectionId = new Map<ID, ID[]>();
+        collectionIds.forEach(id => ancestorIdsByCollectionId.set(id, []));
+        // Tracks every id already visited on each collection's own walk up the tree, so that
+        // a multi-node cycle (e.g. A's parent is B, B's parent is A) terminates instead of
+        // looping forever - unlike a direct self-parent check, this catches cycles of any length.
+        const visitedIdsByCollectionId = new Map<ID, Set<ID>>();
+        collectionIds.forEach(id => visitedIdsByCollectionId.set(id, new Set([id])));
+
+        let frontier = new Map<ID, ID>(collectionIds.map(id => [id, id]));
+        while (frontier.size > 0) {
+            const { parentIdById, isRootById } = await this.loadParentInfoForFrontier(ctx, frontier);
+            frontier = this.advanceAncestorFrontier(
+                frontier,
+                parentIdById,
+                isRootById,
+                visitedIdsByCollectionId,
+                ancestorIdsByCollectionId,
+            );
+        }
+
+        const allAncestorIds = unique([...ancestorIdsByCollectionId.values()].flat());
+        const ancestorEntities = allAncestorIds.length
+            ? await this.connection.getRepository(ctx, Collection).find({ where: { id: In(allAncestorIds) } })
+            : [];
+        const ancestorById = new Map(ancestorEntities.map(c => [c.id, this.translator.translate(c, ctx)]));
+
+        const result = new Map<ID, Array<Translated<Collection>>>();
+        for (const [collectionId, ancestorIds] of ancestorIdsByCollectionId) {
+            result.set(
+                collectionId,
+                ancestorIds.map(id => ancestorById.get(id)).filter((c): c is Translated<Collection> => !!c),
+            );
+        }
+        return result;
+    }
+
+    /**
+     * @description
+     * Loads the parentId of every collection currently at the front of the batched ancestor
+     * walk, plus the isRoot flag of each of those parents, in two bulk queries.
+     */
+    private async loadParentInfoForFrontier(
+        ctx: RequestContext,
+        frontier: Map<ID, ID>,
+    ): Promise<{ parentIdById: Map<ID, ID>; isRootById: Map<ID, boolean> }> {
+        const idsToLoad = unique([...frontier.values()]);
+        const rows = await this.connection.getRepository(ctx, Collection).find({
+            select: { id: true, parentId: true },
+            where: { id: In(idsToLoad) },
+        });
+        const parentIdById = new Map(rows.map(r => [r.id, r.parentId] as const));
+
+        const candidateParentIds = unique([...parentIdById.values()].filter((id): id is ID => id != null));
+        const parentRows = candidateParentIds.length
+            ? await this.connection.getRepository(ctx, Collection).find({
+                  select: { id: true, isRoot: true },
+                  where: { id: In(candidateParentIds) },
+              })
+            : [];
+        const isRootById = new Map(parentRows.map(r => [r.id, r.isRoot]));
+        return { parentIdById, isRootById };
+    }
+
+    /**
+     * @description
+     * Advances the batched ancestor walk by one tree level, returning the next frontier
+     * (collection id -> its next-to-load ancestor id). A collection drops out of the frontier
+     * once its parent is null, is the root, or has already been visited on that collection's
+     * own walk (an ancestor cycle).
+     */
+    private advanceAncestorFrontier(
+        frontier: Map<ID, ID>,
+        parentIdById: Map<ID, ID>,
+        isRootById: Map<ID, boolean>,
+        visitedIdsByCollectionId: Map<ID, Set<ID>>,
+        ancestorIdsByCollectionId: Map<ID, ID[]>,
+    ): Map<ID, ID> {
+        const nextFrontier = new Map<ID, ID>();
+        for (const [collectionId, currentId] of frontier) {
+            const parentId = parentIdById.get(currentId);
+            if (parentId == null) {
+                continue;
+            }
+            const visited = visitedIdsByCollectionId.get(collectionId)!;
+            if (visited.has(parentId)) {
+                Logger.error(
+                    `Circular reference detected in Collection tree: Collection ${collectionId} has an ancestor cycle`,
+                );
+                continue;
+            }
+            if (isRootById.get(parentId)) {
+                continue;
+            }
+            visited.add(parentId);
+            ancestorIdsByCollectionId.get(collectionId)!.push(parentId);
+            nextFrontier.set(collectionId, parentId);
+        }
+        return nextFrontier;
+    }
+
     async previewCollectionVariants(
         ctx: RequestContext,
         input: PreviewCollectionVariantsInput,
         options?: ListQueryOptions<ProductVariant>,
         relations?: RelationPaths<Collection>,
     ): Promise<PaginatedList<ProductVariant>> {
-        const applicableFilters = this.getCollectionFiltersFromInput(input);
+        const applicableFilters = this.getCollectionFiltersFromInput(input, [], true);
         if (input.parentId && input.inheritFilters) {
             const parentFilters = (await this.findOne(ctx, input.parentId, []))?.filters ?? [];
             const ancestorFilters = await this.getAncestors(input.parentId).then(ancestors =>
@@ -562,8 +760,12 @@ export class CollectionService implements OnModuleInit {
     }
 
     async update(ctx: RequestContext, input: UpdateCollectionInput): Promise<Translated<Collection>> {
-        // Ensure the entity belongs to the active channel before updating.
-        await this.connection.getEntityOrThrow(ctx, Collection, input.id, { channelId: ctx.channelId });
+        // Ensure the entity belongs to the active channel before updating. The loaded entity also
+        // provides the previously-stored (encrypted) filter values, needed to preserve `secret`
+        // filter args that were not re-entered by the caller.
+        const existing = await this.connection.getEntityOrThrow(ctx, Collection, input.id, {
+            channelId: ctx.channelId,
+        });
         await this.slugValidator.validateSlugs(ctx, input, CollectionTranslation);
         const collection = await this.translatableSaver.update({
             ctx,
@@ -572,7 +774,7 @@ export class CollectionService implements OnModuleInit {
             translationType: CollectionTranslation,
             beforeSave: async coll => {
                 if (input.filters) {
-                    coll.filters = this.getCollectionFiltersFromInput(input);
+                    coll.filters = this.getCollectionFiltersFromInput(input, existing.filters);
                 }
                 await this.assetService.updateFeaturedAsset(ctx, coll, input);
                 await this.assetService.updateEntityAssets(ctx, coll, input);
@@ -599,16 +801,17 @@ export class CollectionService implements OnModuleInit {
         const deletedCollection = new Collection(collection);
         const descendants = await this.getDescendants(ctx, collection.id);
         for (const coll of [...descendants.reverse(), collection]) {
-            const affectedVariantIds = await this.getCollectionProductVariantIds(coll);
+            const affectedVariantIds = await this.getCollectionProductVariantIds(coll, ctx);
             const deletedColl = new Collection(coll);
             // To avoid performance issues on huge collections, we first delete the links
             // between the product variants and the collection by chunks
             const chunkedDeleteIds = this.chunkArray(affectedVariantIds, 500);
             for (const chunkedDeleteId of chunkedDeleteIds) {
-                await this.connection.rawConnection
+                await this.connection
+                    .getRepository(ctx, Collection)
                     .createQueryBuilder()
                     .relation(Collection, 'productVariants')
-                    .of(collection)
+                    .of(coll)
                     .remove(chunkedDeleteId);
             }
             await this.connection.getRepository(ctx, Collection).remove(coll);
@@ -754,14 +957,19 @@ export class CollectionService implements OnModuleInit {
 
     private getCollectionFiltersFromInput(
         input: CreateCollectionInput | UpdateCollectionInput | PreviewCollectionVariantsInput,
+        previous: ConfigurableOperation[] = [],
+        forExecution = false,
     ): ConfigurableOperation[] {
-        const filters: ConfigurableOperation[] = [];
-        if (input.filters) {
-            for (const filterInput of input.filters) {
-                filters.push(this.configArgService.parseInput('CollectionFilter', filterInput));
-            }
+        if (!input.filters) {
+            return [];
         }
-        return filters;
+        // A preview runs the filters immediately and never persists them, so it must not go through
+        // the secret encryption/preservation machinery (which would reject a resubmitted placeholder).
+        return forExecution
+            ? input.filters.map(filterInput =>
+                  this.configArgService.parseInputForExecution('CollectionFilter', filterInput),
+              )
+            : this.configArgService.parseInputList('CollectionFilter', input.filters, previous);
     }
 
     private chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
@@ -791,6 +999,8 @@ export class CollectionService implements OnModuleInit {
             .getRepository(ProductVariant)
             .createQueryBuilder('productVariant')
             .select('productVariant.id', 'id')
+            // Guards against duplicate ids from any filter that joins a to-many relation.
+            .distinct(true)
             .setFindOptions({ loadEagerRelations: false });
 
         // If there are no filters, we need to ensure that the query returns no results
@@ -850,32 +1060,51 @@ export class CollectionService implements OnModuleInit {
             removeQb.getRawMany().then(results => results.map(result => result.id)),
         ]);
 
-        try {
-            await this.connection.rawConnection.transaction(async transactionalEntityManager => {
-                const chunkedDeleteIds = this.chunkArray(toRemoveIds, 5000);
-                const chunkedAddIds = this.chunkArray(toAddIds, 5000);
-                await Promise.all([
-                    // Delete variants that should no longer be in the collection
-                    ...chunkedDeleteIds.map(chunk =>
+        const junction = this.getProductVariantJunction();
+
+        // A failure here must not be swallowed: the caller treats the returned ids as variants
+        // whose membership has been written, and goes on to reindex them and publish events for
+        // them. Reporting success for a write which did not happen leaves the Collection contents
+        // permanently out of sync with the search index and the storefront.
+        await this.connection.rawConnection.transaction(async transactionalEntityManager => {
+            const chunkedDeleteIds = this.chunkArray(toRemoveIds, 5000);
+            const chunkedAddIds = this.chunkArray(toAddIds, 5000);
+            await Promise.all([
+                // Delete variants that should no longer be in the collection
+                ...chunkedDeleteIds.map(chunk =>
+                    transactionalEntityManager
+                        .createQueryBuilder()
+                        .relation(Collection, 'productVariants')
+                        .of(collection)
+                        .remove(chunk),
+                ),
+                // Add the variants that should be in the collection. `toAddIds` was computed from a
+                // snapshot taken before this transaction, so a concurrent run of this method for
+                // the same Collection may have inserted some of these rows in the meantime. Rows
+                // which are already there are ignored rather than failing on a duplicate key.
+                ...chunkedAddIds.map(chunk =>
+                    this.ignoreExistingRows(
                         transactionalEntityManager
                             .createQueryBuilder()
-                            .relation(Collection, 'productVariants')
-                            .of(collection)
-                            .remove(chunk),
-                    ),
-                    // Adding options that should be in the collection
-                    ...chunkedAddIds.map(chunk =>
-                        transactionalEntityManager
-                            .createQueryBuilder()
-                            .relation(Collection, 'productVariants')
-                            .of(collection)
-                            .add(chunk),
-                    ),
-                ]);
-            });
-        } catch (e: any) {
-            Logger.error(e);
-        }
+                            .insert()
+                            // The junction table has no entity metadata, so without an explicit
+                            // column list a multi-row insert would fall back on the physical column
+                            // order of the table.
+                            .into(junction.tableName, [
+                                junction.collectionIdColumn,
+                                junction.productVariantIdColumn,
+                            ])
+                            .values(
+                                chunk.map(id => ({
+                                    [junction.collectionIdColumn]: collection.id,
+                                    [junction.productVariantIdColumn]: id,
+                                })),
+                            ),
+                        junction,
+                    ).execute(),
+                ),
+            ]);
+        });
 
         if (applyToChangedVariantsOnly) {
             return [...toAddIds, ...toRemoveIds];
@@ -885,6 +1114,59 @@ export class CollectionService implements OnModuleInit {
             ...(await existingVariantsQb.getRawMany().then(results => results.map(result => result.id))),
             ...toRemoveIds,
         ];
+    }
+
+    /**
+     * Returns the table and column names of the junction table which holds the
+     * Collection <-> ProductVariant relation.
+     */
+    private getProductVariantJunction(): CollectionProductVariantJunction {
+        if (!this.productVariantJunction) {
+            const junction = this.connection.rawConnection
+                .getMetadata(Collection)
+                .findRelationWithPropertyPath('productVariants')?.junctionEntityMetadata;
+            if (!junction) {
+                throw new InternalServerError(
+                    'Could not resolve the junction table of the Collection.productVariants relation',
+                );
+            }
+            this.productVariantJunction = {
+                tableName: junction.tableName,
+                collectionIdColumn: junction.ownerColumns[0].databaseName,
+                productVariantIdColumn: junction.inverseColumns[0].databaseName,
+            };
+        }
+        return this.productVariantJunction;
+    }
+
+    /**
+     * Makes an insert into the Collection <-> ProductVariant junction table tolerant of rows which
+     * are already there.
+     *
+     * The clause is chosen from the driver's `supportedUpsertTypes` rather than from its name, so
+     * that any driver which supports one of these forms gets it:
+     *
+     * - `on-conflict-do-update` (postgres, cockroach, the sqlite family): `ON CONFLICT DO NOTHING`.
+     * - `on-duplicate-key-update` (mysql, mariadb): a no-op `ON DUPLICATE KEY UPDATE`. TypeORM's
+     *   `orIgnore()` compiles to `INSERT IGNORE` there, which also downgrades unrelated errors such
+     *   as foreign key violations to warnings, so only duplicates are tolerated here instead.
+     * - anything else (mssql, oracle, sap, spanner): the insert is left alone. TypeORM would
+     *   compile a conflict clause on those drivers to `MERGE INTO`, which needs the target table's
+     *   entity metadata — the junction table has none — so the plain insert used before this change
+     *   is kept.
+     */
+    private ignoreExistingRows(
+        qb: InsertQueryBuilder<ObjectLiteral>,
+        junction: CollectionProductVariantJunction,
+    ): InsertQueryBuilder<ObjectLiteral> {
+        const supportedUpsertTypes = this.connection.rawConnection.driver.supportedUpsertTypes;
+        if (supportedUpsertTypes.includes('on-conflict-do-update')) {
+            return qb.orIgnore();
+        }
+        if (supportedUpsertTypes.includes('on-duplicate-key-update')) {
+            return qb.orUpdate([junction.collectionIdColumn]);
+        }
+        return qb;
     }
 
     /**
@@ -964,13 +1246,19 @@ export class CollectionService implements OnModuleInit {
             return cachedRoot;
         }
 
+        // A single root Collection is shared by all Channels and belongs to the default Channel,
+        // so it must not be looked up (or created) in the Channel of the current request.
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
         const existingRoot = await this.connection
             .getRepository(ctx, Collection)
             .createQueryBuilder('collection')
             .leftJoin('collection.channels', 'channel')
             .leftJoinAndSelect('collection.translations', 'translation')
             .where('collection.isRoot = :isRoot', { isRoot: true })
-            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
+            .andWhere('channel.id = :channelId', { channelId: defaultChannel.id })
+            // Stray roots created before #5584 may also be assigned to the default Channel.
+            // The original root is the oldest, and without an order the database may return either.
+            .orderBy('collection.id', 'ASC')
             .getOne();
 
         if (existingRoot) {
@@ -995,7 +1283,7 @@ export class CollectionService implements OnModuleInit {
                 isRoot: true,
                 position: 0,
                 translations: [rootTranslation],
-                channels: [ctx.channel],
+                channels: [defaultChannel],
                 filters: [],
             }),
         );
