@@ -280,11 +280,13 @@ function mountGeneratedTable(pageId: string, cell: () => ReactNode) {
     const render = () =>
         act(() =>
             root.render(
-                <PageContext.Provider value={{ pageId }}>
-                    <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
-                        <Table />
-                    </PageBlockContext.Provider>
-                </PageContext.Provider>,
+                <I18nProvider i18n={i18n}>
+                    <PageContext.Provider value={{ pageId }}>
+                        <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
+                            <Table />
+                        </PageBlockContext.Provider>
+                    </PageContext.Provider>
+                </I18nProvider>,
             ),
         );
     return { container, render, unmount: () => act(() => root.unmount()) };
