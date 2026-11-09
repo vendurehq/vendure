@@ -1,0 +1,159 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.loginRateLimit = loginRateLimit;
+/**
+ * 登录失败限速（Phase1，进程内计数）
+ *
+ * 背景：Vendure 的 login/authenticate 是 GraphQL mutation，网关层无法按路径区分，
+ * 因此在 API 中间件内按「IP + 账号」统计失败次数：15 分钟内连续失败 5 次后锁定 15 分钟。
+ * 仅统计 INVALID_CREDENTIALS_ERROR（账号密码错误），验证码/未验证等其他错误不计数。
+ * 代价：计数保存在单进程内存中，pm2 fork 单实例下有效；后续切 cluster 需改为 Redis。
+ */
+const WINDOW_MS = 15 * 60 * 1000;
+const MAX_FAILURES = 5;
+const attempts = new Map();
+const LOGIN_MUTATION_RE = /\b(login|authenticate)\s*\(/i;
+function resolveIp(req) {
+    return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+function resolveIdentifier(query, body) {
+    const variables = body?.variables ?? {};
+    // 1. 从 GraphQL 原文里取 login/authenticate 的 username 参数（字面量或 $变量）
+    const argMatch = /(?:username|identifier|emailAddress|phoneNumber)\s*:\s*(?:"([^"]*)"|\$(\w+))/i.exec(query);
+    if (argMatch) {
+        const value = argMatch[1] !== undefined ? argMatch[1] : variables?.[argMatch[2]];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+            return String(value).trim().toLowerCase();
+        }
+    }
+    // 2. 变量名恰好是常见账号字段
+    let value = variables.username ?? variables.identifier ?? variables.emailAddress ?? variables.phoneNumber;
+    // 3. authenticate(input: { native: { username } }) 结构：取第一个认证方式里的账号
+    if (!value && variables.input && typeof variables.input === 'object') {
+        const first = Object.values(variables.input)[0];
+        value = first?.username ?? first?.identifier ?? first?.emailAddress ?? first?.phoneNumber;
+    }
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return normalized || 'anonymous';
+}
+function buildKey(req, query, body) {
+    return `${resolveIp(req)}|${resolveIdentifier(query, body)}`;
+}
+function inspectLoginResult(payload) {
+    let parsed = payload;
+    if (typeof parsed === 'string') {
+        try {
+            parsed = JSON.parse(parsed);
+        }
+        catch {
+            return 'unknown';
+        }
+    }
+    const login = parsed?.data?.login;
+    if (login && typeof login === 'object') {
+        const errorCode = login.errorCode;
+        if (typeof errorCode === 'string') {
+            return errorCode === 'INVALID_CREDENTIALS_ERROR' ? 'failure' : 'unknown';
+        }
+        return 'success';
+    }
+    const errors = parsed?.errors;
+    if (Array.isArray(errors) && errors.length) {
+        const first = errors[0];
+        const code = first?.extensions?.code;
+        const message = String(first?.message ?? '');
+        if (code === 'INVALID_CREDENTIALS' || /invalid credentials|用户名或密码/i.test(message)) {
+            return 'failure';
+        }
+    }
+    return 'unknown';
+}
+function recordFailure(key) {
+    const now = Date.now();
+    let record = attempts.get(key);
+    if (!record || now - record.windowStart > WINDOW_MS) {
+        record = { failures: 0, windowStart: now, blockedUntil: 0 };
+    }
+    record.failures += 1;
+    if (record.failures >= MAX_FAILURES) {
+        record.blockedUntil = now + WINDOW_MS;
+    }
+    attempts.set(key, record);
+}
+function pruneExpired(now) {
+    if (attempts.size < 1000) {
+        return;
+    }
+    for (const [key, record] of attempts) {
+        if (record.blockedUntil > now) {
+            continue;
+        }
+        if (now - record.windowStart > WINDOW_MS) {
+            attempts.delete(key);
+        }
+    }
+}
+function sendRateLimited(res, remainingMs) {
+    const minutes = Math.max(1, Math.ceil(remainingMs / 60000));
+    res.status(200).json({
+        data: null,
+        errors: [
+            {
+                message: `登录尝试过于频繁，请 ${minutes} 分钟后再试`,
+                extensions: {
+                    code: 'LOGIN_RATE_LIMITED',
+                    retryAfterSeconds: Math.max(1, Math.ceil(remainingMs / 1000)),
+                },
+            },
+        ],
+    });
+}
+function loginRateLimit(req, res, next) {
+    if (req.method !== 'POST') {
+        return next();
+    }
+    const body = req.body;
+    const query = typeof body?.query === 'string' ? body.query : '';
+    if (!LOGIN_MUTATION_RE.test(query)) {
+        return next();
+    }
+    const now = Date.now();
+    pruneExpired(now);
+    const key = buildKey(req, query, body);
+    const record = attempts.get(key);
+    if (record && record.blockedUntil > now) {
+        sendRateLimited(res, record.blockedUntil - now);
+        return;
+    }
+    // 检查 GraphQL 响应体判定成功/失败（login 返回 LoginResult union，失败时 data.login 带 errorCode）
+    let inspected = false;
+    const handleResult = (payload) => {
+        if (inspected) {
+            return;
+        }
+        inspected = true;
+        const result = inspectLoginResult(payload);
+        if (result === 'failure') {
+            recordFailure(key);
+        }
+        else if (result === 'success') {
+            attempts.delete(key);
+        }
+    };
+    const originalJson = res.json.bind(res);
+    const originalSend = res.send.bind(res);
+    const originalEnd = res.end.bind(res);
+    res.json = ((payload) => {
+        handleResult(payload);
+        return originalJson(payload);
+    });
+    res.send = ((payload) => {
+        handleResult(payload);
+        return originalSend(payload);
+    });
+    res.end = ((chunk, ...args) => {
+        handleResult(chunk);
+        return originalEnd(chunk, ...args);
+    });
+    return next();
+}

@@ -21,10 +21,13 @@ const core_1 = require("@vendure/core");
 const plugin_1 = require("@vendure/dashboard/plugin");
 const email_plugin_1 = require("@vendure/email-plugin");
 const graphiql_plugin_1 = require("@vendure/graphiql-plugin");
+const harden_plugin_1 = require("@vendure/harden-plugin");
 const telemetry_plugin_1 = require("@vendure/telemetry-plugin");
 require("dotenv/config");
 const path_1 = __importDefault(require("path"));
 const cjk_plugin_1 = require("@vendure/cjk-plugin");
+const graphql_depth_limit_1 = require("./graphql-depth-limit");
+const login_rate_limit_1 = require("./login-rate-limit");
 // 注意：ReviewsPlugin/FloorBuilderPlugin/NavModifierPlugin 为开发演示插件，
 // 改为惰性 require（见 devOnlyPlugins），避免生产模式静态 require 缺失的 test-plugins 产物。
 const alipay_plugin_1 = require("@vendure/alipay-plugin");
@@ -58,6 +61,10 @@ const points_mall_plugin_1 = require("@vendure/points-mall-plugin");
 const review_plugin_1 = require("@vendure/review-plugin");
 const wechat_subscribe_message_plugin_1 = require("@vendure/wechat-subscribe-message-plugin");
 const coupon_plugin_1 = require("@vendure/coupon-plugin");
+const voucher_plugin_1 = require("@vendure/voucher-plugin");
+const subscription_plugin_1 = require("@vendure/subscription-plugin");
+const merchant_plugin_1 = require("@vendure/merchant-plugin");
+const bill_pay_plugin_1 = require("@vendure/bill-pay-plugin");
 const campus_delivery_plugin_1 = require("@vendure/campus-delivery-plugin");
 const campus_jianghu_plugin_1 = require("@vendure/campus-jianghu-plugin");
 const delivery_plugin_1 = require("@vendure/delivery-plugin");
@@ -69,6 +76,7 @@ const inventory_plugin_1 = require("@vendure/inventory-plugin");
 const message_plugin_1 = require("@vendure/message-plugin");
 const notification_plugin_1 = require("@vendure/notification-plugin");
 const operations_plugin_1 = require("@vendure/operations-plugin");
+const onebridge_plugin_1 = require("@vendure/onebridge-plugin");
 const pre_sale_plugin_1 = require("@vendure/pre-sale-plugin");
 const payment_schedule_plugin_1 = require("@vendure/payment-schedule-plugin");
 const installment_plugin_1 = require("@vendure/installment-plugin");
@@ -101,6 +109,19 @@ const devOnlyPlugins = IS_PROD
 // 统一解析 dev-server 目录：dev 模式 __dirname=packages/dev-server，prod 模式 __dirname=packages/dev-server/dist
 const devServerDir = path_1.default.basename(__dirname) === 'dist' ? path_1.default.dirname(__dirname) : __dirname;
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
+// 会话 Cookie 签名密钥必须由环境变量注入：缺失或过短直接拒绝启动，绝不回落到字面量
+const COOKIE_SECRET = process.env.COOKIE_SECRET;
+if (!COOKIE_SECRET || COOKIE_SECRET.length < 32) {
+    throw new Error('[config] COOKIE_SECRET 缺失或长度不足 32 字符，拒绝启动。请通过环境变量注入随机密钥（例如 openssl rand -base64 32）。');
+}
+/**
+ * 生产硬门禁：devBypass 类开关（微信/支付宝/抖音支付、短信、微信登录、SSO mock）
+ * 一律以进程模式为准，不能只靠 `.env` 里的 DEV_BYPASS_* 值。
+ * 即使 .env 误留 `DEV_BYPASS_X=true`，生产（dist/ 或 NODE_ENV=production）也强制关闭。
+ */
+const IS_NODE_PROD = process.env.NODE_ENV === 'production';
+const ALLOW_DEV_BYPASS = !IS_PROD && !IS_NODE_PROD;
+const devBypassEnabled = (envName) => ALLOW_DEV_BYPASS && process.env[envName] === 'true';
 let ReadonlySettingsTestPlugin = class ReadonlySettingsTestPlugin {
     constructor(settingsStoreService, requestContextService) {
         this.settingsStoreService = settingsStoreService;
@@ -177,25 +198,114 @@ RelaxArrangingPaymentGuardPlugin = __decorate([
     })
 ], RelaxArrangingPaymentGuardPlugin);
 /**
+ * CSRF 第二道闸（第一道是 cookieOptions 的 SameSite=Lax）：
+ * —— 只对写方法（POST/PUT/PATCH/DELETE）生效，GET/HEAD/OPTIONS 直接放行。
+ * —— 判定顺序：
+ *    1) `Sec-Fetch-Site: cross-site` → 直接拒绝；
+ *    2) `Origin` 存在 → 必须等于「请求自身 Origin」或白名单中的 Origin；
+ *    3) `Origin` 缺失但有 `Referer` → 取 Referer 的 Origin 按同样规则校验；
+ *    4) Origin / Referer / Sec-Fetch-Site 全部缺失（老浏览器、curl、CLI 运维脚本、
+ *       服务端到服务端调用、Nitro 代理）→ **放行**。
+ *
+ * 退化策略（第 4 条）是有意为之：这类客户端不会自动携带跨站 Cookie，
+ * 拦截它们只会误伤运维脚本与 S2S 调用；浏览器跨站写请求的 Cookie 仍由
+ * SameSite=Lax 兜底（跨站不会携带 vshop_sid / vadmin_sid）。
+ *
+ * 拒绝时返回 HTTP 403 + GraphQL 风格错误体（extensions.code = CSRF_BLOCKED），
+ * 不是裸 500，前端/日志可直接读取原因。
+ */
+const CSRF_ALLOWED_ORIGINS = new Set((process.env.CSRF_ALLOWED_ORIGINS ??
+    'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,http://localhost:5280,http://localhost:3000')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean));
+const CSRF_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+function csrfReject(res, reason) {
+    res.status(403).json({
+        data: null,
+        errors: [
+            {
+                message: `CSRF 校验未通过：${reason}。写操作必须来自受信任的同源页面。`,
+                extensions: { code: 'CSRF_BLOCKED' },
+            },
+        ],
+    });
+}
+function parseOrigin(value) {
+    try {
+        return new URL(value).origin.toLowerCase();
+    }
+    catch {
+        return null;
+    }
+}
+function csrfCookieGuard(req, res, next) {
+    // GET / HEAD / OPTIONS 等读请求一律放行
+    if (!CSRF_WRITE_METHODS.has(req.method)) {
+        return next();
+    }
+    // 浏览器明确声明跨站 → 一律拒绝
+    const secFetchSite = String(req.headers['sec-fetch-site'] ?? '').trim().toLowerCase();
+    if (secFetchSite === 'cross-site') {
+        csrfReject(res, 'Sec-Fetch-Site 标记为 cross-site');
+        return;
+    }
+    // 请求自身的 Origin（经 nginx 反代，trustProxy=1 + X-Forwarded-Proto 还原协议）
+    const host = String(req.headers.host ?? '').trim().toLowerCase();
+    const selfOrigin = host ? `${req.protocol}://${host}`.toLowerCase() : '';
+    const isTrusted = (origin) => origin === selfOrigin || CSRF_ALLOWED_ORIGINS.has(origin);
+    const rawOrigin = String(req.headers.origin ?? '').trim();
+    // Origin: null 视为「未提供」（沙箱 iframe/重定向场景），继续走 Referer / 退化策略
+    if (rawOrigin && rawOrigin.toLowerCase() !== 'null') {
+        const origin = parseOrigin(rawOrigin);
+        if (!origin || !isTrusted(origin)) {
+            csrfReject(res, `Origin ${rawOrigin} 不在允许列表内`);
+            return;
+        }
+        return next();
+    }
+    const rawReferer = String(req.headers.referer ?? '').trim();
+    if (rawReferer) {
+        const origin = parseOrigin(rawReferer);
+        if (!origin || !isTrusted(origin)) {
+            csrfReject(res, `Referer ${rawReferer} 不在允许列表内`);
+            return;
+        }
+        return next();
+    }
+    // 退化策略：无 Origin / Referer / Sec-Fetch-Site 的非浏览器调用放行
+    next();
+}
+/**
  * Config settings used during development
  */
 exports.devConfig = {
     apiOptions: {
         port: Number(process.env.API_PORT) || shared_constants_1.API_PORT,
         adminApiPath: shared_constants_1.ADMIN_API_PATH,
-        adminApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
+        // 生产关闭 Playground 与调试信息（避免暴露 schema/内部错误栈）
+        adminApiPlayground: IS_PROD
+            ? false
+            : {
+                settings: {
+                    'request.credentials': 'include',
+                },
             },
-        },
-        adminApiDebug: true,
+        adminApiDebug: !IS_PROD,
         shopApiPath: shared_constants_1.SHOP_API_PATH,
-        shopApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
+        shopApiPlayground: IS_PROD
+            ? false
+            : {
+                settings: {
+                    'request.credentials': 'include',
+                },
             },
-        },
-        shopApiDebug: true,
+        shopApiDebug: !IS_PROD,
+        // 位于 nginx 之后，信任第一层代理以获取真实客户端 IP（登录限速按 IP+账号）
+        trustProxy: 1,
+        // GraphQL 查询深度上限（防深嵌套拖垮服务；复杂度上限由 HardenPlugin 负责）
+        adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
+        shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
         middleware: [
             {
                 handler: (req, res, next) => {
@@ -228,15 +338,52 @@ exports.devConfig = {
                 },
                 route: '/admin-api',
             },
+            // 登录/认证失败限速（IP + 账号，5 次失败/15 分钟，进程内计数）
+            {
+                handler: login_rate_limit_1.loginRateLimit,
+                route: '/shop-api',
+            },
+            {
+                handler: login_rate_limit_1.loginRateLimit,
+                route: '/admin-api',
+            },
+            // CSRF：写操作 Origin/Referer + Sec-Fetch-Site 校验（读请求与无头调用放行）
+            {
+                handler: csrfCookieGuard,
+                route: '/shop-api',
+            },
+            {
+                handler: csrfCookieGuard,
+                route: '/admin-api',
+            },
         ],
     },
     authOptions: {
         disableAuth: false,
         tokenMethod: ['bearer', 'cookie', 'api-key'],
         requireVerification: false,
-        customPermissions: [],
+        // 租户配置（支付/地图/登录方式等）专用写权限，按渠道授权，替代原先「渠道成员即可写」的判定
+        // 营销活动写权限同理：只授予本渠道内的秒杀/拼团/预售管理，不放开全站 Promotion 权限
+        customPermissions: [
+            new core_1.PermissionDefinition({
+                name: 'TenantSettingsManage',
+                description: '管理本渠道租户配置（支付/地图/登录方式等）',
+            }),
+            new core_1.PermissionDefinition({
+                name: 'TenantPromotionManage',
+                description: '管理本渠道营销活动（秒杀/拼团/预售）',
+            }),
+        ],
         cookieOptions: {
-            secret: 'abc',
+            // Admin 与 Shop 分用不同 Cookie 名，避免两端互相覆盖会话
+            name: {
+                shop: 'vshop_sid',
+                admin: 'vadmin_sid',
+            },
+            // 与 authOptions.sessionDuration 默认值 1y 对齐（不缩短现有有效期）
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+            // 会话 Cookie 签名密钥从环境变量注入，避免源码内置固定 secret 导致会话伪造
+            secret: COOKIE_SECRET,
         },
     },
     dbConnectionOptions: {
@@ -352,14 +499,17 @@ exports.devConfig = {
         Promotion: [],
     },
     schedulerOptions: {
-        // 任务只在 worker 进程执行：验收要求「停掉 worker 时预留单不被释放」以证明是真定时任务。
-        // 代价：只用 `npm run dev:server` 时不会有任何 ScheduledTask（含 OrderTimeoutPlugin 补偿扫描、
-        // 秒杀状态转换）在跑 —— 本地必须用 `npm run dev`（concurrently 同时起 server + worker），
-        // 生产必须常驻一个 worker 进程（见 Task 4.9 手册章节）。
-        runTasksInWorkerOnly: true,
+        // 生产为单进程部署（pm2 只跑 prod-start.js → dist/index，常驻 worker 进程为零），
+        // 若限制「任务只在 worker 执行」，所有 ScheduledTask 在生产永远不会运行——
+        // 2026-10-25 实证：待付款补偿扫描缺失致订单卡 ArrangingPayment 11 天，
+        // OrderTimeoutPlugin 补偿、会话清理、售后超时、秒杀/拼团状态切换同样全停。
+        // 单进程部署的官方推荐做法是在当前进程执行计划任务；本地 `npm run dev` 会
+        // server+worker 双进程各跑一次（幂等补偿无害，介意可本地临时改回 true）。
+        runTasksInWorkerOnly: false,
         tasks: [core_1.cleanSessionsTask, core_1.cleanOrphanedSettingsStoreTask],
     },
-    logger: new core_1.DefaultLogger({ level: core_1.LogLevel.Verbose }),
+    // 生产日志降到 Info（Verbose 会打印 GraphQL 查询/内部细节，且放大量级）
+    logger: new core_1.DefaultLogger({ level: IS_PROD ? core_1.LogLevel.Info : core_1.LogLevel.Verbose }),
     importExportOptions: {
         importAssetsDir: path_1.default.join(devServerDir, 'import-assets'),
     },
@@ -370,8 +520,12 @@ exports.devConfig = {
         // }),
         ReadonlySettingsTestPlugin,
         // FieldTestPlugin,
+        // 生产：复杂度上限 + 关闭 introspection/debug；GraphiQL 调试台仅非生产启用
+        // 上限 9500：临时放宽——分类/首页真实查询复杂度峰值 8788，3000 会误杀；
+        // 前端整包重建后按实测峰值回调。
+        ...(IS_PROD ? [harden_plugin_1.HardenPlugin.init({ maxQueryComplexity: 9500, apiMode: 'prod' })] : []),
         ...devOnlyPlugins,
-        graphiql_plugin_1.GraphiqlPlugin.init(),
+        ...(IS_PROD ? [] : [graphiql_plugin_1.GraphiqlPlugin.init()]),
         asset_server_plugin_1.AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path_1.default.join(devServerDir, 'assets'),
@@ -405,6 +559,8 @@ exports.devConfig = {
         plugin_1.DashboardPlugin.init({
             route: 'dashboard',
             appDir: path_1.default.join(devServerDir, './dist'),
+            // 默认 5173；本机 5173 常被其它项目占用时用 DASHBOARD_VITE_PORT 指定 dashboard dev server 端口
+            viteDevServerPort: Number(process.env.DASHBOARD_VITE_PORT || 5173),
         }),
         cjk_plugin_1.CjkPlugin.init({
             i18n: { enabled: true },
@@ -424,10 +580,11 @@ exports.devConfig = {
         // 保持位于设置 orderItemPriceCalculationStrategy 的插件/配置之后（diy 价格包装器委托 original）
         diy_plugin_1.DiyPlugin.init({ app: process.env.APP ?? 'nshop' }),
         pickup_plugin_1.PickupPlugin.init({}),
-        ...((process.env.ALIPAY_NOTIFY_URL || process.env.DEV_BYPASS_ALIPAY === 'true') ? [alipay_plugin_1.AlipayPlugin.init({
+        ...((process.env.ALIPAY_NOTIFY_URL || devBypassEnabled('DEV_BYPASS_ALIPAY')) ? [alipay_plugin_1.AlipayPlugin.init({
                 notifyUrl: process.env.ALIPAY_NOTIFY_URL || '',
                 alipayPublicKey: process.env.ALIPAY_PUBLIC_KEY ?? '',
-                auth: process.env.DEV_BYPASS_ALIPAY === 'true' ? {
+                sellerId: process.env.ALIPAY_SELLER_ID || undefined,
+                auth: devBypassEnabled('DEV_BYPASS_ALIPAY') ? {
                     devBypass: true,
                     devBypassOpenid: 'dev_test_openid',
                 } : undefined,
@@ -437,7 +594,7 @@ exports.devConfig = {
         // CS-/RC- 结算器注册失败、微信支付入口全部不可用。env 仅保留 devBypass 与 notifyUrl 兜底。
         wechatpay_plugin_1.WechatpayPlugin.init({
             notifyUrl: process.env.WECHATPAY_NOTIFY_URL || '',
-            devBypass: process.env.DEV_BYPASS_WECHATPAY === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_WECHATPAY'),
             devBypassOpenid: 'dev_test_openid',
             // 分端分支付方案：额外注册的支付方法 code（handler 同 wechatpay）
             extraHandlerCodes: (process.env.WECHATPAY_EXTRA_HANDLER_CODES || '')
@@ -461,25 +618,25 @@ exports.devConfig = {
             accessKeySecret: process.env.SMS_ACCESS_KEY_SECRET ?? '',
             signName: process.env.SMS_SIGN_NAME ?? '',
             templateCode: process.env.SMS_TEMPLATE_CODE ?? '',
-            devBypass: process.env.DEV_BYPASS_SMS === 'true',
+            devBypass: devBypassEnabled('DEV_BYPASS_SMS'),
             devBypassCode: '123456',
             // 可选：配置后验证码/限流状态存 Redis（多实例部署共享），未配置走进程内存
             redisUrl: process.env.PHONE_AUTH_REDIS_URL || undefined,
         }),
-        ...((process.env.WECHAT_AUTH_APP_ID || process.env.DEV_BYPASS_WECHAT === 'true') ? [wechat_auth_plugin_1.WechatAuthPlugin.init({
+        ...((process.env.WECHAT_AUTH_APP_ID || devBypassEnabled('DEV_BYPASS_WECHAT')) ? [wechat_auth_plugin_1.WechatAuthPlugin.init({
                 appId: process.env.WECHAT_AUTH_APP_ID || 'dev_test_app_id',
                 appSecret: process.env.WECHAT_AUTH_APP_SECRET || 'dev_test_app_secret',
                 miniProgramAppId: process.env.WECHAT_AUTH_MINI_APP_ID || '',
                 miniProgramAppSecret: process.env.WECHAT_AUTH_MINI_APP_SECRET || '',
                 token: process.env.WECHAT_MESSAGE_TOKEN || '',
                 encodingAESKey: process.env.WECHAT_MESSAGE_AES_KEY || '',
-                devBypass: process.env.DEV_BYPASS_WECHAT === 'true',
+                devBypass: devBypassEnabled('DEV_BYPASS_WECHAT'),
                 devBypassOpenid: 'dev_test_openid',
             })] : []),
-        ...((process.env.DOUYIN_AUTH_APP_ID || process.env.DEV_BYPASS_DOUYIN === 'true') ? [douyin_auth_plugin_1.DouyinAuthPlugin.init({
+        ...((process.env.DOUYIN_AUTH_APP_ID || devBypassEnabled('DEV_BYPASS_DOUYIN')) ? [douyin_auth_plugin_1.DouyinAuthPlugin.init({
                 appId: process.env.DOUYIN_AUTH_APP_ID || 'dev_test_app_id',
                 appSecret: process.env.DOUYIN_AUTH_APP_SECRET || 'dev_test_app_secret',
-                devBypass: process.env.DEV_BYPASS_DOUYIN === 'true',
+                devBypass: devBypassEnabled('DEV_BYPASS_DOUYIN'),
                 devBypassOpenid: 'dev_test_openid',
             })] : []),
         order_timeout_plugin_1.OrderTimeoutPlugin.init({ defaultPaymentTimeoutMinutes: 30 }),
@@ -496,7 +653,7 @@ exports.devConfig = {
         tcm_clinic_plugin_1.TcmClinicPlugin.init({
             sso: {
                 baseUrl: process.env.ZHAO_SSO_BASE_URL || '',
-                mock: process.env.SSO_MOCK === 'true',
+                mock: devBypassEnabled('SSO_MOCK'),
             },
         }),
         eco_plugin_1.EcoPlugin.init(),
@@ -515,7 +672,9 @@ exports.devConfig = {
             afterSalesAutoApproveHours: 48, // Pending 48h 未审自动同意并退款
             afterSalesRefundAutoRetry: 1, // 退款失败自动重试 1 次
             allowedOrderStates: ['PaymentSettled', 'Delivered'], // 外卖单全程 PaymentSettled，确认收货后 Delivered
-            requireOrderCustomField: { field: 'deliveryStatus', value: 'delivered' }, // 仅骑手送达后可售后
+            // 送达门槛（外卖/骑手场景）：仅当订单有配送档案（deliveryStatus 有值）时要求已送达才可售后，
+            // 防骑手单未送达双退款；普通快递/自提单无配送档案自动放行，走 maxDays+15 天窗口
+            requireOrderCustomField: { field: 'deliveryStatus', value: 'delivered' },
         }),
         member_level_plugin_1.MemberLevelPlugin.init(),
         // 门店收银 POS：会员价依赖 MemberLevelPlugin；离线同步插件内部复用 VcashPosPlugin（同库/同渠道）
@@ -532,6 +691,11 @@ exports.devConfig = {
         favorite_plugin_1.FavoritePlugin.init(),
         wechat_subscribe_message_plugin_1.WechatSubscribeMessagePlugin.init(),
         coupon_plugin_1.CouponPlugin.init(),
+        // 服务型商品券包：支付成功自动发券 + C 端 myVouchers（首次上线，启动幂等建表）
+        voucher_plugin_1.VoucherPlugin.init({}),
+        merchant_plugin_1.MerchantPlugin.init(),
+        // t3 代买单（委托单模式）：BP- 微信回调结算 / bill_pay_* 独立表，纯增量不触碰既有业务
+        bill_pay_plugin_1.BillPayPlugin.init(),
         live_streaming_plugin_1.LiveStreamingPlugin.init({
             pushDomain: process.env.LIVE_PUSH_DOMAIN || 'rtmp://push.test.com/live/',
             playDomain: process.env.LIVE_PLAY_DOMAIN || 'https://play.test.com/live/',
@@ -562,25 +726,46 @@ exports.devConfig = {
         }),
         // 同城配送抽象网关：Provider 注册表 + Mock 配送商，必须在 LogisticsPlugin 之后注册（Task5）
         delivery_gateway_plugin_1.DeliveryGatewayPlugin.init({
-            // 达达凭据：默认占位（dev 骨架），生产用环境变量注入；凭据不落 git。
-            // 配置了 DADA_APP_KEY 即注册 DadaProvider；否则回退 mock provider。
-            dada: {
-                appKey: process.env.DADA_APP_KEY || 'dev-dada-app-key',
-                appSecret: process.env.DADA_APP_SECRET || 'dev-dada-app-secret',
-                shopNo: process.env.DADA_SHOP_NO || 'dev-dada-shop-no',
-                sourceId: process.env.DADA_SOURCE_ID || 'dev-dada-source',
-                environment: process.env.DADA_ENV || 'sandbox',
-                callbackUrl: process.env.DADA_CALLBACK_URL || 'http://127.0.0.1:3000/delivery-gateway/dada/webhook',
-            },
+            // 外部快递凭据一律走环境变量，不落 git、不用占位值：
+            // 缺凭据时不注册对应 Provider（运营选派单会明确报「未注册的配送商」，而不是拿假 key 请求平台）。
+            ...(process.env.DADA_APP_KEY && process.env.DADA_APP_SECRET
+                ? {
+                    dada: {
+                        appKey: process.env.DADA_APP_KEY,
+                        appSecret: process.env.DADA_APP_SECRET,
+                        shopNo: process.env.DADA_SHOP_NO || '',
+                        sourceId: process.env.DADA_SOURCE_ID || undefined,
+                        environment: process.env.DADA_ENV || 'sandbox',
+                        callbackUrl: process.env.DADA_CALLBACK_URL || '',
+                    },
+                }
+                : {}),
+            ...(process.env.MEITUAN_APP_KEY && process.env.MEITUAN_APP_SECRET && process.env.MEITUAN_SHOP_ID
+                ? {
+                    meituan: {
+                        appKey: process.env.MEITUAN_APP_KEY,
+                        appSecret: process.env.MEITUAN_APP_SECRET,
+                        shopId: process.env.MEITUAN_SHOP_ID,
+                        signMode: process.env.MEITUAN_SIGN_MODE === 'open' ? 'open' : 'legacy',
+                        baseUrl: process.env.MEITUAN_BASE_URL || undefined,
+                        callbackUrl: process.env.MEITUAN_CALLBACK_URL || '',
+                        defaultCourierPhone: process.env.MEITUAN_COURIER_PHONE || undefined,
+                    },
+                }
+                : {}),
         }),
         customer_service_plugin_1.CustomerServicePlugin.init(),
         inventory_plugin_1.InventoryPlugin.init(),
         operations_plugin_1.OperationsPlugin.init(),
+        // ONE BRIDGE 跨境频道：实体/迁移/customFields/权限，增量注册，不影响既有租户
+        onebridge_plugin_1.OnebridgePlugin.init({}),
         message_plugin_1.MessagePlugin.init(),
         notification_plugin_1.NotificationPlugin.init(),
         // 预售/定金预售：两阶段支付（定金→尾款）+ 全款预售 + 分档定价 + 到货释放库存
         pre_sale_plugin_1.PreSalePlugin.init({}),
         payment_schedule_plugin_1.PaymentSchedulePlugin.init({}),
+        // 周期购订阅：套餐/订阅/期次 + 每日调度（首次上线，启动幂等建表）
+        subscription_plugin_1.SubscriptionPlugin.init({}),
         installment_plugin_1.InstallmentPlugin.init({}),
         rental_plugin_1.RentalPlugin.init({}),
         // MeiliSearch 统一知识库：商品域直推 kb-zh/kb-en（索引前缀 kb，语言拆索引）。
@@ -621,7 +806,10 @@ function getDbConfig() {
         case 'postgres':
             console.log('Using postgres connection');
             return {
-                synchronize: true,
+                // 线上库长期自动同步后 order 表累计 1400+ 个已删列（attnum 逼近 1600 上限），
+                // 再同步会报 "tables can have at most 1600 columns" 导致启动失败；
+                // 可用 DB_SYNC=0 关闭自动同步（表结构已就绪时安全），新字段改走 migration。
+                synchronize: process.env.DB_SYNC !== '0',
                 type: 'postgres',
                 host: process.env.DB_HOST || 'localhost',
                 port: Number(process.env.DB_PORT) || 5432,

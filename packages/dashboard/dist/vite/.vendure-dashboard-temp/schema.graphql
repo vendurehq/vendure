@@ -157,7 +157,7 @@ type Query {
   """预订单列表（filter 可选，id 倒序，上限 200）"""
   hotelBookings(filter: HotelBookingFilterInput): [HotelBooking!]!
   permissionCatalog: [PermissionCatalogGroup!]
-  tenants(options: ChannelListOptions = null): ChannelList!
+  tenants(options: TenantListOptions): TenantList!
   tenant(id: ID!): Channel
   tenantSlots: TenantSlots!
   tenantAdministrators(channelId: ID!): [TenantMember!]!
@@ -238,9 +238,6 @@ type Query {
   diyPlans(app: String, status: String, skip: Int, take: Int): DiyPlanList!
   myPickupOrders(options: PickupListOptions): PickupRedemptionList!
   pickupRedemptions(options: PickupListOptions): PickupRedemptionList!
-  wechatCurrentMenu: JSON
-  wechatFans(nextOpenid: String): JSON
-  wechatTemplates: JSON
   invoices(options: InvoiceListOptions): InvoiceList!
   invoice(id: ID!): Invoice
   exportInvoicesCsv(options: InvoiceListOptions): String!
@@ -308,9 +305,14 @@ type Query {
   pointsProductsAdmin(options: PointsProductAdminListOptions): PointsProductAdminList!
   pointsOrdersAdmin(options: PointsOrderAdminListOptions): PointsOrderAdminList!
   reviews(options: ReviewListOptions): ReviewList!
+  reviewAppeals(options: ReviewListOptions = null): ReviewList!
   review(id: ID!): Review
   reviewStats(productId: ID!): ReviewStats!
   productRating(productId: ID!): ProductRating!
+  reviewAlertRule: ReviewAlertRule!
+  reviewAlerts(options: ReviewAlertListOptions): ReviewAlertList!
+  reviewAlert(id: ID!): ReviewAlert
+  reviewAlertStats: ReviewAlertStats!
   subscribeMessageLogs(options: SubscribeMessageLogListOptions): SubscribeMessageLogList!
   couponTemplates(options: CouponTemplateListOptions): CouponTemplateList!
   couponTemplate(id: ID!): CouponTemplate
@@ -327,6 +329,31 @@ type Query {
   couponBundle(id: ID!): CouponBundle
   couponSaleOrders(options: CouponSaleOrderListOptions): CouponSaleOrderList!
   couponSaleOrder(id: ID!): CouponSaleOrder
+  couponStoreBindings(templateId: ID!): [CouponStoreBinding!]!
+  couponRedemptions(templateId: ID, storeId: ID, limit: Int): [CouponRedemption!]!
+  couponRedemptionStats(templateId: ID, from: String, to: String): [CouponRedemptionStat!]!
+  couponSettlementOrders(options: CouponSettlementOrderListOptions): CouponSettlementOrderList!
+  couponSettlementOrder(id: ID!): CouponSettlementOrder
+  couponReconcileDiffs(options: CouponReconcileDiffListOptions): CouponReconcileDiffList!
+  couponSettlementSummary: CouponSettlementSummary!
+  couponSplitConfig: CouponSplitConfig!
+  studentVerifications(status: String): [StudentVerificationItem!]!
+  couponGrantBatches(take: Int): [CouponGrantBatch!]!
+  couponFissionRecords(take: Int): [CouponFissionRecord!]!
+  couponWinBackPreviewCount(days: Int!): Int!
+  scanVoucher(code: String!): ServiceVoucher
+  myVouchersAdmin: [ServiceVoucher!]!
+  voucherBookings(voucherId: ID!): [VoucherBooking!]!
+  merchants(options: MerchantListOptions): MerchantList!
+  merchant(id: ID!): Merchant
+  merchantStores(options: MerchantStoreListOptions): MerchantStoreList!
+  merchantStore(id: ID!): MerchantStore
+  merchantStoreClaims(storeId: ID!): [MerchantStoreChannel!]!
+  merchantStoreStaff(storeId: ID!): [MerchantStoreStaff!]!
+  billPayOrdersAdmin(options: BillPayOrderListOptions): BillPayOrderList!
+  billPayOrderAdmin(id: ID!): BillPayOrder!
+  billPayChannelConfig: BillPayConfig!
+  merchantAgreements: [MerchantAgreement!]!
   liveRooms(options: LiveRoomListOptions): LiveRoomList!
   liveRoom(id: ID!): LiveRoom
   myPermissions: MyPermissionsResult!
@@ -339,10 +366,194 @@ type Query {
   riderApplications(status: String!, skip: Int, take: Int): RiderApplicationList!
   campusDispatchBoard: CampusDispatchBoard!
   campusStoreConfigs: [CampusStoreConfigWithChannel!]!
+
+  """广告位报价（分/天）"""
+  campusAdSlots: [CampusAdSlot!]!
+
+  """商家侧：本渠道广告投放单"""
+  campusMerchantAds: [CampusAdCampaign!]!
+
+  """平台侧：按渠道/状态分页查投放单（skip/take，默认 20、上限 100）"""
+  campusAdCampaigns(status: String, channelId: ID, skip: Int, take: Int): CampusAdCampaignPage!
+
+  """智能取餐柜（P2-4）：本渠道站点（含停用）"""
+  campusLockerStations: [CampusLockerStation!]!
+
+  """无人配送通道（P2-4 接口占位）配置"""
+  campusUnmannedChannel: CampusUnmannedChannel!
   campusMerchantBoard: CampusMerchantBoard!
+
+  """商家自助经营：门店资料（营业时间/公告/电话/营业状态）"""
+  campusMerchantStoreProfile: MerchantStoreProfile!
+
+  """商家自助经营数据：今日/近 7 日单量、营业额、客单价、取消退款"""
+  campusMerchantRevenue: CampusMerchantRevenue!
+
+  """自定义区间逐日经营数据（§89 导出）：from/to 为 YYYY-MM-DD，含起止两日，最多 366 天"""
+  campusMerchantRevenueRange(from: String!, to: String!): [CampusMerchantRevenueDay!]!
+
+  """今日/区间已完成订单明细（§75 对账）：from/to 为空=今日 0 点至当前"""
+  campusMerchantCompletedOrders(from: String, to: String, take: Int, skip: Int): CampusMerchantCompletedOrders!
+
+  """退款记录台账（§77）：按渠道聚合退款单，Failed 单单独留痕不计数"""
+  campusMerchantRefunds(from: String, to: String, take: Int, skip: Int): CampusMerchantRefunds!
+
+  """商家侧顾客联系方式（号码保护）：开启后仅返回脱敏/虚拟号"""
+  campusMerchantCustomerContact(orderId: ID!): CampusPrivacyContact!
   riderWithdrawals(status: String, skip: Int, take: Int): [RiderWithdrawalRequest!]!
+  campusDeliveryStats(range: String): CampusDeliveryStats!
+
+  """销售侧经营 BI（P4-1）：今日/7日/30日"""
+  campusSalesStats(range: String, from: String, to: String): CampusSalesStats!
+  campusAddressChanges(status: String, orderId: ID, skip: Int, take: Int): [CampusAddressChangeRow!]!
+  campusAddressChangeStats: CampusAddressChangeStats!
+  campusAdminQuoteAddressChange(orderId: ID!, zoneId: ID!): CampusAddressChangeQuote!
+  campusDynamicPricingPreview: CampusDynamicPricingPreview!
+  campusSupportTickets(status: String, source: String, assigneeId: ID, skip: Int, take: Int): CampusSupportTicketList!
+
+  """R2 补偿任务列表（失败任务排查；status=pending/done/failed）"""
+  campusCompensationTasks(status: String, skip: Int, take: Int): CampusCompensationTaskList!
+  campusChatConversations(status: String, unreadOnly: Boolean, skip: Int, take: Int): CampusChatConversationList!
+  campusChatUnread: CampusChatUnread!
+  campusAdminChatMessages(conversationId: ID!, afterId: ID, take: Int): [CampusChatMessage!]!
+  campusRiderAppeals(status: String, skip: Int, take: Int): CampusRiderAppealList!
+  campusBlacklist(skip: Int, take: Int): CampusBlacklistList!
+  campusRiderShifts(date: String!): CampusRiderShiftList!
+  campusRiderOnlineStats(date: String): CampusRiderOnlineStatList!
+  campusRiderReviews(riderCustomerId: ID, skip: Int, take: Int): [CampusRiderReviewRow!]!
+  campusRiderRating(riderCustomerId: ID!): CampusRiderRating!
+  campusRiderEarnings(from: String, to: String, riderCustomerId: ID, status: String, orderCode: String, skip: Int, take: Int): CampusRiderEarningList!
+  campusOrderRiderTrack(orderId: ID, orderCode: String): CampusRiderTrack!
+  campusRiderTrack(riderCustomerId: ID!, from: String!, to: String!): CampusRiderTrack!
+  campusMerchantProducts(search: String, skip: Int, take: Int): CampusMerchantProductList!
+
+  """KDS 出餐屏（P1-4）：待接单/备餐中队列"""
+  campusMerchantKitchenQueue: CampusKitchenQueue!
+
+  """备餐汇总（§79）：今日待接单/备餐中/已出餐商品份数 + 加料份数"""
+  campusMerchantPrepSummary: [CampusMerchantPrepItem!]!
+
+  """营业日报（§80）：单日 KPI + 时段分布 + 商品 Top5 + 对比昨日/近 7 日均值"""
+  campusMerchantDailyReport(date: String): CampusMerchantDailyReport!
+
+  """售后申请清单（§81）：本店渠道订单的售后单，state 为空=全部"""
+  campusMerchantAfterSales(state: String, type: String, orderCode: String, keyword: String, tag: ID, assignee: String, messageKeyword: String, attention: String, minAmount: Int, maxAmount: Int, risk: String, from: String, to: String, skip: Int, take: Int): CampusMerchantAfterSalesList!
+
+  """售后工作台摘要（§88）：一次请求返回各待办入口计数"""
+  campusMerchantAfterSalesWorkbench: CampusMerchantAfterSalesWorkbench!
+
+  """售后标签列表（§88）"""
+  campusMerchantAfterSalesTags: [CampusMerchantAfterSalesTag!]!
+
+  """处理人候选（§89）：本店渠道管理员"""
+  campusMerchantAfterSalesAssignees: [CampusMerchantAfterSalesAssignee!]!
+
+  """员工处理绩效（§89）：区间内按操作人统计，区间最长一年"""
+  campusMerchantAfterSalesStaffStats(from: String!, to: String!): [CampusMerchantAfterSalesStaffRow!]!
+
+  """本店黑名单列表（§90）：仅 active 记录"""
+  campusMerchantAfterSalesBlacklist(skip: Int, take: Int): [CampusMerchantAfterSalesBlacklistEntry!]!
+
+  """处理人负载（§91）：按处理人统计未完结单"""
+  campusMerchantAfterSalesAssigneeLoad: [CampusMerchantAfterSalesAssigneeLoad!]!
+
+  """导出选中售后单 CSV（§91）：上限 500 单，kind=requests|refunds"""
+  campusMerchantAfterSalesExportByIds(ids: [ID!]!, kind: String!): String!
+
+  """售后详情（§81）：协商留言 + 状态时间线 + 退款失败留痕"""
+  campusMerchantAfterSalesDetail(id: ID!): CampusMerchantAfterSalesDetail!
+
+  """售后处理统计（§81）：待处理/超时/今日处理量/今日退款额"""
+  campusMerchantAfterSalesStats: CampusMerchantAfterSalesStats!
+
+  """售后报表（§83）：区间内量/退款/超时与逐日趋势"""
+  campusMerchantAfterSalesReport(from: String!, to: String!): CampusMerchantAfterSalesReport!
+
+  """商品维度售后统计（§92）：Top 商品售后单量/退款额/售后率"""
+  campusMerchantAfterSalesProductReport(from: String!, to: String!, limit: Int): [CampusMerchantAfterSalesProductRow!]!
+
+  """售后原因分布（§93）：区间内按原因聚合单量/退款/占比与环比"""
+  campusMerchantAfterSalesReasonReport(from: String!, to: String!, limit: Int): [CampusMerchantAfterSalesReasonRow!]!
+
+  """顾客售后档案（§93）：本店维度历史售后、退款与拉黑状态"""
+  campusMerchantAfterSalesCustomerProfile(customerId: ID!): CampusMerchantAfterSalesCustomerProfile!
+
+  """售后处理凭证（§93）：门店留存/交接用纯文本凭条"""
+  campusMerchantAfterSalesPrintSlip(id: ID!): String!
+
+  """批量打印售后凭证（§94）：上限 50 单，返回逐单凭条"""
+  campusMerchantAfterSalesPrintSlips(ids: [ID!]!): [String!]!
+
+  """退款后满意度汇总（§93）：均分/分档/低分待跟进"""
+  campusMerchantAfterSalesReviewSummary(from: String!, to: String!): CampusMerchantAfterSalesReviewSummary!
+
+  """售后寄回地址（§83）：本店渠道配置"""
+  campusMerchantAfterSalesReturnAddress: String!
+
+  """售后规则（§84）：处理时限/超时自动同意/退款自动重试"""
+  campusMerchantAfterSalesRules: CampusMerchantAfterSalesRules!
+
+  """退款流水（§84）：按退款时间倒序分页"""
+  campusMerchantAfterSalesRefunds(from: String, to: String, skip: Int, take: Int): CampusMerchantAfterSalesRefundList!
+
+  """售后自动化任务（§85）：本店超时/自动同意/退款重试任务"""
+  campusMerchantAfterSalesTasks(status: String, skip: Int, take: Int): CampusMerchantAfterSalesTaskList!
+
+  """导出售后明细/退款流水/升级工单 CSV（§85、§97）：kind=requests|refunds|escalations，可选筛选"""
+  campusMerchantAfterSalesExport(from: String!, to: String!, kind: String!, state: String, type: String, keyword: String, assigneeUserId: String): String!
+
+  """高频售后顾客 Top N（§85）：附黑名单状态"""
+  campusMerchantAfterSalesTopCustomers(from: String!, to: String!, limit: Int): [CampusMerchantAfterSalesTopCustomer!]!
+
+  """售后内部备注（§86）：仅本店可见"""
+  campusMerchantAfterSalesNotes(id: ID!): [CampusMerchantAfterSalesNote!]!
+
+  """快捷回复模板（§87、§97）：本店渠道，可按分类/关键词检索"""
+  campusMerchantAfterSalesReplyTemplates(category: String, keyword: String): [CampusMerchantAfterSalesReplyTemplate!]!
+
+  """商品维度售后分析（§98）：区间内按商品聚合售后率与退款额"""
+  campusMerchantAfterSalesProductAnalysis(from: String!, to: String!): CampusMerchantAfterSalesProductRateAnalysis!
+
+  """退货物流轨迹（§98）：运单信息 + 系统/商家节点合并时间线"""
+  campusMerchantAfterSalesReturnLogistics(id: ID!): CampusMerchantAfterSalesReturnLogistics!
+
+  """售后自动分流规则（§98）：按优先级升序"""
+  campusMerchantAfterSalesAutoRules: [CampusMerchantAfterSalesAutoRule!]!
+
+  """大额退款复核队列（§99）：默认待复核，status=Pending|Approved|Rejected"""
+  campusMerchantAfterSalesRefundReviews(status: String): [CampusMerchantAfterSalesRefundReview!]!
+
+  """智能话术推荐（§99）：按售后原因/类型匹配本店快捷回复模板"""
+  campusMerchantAfterSalesSuggestedReplies(id: ID!): [CampusMerchantAfterSalesSuggestedReply!]!
+
+  """售后操作审计检索（§100）：按时间/动作/处理人筛选"""
+  campusMerchantAfterSalesAuditLogs(from: String, to: String, action: String, actorUserId: ID, take: Int, skip: Int): [CampusMerchantAfterSalesAuditRow!]!
+
+  """售后操作审计导出（§100）：CSV"""
+  campusMerchantAfterSalesAuditExport(from: String, to: String, action: String, actorUserId: ID): String!
+
+  """售后值班表（§100）"""
+  campusMerchantAfterSalesDutyRoster: [CampusMerchantAfterSalesDutyEntry!]!
+
+  """补偿挽留方案列表（§100）"""
+  campusMerchantAfterSalesCompensationPlans: [CampusMerchantAfterSalesCompensationPlan!]!
+
+  """最近云打印任务（P1-4）"""
+  campusMerchantPrintJobs(limit: Int): [CampusPrintJob!]!
+
+  """沽清次日自动恢复（§66）：开关与待恢复件数"""
+  campusMerchantSoldOutAutoRestore: CampusSoldOutAutoRestore!
+
+  """商家自动接单设置（§69）"""
+  campusMerchantAutoAccept: CampusMerchantAutoAccept!
   paymentTimeoutTasks(status: String, type: String, from: DateTime, to: DateTime, skip: Int, take: Int): PaymentTimeoutTaskList!
   paymentTimeoutStats: PaymentTimeoutStats!
+
+  """COD 收款台账（按订单或全量倒序，最多 200 条）"""
+  campusCodReceipts(orderId: ID): [CampusCodReceipt!]!
+  campusTrackEventStats: CampusTrackEventStats!
+  campusTrackEventList(eventName: String, skip: Int, take: Int, options: CampusTrackEventListOptions = null): CampusTrackEventList!
+  campusErrorReportList(level: String, skip: Int, take: Int, options: CampusErrorReportListOptions = null): CampusErrorReportList!
   jianghuListProfiles(cursor: String, limit: Int): [JianghuProfile!]!
   jianghuListTasks(status: String, limit: Int): [JianghuTask!]!
   jianghuListClues(status: String, limit: Int): [JianghuClue!]!
@@ -398,6 +609,13 @@ type Query {
   marketingFlashSaleActivity(id: ID!): MarketingFlashSaleActivity
   marketingGroupBuyActivities(options: JSON): MarketingGroupBuyActivityList!
   marketingGroupBuyActivity(id: ID!): MarketingGroupBuyActivity
+  onebridgeRfqs(options: RfqListOptions): RfqList!
+  onebridgeRfq(id: ID, code: String): Rfq
+  onebridgeContentEntries(options: ContentListOptions): OnebridgeContentList!
+  onebridgeInspectionReports(options: InspectionListOptions): InspectionList!
+  onebridgeCustomsRecord(orderCode: String!): CustomsRecord
+  onebridgeCustomsRecords(options: CustomsListOptions): CustomsList!
+  onebridgeOrderSummary(orderCode: String!): OnebridgeOrderSummary!
   messages(options: MessageListOptions = null): MessageList!
   message(id: ID!): Message
   messageDeliveryStats(id: ID!): MessageDeliveryStats!
@@ -407,11 +625,16 @@ type Query {
   preSaleActivity(id: ID!): PreSaleActivity
   paymentSchedules(options: PaymentScheduleListOptions): PaymentScheduleList!
   adminPaymentSchedule(id: ID!): PaymentSchedule
+  myShopSubscriptionPlans(options: SubscriptionListOptions): SubscriptionPlanList!
+  subscriptionPlans(options: SubscriptionListOptions): SubscriptionPlanList!
+  subscriptions(options: SubscriptionListOptions): SubscriptionList!
+  subscriptionOccurrences(options: SubscriptionListOptions): SubscriptionOccurrenceList!
   installmentPlans(options: InstallmentPlanListOptions): InstallmentPlanList!
   installmentPlan(id: ID!): InstallmentPlan
   rentalPlans(options: RentalPlanListOptions): RentalPlanList!
   rentalPlan(id: ID!): RentalPlan
   meiliIndexStats: [MeiliIndexStatus!]!
+  wechatSupportTickets(limit: Int = 20, status: String): [WechatSupportTicket!]!
 }
 
 type Mutation {
@@ -1005,7 +1228,9 @@ type Mutation {
   createTenantAdministrator(channelId: ID!, input: CreateTenantAdministratorInput!): TenantMember!
   setTenantAdministratorEnabled(id: ID!, enabled: Boolean!): TenantMember!
   deleteTenantAdministrator(id: ID!): Boolean!
-  resetTenantAdministratorPassword(memberId: ID!): Boolean!
+
+  """重置后返回一次性随机口令（24 小时内有效，仅本次返回，不落日志/库）"""
+  resetTenantAdministratorPassword(memberId: ID!): String!
   createTenantRole(channelId: ID!, input: CreateTenantRoleInput!): Role!
   updateTenantRole(roleId: ID!, input: UpdateTenantRoleInput!): Role!
   deleteTenantRole(roleId: ID!): Boolean!
@@ -1026,7 +1251,9 @@ type Mutation {
   myUpdateTenantMemberRoles(id: ID!, roleIds: [ID!]!): Boolean!
   tenantLinkMember(channelId: ID!, administratorId: ID!, roleIds: [ID!]!, displayName: String, phone: String, remark: String): TenantMember!
   myLinkMember(administratorId: ID!, roleIds: [ID!]!, displayName: String, phone: String, remark: String): TenantMember!
-  myResetTenantMemberPassword(id: ID!): Boolean!
+
+  """重置本租户成员密码，返回一次性随机口令（24 小时内有效，仅本次返回）"""
+  myResetTenantMemberPassword(id: ID!): String!
   setTenantMemberRedeemProfiles(id: ID!, shippingProfileIds: [ID!]!): TenantMember!
   mySetTenantMemberRedeemProfiles(id: ID!, shippingProfileIds: [ID!]!): TenantMember!
   tenantChangeMyPassword(oldPassword: String, newPassword: String!): Boolean!
@@ -1120,9 +1347,6 @@ type Mutation {
   publishDiyTemplate(id: ID!): DiyTemplate!
   copyDiyTemplate(id: ID!): DiyTemplate!
   claimPickupByShop(code: String!, collect: Boolean): PickupRedemption!
-  wechatMenuPublish(menu: JSON!): JSON!
-  wechatMenuDelete: JSON!
-  wechatTemplateSend(input: JSON!): JSON!
   issueInvoice(id: ID!): Invoice!
   reverseInvoice(id: ID!, reason: String!, reverseAmount: Int): Invoice!
   voidInvoice(id: ID!, reason: String!): Invoice!
@@ -1133,6 +1357,9 @@ type Mutation {
   runGroupBuyExpiryCheck: Boolean!
   createFlashSaleActivity(input: CreateFlashSaleActivityInput!): FlashSaleActivity!
   updateFlashSaleActivity(input: UpdateFlashSaleActivityInput!): FlashSaleActivity!
+
+  """显式改状态：upcoming→仅开始前；active→必须在活动窗口内；ended→随时可人工下线"""
+  setFlashSaleActivityStatus(id: ID!, status: FlashSaleStatus!): FlashSaleActivity!
   deleteFlashSaleActivity(id: ID!): Boolean!
   approveDistributor(id: ID!): Distributor!
   freezeDistributor(id: ID!): Distributor!
@@ -1166,6 +1393,9 @@ type Mutation {
   confirmReturnReceived(id: ID!, receivedQuantity: Int): AfterSalesRequestAdmin!
   processAfterSalesRefund(id: ID!): AfterSalesRequestAdmin!
   retryAfterSalesRefund(id: ID!): AfterSalesRequestAdmin!
+
+  """退款完成结案：Refunded → Closed（释放订单/行的售后占用）"""
+  closeAfterSalesRequest(id: ID!): AfterSalesRequestAdmin!
   batchApproveAfterSalesRequests(ids: [ID!]!): [AfterSalesBatchResult!]!
   batchRejectAfterSalesRequests(ids: [ID!]!, reason: String!): [AfterSalesBatchResult!]!
   updateAfterSalesReturnAddress(address: String!): Boolean!
@@ -1199,7 +1429,7 @@ type Mutation {
   confirmAggregatePay(paymentId: ID!): Payment!
   settleAggregatePay(paymentId: ID!): Payment!
   failAggregatePay(paymentId: ID!): Payment!
-  settleSessionAggregatePays(sessionId: ID!): Int!
+  settleSessionAggregatePays(sessionId: ID!): SettleSessionAggregatePaysResult!
   createPosRefund(input: CreatePosRefundInput!): Refund!
   settleManualRefund(input: SettleManualRefundInput!): Refund!
   holdOrder: Order!
@@ -1229,6 +1459,27 @@ type Mutation {
   replyReview(id: ID!, reply: String!): Review!
   approveReview(id: ID!): Review!
   rejectReview(id: ID!): Review!
+
+  """差评申诉审核通过：评价隐藏并退出评分聚合"""
+  approveReviewAppeal(id: ID!, note: String): Review!
+
+  """差评申诉驳回：评价维持原状，仅留痕"""
+  rejectReviewAppeal(id: ID!, note: String): Review!
+
+  """撤销申诉通过：评价恢复展示并重新计入评分聚合（需填撤销原因）"""
+  revokeReviewAppeal(id: ID!, note: String): Review!
+
+  """P4-2 预警规则保存（每渠道一条）"""
+  updateReviewAlertRule(input: UpdateReviewAlertRuleInput!): ReviewAlertRule!
+
+  """P4-2 一键回评（写回评价回复）"""
+  replyReviewAlert(id: ID!, reply: String!): ReviewAlert!
+
+  """P4-2 补发致歉券"""
+  resendReviewAlertCoupon(id: ID!): ReviewAlert!
+
+  """P4-2 关闭预警"""
+  closeReviewAlert(id: ID!, note: String): ReviewAlert!
   inStoreBillRedeem(code: String!, originalAmount: Int!, remark: String): InStoreBill!
   createCouponTemplate(input: CreateCouponTemplateInput!): CouponTemplate!
   updateCouponTemplate(input: UpdateCouponTemplateInput!): CouponTemplate!
@@ -1244,7 +1495,35 @@ type Mutation {
   createCouponBundle(input: CouponBundleInput!): CouponBundle!
   updateCouponBundle(id: ID!, input: CouponBundleInput!): CouponBundle!
   deleteCouponBundle(id: ID!): Boolean!
+  setCouponStoreBindings(templateId: ID!, storeIds: [ID!]!, coverage: String): [CouponStoreBinding!]!
   refundCouponSaleOrder(id: ID!, reason: String): CouponSaleOrder!
+  runCouponSettlementCycle: CouponSettlementCycleResult!
+  runCouponReconcile: CouponReconcileRunResult!
+  resolveCouponReconcileDiff(id: ID!, remark: String): Boolean!
+  reviewStudentVerification(customerId: ID!, approve: Boolean!): StudentVerificationItem!
+  couponWinBackGrant(templateId: ID!, days: Int!, notify: Boolean): CouponGrantBatch!
+  redeemVoucher(code: String!): ServiceVoucher!
+  extendVoucher(voucherId: ID!, days: Int!): ServiceVoucher!
+  exchangeVoucher(voucherId: ID!): ServiceVoucher!
+  runExpireScan: Int!
+  createBooking(voucherId: ID!, slotAt: DateTime!, customerCount: Int!): VoucherBooking!
+  createMerchant(input: CreateMerchantInput!): Merchant!
+  updateMerchant(input: UpdateMerchantInput!): Merchant!
+  deleteMerchant(id: ID!): Boolean!
+  createMerchantStore(input: CreateMerchantStoreInput!): MerchantStore!
+  updateMerchantStore(input: UpdateMerchantStoreInput!): MerchantStore!
+  deleteMerchantStore(id: ID!): Boolean!
+  claimMerchantStore(storeId: ID!, channelId: ID!, role: String, contractNo: String): MerchantStoreChannel!
+  revokeMerchantStoreClaim(storeId: ID!, channelId: ID!): Boolean!
+  upsertMerchantStoreStaff(input: UpsertMerchantStoreStaffInput!): MerchantStoreStaff!
+  removeMerchantStoreStaff(storeId: ID!, userId: ID!): Boolean!
+  updateBillPayQuote(id: ID!, quoteAmount: Int!, note: String!): BillPayOrder!
+  acceptBillPayOrder(id: ID!): BillPayOrder!
+  completeBillPayOrder(id: ID!, actualAmount: Int!, proofUrl: String!, note: String): BillPayOrder!
+  settleBillPayOrder(id: ID!): BillPayOrder!
+  refundBillPayOrder(id: ID!, reason: String): BillPayOrder!
+  saveMerchantAgreement(input: MerchantAgreementInput!, id: ID): MerchantAgreement!
+  saveBillPayChannelConfig(config: JSON!): BillPayConfig!
   createLiveRoom(input: CreateLiveRoomInput!): LiveRoom!
   updateLiveRoom(input: UpdateLiveRoomInput!): LiveRoom!
   deleteLiveRoom(id: ID!): Boolean!
@@ -1259,25 +1538,311 @@ type Mutation {
   reportException(orderId: ID!, type: String!, photos: [String!]!, note: String): Order!
   reassignDelivery(orderId: ID!, newStaffId: ID!): Order!
   campusCreateZone(name: String!, fee: Int!): CampusZone!
-  campusCreateBuilding(name: String!, zoneId: ID!, detail: String): CampusBuilding!
+
+  """分区改名/改运费（渠道隔离）"""
+  campusUpdateZone(id: ID!, name: String, fee: Int): CampusZone!
+  campusCreateBuilding(name: String!, zoneId: ID!, detail: String, lat: Float, lng: Float): CampusBuilding!
+  campusUpdateBuilding(id: ID!, input: CampusBuildingPatchInput!): CampusBuilding!
+
+  """删除宿舍楼（有订单引用时拒绝）"""
+  campusDeleteBuilding(id: ID!): Boolean!
   campusUpdateConfig(input: CampusFulfillmentConfigInput!): CampusFulfillmentConfig!
   campusCreateSlot(input: DeliverySlotInput!): DeliverySlot!
   campusUpdateSlot(id: ID!, input: DeliverySlotUpdateInput!): DeliverySlot!
   campusSetRiderStatus(customerId: ID!, status: String!): CampusSetRiderStatusResult!
+
+  """绑定/解绑骑手飞书身份（openId 为空即解绑，可重复重绑）"""
+  campusSetRiderFeishuBinding(customerId: ID!, openId: String): Boolean!
+
+  """骑手合规登记（P2-5：健康证/保险/背调），返回最新合规判定"""
+  campusUpdateRiderCompliance(customerId: ID!, input: RiderComplianceInput!): RiderComplianceResult!
   campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!
-  campusBackToHall(orderId: ID!): CampusDispatchResult!
+  campusBackToHall(orderId: ID!, note: String): CampusDispatchResult!
   campusHandleException(orderId: ID!, action: String!, amount: Int, couponTemplateId: ID, note: String): CampusHandleExceptionResult!
+
+  """强制取消（含已送达单）：必须填写理由，服务端写审计（谁/何时/理由）"""
+  campusForceCancelOrder(orderId: ID!, reason: String!): Boolean!
   campusEnsureErrandProducts: CampusErrandProductResult!
   campusUpdateStoreConfig(channelId: ID!, input: CampusStoreConfigInput!): CampusStoreConfigWithChannel!
+
+  """商家下单广告（按天计费，下单即固化单价与总价，状态 pendingPay）"""
+  campusMerchantCreateAd(slot: String!, title: String!, startDate: String!, endDate: String!, imageUrl: String, linkUrl: String): CampusAdCampaign!
+
+  """商家支付广告费（模拟支付，转待审核；重复调用幂等）"""
+  campusMerchantPayAd(id: ID!): CampusAdCampaign!
+
+  """商家取消广告投放（仅未支付/待审核可取消）"""
+  campusMerchantCancelAd(id: ID!): CampusAdCampaign!
+
+  """平台审核广告：通过转投放中，驳回须填原因"""
+  campusReviewAd(id: ID!, approve: Boolean!, note: String): CampusAdCampaign!
+
+  """智能取餐柜（P2-4）：新增站点"""
+  campusCreateLockerStation(input: CampusLockerStationInput!): CampusLockerStation!
+
+  """智能取餐柜：编辑站点（只改传入字段）"""
+  campusUpdateLockerStation(id: ID!, input: CampusLockerStationInput!): CampusLockerStation!
+
+  """智能取餐柜：删除站点"""
+  campusDeleteLockerStation(id: ID!): Boolean!
+
+  """无人配送通道：保存配置（endpoint/key 传空串 = 清空）"""
+  campusUpdateUnmannedChannel(input: CampusUnmannedChannelInput!): CampusUnmannedChannel!
+
+  """无人配送调用占位：mock 模拟受理并返回 MOCK 单号；真实厂商未接入返回 unsupported，不下发运单"""
+  campusRequestUnmannedDelivery(orderId: ID!): CampusUnmannedDeliveryResult!
+  campusSettleAddressChange(id: ID!, action: String!, note: String): CampusAddressChangeRow!
+
+  """运营代客改址：取货后也可代改，必须填写原因"""
+  campusAdminChangeDeliveryAddress(orderId: ID!, zoneId: ID!, buildingId: ID!, detail: String, reason: String!): CampusAddressChangeResult!
   campusEnsureDefaultShippingProfile(channelId: ID!): CampusEnsureProfileResult!
+
+  """设置商品级打包费（分/件）；传 null 清除，回落到店铺配置金额"""
+  campusMerchantSetProductPackingFee(productId: ID!, packingFee: Int): CampusMerchantPackingFeeResult!
+
+  """每日限量 / 每人限购（§68）：传 null 或 0 = 不限"""
+  campusMerchantSetProductLimit(productId: ID!, dailyLimit: Int, perUserLimit: Int): CampusProductLimitResult!
+
+  """设置商品加料组（P1-2）：groups 为 AddonGroupConfig 的 JSON 字符串数组，空数组清除"""
+  campusMerchantSetProductAddonGroups(productId: ID!, groups: [String!]!): CampusMerchantAddonResult!
+
+  """设置商品套餐内容（P1-2）：combo 为 ComboConfig 的 JSON 字符串，null 清除"""
+  campusMerchantSetProductCombo(productId: ID!, combo: String): CampusMerchantComboResult!
   campusMerchantAcceptOrder(orderId: ID!): CampusMerchantOpResult!
   campusMerchantCookingDone(orderId: ID!): CampusMerchantOpResult!
+
+  """批量接单（§73）：逐单走既有接单状态机，失败单跳过并在 failed 中回报"""
+  campusMerchantBatchAcceptOrders(orderIds: [ID!]!): CampusMerchantBatchResult!
+
+  """批量出餐（§73）：逐单走出餐分流，失败单跳过并在 failed 中回报"""
+  campusMerchantBatchCookingDoneOrders(orderIds: [ID!]!): CampusMerchantBatchResult!
+  campusMerchantRejectOrder(orderId: ID!, reason: String!): CampusMerchantOpResult!
+
+  """商家发起退款（§76）：已送达订单整单/部分退款，amount 为分"""
+  campusMerchantRefundOrder(orderId: ID!, amount: Int!, reason: String!): CampusMerchantRefundResult!
+
+  """同意售后（§81）：仅退款单直接链式退款到账"""
+  campusMerchantAfterSalesApprove(id: ID!): CampusMerchantAfterSalesItem!
+
+  """驳回售后（§81）：reason 必填，顾客 C 端可见"""
+  campusMerchantAfterSalesReject(id: ID!, reason: String!): CampusMerchantAfterSalesItem!
+
+  """商家协商留言（§81）：与顾客售后详情双向互通，Closed 后禁言"""
+  campusMerchantAfterSalesReply(id: ID!, content: String!, images: [String!]): CampusMerchantAfterSalesMessage!
+
+  """商家确认收到退货（§82）：Returning → Received，可传实收数量与收货备注"""
+  campusMerchantAfterSalesConfirmReturn(id: ID!, receivedQuantity: Int, note: String): CampusMerchantAfterSalesItem!
+
+  """售后退款失败重试（§82）：仅 RefundFailed，30 秒内同单一次"""
+  campusMerchantAfterSalesRetryRefund(id: ID!): CampusMerchantAfterSalesItem!
+
+  """换货发货（§83）：Received → ExchangeShipped，仅换货单"""
+  campusMerchantAfterSalesExchangeShip(id: ID!, trackingNo: String!, carrier: String): CampusMerchantAfterSalesItem!
+
+  """批量同意（§83）：单次最多 50 条，逐单返回结果"""
+  campusMerchantAfterSalesBatchApprove(ids: [ID!]!): [CampusMerchantAfterSalesBatchResult!]!
+
+  """批量驳回（§83）：整批共用一个原因，单次最多 50 条"""
+  campusMerchantAfterSalesBatchReject(ids: [ID!]!, reason: String!): [CampusMerchantAfterSalesBatchResult!]!
+
+  """保存售后寄回地址（§83）"""
+  campusMerchantUpdateAfterSalesReturnAddress(address: String!): Boolean!
+
+  """保存售后规则（§84）：超时提醒 1-168h，自动同意 0-168h，自动重试 0-5 次"""
+  campusMerchantUpdateAfterSalesRules(timeoutHours: Int, autoApproveHours: Int, refundAutoRetry: Int, firstResponseTargetHours: Int, resolveTargetHours: Int, dueSoonHours: Int, refundReviewThreshold: Int): CampusMerchantAfterSalesRules!
+
+  """售后单转交（§99）：转给另一位本店管理员，原因必填并推送店铺群"""
+  campusMerchantAfterSalesTransfer(id: ID!, userId: ID!, reason: String!): CampusMerchantAfterSalesItem!
+
+  """大额退款复核（§99）：申请人以外的管理员确认同意或驳回"""
+  campusMerchantAfterSalesResolveRefundReview(id: ID!, approve: Boolean!, note: String): CampusMerchantAfterSalesRefundReview!
+
+  """商家关闭待处理售后（§84）：Pending → Closed，原因必填"""
+  campusMerchantAfterSalesClose(id: ID!, reason: String!): CampusMerchantAfterSalesItem!
+
+  """商家催办顾客（§84）：60 秒内同单一次，站内信提醒"""
+  campusMerchantAfterSalesRemind(id: ID!, note: String): CampusMerchantAfterSalesItem!
+
+  """立即执行售后自动化任务（§85）：重置到期后复用任务锁执行"""
+  campusMerchantAfterSalesRunTask(id: ID!): CampusMerchantAfterSalesTask!
+
+  """一键拉黑高频售后顾客（§85）"""
+  campusMerchantBlacklistAfterSalesCustomer(customerId: ID!, reason: String): Boolean!
+
+  """新增售后内部备注（§86）：顾客不可见"""
+  campusMerchantAfterSalesAddNote(id: ID!, content: String!): CampusMerchantAfterSalesNote!
+
+  """删除售后内部备注（§86）"""
+  campusMerchantAfterSalesDeleteNote(id: ID!, noteId: ID!): Boolean!
+
+  """批量催办顾客（§86）：单次最多 20 条，逐单返回结果"""
+  campusMerchantAfterSalesBatchRemind(ids: [ID!]!, note: String): [CampusMerchantAfterSalesBatchResult!]!
+
+  """批量内部备注（§92）：上限 50 单，逐单结果"""
+  campusMerchantAfterSalesBatchNote(ids: [ID!]!, content: String!): [CampusMerchantAfterSalesBatchResult!]!
+
+  """标记低分已跟进（§93）"""
+  campusMerchantAfterSalesReviewFollowUp(id: ID!): Boolean!
+
+  """线下退款登记（§94）：现金/转账等线下退款后登记，金额单位分"""
+  campusMerchantAfterSalesOfflineRefund(id: ID!, amount: Int!, method: String!, note: String): CampusMerchantAfterSalesOfflineRefundResult!
+
+  """标记售后风险（§94）：争议/异常单"""
+  campusMerchantAfterSalesRiskFlag(id: ID!, reason: String): CampusMerchantAfterSalesItem!
+
+  """解除售后风险标记（§94）"""
+  campusMerchantAfterSalesRiskClear(id: ID!): CampusMerchantAfterSalesItem!
+
+  """
+  新增顾客回访记录（§94）：method=phone/wechat/onsite/other，result=reached/unreached/refused/other
+  """
+  campusMerchantAfterSalesAddFollowUp(id: ID!, method: String!, result: String!, note: String, nextAt: String): [CampusMerchantAfterSalesFollowUp!]!
+
+  """暂停售后 SLA 计时（§95/§96）：等待顾客补充资料/回寄期间不计超时/临期，原因必填"""
+  campusMerchantAfterSalesPauseSla(id: ID!, reason: String!): CampusMerchantAfterSalesItem!
+
+  """恢复售后 SLA 计时（§95）：暂停时长累计后顺延截止时间"""
+  campusMerchantAfterSalesResumeSla(id: ID!): CampusMerchantAfterSalesItem!
+
+  """升级平台仲裁（§96）：商家无法自行处理时转平台客服，priority=normal/urgent"""
+  campusMerchantAfterSalesEscalate(id: ID!, reason: String!, priority: String): [CampusMerchantAfterSalesEscalation!]!
+
+  """关闭平台仲裁工单（§96）：填写处理结论后置为 Resolved"""
+  campusMerchantAfterSalesEscalationResolve(id: ID!, resolution: String): [CampusMerchantAfterSalesEscalation!]!
+
+  """批量关闭售后单（§95）：单批上限 50，逐单返回结果"""
+  campusMerchantAfterSalesBatchClose(ids: [ID!]!, reason: String!): [CampusMerchantAfterSalesBatchResult!]!
+
+  """保存快捷回复模板（§87、§97）：id 为空=新增，单店上限 30 条，可设分类/关键词/排序"""
+  campusMerchantSaveAfterSalesReplyTemplate(id: ID, content: String!, category: String, keywords: String, sortOrder: Int): CampusMerchantAfterSalesReplyTemplate!
+
+  """删除快捷回复模板（§87）"""
+  campusMerchantDeleteAfterSalesReplyTemplate(id: ID!): Boolean!
+
+  """登记退货物流节点（§98）：status=picked_up/in_transit/delivered/exception"""
+  campusMerchantAfterSalesRecordReturnLogistics(id: ID!, status: String!, description: String): CampusMerchantAfterSalesReturnLogistics!
+
+  """整体替换售后值班表（§100）：entries 为 JSON [{weekday,startMin,endMin,userId}]"""
+  campusMerchantSetAfterSalesDutyRoster(entries: String!): [CampusMerchantAfterSalesDutyEntry!]!
+
+  """保存补偿方案（§100）：id 为空=新增，refundAmount 单位分"""
+  campusMerchantSaveAfterSalesCompensationPlan(id: ID, name: String!, refundAmount: Int!, couponTemplateId: String, note: String, enabled: Boolean): [CampusMerchantAfterSalesCompensationPlan!]!
+
+  """删除补偿方案（§100）"""
+  campusMerchantDeleteAfterSalesCompensationPlan(id: ID!): [CampusMerchantAfterSalesCompensationPlan!]!
+
+  """一键发放补偿挽留（§100）：部分退款 + 优惠券，随后关闭售后单"""
+  campusMerchantAfterSalesApplyCompensation(id: ID!, planId: ID!): CampusMerchantAfterSalesCompensationResult!
+
+  """保存售后自动分流规则（§98）：id 为空=新增，action=approve/reject/escalate"""
+  campusMerchantSaveAfterSalesAutoRule(id: ID, name: String!, action: String!, priority: Int, enabled: Boolean, matchType: String, matchReason: String, minAmount: Int, maxAmount: Int, rejectReason: String): CampusMerchantAfterSalesAutoRule!
+
+  """删除售后自动分流规则（§98）"""
+  campusMerchantDeleteAfterSalesAutoRule(id: ID!): Boolean!
+
+  """手动排程退款重试（§87）：仅 RefundFailed，复位任务 1 分钟后执行"""
+  campusMerchantAfterSalesScheduleRefundRetry(id: ID!): CampusMerchantAfterSalesTask!
+
+  """保存售后标签（§88）：id 为空=新增，单店上限 20 个"""
+  campusMerchantSaveAfterSalesTag(id: ID, name: String!): CampusMerchantAfterSalesTag!
+
+  """删除售后标签（§88）"""
+  campusMerchantDeleteAfterSalesTag(id: ID!): Boolean!
+
+  """设置售后单标签（§88）：整体替换，最多 5 个"""
+  campusMerchantSetAfterSalesTags(id: ID!, tagIds: [ID!]!): [String!]!
+
+  """指派处理人（§89）：userId 为空=取消指派，仅本店渠道管理员"""
+  campusMerchantAfterSalesAssign(id: ID!, userId: ID): CampusMerchantAfterSalesItem!
+
+  """批量打标签（§89）：上限 50 单，逐单返回结果"""
+  campusMerchantAfterSalesBatchTag(ids: [ID!]!, tagIds: [ID!]!): [CampusMerchantAfterSalesBatchResult!]!
+
+  """解除本店顾客拉黑（§89）"""
+  campusMerchantUnblacklistAfterSalesCustomer(customerId: ID!): Boolean!
+
+  """批量指派处理人（§90）：userId 为空=批量取消，逐单返回结果"""
+  campusMerchantAfterSalesBatchAssign(ids: [ID!]!, userId: ID): [CampusMerchantAfterSalesBatchResult!]!
   campusMerchantSetPaused(paused: Boolean!): CampusMerchantOpResult!
-  approveRiderWithdraw(id: ID!, remark: String): RiderWithdrawalRequest!
+
+  """商家自助修改门店资料：营业时间（Channel 自定义字段）/公告/电话，仅本渠道"""
+  campusMerchantUpdateStore(businessHours: String, storeNotice: String, storePhone: String): MerchantStoreProfile!
+
+  """信任文案（§113）：评价页信任签名卡三行开关 + 自定义文案，文案留空=回落 C 端默认"""
+  campusMerchantUpdateTrustCopy(qualityEnabled: Boolean, qualityText: String, serviceEnabled: Boolean, serviceText: String, timeEnabled: Boolean, timeText: String): MerchantStoreProfile!
+
+  """每日日报推送设置（§86）：enabled=开关，time=HH:MM（空=21:30）"""
+  campusMerchantUpdateDailyPush(enabled: Boolean!, time: String): MerchantStoreProfile!
+
+  """售后月度摘要推送（§95）：每月指定日（1-28）把上月售后汇总推到店铺群"""
+  campusMerchantUpdateAfterSalesMonthlyPush(enabled: Boolean!, day: Int, time: String): MerchantStoreProfile!
+
+  """售后自动化设置（§96）：自动分配 + 异常预警；仅传需要修改的项，阈值 0=关闭该项"""
+  campusMerchantUpdateAfterSalesAutomation(autoAssignEnabled: Boolean, autoAssignMax: Int, alertEnabled: Boolean, alertRefundRate: Int, alertOverdueCount: Int): MerchantStoreProfile!
+
+  """营业日历（§70）：dates 为 JSON：[{date:'YYYY-MM-DD', note?}]，空=关闭"""
+  campusMerchantSetClosureDates(dates: String): MerchantStoreProfile!
+  campusMerchantMarkPrinted(orderId: ID!): CampusMerchantOpResult!
+
+  """顾客催单「已知晓」（§78）：商家确认后解除工作台/出餐屏催单提醒"""
+  campusMerchantAckUrge(orderId: ID!): CampusMerchantOpResult!
+
+  """云打印一张小票（P1-4）：后端签名直连服务商，成功回写打印时间"""
+  campusMerchantCloudPrint(orderId: ID!): CampusPrintResult!
+
+  """云打印连通性测试（不占用订单）"""
+  campusMerchantCloudPrintTest: CampusPrintResult!
+  campusMerchantDispatchExternal(orderId: ID!, provider: String!): CampusExternalDelivery!
+  campusMerchantCancelExternal(orderId: ID!, reason: String): CampusExternalCancelResult!
+
+  """运营中心推送/重推外部快递"""
+  campusAdminDispatchExternal(orderId: ID!, provider: String!): CampusExternalDelivery!
+
+  """运营中心取消外部快递"""
+  campusAdminCancelExternal(orderId: ID!, reason: String): CampusExternalCancelResult!
+  campusMerchantAcceptOwned(orderId: ID!): CampusMerchantOpResult!
+
+  """自营快递确认取餐（assigned → in_progress）"""
+  campusMerchantPickupOwned(orderId: ID!): CampusMerchantOpResult!
+  campusMerchantMarkHandoverArrived(orderId: ID!): CampusFirstLegResult!
+  campusMerchantMarkOwnedArrived(orderId: ID!): CampusFirstLegResult!
+  approveRiderWithdraw(id: ID!, remark: String, payoutRef: String, payoutProof: String): RiderWithdrawalRequest!
   rejectRiderWithdraw(id: ID!, remark: String): RiderWithdrawalRequest!
+
+  """打款失败回退：PAID → FAILED 并退回骑手余额"""
+  campusMarkWithdrawFailed(id: ID!, reason: String!): RiderWithdrawalRequest!
+  campusReplySupportTicket(id: ID!, reply: String, status: String): CampusSupportTicket!
+
+  """工单手工关联售后单（同一店铺且同一订单；建单自动关联未命中时使用）"""
+  campusLinkSupportTicketAfterSales(id: ID!, afterSalesRequestId: ID!): CampusSupportTicket!
+
+  """R2 手动重试补偿任务（仅 failed/pending 可重置；done 不允许）"""
+  campusRetryCompensationTask(id: ID!): Boolean!
+  campusReplyChat(conversationId: ID!, content: String, images: [String!]): CampusChatMessage!
+  campusCloseChatConversation(conversationId: ID!): CampusChatConversation!
+  campusReviewRiderAppeal(id: ID!, approve: Boolean!, creditDelta: Int, note: String): CampusRiderAppeal!
+  campusAddBlacklist(type: String!, value: String!, reason: String): CampusBlacklistEntry!
+  campusImportBlacklist(type: String!, values: [String!]!, reason: String): CampusBlacklistImportResult!
+  campusRemoveBlacklist(id: ID!): CampusRemoveResult!
+  campusSaveRiderShift(input: CampusRiderShiftInput!): CampusRiderShift!
+  campusDeleteRiderShift(id: ID!): CampusRemoveResult!
+  campusMerchantSetProductSoldOut(productId: ID!, soldOut: Boolean!): CampusMerchantSoldOutResult!
+  campusMerchantSetAllProductsSoldOut(soldOut: Boolean!): CampusMerchantSoldOutBatchResult!
+
+  """沽清次日自动恢复（§66）：开关；开启后每日 04:00 把全店沽清批次恢复在售"""
+  campusMerchantSetSoldOutAutoRestore(enabled: Boolean!): CampusSoldOutAutoRestore!
+
+  """商家自动接单（§69）：营业中按延迟秒数自动确认新单，超每日上限退回人工"""
+  campusMerchantUpdateAutoAccept(enabled: Boolean!, delaySeconds: Int, dailyLimit: Int, routes: [String!]): CampusMerchantAutoAccept!
   executePaymentTimeoutTask(id: ID!): PaymentTimeoutTask!
   resendPaymentTimeoutRemind(taskId: ID!): Boolean!
   runPaymentTimeoutCompensation: Int!
+
+  """登记 COD 收款（运营/客服）；admin_manual 需凭证号"""
+  campusRegisterCodReceipt(orderId: ID!, input: CampusCodReceiptInput!): CampusCodReceipt!
+
+  """作废 COD 收款（主管权限；已关联退款单的不可作废）"""
+  campusVoidCodReceipt(receiptId: ID!, reason: String!): CampusCodReceipt!
   jianghuCreateTask(input: JianghuTaskInput!): JianghuTask!
   jianghuAuditIntel(id: ID!, approve: Boolean!): JianghuIntel!
   jianghuPenalize(customerId: ID!, level: String!): JianghuProfile!
@@ -1290,6 +1855,7 @@ type Mutation {
   rejectMarketplaceProduct(productId: ID!, reason: String!): Boolean!
   submitForMarketplaceAdmin(productId: ID!): Boolean!
   setProductPlatformCategory(productId: ID!, collectionId: String): Boolean!
+  issueMerchantApiToken(channelId: ID!, ttlSeconds: Int): MerchantApiToken!
   batchCreateFulfillment(items: [BatchFulfillmentItem!]!): BatchFulfillmentResult!
   refreshTrack(id: ID!): LogisticsTrack!
   confirmSplitPlan(orderId: ID!, packages: [SplitPackageInput!]!): OrderSplitPlan!
@@ -1341,6 +1907,14 @@ type Mutation {
   createGroupBuy(input: CreateGroupBuyInput!): MarketingGroupBuyActivity!
   updateGroupBuy(input: UpdateGroupBuyInput!): MarketingGroupBuyActivity!
   deleteGroupBuy(id: ID!): Boolean!
+  saveRfqQuote(rfqId: ID!, input: RfqQuoteInput!): RfqQuote!
+  saveRfqSample(rfqId: ID!, input: RfqSampleInput!): RfqSample!
+  transitionRfqStage(rfqId: ID!, stage: CrossBorderStage!, title: String, desc: String, idempotencyKey: String): Rfq!
+  saveOnebridgeContentEntry(input: OnebridgeContentInput!): OnebridgeContentEntry!
+  deleteOnebridgeContentEntry(id: ID!): Boolean!
+  createOnebridgeInspectionReport(input: InspectionReportInput!): InspectionReport!
+  publishOnebridgeInspectionReport(id: ID!): InspectionReport!
+  upsertOnebridgeCustomsRecord(input: CustomsRecordInput!): CustomsRecord!
   createMessage(input: CreateMessageInput!): Message!
   updateMessage(id: ID!, input: UpdateMessageInput!): Message!
   deleteMessage(id: ID!): Boolean!
@@ -1355,6 +1929,11 @@ type Mutation {
   confirmCodReceived(orderId: ID!): PaymentSchedule!
   releaseRentalDeposit(orderId: ID!): PaymentSchedule!
   runScheduleScan: PaymentScheduleScanResult!
+  createSubscriptionPlan(input: SubscriptionPlanInput!): SubscriptionPlan!
+  setSubscriptionOccurrenceItems(id: ID!, items: [SubscriptionItemInput!]!): SubscriptionOccurrence!
+  cancelSubscriptionOwner(id: ID!): Subscription!
+  setSubscriptionPlanEnabled(id: ID!, enabled: Boolean!): SubscriptionPlan!
+  processDueSubscriptions: SubscriptionProcessingResult!
   createInstallmentPlan(input: CreateInstallmentPlanInput!): InstallmentPlan!
   updateInstallmentPlan(input: UpdateInstallmentPlanInput!): InstallmentPlan!
   deleteInstallmentPlan(id: ID!): Boolean!
@@ -1362,6 +1941,21 @@ type Mutation {
   updateRentalPlan(input: UpdateRentalPlanInput!): RentalPlan!
   deleteRentalPlan(id: ID!): Boolean!
   meiliReindex(scope: MeiliReindexScope!): MeiliReindexResult!
+  replyWechatSupportTicket(id: ID!, content: String!): WechatSupportTicket!
+}
+
+type Subscription implements Node {
+  id: ID!
+  code: String!
+  planId: ID!
+  shopId: ID!
+  customerId: ID!
+  scheduleJson: [String!]!
+  startDate: DateTime
+  endDate: DateTime
+  prepaidBalance: Int!
+  purchasedTotal: Int!
+  status: String!
 }
 
 input RechargeCardAdminListOptions {
@@ -1514,6 +2108,92 @@ input CouponIssueCustomerFilterParameter {
   phoneNumber: StringOperators
   _and: [CouponIssueCustomerFilterParameter!]
   _or: [CouponIssueCustomerFilterParameter!]
+}
+
+input CampusTrackEventListOptions {
+  """Skips the first n results, for use in pagination"""
+  skip: Int
+
+  """Takes n results, for use in pagination"""
+  take: Int
+
+  """Specifies which properties to sort the results by"""
+  sort: CampusTrackEventSortParameter
+
+  """Allows the results to be filtered"""
+  filter: CampusTrackEventFilterParameter
+
+  """
+  Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
+  """
+  filterOperator: LogicalOperator
+}
+
+input CampusTrackEventSortParameter {
+  id: SortOrder
+  eventName: SortOrder
+  page: SortOrder
+  sessionId: SortOrder
+  customerId: SortOrder
+  props: SortOrder
+  createdAt: SortOrder
+}
+
+input CampusTrackEventFilterParameter {
+  id: IDOperators
+  eventName: StringOperators
+  page: StringOperators
+  sessionId: StringOperators
+  customerId: IDOperators
+  props: StringOperators
+  createdAt: DateOperators
+  _and: [CampusTrackEventFilterParameter!]
+  _or: [CampusTrackEventFilterParameter!]
+}
+
+input CampusErrorReportListOptions {
+  """Skips the first n results, for use in pagination"""
+  skip: Int
+
+  """Takes n results, for use in pagination"""
+  take: Int
+
+  """Specifies which properties to sort the results by"""
+  sort: CampusErrorReportSortParameter
+
+  """Allows the results to be filtered"""
+  filter: CampusErrorReportFilterParameter
+
+  """
+  Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
+  """
+  filterOperator: LogicalOperator
+}
+
+input CampusErrorReportSortParameter {
+  id: SortOrder
+  source: SortOrder
+  level: SortOrder
+  message: SortOrder
+  stack: SortOrder
+  page: SortOrder
+  url: SortOrder
+  customerId: SortOrder
+  createdAt: SortOrder
+}
+
+input CampusErrorReportFilterParameter {
+  id: IDOperators
+  source: StringOperators
+  level: StringOperators
+  message: StringOperators
+  stack: StringOperators
+  page: StringOperators
+  url: StringOperators
+  customerId: IDOperators
+  createdAt: DateOperators
+  _and: [CampusErrorReportFilterParameter!]
+  _or: [CampusErrorReportFilterParameter!]
 }
 
 input MessageListOptions {
@@ -2142,15 +2822,14 @@ input CustomerFilterParameter {
   inviteCode: StringOperators
   ssoId: StringOperators
   ssoUid: StringOperators
-  alipayOpenid: StringOperators
-  wechatOpenid: StringOperators
-  wechatMiniOpenid: StringOperators
-  douyinOpenid: StringOperators
   referralCode: StringOperators
   referredBy: StringOperators
   growthValue: NumberOperators
   points: NumberOperators
   memberLevel: NumberOperators
+  studentStatus: StringOperators
+  studentInfo: StringOperators
+  studentReviewedAt: DateOperators
   riderStatus: StringOperators
   riderRealName: StringOperators
   riderStudentNo: StringOperators
@@ -2158,12 +2837,29 @@ input CustomerFilterParameter {
   riderIdImg: StringOperators
   riderCredit: NumberOperators
   riderOnlineAt: DateOperators
+  riderHealthCertNo: StringOperators
+  riderHealthCertImg: StringOperators
+  riderHealthCertExpiry: DateOperators
+  riderInsuranceNo: StringOperators
+  riderInsuranceExpiry: DateOperators
+  riderBackgroundCheck: StringOperators
+  riderBackgroundCheckAt: DateOperators
+  riderFeishuOpenId: StringOperators
+  riderFeishuBoundAt: DateOperators
   avatarUrl: StringOperators
   invoiceTitles: StringOperators
+  tasteProfile: StringOperators
   customerType: StringOperators
   companyInfo: StringOperators
   salesStaffId: StringOperators
   customerTags: StringListOperators
+  tier: StringOperators
+  companyName: StringOperators
+  businessNo: StringOperators
+  kakaoId: StringOperators
+  preferredLocale: StringOperators
+  addressKr: StringOperators
+  verified: BooleanOperators
   pushCid: StringOperators
 }
 
@@ -2680,6 +3376,7 @@ input OrderFilterParameter {
   deliveryStaffId: StringOperators
   deliveryStatus: StringOperators
   assignedAt: DateOperators
+  pickedUpAt: DateOperators
   deliveredAt: DateOperators
   deliveryPhotos: StringListOperators
   deliveryNote: StringOperators
@@ -2690,12 +3387,14 @@ input OrderFilterParameter {
   orderKind: StringOperators
   buildingId: StringOperators
   campusZone: StringOperators
+  deliveryDetail: StringOperators
   hallStatus: StringOperators
   hallEnteredAt: DateOperators
   riderEarning: NumberOperators
   tip: NumberOperators
   deliverySlotId: StringOperators
   deliverySlotText: StringOperators
+  slotLocked: BooleanOperators
   errandKind: StringOperators
   errandFrom: StringOperators
   errandTo: StringOperators
@@ -2703,6 +3402,7 @@ input OrderFilterParameter {
   leg1Status: StringOperators
   handoverAt: DateOperators
   campusCause: StringOperators
+  campusCancelCause: StringOperators
   transferPhotos: StringListOperators
   transferNote: StringOperators
   transferAt: DateOperators
@@ -2717,9 +3417,37 @@ input OrderFilterParameter {
   exceptionHandledNote: StringOperators
   exceptionHandledAt: DateOperators
   exceptionHandledBy: StringOperators
+  exceptionReportedAt: DateOperators
   routeGroupId: StringOperators
   invoiceApplied: BooleanOperators
   invoiceInfo: StringOperators
+  waimaiPrintedAt: DateOperators
+  autoAcceptedAt: DateOperators
+  note: StringOperators
+  tablewareCount: NumberOperators
+  deliveryPlan: StringOperators
+  handoverMode: StringOperators
+  thirdPartyProvider: StringOperators
+  thirdPartyDeliveryOrderId: StringOperators
+  thirdPartyNo: StringOperators
+  thirdPartyState: StringOperators
+  thirdPartyCourierName: StringOperators
+  thirdPartyCourierPhone: StringOperators
+  handoverPointName: StringOperators
+  handoverPointAddress: StringOperators
+  handoverPointLat: NumberOperators
+  handoverPointLng: NumberOperators
+  thirdPartyDispatchAt: DateOperators
+  thirdPartySyncAt: DateOperators
+  exceptionResolvedAt: DateOperators
+  handoverCode: StringOperators
+  handoverCodeAt: DateOperators
+  promisedAt: DateOperators
+  promiseSource: StringOperators
+  timeoutCompensatedAt: DateOperators
+  timeoutCompensationCouponId: StringOperators
+  timeoutLateMinutes: NumberOperators
+  timeoutAttribution: StringOperators
   salesStaffId: StringOperators
   salesChannel: StringOperators
   salesNote: StringOperators
@@ -2731,6 +3459,13 @@ input OrderFilterParameter {
   shippingAdjustment: NumberOperators
   fulfillmentDeliveredAt: DateOperators
   fulfillmentCompletedAt: DateOperators
+  businessLine: StringOperators
+  crossBorderStage: StringOperators
+  rfqCode: StringOperators
+  needType: StringOperators
+  krwAmount: NumberOperators
+  cnPurchaseOrderNo: StringOperators
+  expectedEta: DateOperators
   preSaleActivityId: NumberOperators
   preSaleMode: StringOperators
   preSaleDepositTotal: NumberOperators
@@ -2811,6 +3546,7 @@ input OrderSortParameter {
   deliveryStaffId: SortOrder
   deliveryStatus: SortOrder
   assignedAt: SortOrder
+  pickedUpAt: SortOrder
   deliveredAt: SortOrder
   deliveryNote: SortOrder
   exceptionType: SortOrder
@@ -2819,12 +3555,14 @@ input OrderSortParameter {
   orderKind: SortOrder
   buildingId: SortOrder
   campusZone: SortOrder
+  deliveryDetail: SortOrder
   hallStatus: SortOrder
   hallEnteredAt: SortOrder
   riderEarning: SortOrder
   tip: SortOrder
   deliverySlotId: SortOrder
   deliverySlotText: SortOrder
+  slotLocked: SortOrder
   errandKind: SortOrder
   errandFrom: SortOrder
   errandTo: SortOrder
@@ -2832,6 +3570,7 @@ input OrderSortParameter {
   leg1Status: SortOrder
   handoverAt: SortOrder
   campusCause: SortOrder
+  campusCancelCause: SortOrder
   transferNote: SortOrder
   transferAt: SortOrder
   riderLat: SortOrder
@@ -2845,9 +3584,37 @@ input OrderSortParameter {
   exceptionHandledNote: SortOrder
   exceptionHandledAt: SortOrder
   exceptionHandledBy: SortOrder
+  exceptionReportedAt: SortOrder
   routeGroupId: SortOrder
   invoiceApplied: SortOrder
   invoiceInfo: SortOrder
+  waimaiPrintedAt: SortOrder
+  autoAcceptedAt: SortOrder
+  note: SortOrder
+  tablewareCount: SortOrder
+  deliveryPlan: SortOrder
+  handoverMode: SortOrder
+  thirdPartyProvider: SortOrder
+  thirdPartyDeliveryOrderId: SortOrder
+  thirdPartyNo: SortOrder
+  thirdPartyState: SortOrder
+  thirdPartyCourierName: SortOrder
+  thirdPartyCourierPhone: SortOrder
+  handoverPointName: SortOrder
+  handoverPointAddress: SortOrder
+  handoverPointLat: SortOrder
+  handoverPointLng: SortOrder
+  thirdPartyDispatchAt: SortOrder
+  thirdPartySyncAt: SortOrder
+  exceptionResolvedAt: SortOrder
+  handoverCode: SortOrder
+  handoverCodeAt: SortOrder
+  promisedAt: SortOrder
+  promiseSource: SortOrder
+  timeoutCompensatedAt: SortOrder
+  timeoutCompensationCouponId: SortOrder
+  timeoutLateMinutes: SortOrder
+  timeoutAttribution: SortOrder
   salesStaffId: SortOrder
   salesChannel: SortOrder
   salesNote: SortOrder
@@ -2859,6 +3626,13 @@ input OrderSortParameter {
   shippingAdjustment: SortOrder
   fulfillmentDeliveredAt: SortOrder
   fulfillmentCompletedAt: SortOrder
+  businessLine: SortOrder
+  crossBorderStage: SortOrder
+  rfqCode: SortOrder
+  needType: SortOrder
+  krwAmount: SortOrder
+  cnPurchaseOrderNo: SortOrder
+  expectedEta: SortOrder
   preSaleActivityId: SortOrder
   preSaleMode: SortOrder
   preSaleDepositTotal: SortOrder
@@ -3589,6 +4363,14 @@ input ProductFilterParameter {
   reviewRating: NumberOperators
   reviewCount: NumberOperators
   favoriteCount: NumberOperators
+  serviceType: StringOperators
+  waimaiMonthlySales: NumberOperators
+  waimaiSoldOut: BooleanOperators
+  waimaiPackingFee: NumberOperators
+  waimaiAddonGroups: StringOperators
+  waimaiCombo: StringOperators
+  waimaiDailyLimit: NumberOperators
+  waimaiPerUserLimit: NumberOperators
   listedInMarketplace: BooleanOperators
   marketplaceStatus: StringOperators
   rejectReason: StringOperators
@@ -3612,6 +4394,14 @@ input ProductFilterParameter {
   deliveryMethods: StringListOperators
   videoUrl: StringOperators
   displayTemplate: StringOperators
+  krName: StringOperators
+  cnName: StringOperators
+  spec: StringOperators
+  moq: NumberOperators
+  leadTime: StringOperators
+  inspectionRequired: BooleanOperators
+  originalPrice: NumberOperators
+  badge: StringOperators
 }
 
 input ProductVariantListOptions {
@@ -3669,6 +4459,11 @@ input ProductVariantFilterParameter {
   internalCode: StringOperators
   hotelRoomConfig: StringOperators
   videoUrl: StringOperators
+  accuracy: StringOperators
+  material: StringOperators
+  moq: NumberOperators
+  leadTime: StringOperators
+  reportTemplate: StringOperators
 }
 
 input ProductTranslationInput {
@@ -4917,6 +5712,12 @@ enum Permission {
   """Grants permission to delete Zone"""
   DeleteZone
 
+  """管理本渠道租户配置（支付/地图/登录方式等）"""
+  TenantSettingsManage
+
+  """管理本渠道营销活动（秒杀/拼团/预售）"""
+  TenantPromotionManage
+
   """Grants permission to read DashboardGlobalViews"""
   ReadDashboardGlobalViews
 
@@ -5099,6 +5900,9 @@ enum Permission {
   """Grants permission to delete OfflineSync"""
   DeleteOfflineSync
 
+  """Manage bill pay orders (quote/accept/proof/settle/refund)"""
+  BillPayManage
+
   """查看配送任务"""
   DeliverOrder
 
@@ -5198,11 +6002,20 @@ enum Permission {
   """骑手招募审核"""
   CampusAuditRider
 
-  """配送调度看板"""
+  """配送调度看板（只读）"""
   CampusViewDispatch
+
+  """配送调度操作（派单/改派/异常处置/外部推送）"""
+  CampusDispatch
 
   """商家接单工作台"""
   CampusMerchant
+
+  """COD 现金收款登记与台账查询"""
+  CampusCodReceipt
+
+  """COD 收款记录作废（主管权限）"""
+  CampusCodReceiptVoid
 
   """管理江湖域（密信/情报/段位/处罚）"""
   CampusJianghu
@@ -5218,6 +6031,21 @@ enum Permission {
 
   """供应商管理"""
   ManageSupplier
+
+  """Manage ONE BRIDGE RFQ, quotes, samples and stage transitions"""
+  OnebridgeRfqManage
+
+  """Upload and publish ONE BRIDGE inspection reports"""
+  OnebridgeInspectionManage
+
+  """Write back ONE BRIDGE customs status and documents"""
+  OnebridgeCustomsManage
+
+  """Manage ONE BRIDGE columns, cases, logistics channels and site blocks"""
+  OnebridgeContentManage
+
+  """确认货到付款收款、释放租赁押金、开启尾款窗口、确认卖家违约"""
+  ManagePaymentSchedule
 }
 
 enum SortOrder {
@@ -7663,6 +8491,8 @@ enum PickupLocationType {
 
 type PickupLocation implements Node {
   id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
   name: String!
   type: PickupLocationType!
   address: String!
@@ -7677,6 +8507,7 @@ type PickupLocation implements Node {
   enabled: Boolean!
   isPublic: Boolean!
   ownerChannelId: ID
+  merchantStoreId: ID
   province: String
   city: String
   district: String
@@ -7702,6 +8533,7 @@ input CreatePickupLocationInput {
   sortOrder: Int
   enabled: Boolean
   isPublic: Boolean
+  merchantStoreId: ID
   province: String
   city: String
   district: String
@@ -7723,6 +8555,7 @@ input UpdatePickupLocationInput {
   sortOrder: Int
   enabled: Boolean
   isPublic: Boolean
+  merchantStoreId: ID
   province: String
   city: String
   district: String
@@ -7899,13 +8732,18 @@ input ShippingTemplateListOptions {
   filter: JSON
 }
 
+input ShippingTemplateConfigInput {
+  code: String!
+  arguments: [ConfigArgInput!]!
+}
+
 input CreateShippingTemplateInput {
   name: String!
   description: String!
   code: String!
   fulfillmentHandler: String!
-  checker: ConfigArgInput!
-  calculator: ConfigArgInput!
+  checker: ShippingTemplateConfigInput!
+  calculator: ShippingTemplateConfigInput!
   isGlobal: Boolean
 }
 
@@ -7915,14 +8753,14 @@ input UpdateShippingTemplateInput {
   description: String
   code: String
   fulfillmentHandler: String
-  checker: ConfigArgInput
-  calculator: ConfigArgInput
+  checker: ShippingTemplateConfigInput
+  calculator: ShippingTemplateConfigInput
 }
 
 type ShippingProfile implements Node {
   id: ID!
   name: String!
-  description: String!
+  description: String
   code: String!
   isGlobal: Boolean!
   freeShippingThreshold: Int
@@ -8295,6 +9133,11 @@ input CreateTenantInput {
   name: String!
   token: String
   isOfficial: Boolean
+  defaultLanguageCode: LanguageCode
+  currencyCode: CurrencyCode
+  customDomains: [String!]
+  domain: String
+  extraCustomFields: JSON
 }
 
 input UpdateTenantInput {
@@ -8303,12 +9146,32 @@ input UpdateTenantInput {
   isOfficial: Boolean
   domain: String
   industryType: String
+  storefrontMode: String
+  storefrontHomeLayout: String
+  couponFloorGroups: String
+  firstBuyDiscount: Int
+  couponCampaign: String
+  billpayMaxSalePrice: Int
+  billpayMaxFaceValue: Int
+  billpayMaxBundleTotal: Int
+  billpayMinValidDays: Int
+  billpayExpireRefundPolicy: String
+}
+
+input TenantFilterInput {
+  keyword: String
+  status: String
 }
 
 input TenantListOptions {
   skip: Int
   take: Int
-  filter: JSON
+  filter: TenantFilterInput
+}
+
+type TenantList implements PaginatedList {
+  totalItems: Int!
+  items: [Channel!]!
 }
 
 input CreateTenantAdministratorInput {
@@ -9734,6 +10597,8 @@ type GroupBuyActivity implements Node {
   leaderRewardType: String!
   autoConfirm: Boolean!
   allowJoinAfterComplete: Boolean!
+  productId: ID!
+  variantId: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -9839,7 +10704,6 @@ input UpdateFlashSaleActivityInput {
   limitPerUser: Int
   productId: ID
   variantId: ID
-  status: FlashSaleStatus
 }
 
 input FlashSaleActivityListOptions {
@@ -10768,6 +11632,16 @@ input CreateAggregatePayInput {
   aggregatePayCode: String!
 }
 
+type AggregatePayFailure {
+  paymentId: ID!
+  reason: String!
+}
+
+type SettleSessionAggregatePaysResult {
+  settled: Int!
+  failed: [AggregatePayFailure!]!
+}
+
 input CreatePosRefundInput {
   originalOrderId: ID!
   paymentId: ID!
@@ -11412,12 +12286,23 @@ type Review implements Node {
   isAnonymous: Boolean!
   status: String!
   giftGranted: Boolean!
+
+  """好评有礼所选礼包：quality / service / time；null 表示未选"""
+  giftChoice: String
   reply: String
   repliedAt: DateTime
   reviewedAt: DateTime
   helpfulCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
+
+  """差评申诉状态：pending / approved（评价已隐藏）/ rejected；null 表示未申诉"""
+  appealStatus: String
+  appealReason: String
+  appealImages: [String!]
+  appealAt: DateTime
+  appealResult: String
+  appealReviewedAt: DateTime
 }
 
 type ReviewList implements PaginatedList {
@@ -11443,6 +12328,12 @@ input ReviewListOptions {
   filterOperator: LogicalOperator
 }
 
+input ReviewAppealListOptions {
+  skip: Int
+  take: Int
+  status: String
+}
+
 type RatingCount {
   rating: Int!
   count: Int!
@@ -11464,6 +12355,79 @@ type ReviewStats {
 type ProductRating {
   rating: Float!
   reviewCount: Int!
+}
+
+"""P4-2 评价品质闭环：渠道预警规则（每渠道一条）"""
+type ReviewAlertRule {
+  channelId: ID!
+  enabled: Boolean!
+  maxRating: Int!
+  couponTemplateId: ID
+}
+
+"""P4-2 差评预警（reviewId 唯一）"""
+type ReviewAlert implements Node {
+  id: ID!
+  reviewId: ID!
+  channelId: ID!
+  productId: ID!
+  customerId: ID!
+  productName: String
+  rating: Int!
+  content: String!
+  tags: [String!]!
+
+  """none 未发 / issued 已发 / failed 发放失败（可重试）"""
+  couponStatus: String!
+  couponCode: String
+
+  """new 待处理 / replied 已回评 / closed 已关闭"""
+  status: String!
+  note: String
+  handledAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ReviewAlertList implements PaginatedList {
+  items: [ReviewAlert!]!
+  totalItems: Int!
+}
+
+input ReviewAlertListOptions {
+  skip: Int
+  take: Int
+  status: String
+
+  """创建时间下界（ISO 字符串）"""
+  from: String
+
+  """创建时间上界（ISO 字符串）"""
+  to: String
+
+  """Specifies which properties to sort the results by"""
+  sort: ReviewAlertSortParameter
+
+  """Allows the results to be filtered"""
+  filter: ReviewAlertFilterParameter
+
+  """
+  Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
+  """
+  filterOperator: LogicalOperator
+}
+
+input UpdateReviewAlertRuleInput {
+  enabled: Boolean
+  maxRating: Int
+  couponTemplateId: ID
+}
+
+type ReviewAlertStats {
+  newCount: Int!
+  totalCount: Int!
+  compensatedCount: Int!
+  last7dCount: Int!
 }
 
 type SubscribeMessageLog implements Node {
@@ -11547,6 +12511,11 @@ enum CouponIssuedBy {
   ADMIN
   EXCHANGE
   SALE
+  FISSION
+  RECALL
+  DAILY
+  FLASH
+  PAYGIFT
 }
 
 enum CouponUsageScene {
@@ -11585,6 +12554,15 @@ type CouponTemplate implements Node {
   usageScene: CouponUsageScene!
   distributionChannels: String
   salePrice: Int!
+  anchorPrice: Int
+  label: String
+  studentPrice: Int
+  category: String
+  activityImage: String
+  storeCoverage: String!
+  costBearer: String!
+  merchantCostRate: Int!
+  soldCount: Int
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -11605,6 +12583,32 @@ type CustomerCoupon implements Node {
   customer: Customer
   createdAt: DateTime!
   updatedAt: DateTime!
+}
+
+type CouponFissionRecord implements Node {
+  id: ID!
+  channelId: ID!
+  inviterCustomerId: ID!
+  inviteeCustomerId: ID!
+  inviteeCouponId: ID
+  inviterCouponId: ID
+  status: String!
+  sharedAt: DateTime
+  createdAt: DateTime!
+}
+
+type CouponGrantBatch implements Node {
+  id: ID!
+  channelId: ID!
+  templateId: ID!
+  days: Int!
+  totalSelected: Int!
+  issuedCount: Int!
+  skippedCount: Int!
+  resultsJson: String
+  operator: String
+  notified: Boolean!
+  createdAt: DateTime!
 }
 
 type ProductCouponBinding implements Node {
@@ -11651,6 +12655,19 @@ type CustomerCouponList implements PaginatedList {
   totalItems: Int!
 }
 
+type CouponRedemptionStat {
+  templateId: ID!
+  name: String
+  claimed: Int!
+  used: Int!
+  expired: Int!
+  unused: Int!
+  returned: Int!
+  invalid: Int!
+  redemptionRate: Float!
+  expiredRate: Float!
+}
+
 type InStoreBillQuote {
   ok: Boolean!
   reason: String
@@ -11683,6 +12700,8 @@ type InStoreBill implements Node {
   finalAmount: Int!
   operatorId: ID!
   operatorName: String
+  shopId: ID
+  shopName: String
   remark: String
   billedAt: DateTime!
   createdAt: DateTime!
@@ -11807,6 +12826,14 @@ input CreateCouponTemplateInput {
   usageScene: CouponUsageScene
   distributionChannels: String
   salePrice: Int
+  anchorPrice: Int
+  label: String
+  studentPrice: Int
+  category: String
+  activityImage: String
+  storeCoverage: String
+  costBearer: String
+  merchantCostRate: Int
 }
 
 input UpdateCouponTemplateInput {
@@ -11837,20 +12864,21 @@ input UpdateCouponTemplateInput {
   usageScene: CouponUsageScene
   distributionChannels: String
   salePrice: Int
+  anchorPrice: Int
+  label: String
+  studentPrice: Int
+  category: String
+  activityImage: String
+  storeCoverage: String
+  costBearer: String
+  merchantCostRate: Int
 }
 
 input CouponTemplateListOptions {
-  """Skips the first n results, for use in pagination"""
   skip: Int
-
-  """Takes n results, for use in pagination"""
   take: Int
-
-  """Specifies which properties to sort the results by"""
-  sort: CouponTemplateSortParameter
-
-  """Allows the results to be filtered"""
-  filter: CouponTemplateFilterParameter
+  sort: JSON
+  filter: JSON
 
   """
   Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
@@ -11859,17 +12887,10 @@ input CouponTemplateListOptions {
 }
 
 input CustomerCouponListOptions {
-  """Skips the first n results, for use in pagination"""
   skip: Int
-
-  """Takes n results, for use in pagination"""
   take: Int
-
-  """Specifies which properties to sort the results by"""
-  sort: CustomerCouponSortParameter
-
-  """Allows the results to be filtered"""
-  filter: CustomerCouponFilterParameter
+  sort: JSON
+  filter: JSON
 
   """
   Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
@@ -11943,6 +12964,7 @@ type CouponSaleOrder implements Node {
   externalRef: String
   paidAt: DateTime
   refundedAt: DateTime
+  storeId: ID
   createdAt: DateTime!
 }
 
@@ -11966,6 +12988,711 @@ input CouponSaleOrderListOptions {
   Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
   """
   filterOperator: LogicalOperator
+}
+
+type CouponStoreBinding implements Node {
+  id: ID!
+  templateId: ID
+  bundleId: ID
+  merchantId: ID
+  storeId: ID!
+  type: String!
+  priority: Int!
+  isDefault: Boolean!
+  channelId: ID!
+}
+
+type CouponRedemption implements Node {
+  id: ID!
+  customerCouponId: ID!
+  couponCode: String!
+  templateId: ID!
+  saleOrderId: ID
+  merchantId: ID
+  storeId: ID!
+  channelId: ID!
+  redeemMode: String!
+  operatorId: ID
+  operatorName: String
+  redeemedAt: DateTime!
+  revokedAt: DateTime
+  revokeReason: String
+  amount: Int
+  deviceInfo: String
+}
+
+enum CouponSettlementStatus {
+  PENDING
+  SETTLED
+  PAID_OUT
+  REVERSED
+  CANCELLED
+}
+
+type CouponSettlementOrder implements Node {
+  id: ID!
+  channelId: ID!
+  saleOrderId: ID
+  customerCouponId: ID!
+  templateId: ID
+  redeemRef: String!
+  inStoreBillId: ID
+  faceAmount: Int!
+  commissionRateBp: Int!
+  commissionAmount: Int!
+  netAmount: Int!
+  status: CouponSettlementStatus!
+  settlementNo: String!
+  splitMode: String
+  splitReceiptNo: String
+  attempts: Int!
+  lastError: String
+  settledAt: DateTime
+  paidOutAt: DateTime
+  reversedAt: DateTime
+  voucherType: String
+  remark: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CouponSettlementOrderList implements PaginatedList {
+  items: [CouponSettlementOrder!]!
+  totalItems: Int!
+}
+
+input CouponSettlementOrderListOptions {
+  skip: Int
+  take: Int
+  status: String
+
+  """Specifies which properties to sort the results by"""
+  sort: CouponSettlementOrderSortParameter
+
+  """Allows the results to be filtered"""
+  filter: CouponSettlementOrderFilterParameter
+
+  """
+  Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
+  """
+  filterOperator: LogicalOperator
+}
+
+"""结算汇总（T11 看板口径 = 结算单聚合；金额单位分）"""
+type CouponSettlementSummary {
+  total: Int!
+  pending: Int!
+  settled: Int!
+  paidOut: Int!
+  reversed: Int!
+  cancelled: Int!
+  totalFace: Int!
+  totalCommission: Int!
+  totalNet: Int!
+}
+
+"""
+分账配置态（T9 进件状态预留）：splitMode = stub|wechat|unknown；onboardingStatus = NONE|APPLYING|APPROVED|REJECTED
+"""
+type CouponSplitConfig {
+  splitMode: String!
+  onboardingStatus: String!
+}
+
+type CouponSettlementCycleResult {
+  submitted: Int!
+  promoted: Int!
+  failed: Int!
+}
+
+type CouponSettlementReconcileDiff implements Node {
+  id: ID!
+  runId: String!
+  channelId: ID!
+  settlementOrderId: ID
+  settlementNo: String
+  diffType: String!
+  severity: String!
+  detail: String
+  resolvedAt: DateTime
+  remark: String
+  createdAt: DateTime!
+}
+
+type CouponReconcileDiffList implements PaginatedList {
+  items: [CouponSettlementReconcileDiff!]!
+  totalItems: Int!
+}
+
+input CouponReconcileDiffListOptions {
+  skip: Int
+  take: Int
+  severity: String
+  diffType: String
+  includeResolved: Boolean
+}
+
+type CouponReconcileRunResult {
+  runId: String!
+  checked: Int!
+  diffs: Int!
+  high: Int!
+  medium: Int!
+  low: Int!
+}
+
+type StudentVerificationItem {
+  customerId: ID!
+  customerName: String!
+  customerEmail: String
+  status: String!
+  school: String
+  studentNo: String
+  idImg: String
+  reviewedAt: DateTime
+}
+
+type ServiceVoucher {
+  id: ID!
+  orderId: ID!
+  customerId: ID!
+  shopId: ID!
+  code: String!
+  productVoucherName: String!
+  status: String!
+  effectiveDays: Int!
+  expiresAt: DateTime
+  usedAt: DateTime
+  refundedAt: DateTime
+}
+
+type VoucherBooking {
+  id: ID!
+  voucherId: ID!
+  slotAt: DateTime!
+  customerCount: Int!
+  status: String!
+}
+
+type Merchant implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  code: String!
+  name: String!
+  shortName: String
+  logo: String
+  brand: String
+  intro: String
+  tags: [String!]
+  legalName: String
+  licenseNo: String
+  licenseImage: String
+  licenseExpiry: DateTime
+  merchantType: String!
+  industry: String
+  category: String
+  contactName: String
+  contactPhone: String
+  servicePhone: String
+  complaintPhone: String
+  email: String
+  wechat: String
+  province: String
+  city: String
+  district: String
+  street: String
+  address: String
+  ownerChannelId: ID
+  claimStatus: String!
+  contractNo: String
+  cooperationStart: DateTime
+  cooperationEnd: DateTime
+  commissionRate: Int
+  source: String!
+  settlementType: String
+  bankName: String
+  bankAccountName: String
+  bankAccountNo: String
+  taxNo: String
+  invoiceTitle: String
+  status: String!
+  statusReason: String
+  closedAt: DateTime
+}
+
+type MerchantStore implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  merchantId: ID!
+  code: String!
+  name: String!
+  storeType: String!
+  sortOrder: Int!
+  weight: Int!
+  country: String!
+  province: String
+  city: String
+  cityCode: String
+  district: String
+  street: String
+  addressLine: String
+  detail: String
+  postalCode: String
+  lat: Float
+  lng: Float
+  coordinateSystem: String!
+  geohash: String
+  mapPoiId: String
+  mapProvider: String
+  navigationAddress: String
+  phoneNumber: String
+  backupPhone: String
+  managerName: String
+  managerPhone: String
+  wechat: String
+  servicePhone: String
+  businessHours: String
+  businessHoursText: String
+  timezone: String!
+  specialDates: String
+  holidayPlan: String
+  status: String!
+  statusNote: String
+  reopenAt: DateTime
+  acceptingOrders: Boolean!
+  coverImage: String
+  photos: [String!]
+  videos: [String!]
+  panoramaUrl: String
+  notice: String
+  tags: [String!]
+  facilities: [String!]
+  supportsRedemption: Boolean!
+  redemptionHours: String
+  dailyRedeemLimit: Int
+  requiresReservation: Boolean!
+  reservationPhone: String
+  supportsDelivery: Boolean!
+  deliveryRadiusKm: Int
+  deliveryFee: Int
+  minOrderAmount: Int
+  deliveryMinutes: Int
+  externalIds: String
+  source: String!
+  lastSyncAt: DateTime
+  isPublic: Boolean!
+  enabled: Boolean!
+  createdBy: String
+  updatedBy: String
+  deletedAt: DateTime
+}
+
+type MerchantStoreChannel implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  storeId: ID!
+  channelId: ID!
+  role: String!
+  status: String!
+  claimedByUserId: ID
+  claimedAt: DateTime
+  verifiedAt: DateTime
+  contractNo: String
+  note: String
+}
+
+type MerchantStoreStaff implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  storeId: ID!
+  userId: ID!
+  name: String
+  phone: String
+  role: String!
+  status: String!
+  lastLoginAt: DateTime
+}
+
+type MerchantList {
+  items: [Merchant!]!
+  totalItems: Int!
+}
+
+type MerchantStoreList {
+  items: [MerchantStore!]!
+  totalItems: Int!
+}
+
+input MerchantListOptions {
+  skip: Int
+  take: Int
+  keyword: String
+  status: String
+  claimStatus: String
+}
+
+input MerchantStoreListOptions {
+  skip: Int
+  take: Int
+  merchantId: ID
+  city: String
+  status: String
+  keyword: String
+}
+
+input CreateMerchantInput {
+  code: String!
+  name: String!
+  shortName: String
+  logo: String
+  brand: String
+  intro: String
+  tags: [String!]
+  legalName: String
+  licenseNo: String
+  licenseImage: String
+  licenseExpiry: DateTime
+  merchantType: String
+  industry: String
+  category: String
+  contactName: String
+  contactPhone: String
+  servicePhone: String
+  complaintPhone: String
+  email: String
+  wechat: String
+  province: String
+  city: String
+  district: String
+  street: String
+  address: String
+  ownerChannelId: ID
+  claimStatus: String
+  contractNo: String
+  cooperationStart: DateTime
+  cooperationEnd: DateTime
+  commissionRate: Int
+  source: String
+  settlementType: String
+  bankName: String
+  bankAccountName: String
+  bankAccountNo: String
+  taxNo: String
+  invoiceTitle: String
+  status: String
+  statusReason: String
+  closedAt: DateTime
+}
+
+input UpdateMerchantInput {
+  id: ID!
+  code: String
+  name: String
+  shortName: String
+  logo: String
+  brand: String
+  intro: String
+  tags: [String!]
+  legalName: String
+  licenseNo: String
+  licenseImage: String
+  licenseExpiry: DateTime
+  merchantType: String
+  industry: String
+  category: String
+  contactName: String
+  contactPhone: String
+  servicePhone: String
+  complaintPhone: String
+  email: String
+  wechat: String
+  province: String
+  city: String
+  district: String
+  street: String
+  address: String
+  ownerChannelId: ID
+  claimStatus: String
+  contractNo: String
+  cooperationStart: DateTime
+  cooperationEnd: DateTime
+  commissionRate: Int
+  source: String
+  settlementType: String
+  bankName: String
+  bankAccountName: String
+  bankAccountNo: String
+  taxNo: String
+  invoiceTitle: String
+  status: String
+  statusReason: String
+  closedAt: DateTime
+}
+
+input CreateMerchantStoreInput {
+  merchantId: ID!
+  code: String!
+  name: String!
+  storeType: String
+  sortOrder: Int
+  weight: Int
+  country: String
+  province: String
+  city: String
+  cityCode: String
+  district: String
+  street: String
+  addressLine: String
+  detail: String
+  postalCode: String
+  lat: Float
+  lng: Float
+  coordinateSystem: String
+  geohash: String
+  mapPoiId: String
+  mapProvider: String
+  navigationAddress: String
+  phoneNumber: String
+  backupPhone: String
+  managerName: String
+  managerPhone: String
+  wechat: String
+  servicePhone: String
+  businessHours: String
+  businessHoursText: String
+  timezone: String
+  specialDates: String
+  holidayPlan: String
+  status: String
+  statusNote: String
+  reopenAt: DateTime
+  acceptingOrders: Boolean
+  coverImage: String
+  photos: [String!]
+  videos: [String!]
+  panoramaUrl: String
+  notice: String
+  tags: [String!]
+  facilities: [String!]
+  supportsRedemption: Boolean
+  redemptionHours: String
+  dailyRedeemLimit: Int
+  requiresReservation: Boolean
+  reservationPhone: String
+  supportsDelivery: Boolean
+  deliveryRadiusKm: Int
+  deliveryFee: Int
+  minOrderAmount: Int
+  deliveryMinutes: Int
+  externalIds: String
+  source: String
+  lastSyncAt: DateTime
+  isPublic: Boolean
+  enabled: Boolean
+  createdBy: String
+  updatedBy: String
+}
+
+input UpdateMerchantStoreInput {
+  id: ID!
+  merchantId: ID
+  code: String
+  name: String
+  storeType: String
+  sortOrder: Int
+  weight: Int
+  country: String
+  province: String
+  city: String
+  cityCode: String
+  district: String
+  street: String
+  addressLine: String
+  detail: String
+  postalCode: String
+  lat: Float
+  lng: Float
+  coordinateSystem: String
+  geohash: String
+  mapPoiId: String
+  mapProvider: String
+  navigationAddress: String
+  phoneNumber: String
+  backupPhone: String
+  managerName: String
+  managerPhone: String
+  wechat: String
+  servicePhone: String
+  businessHours: String
+  businessHoursText: String
+  timezone: String
+  specialDates: String
+  holidayPlan: String
+  status: String
+  statusNote: String
+  reopenAt: DateTime
+  acceptingOrders: Boolean
+  coverImage: String
+  photos: [String!]
+  videos: [String!]
+  panoramaUrl: String
+  notice: String
+  tags: [String!]
+  facilities: [String!]
+  supportsRedemption: Boolean
+  redemptionHours: String
+  dailyRedeemLimit: Int
+  requiresReservation: Boolean
+  reservationPhone: String
+  supportsDelivery: Boolean
+  deliveryRadiusKm: Int
+  deliveryFee: Int
+  minOrderAmount: Int
+  deliveryMinutes: Int
+  externalIds: String
+  source: String
+  lastSyncAt: DateTime
+  isPublic: Boolean
+  enabled: Boolean
+  createdBy: String
+  updatedBy: String
+  deletedAt: DateTime
+}
+
+input UpsertMerchantStoreStaffInput {
+  storeId: ID!
+  userId: ID!
+  name: String
+  phone: String
+  role: String
+  status: String
+  lastLoginAt: DateTime
+}
+
+enum BillPayStatus {
+  PENDING_QUOTE
+  QUOTED
+  PAID
+  IN_SERVICE
+  COMPLETED
+  SETTLED
+  CANCELLED
+  REFUNDED
+}
+
+type BillPayOrder implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  code: String
+  customerId: ID!
+  merchantName: String!
+  merchantId: ID
+  expectedAmount: Int!
+  quoteAmount: Int
+  actualAmount: Int
+  discountDetail: JSON
+  couponCode: String
+  couponDiscount: Int
+  status: BillPayStatus!
+  remark: String
+  quoteNote: String
+  quoteExpireAt: DateTime
+  proofUrl: String
+  paymentMethod: String
+  operatorId: ID
+  settleLedgerId: ID
+  paidAt: DateTime
+  completedAt: DateTime
+  settledAt: DateTime
+  refundedAt: DateTime
+  completeNote: String
+  channelId: ID!
+}
+
+input BillPayOrderListOptions {
+  skip: Int
+  take: Int
+  status: BillPayStatus
+
+  """Specifies which properties to sort the results by"""
+  sort: BillPayOrderSortParameter
+
+  """Allows the results to be filtered"""
+  filter: BillPayOrderFilterParameter
+
+  """
+  Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
+  """
+  filterOperator: LogicalOperator
+}
+
+type BillPayOrderList implements PaginatedList {
+  items: [BillPayOrder!]!
+  totalItems: Int!
+}
+
+input CreateBillPayOrderInput {
+  merchantName: String!
+  merchantId: ID
+  expectedAmount: Int!
+  remark: String
+  couponCode: String
+}
+
+type BillPayDiscountItem {
+  rule: String!
+  label: JSON
+  amount: Int!
+}
+
+type MerchantAgreement implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  channelId: ID!
+  merchantName: String!
+  merchantId: ID
+  settleRate: Int!
+  settleMode: String!
+  contact: String
+  note: String
+}
+
+input MerchantAgreementInput {
+  merchantName: String!
+  merchantId: ID
+  settleRate: Int!
+  settleMode: String
+  contact: String
+  note: String
+}
+
+type BillPayMemberDiscount {
+  percent: Int!
+  label: JSON
+}
+
+type BillPayThreshold {
+  minSpend: Int!
+  reduce: Int!
+  label: JSON
+}
+
+type BillPayConfig {
+  autoQuote: Boolean!
+  quoteExpireMinutes: Int!
+  couponEnabled: Boolean!
+  tolerancePercent: Int!
+  dailyLimitAmount: Int!
+  minAmount: Int!
+  maxAmount: Int!
+  memberDiscount: BillPayMemberDiscount
+  thresholds: [BillPayThreshold!]!
 }
 
 type LiveRoom implements Node {
@@ -12089,6 +13816,15 @@ type CampusBuilding {
   detail: String
   zoneId: ID!
   channelId: ID!
+  lat: Float
+  lng: Float
+}
+
+input CampusBuildingPatchInput {
+  name: String
+  detail: String
+  lat: Float
+  lng: Float
 }
 
 type CampusFulfillmentConfig {
@@ -12104,6 +13840,21 @@ type CampusFulfillmentConfig {
   merchantConfirmEnabled: Boolean!
   merchantAutoOpenMinutes: Int!
   freeShippingThreshold: Int
+
+  """配送费阶梯（P3-4）JSON：[{minAmount:分, fee:分}]，null=不启用"""
+  deliveryFeeTiers: String
+  timeoutCompensationEnabled: Boolean!
+  timeoutGraceMinutes: Int!
+
+  """超时赔付回扫窗口（小时，1-168），默认 24"""
+  timeoutCompensationWindowHours: Int!
+  timeoutCompensationCouponTemplateId: String
+
+  """接单班次校验：开启后骑手仅能在后台登记的排班时段内抢单"""
+  shiftCheckEnabled: Boolean!
+
+  """自动拉黑阈值：近 30 天顾客主动取消订单达到该次数自动加入黑名单（0=关闭）"""
+  blacklistAutoCancelCount: Int!
 }
 
 input CampusFulfillmentConfigInput {
@@ -12116,6 +13867,15 @@ input CampusFulfillmentConfigInput {
   compensationCouponTemplateId: String
   merchantConfirmEnabled: Boolean
   merchantAutoOpenMinutes: Int
+
+  """配送费阶梯（P3-4）JSON：[{minAmount:分, fee:分}]，null=不启用"""
+  deliveryFeeTiers: String
+  timeoutCompensationEnabled: Boolean
+  timeoutGraceMinutes: Int
+  timeoutCompensationWindowHours: Int
+  timeoutCompensationCouponTemplateId: String
+  shiftCheckEnabled: Boolean
+  blacklistAutoCancelCount: Int
 }
 
 type DeliverySlot {
@@ -12160,24 +13920,1371 @@ type MerchantBoardOrder {
   code: String!
   createdAt: DateTime!
   total: Int!
+  shipping: Int!
   building: String!
   zone: String!
   slotText: String!
   route: String!
   riderName: String
+  note: String
+  printedAt: DateTime
+  provider: String
+  thirdPartyNo: String
+  handoverCode: String
+
+  """配送状态：assigned=已接单未取餐 / in_progress=已取餐在途"""
+  deliveryStatus: String
+
+  """顾客手机号（脱敏，号码保护同口径）；工作台检索/联系用"""
+  customerPhone: String
+
+  """顾客催单待处理（§78）：顾客催过且商家未「已知晓」"""
+  urged: Boolean!
+
+  """顾客最近一次催单时间（null=从未催单）"""
+  urgedAt: DateTime
   lines: [MerchantBoardLine!]!
+}
+
+"""已完成订单明细（§75 对账）：含退款与实收"""
+type CampusMerchantCompletedOrder {
+  id: ID!
+  code: String!
+
+  """送达时间（对账归时点；历史脏数据可能为 null）"""
+  deliveredAt: DateTime
+  createdAt: DateTime!
+
+  """订单总额（与工作台「今日完成金额」同口径）"""
+  total: Int!
+
+  """该单已退金额（排除 Failed 退款单）"""
+  refundAmount: Int!
+
+  """剩余可退金额（§76）：已支付 − 已退；0 = 已全额退款或未支付"""
+  refundable: Int!
+
+  """实收 = total - refundAmount"""
+  netAmount: Int!
+  building: String!
+  zone: String!
+  route: String!
+  riderName: String
+
+  """顾客手机号（脱敏，号码保护同口径）"""
+  customerPhone: String
+
+  """商品摘要：宫保鸡丁×1、米饭×2"""
+  lineText: String!
+  note: String
+}
+
+"""已完成订单列表 + 区间汇总（§75 对账）"""
+type CampusMerchantCompletedOrders {
+  items: [CampusMerchantCompletedOrder!]!
+
+  """区间内已完成单量（不受分页影响）"""
+  total: Int!
+  totalAmount: Int!
+  refundAmount: Int!
+  netAmount: Int!
+
+  """客单价 = 实收 / 单量"""
+  avgTicket: Int!
+
+  """实际查询区间（回显）"""
+  start: DateTime!
+  end: DateTime!
+}
+
+"""商家发起退款回执（§76）：金额单位分"""
+type CampusMerchantRefundResult {
+  ok: Boolean!
+
+  """本次退款金额（分）"""
+  amount: Int!
+
+  """该单累计已退（分，排除 Failed 退款单）"""
+  refundedTotal: Int!
+
+  """处理后剩余可退（分）"""
+  refundable: Int!
+}
+
+"""退款记录行（§77 台账）：一笔退款单一行"""
+type CampusMerchantRefundRow {
+  id: ID!
+  orderId: ID!
+
+  """订单号"""
+  code: String!
+
+  """退款金额（分）"""
+  amount: Int!
+
+  """退款单状态：Pending/Settled/Failed 等"""
+  state: String!
+
+  """退款原因（已去掉「merchant refund (单号):」留痕前缀）"""
+  reason: String!
+
+  """merchant=商家发起 / platform=平台处置"""
+  source: String!
+  createdAt: DateTime!
+  building: String!
+  zone: String!
+}
+
+"""退款记录台账 + 区间汇总（§77）"""
+type CampusMerchantRefunds {
+  items: [CampusMerchantRefundRow!]!
+
+  """区间退款笔数（排除 Failed）"""
+  count: Int!
+
+  """区间退款总额（分，排除 Failed）"""
+  amount: Int!
+
+  """失败笔数 / 金额（留痕排障，不计入退款总额）"""
+  failedCount: Int!
+  failedAmount: Int!
+
+  """区间退款单总数（含失败，用于分页）"""
+  total: Int!
+  start: DateTime!
+  end: DateTime!
+}
+
+"""营业时间自动切换（自动开门 / 自动打烊）：inMinutes=距切换分钟数，today=是否发生在今天"""
+type CampusBusinessTransition {
+  """open=到点自动开门，close=到点自动打烊"""
+  action: String!
+
+  """切换时刻 HH:mm"""
+  at: String!
+  inMinutes: Int!
+  today: Boolean!
 }
 
 type CampusMerchantBoard {
   paused: Boolean!
+
+  """营业时段内且未临时休息（自动开关门生效依据）"""
+  openNow: Boolean!
+
+  """本店营业时间（空=全天营业）"""
+  businessHours: String
+
+  """下一次自动开门/打烊（null=全天营业）"""
+  nextTransition: CampusBusinessTransition
   merchantConfirmEnabled: Boolean!
+  printMode: String!
+
+  """打印通道（P1-4）：local=前端 C-Lodop / feie / yilianyun"""
+  printProvider: String!
+
+  """云通道账号/设备/密钥是否已配齐"""
+  cloudPrintConfigured: Boolean!
+  storeName: String!
+  storePhone: String
   pending: [MerchantBoardOrder!]!
   cooking: [MerchantBoardOrder!]!
   awaitingRider: [MerchantBoardOrder!]!
   delivering: [MerchantBoardOrder!]!
+  pendingDispatch: [MerchantBoardOrder!]!
+  thirdParty: [MerchantBoardOrder!]!
+  ownedPool: [MerchantBoardOrder!]!
+  ownedDispatched: [MerchantBoardOrder!]!
+  merchantDelivering: [MerchantBoardOrder!]!
   scheduled: [MerchantBoardOrder!]!
   completedToday: Int!
   completedTodayAmount: Int!
+
+  """今日休业（§70 营业日历），true 时 C 端「今日休业」且禁止下单"""
+  closedToday: Boolean!
+
+  """今日休业备注（空=无备注或未休业）"""
+  closureNote: String
+
+  """未出餐订单数（§71）：待接单 + 备餐中"""
+  unfinishedOrders: Int!
+
+  """待处理顾客催单数（§78）"""
+  urgedCount: Int!
+
+  """待处理售后单数（§83 今日待办）：Pending + Appealed"""
+  afterSalesPending: Int!
+
+  """退款失败售后单数（§83 今日待办）：需商家人工重试"""
+  refundFailed: Int!
+
+  """出餐超时订单数（§83 今日待办）：待接单/备餐中等待 ≥25 分钟"""
+  overdueOrders: Int!
+
+  """日报未推送（§118 今日待办）：已开启推送、已过设定时间且今日尚未推送成功"""
+  dailyPushPending: Boolean!
+}
+
+"""KDS 出餐屏单行（含加料快照）"""
+type CampusKitchenLine {
+  name: String!
+  quantity: Int!
+  addons: [String!]!
+}
+
+"""KDS 出餐票：pending=待接单，cooking=制作中；urgency=normal/warn/late"""
+type CampusKitchenTicket {
+  id: ID!
+  code: String!
+  stage: String!
+  createdAt: DateTime!
+  waitingMinutes: Int!
+  urgency: String!
+  zone: String!
+  building: String!
+  slotText: String!
+  note: String
+  printedAt: DateTime
+  total: Int!
+
+  """顾客催单待处理（§78）：出餐屏置顶并标红"""
+  urged: Boolean!
+
+  """系统已自动接管（R3-自营直接落池）：无需商家接单，仅需出餐"""
+  autoTaken: Boolean!
+  lines: [CampusKitchenLine!]!
+}
+
+type CampusKitchenQueue {
+  tickets: [CampusKitchenTicket!]!
+  pendingCount: Int!
+  cookingCount: Int!
+  lateCount: Int!
+
+  """待处理顾客催单数（§78）"""
+  urgedCount: Int!
+  warnMinutes: Int!
+  lateMinutes: Int!
+}
+
+"""备餐汇总（§79）：今日待做/已做份数，供后厨备料"""
+type CampusMerchantPrepAddon {
+  name: String!
+  quantity: Int!
+}
+
+type CampusMerchantPrepItem {
+  name: String!
+
+  """待接单份数"""
+  pendingQty: Int!
+
+  """备餐中份数"""
+  cookingQty: Int!
+
+  """今日已出餐（已送达）份数"""
+  doneQty: Int!
+
+  """待做合计 = 待接单 + 备餐中"""
+  todoQty: Int!
+
+  """今日合计 = 待做 + 已做"""
+  totalQty: Int!
+  addons: [CampusMerchantPrepAddon!]!
+}
+
+"""营业日报（§80）：单日时段分布"""
+type CampusDailyHourPoint {
+  hour: Int!
+  orders: Int!
+  gross: Int!
+}
+
+"""营业日报（§80）：单日商品销量行"""
+type CampusDailyProductRow {
+  name: String!
+
+  """销量（份）"""
+  qty: Int!
+
+  """商品金额（分，折后行小计汇总）"""
+  amount: Int!
+}
+
+"""营业日报（§80）：对比口径（昨日 / 近 7 日均值）"""
+type CampusDailyCompare {
+  orders: Int!
+  gross: Int!
+  avgTicket: Int!
+}
+
+"""营业日报（§80）：单日经营快照"""
+type CampusMerchantDailyReport {
+  """校园日 key（YYYY-MM-DD）"""
+  date: String!
+
+  """当日已完成（已送达）单量"""
+  orders: Int!
+
+  """当日营业额（分）"""
+  gross: Int!
+
+  """客单价（分）"""
+  avgTicket: Int!
+
+  """当日取消单量（按下单日归日）"""
+  cancelled: Int!
+
+  """当日取消退款金额（分）"""
+  cancelledAmount: Int!
+
+  """时段分布：今天只出到当前小时，历史日 24 点全出"""
+  hourly: [CampusDailyHourPoint!]!
+
+  """销量 Top5"""
+  topProducts: [CampusDailyProductRow!]!
+
+  """前一日同口径"""
+  prev: CampusDailyCompare!
+
+  """前 7 日（不含当日）日均"""
+  last7Avg: CampusDailyCompare!
+}
+
+"""售后申请行（§81）：金额单位分"""
+type CampusMerchantAfterSalesItem {
+  id: ID!
+  orderId: ID!
+
+  """订单号（A2400xxx）"""
+  orderCode: String!
+
+  """售后单状态（Pending=待处理 / Refunded=已退款 / Rejected=已驳回 …）"""
+  state: String!
+
+  """售后类型（refund_only / return_refund / exchange）"""
+  type: String!
+
+  """顾客选择的售后原因"""
+  reason: String!
+
+  """顾客补充说明"""
+  description: String
+
+  """申请退款金额（分）"""
+  refundAmount: Int!
+
+  """商家驳回理由（顾客可见）"""
+  rejectReason: String
+
+  """顾客上传的凭证图片"""
+  evidenceImages: [String!]!
+
+  """协商留言条数"""
+  messageCount: Int!
+
+  """顾客姓名"""
+  customerName: String
+  createdAt: DateTime!
+
+  """退款到账时间"""
+  refundedAt: DateTime
+
+  """待处理且已超过渠道处理时限（售后插件 afterSalesTimeoutHours）"""
+  overdue: Boolean!
+
+  """最新一条留言来自顾客且商家尚未回复"""
+  unread: Boolean!
+
+  """换货运单号（§83）"""
+  exchangeTrackingNo: String
+
+  """换货承运商（§83）"""
+  exchangeCarrier: String
+
+  """即将超时（§88）：未超时但剩余时间不足渠道阈值"""
+  dueSoon: Boolean!
+
+  """售后标签名（§88）：本店自定义标签"""
+  tags: [String!]!
+
+  """指派处理人 User id（未指派为空，§89）"""
+  assigneeUserId: ID
+
+  """处理人姓名（未指派或未匹配为空，§89）"""
+  assigneeName: String
+
+  """风险标记原因（未标记/已解除为空，§94）"""
+  riskReason: String
+
+  """SLA 计时已暂停（§95）：等待顾客配合期间不判超时/临期"""
+  slaPaused: Boolean!
+
+  """当前暂停原因（§96）：未暂停为空"""
+  slaPausedReason: String
+
+  """已升级平台仲裁且工单未关闭（§96）"""
+  escalated: Boolean!
+
+  """已提交大额退款复核、等待其他管理员确认（§99）"""
+  refundReviewPending: Boolean!
+
+  """退款失败原因（§110）：仅 RefundFailed 有值"""
+  refundError: String
+}
+
+"""售后状态计数（§81）：列表页签角标"""
+type CampusMerchantAfterSalesStateCount {
+  state: String!
+  count: Int!
+}
+
+"""售后申请清单（§81）"""
+type CampusMerchantAfterSalesList {
+  items: [CampusMerchantAfterSalesItem!]!
+
+  """待商家处理数（Pending + Appealed），不受筛选影响，供入口红点"""
+  pendingCount: Int!
+
+  """当前筛选条件命中总数"""
+  total: Int!
+
+  """全店各状态计数（不受 state 筛选影响）"""
+  stateCounts: [CampusMerchantAfterSalesStateCount!]!
+  skip: Int!
+  take: Int!
+}
+
+"""协商留言行（§81）：顾客与商家双向可见"""
+type CampusMerchantAfterSalesMessage {
+  id: ID!
+
+  """customer=顾客 / admin=商家"""
+  senderType: String!
+  senderName: String!
+  content: String!
+  images: [String!]!
+  createdAt: DateTime!
+}
+
+"""状态流转时间线（售后详情）"""
+type CampusMerchantAfterSalesHistory {
+  fromState: String
+  toState: String!
+  createdAt: DateTime!
+
+  """处理人 User id（顾客/系统路径为空，§88）"""
+  operatorUserId: ID
+
+  """处理人姓名（管理员；为空=顾客或系统自动，§88）"""
+  operatorName: String
+}
+
+"""收货地址（售后详情核对用）"""
+type CampusMerchantAfterSalesAddress {
+  fullName: String!
+  phoneNumber: String!
+  address: String!
+}
+
+"""订单商品行（售后详情核对用）"""
+type CampusMerchantAfterSalesLine {
+  name: String!
+  quantity: Int!
+
+  """行单价（含税，分）"""
+  unitPrice: Int!
+}
+
+"""售后详情（§81）：售后单 + 协商留言 + 状态时间线 + 退款失败留痕"""
+type CampusMerchantAfterSalesDetail {
+  request: CampusMerchantAfterSalesItem!
+  messages: [CampusMerchantAfterSalesMessage!]!
+
+  """留言总条数（列表最多回传 100 条）"""
+  messageTotal: Int!
+  stateHistory: [CampusMerchantAfterSalesHistory!]!
+
+  """退款失败原因（RefundFailed 留痕）"""
+  refundError: String
+
+  """实际退款到账金额（分，未退款为 null）"""
+  actualRefundAmount: Int
+
+  """渠道处理时限（小时）"""
+  timeoutHours: Int!
+
+  """顾客手机号"""
+  customerPhone: String
+
+  """订单收货地址"""
+  shippingAddress: CampusMerchantAfterSalesAddress
+
+  """订单商品行"""
+  orderItems: [CampusMerchantAfterSalesLine!]!
+
+  """订单实付总额（含税，分）"""
+  orderTotal: Int!
+
+  """指派变更历史（§92），按时间倒序"""
+  assignHistory: [CampusMerchantAfterSalesAssignLog!]!
+
+  """顾客回访记录（§94），按时间倒序"""
+  followUps: [CampusMerchantAfterSalesFollowUp!]!
+
+  """SLA 暂停历史（§96），按暂停时间倒序"""
+  slaPauses: [CampusMerchantAfterSalesSlaPause!]!
+
+  """平台仲裁升级记录（§96），按时间倒序"""
+  escalations: [CampusMerchantAfterSalesEscalation!]!
+}
+
+"""SLA 暂停记录（§96）：起止时间与原因"""
+type CampusMerchantAfterSalesSlaPause {
+  id: ID!
+  reason: String!
+  pausedAt: DateTime!
+
+  """恢复时间（仍在暂停为空）"""
+  resumedAt: DateTime
+
+  """本次暂停时长（毫秒，未恢复为 0）"""
+  pausedMs: Int!
+}
+
+"""平台仲裁升级工单（§96）"""
+type CampusMerchantAfterSalesEscalation {
+  id: ID!
+  requestId: ID!
+  reason: String!
+
+  """normal / urgent"""
+  priority: String!
+
+  """Open / Resolved"""
+  status: String!
+  createdBy: ID
+  creatorName: String
+  createdAt: DateTime!
+  resolvedAt: DateTime
+  resolution: String
+}
+
+"""顾客回访记录（§94）：电话/线上沟通留痕"""
+type CampusMerchantAfterSalesFollowUp {
+  id: ID!
+
+  """回访方式：phone / wechat / onsite / other"""
+  method: String!
+
+  """回访结果：reached / unreached / refused / other"""
+  result: String!
+  note: String
+
+  """下次跟进时间（空=无需再跟）"""
+  nextAt: DateTime
+  operatorName: String
+  createdAt: DateTime!
+}
+
+"""线下退款登记回执（§94）"""
+type CampusMerchantAfterSalesOfflineRefundResult {
+  id: ID!
+  state: String!
+
+  """本次登记退款金额（分）"""
+  actualRefundAmount: Int!
+  refundedAt: DateTime!
+}
+
+"""指派变更记录（§92）"""
+type CampusMerchantAfterSalesAssignLog {
+  fromUserId: ID
+  fromName: String
+  toUserId: ID
+  toName: String
+
+  """转交/指派原因（§99）"""
+  reason: String
+  createdAt: DateTime!
+}
+
+"""商品售后统计（§92）：区间内某商品的售后单量/退款与售后率"""
+type CampusMerchantAfterSalesProductRow {
+  productId: ID!
+  productName: String!
+  requestCount: Int!
+  refundCount: Int!
+
+  """退款金额（分）"""
+  refundAmount: Int!
+
+  """售后率（百分比）：售后单数 / 该商品区间订单数"""
+  requestRate: Int!
+}
+
+"""售后原因分布（§93）：区间内按原因聚合"""
+type CampusMerchantAfterSalesReasonRow {
+  reason: String!
+  requestCount: Int!
+  refundCount: Int!
+
+  """退款金额（分，仅已退款单）"""
+  refundAmount: Int!
+
+  """占比（百分比）"""
+  share: Int!
+
+  """上一等长区间同原因单量"""
+  previousCount: Int!
+
+  """环比变化（百分比，上一期为 0 时为 null）"""
+  changeRate: Int
+}
+
+"""顾客最近售后单（§93）"""
+type CampusMerchantAfterSalesCustomerRecent {
+  id: ID!
+  orderCode: String!
+  type: String!
+  state: String!
+
+  """申请退款金额（分）"""
+  amount: Int!
+  createdAt: DateTime!
+}
+
+"""顾客售后档案（§93）：本店维度聚合"""
+type CampusMerchantAfterSalesCustomerProfile {
+  customerId: ID!
+  name: String!
+
+  """手机号（脱敏）"""
+  phone: String
+  blacklisted: Boolean!
+  requestCount: Int!
+  refundedCount: Int!
+
+  """累计退款金额（分，仅已退款单）"""
+  refundAmount: Int!
+  firstAt: DateTime
+  lastAt: DateTime
+
+  """最近 10 条售后单"""
+  recent: [CampusMerchantAfterSalesCustomerRecent!]!
+}
+
+"""满意度分档（§93）"""
+type CampusMerchantAfterSalesReviewBucket {
+  score: Int!
+  count: Int!
+}
+
+"""低分待跟进（§93）：score <= 2"""
+type CampusMerchantAfterSalesLowReview {
+  id: ID!
+  requestId: ID!
+  orderCode: String!
+  customerName: String
+  score: Int!
+  comment: String
+  followedUp: Boolean!
+  createdAt: DateTime!
+}
+
+"""评价标签计数（§98）"""
+type CampusMerchantAfterSalesReviewTagCount {
+  tag: String!
+  count: Int!
+}
+
+"""退款后满意度汇总（§93、§98）"""
+type CampusMerchantAfterSalesReviewSummary {
+  total: Int!
+
+  """平均分（保留 1 位小数，无评分为 0）"""
+  avgScore: Float!
+
+  """1-5 分档人数（固定 5 项）"""
+  distribution: [CampusMerchantAfterSalesReviewBucket!]!
+
+  """低分（<=2）条数"""
+  lowScoreCount: Int!
+
+  """低分待跟进明细（最近 20 条）"""
+  lowScores: [CampusMerchantAfterSalesLowReview!]!
+
+  """评价标签 Top（§98）：按出现次数降序，最多 10 项"""
+  topTags: [CampusMerchantAfterSalesReviewTagCount!]!
+}
+
+"""商品维度售后行（§98，件数口径）"""
+type CampusMerchantAfterSalesProductRateRow {
+  productId: ID!
+  productName: String!
+
+  """区间内下单件数（不含已取消订单）"""
+  soldQuantity: Int!
+
+  """区间内售后单数"""
+  requestCount: Int!
+
+  """区间内已退款单数"""
+  refundCount: Int!
+
+  """区间内退款金额（分）"""
+  refundAmount: Int!
+
+  """售后率（百分比，保留 1 位小数）"""
+  afterSalesRate: Float!
+}
+
+"""商品维度售后分析（§98，件数口径）"""
+type CampusMerchantAfterSalesProductRateAnalysis {
+  items: [CampusMerchantAfterSalesProductRateRow!]!
+  totalRequests: Int!
+  totalRefundAmount: Int!
+  totalSold: Int!
+}
+
+"""退货物流轨迹节点（§98）"""
+type CampusMerchantAfterSalesReturnLogisticsEvent {
+  """
+  approved / shipped / picked_up / in_transit / delivered / exception / closed
+  """
+  status: String!
+  description: String!
+  occurredAt: DateTime!
+
+  """system=系统按状态派生 / merchant=商家登记"""
+  source: String!
+}
+
+"""退货物流（§98）：运单信息 + 轨迹时间线"""
+type CampusMerchantAfterSalesReturnLogistics {
+  requestId: ID!
+  orderCode: String!
+  type: String!
+  state: String!
+  trackingNo: String
+  carrier: String
+  events: [CampusMerchantAfterSalesReturnLogisticsEvent!]!
+}
+
+"""售后自动分流规则（§98）"""
+type CampusMerchantAfterSalesAutoRule {
+  id: ID!
+  name: String!
+
+  """匹配优先级：越小越先命中"""
+  priority: Int!
+  enabled: Boolean!
+
+  """* 或售后类型"""
+  matchType: String!
+  matchReason: String
+  minAmount: Int
+  maxAmount: Int
+
+  """approve / reject / escalate"""
+  action: String!
+  rejectReason: String
+  createdAt: DateTime!
+}
+
+"""售后处理统计（§81）：入口红点 + 今日处理量/退款额"""
+type CampusMerchantAfterSalesStats {
+  """待商家处理（Pending + Appealed）"""
+  pending: Int!
+
+  """待处理中已超时的单数"""
+  overdue: Int!
+
+  """渠道处理时限（小时）"""
+  timeoutHours: Int!
+
+  """今日已处理售后单数"""
+  todayHandled: Int!
+
+  """今日退款成功单数"""
+  todayRefunded: Int!
+
+  """今日退款金额（分）"""
+  todayRefundAmount: Int!
+
+  """待商家回复的售后会话数"""
+  pendingReply: Int!
+
+  """临期未处理单数（§88）"""
+  dueSoon: Int!
+
+  """渠道临期提醒阈值（小时，0=关闭）"""
+  dueSoonHours: Int!
+}
+
+"""售后标签（§88）：本店渠道自定义"""
+type CampusMerchantAfterSalesTag {
+  id: ID!
+  name: String!
+
+  """当前打标单数"""
+  usedCount: Int!
+}
+
+"""售后处理人候选（§89）：本店渠道管理员"""
+type CampusMerchantAfterSalesAssignee {
+  """管理员 User id（指派时传该值）"""
+  id: ID!
+  name: String!
+
+  """登录账号"""
+  identifier: String!
+}
+
+"""员工处理绩效（§89）：按操作人统计"""
+type CampusMerchantAfterSalesStaffRow {
+  operatorUserId: ID!
+  operatorName: String!
+
+  """处理过的售后单数（去重）"""
+  handled: Int!
+
+  """推进到完结（Refunded/Closed）的单数"""
+  resolved: Int!
+
+  """首次操作距申请的平均分钟"""
+  firstActionAvgMinutes: Int!
+
+  """完结操作距申请的平均分钟（无完结为 0）"""
+  resolveAvgMinutes: Int!
+
+  """经手单中当前仍超时未处理的单数（§97）"""
+  overdueCount: Int!
+
+  """经手单中已升级平台仲裁的单数（§97）"""
+  escalatedCount: Int!
+
+  """完结率（百分比 0-100，§97）"""
+  resolveRate: Int!
+
+  """经手单收到的满意度评分数（§98）"""
+  reviewCount: Int!
+
+  """经手单满意度平均分（1 位小数，无评分为 0，§98）"""
+  reviewAvgScore: Float!
+}
+
+"""售后工作台摘要（§88）：一次返回各待办入口与最老待处理时长"""
+type CampusMerchantAfterSalesWorkbench {
+  """待同意（Pending + Appealed）"""
+  toApprove: Int!
+
+  """待收货（Returning）"""
+  toReceive: Int!
+
+  """退款失败待人工"""
+  refundFailed: Int!
+
+  """待回复留言"""
+  pendingReply: Int!
+
+  """已超时待处理"""
+  overdue: Int!
+
+  """临期未处理"""
+  dueSoon: Int!
+
+  """SLA 计时已暂停的待处理单（§95）"""
+  slaPaused: Int!
+
+  """回访到期未跟进单数（§95）"""
+  followUpDue: Int!
+
+  """已升级平台仲裁且未关闭的单数（§96）"""
+  escalated: Int!
+
+  """最早一笔待处理单申请时间"""
+  oldestPendingAt: DateTime
+
+  """最老待处理单已等待小时数"""
+  oldestPendingHours: Int!
+}
+
+"""批量售后处理逐单结果（§83）"""
+type CampusMerchantAfterSalesBatchResult {
+  id: ID!
+  success: Boolean!
+
+  """成功后的售后状态，失败为空串"""
+  state: String!
+
+  """失败原因（成功为空串）"""
+  message: String!
+}
+
+"""售后报表类型分桶（§83）"""
+type CampusMerchantAfterSalesReportType {
+  type: String!
+  count: Int!
+}
+
+"""售后报表状态分桶（§83）"""
+type CampusMerchantAfterSalesReportState {
+  state: String!
+  count: Int!
+}
+
+"""售后报表逐日趋势（§83）：date=校园日 YYYY-MM-DD"""
+type CampusMerchantAfterSalesReportDay {
+  date: String!
+
+  """当日新建售后单数"""
+  count: Int!
+
+  """当日退款成功单数"""
+  refunded: Int!
+
+  """当日退款金额（分）"""
+  refundAmount: Int!
+}
+
+"""售后报表（§83）：区间内量/退款/超时与逐日趋势"""
+type CampusMerchantAfterSalesReport {
+  from: String!
+  to: String!
+  total: Int!
+  byType: [CampusMerchantAfterSalesReportType!]!
+  byState: [CampusMerchantAfterSalesReportState!]!
+
+  """区间内退款成功单数（按退款时间归集）"""
+  refunded: Int!
+
+  """区间内退款金额（分）"""
+  refundAmount: Int!
+
+  """区间内创建且当前仍超时的待处理单数"""
+  overdue: Int!
+  byDay: [CampusMerchantAfterSalesReportDay!]!
+
+  """顾客申请原因 Top5"""
+  reasons: [CampusMerchantAfterSalesReportReason!]!
+
+  """商家驳回原因 Top5"""
+  rejectReasons: [CampusMerchantAfterSalesReportReason!]!
+
+  """首次响应均值（分钟）：创建→商家首条留言"""
+  firstResponseAvgMinutes: Int!
+  firstResponseMaxMinutes: Int!
+
+  """完结均值（分钟）：创建→Refunded/Closed"""
+  resolveAvgMinutes: Int!
+  resolveMaxMinutes: Int!
+
+  """首响目标达标率（百分比，0=未设目标或无数据）"""
+  firstResponseOnTargetRate: Int!
+
+  """完结目标达标率（百分比，0=未设目标或无数据）"""
+  resolveOnTargetRate: Int!
+
+  """超出首响目标单数 / 超出完结目标单数"""
+  firstResponseOverdue: Int!
+  resolveOverdue: Int!
+
+  """上一周期对照（§90）：新建单数 / 退款单数 / 退款金额（分） / 超时单数"""
+  previousTotal: Int!
+  previousRefunded: Int!
+  previousRefundAmount: Int!
+  previousOverdue: Int!
+}
+
+"""本店拉黑顾客（§90）：仅商家可见"""
+type CampusMerchantAfterSalesBlacklistEntry {
+  id: ID!
+  customerId: ID
+  customerName: String
+
+  """手机号（脱敏）"""
+  phone: String
+  reason: String
+  createdBy: String!
+  createdAt: DateTime!
+}
+
+"""处理人负载（§91）：未完结 / 超时 / 临期 单数"""
+type CampusMerchantAfterSalesAssigneeLoad {
+  """管理员 User id；0 表示未指派"""
+  assigneeUserId: ID!
+  assigneeName: String!
+  openCount: Int!
+  overdueCount: Int!
+  dueSoonCount: Int!
+}
+
+"""商家售后内部备注（§86）：仅商家可见"""
+type CampusMerchantAfterSalesNote {
+  id: ID!
+  content: String!
+  createdBy: String!
+  createdAt: DateTime!
+}
+
+"""售后原因分桶（§84）"""
+type CampusMerchantAfterSalesReportReason {
+  reason: String!
+  count: Int!
+}
+
+"""售后规则配置（§84）：0 表示关闭对应自动化"""
+type CampusMerchantAfterSalesRules {
+  """待处理超时提醒（小时）"""
+  timeoutHours: Int!
+
+  """超时自动同意（小时，0=关闭）"""
+  autoApproveHours: Int!
+
+  """退款失败自动重试次数（0=关闭）"""
+  refundAutoRetry: Int!
+
+  """首响目标（小时，0=不考核）"""
+  firstResponseTargetHours: Int!
+
+  """完结目标（小时，0=不考核）"""
+  resolveTargetHours: Int!
+
+  """临期提醒阈值（小时，0=关闭，§88）"""
+  dueSoonHours: Int!
+
+  """大额退款复核阈值（分，0=关闭，§99）"""
+  refundReviewThreshold: Int!
+}
+
+"""大额退款复核记录（§99）：申请人以外的管理员确认后才退款"""
+type CampusMerchantAfterSalesRefundReview {
+  id: ID!
+  requestId: ID!
+  orderId: ID!
+
+  """订单号（A2400xxx）"""
+  orderCode: String!
+
+  """退款金额（分）"""
+  amount: Int!
+
+  """复核状态（Pending/Approved/Rejected）"""
+  status: String!
+
+  """申请人 User id"""
+  requestedBy: String!
+
+  """申请人姓名"""
+  requestedByName: String
+
+  """申请时间"""
+  requestedAt: DateTime!
+
+  """复核人 User id（未复核为空）"""
+  reviewedBy: String
+
+  """复核人姓名（未复核为空）"""
+  reviewedByName: String
+
+  """复核时间（未复核为空）"""
+  reviewedAt: DateTime
+
+  """复核备注"""
+  note: String
+
+  """当前登录者即申请人（不能再复核，§99）"""
+  selfRequested: Boolean!
+}
+
+"""智能话术推荐（§99）：按售后原因/类型匹配的快捷回复"""
+type CampusMerchantAfterSalesSuggestedReply {
+  """模板 id"""
+  id: ID!
+
+  """建议回复内容"""
+  content: String!
+
+  """匹配得分：越高越相关"""
+  score: Int!
+}
+
+"""售后操作审计行（§100）：统一操作留痕"""
+type CampusMerchantAfterSalesAuditRow {
+  id: ID!
+  requestId: ID!
+
+  """订单号（A2400xxx）"""
+  orderCode: String
+
+  """操作动作（approve/reject/close/transfer/assign…）"""
+  action: String!
+
+  """处理人 User id（系统操作为空）"""
+  actorUserId: String
+
+  """处理人姓名"""
+  actorName: String
+
+  """操作详情"""
+  detail: String
+  createdAt: DateTime!
+}
+
+"""售后值班条目（§100）：weekday 0=周日，跨零点 endMin>1440"""
+type CampusMerchantAfterSalesDutyEntry {
+  weekday: Int!
+  startMin: Int!
+  endMin: Int!
+  userId: ID!
+  userName: String
+}
+
+"""补偿挽留方案（§100）：部分退款 + 优惠券补偿"""
+type CampusMerchantAfterSalesCompensationPlan {
+  id: ID!
+  name: String!
+
+  """退款金额（分，0=只发券）"""
+  refundAmount: Int!
+
+  """优惠券模板 id（空=不发券）"""
+  couponTemplateId: String
+  note: String
+  enabled: Boolean!
+  createdAt: DateTime!
+}
+
+"""补偿发放结果（§100）"""
+type CampusMerchantAfterSalesCompensationResult {
+  ok: Boolean!
+
+  """本次退款金额（分）"""
+  refundAmount: Int!
+
+  """补偿券是否发放成功"""
+  couponGranted: Boolean!
+
+  """降级说明（发券失败等）"""
+  message: String!
+}
+
+"""商家快捷回复模板（§87）：本店渠道共用"""
+type CampusMerchantAfterSalesReplyTemplate {
+  id: ID!
+  content: String!
+  createdAt: DateTime!
+
+  """分类标签（§97 知识库），未分类为 null"""
+  category: String
+
+  """检索关键词（空格分隔，§97）"""
+  keywords: String
+
+  """排序权重：越小越靠前（§97）"""
+  sortOrder: Int!
+}
+
+"""退款流水（§84）：按退款时间倒序"""
+type CampusMerchantAfterSalesRefund {
+  id: ID!
+  orderCode: String
+  type: String!
+  reason: String!
+
+  """实际退款金额（分）"""
+  amount: Int!
+  refundedAt: DateTime
+  refundTransactionId: String
+}
+
+type CampusMerchantAfterSalesRefundList {
+  items: [CampusMerchantAfterSalesRefund!]!
+  total: Int!
+}
+
+"""售后自动化任务（§85）：超时提醒/自动同意/退款重试"""
+type CampusMerchantAfterSalesTask {
+  id: ID!
+
+  """pending_remind | pending_auto_approve | refund_retry"""
+  type: String!
+  requestId: Int!
+
+  """pending | cancelled | executed | failed"""
+  status: String!
+  dueAt: DateTime!
+
+  """业务次数（退款重试已执行次数）"""
+  attempt: Int!
+
+  """业务上限"""
+  maxAttempt: Int!
+
+  """执行失败重试次数"""
+  retryCount: Int!
+  lastError: String
+  executedAt: DateTime
+}
+
+type CampusMerchantAfterSalesTaskList {
+  items: [CampusMerchantAfterSalesTask!]!
+  total: Int!
+}
+
+"""高频售后顾客（§85）：手机号脱敏"""
+type CampusMerchantAfterSalesTopCustomer {
+  customerId: ID!
+  name: String!
+  phone: String!
+  count: Int!
+
+  """区间内退款额（分）"""
+  refundAmount: Int!
+  blacklisted: Boolean!
+}
+
+"""云打印结果：dryRun 保留给未接真实设备的联调场景"""
+type CampusPrintResult {
+  ok: Boolean!
+  provider: String!
+  dryRun: Boolean!
+  jobId: ID
+  error: String
+}
+
+"""云打印任务留痕（排障/重打依据）"""
+type CampusPrintJob {
+  id: ID!
+  orderId: ID
+  orderCode: String
+  provider: String!
+  deviceSn: String
+  status: String!
+  triggerType: String!
+  copies: Int!
+  dryRun: Boolean!
+  errorMessage: String
+  durationMs: Int
+  createdAt: DateTime!
+}
+
+"""商家自助经营：门店资料（营业状态按校园时区判定）"""
+type MerchantStoreProfile {
+  storeName: String!
+  businessHours: String
+  storeNotice: String
+  storePhone: String
+  paused: Boolean!
+  openNow: Boolean!
+
+  """今日是否休业（§70 营业日历），true 时 C 端「今日休业」且禁止下单"""
+  closedToday: Boolean!
+
+  """今日休业备注（空=无备注或未休业）"""
+  closureNote: String
+
+  """已登记的休业日期（升序，已过期的不返回）"""
+  closureDates: [CampusClosureDate!]!
+
+  """下一次自动开门/打烊（null=全天营业）"""
+  nextTransition: CampusBusinessTransition
+
+  """未出餐订单数（§71）：待接单 + 备餐中"""
+  unfinishedOrders: Int!
+
+  """每日日报推送开关（§86）：营业结束后把昨日日报推到店铺群"""
+  dailyPushEnabled: Boolean!
+
+  """日报推送时间 HH:MM（默认 21:30）"""
+  dailyPushTime: String!
+
+  """推送渠道是否可用（§118）：false 时设置页提示「未配置推送渠道，请联系运营」"""
+  dailyPushChannelReady: Boolean!
+
+  """最近一次推送失败时间（epoch ms，§119）：0 = 无可见失败"""
+  dailyPushLastFailAt: Float!
+
+  """最近一次推送失败原因（§119）：空 = 无可见失败"""
+  dailyPushLastFailReason: String!
+
+  """售后月度摘要推送开关（§95）"""
+  monthlyPushEnabled: Boolean!
+
+  """月度推送日（1-28，默认 1）"""
+  monthlyPushDay: Int!
+
+  """月度推送时间 HH:MM（默认 21:30）"""
+  monthlyPushTime: String!
+
+  """售后自动分配开关（§96）"""
+  autoAssignEnabled: Boolean!
+
+  """自动分配单人未完结上限（0=不限）"""
+  autoAssignMax: Int!
+
+  """售后异常预警推送开关（§96）"""
+  alertEnabled: Boolean!
+
+  """退款率预警阈值（百分比，0=关闭该项）"""
+  alertRefundRate: Int!
+
+  """超时待处理预警阈值（单，0=关闭该项）"""
+  alertOverdueCount: Int!
+
+  """信任文案（§113）：质量行开关（关=该行不展示）"""
+  trustQualityEnabled: Boolean!
+
+  """质量行自定义文案（空=回落 C 端默认文案）"""
+  trustQualityText: String
+
+  """服务行开关"""
+  trustServiceEnabled: Boolean!
+
+  """服务行自定义文案（空=回落默认）"""
+  trustServiceText: String
+
+  """时间行开关"""
+  trustTimeEnabled: Boolean!
+
+  """时间行自定义文案（空=回落默认）"""
+  trustTimeText: String
+}
+
+"""休业日期（§70 营业日历）：date=校园时区自然日 YYYY-MM-DD"""
+type CampusClosureDate {
+  date: String!
+  note: String
+}
+
+"""经营数据分桶（分）：营业额=窗口内已送达订单实付；取消=窗口内取消单（全额退款口径）"""
+type CampusMerchantRevenueBucket {
+  orders: Int!
+  gross: Int!
+  avgTicket: Int!
+  cancelled: Int!
+  cancelledAmount: Int!
+}
+
+type CampusMerchantRevenueDay {
+  date: String!
+
+  """完整日期 YYYY-MM-DD（自定义区间导出跨年可区分）"""
+  dateFull: String!
+  orders: Int!
+  gross: Int!
+  cancelled: Int!
+  cancelledAmount: Int!
+}
+
+type CampusMerchantRevenue {
+  today: CampusMerchantRevenueBucket!
+  last7: CampusMerchantRevenueBucket!
+  days: [CampusMerchantRevenueDay!]!
+
+  """P3-2 导出用：近 30 日（含今日）逐日明细，口径与 days 一致"""
+  days30: [CampusMerchantRevenueDay!]!
 }
 
 type DispatchAlert {
@@ -12239,11 +15346,66 @@ type CampusEnsureProfileResult {
   boundVariantCount: Int!
 }
 
+"""第一段承运方（仅 R1: merchant|owned，R3: campus|owned|external）"""
+type CampusRouteCarrier {
+  route: String!
+  carrier: String!
+}
+
+input CampusRouteCarrierInput {
+  route: String!
+  carrier: String!
+}
+
+"""校园交接点（仅 R1、R2 需要，同一路线可配多个，按收货楼栋取最近）"""
+type CampusHandoverPoint {
+  route: String!
+  name: String!
+  address: String
+  phone: String
+  lat: Float!
+  lng: Float!
+
+  """无收货坐标时的兜底默认点"""
+  isDefault: Boolean!
+}
+
+input CampusHandoverPointInput {
+  route: String!
+  name: String!
+  address: String
+  phone: String
+  lat: Float!
+  lng: Float!
+
+  """无收货坐标时的兜底默认点（每条路线只保留一个）"""
+  isDefault: Boolean
+}
+
+"""外部快递门店编号（运营中心维护，不对外暴露给商户）"""
+type CampusProviderShopNo {
+  provider: String!
+  shopNo: String!
+}
+
+input CampusProviderShopNoInput {
+  provider: String!
+  shopNo: String!
+}
+
 type CampusStoreConfigWithChannel {
   channelId: ID!
   channelName: String!
   channelToken: String!
   routesEnabled: [String!]!
+  routeFirstLeg: [CampusRouteCarrier!]!
+  handoverPoints: [CampusHandoverPoint!]!
+  providerShopNo: [CampusProviderShopNo!]!
+  merchantAcceptMinutes: Int!
+  externalPushTimeoutMinutes: Int!
+  externalFallbackMinutes: Int!
+  storeLat: Float
+  storeLng: Float
   deliveryMinutes: Int
   minOrderAmount: Int
   deliveryFee: Int
@@ -12251,21 +15413,136 @@ type CampusStoreConfigWithChannel {
   storePhone: String
   storeNotice: String
   errandBaseFee: Int
+  thirdPartyBaseFee: Int
   freeShippingThreshold: Int
+
+  """配送费阶梯（P3-4）JSON：[{minAmount:分, fee:分}]，null=不启用"""
+  deliveryFeeTiers: String
+  dynamicPricing: String
   notifyTemplateAccepted: String
   notifyTemplateRiderAssigned: String
   notifyTemplateCookingDone: String
   notifyTemplateDelivered: String
   notifyTemplateExceptionHandled: String
+
+  """第一段交接完成：餐/包裹已到校园交接点"""
+  notifyTemplateArrivedHandover: String
+
+  """配送方式降级/异常重派（超时转传信者、外部运力异常）"""
+  notifyTemplateDeliveryFallback: String
   notifyTemplateOrderPlaced: String
   notifyTemplatePaymentPending: String
   notifyTemplateCancelled: String
   notifyTemplateAfterSales: String
+  notifyTemplateAddressChanged: String
   h5BaseUrl: String
+  printMode: String!
+
+  """打印通道（P1-4）：local / feie / yilianyun"""
+  printProvider: String!
+  printAccount: String
+  printDeviceSn: String
+  printDeviceKey: String
+
+  """打印联数（1-5）"""
+  printCopies: Int!
+  timeoutCompensationEnabled: Boolean!
+  timeoutGraceMinutes: Int!
+
+  """超时赔付回扫窗口（小时，1-168），默认 24"""
+  timeoutCompensationWindowHours: Int!
+  timeoutCompensationCouponTemplateId: String
+
+  """号码保护开关：开启后骑手/商家/客服侧不下发顾客真实手机号"""
+  privacyNumberEnabled: Boolean!
+
+  """隐私号服务商：mask / mock / aliyun / tencent"""
+  privacyNumberProvider: String!
+
+  """实际生效的服务商（外部号池未接入时回落 mask）"""
+  privacyNumberEffectiveProvider: String!
+
+  """配置值≠生效值：号码保护未真正启用，后台需提示运营"""
+  privacyNumberDegraded: Boolean!
+  privacyNumberNote: String
+  privacyNumberTtlMinutes: Int!
+  privacyNumberPrefix: String
+  foodLicenseNo: String
+  foodLicenseImage: String
+  foodLicenseExpiry: String
+  foodSafetyGrade: String
+  foodSafetyCommitmentImage: String
+  kitchenLiveUrl: String
+  kitchenLiveEnabled: Boolean!
+
+  """打包费开关"""
+  packingFeeEnabled: Boolean!
+
+  """计费方式：perItem=按件累加 / perOrder=每单固定"""
+  packingFeeMode: String!
+
+  """打包费金额（分）：perItem=单件，perOrder=每单"""
+  packingFeeAmount: Int!
+
+  """单笔封顶（分，null=不封顶）"""
+  packingFeeCap: Int
+
+  """C 端展示名称（空=打包费）"""
+  packingFeeLabel: String
+
+  """小程序 AppID（wx + 16 位十六进制）"""
+  mpAppId: String
+
+  """服务类目（如「餐饮/外卖」）"""
+  mpCategory: String
+
+  """当前上架版本号（x.y.z）"""
+  mpVersion: String
+
+  """上架状态：draft / inReview / online / rejected / offline"""
+  mpListingStatus: String!
+
+  """用户隐私保护指引地址"""
+  mpPrivacyUrl: String
+
+  """审核备注 / 驳回原因"""
+  mpReviewNote: String
+
+  """上架前检查是否齐全（AppID/类目/版本/隐私指引/客服电话/食品许可证）"""
+  mpReady: Boolean!
+
+  """
+  上架前检查缺项 key：appId / category / version / privacyUrl / contactPhone / licenseNo
+  """
+  mpMissing: [String!]!
+
+  """语音搜索服务商：mock（内置模拟）/ none（未开启）"""
+  voiceSearchProvider: String!
+
+  """拍照搜索服务商：mock（内置模拟）/ none（未开启）"""
+  imageSearchProvider: String!
+}
+
+"""隐私联系方式（号码保护）：protected=false 时 display 即真实号"""
+type CampusPrivacyContact {
+  protected: Boolean!
+  display: String
+  callable: String
+  provider: String!
+  expiresAt: DateTime
+  note: String
 }
 
 input CampusStoreConfigInput {
   routesEnabled: [String!]!
+  routeFirstLeg: [CampusRouteCarrierInput!]
+  handoverPoints: [CampusHandoverPointInput!]
+  providerShopNo: [CampusProviderShopNoInput!]
+  merchantAcceptMinutes: Int
+  externalPushTimeoutMinutes: Int
+  externalFallbackMinutes: Int
+  storeLat: Float
+  storeLng: Float
   deliveryMinutes: Int
   minOrderAmount: Int
   deliveryFee: Int
@@ -12273,17 +15550,71 @@ input CampusStoreConfigInput {
   storePhone: String
   storeNotice: String
   errandBaseFee: Int
+  thirdPartyBaseFee: Int
   freeShippingThreshold: Int
+
+  """配送费阶梯（P3-4）JSON：[{minAmount:分, fee:分}]，null=不启用"""
+  deliveryFeeTiers: String
+  dynamicPricing: String
   notifyTemplateAccepted: String
   notifyTemplateRiderAssigned: String
   notifyTemplateCookingDone: String
   notifyTemplateDelivered: String
   notifyTemplateExceptionHandled: String
+
+  """第一段交接完成：餐/包裹已到校园交接点"""
+  notifyTemplateArrivedHandover: String
+
+  """配送方式降级/异常重派（超时转传信者、外部运力异常）"""
+  notifyTemplateDeliveryFallback: String
   notifyTemplateOrderPlaced: String
   notifyTemplatePaymentPending: String
   notifyTemplateCancelled: String
   notifyTemplateAfterSales: String
+  notifyTemplateAddressChanged: String
   h5BaseUrl: String
+  printMode: String
+
+  """打印通道：local（默认）/ feie / yilianyun；云通道须同时传账号/设备/密钥"""
+  printProvider: String
+  printAccount: String
+  printDeviceSn: String
+  printDeviceKey: String
+  printCopies: Int
+  timeoutCompensationEnabled: Boolean
+  timeoutGraceMinutes: Int
+  timeoutCompensationWindowHours: Int
+  timeoutCompensationCouponTemplateId: String
+  privacyNumberEnabled: Boolean
+  privacyNumberProvider: String
+  privacyNumberTtlMinutes: Int
+  privacyNumberPrefix: String
+  foodLicenseNo: String
+  foodLicenseImage: String
+  foodLicenseExpiry: String
+  foodSafetyGrade: String
+  foodSafetyCommitmentImage: String
+  kitchenLiveUrl: String
+  kitchenLiveEnabled: Boolean
+  packingFeeEnabled: Boolean
+  packingFeeMode: String
+  packingFeeAmount: Int
+  packingFeeCap: Int
+  packingFeeLabel: String
+  mpAppId: String
+  mpCategory: String
+  mpVersion: String
+
+  """上架状态：draft / inReview / online / rejected / offline"""
+  mpListingStatus: String
+  mpPrivacyUrl: String
+  mpReviewNote: String
+
+  """语音搜索服务商：mock / none（undefined=保留原值）"""
+  voiceSearchProvider: String
+
+  """拍照搜索服务商：mock / none（undefined=保留原值）"""
+  imageSearchProvider: String
 }
 
 type RiderWithdrawalRequest {
@@ -12297,6 +15628,9 @@ type RiderWithdrawalRequest {
   remark: String
   reviewedBy: String
   reviewedAt: DateTime
+  payoutRef: String
+  payoutProof: String
+  failReason: String
   createdAt: DateTime
 }
 
@@ -12305,8 +15639,790 @@ type RiderApplicationList {
   total: Int!
 }
 
+"""骑手合规判定项（P2-5：健康证/保险/背调）"""
+type RiderComplianceItem {
+  key: String!
+  label: String!
+
+  """ok / expiring / expired / pending / missing / failed"""
+  status: String!
+  expiry: DateTime
+  detail: String
+}
+
+type RiderComplianceResult {
+  customerId: ID!
+  ok: Boolean!
+  blocked: Boolean!
+  pending: Boolean!
+  items: [RiderComplianceItem!]!
+}
+
+input RiderComplianceInput {
+  healthCertNo: String
+  healthCertImg: String
+  healthCertExpiry: DateTime
+  insuranceNo: String
+  insuranceExpiry: DateTime
+
+  """none / pending / passed / failed"""
+  backgroundCheck: String
+}
+
+type CampusSupportTicket {
+  id: ID!
+
+  """顾客工单为下单顾客；系统工单（外部运单异常等）为 null"""
+  customerId: ID
+
+  """来源：customer（顾客提交）/ third_party_exception（外部运单异常自动建单）"""
+  source: String!
+
+  """值班人管理员 userId（系统工单建单时按本店值班表自动指派；无值班/顾客工单为 null）"""
+  assigneeId: ID
+  customerName: String
+  customerPhone: String
+  orderCode: String
+
+  """关联订单主键（建单按订单号解析并校验归属；未匹配为 null）"""
+  orderId: ID
+
+  """关联售后单主键（工单与售后打通）"""
+  afterSalesRequestId: ID
+
+  """关联售后单当前状态：Pending/Approved/Rejected/Refunded/RefundFailed/Closed 等"""
+  afterSalesState: String
+  afterSalesType: String
+  afterSalesRefundAmount: Int
+  afterSalesActualRefundAmount: Int
+  category: String!
+  content: String!
+  images: [String!]
+  status: String!
+  reply: String
+  repliedAt: DateTime
+  createdAt: DateTime!
+}
+
+type CampusSupportTicketList {
+  items: [CampusSupportTicket!]!
+  total: Int!
+}
+
+type CampusCompensationTask {
+  id: ID!
+  orderId: ID!
+  channelId: ID!
+  customerId: ID
+
+  """coupon=补发补偿券 / notify=补发站内信"""
+  kind: String!
+  dedupeKey: String!
+  status: String!
+  attempts: Int!
+  nextAttemptAt: DateTime
+  lastError: String
+  createdAt: DateTime!
+}
+
+type CampusCompensationTaskList {
+  items: [CampusCompensationTask!]!
+  total: Int!
+}
+
+type CampusRiderAppeal {
+  id: ID!
+  riderCustomerId: ID!
+  riderName: String
+  riderPhone: String
+  orderId: ID
+  orderCode: String
+  reason: String!
+  images: [String!]
+  status: String!
+  creditDelta: Int!
+  reviewNote: String
+  reviewedAt: DateTime
+  createdAt: DateTime!
+}
+
+type CampusRiderAppealList {
+  items: [CampusRiderAppeal!]!
+  total: Int!
+}
+
+type CampusBlacklistEntry {
+  id: ID!
+  type: String!
+  customerId: ID
+  phone: String
+  reason: String
+  createdBy: String
+  active: Boolean!
+  createdAt: DateTime!
+}
+
+type CampusBlacklistList {
+  items: [CampusBlacklistEntry!]!
+  total: Int!
+}
+
+type CampusRemoveResult {
+  ok: Boolean!
+}
+
+type CampusBlacklistImportResult {
+  added: Int!
+  skipped: Int!
+  invalid: Int!
+}
+
+"""在线客服会话（后台列表行）：带顾客姓名/手机号，免去二次查询"""
+type CampusChatConversation {
+  id: ID!
+  customerId: ID!
+  customerName: String
+  customerPhone: String
+  orderCode: String
+  subject: String
+  status: String!
+  lastMessage: String
+  lastMessageAt: DateTime
+  lastSenderType: String
+  unreadForCustomer: Int!
+  unreadForAdmin: Int!
+  closedAt: DateTime
+  createdAt: DateTime!
+}
+
+type CampusChatConversationList {
+  items: [CampusChatConversation!]!
+  total: Int!
+}
+
+"""未读角标：conversationCount 待处理会话数，messageCount 未读消息总数"""
+type CampusChatUnread {
+  conversationCount: Int!
+  messageCount: Int!
+}
+
+type CampusChatMessage {
+  id: ID!
+  conversationId: ID!
+  senderType: String!
+  senderId: ID
+  content: String
+  images: [String!]
+  readAt: DateTime
+  createdAt: DateTime!
+}
+
+type CampusRiderShift {
+  id: ID!
+  riderCustomerId: ID!
+  realName: String
+  shiftDate: String!
+  startTime: String!
+  endTime: String!
+  note: String
+  onlineMinutes: Int
+  shiftMinutes: Int
+}
+
+type CampusRiderShiftList {
+  date: String!
+  items: [CampusRiderShift!]!
+}
+
+input CampusRiderShiftInput {
+  id: ID
+  riderCustomerId: ID!
+  shiftDate: String!
+  startTime: String!
+  endTime: String!
+  note: String
+}
+
+type CampusRiderOnlineStat {
+  riderCustomerId: ID!
+  realName: String!
+  onlineMinutes: Int!
+}
+
+type CampusRiderOnlineStatList {
+  date: String!
+  items: [CampusRiderOnlineStat!]!
+}
+
+type CampusRiderReviewRow {
+  id: ID!
+  riderCustomerId: ID!
+  orderId: ID!
+  rating: Int!
+  tags: [String!]
+  comment: String
+  createdAt: DateTime!
+}
+
+type CampusRiderRating {
+  riderCustomerId: ID!
+  avgRating: Float!
+  ratingCount: Int!
+}
+
+type CampusMerchantProduct {
+  productId: ID!
+  name: String!
+  soldOut: Boolean!
+  monthlySales: Int!
+  variantCount: Int!
+
+  """商品级打包费单价（分/件）；null=沿用店铺配置金额"""
+  packingFee: Int
+
+  """加料组配置 JSON 字符串（AddonGroupConfig[]）；null=无加料"""
+  addonGroups: String
+
+  """套餐内容 JSON 字符串（ComboConfig）；null=非套餐商品"""
+  combo: String
+
+  """每日限量（份）；null=不限"""
+  dailyLimit: Int
+
+  """每人限购（份）；null=不限"""
+  perUserLimit: Int
+
+  """今日已售份数（UTC+8 当日已支付订单）"""
+  soldToday: Int!
+
+  """今日剩余可售份数；null=不限"""
+  remaining: Int
+}
+
+type CampusMerchantProductList {
+  items: [CampusMerchantProduct!]!
+  total: Int!
+}
+
+type CampusMerchantSoldOutResult {
+  ok: Boolean!
+  soldOut: Boolean!
+}
+
+"""全店批量沽清结果：count 为本次实际影响的本渠道商品数"""
+type CampusMerchantSoldOutBatchResult {
+  ok: Boolean!
+  soldOut: Boolean!
+  count: Int!
+}
+
+"""沽清次日自动恢复：enabled 为店铺开关，pending 为当前登记的待恢复件数"""
+type CampusSoldOutAutoRestore {
+  enabled: Boolean!
+  pending: Int!
+}
+
+"""商家自动接单（§69）：acceptedToday=本校园日已自动接单数，openNow=当前营业条件是否满足"""
+type CampusMerchantAutoAccept {
+  enabled: Boolean!
+
+  """下单到自动接单的延迟秒数（0-600）"""
+  delaySeconds: Int!
+
+  """每日自动接单上限（0=不限）"""
+  dailyLimit: Int!
+
+  """适用范围路线（R1/R2/R3）"""
+  routes: [String!]!
+
+  """本校园日已自动接单数"""
+  acceptedToday: Int!
+
+  """营业时段内且未临时休息（false 时自动接单静默暂停）"""
+  openNow: Boolean!
+
+  """本店是否开启商家接单确认模式（关闭时订单不产生待接单态）"""
+  merchantConfirmEnabled: Boolean!
+}
+
+type CampusMerchantPackingFeeResult {
+  ok: Boolean!
+
+  """保存后的商品级打包费（分/件）；null=沿用店铺配置"""
+  packingFee: Int
+}
+
+"""每日限量/每人限购保存结果（§68）：remaining=null 表示不限"""
+type CampusProductLimitResult {
+  ok: Boolean!
+  dailyLimit: Int
+  perUserLimit: Int
+  soldToday: Int!
+  remaining: Int
+}
+
+"""C 端商品当日额度（§68）：myToday/myRemaining 未登录时为 null"""
+type CampusProductDailyStock {
+  productId: ID!
+  dailyLimit: Int
+  perUserLimit: Int
+  soldToday: Int!
+  remaining: Int
+  myToday: Int
+  myRemaining: Int
+}
+
+"""商品加料组保存结果：addonGroups 为清洗后的 JSON 字符串，null=已清除"""
+type CampusMerchantAddonResult {
+  ok: Boolean!
+  addonGroups: String
+}
+
+"""商品套餐保存结果：combo 为清洗后的 JSON 字符串，null=已清除"""
+type CampusMerchantComboResult {
+  ok: Boolean!
+  combo: String
+}
+
+type CampusRiderEarningRow {
+  id: ID!
+  orderId: ID!
+  orderCode: String
+  riderCustomerId: ID!
+  riderName: String!
+
+  """分成金额（分，已含小费折算）"""
+  amount: Int!
+
+  """其中小费（分，仅展示，不额外叠加）"""
+  tip: Int!
+
+  """credited / pending / crediting"""
+  status: String!
+  createdAt: DateTime!
+}
+
+type CampusRiderEarningList {
+  items: [CampusRiderEarningRow!]!
+  total: Int!
+
+  """筛选条件下全量分成合计（分）"""
+  sumAmount: Int!
+
+  """筛选条件下全量小费合计（分）"""
+  sumTip: Int!
+}
+
+type CampusRiderTrackPoint {
+  id: ID!
+  orderId: ID!
+  orderCode: String
+  riderCustomerId: ID!
+  lat: Float!
+  lng: Float!
+  reportedAt: DateTime!
+}
+
+type CampusRiderTrack {
+  orderId: ID
+  orderCode: String
+  riderCustomerId: ID
+  riderName: String
+  points: [CampusRiderTrackPoint!]!
+
+  """相邻点位球面直线距离累计（米）"""
+  distanceMeters: Int!
+
+  """是否因单次上限 5000 点被截断"""
+  truncated: Boolean!
+}
+
+"""广告投放单（P2-3）：商家自助下单 → 模拟支付 → 平台审核 → 按日期投放"""
+type CampusAdCampaign {
+  id: ID!
+  channelId: ID!
+
+  """广告位：homeBanner（首页横幅）/ shopTop（店铺页顶部）"""
+  slot: String!
+  title: String!
+  imageUrl: String
+  linkUrl: String
+
+  """投放开始日（YYYY-MM-DD，含当日）"""
+  startDate: String!
+
+  """投放结束日（YYYY-MM-DD，含当日）"""
+  endDate: String!
+  days: Int!
+  unitPriceFen: Int!
+  totalFen: Int!
+
+  """
+  pendingPay / pendingReview / running / rejected / cancelled / finished（已结束按日期实时判定）
+  """
+  status: String!
+
+  """当前是否在展示窗口内"""
+  live: Boolean!
+  payRef: String
+  paidAt: DateTime
+  reviewNote: String
+  reviewedBy: String
+  reviewedAt: DateTime
+  createdAt: DateTime
+}
+
+"""广告投放单分页（§122）：total 为当前筛选下的总数，items 为当前页"""
+type CampusAdCampaignPage {
+  total: Int!
+  items: [CampusAdCampaign!]!
+}
+
+type CampusAdSlot {
+  code: String!
+  name: String!
+
+  """单日单价（分）"""
+  unitPriceFen: Int!
+}
+
+"""智能取餐柜站点（P2-4）：后端只落站点与格口规模，柜机 SDK 待接"""
+type CampusLockerStation {
+  id: ID!
+  channelId: ID!
+  name: String!
+
+  """柜机位置（如「东区 3 号楼一层大厅」）"""
+  location: String!
+
+  """服务商编码：self=自建"""
+  provider: String!
+  providerName: String!
+  totalCells: Int!
+
+  """可用格口（运营手工维护，本轮不接实时库存）"""
+  availableCells: Int!
+  openHours: String
+  pickupGuide: String
+  enabled: Boolean!
+  sort: Int!
+  createdBy: String
+  createdAt: DateTime
+}
+
+input CampusLockerStationInput {
+  name: String
+  location: String
+  provider: String
+  totalCells: Int
+  availableCells: Int
+  openHours: String
+  pickupGuide: String
+  enabled: Boolean
+  sort: Int
+}
+
+type CampusUnmannedProvider {
+  code: String!
+  name: String!
+  needsEndpoint: Boolean!
+  needsKey: Boolean!
+
+  """服务端是否已实现下发（mock=模拟实现，真实厂商暂未接入）"""
+  integrated: Boolean!
+}
+
+"""无人配送通道（P2-4 接口占位）：mock=模拟受理，真实厂商需 endpoint + key"""
+type CampusUnmannedChannel {
+  enabled: Boolean!
+  provider: String!
+  providerName: String!
+  providers: [CampusUnmannedProvider!]!
+  endpoint: String
+
+  """密钥是否已配置（不返回明文）"""
+  keyConfigured: Boolean!
+  needsEndpoint: Boolean!
+  needsKey: Boolean!
+
+  """当前所选服务商是否已实现下发（false=调用返回 unsupported）"""
+  integrated: Boolean!
+}
+
+input CampusUnmannedChannelInput {
+  enabled: Boolean
+  provider: String
+  endpoint: String
+  key: String
+}
+
+type CampusUnmannedDeliveryResult {
+  ok: Boolean!
+  provider: String!
+  providerName: String!
+
+  """
+  disabled / unconfigured / unsupported / rejected / accepted（accepted 仅 mock 模拟通道）
+  """
+  status: String!
+  requestNo: String
+  message: String!
+}
+
+type CampusDeliveryStatsKpi {
+  totalOrders: Int!
+  onTimeRate: Float!
+  avgDeliveryMinutes: Float!
+  timeoutCompensated: Int!
+}
+
+type CampusDeliveryDailyPoint {
+  date: String!
+  orders: Int!
+  onTimeRate: Float!
+}
+
+type CampusDeliveryStage {
+  key: String!
+  label: String!
+  avgMinutes: Float!
+}
+
+type CampusDeliveryAttribution {
+  merchant: Int!
+  rider: Int!
+  platform: Int!
+}
+
+type CampusDeliveryStoreLine {
+  channelId: ID!
+  channelName: String!
+  orders: Int!
+  onTimeRate: Float!
+}
+
+type CampusDeliveryStats {
+  range: String!
+  windowStart: DateTime!
+  kpis: CampusDeliveryStatsKpi!
+  dailyTrend: [CampusDeliveryDailyPoint!]!
+  stages: [CampusDeliveryStage!]!
+  attribution: CampusDeliveryAttribution!
+  storeComparison: [CampusDeliveryStoreLine!]!
+}
+
+type CampusSalesKpi {
+  orders: Int!
+  gmvFen: Float!
+  aovFen: Float!
+  customers: Int!
+  newCustomers: Int!
+  repurchaseRate: Float!
+}
+
+type CampusSalesCompare {
+  ordersPct: Float!
+  gmvPct: Float!
+  aovPct: Float!
+  repurchaseRatePct: Float!
+}
+
+type CampusSalesHourPoint {
+  hour: Int!
+  orders: Int!
+  gmvFen: Float!
+}
+
+type CampusSalesDayPoint {
+  date: String!
+  orders: Int!
+  gmvFen: Float!
+}
+
+type CampusSalesProduct {
+  productId: ID!
+  name: String!
+  quantity: Int!
+  gmvFen: Float!
+
+  """star 明星 / traffic 引流 / premium 利润 / slow 滞销"""
+  quadrant: String!
+
+  """所属分类（商品结构导出按分类筛选用）"""
+  categories: [CampusSalesProductCategory!]!
+}
+
+type CampusSalesProductCategory {
+  id: ID!
+  name: String!
+}
+
+type CampusSalesCohorts {
+  once: Int!
+  twiceToFour: Int!
+  loyal: Int!
+}
+
+type CampusSalesStats {
+  range: String!
+  windowStart: DateTime!
+  kpis: CampusSalesKpi!
+  prev: CampusSalesKpi!
+  compare: CampusSalesCompare!
+  hourlyHeat: [CampusSalesHourPoint!]!
+  dailyTrend: [CampusSalesDayPoint!]!
+  products: [CampusSalesProduct!]!
+  cohorts: CampusSalesCohorts!
+  medianQuantity: Float!
+  medianGmvFen: Float!
+}
+
+type CampusAddressChangeRow {
+  id: ID!
+  orderId: ID!
+  orderCode: String!
+  customerId: ID
+  fromZone: String!
+  fromBuilding: String!
+  fromDetail: String
+  toZone: String!
+  toBuilding: String!
+  toDetail: String
+  oldFee: Int!
+  newFee: Int!
+  diff: Int!
+  status: String!
+  settledAt: DateTime
+  settleAction: String
+
+  """结清凭证：补收收款方式/流水号，或退款说明"""
+  settleNote: String
+
+  """实际退款单 id（财务对账）"""
+  refundId: ID
+  source: String
+  reason: String
+  changedBy: ID
+  createdAt: DateTime!
+}
+
+"""改址差额试算（不落台账）"""
+type CampusAddressChangeQuote {
+  oldFee: Int!
+  newFee: Int!
+  diff: Int!
+  zoneId: ID!
+  zoneName: String!
+  buildings: [CampusBuilding!]!
+}
+
+type CampusPricingBreakdownItem {
+  key: String!
+  label: String!
+  fee: Int!
+}
+
+type CampusDynamicPricingZoneQuote {
+  zoneId: ID!
+  zoneName: String!
+  baseFee: Int!
+  price: Int!
+  addFee: Int!
+  breakdown: [CampusPricingBreakdownItem!]!
+}
+
+type CampusDynamicPricingSupply {
+  backlogThreshold: Int!
+  riderThreshold: Int
+  addFee: Int!
+}
+
+type CampusDynamicPricingPeakWindow {
+  label: String
+  start: String!
+  end: String!
+  addFee: Int!
+}
+
+type CampusDynamicPricingBaseQuote {
+  key: String!
+  configured: Boolean!
+  baseFee: Int!
+  price: Int!
+  addFee: Int!
+  breakdown: [CampusPricingBreakdownItem!]!
+}
+
+"""动态计价试算预览：当前供需 + 各分区加价拆解"""
+type CampusDynamicPricingPreview {
+  at: DateTime!
+  enabled: Boolean!
+  backlog: Int!
+  onlineRiders: Int!
+  manualMultiplier: Float!
+  maxAddFee: Int!
+  supply: CampusDynamicPricingSupply
+  peakWindows: [CampusDynamicPricingPeakWindow!]!
+  zones: [CampusDynamicPricingZoneQuote!]!
+
+  """R5 跑腿起步价口径（未配置按默认 2 元）"""
+  errand: CampusDynamicPricingBaseQuote!
+
+  """R2 第三方到校基价口径（未配置返回 null，沿用店铺普通快递运费）"""
+  thirdParty: CampusDynamicPricingBaseQuote
+}
+
+type CampusAddressChangeStats {
+  total: Int!
+  pendingCount: Int!
+  pendingCollect: Int!
+  pendingRefund: Int!
+}
+
+type CampusAddressChangeResult {
+  diff: Int!
+  oldFee: Int!
+  newFee: Int!
+  fromZone: String!
+  toZone: String!
+  recordId: ID!
+}
+
 type CampusMerchantOpResult {
   ok: Boolean!
+}
+
+"""批量操作结果（§73）：ok=成功单数；failed=失败单明细（逐单跳过，不影响已成功单）"""
+type CampusMerchantBatchResult {
+  ok: Int!
+  failed: [CampusMerchantBatchFailure!]!
+}
+
+type CampusMerchantBatchFailure {
+  orderId: ID!
+
+  """失败原因（如「订单状态已变更，请刷新」）"""
+  message: String!
+}
+
+"""外部快递推送结果；already=true 表示重复推送（幂等）"""
+type CampusExternalDelivery {
+  ok: Boolean!
+  provider: String
+  thirdPartyNo: String
+  already: Boolean
+}
+
+type CampusExternalCancelResult {
+  ok: Boolean!
+  reason: String
+  skipped: Boolean
+}
+
+"""第一段完成结果；done=true 表示订单已直送完成（R3）"""
+type CampusFirstLegResult {
+  ok: Boolean!
+  done: Boolean!
 }
 
 type PaymentTimeoutTask {
@@ -12342,6 +16458,127 @@ type PaymentTimeoutStats {
   todayCancel: Int!
   totalFailed: Int!
   pendingOverdue: Int!
+}
+
+"""P4-4 系统监控：单事件计数（Top 事件榜）"""
+type CampusEventCount {
+  name: String!
+  count: Int!
+}
+
+"""P4-4 近 7 日趋势点（按校园自然日）"""
+type CampusTrackDayPoint {
+  date: String!
+  events: Int!
+  errors: Int!
+}
+
+type CampusTrackEventStats {
+  todayEvents: Int!
+  totalEvents: Int!
+  todayErrors: Int!
+  totalErrors: Int!
+
+  """今日去重顾客数（游客不计）"""
+  affectedUsers: Int!
+  trend: [CampusTrackDayPoint!]!
+  topEvents: [CampusEventCount!]!
+}
+
+type CampusTrackEvent implements Node {
+  id: ID!
+  eventName: String!
+  page: String
+  sessionId: String
+  customerId: ID
+
+  """事件属性原始 JSON"""
+  props: String
+  createdAt: DateTime!
+}
+
+type CampusTrackEventList implements PaginatedList {
+  items: [CampusTrackEvent!]!
+  totalItems: Int!
+}
+
+type CampusErrorReport implements Node {
+  id: ID!
+
+  """c-end / admin"""
+  source: String!
+
+  """error / warn"""
+  level: String!
+  message: String!
+  stack: String
+  page: String
+  url: String
+  customerId: ID
+  createdAt: DateTime!
+}
+
+type CampusErrorReportList implements PaginatedList {
+  items: [CampusErrorReport!]!
+  totalItems: Int!
+}
+
+"""COD 现金收款记录（先有收款，才能退）"""
+type CampusCodReceipt implements Node {
+  id: ID!
+  orderId: ID
+  orderCode: String
+  paymentId: ID!
+
+  """实收金额（分）"""
+  amount: Int!
+  currencyCode: String!
+  method: String!
+  collectedAt: DateTime!
+
+  """rider / merchant / admin"""
+  collectedByRole: String!
+  collectedById: Int
+  collectedByName: String
+
+  """delivery_confirm / merchant_handover / pickup_counter / admin_manual"""
+  source: String!
+  deliveryOrderId: Int
+  handoverCode: String
+  deliveryRecordId: Int
+
+  """后台补录必填的凭证号"""
+  voucherNo: String
+  images: [String!]
+  note: String
+
+  """confirmed / voided"""
+  status: String!
+  voidedAt: DateTime
+  voidedById: Int
+  voidedByName: String
+  voidReason: String
+  createdAt: DateTime!
+}
+
+input CampusCodReceiptInput {
+  """实收金额（分，必填）"""
+  amount: Int!
+  paymentId: ID
+  method: String
+  collectedAt: DateTime
+  collectedByRole: String!
+  collectedById: Int
+  collectedByName: String
+  source: String!
+  deliveryOrderId: Int
+  handoverCode: String
+  deliveryRecordId: Int
+
+  """来源为 admin_manual 时必填"""
+  voucherNo: String
+  images: [String!]
+  note: String
 }
 
 type JianghuProfile {
@@ -12586,6 +16823,11 @@ type SalesReportDaily {
   date: String!
   orderCount: Int!
   revenue: Int!
+}
+
+type MerchantApiToken {
+  token: String!
+  expiresAt: String!
 }
 
 type PlatformCollectionNode {
@@ -13348,6 +17590,373 @@ input UpdateGroupBuyInput {
   rewardRules: JSON
 }
 
+enum NeedType {
+  logistics
+  daily
+  collections
+  projects
+}
+
+enum BusinessLine {
+  net
+  pond
+  hook
+}
+
+enum Locale {
+  ko
+  zh
+}
+
+enum CrossBorderStage {
+  lost
+  wait_pay
+  quoting
+  requirement
+  sourcing
+  risk
+  sample
+  producing
+  shipping
+  qc
+  refund
+  delivered
+  customs
+  done
+}
+
+enum StageEventState {
+  done
+  now
+  todo
+}
+
+enum ContentType {
+  column
+  case
+  logistics_channel
+  site_block
+}
+
+enum CustomsStatus {
+  not_started
+  docs_preparing
+  declared
+  inspecting
+  cleared
+  hold
+}
+
+enum InspectionResult {
+  pass
+  fail
+  conditional
+}
+
+type RfqCustomer {
+  name: String!
+  contact: String!
+  locale: Locale!
+  customerId: ID
+}
+
+type RfqRequirement {
+  item: String!
+  qty: String
+  eta: String
+  memo: String
+}
+
+type RfqQuote {
+  amount: Int!
+  currency: CurrencyCode!
+  validUntil: DateTime
+  note: String
+  createdAt: DateTime!
+}
+
+type RfqSample {
+  status: String!
+  trackingNo: String
+  confirmedAt: DateTime
+}
+
+type StageEvent {
+  stage: CrossBorderStage!
+  title: String!
+  desc: String
+  state: StageEventState!
+  time: DateTime
+}
+
+type Rfq implements Node {
+  id: ID!
+  code: String!
+  channelToken: String!
+  needType: NeedType!
+  needLabel: String!
+  customerName: String!
+  customerContact: String!
+  customer: RfqCustomer!
+  requirement: RfqRequirement!
+  stage: CrossBorderStage!
+  businessLine: BusinessLine
+  assignedTeam: String
+  quote: RfqQuote
+  sample: RfqSample
+  timeline: [StageEvent!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type RfqList implements PaginatedList {
+  items: [Rfq!]!
+  totalItems: Int!
+}
+
+type InspectionReport implements Node {
+  id: ID!
+  code: String!
+  orderCode: String
+  rfqCode: String
+  inspector: String!
+  inspectedAt: DateTime!
+  result: InspectionResult!
+  photos: [String!]
+  notesKr: String
+  notesCn: String
+  passed: Boolean!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CustomsRecord implements Node {
+  id: ID!
+  orderCode: String!
+  customsStatus: CustomsStatus!
+  declaredAt: DateTime
+  clearedAt: DateTime
+  hsCode: String
+  declarationNo: String
+  note: String
+  docs: [String!]
+  lastSyncedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type OnebridgeOrderItem {
+  id: ID!
+  productVariantId: ID
+  name: String!
+  spec: String
+  qty: Int!
+  price: Int!
+}
+
+type OnebridgeOrderSummary {
+  code: String!
+  state: String!
+  totalWithTax: Int!
+  currencyCode: CurrencyCode!
+  businessLine: BusinessLine
+  crossBorderStage: CrossBorderStage
+  rfqCode: String
+  needType: NeedType
+  krwAmount: Int
+  expectedEta: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  items: [OnebridgeOrderItem!]!
+  timeline: [StageEvent!]!
+}
+
+input SubmitRfqInput {
+  need: NeedType!
+  name: String!
+  contact: String!
+  item: String!
+  qty: String
+  eta: String
+  memo: String
+  locale: Locale
+  idempotencyKey: String
+}
+
+input RfqListOptions {
+  skip: Int
+  take: Int
+  needType: NeedType
+  stage: CrossBorderStage
+  keyword: String
+
+  """Specifies which properties to sort the results by"""
+  sort: RfqSortParameter
+
+  """Allows the results to be filtered"""
+  filter: RfqFilterParameter
+
+  """
+  Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND.
+  """
+  filterOperator: LogicalOperator
+}
+
+input ContentQueryOptions {
+  needType: NeedType
+  take: Int
+}
+
+type ServiceChannel {
+  needType: String
+  nameKr: String
+  nameCn: String
+  nameEn: String
+  tag: String
+  audience: String
+  headlineKr: String
+  headlineCn: String
+  introKr: String
+  introCn: String
+  color: String
+  points: JSON
+}
+
+type OnebridgeContentEntry implements Node {
+  id: ID!
+  channelToken: String!
+  slug: String!
+  contentType: ContentType!
+  needType: NeedType
+  titleKr: String!
+  titleCn: String
+  titleEn: String
+  bodyKr: String
+  bodyCn: String
+  bodyEn: String
+  who: String
+  caseResult: String
+  eta: String
+  tag: String
+  color: String
+  images: [String!]
+  payload: JSON
+  sort: Int!
+  published: Boolean!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type OnebridgeContentList implements PaginatedList {
+  items: [OnebridgeContentEntry!]!
+  totalItems: Int!
+}
+
+type InspectionList implements PaginatedList {
+  items: [InspectionReport!]!
+  totalItems: Int!
+}
+
+type CustomsList implements PaginatedList {
+  items: [CustomsRecord!]!
+  totalItems: Int!
+}
+
+input RfqQuoteInput {
+  amount: Int!
+  currency: CurrencyCode
+  validUntil: DateTime
+  note: String
+}
+
+input RfqSampleInput {
+  status: String!
+  trackingNo: String
+  confirmedAt: DateTime
+}
+
+input ContentListOptions {
+  skip: Int
+  take: Int
+  contentType: ContentType
+  needType: NeedType
+  published: Boolean
+  keyword: String
+  sort: JSON
+  filter: JSON
+  filterOperator: LogicalOperator
+}
+
+input OnebridgeContentInput {
+  id: ID
+  contentType: ContentType!
+  slug: String!
+  needType: NeedType
+  titleKr: String!
+  titleCn: String
+  titleEn: String
+  bodyKr: String
+  bodyCn: String
+  bodyEn: String
+  who: String
+  caseResult: String
+  eta: String
+  tag: String
+  color: String
+  images: [String!]
+  payload: JSON
+  sort: Int
+  published: Boolean
+}
+
+input InspectionListOptions {
+  skip: Int
+  take: Int
+  orderCode: String
+  rfqCode: String
+  result: InspectionResult
+  published: Boolean
+  sort: JSON
+  filter: JSON
+  filterOperator: LogicalOperator
+}
+
+input InspectionReportInput {
+  orderCode: String
+  rfqCode: String
+  inspector: String!
+  inspectedAt: DateTime
+  result: InspectionResult!
+  photos: [String!]
+  notesKr: String
+  notesCn: String
+  passed: Boolean
+}
+
+input CustomsListOptions {
+  skip: Int
+  take: Int
+  customsStatus: CustomsStatus
+  keyword: String
+  sort: JSON
+  filter: JSON
+  filterOperator: LogicalOperator
+}
+
+input CustomsRecordInput {
+  orderCode: String!
+  customsStatus: CustomsStatus
+  declaredAt: DateTime
+  clearedAt: DateTime
+  hsCode: String
+  declarationNo: String
+  note: String
+  docs: [String!]
+  idempotencyKey: String
+}
+
 type Message implements Node {
   id: ID!
   title: String!
@@ -13624,6 +18233,69 @@ type PaymentScheduleScanResult {
   shipBreaches: Int!
 }
 
+type SubscriptionPlan implements Node {
+  id: ID!
+  shopId: ID!
+  title: String!
+  description: String
+  periods: Int!
+  periodPrice: Int!
+  enabled: Boolean!
+}
+
+type SubscriptionOccurrence implements Node {
+  id: ID!
+  subscriptionId: ID!
+  periodNo: Int!
+  scheduledDate: DateTime!
+  orderCode: String
+  generatedOrderId: ID
+  status: String!
+  skipReason: String
+}
+
+input SubscriptionItemInput {
+  variantId: ID!
+  quantity: Int!
+}
+
+input CreateSubscriptionInput {
+  startDate: DateTime!
+}
+
+input SubscriptionPlanInput {
+  title: String!
+  description: String
+  frequency: String!
+  periods: Int!
+  periodPrice: Int!
+}
+
+type SubscriptionPlanList {
+  items: [SubscriptionPlan!]!
+  totalItems: Int!
+}
+
+type SubscriptionList {
+  items: [Subscription!]!
+  totalItems: Int!
+}
+
+type SubscriptionOccurrenceList {
+  items: [SubscriptionOccurrence!]!
+  totalItems: Int!
+}
+
+input SubscriptionListOptions {
+  skip: Int
+  take: Int
+}
+
+type SubscriptionProcessingResult {
+  created: Int!
+  skipped: Int!
+}
+
 type InstallmentPlan implements Node {
   id: ID!
   name: String!
@@ -13770,6 +18442,22 @@ type MeiliReindexResult {
   contentsTriggered: Boolean!
 }
 
+type WechatSupportTicket implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  openid: String!
+  channelId: ID
+  customerId: ID
+  storeId: String
+  storeName: String
+  summary: String
+  content: String!
+  status: String!
+  reply: String
+  repliedAt: DateTime
+}
+
 input AdministratorFilterParameter {
   id: IDOperators
   createdAt: DateOperators
@@ -13882,6 +18570,9 @@ input ChannelFilterParameter {
   enabled: BooleanOperators
   tenantNo: NumberOperators
   isOfficial: BooleanOperators
+  servingCities: StringListOperators
+  minOrderAmount: NumberOperators
+  deliveryMinutes: NumberOperators
   merchantStatus: StringOperators
   multilingualEnabled: BooleanOperators
   redeemCollectMode: StringOperators
@@ -13889,7 +18580,11 @@ input ChannelFilterParameter {
   taxMode: StringOperators
   physicalStockEnabled: BooleanOperators
   shareImageUrl: StringOperators
+  billPayStoreImage: StringOperators
   industryType: StringOperators
+  storefrontMode: StringOperators
+  storefrontHomeLayout: StringOperators
+  couponFloorGroups: StringOperators
   inventoryMode: StringOperators
   odooBaseUrl: StringOperators
   odooApiKey: StringOperators
@@ -13899,6 +18594,7 @@ input ChannelFilterParameter {
   reservationTtlMinutes: NumberOperators
   templateId: StringOperators
   themeTokensOverride: StringOperators
+  shopApp: StringOperators
   orderPaymentTimeoutMinutes: NumberOperators
   orderFulfillmentTimeoutHours: NumberOperators
   orderReceiptTimeoutDays: NumberOperators
@@ -13954,6 +18650,9 @@ input ChannelFilterParameter {
   taskOrderAmountPoints: NumberOperators
   taskOrderAmountGrowth: NumberOperators
   reviewGiftCouponTemplateId: StringOperators
+  reviewGiftQualityCouponTemplateId: StringOperators
+  reviewGiftServiceCouponTemplateId: StringOperators
+  reviewGiftTimeCouponTemplateId: StringOperators
   reviewGiftPoints: NumberOperators
   reviewFollowUpWindowDays: NumberOperators
   orderPaidTemplateId: StringOperators
@@ -13962,16 +18661,48 @@ input ChannelFilterParameter {
   orderRefundedTemplateId: StringOperators
   subscribeMessagePage: StringOperators
   subscribeMessageMiniprogramState: StringOperators
+  firstBuyDiscount: NumberOperators
+  couponCampaign: StringOperators
+  couponFission: StringOperators
+  couponDailyClaim: StringOperators
+  couponFlashSale: StringOperators
+  couponPayGift: StringOperators
+  billpayMaxSalePrice: NumberOperators
+  billpayMaxFaceValue: NumberOperators
+  billpayMaxBundleTotal: NumberOperators
+  billpayMinValidDays: NumberOperators
+  billpayExpireRefundPolicy: StringOperators
   waimaiTags: StringOperators
   waimaiMonthlySales: NumberOperators
   waimaiLogo: StringOperators
   waimaiPromoText: StringOperators
+  waimaiBusinessHours: StringOperators
+  waimaiDailyPushEnabled: BooleanOperators
+  waimaiDailyPushTime: StringOperators
+  waimaiDailyPushLastDate: StringOperators
+  waimaiDailyPushLastFailAt: StringOperators
+  waimaiDailyPushLastFailReason: StringOperators
+  waimaiAfterSalesMonthlyPushEnabled: BooleanOperators
+  waimaiAfterSalesMonthlyPushDay: NumberOperators
+  waimaiAfterSalesMonthlyPushTime: StringOperators
+  waimaiAfterSalesMonthlyPushLastMonth: StringOperators
+  waimaiAfterSalesAutoAssignEnabled: BooleanOperators
+  waimaiAfterSalesAutoAssignMax: NumberOperators
+  waimaiAfterSalesAlertEnabled: BooleanOperators
+  waimaiAfterSalesAlertRefundRate: NumberOperators
+  waimaiAfterSalesAlertOverdueCount: NumberOperators
+  waimaiAfterSalesAlertLastDay: StringOperators
+  waimaiAfterSalesReviewThreshold: NumberOperators
+  afterSalesDueSoonHours: NumberOperators
+  afterSalesFirstResponseTargetHours: NumberOperators
+  afterSalesResolveTargetHours: NumberOperators
   settlementBasis: StringOperators
   stockLocationPriority: StringOperators
   shippingStrategy: StringOperators
   memberStockStrategy: StringOperators
   packageShippingRule: StringOperators
   orderCompleteDays: NumberOperators
+  onebridgeEnabled: BooleanOperators
   uniPushAppKey: StringOperators
   uniPushMasterSecret: StringOperators
 }
@@ -14007,6 +18738,8 @@ input ChannelSortParameter {
   enabled: SortOrder
   tenantNo: SortOrder
   isOfficial: SortOrder
+  minOrderAmount: SortOrder
+  deliveryMinutes: SortOrder
   merchantStatus: SortOrder
   multilingualEnabled: SortOrder
   redeemCollectMode: SortOrder
@@ -14014,7 +18747,11 @@ input ChannelSortParameter {
   taxMode: SortOrder
   physicalStockEnabled: SortOrder
   shareImageUrl: SortOrder
+  billPayStoreImage: SortOrder
   industryType: SortOrder
+  storefrontMode: SortOrder
+  storefrontHomeLayout: SortOrder
+  couponFloorGroups: SortOrder
   inventoryMode: SortOrder
   odooBaseUrl: SortOrder
   odooApiKey: SortOrder
@@ -14024,6 +18761,7 @@ input ChannelSortParameter {
   reservationTtlMinutes: SortOrder
   templateId: SortOrder
   themeTokensOverride: SortOrder
+  shopApp: SortOrder
   orderPaymentTimeoutMinutes: SortOrder
   orderFulfillmentTimeoutHours: SortOrder
   orderReceiptTimeoutDays: SortOrder
@@ -14079,6 +18817,9 @@ input ChannelSortParameter {
   taskOrderAmountPoints: SortOrder
   taskOrderAmountGrowth: SortOrder
   reviewGiftCouponTemplateId: SortOrder
+  reviewGiftQualityCouponTemplateId: SortOrder
+  reviewGiftServiceCouponTemplateId: SortOrder
+  reviewGiftTimeCouponTemplateId: SortOrder
   reviewGiftPoints: SortOrder
   reviewFollowUpWindowDays: SortOrder
   orderPaidTemplateId: SortOrder
@@ -14087,16 +18828,48 @@ input ChannelSortParameter {
   orderRefundedTemplateId: SortOrder
   subscribeMessagePage: SortOrder
   subscribeMessageMiniprogramState: SortOrder
+  firstBuyDiscount: SortOrder
+  couponCampaign: SortOrder
+  couponFission: SortOrder
+  couponDailyClaim: SortOrder
+  couponFlashSale: SortOrder
+  couponPayGift: SortOrder
+  billpayMaxSalePrice: SortOrder
+  billpayMaxFaceValue: SortOrder
+  billpayMaxBundleTotal: SortOrder
+  billpayMinValidDays: SortOrder
+  billpayExpireRefundPolicy: SortOrder
   waimaiTags: SortOrder
   waimaiMonthlySales: SortOrder
   waimaiLogo: SortOrder
   waimaiPromoText: SortOrder
+  waimaiBusinessHours: SortOrder
+  waimaiDailyPushEnabled: SortOrder
+  waimaiDailyPushTime: SortOrder
+  waimaiDailyPushLastDate: SortOrder
+  waimaiDailyPushLastFailAt: SortOrder
+  waimaiDailyPushLastFailReason: SortOrder
+  waimaiAfterSalesMonthlyPushEnabled: SortOrder
+  waimaiAfterSalesMonthlyPushDay: SortOrder
+  waimaiAfterSalesMonthlyPushTime: SortOrder
+  waimaiAfterSalesMonthlyPushLastMonth: SortOrder
+  waimaiAfterSalesAutoAssignEnabled: SortOrder
+  waimaiAfterSalesAutoAssignMax: SortOrder
+  waimaiAfterSalesAlertEnabled: SortOrder
+  waimaiAfterSalesAlertRefundRate: SortOrder
+  waimaiAfterSalesAlertOverdueCount: SortOrder
+  waimaiAfterSalesAlertLastDay: SortOrder
+  waimaiAfterSalesReviewThreshold: SortOrder
+  afterSalesDueSoonHours: SortOrder
+  afterSalesFirstResponseTargetHours: SortOrder
+  afterSalesResolveTargetHours: SortOrder
   settlementBasis: SortOrder
   stockLocationPriority: SortOrder
   shippingStrategy: SortOrder
   memberStockStrategy: SortOrder
   packageShippingRule: SortOrder
   orderCompleteDays: SortOrder
+  onebridgeEnabled: SortOrder
   uniPushAppKey: SortOrder
   uniPushMasterSecret: SortOrder
 }
@@ -14172,6 +18945,11 @@ input ProductVariantSortParameter {
   internalCode: SortOrder
   hotelRoomConfig: SortOrder
   videoUrl: SortOrder
+  accuracy: SortOrder
+  material: SortOrder
+  moq: SortOrder
+  leadTime: SortOrder
+  reportTemplate: SortOrder
 }
 
 input CountryFilterParameter {
@@ -14226,15 +19004,14 @@ input CustomerSortParameter {
   inviteCode: SortOrder
   ssoId: SortOrder
   ssoUid: SortOrder
-  alipayOpenid: SortOrder
-  wechatOpenid: SortOrder
-  wechatMiniOpenid: SortOrder
-  douyinOpenid: SortOrder
   referralCode: SortOrder
   referredBy: SortOrder
   growthValue: SortOrder
   points: SortOrder
   memberLevel: SortOrder
+  studentStatus: SortOrder
+  studentInfo: SortOrder
+  studentReviewedAt: SortOrder
   riderStatus: SortOrder
   riderRealName: SortOrder
   riderStudentNo: SortOrder
@@ -14242,11 +19019,28 @@ input CustomerSortParameter {
   riderIdImg: SortOrder
   riderCredit: SortOrder
   riderOnlineAt: SortOrder
+  riderHealthCertNo: SortOrder
+  riderHealthCertImg: SortOrder
+  riderHealthCertExpiry: SortOrder
+  riderInsuranceNo: SortOrder
+  riderInsuranceExpiry: SortOrder
+  riderBackgroundCheck: SortOrder
+  riderBackgroundCheckAt: SortOrder
+  riderFeishuOpenId: SortOrder
+  riderFeishuBoundAt: SortOrder
   avatarUrl: SortOrder
   invoiceTitles: SortOrder
+  tasteProfile: SortOrder
   customerType: SortOrder
   companyInfo: SortOrder
   salesStaffId: SortOrder
+  tier: SortOrder
+  companyName: SortOrder
+  businessNo: SortOrder
+  kakaoId: SortOrder
+  preferredLocale: SortOrder
+  addressKr: SortOrder
+  verified: SortOrder
   pushCid: SortOrder
 }
 
@@ -14394,6 +19188,14 @@ input ProductSortParameter {
   reviewRating: SortOrder
   reviewCount: SortOrder
   favoriteCount: SortOrder
+  serviceType: SortOrder
+  waimaiMonthlySales: SortOrder
+  waimaiSoldOut: SortOrder
+  waimaiPackingFee: SortOrder
+  waimaiAddonGroups: SortOrder
+  waimaiCombo: SortOrder
+  waimaiDailyLimit: SortOrder
+  waimaiPerUserLimit: SortOrder
   listedInMarketplace: SortOrder
   marketplaceStatus: SortOrder
   rejectReason: SortOrder
@@ -14416,6 +19218,14 @@ input ProductSortParameter {
   belongCity: SortOrder
   videoUrl: SortOrder
   displayTemplate: SortOrder
+  krName: SortOrder
+  cnName: SortOrder
+  spec: SortOrder
+  moq: SortOrder
+  leadTime: SortOrder
+  inspectionRequired: SortOrder
+  originalPrice: SortOrder
+  badge: SortOrder
 }
 
 input PromotionFilterParameter {
@@ -14628,6 +19438,8 @@ input ZoneSortParameter {
 
 input PickupLocationFilterParameter {
   id: IDOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
   name: StringOperators
   type: StringOperators
   address: StringOperators
@@ -14640,6 +19452,7 @@ input PickupLocationFilterParameter {
   enabled: BooleanOperators
   isPublic: BooleanOperators
   ownerChannelId: IDOperators
+  merchantStoreId: IDOperators
   province: StringOperators
   city: StringOperators
   district: StringOperators
@@ -14650,6 +19463,8 @@ input PickupLocationFilterParameter {
 
 input PickupLocationSortParameter {
   id: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
   name: SortOrder
   address: SortOrder
   contactPerson: SortOrder
@@ -14659,6 +19474,7 @@ input PickupLocationSortParameter {
   remark: SortOrder
   sortOrder: SortOrder
   ownerChannelId: SortOrder
+  merchantStoreId: SortOrder
   province: SortOrder
   city: SortOrder
   district: SortOrder
@@ -14724,6 +19540,8 @@ input GroupBuyActivityFilterParameter {
   leaderRewardType: StringOperators
   autoConfirm: BooleanOperators
   allowJoinAfterComplete: BooleanOperators
+  productId: IDOperators
+  variantId: IDOperators
   createdAt: DateOperators
   updatedAt: DateOperators
   _and: [GroupBuyActivityFilterParameter!]
@@ -14742,6 +19560,8 @@ input GroupBuyActivitySortParameter {
   groupPrice: SortOrder
   leaderDiscount: SortOrder
   leaderRewardType: SortOrder
+  productId: SortOrder
+  variantId: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
 }
@@ -15160,12 +19980,18 @@ input ReviewFilterParameter {
   isAnonymous: BooleanOperators
   status: StringOperators
   giftGranted: BooleanOperators
+  giftChoice: StringOperators
   reply: StringOperators
   repliedAt: DateOperators
   reviewedAt: DateOperators
   helpfulCount: NumberOperators
   createdAt: DateOperators
   updatedAt: DateOperators
+  appealStatus: StringOperators
+  appealReason: StringOperators
+  appealAt: DateOperators
+  appealResult: StringOperators
+  appealReviewedAt: DateOperators
   _and: [ReviewFilterParameter!]
   _or: [ReviewFilterParameter!]
 }
@@ -15181,10 +20007,54 @@ input ReviewSortParameter {
   rating: SortOrder
   content: SortOrder
   status: SortOrder
+  giftChoice: SortOrder
   reply: SortOrder
   repliedAt: SortOrder
   reviewedAt: SortOrder
   helpfulCount: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  appealStatus: SortOrder
+  appealReason: SortOrder
+  appealAt: SortOrder
+  appealResult: SortOrder
+  appealReviewedAt: SortOrder
+}
+
+input ReviewAlertFilterParameter {
+  id: IDOperators
+  reviewId: IDOperators
+  channelId: IDOperators
+  productId: IDOperators
+  customerId: IDOperators
+  productName: StringOperators
+  rating: NumberOperators
+  content: StringOperators
+  couponStatus: StringOperators
+  couponCode: StringOperators
+  status: StringOperators
+  note: StringOperators
+  handledAt: DateOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  _and: [ReviewAlertFilterParameter!]
+  _or: [ReviewAlertFilterParameter!]
+}
+
+input ReviewAlertSortParameter {
+  id: SortOrder
+  reviewId: SortOrder
+  channelId: SortOrder
+  productId: SortOrder
+  customerId: SortOrder
+  productName: SortOrder
+  rating: SortOrder
+  content: SortOrder
+  couponStatus: SortOrder
+  couponCode: SortOrder
+  status: SortOrder
+  note: SortOrder
+  handledAt: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
 }
@@ -15219,6 +20089,15 @@ input CouponTemplateFilterParameter {
   usageScene: StringOperators
   distributionChannels: StringOperators
   salePrice: NumberOperators
+  anchorPrice: NumberOperators
+  label: StringOperators
+  studentPrice: NumberOperators
+  category: StringOperators
+  activityImage: StringOperators
+  storeCoverage: StringOperators
+  costBearer: StringOperators
+  merchantCostRate: NumberOperators
+  soldCount: NumberOperators
   createdAt: DateOperators
   updatedAt: DateOperators
   _and: [CouponTemplateFilterParameter!]
@@ -15250,6 +20129,15 @@ input CouponTemplateSortParameter {
   shopId: SortOrder
   distributionChannels: SortOrder
   salePrice: SortOrder
+  anchorPrice: SortOrder
+  label: SortOrder
+  studentPrice: SortOrder
+  category: SortOrder
+  activityImage: SortOrder
+  storeCoverage: SortOrder
+  costBearer: SortOrder
+  merchantCostRate: SortOrder
+  soldCount: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
 }
@@ -15302,6 +20190,8 @@ input InStoreBillFilterParameter {
   finalAmount: NumberOperators
   operatorId: IDOperators
   operatorName: StringOperators
+  shopId: IDOperators
+  shopName: StringOperators
   remark: StringOperators
   billedAt: DateOperators
   createdAt: DateOperators
@@ -15325,6 +20215,8 @@ input InStoreBillSortParameter {
   finalAmount: SortOrder
   operatorId: SortOrder
   operatorName: SortOrder
+  shopId: SortOrder
+  shopName: SortOrder
   remark: SortOrder
   billedAt: SortOrder
   createdAt: SortOrder
@@ -15394,6 +20286,7 @@ input CouponSaleOrderFilterParameter {
   externalRef: StringOperators
   paidAt: DateOperators
   refundedAt: DateOperators
+  storeId: IDOperators
   createdAt: DateOperators
   _and: [CouponSaleOrderFilterParameter!]
   _or: [CouponSaleOrderFilterParameter!]
@@ -15412,7 +20305,122 @@ input CouponSaleOrderSortParameter {
   externalRef: SortOrder
   paidAt: SortOrder
   refundedAt: SortOrder
+  storeId: SortOrder
   createdAt: SortOrder
+}
+
+input CouponSettlementOrderFilterParameter {
+  id: IDOperators
+  channelId: IDOperators
+  saleOrderId: IDOperators
+  customerCouponId: IDOperators
+  templateId: IDOperators
+  redeemRef: StringOperators
+  inStoreBillId: IDOperators
+  faceAmount: NumberOperators
+  commissionRateBp: NumberOperators
+  commissionAmount: NumberOperators
+  netAmount: NumberOperators
+  status: StringOperators
+  settlementNo: StringOperators
+  splitMode: StringOperators
+  splitReceiptNo: StringOperators
+  attempts: NumberOperators
+  lastError: StringOperators
+  settledAt: DateOperators
+  paidOutAt: DateOperators
+  reversedAt: DateOperators
+  voucherType: StringOperators
+  remark: StringOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  _and: [CouponSettlementOrderFilterParameter!]
+  _or: [CouponSettlementOrderFilterParameter!]
+}
+
+input CouponSettlementOrderSortParameter {
+  id: SortOrder
+  channelId: SortOrder
+  saleOrderId: SortOrder
+  customerCouponId: SortOrder
+  templateId: SortOrder
+  redeemRef: SortOrder
+  inStoreBillId: SortOrder
+  faceAmount: SortOrder
+  commissionRateBp: SortOrder
+  commissionAmount: SortOrder
+  netAmount: SortOrder
+  settlementNo: SortOrder
+  splitMode: SortOrder
+  splitReceiptNo: SortOrder
+  attempts: SortOrder
+  lastError: SortOrder
+  settledAt: SortOrder
+  paidOutAt: SortOrder
+  reversedAt: SortOrder
+  voucherType: SortOrder
+  remark: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input BillPayOrderFilterParameter {
+  id: IDOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  code: StringOperators
+  customerId: IDOperators
+  merchantName: StringOperators
+  merchantId: IDOperators
+  expectedAmount: NumberOperators
+  quoteAmount: NumberOperators
+  actualAmount: NumberOperators
+  couponCode: StringOperators
+  couponDiscount: NumberOperators
+  status: StringOperators
+  remark: StringOperators
+  quoteNote: StringOperators
+  quoteExpireAt: DateOperators
+  proofUrl: StringOperators
+  paymentMethod: StringOperators
+  operatorId: IDOperators
+  settleLedgerId: IDOperators
+  paidAt: DateOperators
+  completedAt: DateOperators
+  settledAt: DateOperators
+  refundedAt: DateOperators
+  completeNote: StringOperators
+  channelId: IDOperators
+  _and: [BillPayOrderFilterParameter!]
+  _or: [BillPayOrderFilterParameter!]
+}
+
+input BillPayOrderSortParameter {
+  id: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  code: SortOrder
+  customerId: SortOrder
+  merchantName: SortOrder
+  merchantId: SortOrder
+  expectedAmount: SortOrder
+  quoteAmount: SortOrder
+  actualAmount: SortOrder
+  couponCode: SortOrder
+  couponDiscount: SortOrder
+  remark: SortOrder
+  quoteNote: SortOrder
+  quoteExpireAt: SortOrder
+  proofUrl: SortOrder
+  paymentMethod: SortOrder
+  operatorId: SortOrder
+  settleLedgerId: SortOrder
+  paidAt: SortOrder
+  completedAt: SortOrder
+  settledAt: SortOrder
+  refundedAt: SortOrder
+  completeNote: SortOrder
+  channelId: SortOrder
 }
 
 input LiveRoomFilterParameter {
@@ -15455,6 +20463,35 @@ input LiveRoomSortParameter {
   likeCount: SortOrder
   viewCount: SortOrder
   pushUrl: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input RfqFilterParameter {
+  id: IDOperators
+  code: StringOperators
+  channelToken: StringOperators
+  needType: StringOperators
+  needLabel: StringOperators
+  customerName: StringOperators
+  customerContact: StringOperators
+  stage: StringOperators
+  businessLine: StringOperators
+  assignedTeam: StringOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  _and: [RfqFilterParameter!]
+  _or: [RfqFilterParameter!]
+}
+
+input RfqSortParameter {
+  id: SortOrder
+  code: SortOrder
+  channelToken: SortOrder
+  needLabel: SortOrder
+  customerName: SortOrder
+  customerContact: SortOrder
+  assignedTeam: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
 }
@@ -15712,6 +20749,28 @@ type ChannelMultiLanguageConfigStruct {
   operationalCopyJson: String
 }
 
+type ChannelOnebridgeServiceChannelsStruct {
+  needType: String
+  nameKr: String
+  nameCn: String
+  nameEn: String
+  tag: String
+  audience: String
+  headlineKr: String
+  headlineCn: String
+  introKr: String
+  introCn: String
+  color: String
+  pointsJson: String
+}
+
+type ChannelOnebridgeContactChannelStruct {
+  kakao: String
+  wechat: String
+  phone: String
+  email: String
+}
+
 type ChannelCustomFields {
   displayTemplate: String
   themeId: String
@@ -15742,6 +20801,9 @@ type ChannelCustomFields {
   enabled: Boolean
   tenantNo: Int
   isOfficial: Boolean
+  servingCities: [String!]
+  minOrderAmount: Int
+  deliveryMinutes: Int
   merchantStatus: String
   categoryMapping: [ChannelCategoryMappingStruct!]
   multilingualEnabled: Boolean
@@ -15750,10 +20812,14 @@ type ChannelCustomFields {
   taxMode: String
   physicalStockEnabled: Boolean
   shareImageUrl: String
+  billPayStoreImage: String
   basicConfig: ChannelBasicConfigStruct
   serviceNotifyConfig: ChannelServiceNotifyConfigStruct
   multiLanguageConfig: ChannelMultiLanguageConfigStruct
   industryType: String
+  storefrontMode: String
+  storefrontHomeLayout: String
+  couponFloorGroups: String
   inventoryMode: String
   odooBaseUrl: String
   odooApiKey: String
@@ -15763,6 +20829,7 @@ type ChannelCustomFields {
   reservationTtlMinutes: Int
   templateId: String
   themeTokensOverride: String
+  shopApp: String
   orderPaymentTimeoutMinutes: Int
   orderFulfillmentTimeoutHours: Int
   orderReceiptTimeoutDays: Int
@@ -15818,6 +20885,9 @@ type ChannelCustomFields {
   taskOrderAmountPoints: Int
   taskOrderAmountGrowth: Int
   reviewGiftCouponTemplateId: String
+  reviewGiftQualityCouponTemplateId: String
+  reviewGiftServiceCouponTemplateId: String
+  reviewGiftTimeCouponTemplateId: String
   reviewGiftPoints: Int
   reviewFollowUpWindowDays: Int
   orderPaidTemplateId: String
@@ -15826,16 +20896,50 @@ type ChannelCustomFields {
   orderRefundedTemplateId: String
   subscribeMessagePage: String
   subscribeMessageMiniprogramState: String
+  firstBuyDiscount: Int
+  couponCampaign: String
+  couponFission: String
+  couponDailyClaim: String
+  couponFlashSale: String
+  couponPayGift: String
+  billpayMaxSalePrice: Int
+  billpayMaxFaceValue: Int
+  billpayMaxBundleTotal: Int
+  billpayMinValidDays: Int
+  billpayExpireRefundPolicy: String
   waimaiTags: String
   waimaiMonthlySales: Int
   waimaiLogo: String
   waimaiPromoText: String
+  waimaiBusinessHours: String
+  waimaiDailyPushEnabled: Boolean
+  waimaiDailyPushTime: String
+  waimaiDailyPushLastDate: String
+  waimaiDailyPushLastFailAt: String
+  waimaiDailyPushLastFailReason: String
+  waimaiAfterSalesMonthlyPushEnabled: Boolean
+  waimaiAfterSalesMonthlyPushDay: Int
+  waimaiAfterSalesMonthlyPushTime: String
+  waimaiAfterSalesMonthlyPushLastMonth: String
+  waimaiAfterSalesAutoAssignEnabled: Boolean
+  waimaiAfterSalesAutoAssignMax: Int
+  waimaiAfterSalesAlertEnabled: Boolean
+  waimaiAfterSalesAlertRefundRate: Int
+  waimaiAfterSalesAlertOverdueCount: Int
+  waimaiAfterSalesAlertLastDay: String
+  waimaiAfterSalesReviewThreshold: Int
+  afterSalesDueSoonHours: Int
+  afterSalesFirstResponseTargetHours: Int
+  afterSalesResolveTargetHours: Int
   settlementBasis: String
   stockLocationPriority: String
   shippingStrategy: String
   memberStockStrategy: String
   packageShippingRule: String
   orderCompleteDays: Int
+  onebridgeEnabled: Boolean
+  onebridgeServiceChannels: [ChannelOnebridgeServiceChannelsStruct!]
+  onebridgeContactChannel: ChannelOnebridgeContactChannelStruct
   uniPushAppKey: String
   uniPushMasterSecret: String
 }
@@ -15894,6 +20998,28 @@ input ChannelMultiLanguageConfigStructInput {
   operationalCopyJson: String
 }
 
+input ChannelOnebridgeServiceChannelsStructInput {
+  needType: String
+  nameKr: String
+  nameCn: String
+  nameEn: String
+  tag: String
+  audience: String
+  headlineKr: String
+  headlineCn: String
+  introKr: String
+  introCn: String
+  color: String
+  pointsJson: String
+}
+
+input ChannelOnebridgeContactChannelStructInput {
+  kakao: String
+  wechat: String
+  phone: String
+  email: String
+}
+
 input CreateChannelCustomFieldsInput {
   displayTemplate: String
   themeId: String
@@ -15924,6 +21050,9 @@ input CreateChannelCustomFieldsInput {
   enabled: Boolean
   tenantNo: Int
   isOfficial: Boolean
+  servingCities: [String!]
+  minOrderAmount: Int
+  deliveryMinutes: Int
   merchantStatus: String
   categoryMapping: [ChannelCategoryMappingStructInput!]
   multilingualEnabled: Boolean
@@ -15932,10 +21061,14 @@ input CreateChannelCustomFieldsInput {
   taxMode: String
   physicalStockEnabled: Boolean
   shareImageUrl: String
+  billPayStoreImage: String
   basicConfig: ChannelBasicConfigStructInput
   serviceNotifyConfig: ChannelServiceNotifyConfigStructInput
   multiLanguageConfig: ChannelMultiLanguageConfigStructInput
   industryType: String
+  storefrontMode: String
+  storefrontHomeLayout: String
+  couponFloorGroups: String
   inventoryMode: String
   odooBaseUrl: String
   odooApiKey: String
@@ -15945,6 +21078,7 @@ input CreateChannelCustomFieldsInput {
   reservationTtlMinutes: Int
   templateId: String
   themeTokensOverride: String
+  shopApp: String
   orderPaymentTimeoutMinutes: Int
   orderFulfillmentTimeoutHours: Int
   orderReceiptTimeoutDays: Int
@@ -16000,6 +21134,9 @@ input CreateChannelCustomFieldsInput {
   taskOrderAmountPoints: Int
   taskOrderAmountGrowth: Int
   reviewGiftCouponTemplateId: String
+  reviewGiftQualityCouponTemplateId: String
+  reviewGiftServiceCouponTemplateId: String
+  reviewGiftTimeCouponTemplateId: String
   reviewGiftPoints: Int
   reviewFollowUpWindowDays: Int
   orderPaidTemplateId: String
@@ -16008,16 +21145,50 @@ input CreateChannelCustomFieldsInput {
   orderRefundedTemplateId: String
   subscribeMessagePage: String
   subscribeMessageMiniprogramState: String
+  firstBuyDiscount: Int
+  couponCampaign: String
+  couponFission: String
+  couponDailyClaim: String
+  couponFlashSale: String
+  couponPayGift: String
+  billpayMaxSalePrice: Int
+  billpayMaxFaceValue: Int
+  billpayMaxBundleTotal: Int
+  billpayMinValidDays: Int
+  billpayExpireRefundPolicy: String
   waimaiTags: String
   waimaiMonthlySales: Int
   waimaiLogo: String
   waimaiPromoText: String
+  waimaiBusinessHours: String
+  waimaiDailyPushEnabled: Boolean
+  waimaiDailyPushTime: String
+  waimaiDailyPushLastDate: String
+  waimaiDailyPushLastFailAt: String
+  waimaiDailyPushLastFailReason: String
+  waimaiAfterSalesMonthlyPushEnabled: Boolean
+  waimaiAfterSalesMonthlyPushDay: Int
+  waimaiAfterSalesMonthlyPushTime: String
+  waimaiAfterSalesMonthlyPushLastMonth: String
+  waimaiAfterSalesAutoAssignEnabled: Boolean
+  waimaiAfterSalesAutoAssignMax: Int
+  waimaiAfterSalesAlertEnabled: Boolean
+  waimaiAfterSalesAlertRefundRate: Int
+  waimaiAfterSalesAlertOverdueCount: Int
+  waimaiAfterSalesAlertLastDay: String
+  waimaiAfterSalesReviewThreshold: Int
+  afterSalesDueSoonHours: Int
+  afterSalesFirstResponseTargetHours: Int
+  afterSalesResolveTargetHours: Int
   settlementBasis: String
   stockLocationPriority: String
   shippingStrategy: String
   memberStockStrategy: String
   packageShippingRule: String
   orderCompleteDays: Int
+  onebridgeEnabled: Boolean
+  onebridgeServiceChannels: [ChannelOnebridgeServiceChannelsStructInput!]
+  onebridgeContactChannel: ChannelOnebridgeContactChannelStructInput
   uniPushAppKey: String
   uniPushMasterSecret: String
 }
@@ -16052,6 +21223,9 @@ input UpdateChannelCustomFieldsInput {
   enabled: Boolean
   tenantNo: Int
   isOfficial: Boolean
+  servingCities: [String!]
+  minOrderAmount: Int
+  deliveryMinutes: Int
   merchantStatus: String
   categoryMapping: [ChannelCategoryMappingStructInput!]
   multilingualEnabled: Boolean
@@ -16060,10 +21234,14 @@ input UpdateChannelCustomFieldsInput {
   taxMode: String
   physicalStockEnabled: Boolean
   shareImageUrl: String
+  billPayStoreImage: String
   basicConfig: ChannelBasicConfigStructInput
   serviceNotifyConfig: ChannelServiceNotifyConfigStructInput
   multiLanguageConfig: ChannelMultiLanguageConfigStructInput
   industryType: String
+  storefrontMode: String
+  storefrontHomeLayout: String
+  couponFloorGroups: String
   inventoryMode: String
   odooBaseUrl: String
   odooApiKey: String
@@ -16073,6 +21251,7 @@ input UpdateChannelCustomFieldsInput {
   reservationTtlMinutes: Int
   templateId: String
   themeTokensOverride: String
+  shopApp: String
   orderPaymentTimeoutMinutes: Int
   orderFulfillmentTimeoutHours: Int
   orderReceiptTimeoutDays: Int
@@ -16128,6 +21307,9 @@ input UpdateChannelCustomFieldsInput {
   taskOrderAmountPoints: Int
   taskOrderAmountGrowth: Int
   reviewGiftCouponTemplateId: String
+  reviewGiftQualityCouponTemplateId: String
+  reviewGiftServiceCouponTemplateId: String
+  reviewGiftTimeCouponTemplateId: String
   reviewGiftPoints: Int
   reviewFollowUpWindowDays: Int
   orderPaidTemplateId: String
@@ -16136,16 +21318,50 @@ input UpdateChannelCustomFieldsInput {
   orderRefundedTemplateId: String
   subscribeMessagePage: String
   subscribeMessageMiniprogramState: String
+  firstBuyDiscount: Int
+  couponCampaign: String
+  couponFission: String
+  couponDailyClaim: String
+  couponFlashSale: String
+  couponPayGift: String
+  billpayMaxSalePrice: Int
+  billpayMaxFaceValue: Int
+  billpayMaxBundleTotal: Int
+  billpayMinValidDays: Int
+  billpayExpireRefundPolicy: String
   waimaiTags: String
   waimaiMonthlySales: Int
   waimaiLogo: String
   waimaiPromoText: String
+  waimaiBusinessHours: String
+  waimaiDailyPushEnabled: Boolean
+  waimaiDailyPushTime: String
+  waimaiDailyPushLastDate: String
+  waimaiDailyPushLastFailAt: String
+  waimaiDailyPushLastFailReason: String
+  waimaiAfterSalesMonthlyPushEnabled: Boolean
+  waimaiAfterSalesMonthlyPushDay: Int
+  waimaiAfterSalesMonthlyPushTime: String
+  waimaiAfterSalesMonthlyPushLastMonth: String
+  waimaiAfterSalesAutoAssignEnabled: Boolean
+  waimaiAfterSalesAutoAssignMax: Int
+  waimaiAfterSalesAlertEnabled: Boolean
+  waimaiAfterSalesAlertRefundRate: Int
+  waimaiAfterSalesAlertOverdueCount: Int
+  waimaiAfterSalesAlertLastDay: String
+  waimaiAfterSalesReviewThreshold: Int
+  afterSalesDueSoonHours: Int
+  afterSalesFirstResponseTargetHours: Int
+  afterSalesResolveTargetHours: Int
   settlementBasis: String
   stockLocationPriority: String
   shippingStrategy: String
   memberStockStrategy: String
   packageShippingRule: String
   orderCompleteDays: Int
+  onebridgeEnabled: Boolean
+  onebridgeServiceChannels: [ChannelOnebridgeServiceChannelsStructInput!]
+  onebridgeContactChannel: ChannelOnebridgeContactChannelStructInput
   uniPushAppKey: String
   uniPushMasterSecret: String
 }
@@ -16229,15 +21445,14 @@ type CustomerCustomFields {
   inviteCode: String
   ssoId: String
   ssoUid: String
-  alipayOpenid: String
-  wechatOpenid: String
-  wechatMiniOpenid: String
-  douyinOpenid: String
   referralCode: String
   referredBy: String
   growthValue: Int
   points: Int
   memberLevel: Int
+  studentStatus: String
+  studentInfo: String
+  studentReviewedAt: DateTime
   riderStatus: String
   riderRealName: String
   riderStudentNo: String
@@ -16245,12 +21460,29 @@ type CustomerCustomFields {
   riderIdImg: String
   riderCredit: Int
   riderOnlineAt: DateTime
+  riderHealthCertNo: String
+  riderHealthCertImg: String
+  riderHealthCertExpiry: DateTime
+  riderInsuranceNo: String
+  riderInsuranceExpiry: DateTime
+  riderBackgroundCheck: String
+  riderBackgroundCheckAt: DateTime
+  riderFeishuOpenId: String
+  riderFeishuBoundAt: DateTime
   avatarUrl: String
   invoiceTitles: String
+  tasteProfile: String
   customerType: String
   companyInfo: String
   salesStaffId: String
   customerTags: [String!]
+  tier: String
+  companyName: String
+  businessNo: String
+  kakaoId: String
+  preferredLocale: String
+  addressKr: String
+  verified: Boolean
   pushCid: String
 }
 
@@ -16258,15 +21490,14 @@ input CreateCustomerCustomFieldsInput {
   inviteCode: String
   ssoId: String
   ssoUid: String
-  alipayOpenid: String
-  wechatOpenid: String
-  wechatMiniOpenid: String
-  douyinOpenid: String
   referralCode: String
   referredBy: String
   growthValue: Int
   points: Int
   memberLevel: Int
+  studentStatus: String
+  studentInfo: String
+  studentReviewedAt: DateTime
   riderStatus: String
   riderRealName: String
   riderStudentNo: String
@@ -16274,12 +21505,29 @@ input CreateCustomerCustomFieldsInput {
   riderIdImg: String
   riderCredit: Int
   riderOnlineAt: DateTime
+  riderHealthCertNo: String
+  riderHealthCertImg: String
+  riderHealthCertExpiry: DateTime
+  riderInsuranceNo: String
+  riderInsuranceExpiry: DateTime
+  riderBackgroundCheck: String
+  riderBackgroundCheckAt: DateTime
+  riderFeishuOpenId: String
+  riderFeishuBoundAt: DateTime
   avatarUrl: String
   invoiceTitles: String
+  tasteProfile: String
   customerType: String
   companyInfo: String
   salesStaffId: String
   customerTags: [String!]
+  tier: String
+  companyName: String
+  businessNo: String
+  kakaoId: String
+  preferredLocale: String
+  addressKr: String
+  verified: Boolean
   pushCid: String
 }
 
@@ -16287,15 +21535,14 @@ input UpdateCustomerCustomFieldsInput {
   inviteCode: String
   ssoId: String
   ssoUid: String
-  alipayOpenid: String
-  wechatOpenid: String
-  wechatMiniOpenid: String
-  douyinOpenid: String
   referralCode: String
   referredBy: String
   growthValue: Int
   points: Int
   memberLevel: Int
+  studentStatus: String
+  studentInfo: String
+  studentReviewedAt: DateTime
   riderStatus: String
   riderRealName: String
   riderStudentNo: String
@@ -16303,12 +21550,29 @@ input UpdateCustomerCustomFieldsInput {
   riderIdImg: String
   riderCredit: Int
   riderOnlineAt: DateTime
+  riderHealthCertNo: String
+  riderHealthCertImg: String
+  riderHealthCertExpiry: DateTime
+  riderInsuranceNo: String
+  riderInsuranceExpiry: DateTime
+  riderBackgroundCheck: String
+  riderBackgroundCheckAt: DateTime
+  riderFeishuOpenId: String
+  riderFeishuBoundAt: DateTime
   avatarUrl: String
   invoiceTitles: String
+  tasteProfile: String
   customerType: String
   companyInfo: String
   salesStaffId: String
   customerTags: [String!]
+  tier: String
+  companyName: String
+  businessNo: String
+  kakaoId: String
+  preferredLocale: String
+  addressKr: String
+  verified: Boolean
   pushCid: String
 }
 
@@ -16384,6 +21648,7 @@ type OrderCustomFields {
   deliveryStaffId: String
   deliveryStatus: String
   assignedAt: DateTime
+  pickedUpAt: DateTime
   deliveredAt: DateTime
   deliveryPhotos: [String!]
   deliveryNote: String
@@ -16394,12 +21659,14 @@ type OrderCustomFields {
   orderKind: String
   buildingId: String
   campusZone: String
+  deliveryDetail: String
   hallStatus: String
   hallEnteredAt: DateTime
   riderEarning: Int
   tip: Int
   deliverySlotId: String
   deliverySlotText: String
+  slotLocked: Boolean
   errandKind: String
   errandFrom: String
   errandTo: String
@@ -16407,6 +21674,7 @@ type OrderCustomFields {
   leg1Status: String
   handoverAt: DateTime
   campusCause: String
+  campusCancelCause: String
   transferPhotos: [String!]
   transferNote: String
   transferAt: DateTime
@@ -16421,9 +21689,37 @@ type OrderCustomFields {
   exceptionHandledNote: String
   exceptionHandledAt: DateTime
   exceptionHandledBy: String
+  exceptionReportedAt: DateTime
   routeGroupId: String
   invoiceApplied: Boolean
   invoiceInfo: String
+  waimaiPrintedAt: DateTime
+  autoAcceptedAt: DateTime
+  note: String
+  tablewareCount: Int
+  deliveryPlan: String
+  handoverMode: String
+  thirdPartyProvider: String
+  thirdPartyDeliveryOrderId: String
+  thirdPartyNo: String
+  thirdPartyState: String
+  thirdPartyCourierName: String
+  thirdPartyCourierPhone: String
+  handoverPointName: String
+  handoverPointAddress: String
+  handoverPointLat: Float
+  handoverPointLng: Float
+  thirdPartyDispatchAt: DateTime
+  thirdPartySyncAt: DateTime
+  exceptionResolvedAt: DateTime
+  handoverCode: String
+  handoverCodeAt: DateTime
+  promisedAt: DateTime
+  promiseSource: String
+  timeoutCompensatedAt: DateTime
+  timeoutCompensationCouponId: String
+  timeoutLateMinutes: Int
+  timeoutAttribution: String
   salesStaffId: String
   salesChannel: String
   salesNote: String
@@ -16436,6 +21732,13 @@ type OrderCustomFields {
   fulfillmentDeliveredAt: DateTime
   fulfillmentCompletedAt: DateTime
   csNotes: [OrderCsNotesStruct!]
+  businessLine: String
+  crossBorderStage: String
+  rfqCode: String
+  needType: String
+  krwAmount: Int
+  cnPurchaseOrderNo: String
+  expectedEta: DateTime
   preSaleActivityId: Int
   preSaleMode: String
   preSaleDepositTotal: Int
@@ -16506,6 +21809,7 @@ input UpdateOrderCustomFieldsInput {
   deliveryStaffId: String
   deliveryStatus: String
   assignedAt: DateTime
+  pickedUpAt: DateTime
   deliveredAt: DateTime
   deliveryPhotos: [String!]
   deliveryNote: String
@@ -16516,12 +21820,14 @@ input UpdateOrderCustomFieldsInput {
   orderKind: String
   buildingId: String
   campusZone: String
+  deliveryDetail: String
   hallStatus: String
   hallEnteredAt: DateTime
   riderEarning: Int
   tip: Int
   deliverySlotId: String
   deliverySlotText: String
+  slotLocked: Boolean
   errandKind: String
   errandFrom: String
   errandTo: String
@@ -16529,6 +21835,7 @@ input UpdateOrderCustomFieldsInput {
   leg1Status: String
   handoverAt: DateTime
   campusCause: String
+  campusCancelCause: String
   transferPhotos: [String!]
   transferNote: String
   transferAt: DateTime
@@ -16543,9 +21850,37 @@ input UpdateOrderCustomFieldsInput {
   exceptionHandledNote: String
   exceptionHandledAt: DateTime
   exceptionHandledBy: String
+  exceptionReportedAt: DateTime
   routeGroupId: String
   invoiceApplied: Boolean
   invoiceInfo: String
+  waimaiPrintedAt: DateTime
+  autoAcceptedAt: DateTime
+  note: String
+  tablewareCount: Int
+  deliveryPlan: String
+  handoverMode: String
+  thirdPartyProvider: String
+  thirdPartyDeliveryOrderId: String
+  thirdPartyNo: String
+  thirdPartyState: String
+  thirdPartyCourierName: String
+  thirdPartyCourierPhone: String
+  handoverPointName: String
+  handoverPointAddress: String
+  handoverPointLat: Float
+  handoverPointLng: Float
+  thirdPartyDispatchAt: DateTime
+  thirdPartySyncAt: DateTime
+  exceptionResolvedAt: DateTime
+  handoverCode: String
+  handoverCodeAt: DateTime
+  promisedAt: DateTime
+  promiseSource: String
+  timeoutCompensatedAt: DateTime
+  timeoutCompensationCouponId: String
+  timeoutLateMinutes: Int
+  timeoutAttribution: String
   salesStaffId: String
   salesChannel: String
   salesNote: String
@@ -16558,6 +21893,13 @@ input UpdateOrderCustomFieldsInput {
   fulfillmentDeliveredAt: DateTime
   fulfillmentCompletedAt: DateTime
   csNotes: [OrderCsNotesStructInput!]
+  businessLine: String
+  crossBorderStage: String
+  rfqCode: String
+  needType: String
+  krwAmount: Int
+  cnPurchaseOrderNo: String
+  expectedEta: DateTime
   preSaleActivityId: Int
   preSaleMode: String
   preSaleDepositTotal: Int
@@ -16582,6 +21924,7 @@ type OrderLineCustomFields {
   note: String
   originalOrderLineId: Int
   giftRuleId: Int
+  waimaiAddons: String
   overwrittenPrice: Int
   modifiedBy: String
   modifiedAt: DateTime
@@ -16602,6 +21945,14 @@ type ProductCustomFields {
   reviewRating: Float
   reviewCount: Int
   favoriteCount: Int
+  serviceType: String
+  waimaiMonthlySales: Int
+  waimaiSoldOut: Boolean
+  waimaiPackingFee: Int
+  waimaiAddonGroups: String
+  waimaiCombo: String
+  waimaiDailyLimit: Int
+  waimaiPerUserLimit: Int
   listedInMarketplace: Boolean
   marketplaceStatus: String
   rejectReason: String
@@ -16626,6 +21977,14 @@ type ProductCustomFields {
   deliveryMethods: [String!]
   videoUrl: String
   displayTemplate: String
+  krName: String
+  cnName: String
+  spec: String
+  moq: Int
+  leadTime: String
+  inspectionRequired: Boolean
+  originalPrice: Int
+  badge: String
 }
 
 type ProductTranslationCustomFields {
@@ -16639,6 +21998,14 @@ input CreateProductCustomFieldsInput {
   reviewRating: Float
   reviewCount: Int
   favoriteCount: Int
+  serviceType: String
+  waimaiMonthlySales: Int
+  waimaiSoldOut: Boolean
+  waimaiPackingFee: Int
+  waimaiAddonGroups: String
+  waimaiCombo: String
+  waimaiDailyLimit: Int
+  waimaiPerUserLimit: Int
   listedInMarketplace: Boolean
   marketplaceStatus: String
   rejectReason: String
@@ -16661,6 +22028,14 @@ input CreateProductCustomFieldsInput {
   serviceCities: [String!]
   deliveryMethods: [String!]
   videoUrl: String
+  krName: String
+  cnName: String
+  spec: String
+  moq: Int
+  leadTime: String
+  inspectionRequired: Boolean
+  originalPrice: Int
+  badge: String
 }
 
 input UpdateProductCustomFieldsInput {
@@ -16669,6 +22044,14 @@ input UpdateProductCustomFieldsInput {
   reviewRating: Float
   reviewCount: Int
   favoriteCount: Int
+  serviceType: String
+  waimaiMonthlySales: Int
+  waimaiSoldOut: Boolean
+  waimaiPackingFee: Int
+  waimaiAddonGroups: String
+  waimaiCombo: String
+  waimaiDailyLimit: Int
+  waimaiPerUserLimit: Int
   listedInMarketplace: Boolean
   marketplaceStatus: String
   rejectReason: String
@@ -16691,6 +22074,14 @@ input UpdateProductCustomFieldsInput {
   serviceCities: [String!]
   deliveryMethods: [String!]
   videoUrl: String
+  krName: String
+  cnName: String
+  spec: String
+  moq: Int
+  leadTime: String
+  inspectionRequired: Boolean
+  originalPrice: Int
+  badge: String
 }
 
 input ProductTranslationInputCustomFields {
@@ -16713,6 +22104,11 @@ type ProductVariantCustomFields {
   internalCode: String
   hotelRoomConfig: String
   videoUrl: String
+  accuracy: String
+  material: String
+  moq: Int
+  leadTime: String
+  reportTemplate: String
 }
 
 input CreateProductVariantCustomFieldsInput {
@@ -16730,6 +22126,11 @@ input CreateProductVariantCustomFieldsInput {
   internalCode: String
   hotelRoomConfig: String
   videoUrl: String
+  accuracy: String
+  material: String
+  moq: Int
+  leadTime: String
+  reportTemplate: String
 }
 
 input UpdateProductVariantCustomFieldsInput {
@@ -16747,6 +22148,11 @@ input UpdateProductVariantCustomFieldsInput {
   internalCode: String
   hotelRoomConfig: String
   videoUrl: String
+  accuracy: String
+  material: String
+  moq: Int
+  leadTime: String
+  reportTemplate: String
 }
 
 type PromotionCustomFields {
@@ -16862,6 +22268,7 @@ input OrderLineCustomFieldsInput {
   note: String
   originalOrderLineId: Int
   giftRuleId: Int
+  waimaiAddons: String
   overwrittenPrice: Int
   modifiedBy: String
   modifiedAt: DateTime

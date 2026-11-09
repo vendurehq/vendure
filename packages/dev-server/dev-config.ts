@@ -84,6 +84,7 @@ import { InventoryPlugin } from '@vendure/inventory-plugin';
 import { MessagePlugin } from '@vendure/message-plugin';
 import { NotificationPlugin } from '@vendure/notification-plugin';
 import { OperationsPlugin } from '@vendure/operations-plugin';
+import { OnebridgePlugin } from '@vendure/onebridge-plugin';
 import { PreSalePlugin } from '@vendure/pre-sale-plugin';
 import { PaymentSchedulePlugin } from '@vendure/payment-schedule-plugin';
 import { InstallmentPlugin } from '@vendure/installment-plugin';
@@ -588,6 +589,8 @@ export const devConfig: VendureConfig = {
         DashboardPlugin.init({
             route: 'dashboard',
             appDir: path.join(devServerDir, './dist'),
+            // 默认 5173；本机 5173 常被其它项目占用时用 DASHBOARD_VITE_PORT 指定 dashboard dev server 端口
+            viteDevServerPort: Number(process.env.DASHBOARD_VITE_PORT || 5173),
         }),
         CjkPlugin.init({
             i18n: { enabled: true },
@@ -784,6 +787,8 @@ export const devConfig: VendureConfig = {
         CustomerServicePlugin.init(),
         InventoryPlugin.init(),
         OperationsPlugin.init(),
+        // ONE BRIDGE 跨境频道：实体/迁移/customFields/权限，增量注册，不影响既有租户
+        OnebridgePlugin.init({}),
         MessagePlugin.init(),
         NotificationPlugin.init(),
         // 预售/定金预售：两阶段支付（定金→尾款）+ 全款预售 + 分档定价 + 到货释放库存
