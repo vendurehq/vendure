@@ -46,4 +46,15 @@ export class DispatchAdminResolver {
     ) {
         return this.dispatchAdmin.handleException(ctx, orderId, action, amount, couponTemplateId, note);
     }
+
+    /** A11 受控出口：强制取消（含已送达单），必须带理由并写审计 */
+    @Mutation()
+    @Allow(CampusPermissions.CampusDispatch as any)
+    async campusForceCancelOrder(
+        @Ctx() ctx: RequestContext,
+        @Args('orderId') orderId: ID,
+        @Args('reason') reason: string,
+    ) {
+        return this.dispatchAdmin.forceCancel(ctx, orderId, reason);
+    }
 }

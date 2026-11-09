@@ -139,6 +139,19 @@ describe('RefundRetryJob (A9)', () => {
         expect(orderSvc.cancelOrder).toHaveBeenCalledTimes(1);
     });
 
+    it('已送达单（A11）：重试跳过取消，不把已送达订单改成 Cancelled', async () => {
+        const { job, orderSvc } = setup({
+            orderRow: {
+                id: 467, code: 'V467', state: 'Processing',
+                hallStatus: 'refund_failed', deliveryStatus: 'delivered', deliveredAt: new Date(),
+            },
+        });
+        const res = await job.runOnce();
+        expect(res.done).toBe(1);
+        expect(orderSvc.refundOrder).toHaveBeenCalledTimes(1);
+        expect(orderSvc.cancelOrder).not.toHaveBeenCalled();
+    });
+
     it('锁被其他退款路径占用：本轮跳过且不消耗尝试次数', async () => {
         const { job, orderSvc, dedupe } = setup({ lockOk: false });
         const res = await job.runOnce();

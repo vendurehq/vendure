@@ -16,6 +16,7 @@ const core_2 = require("@vendure/core");
 const capacity_service_1 = require("./capacity.service");
 const campus_fulfillment_config_entity_1 = require("./campus-fulfillment-config.entity");
 const campus_notify_service_1 = require("./campus-notify.service");
+const cancel_guard_process_1 = require("./cancel-guard.process");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
 const hall_grab_service_1 = require("./hall-grab.service");
 const hall_service_1 = require("./hall.service");
@@ -420,6 +421,67 @@ let DispatchAdminService = class DispatchAdminService {
         this.notify.user(ctx, order.id, 'exceptionHandled', EXCEPTION_NOTIFY_TEXT[action], undefined, String(occurrence));
         return { ok: true, action };
     }
+    /**
+     * A11 受控出口：强制取消（含已送达单）。必须显式填写理由，取消前先落审计，取消后回填结果。
+     * 审计写入失败则不执行取消——不允许「无审计的强制取消」。
+     */
+    async forceCancel(ctx, orderId, reason) {
+        var _a, _b;
+        const trimmed = String(reason !== null && reason !== void 0 ? reason : '').trim();
+        if (!trimmed)
+            throw new core_2.UserInputError('强制取消必须填写理由');
+        if (trimmed.length > 500)
+            throw new core_2.UserInputError('强制取消理由不能超过 500 个字符');
+        const order = await this.assertOrderInChannel(ctx, orderId);
+        if (String(order.state) === 'Cancelled')
+            throw new core_2.UserInputError('订单已取消，无需重复操作');
+        const delivered = (0, cancel_guard_process_1.isDeliveredOrder)(order);
+        const orderSvc = this.getOrderService();
+        const auditId = await this.insertForceCancelAudit(ctx, order, delivered, trimmed);
+        const mark = { reason: trimmed, actorUserId: ctx.activeUserId, at: new Date() };
+        ctx[cancel_guard_process_1.FORCE_CANCEL_MARK] = mark;
+        try {
+            let cancelled = await orderSvc.cancelOrder(ctx, {
+                orderId: order.id,
+                reason: `强制取消：${trimmed}`,
+            });
+            if (cancelled && cancelled.errorCode) {
+                throw new core_2.UserInputError(`取消失败：${cancelled.errorCode}`);
+            }
+        }
+        catch (e) {
+            await this.markForceCancelAudit(auditId, 'failed', (_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : String(e));
+            throw e;
+        }
+        finally {
+            delete ctx[cancel_guard_process_1.FORCE_CANCEL_MARK];
+        }
+        await this.markForceCancelAudit(auditId, 'ok', null);
+        core_2.Logger.warn(`强制取消 order=${order.code} by=${(_b = ctx.activeUserId) !== null && _b !== void 0 ? _b : '-'} delivered=${delivered} reason=${trimmed}`, 'CampusDispatch');
+        return true;
+    }
+    /** 强制取消审计落库（谁/何时/理由），返回行 id；写库失败直接抛错，阻止取消 */
+    async insertForceCancelAudit(ctx, order, delivered, reason) {
+        var _a, _b, _c, _d;
+        const res = await this.connection.rawConnection.query(`INSERT INTO campus_order_cancel_audit_log
+                ("orderId", "orderCode", "channelId", "actorUserId", delivered, reason, outcome)
+             VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+             RETURNING id`, [order.id, order.code, (_a = ctx.channelId) !== null && _a !== void 0 ? _a : null, (_b = ctx.activeUserId) !== null && _b !== void 0 ? _b : null, delivered, reason]);
+        const rows = Array.isArray(res) && Array.isArray(res[0]) ? res[0] : res;
+        return (_d = (_c = rows === null || rows === void 0 ? void 0 : rows[0]) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : null;
+    }
+    /** 回填强制取消结果（取消已执行，回填失败只告警） */
+    async markForceCancelAudit(auditId, outcome, error) {
+        var _a;
+        if (auditId == null)
+            return;
+        try {
+            await this.connection.rawConnection.query(`UPDATE campus_order_cancel_audit_log SET outcome = $2, error = $3 WHERE id = $1`, [auditId, outcome, error !== null && error !== void 0 ? error : null]);
+        }
+        catch (e) {
+            core_2.Logger.error(`强制取消审计回填失败 audit=${auditId}: ${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}`, 'CampusDispatch');
+        }
+    }
     /** 异常处置原子认领：仅首次调用返回 true（并发/重复点击只有一路能消费掉异常态） */
     async claimException(sql, params) {
         const res = await this.connection.rawConnection.query(sql, params);
@@ -466,8 +528,13 @@ let DispatchAdminService = class DispatchAdminService {
         // 结算失败置 Failed：否则未真实打款的退款单仍计入已退总额，重试会跳过退款直接取消订单
         await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, orderSvc, ctx, created.id);
     }
-    /** 全额退单：退剩余未退部分 + cancelOrder（行取消+状态转换，同 T4） */
+    /** 全额退单：退剩余未退部分 + cancelOrder（行取消+状态转换，同 T4）
+     * 已送达单不走这条：送达后不应再取消（A11），在入口直接跳过，避免「退完款才被守卫拦下」。 */
     async refundAllAndCancel(ctx, order) {
+        if ((0, cancel_guard_process_1.isDeliveredOrder)(order)) {
+            core_2.Logger.warn(`异常退单跳过：order=${order.code} 已送达，不再取消`, 'CampusDispatch');
+            return;
+        }
         const orderSvc = this.getOrderService();
         // 覆盖多支付单场景：逐张退剩余（单支付单订单等价于原「退剩余」）
         for (const picked of await (0, refund_payment_1.refundablePayments)(this.connection, Number(order.id))) {

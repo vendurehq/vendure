@@ -14,6 +14,7 @@ import {
 import { CapacityService } from './capacity.service';
 import { CampusFulfillmentConfig } from './campus-fulfillment-config.entity';
 import { CampusNotifyService } from './campus-notify.service';
+import { FORCE_CANCEL_MARK, ForceCancelMark, isDeliveredOrder } from './cancel-guard.process';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { HallGrabService } from './hall-grab.service';
 import { HallService, ACTIVE_HALL_STATUSES } from './hall.service';
@@ -456,6 +457,75 @@ export class DispatchAdminService {
         return { ok: true, action };
     }
 
+    /**
+     * A11 受控出口：强制取消（含已送达单）。必须显式填写理由，取消前先落审计，取消后回填结果。
+     * 审计写入失败则不执行取消——不允许「无审计的强制取消」。
+     */
+    async forceCancel(ctx: RequestContext, orderId: ID, reason: string): Promise<boolean> {
+        const trimmed = String(reason ?? '').trim();
+        if (!trimmed) throw new UserInputError('强制取消必须填写理由');
+        if (trimmed.length > 500) throw new UserInputError('强制取消理由不能超过 500 个字符');
+
+        const order = await this.assertOrderInChannel(ctx, orderId);
+        if (String((order as any).state) === 'Cancelled') throw new UserInputError('订单已取消，无需重复操作');
+        const delivered = isDeliveredOrder(order);
+        const orderSvc = this.getOrderService();
+        const auditId = await this.insertForceCancelAudit(ctx, order, delivered, trimmed);
+        const mark: ForceCancelMark = { reason: trimmed, actorUserId: ctx.activeUserId, at: new Date() };
+        (ctx as any)[FORCE_CANCEL_MARK] = mark;
+        try {
+            let cancelled: any = await orderSvc.cancelOrder(ctx, {
+                orderId: order.id as any,
+                reason: `强制取消：${trimmed}`,
+            } as any);
+            if (cancelled && cancelled.errorCode) {
+                throw new UserInputError(`取消失败：${cancelled.errorCode}`);
+            }
+        } catch (e: any) {
+            await this.markForceCancelAudit(auditId, 'failed', e?.message ?? String(e));
+            throw e;
+        } finally {
+            delete (ctx as any)[FORCE_CANCEL_MARK];
+        }
+        await this.markForceCancelAudit(auditId, 'ok', null);
+        Logger.warn(
+            `强制取消 order=${order.code} by=${ctx.activeUserId ?? '-'} delivered=${delivered} reason=${trimmed}`,
+            'CampusDispatch',
+        );
+        return true;
+    }
+
+    /** 强制取消审计落库（谁/何时/理由），返回行 id；写库失败直接抛错，阻止取消 */
+    private async insertForceCancelAudit(
+        ctx: RequestContext,
+        order: Order,
+        delivered: boolean,
+        reason: string,
+    ): Promise<number | null> {
+        const res: any = await this.connection.rawConnection.query(
+            `INSERT INTO campus_order_cancel_audit_log
+                ("orderId", "orderCode", "channelId", "actorUserId", delivered, reason, outcome)
+             VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+             RETURNING id`,
+            [order.id, order.code, ctx.channelId ?? null, ctx.activeUserId ?? null, delivered, reason],
+        );
+        const rows = Array.isArray(res) && Array.isArray(res[0]) ? res[0] : res;
+        return rows?.[0]?.id ?? null;
+    }
+
+    /** 回填强制取消结果（取消已执行，回填失败只告警） */
+    private async markForceCancelAudit(auditId: number | null, outcome: 'ok' | 'failed', error?: string | null) {
+        if (auditId == null) return;
+        try {
+            await this.connection.rawConnection.query(
+                `UPDATE campus_order_cancel_audit_log SET outcome = $2, error = $3 WHERE id = $1`,
+                [auditId, outcome, error ?? null],
+            );
+        } catch (e: any) {
+            Logger.error(`强制取消审计回填失败 audit=${auditId}: ${e?.message ?? e}`, 'CampusDispatch');
+        }
+    }
+
     /** 异常处置原子认领：仅首次调用返回 true（并发/重复点击只有一路能消费掉异常态） */
     private async claimException(sql: string, params: any[]): Promise<boolean> {
         const res: any = await this.connection.rawConnection.query(sql, params);
@@ -499,8 +569,13 @@ export class DispatchAdminService {
         await settleRefundOrMarkFailed(this.connection, orderSvc, ctx, (created as any).id);
     }
 
-    /** 全额退单：退剩余未退部分 + cancelOrder（行取消+状态转换，同 T4） */
+    /** 全额退单：退剩余未退部分 + cancelOrder（行取消+状态转换，同 T4）
+     * 已送达单不走这条：送达后不应再取消（A11），在入口直接跳过，避免「退完款才被守卫拦下」。 */
     private async refundAllAndCancel(ctx: RequestContext, order: Order) {
+        if (isDeliveredOrder(order)) {
+            Logger.warn(`异常退单跳过：order=${order.code} 已送达，不再取消`, 'CampusDispatch');
+            return;
+        }
         const orderSvc = this.getOrderService();
         // 覆盖多支付单场景：逐张退剩余（单支付单订单等价于原「退剩余」）
         for (const picked of await refundablePayments(this.connection, Number(order.id))) {

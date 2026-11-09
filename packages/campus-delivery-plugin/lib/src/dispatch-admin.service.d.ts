@@ -82,6 +82,15 @@ export declare class DispatchAdminService {
         ok: boolean;
         action: ExceptionAction;
     }>;
+    /**
+     * A11 受控出口：强制取消（含已送达单）。必须显式填写理由，取消前先落审计，取消后回填结果。
+     * 审计写入失败则不执行取消——不允许「无审计的强制取消」。
+     */
+    forceCancel(ctx: RequestContext, orderId: ID, reason: string): Promise<boolean>;
+    /** 强制取消审计落库（谁/何时/理由），返回行 id；写库失败直接抛错，阻止取消 */
+    private insertForceCancelAudit;
+    /** 回填强制取消结果（取消已执行，回填失败只告警） */
+    private markForceCancelAudit;
     /** 异常处置原子认领：仅首次调用返回 true（并发/重复点击只有一路能消费掉异常态） */
     private claimException;
     /** 跨店守卫：订单必须属于当前渠道（调度写操作统一入口校验） */
@@ -90,7 +99,8 @@ export declare class DispatchAdminService {
      * refund 表 shipping/adjustment 列 NOT NULL 必须显式传 0；
      * 幂等保护：累计已退 + 本次 ≤ payment.amount，超额抛错。 */
     private refundAmount;
-    /** 全额退单：退剩余未退部分 + cancelOrder（行取消+状态转换，同 T4） */
+    /** 全额退单：退剩余未退部分 + cancelOrder（行取消+状态转换，同 T4）
+     * 已送达单不走这条：送达后不应再取消（A11），在入口直接跳过，避免「退完款才被守卫拦下」。 */
     private refundAllAndCancel;
     /**
      * 退款/退单处置失败兜底：不能只回滚认领——退款单可能已创建但客户未到账。

@@ -65,6 +65,7 @@ interface ScannedOrder {
     state: string;
     hallStatus: string | null;
     deliveryStatus: string | null;
+    deliveredAt?: string | Date | null;
 }
 
 export interface RefundRetryRunResult {
@@ -128,7 +129,8 @@ export class RefundRetryJob implements OnApplicationShutdown {
         const scanned = rowsOf(
             await this.connection.rawConnection.query(
                 `SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
-                        "customFieldsDeliverystatus" AS "deliveryStatus"
+                        "customFieldsDeliverystatus" AS "deliveryStatus",
+                        "customFieldsDeliveredat" AS "deliveredAt"
                    FROM "order"
                   WHERE "customFieldsHallstatus" = 'refund_failed'
                     AND "updatedAt" >= $1
@@ -174,7 +176,8 @@ export class RefundRetryJob implements OnApplicationShutdown {
         const fresh = rowsOf(
             await this.connection.rawConnection.query(
                 `SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
-                        "customFieldsDeliverystatus" AS "deliveryStatus"
+                        "customFieldsDeliverystatus" AS "deliveryStatus",
+                        "customFieldsDeliveredat" AS "deliveredAt"
                    FROM "order" WHERE id = $1`,
                 [order.id],
             ),
@@ -210,8 +213,13 @@ export class RefundRetryJob implements OnApplicationShutdown {
                 await settleRefundOrMarkFailed(this.connection, orderSvc as any, ctx, (created as any).id);
             }
 
-            // 已退款仅取消失败的单：跳过退款（余额为 0），只补取消
-            if (String(fresh.state ?? '') !== 'Cancelled') {
+            // 已送达单不应再取消（A11）：送达后取消会污染对账/分账，入口直接跳过取消
+            const delivered = !!fresh.deliveredAt
+                || String(fresh.hallStatus ?? '') === 'delivered'
+                || String(fresh.deliveryStatus ?? '') === 'delivered';
+            if (delivered) {
+                Logger.warn(`退款重试跳过取消：order=${fresh.code} 已送达`, loggerCtx);
+            } else if (String(fresh.state ?? '') !== 'Cancelled') {
                 let cancelled: any = await orderSvc.cancelOrder(ctx, {
                     orderId: fresh.id as ID,
                     reason: `refund_failed auto retry cancel (${fresh.code})`,

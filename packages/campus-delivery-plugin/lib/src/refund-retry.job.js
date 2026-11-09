@@ -105,7 +105,8 @@ let RefundRetryJob = class RefundRetryJob {
         const result = { done: 0, retried: 0, escalated: 0, skipped: 0 };
         const cutoff = await this.cutoff();
         const scanned = rowsOf(await this.connection.rawConnection.query(`SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
-                        "customFieldsDeliverystatus" AS "deliveryStatus"
+                        "customFieldsDeliverystatus" AS "deliveryStatus",
+                        "customFieldsDeliveredat" AS "deliveredAt"
                    FROM "order"
                   WHERE "customFieldsHallstatus" = 'refund_failed'
                     AND "updatedAt" >= $1
@@ -141,9 +142,10 @@ let RefundRetryJob = class RefundRetryJob {
     }
     /** 锁内执行；返回本轮结果分类 */
     async retryOne(order, ctx) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         const fresh = rowsOf(await this.connection.rawConnection.query(`SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
-                        "customFieldsDeliverystatus" AS "deliveryStatus"
+                        "customFieldsDeliverystatus" AS "deliveryStatus",
+                        "customFieldsDeliveredat" AS "deliveredAt"
                    FROM "order" WHERE id = $1`, [order.id]))[0];
         // 锁内复查：排队等锁期间人工可能已认领/已改派
         if (!fresh || String((_a = fresh.hallStatus) !== null && _a !== void 0 ? _a : '') !== 'refund_failed')
@@ -173,8 +175,14 @@ let RefundRetryJob = class RefundRetryJob {
                 }
                 await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, orderSvc, ctx, created.id);
             }
-            // 已退款仅取消失败的单：跳过退款（余额为 0），只补取消
-            if (String((_c = fresh.state) !== null && _c !== void 0 ? _c : '') !== 'Cancelled') {
+            // 已送达单不应再取消（A11）：送达后取消会污染对账/分账，入口直接跳过取消
+            const delivered = !!fresh.deliveredAt
+                || String((_c = fresh.hallStatus) !== null && _c !== void 0 ? _c : '') === 'delivered'
+                || String((_d = fresh.deliveryStatus) !== null && _d !== void 0 ? _d : '') === 'delivered';
+            if (delivered) {
+                core_2.Logger.warn(`退款重试跳过取消：order=${fresh.code} 已送达`, loggerCtx);
+            }
+            else if (String((_e = fresh.state) !== null && _e !== void 0 ? _e : '') !== 'Cancelled') {
                 let cancelled = await orderSvc.cancelOrder(ctx, {
                     orderId: fresh.id,
                     reason: `refund_failed auto retry cancel (${fresh.code})`,
@@ -196,7 +204,7 @@ let RefundRetryJob = class RefundRetryJob {
             return 'done';
         }
         catch (e) {
-            const message = String((_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e);
+            const message = String((_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e);
             await this.dedupe.setJson(ERROR_KEY(fresh.id), { message, at: new Date().toISOString() }, exports.RETRY_STATE_TTL_MS);
             core_2.Logger.error(`退款重试失败 order=${fresh.code} attempt=${attempts}/${exports.REFUND_RETRY_MAX_ATTEMPTS}: ${message}`, loggerCtx);
             if (attempts >= exports.REFUND_RETRY_MAX_ATTEMPTS) {

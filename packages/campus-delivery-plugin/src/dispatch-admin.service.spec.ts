@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DispatchAdminService } from './dispatch-admin.service';
+import { FORCE_CANCEL_MARK, campusCancelGuardProcess } from './cancel-guard.process';
 
 interface HandleEnvOpts {
     orders?: any[];
@@ -406,6 +407,16 @@ describe('DispatchAdminService.handleException', () => {
         expect(key2).not.toBe(key1);
     });
 
+    it('refund_all：已送达异常单 → 入口跳过退款与取消（不再由守卫拦截）', async () => {
+        const { svc, orderRepo, orderSvc } = makeEnv({ refundedSum: 300 });
+        orderRepo.findOne.mockResolvedValue(
+            exceptionOrder(17, 'A17', { hallStatus: 'exception_final', deliveredAt: new Date() }),
+        );
+        await svc.handleException(ctx, 17 as any, 'refund_all');
+        expect(orderSvc.refundOrder).not.toHaveBeenCalled();
+        expect(orderSvc.cancelOrder).not.toHaveBeenCalled();
+    });
+
     it('已取消订单 → 拒绝处置（防取消后退款/发券）', async () => {
         const { svc, orderRepo } = makeEnv();
         orderRepo.findOne.mockResolvedValue({ ...exceptionOrder(13, 'A13'), state: 'Cancelled' });
@@ -479,5 +490,75 @@ describe('DispatchAdminService.backToHall 交接说明', () => {
         env.orderRepo.findOne.mockResolvedValue({ id: 7, channels: [{ id: 1 }], customFields: {} });
         env.hallSvc.backToHall.mockResolvedValueOnce(false);
         await expect(env.svc.backToHall(ctx, 7 as any)).rejects.toThrow('无法回大厅');
+    });
+});
+
+// A11 受控出口：已送达单唯一放行路径是带理由的强制取消，且先落审计再取消
+describe('DispatchAdminService.forceCancel', () => {
+    const ctx = { channelId: 1, activeUserId: 42 } as any;
+    const deliveredOrder = {
+        id: 4, code: 'A4', state: 'PaymentSettled', channels: [{ id: 1 }],
+        customFields: { hallStatus: 'delivered', deliveredAt: new Date() },
+    };
+
+    it('带理由 → 放行、写审计、清标记', async () => {
+        const env = makeEnv();
+        env.orderRepo.findOne.mockResolvedValue(deliveredOrder);
+        await expect(env.svc.forceCancel(ctx, 4 as any, '  对账补正  ')).resolves.toBe(true);
+        expect(env.orderSvc.cancelOrder).toHaveBeenCalledWith(ctx, expect.objectContaining({
+            orderId: 4, reason: '强制取消：对账补正',
+        }));
+        const insert = env.rawQuery.mock.calls.find(c => String(c[0]).includes('INSERT INTO campus_order_cancel_audit_log'));
+        expect(insert?.[1]).toEqual([4, 'A4', 1, 42, true, '对账补正']);
+        const update = env.rawQuery.mock.calls.find(c => String(c[0]).includes('UPDATE campus_order_cancel_audit_log'));
+        expect(update?.[1]?.[1]).toBe('ok');
+        expect((ctx as any)[FORCE_CANCEL_MARK]).toBeUndefined();
+    });
+
+    it('空理由 → 拒绝，不取消、不写审计', async () => {
+        const env = makeEnv();
+        env.orderRepo.findOne.mockResolvedValue(deliveredOrder);
+        await expect(env.svc.forceCancel(ctx, 4 as any, '   ')).rejects.toThrow('必须填写理由');
+        expect(env.orderSvc.cancelOrder).not.toHaveBeenCalled();
+        expect(env.rawQuery).not.toHaveBeenCalled();
+    });
+
+    it('审计落库失败 → 不执行取消（不允许无审计的强制取消）', async () => {
+        const env = makeEnv();
+        env.orderRepo.findOne.mockResolvedValue(deliveredOrder);
+        env.rawQuery.mockRejectedValueOnce(new Error('db down'));
+        await expect(env.svc.forceCancel(ctx, 4 as any, '补救')).rejects.toThrow('db down');
+        expect(env.orderSvc.cancelOrder).not.toHaveBeenCalled();
+        expect((ctx as any)[FORCE_CANCEL_MARK]).toBeUndefined();
+    });
+
+    it('取消失败 → 审计记 failed，标记清理', async () => {
+        const env = makeEnv();
+        env.orderRepo.findOne.mockResolvedValue(deliveredOrder);
+        env.orderSvc.cancelOrder.mockResolvedValue({ errorCode: 'ORDER_MODIFICATION_ERROR' });
+        await expect(env.svc.forceCancel(ctx, 4 as any, '补救')).rejects.toThrow('取消失败');
+        const update = env.rawQuery.mock.calls.find(c => String(c[0]).includes('UPDATE campus_order_cancel_audit_log'));
+        expect(update?.[1]?.[1]).toBe('failed');
+        expect((ctx as any)[FORCE_CANCEL_MARK]).toBeUndefined();
+    });
+
+    it('强制标记能穿过真实守卫（已送达单放行）', async () => {
+        const env = makeEnv();
+        env.orderRepo.findOne.mockResolvedValue(deliveredOrder);
+        env.orderSvc.cancelOrder.mockImplementation(async (c: any) => {
+            await (campusCancelGuardProcess.onTransitionStart as any)('PaymentSettled', 'Cancelled', { ctx: c, order: deliveredOrder });
+            return {};
+        });
+        await expect(env.svc.forceCancel(ctx, 4 as any, '守卫联调')).resolves.toBe(true);
+    });
+});
+
+// 无标记的后台/系统取消已送达单 → 真实守卫必须拒绝
+describe('已送达取消守卫与 dispatch 入口', () => {
+    it('守卫拒绝 admin 无标记取消已送达单', async () => {
+        await expect((campusCancelGuardProcess.onTransitionStart as any)('PaymentSettled', 'Cancelled', {
+            ctx: { apiType: 'admin', channelId: 1 } as any,
+            order: { customFields: { hallStatus: 'delivered' } },
+        })).rejects.toThrow('已拦截后台/系统取消');
     });
 });

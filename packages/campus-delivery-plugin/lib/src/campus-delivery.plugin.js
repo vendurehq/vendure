@@ -187,6 +187,7 @@ const p40_review_gift_choice_1 = require("./migrations/p40-review-gift-choice");
 const p41_review_gift_channel_columns_1 = require("./migrations/p41-review-gift-channel-columns");
 const p42_channel_aftersales_rule_columns_1 = require("./migrations/p42-channel-aftersales-rule-columns");
 const p43_rider_feishu_binding_1 = require("./migrations/p43-rider-feishu-binding");
+const p44_order_cancel_audit_1 = require("./migrations/p44-order-cancel-audit");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -439,6 +440,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p41_review_gift_channel_columns_1.P41ReviewGiftChannelColumnsMigration,
             p42_channel_aftersales_rule_columns_1.P42ChannelAfterSalesRuleColumnsMigration,
             p43_rider_feishu_binding_1.P43RiderFeishuBindingMigration,
+            p44_order_cancel_audit_1.P44OrderCancelAuditMigration,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,
@@ -2919,6 +2921,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!
                     campusBackToHall(orderId: ID!, note: String): CampusDispatchResult!
                     campusHandleException(orderId: ID!, action: String!, amount: Int, couponTemplateId: ID, note: String): CampusHandleExceptionResult!
+                    """强制取消（含已送达单）：必须填写理由，服务端写审计（谁/何时/理由）"""
+                    campusForceCancelOrder(orderId: ID!, reason: String!): Boolean!
                     campusEnsureErrandProducts: CampusErrandProductResult!
                     campusUpdateStoreConfig(channelId: ID!, input: CampusStoreConfigInput!): CampusStoreConfigWithChannel!
                     """商家下单广告（按天计费，下单即固化单价与总价，状态 pendingPay）"""

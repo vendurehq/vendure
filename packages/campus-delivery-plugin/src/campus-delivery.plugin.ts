@@ -188,6 +188,7 @@ import { P40ReviewGiftChoiceMigration } from './migrations/p40-review-gift-choic
 import { P41ReviewGiftChannelColumnsMigration } from './migrations/p41-review-gift-channel-columns';
 import { P42ChannelAfterSalesRuleColumnsMigration } from './migrations/p42-channel-aftersales-rule-columns';
 import { P43RiderFeishuBindingMigration } from './migrations/p43-rider-feishu-binding';
+import { P44OrderCancelAuditMigration } from './migrations/p44-order-cancel-audit';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { WithdrawReconcileJob } from './withdraw-reconcile.job';
 import { CompensationTaskService } from './compensation-task.service';
@@ -260,6 +261,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P41ReviewGiftChannelColumnsMigration,
         P42ChannelAfterSalesRuleColumnsMigration,
         P43RiderFeishuBindingMigration,
+        P44OrderCancelAuditMigration,
         CampusDedupeService,
         WithdrawReconcileJob,
         CompensationTaskService,
@@ -2740,6 +2742,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!
                     campusBackToHall(orderId: ID!, note: String): CampusDispatchResult!
                     campusHandleException(orderId: ID!, action: String!, amount: Int, couponTemplateId: ID, note: String): CampusHandleExceptionResult!
+                    """强制取消（含已送达单）：必须填写理由，服务端写审计（谁/何时/理由）"""
+                    campusForceCancelOrder(orderId: ID!, reason: String!): Boolean!
                     campusEnsureErrandProducts: CampusErrandProductResult!
                     campusUpdateStoreConfig(channelId: ID!, input: CampusStoreConfigInput!): CampusStoreConfigWithChannel!
                     """商家下单广告（按天计费，下单即固化单价与总价，状态 pendingPay）"""

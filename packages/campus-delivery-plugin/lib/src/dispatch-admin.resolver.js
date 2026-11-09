@@ -34,6 +34,10 @@ let DispatchAdminResolver = class DispatchAdminResolver {
     async campusHandleException(ctx, orderId, action, amount, couponTemplateId, note) {
         return this.dispatchAdmin.handleException(ctx, orderId, action, amount, couponTemplateId, note);
     }
+    /** A11 受控出口：强制取消（含已送达单），必须带理由并写审计 */
+    async campusForceCancelOrder(ctx, orderId, reason) {
+        return this.dispatchAdmin.forceCancel(ctx, orderId, reason);
+    }
 };
 exports.DispatchAdminResolver = DispatchAdminResolver;
 __decorate([
@@ -77,6 +81,16 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext, Object, String, Number, Object, String]),
     __metadata("design:returntype", Promise)
 ], DispatchAdminResolver.prototype, "campusHandleException", null);
+__decorate([
+    (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(permissions_1.CampusPermissions.CampusDispatch),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('orderId')),
+    __param(2, (0, graphql_1.Args)('reason')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, String]),
+    __metadata("design:returntype", Promise)
+], DispatchAdminResolver.prototype, "campusForceCancelOrder", null);
 exports.DispatchAdminResolver = DispatchAdminResolver = __decorate([
     (0, graphql_1.Resolver)(),
     __metadata("design:paramtypes", [dispatch_admin_service_1.DispatchAdminService])
