@@ -119,6 +119,11 @@ class ActiveQueue<Data extends JobData<Data> = object> {
             try {
                 const runningJobsCount = this.activeJobs.length;
                 for (let i = runningJobsCount; i < this.concurrency; i++) {
+                    // Don't claim further jobs once stop() has been called, otherwise
+                    // shutdown would have to wait for each of them as well.
+                    if (!this.running) {
+                        break;
+                    }
                     // next() may already mark the job as RUNNING in the store (the SQL strategy
                     // does), so shutdown must also wait for an in-flight claim. Otherwise it can
                     // close the connection and leave the job RUNNING with no worker.

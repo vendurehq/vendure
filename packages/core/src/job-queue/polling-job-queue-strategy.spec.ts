@@ -183,6 +183,43 @@ describe('PollingJobQueueStrategy', () => {
         expect(settled?.state).toBe(JobState.COMPLETED);
     });
 
+    // #4949 — once stop() is called, the polling loop must not claim further jobs
+    it('does not claim more jobs after stop() lands during an in-flight next()', async () => {
+        const concurrentStrategy = new InMemoryJobQueueStrategy({ concurrency: 2, pollInterval: 10 });
+        concurrentStrategy.init({ get: () => ({ isWorker: false }) } as any);
+        let releaseNext: (() => void) | undefined;
+        const nextGate = new Promise<void>(resolve => {
+            releaseNext = resolve;
+        });
+        const originalNext = concurrentStrategy.next.bind(concurrentStrategy);
+        let sawNext = false;
+        vi.spyOn(concurrentStrategy, 'next').mockImplementation(async (queueName: string) => {
+            if (!sawNext) {
+                sawNext = true;
+                await nextGate;
+            }
+            return originalNext(queueName);
+        });
+
+        await concurrentStrategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+        await concurrentStrategy.add(new Job({ id: 'job-2', queueName: 'test', data: {} }));
+        const processed: string[] = [];
+        const process = async (job: Job) => {
+            processed.push(job.id as string);
+            return true;
+        };
+        await concurrentStrategy.start('test', process);
+        await vi.waitFor(() => expect(sawNext).toBe(true), { timeout: 2000, interval: 10 });
+
+        const stopPromise = concurrentStrategy.stop('test', process);
+        releaseNext?.();
+        await stopPromise;
+
+        expect(processed).toEqual(['job-1']);
+        expect((await concurrentStrategy.findOne('job-2'))?.state).toBe(JobState.PENDING);
+        concurrentStrategy.destroy();
+    });
+
     // #5440 — a job cancelled while running stays CANCELLED whatever its process function returns
     it.each([
         ['undefined', undefined],
