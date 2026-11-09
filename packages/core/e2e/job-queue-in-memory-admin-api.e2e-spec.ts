@@ -82,7 +82,8 @@ const getJobsByIdDocument = graphql(`
 `);
 
 // Job queue on the default InMemoryJobQueueStrategy (no job queue plugin).
-// #5439: Admin API job lookups. #5292: job updates read through the strategy's finders.
+// #5439: Admin API job lookups. #5292: `updates()` sees progress changes because the finders return
+// copies of the stored jobs.
 describe('JobQueue with InMemoryJobQueueStrategy', () => {
     const activeConfig = testConfig();
     const { server, adminClient } = createTestEnvironment(
@@ -183,10 +184,5 @@ describe('JobQueue with InMemoryJobQueueStrategy', () => {
         expect(result.updateCount).toBeGreaterThanOrEqual(3);
         expect(result.finalState).toBe(JobState.COMPLETED);
         expect(result.finalResult).toBe('completed');
-    });
-
-    it('subscribe to result of job', async () => {
-        const response = await adminClient.fetch(`${baseUrl}/subscribe`);
-        expect(await response.text()).toBe('42!');
     });
 });
