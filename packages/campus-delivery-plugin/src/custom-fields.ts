@@ -138,6 +138,10 @@ export const campusCustomFields: CustomFields = {
         { name: 'riderInsuranceExpiry', type: 'datetime', nullable: true },
         { name: 'riderBackgroundCheck', type: 'string', nullable: true }, // none/pending/passed/failed
         { name: 'riderBackgroundCheckAt', type: 'datetime', nullable: true },
+        // 骑手飞书身份绑定（A 方案）：运营首次绑定、可解绑/重绑；空值=未绑定。
+        // 飞书抢单回调按 open_id 反查 Customer，再复用 assertApprovedRider 做权限判定。
+        { name: 'riderFeishuOpenId', type: 'string', nullable: true },
+        { name: 'riderFeishuBoundAt', type: 'datetime', nullable: true },
         { name: 'avatarUrl', type: 'string', nullable: true }, // 头像 URL（uploadCustomerAsset 产物）
         { name: 'invoiceTitles', type: 'string', nullable: true }, // 发票抬头列表 JSON（≤5 条，spec §3.2）
         // P3-1 口味偏好云端同步：JSON {spicy, avoid[], allergens[], tableware}，与 C 端 utils/taste-profile.ts 同结构

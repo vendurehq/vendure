@@ -9,6 +9,9 @@ import { SlotLockService } from './slot-lock.service';
 /** 仍在履约链路上的大厅状态（取消脱厅/回厅/条件状态迁移共用）。
  * 终态（delivered/cancelled/no_rider_final/exception_final）不在其中，任何写入都不应把终态单改回流转态。 */
 export declare const ACTIVE_HALL_STATUSES: string[];
+/** 飞书抢单去重键：单号 + 本次入厅时刻。
+ * 同一次入厅（同一 hallEnteredAt）多路径调用只推一次；回池后重新入厅时刻变化，允许再推。 */
+export declare function riderGrabDedupeKey(orderId: number | string, enteredAt: Date): string;
 /**
  * 入厅服务：跑腿单（orderKind='errand'）或路线 R1/R3 的订单在**支付成功后**自动进入抢单大厅。
  * 含预约时段锁位（T0 前置）：锁位失败标 campusCause='slot_full'，靠调度告警人工跟进。
@@ -91,4 +94,7 @@ export declare class HallService {
      * 模板 ID 复用渠道 orderShippedTemplateId（wechat 插件未定义 campus 专用模板字段），
      * 未配置则跳过；逐骑手发送，单个失败不影响其余骑手。 */
     private notifyRiders;
+    /** 飞书抢单推送（只推 open 入厅）：去重键 = 单号 + 本次入厅时刻。
+     * 同一次入厅多路径调用只推一次；回池后重新入厅会写入新的 hallEnteredAt，从而允许再推。 */
+    private pushFeishuRiderGrab;
 }

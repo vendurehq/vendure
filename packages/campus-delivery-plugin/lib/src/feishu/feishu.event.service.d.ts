@@ -1,6 +1,7 @@
 import { CampusDedupeService } from '../campus-dedupe.service';
 import { FeishuCommandService } from './feishu.command.service';
 import { FeishuConfigService } from './feishu.config';
+import { FeishuRiderGrabService } from './feishu-rider-grab.service';
 export interface FeishuEventResult {
     status: number;
     body: Record<string, unknown>;
@@ -20,10 +21,14 @@ export declare class FeishuEventService {
     private command;
     /** M5 跨实例事件去重（飞书重试可能落到另一实例）；未注入退回进程内 Map */
     private dedupe?;
+    /** 骑手群抢单回调（scope='rider'）；事件层按群定位分流，绝不与商家指令共用通道 */
+    private riderGrab?;
     private seen;
     constructor(cfg: FeishuConfigService, command: FeishuCommandService, 
     /** M5 跨实例事件去重（飞书重试可能落到另一实例）；未注入退回进程内 Map */
-    dedupe?: CampusDedupeService | undefined);
+    dedupe?: CampusDedupeService | undefined, 
+    /** 骑手群抢单回调（scope='rider'）；事件层按群定位分流，绝不与商家指令共用通道 */
+    riderGrab?: FeishuRiderGrabService | undefined);
     handle(raw: any, headers?: FeishuRequestHeaders): Promise<FeishuEventResult>;
     /** 卡片按钮回调：value 里带着完整单号，直接转指令服务（先 200 再异步执行） */
     private handleCardAction;

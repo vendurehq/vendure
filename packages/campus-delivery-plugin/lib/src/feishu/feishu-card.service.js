@@ -153,6 +153,36 @@ let FeishuCardService = class FeishuCardService {
             alerts,
         };
     }
+    /** 大厅抢单卡片：按单号读订单，组装取送点/金额/剩余时限（剩余时限按入厅时刻 + 15 分钟计） */
+    async buildRiderGrabCard(code) {
+        var _a;
+        if (!code)
+            return null;
+        const order = await this.connection.rawConnection.getRepository(core_1.Order).findOne({
+            where: { code },
+            relations: ['channels'],
+        });
+        if (!order)
+            return null;
+        const cf = order.customFields;
+        let building = null;
+        if (cf === null || cf === void 0 ? void 0 : cf.buildingId) {
+            const b = await this.connection.rawConnection.getRepository(campus_building_entity_1.CampusBuilding).findOne({
+                where: { id: String(cf.buildingId) },
+            });
+            building = (_a = b === null || b === void 0 ? void 0 : b.name) !== null && _a !== void 0 ? _a : null;
+        }
+        const addr = [building, cf === null || cf === void 0 ? void 0 : cf.campusZone, cf === null || cf === void 0 ? void 0 : cf.deliverySlotText].filter(Boolean).join(' ') || '校园内';
+        const enteredAt = (cf === null || cf === void 0 ? void 0 : cf.hallEnteredAt) ? new Date(cf.hallEnteredAt).getTime() : order.createdAt.getTime();
+        const remainingMinutes = 15 - (Date.now() - enteredAt) / 60000;
+        return (0, feishu_templates_1.buildRiderGrabCard)({
+            code: order.code,
+            orderId: order.id,
+            addr,
+            total: order.total,
+            remainingMinutes,
+        });
+    }
     async buildCard(code) {
         const view = await this.loadOrderView(code);
         return view ? (0, feishu_templates_1.buildOrderCard)(view) : null;

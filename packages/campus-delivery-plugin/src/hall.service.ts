@@ -28,6 +28,12 @@ const CANCELLABLE_EXTRA_STATUSES = ['refund_failed'];
  * 例：hallStatus → customFieldsHallstatus；thirdPartyDispatchAt → customFieldsThirdpartydispatchat */
 const orderColumn = (field: string) => `"customFields${field.charAt(0).toUpperCase()}${field.slice(1).toLowerCase()}"`;
 
+/** 飞书抢单去重键：单号 + 本次入厅时刻。
+ * 同一次入厅（同一 hallEnteredAt）多路径调用只推一次；回池后重新入厅时刻变化，允许再推。 */
+export function riderGrabDedupeKey(orderId: number | string, enteredAt: Date): string {
+    return `feishu_rider_grab:${orderId}:${enteredAt.getTime()}`;
+}
+
 /**
  * 入厅服务：跑腿单（orderKind='errand'）或路线 R1/R3 的订单在**支付成功后**自动进入抢单大厅。
  * 含预约时段锁位（T0 前置）：锁位失败标 campusCause='slot_full'，靠调度告警人工跟进。
@@ -219,9 +225,10 @@ export class HallService {
             await enter({ hallStatus: 'pending_merchant', hallEnteredAt: new Date() });
             return;
         }
-        if (!(await enter({ hallStatus: 'open', hallEnteredAt: new Date() }))) return;
+        const enteredAt = new Date();
+        if (!(await enter({ hallStatus: 'open', hallEnteredAt: enteredAt }))) return;
         Logger.info(`Order ${order.code} entered hall (${route}, slotLocked=${locked})`, 'CampusHall');
-        this.notifyRiders(ctx, order);
+        this.notifyRiders(ctx, order, 'open', enteredAt);
     }
 
     /** 预约单放量（调度 job 调用，plan 3.1）：按路由/快照分流。
@@ -231,9 +238,10 @@ export class HallService {
     async releaseScheduled(ctx: RequestContext, order: Order, cfg: CampusFulfillmentConfig | null): Promise<boolean> {
         const cf = order.customFields as any;
         const next = HallService.releaseTarget(cf, cfg);
+        const releasedAt = new Date();
         const released = await this.transitionFrom(ctx, Number(order.id), ['scheduled'], {
             hallStatus: next,
-            hallEnteredAt: new Date(),
+            hallEnteredAt: releasedAt,
         });
         if (!released) {
             Logger.info(`Order ${order.code} scheduled release skipped (hall status changed)`, 'CampusHall');
@@ -241,7 +249,7 @@ export class HallService {
         }
         Logger.info(`Order ${order.code} scheduled → ${next}`, 'CampusHall');
         // 无人接单的渠道保持原行为：放量即提醒在线骑手
-        if (next === 'open' || next === 'owned_pool') this.notifyRiders(ctx, order);
+        if (next === 'open' || next === 'owned_pool') this.notifyRiders(ctx, order, next as 'open' | 'owned_pool', releasedAt);
         return true;
     }
 
@@ -275,10 +283,11 @@ export class HallService {
             return '';
         }
         const handoverCode = generateHandoverCode();
+        const enteredAt = new Date();
         const moved = await this.transitionFrom(ctx, orderId, from, {
             ...extra,
             hallStatus: 'open',
-            hallEnteredAt: new Date(),
+            hallEnteredAt: enteredAt,
             deliveryStatus: 'pending',
             assignedAt: null,
             deliveryStaffId: null,
@@ -293,7 +302,7 @@ export class HallService {
             );
             return '';
         }
-        this.notifyRiders(ctx, order);
+        this.notifyRiders(ctx, order, 'open', enteredAt);
         // 第一段交接完成：给顾客一个明确节点（餐/包裹已到校园交接点，等待骑手接力）
         const point = String((order.customFields as any)?.handoverPointName ?? '校园交接点');
         this.notify?.user(ctx, order.id, 'arrivedHandover', point);
@@ -432,8 +441,10 @@ export class HallService {
     /** T0: 新单入厅即提醒在线骑手（订阅消息），失败只记日志不阻塞入厅。
      * 模板 ID 复用渠道 orderShippedTemplateId（wechat 插件未定义 campus 专用模板字段），
      * 未配置则跳过；逐骑手发送，单个失败不影响其余骑手。 */
-    private notifyRiders(ctx: RequestContext, order: Order) {
+    private notifyRiders(ctx: RequestContext, order: Order, next: 'open' | 'owned_pool', enteredAt: Date) {
         void (async () => {
+            // 飞书抢单卡片：仅 open 入厅推送骑手群；owned_pool 属自营池，不推骑手
+            if (next === 'open') await this.pushFeishuRiderGrab(order, enteredAt);
             try {
                 const templateId = ((ctx.channel as any)?.customFields ?? {}).orderShippedTemplateId as
                     | string
@@ -461,5 +472,18 @@ export class HallService {
                 Logger.warn(`rider notify failed: ${e?.message}`, 'CampusHall');
             }
         })();
+    }
+
+    /** 飞书抢单推送（只推 open 入厅）：去重键 = 单号 + 本次入厅时刻。
+     * 同一次入厅多路径调用只推一次；回池后重新入厅会写入新的 hallEnteredAt，从而允许再推。 */
+    private async pushFeishuRiderGrab(order: Order, enteredAt: Date): Promise<void> {
+        if (!this.feishu?.enabled) return;
+        const key = riderGrabDedupeKey(order.id, enteredAt);
+        try {
+            if (this.dedupe && (await this.dedupe.seenOrMark(key, 6 * 3600_000))) return;
+            await this.feishu.pushRiderGrab(order.code);
+        } catch (e: any) {
+            Logger.warn(`feishu rider grab push failed: ${e?.message}`, 'CampusHall');
+        }
     }
 }

@@ -28,6 +28,8 @@ export declare class FeishuNotifyService {
     push(scene: string, dedupeKey: string | undefined, text: string, target?: FeishuPushTarget): Promise<boolean>;
     /** 返回是否已送达/已合并到卡片：false 表示本次推送失败，调用方应保留重试机会。 */
     pushEvent(scene: string, title: string, content: string, orderCode?: string, dedupeKey?: string, target?: FeishuPushTarget): Promise<boolean>;
+    /** 大厅新单 → 骑手群抢单卡片。未配置骑手群/未启用/发送失败只告警，绝不阻塞订单流程 */
+    pushRiderGrab(orderCode: string): Promise<void>;
     /** 飞书通道是否可用（未启用时业务侧只记录日志、不外发） */
     get enabled(): boolean;
     private deliver;

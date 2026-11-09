@@ -113,6 +113,7 @@ import { FeishuController } from './feishu/feishu.controller';
 import { FeishuDigestService } from './feishu/feishu.digest.service';
 import { FeishuEventService } from './feishu/feishu.event.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
+import { FeishuRiderGrabService } from './feishu/feishu-rider-grab.service';
 import { CampusErrandShippingLineAssignmentStrategy } from './errand-shipping-line-assignment';
 import { HallGrabService } from './hall-grab.service';
 import { HallService } from './hall.service';
@@ -332,6 +333,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         FeishuNotifyService,
         FeishuCommandService,
         FeishuEventService,
+        FeishuRiderGrabService,
         FeishuDigestService,
     ],
     controllers: [FeishuController],
@@ -2729,6 +2731,8 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     campusCreateSlot(input: DeliverySlotInput!): DeliverySlot!
                     campusUpdateSlot(id: ID!, input: DeliverySlotUpdateInput!): DeliverySlot!
                     campusSetRiderStatus(customerId: ID!, status: String!): CampusSetRiderStatusResult!
+                    """绑定/解绑骑手飞书身份（openId 为空即解绑，可重复重绑）"""
+                    campusSetRiderFeishuBinding(customerId: ID!, openId: String): Boolean!
                     """骑手合规登记（P2-5：健康证/保险/背调），返回最新合规判定"""
                     campusUpdateRiderCompliance(customerId: ID!, input: RiderComplianceInput!): RiderComplianceResult!
                     campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!

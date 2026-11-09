@@ -313,6 +313,48 @@ function cardNote(content: string) {
     return { tag: 'note', elements: [{ tag: 'plain_text', content }] };
 }
 
+/** 大厅抢单卡片入参（订单进入 open 时推送骑手群） */
+export interface RiderGrabInput {
+    code: string;
+    orderId: number | string;
+    /** 取送点：楼栋 + 分区 + 时段等摘要 */
+    addr: string;
+    /** 订单金额（分） */
+    total: number;
+    /** 预计剩余可抢时限（分钟） */
+    remainingMinutes: number;
+}
+
+/** 骑手抢单卡片：标题「新单待抢」+ 取送点/金额/剩余时限 + 单个「抢单」按钮（value 走 rider_grab 回调） */
+export function buildRiderGrabCard(o: RiderGrabInput): Record<string, unknown> {
+    const short = shortCode(o.code);
+    const mins = Math.max(0, Math.round(o.remainingMinutes));
+    const amount = `¥${((o.total ?? 0) / 100).toFixed(2)}`;
+    return {
+        config: { wide_screen_mode: true },
+        header: {
+            template: 'orange',
+            title: { tag: 'plain_text', content: `🛵 新单待抢 · ${short}` },
+        },
+        elements: [
+            {
+                tag: 'div',
+                text: {
+                    tag: 'lark_md',
+                    content: `📍 **取送点**：${o.addr}\n💰 **金额**：${amount}\n⏱ **剩余时限**：${mins} 分钟`,
+                },
+            },
+            {
+                tag: 'action',
+                actions: [
+                    cardButton('抢单', { a: 'rider_grab', c: o.code, o: String(o.orderId) }, 'primary'),
+                ],
+            },
+            cardNote('点击「抢单」即占用该单；需已绑定骑手身份，权限由系统校验'),
+        ],
+    };
+}
+
 export function buildOrderCard(o: OrderStatusInput): Record<string, unknown> {
     const short = shortCode(o.code);
     const hall = orderHallLabel(o.hallStatus);

@@ -3,7 +3,7 @@ import { Logger, Order, TransactionalConnection } from '@vendure/core';
 
 import { CampusBuilding } from '../campus-building.entity';
 import { FeishuClient } from './feishu.client';
-import { buildOrderCard, OrderStatusInput } from './feishu.templates';
+import { buildOrderCard, buildRiderGrabCard as buildRiderGrabCardTemplate, OrderStatusInput } from './feishu.templates';
 
 const loggerCtx = 'Feishu';
 const ALERT_MAX_AGE_MS = 24 * 3600_000;  // 告警超过 24h 没更新 → GC
@@ -146,6 +146,34 @@ export class FeishuCardService {
             at: Date.now(),
             alerts,
         };
+    }
+
+    /** 大厅抢单卡片：按单号读订单，组装取送点/金额/剩余时限（剩余时限按入厅时刻 + 15 分钟计） */
+    async buildRiderGrabCard(code: string): Promise<Record<string, unknown> | null> {
+        if (!code) return null;
+        const order = await this.connection.rawConnection.getRepository(Order).findOne({
+            where: { code },
+            relations: ['channels'],
+        });
+        if (!order) return null;
+        const cf = order.customFields as any;
+        let building: string | null = null;
+        if (cf?.buildingId) {
+            const b = await this.connection.rawConnection.getRepository(CampusBuilding).findOne({
+                where: { id: String(cf.buildingId) as any },
+            });
+            building = b?.name ?? null;
+        }
+        const addr = [building, cf?.campusZone, cf?.deliverySlotText].filter(Boolean).join(' ') || '校园内';
+        const enteredAt = cf?.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : (order.createdAt as any).getTime();
+        const remainingMinutes = 15 - (Date.now() - enteredAt) / 60_000;
+        return buildRiderGrabCardTemplate({
+            code: order.code,
+            orderId: order.id,
+            addr,
+            total: order.total,
+            remainingMinutes,
+        });
     }
 
     async buildCard(code: string): Promise<Record<string, unknown> | null> {

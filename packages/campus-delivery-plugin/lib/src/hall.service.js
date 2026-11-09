@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var HallService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HallService = exports.ACTIVE_HALL_STATUSES = void 0;
+exports.riderGrabDedupeKey = riderGrabDedupeKey;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const core_2 = require("@vendure/core");
@@ -37,6 +38,11 @@ const CANCELLABLE_EXTRA_STATUSES = ['refund_failed'];
 /** customFields 字段名 → 物理列名（Vendure 规则：customFields + 首字母大写 + 其余小写）
  * 例：hallStatus → customFieldsHallstatus；thirdPartyDispatchAt → customFieldsThirdpartydispatchat */
 const orderColumn = (field) => `"customFields${field.charAt(0).toUpperCase()}${field.slice(1).toLowerCase()}"`;
+/** 飞书抢单去重键：单号 + 本次入厅时刻。
+ * 同一次入厅（同一 hallEnteredAt）多路径调用只推一次；回池后重新入厅时刻变化，允许再推。 */
+function riderGrabDedupeKey(orderId, enteredAt) {
+    return `feishu_rider_grab:${orderId}:${enteredAt.getTime()}`;
+}
 /**
  * 入厅服务：跑腿单（orderKind='errand'）或路线 R1/R3 的订单在**支付成功后**自动进入抢单大厅。
  * 含预约时段锁位（T0 前置）：锁位失败标 campusCause='slot_full'，靠调度告警人工跟进。
@@ -194,10 +200,11 @@ let HallService = HallService_1 = class HallService {
             await enter({ hallStatus: 'pending_merchant', hallEnteredAt: new Date() });
             return;
         }
-        if (!(await enter({ hallStatus: 'open', hallEnteredAt: new Date() })))
+        const enteredAt = new Date();
+        if (!(await enter({ hallStatus: 'open', hallEnteredAt: enteredAt })))
             return;
         core_2.Logger.info(`Order ${order.code} entered hall (${route}, slotLocked=${locked})`, 'CampusHall');
-        this.notifyRiders(ctx, order);
+        this.notifyRiders(ctx, order, 'open', enteredAt);
     }
     /** 预约单放量（调度 job 调用，plan 3.1）：按路由/快照分流。
      * 放量即写 hallEnteredAt 作为「商家/运力计时锚点」：预约单 createdAt 可能早于放量数小时甚至数天，
@@ -206,9 +213,10 @@ let HallService = HallService_1 = class HallService {
     async releaseScheduled(ctx, order, cfg) {
         const cf = order.customFields;
         const next = HallService_1.releaseTarget(cf, cfg);
+        const releasedAt = new Date();
         const released = await this.transitionFrom(ctx, Number(order.id), ['scheduled'], {
             hallStatus: next,
-            hallEnteredAt: new Date(),
+            hallEnteredAt: releasedAt,
         });
         if (!released) {
             core_2.Logger.info(`Order ${order.code} scheduled release skipped (hall status changed)`, 'CampusHall');
@@ -217,7 +225,7 @@ let HallService = HallService_1 = class HallService {
         core_2.Logger.info(`Order ${order.code} scheduled → ${next}`, 'CampusHall');
         // 无人接单的渠道保持原行为：放量即提醒在线骑手
         if (next === 'open' || next === 'owned_pool')
-            this.notifyRiders(ctx, order);
+            this.notifyRiders(ctx, order, next, releasedAt);
         return true;
     }
     /** 放量目标态（put 与调度 job 共用；job 用它在内存里同步订单快照，避免同轮二次误判） */
@@ -248,12 +256,13 @@ let HallService = HallService_1 = class HallService {
             return '';
         }
         const handoverCode = (0, handover_code_1.generateHandoverCode)();
-        const moved = await this.transitionFrom(ctx, orderId, from, Object.assign(Object.assign({}, extra), { hallStatus: 'open', hallEnteredAt: new Date(), deliveryStatus: 'pending', assignedAt: null, deliveryStaffId: null, campusCause: cause, handoverCode, handoverCodeAt: new Date() }));
+        const enteredAt = new Date();
+        const moved = await this.transitionFrom(ctx, orderId, from, Object.assign(Object.assign({}, extra), { hallStatus: 'open', hallEnteredAt: enteredAt, deliveryStatus: 'pending', assignedAt: null, deliveryStaffId: null, campusCause: cause, handoverCode, handoverCodeAt: new Date() }));
         if (!moved) {
             core_2.Logger.warn(`订单 ${order.code} 交接入厅被跳过（已取消或状态已变更，from=${from.join('/')}）`, 'CampusHall');
             return '';
         }
-        this.notifyRiders(ctx, order);
+        this.notifyRiders(ctx, order, 'open', enteredAt);
         // 第一段交接完成：给顾客一个明确节点（餐/包裹已到校园交接点，等待骑手接力）
         const point = String((_b = (_a = order.customFields) === null || _a === void 0 ? void 0 : _a.handoverPointName) !== null && _b !== void 0 ? _b : '校园交接点');
         (_c = this.notify) === null || _c === void 0 ? void 0 : _c.user(ctx, order.id, 'arrivedHandover', point);
@@ -362,9 +371,12 @@ let HallService = HallService_1 = class HallService {
     /** T0: 新单入厅即提醒在线骑手（订阅消息），失败只记日志不阻塞入厅。
      * 模板 ID 复用渠道 orderShippedTemplateId（wechat 插件未定义 campus 专用模板字段），
      * 未配置则跳过；逐骑手发送，单个失败不影响其余骑手。 */
-    notifyRiders(ctx, order) {
+    notifyRiders(ctx, order, next, enteredAt) {
         void (async () => {
             var _a, _b, _c;
+            // 飞书抢单卡片：仅 open 入厅推送骑手群；owned_pool 属自营池，不推骑手
+            if (next === 'open')
+                await this.pushFeishuRiderGrab(order, enteredAt);
             try {
                 const templateId = ((_b = (_a = ctx.channel) === null || _a === void 0 ? void 0 : _a.customFields) !== null && _b !== void 0 ? _b : {}).orderShippedTemplateId;
                 if (!templateId) {
@@ -389,6 +401,22 @@ let HallService = HallService_1 = class HallService {
                 core_2.Logger.warn(`rider notify failed: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusHall');
             }
         })();
+    }
+    /** 飞书抢单推送（只推 open 入厅）：去重键 = 单号 + 本次入厅时刻。
+     * 同一次入厅多路径调用只推一次；回池后重新入厅会写入新的 hallEnteredAt，从而允许再推。 */
+    async pushFeishuRiderGrab(order, enteredAt) {
+        var _a;
+        if (!((_a = this.feishu) === null || _a === void 0 ? void 0 : _a.enabled))
+            return;
+        const key = riderGrabDedupeKey(order.id, enteredAt);
+        try {
+            if (this.dedupe && (await this.dedupe.seenOrMark(key, 6 * 3600000)))
+                return;
+            await this.feishu.pushRiderGrab(order.code);
+        }
+        catch (e) {
+            core_2.Logger.warn(`feishu rider grab push failed: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusHall');
+        }
     }
 };
 exports.HallService = HallService;

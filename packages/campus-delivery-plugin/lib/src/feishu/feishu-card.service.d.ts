@@ -26,6 +26,8 @@ export declare class FeishuCardService {
     private gcMessages;
     /** 读现有表组装卡片所需数据（与文本查单共用同一份视图） */
     loadOrderView(code: string): Promise<OrderStatusInput | null>;
+    /** 大厅抢单卡片：按单号读订单，组装取送点/金额/剩余时限（剩余时限按入厅时刻 + 15 分钟计） */
+    buildRiderGrabCard(code: string): Promise<Record<string, unknown> | null>;
     buildCard(code: string): Promise<Record<string, unknown> | null>;
     /** 发订单卡片，返回 message_id（用于后续原地刷新） */
     sendOrderCard(chatId: string, code: string): Promise<string | null>;

@@ -124,6 +124,26 @@ export class FeishuNotifyService {
         return ok;
     }
 
+    /** 大厅新单 → 骑手群抢单卡片。未配置骑手群/未启用/发送失败只告警，绝不阻塞订单流程 */
+    async pushRiderGrab(orderCode: string): Promise<void> {
+        if (!this.client.enabled) return;
+        if (!this.client.riderChatIds.length) {
+            Logger.warn(`未配置骑手群（FEISHU_CHAT_MAP scope:"rider"），跳过抢单推送：${orderCode}`, loggerCtx);
+            return;
+        }
+        try {
+            const card = await this.cards.buildRiderGrabCard(orderCode);
+            if (!card) {
+                Logger.warn(`抢单卡片生成失败（订单不存在？）：${orderCode}`, loggerCtx);
+                return;
+            }
+            const sent = await this.client.broadcastRiderCard(card);
+            if (sent === 0) Logger.warn(`抢单卡片未送达骑手群：${orderCode}`, loggerCtx);
+        } catch (e: any) {
+            Logger.warn(`骑手抢单推送异常（已忽略）：${e?.message ?? e}`, loggerCtx);
+        }
+    }
+
     /** 飞书通道是否可用（未启用时业务侧只记录日志、不外发） */
     get enabled(): boolean {
         return this.client.enabled;

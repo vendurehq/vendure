@@ -112,6 +112,7 @@ const feishu_controller_1 = require("./feishu/feishu.controller");
 const feishu_digest_service_1 = require("./feishu/feishu.digest.service");
 const feishu_event_service_1 = require("./feishu/feishu.event.service");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
+const feishu_rider_grab_service_1 = require("./feishu/feishu-rider-grab.service");
 const errand_shipping_line_assignment_1 = require("./errand-shipping-line-assignment");
 const hall_grab_service_1 = require("./hall-grab.service");
 const hall_service_1 = require("./hall.service");
@@ -511,6 +512,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             feishu_notify_service_1.FeishuNotifyService,
             feishu_command_service_1.FeishuCommandService,
             feishu_event_service_1.FeishuEventService,
+            feishu_rider_grab_service_1.FeishuRiderGrabService,
             feishu_digest_service_1.FeishuDigestService,
         ],
         controllers: [feishu_controller_1.FeishuController],
@@ -2908,6 +2910,8 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusCreateSlot(input: DeliverySlotInput!): DeliverySlot!
                     campusUpdateSlot(id: ID!, input: DeliverySlotUpdateInput!): DeliverySlot!
                     campusSetRiderStatus(customerId: ID!, status: String!): CampusSetRiderStatusResult!
+                    """绑定/解绑骑手飞书身份（openId 为空即解绑，可重复重绑）"""
+                    campusSetRiderFeishuBinding(customerId: ID!, openId: String): Boolean!
                     """骑手合规登记（P2-5：健康证/保险/背调），返回最新合规判定"""
                     campusUpdateRiderCompliance(customerId: ID!, input: RiderComplianceInput!): RiderComplianceResult!
                     campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!

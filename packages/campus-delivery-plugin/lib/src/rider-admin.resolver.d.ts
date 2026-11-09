@@ -14,6 +14,9 @@ export declare class RiderAdminResolver {
     campusSetRiderStatus(ctx: RequestContext, customerId: ID, status: 'approved' | 'suspended' | 'none'): Promise<{
         status: "approved" | "none" | "suspended";
     }>;
+    /** 绑定/解绑骑手飞书身份：openId 为空即解绑；可反复重绑（不是一次性绑定）。
+     * 抢单回调按 open_id 反查 Customer，绑定错人时运营先解绑再绑正确账号。 */
+    campusSetRiderFeishuBinding(ctx: RequestContext, customerId: ID, openId?: string): Promise<boolean>;
     /** P2-5 骑手合规：登记/更新健康证、保险、背调，返回最新合规判定 */
     campusUpdateRiderCompliance(ctx: RequestContext, customerId: ID, input: RiderCompliancePatch): Promise<import("./rider-compliance").RiderComplianceResult & {
         customerId: number;

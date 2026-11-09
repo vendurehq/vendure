@@ -59,6 +59,10 @@ export declare class FeishuClient {
     private request;
     /** 按订单渠道解析接收群：本店群 + 平台群。未传渠道时返回全部（仅限平台级广播使用）。 */
     chatIdsFor(channelToken?: string): string[];
+    /** 骑手群 chat_id（scope='rider'）；未配置为空数组 */
+    get riderChatIds(): string[];
+    /** 只发骑手群；返回成功发送的群数（0 表示未配置或全部失败） */
+    broadcastRiderCard(card: unknown): Promise<number>;
     /**
      * 广播：优先发到已映射群；没有群映射时退回 webhook。
      * - scope：只发指定范围（platform = 跨店平台群）

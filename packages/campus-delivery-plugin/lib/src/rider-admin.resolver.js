@@ -30,6 +30,11 @@ let RiderAdminResolver = class RiderAdminResolver {
     async campusSetRiderStatus(ctx, customerId, status) {
         return this.riderService.setRiderStatus(ctx, Number(customerId), status);
     }
+    /** 绑定/解绑骑手飞书身份：openId 为空即解绑；可反复重绑（不是一次性绑定）。
+     * 抢单回调按 open_id 反查 Customer，绑定错人时运营先解绑再绑正确账号。 */
+    async campusSetRiderFeishuBinding(ctx, customerId, openId) {
+        return this.riderService.setFeishuBinding(ctx, Number(customerId), openId);
+    }
     /** P2-5 骑手合规：登记/更新健康证、保险、背调，返回最新合规判定 */
     async campusUpdateRiderCompliance(ctx, customerId, input) {
         return this.riderService.updateCompliance(ctx, Number(customerId), input);
@@ -74,6 +79,16 @@ __decorate([
     __metadata("design:paramtypes", [core_1.RequestContext, Object, String]),
     __metadata("design:returntype", Promise)
 ], RiderAdminResolver.prototype, "campusSetRiderStatus", null);
+__decorate([
+    (0, graphql_1.Mutation)(),
+    (0, core_1.Allow)(permissions_1.CampusPermissions.CampusAuditRider),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('customerId')),
+    __param(2, (0, graphql_1.Args)('openId', { nullable: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, String]),
+    __metadata("design:returntype", Promise)
+], RiderAdminResolver.prototype, "campusSetRiderFeishuBinding", null);
 __decorate([
     (0, graphql_1.Mutation)(),
     (0, core_1.Allow)(permissions_1.CampusPermissions.CampusAuditRider),

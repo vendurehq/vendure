@@ -4,6 +4,7 @@ import { Logger } from '@vendure/core';
 import { CampusDedupeService } from '../campus-dedupe.service';
 import { FeishuCommandService } from './feishu.command.service';
 import { FeishuConfigService } from './feishu.config';
+import { FeishuRiderGrabService } from './feishu-rider-grab.service';
 import { decryptFeishuPayload, feishuSignature, signatureEquals } from './feishu.crypto';
 
 const loggerCtx = 'Feishu';
@@ -36,6 +37,8 @@ export class FeishuEventService {
         private command: FeishuCommandService,
         /** M5 跨实例事件去重（飞书重试可能落到另一实例）；未注入退回进程内 Map */
         private dedupe?: CampusDedupeService,
+        /** 骑手群抢单回调（scope='rider'）；事件层按群定位分流，绝不与商家指令共用通道 */
+        private riderGrab?: FeishuRiderGrabService,
     ) {}
 
     async handle(raw: any, headers?: FeishuRequestHeaders): Promise<FeishuEventResult> {
@@ -98,6 +101,14 @@ export class FeishuEventService {
         const openId = event.sender?.sender_id?.open_id as string | undefined;
         if (!chatId || !openId || !text.trim()) return { status: 200, body: {} };
 
+        // 骑手群与商家/平台群彻底隔离：只走抢单回调，不进入指令服务
+        if (this.cfg.chatOf(chatId)?.scope === 'rider') {
+            void this.riderGrab
+                ?.handleText({ chatId, openId, text })
+                .catch(e => Logger.error(`飞书骑手群消息处理失败 chat=${chatId}: ${e?.message ?? e}`, loggerCtx));
+            return { status: 200, body: {} };
+        }
+
         void this.command
             .handleMessage({
                 chatId,
@@ -117,6 +128,14 @@ export class FeishuEventService {
         const messageId = event.context?.open_message_id ?? event.open_message_id;
         const value = event.action?.value;
         if (!chatId || !openId || !value) return { status: 200, body: {} };
+
+        // 骑手群卡片只走抢单服务；商家群卡片仍走指令服务
+        if (this.cfg.chatOf(chatId)?.scope === 'rider') {
+            void this.riderGrab
+                ?.handleCardAction({ chatId, openId, value, messageId })
+                .catch(e => Logger.error(`飞书骑手抢单回调失败 chat=${chatId}: ${e?.message ?? e}`, loggerCtx));
+            return { status: 200, body: {} };
+        }
 
         void this.command
             .handleCardAction({ chatId, openId, value, messageId })

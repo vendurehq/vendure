@@ -110,6 +110,19 @@ export declare function orderDeliveryLabel(status?: string | null): string | nul
 export declare function formatOrderStatus(o: OrderStatusInput): string;
 /** 展示用短码：去掉非字母数字后取尾 4 位；完整单号始终在按钮 value / 引用回读中 */
 export declare function shortCode(code: string): string;
+/** 大厅抢单卡片入参（订单进入 open 时推送骑手群） */
+export interface RiderGrabInput {
+    code: string;
+    orderId: number | string;
+    /** 取送点：楼栋 + 分区 + 时段等摘要 */
+    addr: string;
+    /** 订单金额（分） */
+    total: number;
+    /** 预计剩余可抢时限（分钟） */
+    remainingMinutes: number;
+}
+/** 骑手抢单卡片：标题「新单待抢」+ 取送点/金额/剩余时限 + 单个「抢单」按钮（value 走 rider_grab 回调） */
+export declare function buildRiderGrabCard(o: RiderGrabInput): Record<string, unknown>;
 export declare function buildOrderCard(o: OrderStatusInput): Record<string, unknown>;
 export interface SearchRow {
     code: string;

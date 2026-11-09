@@ -1,6 +1,23 @@
 import { Customer, CustomerService, RequestContext, TransactionalConnection } from '@vendure/core';
 import { RiderOpsService } from './rider-ops.service';
 import { type RiderCompliancePatch, type RiderComplianceResult } from './rider-compliance';
+/** 飞书 open_id 反查骑手的四态结果：
+ * - unbound：没有任何 Customer 绑定该 open_id
+ * - conflict：多条绑定（历史脏数据），不猜身份
+ * - notApproved：已绑定但未过审/已停用
+ * - ok：可执行抢单
+ */
+export type FeishuRiderResolution = {
+    kind: 'unbound';
+} | {
+    kind: 'conflict';
+} | {
+    kind: 'notApproved';
+    customer: Customer;
+} | {
+    kind: 'ok';
+    customer: Customer;
+};
 export declare class RiderService {
     private connection;
     private customerService;
@@ -26,6 +43,11 @@ export declare class RiderService {
     /** 回收某骑手名下在途任务回大厅（单条条件写，避免逐单先读后写）。
      *  仅活跃流转态 + 仍指派本人 + 未取消的单被重置；已送达/异常终态不受影响。 */
     private reclaimActiveTasks;
+    /** 飞书 open_id → 骑手 Customer。区分「未绑定」「绑定冲突」「已绑定但未审核通过」「可用」四态，
+     * 便于抢单回执给出可执行的下一步（去绑定 / 找运营 / 等审核），并保留解绑重绑能力。 */
+    resolveFeishuRider(openId: string): Promise<FeishuRiderResolution>;
+    /** 运营绑定/解绑骑手飞书身份：openId 为空即解绑（可反复重绑，不是一次性绑定）。 */
+    setFeishuBinding(ctx: RequestContext, customerId: number, openId?: string | null): Promise<boolean>;
     assertApprovedRider(ctx: RequestContext): Promise<Customer>;
     myRiderProfile(ctx: RequestContext): Promise<{
         customerId: import("@vendure/core").ID;

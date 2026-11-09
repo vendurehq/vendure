@@ -754,7 +754,7 @@ describe('FeishuEventService 事件去重（M5 跨实例）', () => {
     };
 
     function makeEvent(dedupe?: any) {
-        const cfg = { enabled: true, settings: { verifyToken: 'tok' } } as any;
+        const cfg = { enabled: true, settings: { verifyToken: 'tok' }, chatOf: () => undefined } as any;
         const command = { handleMessage: vi.fn().mockResolvedValue(undefined), handleCardAction: vi.fn() } as any;
         return { svc: new FeishuEventService(cfg, command, dedupe), command };
     }
@@ -796,7 +796,7 @@ describe('FeishuEventService 回调签名（H3）', () => {
     };
 
     function makeEvent() {
-        const cfg = { enabled: true, settings: { verifyToken: 'tok', encryptKey } } as any;
+        const cfg = { enabled: true, settings: { verifyToken: 'tok', encryptKey }, chatOf: () => undefined } as any;
         const command = { handleMessage: vi.fn().mockResolvedValue(undefined), handleCardAction: vi.fn() } as any;
         return { svc: new FeishuEventService(cfg, command), command };
     }

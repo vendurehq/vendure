@@ -2,8 +2,9 @@
  * 群定位：
  * - channel：店铺群，所有指令只作用于绑定的店铺渠道
  * - platform：平台管理群，看板/汇总/异常为跨店铺视角，写操作按单号/店铺参数指定
+ * - rider：骑手群，只接收大厅抢单卡片与抢单回调，不继承任何店铺/平台指令权限
  */
-export type FeishuChatScope = 'channel' | 'platform';
+export type FeishuChatScope = 'channel' | 'platform' | 'rider';
 /** 单个飞书群的授权与渠道绑定（FEISHU_CHAT_MAP 的一项） */
 export interface FeishuChatConfig {
     scope: FeishuChatScope;
@@ -33,5 +34,7 @@ export declare class FeishuConfigService {
     readonly settings: FeishuSettings;
     constructor();
     get enabled(): boolean;
+    /** 骑手群 chat_id 列表（scope='rider'）；未配置返回空数组，调用方只告警不抛错 */
+    get riderChatIds(): string[];
     chatOf(chatId: string): FeishuChatConfig | undefined;
 }

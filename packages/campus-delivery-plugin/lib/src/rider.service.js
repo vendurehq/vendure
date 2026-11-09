@@ -110,6 +110,54 @@ let RiderService = class RiderService {
         const rows = Array.isArray(out) && Array.isArray(out[0]) ? out[0] : out;
         return Array.isArray(rows) ? rows.length : 0;
     }
+    /** 飞书 open_id → 骑手 Customer。区分「未绑定」「绑定冲突」「已绑定但未审核通过」「可用」四态，
+     * 便于抢单回执给出可执行的下一步（去绑定 / 找运营 / 等审核），并保留解绑重绑能力。 */
+    async resolveFeishuRider(openId) {
+        const id = String(openId !== null && openId !== void 0 ? openId : '').trim();
+        if (!id)
+            return { kind: 'unbound' };
+        const rows = await this.connection.rawConnection.getRepository(core_1.Customer)
+            .createQueryBuilder('customer')
+            .leftJoinAndSelect('customer.user', 'user')
+            .where('customer.customFields.riderFeishuOpenId = :openId', { openId: id })
+            .getMany();
+        if (!rows.length)
+            return { kind: 'unbound' };
+        // 唯一性在绑定时已校验；历史脏数据/并发写入导致的重复绑定按冲突处理，不猜其中一人
+        if (rows.length > 1)
+            return { kind: 'conflict' };
+        const customer = rows[0];
+        const cf = customer.customFields;
+        if (cf.riderStatus !== 'approved')
+            return { kind: 'notApproved', customer };
+        return { kind: 'ok', customer };
+    }
+    /** 运营绑定/解绑骑手飞书身份：openId 为空即解绑（可反复重绑，不是一次性绑定）。 */
+    async setFeishuBinding(ctx, customerId, openId) {
+        await this.assertCustomerInChannel(ctx, customerId);
+        const repo = this.connection.getRepository(ctx, core_1.Customer);
+        const customer = await repo.findOne({ where: { id: customerId } });
+        if (!customer) {
+            throw new core_1.UserInputError('顾客不存在');
+        }
+        const value = String(openId !== null && openId !== void 0 ? openId : '').trim();
+        if (value) {
+            const occupied = await repo.createQueryBuilder('customer')
+                .where('customer.customFields.riderFeishuOpenId = :openId', { openId: value })
+                .andWhere('customer.id <> :id', { id: customerId })
+                .getCount();
+            if (occupied) {
+                throw new core_1.UserInputError('该飞书 open_id 已绑定其他顾客，请先解绑原绑定再重绑');
+            }
+        }
+        await repo.update(customerId, {
+            customFields: {
+                riderFeishuOpenId: value || null,
+                riderFeishuBoundAt: value ? new Date() : null,
+            },
+        });
+        return true;
+    }
     async assertApprovedRider(ctx) {
         var _a;
         const customer = await this.requireCustomer(ctx);

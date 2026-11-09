@@ -248,8 +248,25 @@ export class FeishuClient {
     /** 按订单渠道解析接收群：本店群 + 平台群。未传渠道时返回全部（仅限平台级广播使用）。 */
     chatIdsFor(channelToken?: string): string[] {
         return Object.entries(this.cfg.settings.chats)
-            .filter(([, chat]) => !channelToken || chat.scope === 'platform' || chat.channel === channelToken)
+            // 骑手群与店铺/平台通知隔离：普通广播不得落到骑手群
+            .filter(([, chat]) => chat.scope !== 'rider'
+                && (!channelToken || chat.scope === 'platform' || chat.channel === channelToken))
             .map(([chatId]) => chatId);
+    }
+
+    /** 骑手群 chat_id（scope='rider'）；未配置为空数组 */
+    get riderChatIds(): string[] {
+        return this.cfg.riderChatIds;
+    }
+
+    /** 只发骑手群；返回成功发送的群数（0 表示未配置或全部失败） */
+    async broadcastRiderCard(card: unknown): Promise<number> {
+        if (!this.enabled) return 0;
+        let sent = 0;
+        for (const chatId of this.riderChatIds) {
+            if (await this.sendCard(chatId, card)) sent += 1;
+        }
+        return sent;
     }
 
     /**

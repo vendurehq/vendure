@@ -39,12 +39,14 @@ function parseChatMap(raw) {
                 continue;
             }
             const platform = item.scope === 'platform';
+            const rider = item.scope === 'rider';
             const channel = typeof item.channel === 'string' ? item.channel : undefined;
-            if (!platform && !channel)
+            // 骑手群不需要渠道绑定；其余群必须显式 platform 或 channel
+            if (!platform && !rider && !channel)
                 continue;
             out[chatId] = {
-                scope: platform ? 'platform' : 'channel',
-                channel,
+                scope: rider ? 'rider' : platform ? 'platform' : 'channel',
+                channel: rider ? undefined : channel,
                 operators: Array.isArray(item.operators)
                     ? item.operators.map(String)
                     : splitIds(item.operators),
@@ -92,10 +94,20 @@ let FeishuConfigService = class FeishuConfigService {
         if (this.settings.enabled) {
             const mode = this.settings.webhook ? 'webhook' : 'app';
             core_1.Logger.info(`飞书已启用（${mode}，群数 ${Object.keys(this.settings.chats).length}）`, loggerCtx);
+            // 骑手群 chat_id 允许后填：缺失只告警，不影响启动与其他群指令
+            if (!this.riderChatIds.length) {
+                core_1.Logger.warn('未配置骑手群（FEISHU_CHAT_MAP 中 scope:"rider"），大厅新单将不会推送飞书抢单卡片', loggerCtx);
+            }
         }
     }
     get enabled() {
         return this.settings.enabled;
+    }
+    /** 骑手群 chat_id 列表（scope='rider'）；未配置返回空数组，调用方只告警不抛错 */
+    get riderChatIds() {
+        return Object.entries(this.settings.chats)
+            .filter(([, v]) => v.scope === 'rider')
+            .map(([chatId]) => chatId);
     }
     chatOf(chatId) {
         return this.settings.chats[chatId];

@@ -7,8 +7,9 @@ const loggerCtx = 'Feishu';
  * 群定位：
  * - channel：店铺群，所有指令只作用于绑定的店铺渠道
  * - platform：平台管理群，看板/汇总/异常为跨店铺视角，写操作按单号/店铺参数指定
+ * - rider：骑手群，只接收大厅抢单卡片与抢单回调，不继承任何店铺/平台指令权限
  */
-export type FeishuChatScope = 'channel' | 'platform';
+export type FeishuChatScope = 'channel' | 'platform' | 'rider';
 
 /** 单个飞书群的授权与渠道绑定（FEISHU_CHAT_MAP 的一项） */
 export interface FeishuChatConfig {
@@ -60,11 +61,13 @@ export function parseChatMap(raw: string | undefined): Record<string, FeishuChat
                 continue;
             }
             const platform = item.scope === 'platform';
+            const rider = item.scope === 'rider';
             const channel = typeof item.channel === 'string' ? item.channel : undefined;
-            if (!platform && !channel) continue;
+            // 骑手群不需要渠道绑定；其余群必须显式 platform 或 channel
+            if (!platform && !rider && !channel) continue;
             out[chatId] = {
-                scope: platform ? 'platform' : 'channel',
-                channel,
+                scope: rider ? 'rider' : platform ? 'platform' : 'channel',
+                channel: rider ? undefined : channel,
                 operators: Array.isArray(item.operators)
                     ? item.operators.map(String)
                     : splitIds(item.operators),
@@ -117,11 +120,25 @@ export class FeishuConfigService {
         if (this.settings.enabled) {
             const mode = this.settings.webhook ? 'webhook' : 'app';
             Logger.info(`飞书已启用（${mode}，群数 ${Object.keys(this.settings.chats).length}）`, loggerCtx);
+            // 骑手群 chat_id 允许后填：缺失只告警，不影响启动与其他群指令
+            if (!this.riderChatIds.length) {
+                Logger.warn(
+                    '未配置骑手群（FEISHU_CHAT_MAP 中 scope:"rider"），大厅新单将不会推送飞书抢单卡片',
+                    loggerCtx,
+                );
+            }
         }
     }
 
     get enabled(): boolean {
         return this.settings.enabled;
+    }
+
+    /** 骑手群 chat_id 列表（scope='rider'）；未配置返回空数组，调用方只告警不抛错 */
+    get riderChatIds(): string[] {
+        return Object.entries(this.settings.chats)
+            .filter(([, v]) => v.scope === 'rider')
+            .map(([chatId]) => chatId);
     }
 
     chatOf(chatId: string): FeishuChatConfig | undefined {

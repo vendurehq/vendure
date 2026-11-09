@@ -161,6 +161,11 @@ let FeishuCommandService = class FeishuCommandService {
             core_1.Logger.warn(`未配置的群 chat_id=${chatId}，忽略指令`, loggerCtx);
             return;
         }
+        // 防御性隔离：骑手群只有抢单回调，不接受商家/平台指令（事件层已分流，这里兜底防止误路由）
+        if (chat.scope === 'rider') {
+            core_1.Logger.warn(`骑手群不接受商家指令 chat=${chatId}，已忽略`, loggerCtx);
+            return;
+        }
         if (await this.isRateLimited(chatId)) {
             await this.reply(chatId, '操作过于频繁，请稍后再试。');
             return;
@@ -263,6 +268,11 @@ let FeishuCommandService = class FeishuCommandService {
         const chat = this.cfg.chatOf(chatId);
         if (!chat) {
             core_1.Logger.warn(`未配置的群 chat_id=${chatId}，忽略卡片操作`, loggerCtx);
+            return;
+        }
+        // 防御性隔离：骑手群卡片只走抢单服务，商家卡片动作不得在骑手群执行
+        if (chat.scope === 'rider') {
+            core_1.Logger.warn(`骑手群不接受商家卡片操作 chat=${chatId}，已忽略`, loggerCtx);
             return;
         }
         const action = String((_b = (_a = input.value) === null || _a === void 0 ? void 0 : _a.a) !== null && _b !== void 0 ? _b : '');
