@@ -10,6 +10,7 @@ import {
     TransactionalConnection,
 } from '@vendure/core';
 import { CampusDedupeService } from './campus-dedupe.service';
+import { isFirstLegFulfilled } from './dispatch-job.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { PeriodicFallback } from './periodic-fallback';
 import { createOrderRefund, refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
@@ -66,6 +67,10 @@ interface ScannedOrder {
     hallStatus: string | null;
     deliveryStatus: string | null;
     deliveredAt?: string | Date | null;
+    /** A4 方案二：第一段履约判定字段（handoverAt 为权威，其余为历史数据兜底） */
+    handoverAt?: string | Date | null;
+    leg1Status?: string | null;
+    thirdPartyState?: string | null;
 }
 
 export interface RefundRetryRunResult {
@@ -177,13 +182,22 @@ export class RefundRetryJob implements OnApplicationShutdown {
             await this.connection.rawConnection.query(
                 `SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
                         "customFieldsDeliverystatus" AS "deliveryStatus",
-                        "customFieldsDeliveredat" AS "deliveredAt"
+                        "customFieldsDeliveredat" AS "deliveredAt",
+                        "customFieldsHandoverat" AS "handoverAt",
+                        "customFieldsLeg1status" AS "leg1Status",
+                        "customFieldsThirdpartystate" AS "thirdPartyState"
                    FROM "order" WHERE id = $1`,
                 [order.id],
             ),
         )[0] as ScannedOrder | undefined;
         // 锁内复查：排队等锁期间人工可能已认领/已改派
         if (!fresh || String(fresh.hallStatus ?? '') !== 'refund_failed') return 'skipped';
+        // A4 方案二：第一段已履约的单禁止自动整单退款（存量 refund_failed 兜底）。
+        // 先条件退出 refund_failed（避免下一轮又被捞起），再走 A9 升级通道转人工。
+        if (isFirstLegFulfilled(fresh)) {
+            await this.leaveForManualFirstLeg(fresh);
+            return 'escalated';
+        }
 
         const attempts = await this.dedupe.incr(ATTEMPTS_KEY(fresh.id), RETRY_STATE_TTL_MS);
         if (attempts > REFUND_RETRY_MAX_ATTEMPTS) {
@@ -259,6 +273,32 @@ export class RefundRetryJob implements OnApplicationShutdown {
         }
     }
 
+    /** A4 方案二：第一段已履约的 refund_failed 存量单 → 退出重试并转人工（绝不自动退款） */
+    private async leaveForManualFirstLeg(order: ScannedOrder): Promise<void> {
+        const moved = rowsOf(
+            await this.connection.rawConnection.query(
+                `UPDATE "order"
+                    SET "customFieldsHallstatus" = 'no_rider_manual',
+                        "customFieldsCampuscause" = 'first_leg_no_rider'
+                  WHERE id = $1 AND "customFieldsHallstatus" = 'refund_failed'
+                  RETURNING id`,
+                [order.id],
+            ),
+        );
+        if (!moved.length) {
+            // 锁内已被人工认领/取消：不覆盖
+            Logger.warn(`退款重试跳过：第一段已履约但状态已被改写 order=${order.code}`, loggerCtx);
+            return;
+        }
+        await this.escalate(
+            order,
+            0,
+            '第一段已履约，禁止自动整单退款，请人工决定退款/重派/补偿',
+            '第一段已履约，转人工（未自动退款）',
+        );
+        await this.clearState(order.id);
+    }
+
     /** 崩溃遗留的 Pending 退款：先结算；结算失败置 Failed 让余额重新可见（绝不重复退款） */
     private async settleCrashedPending(orderId: number, orderSvc: any, ctx: RequestContext): Promise<void> {
         const pending = rowsOf(
@@ -316,7 +356,12 @@ export class RefundRetryJob implements OnApplicationShutdown {
     }
 
     /** 耗尽升级：飞书告警 + 系统工单（人工待办），只会发一次 */
-    private async escalate(order: ScannedOrder, attempts: number, reason: string): Promise<void> {
+    private async escalate(
+        order: ScannedOrder,
+        attempts: number,
+        reason: string,
+        title = '退款自动重试耗尽，转人工',
+    ): Promise<void> {
         if (await this.dedupe.seenOrMark(EXHAUSTED_KEY(order.id), INSTALLED_TTL_MS)) return;
 
         let paid = 0;
@@ -371,7 +416,7 @@ export class RefundRetryJob implements OnApplicationShutdown {
         try {
             await this.feishu.pushEvent(
                 'exception',
-                '退款自动重试耗尽，转人工',
+                title,
                 `${detail}${ticketId ? `；工单 ${ticketId}` : '；工单创建失败，请直接在调度台认领'}`,
                 order.code,
                 `refund_retry_exhausted:${order.code}`,

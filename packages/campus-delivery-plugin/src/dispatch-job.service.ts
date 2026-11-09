@@ -42,6 +42,27 @@ const LOCATION_RETENTION_DAYS = 30;
 /** 轨迹清理频率：每 6h 最多一次（DELETE 跨渠道，无需每轮都跑） */
 const LOCATION_CLEANUP_INTERVAL_MS = 6 * 3600_000;
 
+/**
+ * A4 方案二：第一段是否已履约（餐/包裹已到校园交接点）。
+ * 判定依据（任一命中即为已履约，禁止再按「无人接单」整单自动退款）：
+ * - `handoverAt`：第一段交接完成的权威时间，R1 商户/自营、R2 外部快递入厅时与 hallStatus='open' 同语句落库；
+ * - `leg1Status='arrived_gate'`：R2 学生兜底确认（回调丢失时写入，历史数据可能缺 handoverAt）；
+ * - `thirdPartyState='delivered'`：外部运单已送达交接点的原始事实（回调迟到/竞态导致 handoverAt 未落）。
+ */
+export function isFirstLegFulfilled(cf: any): boolean {
+    const handoverAt = cf?.handoverAt;
+    if (handoverAt != null && String(handoverAt).trim() !== '') return true;
+    if (String(cf?.leg1Status ?? '') === 'arrived_gate') return true;
+    return String(cf?.thirdPartyState ?? '') === 'delivered';
+}
+
+/** 飞书/工单时间文案（校园时区 UTC+8，与后台报表同口径） */
+const campusTimeText = (v: unknown): string => {
+    if (v == null || String(v).trim() === '') return '无';
+    const d = new Date(v as any);
+    return Number.isNaN(d.getTime()) ? '无' : d.toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
+};
+
 @Injectable()
 export class DispatchJobService implements OnApplicationShutdown {
     /** 统一兜底调度器（单飞 / unref / 优雅关闭由 PeriodicFallback 统一保证） */
@@ -1330,6 +1351,79 @@ export class DispatchJobService implements OnApplicationShutdown {
     }
 
     /**
+     * A4 方案二：第一段已履约但第二段无人接单 → **不自动退款**，按 A9 同通道转人工（飞书告警 + 系统工单）。
+     * - 状态写 `no_rider_manual`：不在 ACTIVE_HALL_STATUSES / 扫描桶内，退出自动履约；
+     *   也**不写 refund_failed**，避免 A9 退款重试 job 把已履约单再次抓去退款。
+     * - 条件写（仅 open）：与抢单/取消并发时只有一方成功，幂等且不会把已派单的单改成人工态。
+     * - 工单/告警失败不抛出，仅 Logger 留痕（状态已是人工态，调度墙会持续暴露）。
+     */
+    private async escalateFirstLegNoRider(
+        ctx: RequestContext,
+        order: Order,
+        cf: any,
+        cfg: CampusFulfillmentConfig,
+    ): Promise<void> {
+        const moved = await this.hall.transitionFrom(ctx, Number(order.id), ['open'], {
+            hallStatus: 'no_rider_manual',
+            campusCause: 'first_leg_no_rider',
+        });
+        if (!moved) return; // 等锁期间已被抢单/取消：不进人工队列
+
+        // 应付金额：与 A9 升级口径一致（成功支付合计），查询失败不影响告警
+        let paid = 0;
+        try {
+            const rows: any = await this.connection.rawConnection.query(
+                `SELECT COALESCE(SUM(amount), 0) AS paid FROM payment
+                  WHERE "orderId" = $1 AND state IN ('Settled', 'Authorized')`,
+                [Number(order.id)],
+            );
+            const list = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
+            paid = Number(list?.[0]?.paid ?? 0);
+        } catch (e: any) {
+            Logger.warn(`A4 应付金额核算失败 order=${order.code}: ${String(e?.message ?? e)}`, 'CampusDispatch');
+        }
+        const enteredMs = cf.hallEnteredAt ? new Date(cf.hallEnteredAt).getTime() : NaN;
+        const waitedMin = Number.isNaN(enteredMs) ? null : Math.max(0, Math.round((Date.now() - enteredMs) / 60_000));
+        const detail = [
+            `订单：${order.code}`,
+            `应付：${(paid / 100).toFixed(2)} 元（${paid} 分）`,
+            `第一段交接：${campusTimeText(cf.handoverAt)}`,
+            `第二段入厅：${campusTimeText(cf.hallEnteredAt)}`,
+            `无人接单：${waitedMin == null ? '未知' : `${waitedMin} 分钟`}（阈值 ${cfg.autoRefundMinutes ?? 30} 分钟）`,
+            '第一段已履约，系统不自动退款，请人工决定退款/重派/补偿',
+        ].join('；');
+
+        let ticketId: number | null = null;
+        if (this.support) {
+            try {
+                const ticket = await this.support.createSystemTicket(ctx, {
+                    dedupeKey: `first_leg_no_rider:${order.code}`,
+                    orderCode: order.code,
+                    orderId: Number(order.id),
+                    category: 'refund',
+                    source: 'first_leg_no_rider',
+                    content: detail,
+                    channelId: ctx.channelId,
+                });
+                ticketId = ticket?.id ?? null;
+            } catch (e: any) {
+                Logger.error(`A4 转人工建工单失败 order=${order.code}: ${String(e?.message ?? e)}`, 'CampusDispatch');
+            }
+        }
+        void this.feishu?.pushEvent(
+            'exception',
+            '第一段已履约但无人接单，转人工',
+            `${detail}${ticketId ? `；工单 ${ticketId}` : '；工单创建失败，请在调度台认领'}`,
+            order.code,
+            `first_leg_no_rider:${order.code}`,
+        );
+        Logger.warn(
+            `Order ${order.code} first leg fulfilled, no rider ${waitedMin ?? '?'}min → manual (no auto refund)`,
+            'CampusDispatch',
+        );
+    }
+
+    /**
      * T4: open 超 autoRefundMinutes 无人接单 → 全额原路退款 + Cancelled + no_rider 对账标记 + 定向补偿券。
      * 本 fork 无 core RefundService，退款走 OrderService.refundOrder/settleRefund（与 after-sales 插件同源）。
      * 失败降级：同样写 campusCause='no_rider' + hallStatus='no_rider_final' 留人工，Logger 留痕，不抛出。
@@ -1344,6 +1438,8 @@ export class DispatchJobService implements OnApplicationShutdown {
         const lockKey = `campus:refund:${order.id}`;
         // 退款是否已真实发生（catch 里区分「退款失败」与「已退款仅取消失败」）
         let refundedAny = false;
+        // 第一段已履约（锁内复查结论）：catch 里禁止写 refund_failed，否则会被 A9 重试 job 退款
+        let firstLegFulfilled = false;
         try {
             const got: any = await runner.query('SELECT pg_try_advisory_lock(hashtext($1)) AS ok', [lockKey]);
             const rows = Array.isArray(got) && Array.isArray(got[0]) ? got[0] : got;
@@ -1359,6 +1455,23 @@ export class DispatchJobService implements OnApplicationShutdown {
                 const enteredMs = fcf.hallEnteredAt ? new Date(fcf.hallEnteredAt).getTime() : NaN;
                 if (!Number.isNaN(enteredMs)
                     && Date.now() - enteredMs <= (cfg.autoRefundMinutes ?? 30) * 60_000) return;
+                // A4 方案二：第一段已履约（餐/包裹已到交接点）→ 不自动整单退款，转人工。
+                // 该判定必须在创建任何退款之前、且用锁内 fresh 数据：handoverAt 与「入厅」是同一语句落库，
+                // 因此不存在「先退款、后才发现已履约」——扫描快照里没有 handoverAt 而锁内 fresh 有，
+                // 说明第一段在本轮等锁期间已完成，此时退款会退掉商户/快递已履约的单。
+                if (isFirstLegFulfilled(fcf)) {
+                    firstLegFulfilled = true;
+                    // 转人工本身失败也不能落到退款分支：保持 open，下一轮重新转人工
+                    try {
+                        await this.escalateFirstLegNoRider(ctx, order, fcf, cfg);
+                    } catch (e: any) {
+                        Logger.error(
+                            `A4 第一段已履约转人工失败 order=${order.code}: ${String(e?.message ?? e)}`,
+                            'CampusDispatch',
+                        );
+                    }
+                    return;
+                }
                 const { order: orderSvc, coupon } = this.services();
                 // 只退成功支付且仍有余额的支付单（避免选中 Declined/Error 重试单；已全额退则列表为空）
                 const refundable = await refundablePayments(this.connection, Number(order.id));
@@ -1433,6 +1546,9 @@ export class DispatchJobService implements OnApplicationShutdown {
                 );
             } catch (e: any) {
                 Logger.error(`T4 refund failed for order ${order.code}: ${e?.message}`, 'CampusDispatch');
+                // 第一段已履约的单绝不写 refund_failed：那是 A9 退款重试 job 的入口，
+                // 写进去等于让重试任务把已履约单自动整单退掉。保持 open，下一轮重新走转人工。
+                if (firstLegFulfilled) return;
                 // 退款失败绝不能写 no_rider_final：那是终态，调度墙/大厅/商家台会一起跳过，
                 // 已付款未送达的单会静默消失。改为独立的 refund_failed 状态退出自动重试，
                 // 由调度墙按告警暴露给运营人工退款/取消（条件写在取消竞态下不复活已取消单）。

@@ -11,6 +11,14 @@ import { HallService } from './hall.service';
 import { ThirdPartyDeliveryService } from './third-party-delivery.service';
 import { RiderCreditService } from './rider-credit.service';
 import { SupportService } from './support.service';
+/**
+ * A4 方案二：第一段是否已履约（餐/包裹已到校园交接点）。
+ * 判定依据（任一命中即为已履约，禁止再按「无人接单」整单自动退款）：
+ * - `handoverAt`：第一段交接完成的权威时间，R1 商户/自营、R2 外部快递入厅时与 hallStatus='open' 同语句落库；
+ * - `leg1Status='arrived_gate'`：R2 学生兜底确认（回调丢失时写入，历史数据可能缺 handoverAt）；
+ * - `thirdPartyState='delivered'`：外部运单已送达交接点的原始事实（回调迟到/竞态导致 handoverAt 未落）。
+ */
+export declare function isFirstLegFulfilled(cf: any): boolean;
 export declare class DispatchJobService implements OnApplicationShutdown {
     private connection;
     private grab;
@@ -145,6 +153,14 @@ export declare class DispatchJobService implements OnApplicationShutdown {
     /** 补偿券服务：coupon-plugin 为可选依赖，动态 require + Injector 解析，
      * 未安装/未启用/解析失败一律返回 null（跳过发券，不阻断退款主流程）。 */
     private tryGetCouponService;
+    /**
+     * A4 方案二：第一段已履约但第二段无人接单 → **不自动退款**，按 A9 同通道转人工（飞书告警 + 系统工单）。
+     * - 状态写 `no_rider_manual`：不在 ACTIVE_HALL_STATUSES / 扫描桶内，退出自动履约；
+     *   也**不写 refund_failed**，避免 A9 退款重试 job 把已履约单再次抓去退款。
+     * - 条件写（仅 open）：与抢单/取消并发时只有一方成功，幂等且不会把已派单的单改成人工态。
+     * - 工单/告警失败不抛出，仅 Logger 留痕（状态已是人工态，调度墙会持续暴露）。
+     */
+    private escalateFirstLegNoRider;
     /**
      * T4: open 超 autoRefundMinutes 无人接单 → 全额原路退款 + Cancelled + no_rider 对账标记 + 定向补偿券。
      * 本 fork 无 core RefundService，退款走 OrderService.refundOrder/settleRefund（与 after-sales 插件同源）。

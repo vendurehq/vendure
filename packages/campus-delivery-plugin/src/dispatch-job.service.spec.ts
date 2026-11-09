@@ -373,6 +373,110 @@ describe('DispatchJobService.scan T4 自动退款', () => {
         expect(env.hallSvc.updateOrder).not.toHaveBeenCalledWith(expect.anything(), 4, expect.anything());
     });
 
+    it('A4 方案二：第一段已履约（handoverAt 有值）→ 不自动退款，转人工 no_rider_manual + 飞书 + 工单', async () => {
+        const feishu = { pushEvent: vi.fn() };
+        const support = { createSystemTicket: vi.fn().mockResolvedValue({ id: 9001 }) };
+        const env = makeEnv({
+            openOrders: [{
+                id: 4, code: 'T4A4', customerId: 501,
+                customFields: {
+                    hallStatus: 'open',
+                    hallEnteredAt: minAgo(45),
+                    handoverAt: minAgo(50),
+                },
+            }],
+            cfg: { channelId: 1, autoAssignMinutes: 10, autoRefundMinutes: 30 },
+            feishu,
+            support,
+        });
+        injectT4Services(env.svc);
+        env.rawQuery.mockImplementation((sql: string) => {
+            if (String(sql).includes('SUM(amount)')) return Promise.resolve([[{ paid: '8800' }], []]);
+            return Promise.resolve([[{ id: 30 }], []]);
+        });
+        const orderSvc = (env.svc as any).orderSvc;
+        await env.svc.scan({ channelId: 1 } as any);
+
+        // 绝不自动退款/取消
+        expect(orderSvc.refundOrder).not.toHaveBeenCalled();
+        expect(orderSvc.settleRefund).not.toHaveBeenCalled();
+        expect(orderSvc.cancelOrder).not.toHaveBeenCalled();
+        // 退出自动履约进入人工态（不写 refund_failed，避免被 A9 重试 job 捞去退款）
+        expect(env.hallSvc.transitionFrom).toHaveBeenCalledWith(expect.anything(), 4, ['open'], expect.objectContaining({
+            hallStatus: 'no_rider_manual',
+        }));
+        expect(env.hallSvc.transitionFrom).not.toHaveBeenCalledWith(
+            expect.anything(), 4, ['open'], expect.objectContaining({ hallStatus: 'refund_failed' }),
+        );
+        expect(support.createSystemTicket).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+            orderCode: 'T4A4',
+            source: 'first_leg_no_rider',
+            content: expect.stringContaining('应付：88.00 元'),
+        }));
+        expect(feishu.pushEvent).toHaveBeenCalledWith(
+            'exception',
+            '第一段已履约但无人接单，转人工',
+            expect.stringContaining('第一段交接'),
+            'T4A4',
+            'first_leg_no_rider:T4A4',
+        );
+    });
+
+    it('A4 竞态：扫描快照未带 handoverAt、锁内 fresh 已带 → 先判定后动作，绝不退款', async () => {
+        const env = makeEnv({
+            openOrders: [{ id: 4, code: 'RACE', customerId: 501, customFields: { hallStatus: 'open', hallEnteredAt: minAgo(45) } }],
+            cfg: { channelId: 1, autoAssignMinutes: 10, autoRefundMinutes: 30 },
+        });
+        injectT4Services(env.svc);
+        // 快照里没有 handoverAt；等锁期间第一段完成，锁内 fresh 读到 handoverAt
+        env.orderRepo.findOne.mockResolvedValueOnce({
+            id: 4,
+            customFields: { hallStatus: 'open', hallEnteredAt: minAgo(45), handoverAt: minAgo(20) },
+        });
+        const orderSvc = (env.svc as any).orderSvc;
+        await env.svc.scan({ channelId: 1 } as any);
+        expect(orderSvc.refundOrder).not.toHaveBeenCalled();
+        expect(env.hallSvc.transitionFrom).toHaveBeenCalledWith(expect.anything(), 4, ['open'], expect.objectContaining({
+            hallStatus: 'no_rider_manual',
+        }));
+    });
+
+    it('A4 历史数据：无 handoverAt 但 leg1Status=arrived_gate → 同样不自动退款', async () => {
+        const env = makeEnv({
+            openOrders: [{
+                id: 4, code: 'LEG1', customerId: 501,
+                customFields: { hallStatus: 'open', hallEnteredAt: minAgo(31), leg1Status: 'arrived_gate' },
+            }],
+            cfg: { channelId: 1, autoAssignMinutes: 10, autoRefundMinutes: 30 },
+        });
+        injectT4Services(env.svc);
+        await env.svc.scan({ channelId: 1 } as any);
+        expect((env.svc as any).orderSvc.refundOrder).not.toHaveBeenCalled();
+        expect(env.hallSvc.transitionFrom).toHaveBeenCalledWith(expect.anything(), 4, ['open'], expect.objectContaining({
+            hallStatus: 'no_rider_manual',
+        }));
+    });
+
+    it('A4 并发：等锁期间已被抢单（状态改写）→ 退款/转人工都不做', async () => {
+        const feishu = { pushEvent: vi.fn() };
+        const env = makeEnv({
+            openOrders: [{
+                id: 4, code: 'T4A4C', customerId: 501,
+                customFields: { hallStatus: 'open', hallEnteredAt: minAgo(45), handoverAt: minAgo(50) },
+            }],
+            cfg: { channelId: 1, autoAssignMinutes: 10, autoRefundMinutes: 30 },
+            feishu,
+        });
+        injectT4Services(env.svc);
+        // 转人工的条件写未命中（等锁期间已被抢单/取消）
+        env.hallSvc.transitionFrom.mockResolvedValue(false);
+        await env.svc.scan({ channelId: 1 } as any);
+        expect((env.svc as any).orderSvc.refundOrder).not.toHaveBeenCalled();
+        expect(feishu.pushEvent).not.toHaveBeenCalledWith(
+            'exception', expect.anything(), expect.anything(), 'T4A4C', expect.anything(),
+        );
+    });
+
     it('补偿券发放失败 → 退款/取消照常成功并推飞书告警（不误记退款失败）', async () => {
         const feishu = { pushEvent: vi.fn() };
         const env = makeEnv({

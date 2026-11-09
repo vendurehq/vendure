@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const core_2 = require("@vendure/core");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
+const dispatch_job_service_1 = require("./dispatch-job.service");
 const feishu_notify_service_1 = require("./feishu/feishu-notify.service");
 const periodic_fallback_1 = require("./periodic-fallback");
 const refund_payment_1 = require("./refund-payment");
@@ -145,11 +146,20 @@ let RefundRetryJob = class RefundRetryJob {
         var _a, _b, _c, _d, _e, _f, _g;
         const fresh = rowsOf(await this.connection.rawConnection.query(`SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
                         "customFieldsDeliverystatus" AS "deliveryStatus",
-                        "customFieldsDeliveredat" AS "deliveredAt"
+                        "customFieldsDeliveredat" AS "deliveredAt",
+                        "customFieldsHandoverat" AS "handoverAt",
+                        "customFieldsLeg1status" AS "leg1Status",
+                        "customFieldsThirdpartystate" AS "thirdPartyState"
                    FROM "order" WHERE id = $1`, [order.id]))[0];
         // 锁内复查：排队等锁期间人工可能已认领/已改派
         if (!fresh || String((_a = fresh.hallStatus) !== null && _a !== void 0 ? _a : '') !== 'refund_failed')
             return 'skipped';
+        // A4 方案二：第一段已履约的单禁止自动整单退款（存量 refund_failed 兜底）。
+        // 先条件退出 refund_failed（避免下一轮又被捞起），再走 A9 升级通道转人工。
+        if ((0, dispatch_job_service_1.isFirstLegFulfilled)(fresh)) {
+            await this.leaveForManualFirstLeg(fresh);
+            return 'escalated';
+        }
         const attempts = await this.dedupe.incr(ATTEMPTS_KEY(fresh.id), exports.RETRY_STATE_TTL_MS);
         if (attempts > exports.REFUND_RETRY_MAX_ATTEMPTS) {
             // 达到上限：可能上次尝试在升级前崩溃，这里补一次升级（幂等）
@@ -216,6 +226,21 @@ let RefundRetryJob = class RefundRetryJob {
             return 'retried';
         }
     }
+    /** A4 方案二：第一段已履约的 refund_failed 存量单 → 退出重试并转人工（绝不自动退款） */
+    async leaveForManualFirstLeg(order) {
+        const moved = rowsOf(await this.connection.rawConnection.query(`UPDATE "order"
+                    SET "customFieldsHallstatus" = 'no_rider_manual',
+                        "customFieldsCampuscause" = 'first_leg_no_rider'
+                  WHERE id = $1 AND "customFieldsHallstatus" = 'refund_failed'
+                  RETURNING id`, [order.id]));
+        if (!moved.length) {
+            // 锁内已被人工认领/取消：不覆盖
+            core_2.Logger.warn(`退款重试跳过：第一段已履约但状态已被改写 order=${order.code}`, loggerCtx);
+            return;
+        }
+        await this.escalate(order, 0, '第一段已履约，禁止自动整单退款，请人工决定退款/重派/补偿', '第一段已履约，转人工（未自动退款）');
+        await this.clearState(order.id);
+    }
     /** 崩溃遗留的 Pending 退款：先结算；结算失败置 Failed 让余额重新可见（绝不重复退款） */
     async settleCrashedPending(orderId, orderSvc, ctx) {
         var _a;
@@ -261,7 +286,7 @@ let RefundRetryJob = class RefundRetryJob {
         }
     }
     /** 耗尽升级：飞书告警 + 系统工单（人工待办），只会发一次 */
-    async escalate(order, attempts, reason) {
+    async escalate(order, attempts, reason, title = '退款自动重试耗尽，转人工') {
         var _a, _b, _c, _d, _e, _f, _g;
         if (await this.dedupe.seenOrMark(EXHAUSTED_KEY(order.id), INSTALLED_TTL_MS))
             return;
@@ -304,7 +329,7 @@ let RefundRetryJob = class RefundRetryJob {
             core_2.Logger.error(`退款重试升级建工单失败 order=${order.code}: ${String((_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e)}`, loggerCtx);
         }
         try {
-            await this.feishu.pushEvent('exception', '退款自动重试耗尽，转人工', `${detail}${ticketId ? `；工单 ${ticketId}` : '；工单创建失败，请直接在调度台认领'}`, order.code, `refund_retry_exhausted:${order.code}`);
+            await this.feishu.pushEvent('exception', title, `${detail}${ticketId ? `；工单 ${ticketId}` : '；工单创建失败，请直接在调度台认领'}`, order.code, `refund_retry_exhausted:${order.code}`);
         }
         catch (e) {
             core_2.Logger.error(`退款重试升级飞书告警失败 order=${order.code}: ${String((_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : e)}`, loggerCtx);

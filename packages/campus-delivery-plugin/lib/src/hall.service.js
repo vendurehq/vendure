@@ -32,9 +32,10 @@ exports.ACTIVE_HALL_STATUSES = [
     'merchant_delivering', 'owned_pool', 'owned_dispatched', 'pending_dispatch',
 ];
 /** 取消脱厅额外覆盖的非流转态：refund_failed 已退出自动履约，但仍是「未收口」状态，
- * 不脱厅就会被退款重试任务持续捞起（订单 467 即此路径）。只用于 exitHall，不并入 ACTIVE_HALL_STATUSES
- * （否则 backToHall/异常回滚会把退款失败单重新拉回大厅）。 */
-const CANCELLABLE_EXTRA_STATUSES = ['refund_failed'];
+ * 不脱厅就会被退款重试任务持续捞起（订单 467 即此路径）。no_rider_manual（A4 方案二：第一段已履约转人工）
+ * 同理：运营人工退款/取消后必须脱厅，否则调度墙一直挂着。只用于 exitHall，不并入 ACTIVE_HALL_STATUSES
+ * （否则 backToHall/异常回滚会把人工处置单重新拉回大厅）。 */
+const CANCELLABLE_EXTRA_STATUSES = ['refund_failed', 'no_rider_manual'];
 /** customFields 字段名 → 物理列名（Vendure 规则：customFields + 首字母大写 + 其余小写）
  * 例：hallStatus → customFieldsHallstatus；thirdPartyDispatchAt → customFieldsThirdpartydispatchat */
 const orderColumn = (field) => `"customFields${field.charAt(0).toUpperCase()}${field.slice(1).toLowerCase()}"`;

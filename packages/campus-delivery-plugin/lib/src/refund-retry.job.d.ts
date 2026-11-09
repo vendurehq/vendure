@@ -60,6 +60,8 @@ export declare class RefundRetryJob implements OnApplicationShutdown {
     runOnce(): Promise<RefundRetryRunResult>;
     /** 锁内执行；返回本轮结果分类 */
     private retryOne;
+    /** A4 方案二：第一段已履约的 refund_failed 存量单 → 退出重试并转人工（绝不自动退款） */
+    private leaveForManualFirstLeg;
     /** 崩溃遗留的 Pending 退款：先结算；结算失败置 Failed 让余额重新可见（绝不重复退款） */
     private settleCrashedPending;
     /** 退款+取消成功后落终态（条件更新，绝不覆盖人工已改写的状态） */

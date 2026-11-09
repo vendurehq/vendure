@@ -130,6 +130,43 @@ describe('RefundRetryJob (A9)', () => {
         expect(dedupe.del).toHaveBeenCalledTimes(4);
     });
 
+    it('A4 方案二：第一段已履约的 refund_failed 存量单 → 不自动退款，退出重试并转人工', async () => {
+        const { job, orderSvc, feishu, support, rawQuery } = setup({
+            orderRow: {
+                id: 467, code: 'V467', state: 'Processing',
+                hallStatus: 'refund_failed', deliveryStatus: null,
+                handoverAt: new Date(Date.now() - 3600_000),
+            },
+        });
+        const res = await job.runOnce();
+
+        expect(res.escalated).toBe(1);
+        expect(orderSvc.refundOrder).not.toHaveBeenCalled();
+        expect(orderSvc.settleRefund).not.toHaveBeenCalled();
+        expect(orderSvc.cancelOrder).not.toHaveBeenCalled();
+        // 退出 refund_failed（下一轮不再被捞起），进入人工态
+        const update = rawQuery.mock.calls.find(c => String(c[0]).includes('UPDATE "order"'));
+        expect(String(update?.[0])).toContain("'no_rider_manual'");
+        expect(String(update?.[0])).toContain("\"customFieldsHallstatus\" = 'refund_failed'");
+        expect(support.createSystemTicket).toHaveBeenCalledOnce();
+        expect(feishu.pushEvent).toHaveBeenCalledWith(
+            'exception',
+            '第一段已履约，转人工（未自动退款）',
+            expect.stringContaining('第一段已履约'),
+            'V467',
+            'refund_retry_exhausted:V467',
+        );
+    });
+
+    it('A4 方案二：无 handoverAt 的普通 refund_failed 单 → 仍按原逻辑自动重试退款', async () => {
+        const { job, orderSvc, rawQuery } = setup();
+        const res = await job.runOnce();
+        expect(res.done).toBe(1);
+        expect(orderSvc.refundOrder).toHaveBeenCalledOnce();
+        // 不进入人工态
+        expect(rawQuery.mock.calls.some(c => String(c[0]).includes("'no_rider_manual'"))).toBe(false);
+    });
+
     it('幂等不重复退：余额已为 0 时不再退款，只补取消并落终态', async () => {
         const { job, orderSvc } = setup({ refundedSum: 1632 });
         const res = await job.runOnce();

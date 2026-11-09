@@ -126,6 +126,17 @@ let DispatchAdminService = class DispatchAdminService {
                 activeOrders.push(o);
                 continue;
             }
+            // A4 方案二：第一段已履约（餐/包裹已到交接点）无人接单 → 系统不自动退款，转人工处理
+            if (cf.hallStatus === 'no_rider_manual') {
+                alerts.push({
+                    orderId: String(o.id),
+                    orderCode: o.code,
+                    type: 'exception',
+                    detail: '第一段已履约但无人接单，系统未自动退款，请人工决定退款/重派/补偿',
+                });
+                activeOrders.push(o);
+                continue;
+            }
             // 改址后原外部配送单未确认取消：旧运单仍会送到旧地址，必须常驻告警人工取消并按新址重推
             if (cf.campusCause === 'address_change_cancel_failed') {
                 alerts.push({
