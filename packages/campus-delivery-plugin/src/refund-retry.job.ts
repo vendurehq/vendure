@@ -12,7 +12,7 @@ import {
 import { CampusDedupeService } from './campus-dedupe.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { PeriodicFallback } from './periodic-fallback';
-import { refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
+import { createOrderRefund, refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
 import { withRefundLock } from './refund-lock';
 import { SupportService } from './support.service';
 
@@ -199,16 +199,18 @@ export class RefundRetryJob implements OnApplicationShutdown {
             // 统一可退口径：仅 Settled/Authorized 且余额 > 0（余额已扣除 Pending/Settled 退款，排除 Failed）
             const refundable = await refundablePayments(this.connection, fresh.id);
             for (const picked of refundable) {
-                const created: any = await orderSvc.refundOrder(ctx, {
+                const created: any = await createOrderRefund(orderSvc, ctx, {
+                    orderId: fresh.id,
                     paymentId: picked.payment.id,
                     amount: picked.remaining,
-                    // fork 的 refund 表 shipping/adjustment NOT NULL，全额退款走 amount 通道
-                    shipping: 0,
-                    adjustment: 0,
+                    // 非 COD 路径由 helper 显式给 shipping/adjustment=0（refund 表 NOT NULL）
                     reason: `refund_failed auto retry (${fresh.code}) attempt ${attempts}`,
-                } as any);
-                if (!created || (created as any).errorCode) {
-                    throw new Error(`refundOrder failed: ${(created as any)?.errorCode ?? 'no result'}`);
+                    paymentMethod: picked.payment.method,
+                });
+                if (!created || created instanceof Error || (created as any).errorCode) {
+                    throw new Error(
+                        `refundOrder failed: ${(created as any)?.errorCode ?? (created as any)?.message ?? 'no result'}`,
+                    );
                 }
                 await settleRefundOrMarkFailed(this.connection, orderSvc as any, ctx, (created as any).id);
             }

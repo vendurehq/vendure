@@ -506,7 +506,7 @@ let DispatchAdminService = class DispatchAdminService {
      * refund 表 shipping/adjustment 列 NOT NULL 必须显式传 0；
      * 幂等保护：累计已退 + 本次 ≤ payment.amount，超额抛错。 */
     async refundAmount(ctx, order, amount, reason) {
-        var _a;
+        var _a, _b;
         const orderSvc = this.getOrderService();
         // 只认 Settled/Authorized 且余额足够的支付单，避免选中失败重试单导致退款失败
         const payments = await (0, refund_payment_1.refundablePayments)(this.connection, Number(order.id));
@@ -515,15 +515,15 @@ let DispatchAdminService = class DispatchAdminService {
         const picked = payments.find(p => p.remaining >= amount);
         if (!picked)
             throw new core_2.UserInputError('退款金额超过可退余额（订单可能已全额退款）');
-        const created = await orderSvc.refundOrder(ctx, {
+        const created = await (0, refund_payment_1.createOrderRefund)(orderSvc, ctx, {
+            orderId: order.id,
             paymentId: picked.payment.id,
             amount,
-            shipping: 0,
-            adjustment: 0,
             reason,
+            paymentMethod: picked.payment.method,
         });
-        if (!created || created.errorCode) {
-            throw new Error(`refundOrder failed: ${(_a = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _a !== void 0 ? _a : 'no result'}`);
+        if (!created || created instanceof Error || created.errorCode) {
+            throw new Error(`refundOrder failed: ${(_b = (_a = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _a !== void 0 ? _a : created === null || created === void 0 ? void 0 : created.message) !== null && _b !== void 0 ? _b : 'no result'}`);
         }
         // 结算失败置 Failed：否则未真实打款的退款单仍计入已退总额，重试会跳过退款直接取消订单
         await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, orderSvc, ctx, created.id);

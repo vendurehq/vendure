@@ -451,6 +451,37 @@ export class GroupBuyService {
         }
         for (const payment of order.payments) {
             if ((payment.state as string) === 'Settled') {
+                if (String(payment.method) === 'cash-on-delivery') {
+                    // COD：只认 confirmed 收款，统一走 campus 闸门（无收款不建单；有收款建单即 Settled 并写关联）
+                    const policy = resolveCodRefundPolicy();
+                    if (!policy) {
+                        Logger.warn(
+                            `COD refund gate unavailable, skip refund for payment ${payment.id}`,
+                            loggerCtx,
+                        );
+                        continue;
+                    }
+                    try {
+                        const result: any = await policy.createRefund(ctx, {
+                            orderId: order.id,
+                            paymentId: payment.id,
+                            amount: payment.amount,
+                            reason: 'Group buy failed/expired',
+                        });
+                        if (result instanceof Error || result?.errorCode) {
+                            Logger.warn(
+                                `COD refund for payment ${payment.id} returned error: ${result?.message ?? result}`,
+                                loggerCtx,
+                            );
+                        }
+                    } catch (e: any) {
+                        Logger.error(
+                            `Failed to refund COD payment ${payment.id} for order ${orderId}: ${e?.message ?? e}`,
+                            loggerCtx,
+                        );
+                    }
+                    continue;
+                }
                 try {
                     const result = await this.paymentService.createRefund(
                         ctx,
@@ -474,5 +505,18 @@ export class GroupBuyService {
                 }
             }
         }
+    }
+}
+
+/** 软依赖解析 COD 退款闸门端口（campus-delivery-plugin 未安装时返回 null，COD 一律不建退款单）。 */
+function resolveCodRefundPolicy(): {
+    createRefund(ctx: RequestContext, input: any): Promise<any>;
+} | null {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof mod?.getCodRefundPolicyPort === 'function' ? mod.getCodRefundPolicyPort() : null;
+    } catch {
+        return null;
     }
 }

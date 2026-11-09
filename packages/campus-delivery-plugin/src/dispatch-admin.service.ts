@@ -18,7 +18,7 @@ import { FORCE_CANCEL_MARK, ForceCancelMark, isDeliveredOrder } from './cancel-g
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { HallGrabService } from './hall-grab.service';
 import { HallService, ACTIVE_HALL_STATUSES } from './hall.service';
-import { refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
+import { createOrderRefund, refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
 import { withRefundLock } from './refund-lock';
 import { CREDIT_LIMIT } from './rider-credit.service';
 
@@ -555,15 +555,17 @@ export class DispatchAdminService {
         if (!payments.length) throw new UserInputError('订单无可退支付余额（可能未支付或已全额退款）');
         const picked = payments.find(p => p.remaining >= amount);
         if (!picked) throw new UserInputError('退款金额超过可退余额（订单可能已全额退款）');
-        const created = await orderSvc.refundOrder(ctx, {
+        const created = await createOrderRefund(orderSvc, ctx, {
+            orderId: order.id,
             paymentId: picked.payment.id,
             amount,
-            shipping: 0,
-            adjustment: 0,
             reason,
-        } as any);
-        if (!created || (created as any).errorCode) {
-            throw new Error(`refundOrder failed: ${(created as any)?.errorCode ?? 'no result'}`);
+            paymentMethod: picked.payment.method,
+        });
+        if (!created || created instanceof Error || (created as any).errorCode) {
+            throw new Error(
+                `refundOrder failed: ${(created as any)?.errorCode ?? (created as any)?.message ?? 'no result'}`,
+            );
         }
         // 结算失败置 Failed：否则未真实打款的退款单仍计入已退总额，重试会跳过退款直接取消订单
         await settleRefundOrMarkFailed(this.connection, orderSvc, ctx, (created as any).id);

@@ -359,7 +359,7 @@ let AddressChangeService = class AddressChangeService {
     /** 部分退款（fork 无 core RefundService，走 OrderService.refundOrder/settleRefund，与 dispatch-admin 同源）。
      * refund 表 shipping/adjustment 列 NOT NULL 必须显式传 0；超额退款抛错。 */
     async refundAmount(ctx, order, amount, reason) {
-        var _a;
+        var _a, _b;
         // 只认 Settled/Authorized 且仍有余额的支付单，避免选中失败重试单导致退款失败
         const payments = await (0, refund_payment_1.refundablePayments)(this.connection, Number(order.id));
         if (!payments.length)
@@ -367,15 +367,15 @@ let AddressChangeService = class AddressChangeService {
         const picked = payments.find(p => p.remaining >= amount);
         if (!picked)
             throw new core_2.UserInputError('退款金额超过可退余额（订单可能已全额退款）');
-        const created = await this.orderService.refundOrder(ctx, {
+        const created = await (0, refund_payment_1.createOrderRefund)(this.orderService, ctx, {
+            orderId: order.id,
             paymentId: picked.payment.id,
             amount,
-            shipping: 0,
-            adjustment: 0,
             reason,
+            paymentMethod: picked.payment.method,
         });
-        if (!created || created.errorCode) {
-            throw new core_2.UserInputError(`退款失败：${(_a = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _a !== void 0 ? _a : '未知原因'}`);
+        if (!created || created instanceof Error || created.errorCode) {
+            throw new core_2.UserInputError(`退款失败：${(_b = (_a = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _a !== void 0 ? _a : created === null || created === void 0 ? void 0 : created.message) !== null && _b !== void 0 ? _b : '未知原因'}`);
         }
         // 结算失败必须把退款单置 Failed（与商家拒单/T4/异常处置同一口径），
         // 否则该 Pending 单仍占已退额度，后续重试/拒单退款会少退。

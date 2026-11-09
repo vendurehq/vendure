@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MyOrdersShopResolver = void 0;
 const graphql_1 = require("@nestjs/graphql");
 const core_1 = require("@vendure/core");
+const cod_refund_port_1 = require("../payment/cod-refund-port");
 const loggerCtx = 'MyOrdersShopResolver';
 /** 顾客可自行取消的订单状态（尚未支付/未进入履约） */
 const CUSTOMER_CANCELLABLE_STATES = ['Created', 'AddingItems', 'ArrangingPayment'];
@@ -224,7 +225,7 @@ let MyOrdersShopResolver = class MyOrdersShopResolver {
     }
     /** 全额退款：逐笔退剩余额度；refundOrder 停在 Pending 时推进到 Settled，未达 Settled 视为失败 */
     async refundAllPaid(ctx, order) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         const payments = await this.connection
             .getRepository(ctx, core_1.Payment)
             .find({ where: { order: { id: order.id } }, order: { id: 'DESC' } });
@@ -241,6 +242,26 @@ let MyOrdersShopResolver = class MyOrdersShopResolver {
             const remaining = Number(payment.amount) - Number((_a = refunded === null || refunded === void 0 ? void 0 : refunded.sum) !== null && _a !== void 0 ? _a : 0);
             if (remaining <= 0)
                 continue;
+            if (String(payment.method) === 'cash-on-delivery') {
+                // COD：只认 confirmed 收款；有收款则建单即 Settled（现金已退），无收款不建单
+                const policy = (0, cod_refund_port_1.getCodRefundPolicyPort)();
+                if (!policy) {
+                    throw new core_1.UserInputError('REFUND_FAILED:NO_COD_GATE');
+                }
+                const result = await policy.createRefund(ctx, {
+                    orderId: order.id,
+                    paymentId: payment.id,
+                    amount: remaining,
+                    reason: `customer cancel (${order.code})`,
+                });
+                if (result instanceof Error || (result === null || result === void 0 ? void 0 : result.errorCode)) {
+                    throw new core_1.UserInputError(`REFUND_FAILED:${(_c = (_b = result === null || result === void 0 ? void 0 : result.message) !== null && _b !== void 0 ? _b : result === null || result === void 0 ? void 0 : result.errorCode) !== null && _c !== void 0 ? _c : 'COD_GATE'}`);
+                }
+                if (String(result === null || result === void 0 ? void 0 : result.state) !== 'Settled') {
+                    throw new core_1.UserInputError(`REFUND_FAILED:${(_d = result === null || result === void 0 ? void 0 : result.state) !== null && _d !== void 0 ? _d : 'UNKNOWN'}`);
+                }
+                continue;
+            }
             let refund = await this.orderService.refundOrder(ctx, {
                 paymentId: payment.id,
                 amount: remaining,
@@ -250,18 +271,18 @@ let MyOrdersShopResolver = class MyOrdersShopResolver {
                 reason: `customer cancel (${order.code})`,
             });
             if (!refund || refund.errorCode) {
-                core_1.Logger.warn(`实付单退款失败 order#${order.id}: ${(_b = refund === null || refund === void 0 ? void 0 : refund.errorCode) !== null && _b !== void 0 ? _b : 'unknown'}`, loggerCtx);
-                throw new core_1.UserInputError(`REFUND_FAILED:${(_c = refund === null || refund === void 0 ? void 0 : refund.errorCode) !== null && _c !== void 0 ? _c : 'UNKNOWN'}`);
+                core_1.Logger.warn(`实付单退款失败 order#${order.id}: ${(_e = refund === null || refund === void 0 ? void 0 : refund.errorCode) !== null && _e !== void 0 ? _e : 'unknown'}`, loggerCtx);
+                throw new core_1.UserInputError(`REFUND_FAILED:${(_f = refund === null || refund === void 0 ? void 0 : refund.errorCode) !== null && _f !== void 0 ? _f : 'UNKNOWN'}`);
             }
             if (refund.state === 'Pending') {
                 refund = await this.orderService.settleRefund(ctx, {
                     id: refund.id,
-                    transactionId: (_e = (_d = refund.transactionId) !== null && _d !== void 0 ? _d : refund.paymentId) !== null && _e !== void 0 ? _e : '',
+                    transactionId: (_h = (_g = refund.transactionId) !== null && _g !== void 0 ? _g : refund.paymentId) !== null && _h !== void 0 ? _h : '',
                 });
             }
             if ((refund === null || refund === void 0 ? void 0 : refund.state) !== 'Settled') {
                 core_1.Logger.warn(`实付单退款未达 Settled order#${order.id}: ${refund === null || refund === void 0 ? void 0 : refund.state}`, loggerCtx);
-                throw new core_1.UserInputError(`REFUND_FAILED:${(_f = refund === null || refund === void 0 ? void 0 : refund.state) !== null && _f !== void 0 ? _f : 'UNKNOWN'}`);
+                throw new core_1.UserInputError(`REFUND_FAILED:${(_j = refund === null || refund === void 0 ? void 0 : refund.state) !== null && _j !== void 0 ? _j : 'UNKNOWN'}`);
             }
         }
     }

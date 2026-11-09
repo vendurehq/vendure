@@ -19,7 +19,7 @@ import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { HallGrabService } from './hall-grab.service';
 import { HANDOVER_CODE_TTL_MS } from './handover-code';
 import { ACTIVE_HALL_STATUSES, HallService } from './hall.service';
-import { refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
+import { createOrderRefund, refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
 import { ThirdPartyDeliveryService } from './third-party-delivery.service';
 import { CREDIT_LIMIT, CREDIT_TIMEOUT, RiderCreditService } from './rider-credit.service';
 import { PeriodicFallback } from './periodic-fallback';
@@ -1363,18 +1363,19 @@ export class DispatchJobService implements OnApplicationShutdown {
                 // 只退成功支付且仍有余额的支付单（避免选中 Declined/Error 重试单；已全额退则列表为空）
                 const refundable = await refundablePayments(this.connection, Number(order.id));
                 for (const picked of refundable) {
-                    const created = await orderSvc!.refundOrder(ctx, {
+                    const created = await createOrderRefund(orderSvc!, ctx, {
+                        orderId: order.id as any,
                         paymentId: picked.payment.id,
                         amount: picked.remaining,
-                        // fork 的 refund 表 shipping/adjustment 列 NOT NULL（payment.service createRefund 透传
-                        // input.shipping/input.adjustment），全额退款经 amount 通道，两者必须显式给 0，
-                        // 否则 INSERT 报 not-null violation
-                        shipping: 0,
-                        adjustment: 0,
+                        // fork 的 refund 表 shipping/adjustment 列 NOT NULL，非 COD 路径由 helper 显式给 0；
+                        // 全额退款经 amount 通道
                         reason: `no_rider auto refund (${order.code})`,
-                    } as any);
-                    if (!created || (created as any).errorCode) {
-                        throw new Error(`refundOrder failed: ${(created as any)?.errorCode ?? 'no result'}`);
+                        paymentMethod: picked.payment.method,
+                    });
+                    if (!created || created instanceof Error || (created as any).errorCode) {
+                        throw new Error(
+                            `refundOrder failed: ${(created as any)?.errorCode ?? (created as any)?.message ?? 'no result'}`,
+                        );
                     }
                     await settleRefundOrMarkFailed(this.connection, orderSvc!, ctx, (created as any).id);
                     refundedAny = true;

@@ -1,4 +1,5 @@
-import { ID, Payment, Refund, RequestContext, TransactionalConnection } from '@vendure/core';
+import { ID, Payment, Refund, RequestContext, TransactionalConnection, UserInputError } from '@vendure/core';
+import { getCodRefundPolicyPort } from '@vendure/cjk-plugin';
 
 /** 可退款支付状态：只认已成功支付（Declined/Error/Cancelled 的重试单不可退） */
 export const REFUNDABLE_PAYMENT_STATES = ['Settled', 'Authorized'];
@@ -24,6 +25,45 @@ export async function refundedTotal(connection: TransactionalConnection, payment
     return Number(refunded?.sum ?? 0);
 }
 
+/** 拆单/拒单等所有退款创建点的统一入口：COD 走收款闸门，其它支付方式保持原 refundOrder 路径。
+ * COD 无收款记录时不建退款单（未收款无可退）；有收款则建单即 Settled 并写收款关联。 */
+export async function createOrderRefund(
+    orderService: { refundOrder: (ctx: RequestContext, input: any) => Promise<any> },
+    ctx: RequestContext,
+    input: {
+        orderId: ID;
+        paymentId: ID;
+        amount: number;
+        reason: string;
+        paymentMethod?: string | null;
+        shipping?: number;
+        adjustment?: number;
+        lines?: Array<{ orderLineId: ID; quantity: number }>;
+    },
+): Promise<any> {
+    if (String(input.paymentMethod ?? '') === 'cash-on-delivery') {
+        const policy = getCodRefundPolicyPort();
+        if (!policy) {
+            throw new UserInputError('COD 退款闸门不可用：无收款记录能力，拒绝创建退款单');
+        }
+        return policy.createRefund(ctx, {
+            orderId: input.orderId,
+            paymentId: input.paymentId,
+            amount: input.amount,
+            reason: input.reason,
+            lines: input.lines,
+        });
+    }
+    return orderService.refundOrder(ctx, {
+        paymentId: input.paymentId,
+        amount: input.amount,
+        shipping: input.shipping ?? 0,
+        adjustment: input.adjustment ?? 0,
+        reason: input.reason,
+        ...(input.lines ? { lines: input.lines } : {}),
+    } as any);
+}
+
 /**
  * 结算退款：refundOrder 只创建 Pending 退款单，settleRefund 才真实打款。
  * 结算失败必须把退款单置 Failed（保留审计痕迹），否则该单仍计入已退总额：
@@ -40,6 +80,8 @@ export async function settleRefundOrMarkFailed(
         const conn = connection.rawConnection;
         const repo = conn.getRepository(Refund);
         const refund = await repo.findOne({ where: { id: refundId } } as any);
+        // COD 收款闸门建单即 Settled（现金已退），无需再打款；重复 settle 会把状态误置 Failed
+        if (String((refund as any)?.state) === 'Settled') return;
         const transactionId = (refund as any)?.paymentId ?? String(refundId);
         await orderService.settleRefund(ctx, { id: refundId, transactionId });
     } catch (e) {

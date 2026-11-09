@@ -1147,7 +1147,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
      * 失败降级：同样写 campusCause='no_rider' + hallStatus='no_rider_final' 留人工，Logger 留痕，不抛出。
      */
     async refundNoRider(ctx, order, cfg) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
         const mark = () => this.hall.updateOrder(ctx, order.id, {
             customFields: { campusCause: 'no_rider', hallStatus: 'no_rider_final' },
         });
@@ -1179,18 +1179,17 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                 // 只退成功支付且仍有余额的支付单（避免选中 Declined/Error 重试单；已全额退则列表为空）
                 const refundable = await (0, refund_payment_1.refundablePayments)(this.connection, Number(order.id));
                 for (const picked of refundable) {
-                    const created = await orderSvc.refundOrder(ctx, {
+                    const created = await (0, refund_payment_1.createOrderRefund)(orderSvc, ctx, {
+                        orderId: order.id,
                         paymentId: picked.payment.id,
                         amount: picked.remaining,
-                        // fork 的 refund 表 shipping/adjustment 列 NOT NULL（payment.service createRefund 透传
-                        // input.shipping/input.adjustment），全额退款经 amount 通道，两者必须显式给 0，
-                        // 否则 INSERT 报 not-null violation
-                        shipping: 0,
-                        adjustment: 0,
+                        // fork 的 refund 表 shipping/adjustment 列 NOT NULL，非 COD 路径由 helper 显式给 0；
+                        // 全额退款经 amount 通道
                         reason: `no_rider auto refund (${order.code})`,
+                        paymentMethod: picked.payment.method,
                     });
-                    if (!created || created.errorCode) {
-                        throw new Error(`refundOrder failed: ${(_e = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _e !== void 0 ? _e : 'no result'}`);
+                    if (!created || created instanceof Error || created.errorCode) {
+                        throw new Error(`refundOrder failed: ${(_f = (_e = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _e !== void 0 ? _e : created === null || created === void 0 ? void 0 : created.message) !== null && _f !== void 0 ? _f : 'no result'}`);
                     }
                     await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, orderSvc, ctx, created.id);
                     refundedAny = true;
@@ -1219,7 +1218,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                     }
                     catch (e) {
                         // 退款/取消已成功，发券失败不能算「退款失败」：订单已是终态，券不能静默丢失
-                        core_2.Logger.error(`T4 compensation coupon failed for order ${order.code}: ${(_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e}`, 'CampusDispatch');
+                        core_2.Logger.error(`T4 compensation coupon failed for order ${order.code}: ${(_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : e}`, 'CampusDispatch');
                         if (this.compensation && order.customerId) {
                             // R2：先持久化补偿任务由定时任务退避重试；耗尽才告警（避免只有一条易漏的飞书消息）
                             void this.compensation.enqueueCoupon({
@@ -1231,11 +1230,11 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                             });
                         }
                         else {
-                            void ((_g = this.feishu) === null || _g === void 0 ? void 0 : _g.pushEvent('alert', '无人接单补偿券发放失败', `订单 ${order.code} 已自动退款，但补偿券（模板 ${templateId}）发放失败，请人工补发。原因：${(_h = e === null || e === void 0 ? void 0 : e.message) !== null && _h !== void 0 ? _h : e}`, order.code, `compensation_coupon_failed:${order.code}`));
+                            void ((_h = this.feishu) === null || _h === void 0 ? void 0 : _h.pushEvent('alert', '无人接单补偿券发放失败', `订单 ${order.code} 已自动退款，但补偿券（模板 ${templateId}）发放失败，请人工补发。原因：${(_j = e === null || e === void 0 ? void 0 : e.message) !== null && _j !== void 0 ? _j : e}`, order.code, `compensation_coupon_failed:${order.code}`));
                         }
                     }
                 }
-                core_2.Logger.warn(`Order ${order.code} auto-refunded (no rider within ${(_j = cfg.autoRefundMinutes) !== null && _j !== void 0 ? _j : 30}min)`, 'CampusDispatch');
+                core_2.Logger.warn(`Order ${order.code} auto-refunded (no rider within ${(_k = cfg.autoRefundMinutes) !== null && _k !== void 0 ? _k : 30}min)`, 'CampusDispatch');
             }
             catch (e) {
                 core_2.Logger.error(`T4 refund failed for order ${order.code}: ${e === null || e === void 0 ? void 0 : e.message}`, 'CampusDispatch');
@@ -1251,9 +1250,9 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
                         // 已退款但取消失败：只需人工/重试取消，绝不能再退一次
                         const title = refundedAny ? '已退款但取消失败' : '无人接单自动退款失败';
                         const detail = refundedAny
-                            ? `订单 ${order.code} 已全额退款，但订单取消失败（仍为 Processing），请人工取消订单，勿重复退款。原因：${(_k = e === null || e === void 0 ? void 0 : e.message) !== null && _k !== void 0 ? _k : e}`
-                            : `订单 ${order.code} 超时无骑手且自动退款失败，请人工退款/取消。原因：${(_l = e === null || e === void 0 ? void 0 : e.message) !== null && _l !== void 0 ? _l : e}`;
-                        void ((_m = this.feishu) === null || _m === void 0 ? void 0 : _m.pushEvent('exception', title, detail, order.code, `refund_failed:${order.code}`));
+                            ? `订单 ${order.code} 已全额退款，但订单取消失败（仍为 Processing），请人工取消订单，勿重复退款。原因：${(_l = e === null || e === void 0 ? void 0 : e.message) !== null && _l !== void 0 ? _l : e}`
+                            : `订单 ${order.code} 超时无骑手且自动退款失败，请人工退款/取消。原因：${(_m = e === null || e === void 0 ? void 0 : e.message) !== null && _m !== void 0 ? _m : e}`;
+                        void ((_o = this.feishu) === null || _o === void 0 ? void 0 : _o.pushEvent('exception', title, detail, order.code, `refund_failed:${order.code}`));
                     }
                 }
                 catch (e2) {
@@ -1265,7 +1264,7 @@ let DispatchJobService = DispatchJobService_1 = class DispatchJobService {
             try {
                 await runner.query('SELECT pg_advisory_unlock(hashtext($1))', [lockKey]);
             }
-            catch (_o) {
+            catch (_p) {
                 // 释放失败交给连接回收兜底
             }
             await runner.release();

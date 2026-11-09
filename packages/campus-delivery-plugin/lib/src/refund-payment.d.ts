@@ -8,6 +8,23 @@ export interface RefundablePayment {
 }
 /** 单支付单已退总额（排除 Failed：结算失败的单并未真实打款） */
 export declare function refundedTotal(connection: TransactionalConnection, paymentId: number | string): Promise<number>;
+/** 拆单/拒单等所有退款创建点的统一入口：COD 走收款闸门，其它支付方式保持原 refundOrder 路径。
+ * COD 无收款记录时不建退款单（未收款无可退）；有收款则建单即 Settled 并写收款关联。 */
+export declare function createOrderRefund(orderService: {
+    refundOrder: (ctx: RequestContext, input: any) => Promise<any>;
+}, ctx: RequestContext, input: {
+    orderId: ID;
+    paymentId: ID;
+    amount: number;
+    reason: string;
+    paymentMethod?: string | null;
+    shipping?: number;
+    adjustment?: number;
+    lines?: Array<{
+        orderLineId: ID;
+        quantity: number;
+    }>;
+}): Promise<any>;
 /**
  * 结算退款：refundOrder 只创建 Pending 退款单，settleRefund 才真实打款。
  * 结算失败必须把退款单置 Failed（保留审计痕迹），否则该单仍计入已退总额：

@@ -23,7 +23,7 @@ import { CapacityService } from './capacity.service';
 import { FeishuNotifyService } from './feishu/feishu-notify.service';
 import { HallService } from './hall.service';
 import { CampusNotifyService } from './campus-notify.service';
-import { refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
+import { createOrderRefund, refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
 import { quoteZoneFee, readHallBacklog } from './shipping-calculator';
 import { parseDynamicPricing, quoteDynamicFee } from './dynamic-pricing';
 import { resolveHandoverPoint } from './route-matrix';
@@ -357,15 +357,17 @@ export class AddressChangeService {
         if (!payments.length) throw new UserInputError('订单无可退支付余额（可能未支付或已全额退款）');
         const picked = payments.find(p => p.remaining >= amount);
         if (!picked) throw new UserInputError('退款金额超过可退余额（订单可能已全额退款）');
-        const created: any = await this.orderService.refundOrder(ctx, {
+        const created: any = await createOrderRefund(this.orderService, ctx, {
+            orderId: order.id,
             paymentId: picked.payment.id,
             amount,
-            shipping: 0,
-            adjustment: 0,
             reason,
-        } as any);
-        if (!created || created.errorCode) {
-            throw new UserInputError(`退款失败：${created?.errorCode ?? '未知原因'}`);
+            paymentMethod: picked.payment.method,
+        });
+        if (!created || created instanceof Error || created.errorCode) {
+            throw new UserInputError(
+                `退款失败：${created?.errorCode ?? created?.message ?? '未知原因'}`,
+            );
         }
         // 结算失败必须把退款单置 Failed（与商家拒单/T4/异常处置同一口径），
         // 否则该 Pending 单仍占已退额度，后续重试/拒单退款会少退。

@@ -24,6 +24,7 @@ import {
     UnauthorizedError,
     UserInputError,
 } from '@vendure/core';
+import { getCodRefundPolicyPort } from '../payment/cod-refund-port';
 
 const loggerCtx = 'MyOrdersShopResolver';
 
@@ -262,6 +263,28 @@ export class MyOrdersShopResolver {
                 .getRawOne();
             const remaining = Number(payment.amount) - Number(refunded?.sum ?? 0);
             if (remaining <= 0) continue;
+            if (String(payment.method) === 'cash-on-delivery') {
+                // COD：只认 confirmed 收款；有收款则建单即 Settled（现金已退），无收款不建单
+                const policy = getCodRefundPolicyPort();
+                if (!policy) {
+                    throw new UserInputError('REFUND_FAILED:NO_COD_GATE');
+                }
+                const result: any = await policy.createRefund(ctx, {
+                    orderId: order.id,
+                    paymentId: payment.id,
+                    amount: remaining,
+                    reason: `customer cancel (${order.code})`,
+                });
+                if (result instanceof Error || result?.errorCode) {
+                    throw new UserInputError(
+                        `REFUND_FAILED:${result?.message ?? result?.errorCode ?? 'COD_GATE'}`,
+                    );
+                }
+                if (String(result?.state) !== 'Settled') {
+                    throw new UserInputError(`REFUND_FAILED:${result?.state ?? 'UNKNOWN'}`);
+                }
+                continue;
+            }
             let refund: any = await this.orderService.refundOrder(ctx, {
                 paymentId: payment.id,
                 amount: remaining,

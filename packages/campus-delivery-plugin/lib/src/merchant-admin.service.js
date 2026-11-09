@@ -877,7 +877,7 @@ let MerchantAdminService = class MerchantAdminService {
      * 全额退款 + 取消订单（取消后由 Cancelled 转换自动脱厅/释放时段锁位）。
      * 退款幂等口径与 T4/异常处置一致：先查已退总额，仅退剩余部分。 */
     async rejectOrder(ctx, orderId, reason) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         const trimmed = (reason !== null && reason !== void 0 ? reason : '').trim();
         if (!trimmed)
             throw new core_2.UserInputError('请填写拒单原因');
@@ -907,16 +907,16 @@ let MerchantAdminService = class MerchantAdminService {
             for (const picked of await (0, refund_payment_1.refundablePayments)(this.connection, Number(order.id))) {
                 const rest = picked.remaining;
                 if (rest > 0) {
-                    const created = await this.orderService.refundOrder(ctx, {
+                    const created = await (0, refund_payment_1.createOrderRefund)(this.orderService, ctx, {
+                        orderId: order.id,
                         paymentId: picked.payment.id,
                         amount: rest,
-                        // refund 表 shipping/adjustment 列 NOT NULL，显式给 0（同 T4）
-                        shipping: 0,
-                        adjustment: 0,
+                        // 非 COD 路径由 helper 显式给 shipping/adjustment=0（refund 表 NOT NULL）
                         reason: `merchant reject (${order.code})`,
+                        paymentMethod: picked.payment.method,
                     });
-                    if (!created || created.errorCode) {
-                        throw new core_2.UserInputError(`退款失败：${(_d = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _d !== void 0 ? _d : '未知原因'}`);
+                    if (!created || created instanceof Error || created.errorCode) {
+                        throw new core_2.UserInputError(`退款失败：${(_e = (_d = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _d !== void 0 ? _d : created === null || created === void 0 ? void 0 : created.message) !== null && _e !== void 0 ? _e : '未知原因'}`);
                     }
                     await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, this.orderService, ctx, created.id);
                 }
@@ -939,7 +939,7 @@ let MerchantAdminService = class MerchantAdminService {
             try {
                 await runner.query('SELECT pg_advisory_unlock(hashtext($1))', [lockKey]);
             }
-            catch (_e) {
+            catch (_f) {
                 // 释放失败交给连接回收兜底
             }
             await runner.release();
@@ -948,7 +948,7 @@ let MerchantAdminService = class MerchantAdminService {
     /** 商家发起退款（§76）：已送达订单可整单/部分退款，复用既有 refund 通道。
      * 与拒单/运营异常处置共用订单级咨询锁，避免并发双退。 */
     async merchantRefund(ctx, orderId, amount, reason) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         const trimmed = (reason !== null && reason !== void 0 ? reason : '').trim();
         if (!trimmed)
             throw new core_2.UserInputError('请填写退款原因');
@@ -990,16 +990,16 @@ let MerchantAdminService = class MerchantAdminService {
                 if (rest <= 0)
                     break;
                 const part = Math.min(rest, picked.remaining);
-                const created = await this.orderService.refundOrder(ctx, {
+                const created = await (0, refund_payment_1.createOrderRefund)(this.orderService, ctx, {
+                    orderId: order.id,
                     paymentId: picked.payment.id,
                     amount: part,
-                    // refund 表 shipping/adjustment 列 NOT NULL，显式给 0（同 T4/拒单）
-                    shipping: 0,
-                    adjustment: 0,
+                    // 非 COD 路径由 helper 显式给 shipping/adjustment=0（refund 表 NOT NULL）
                     reason: `merchant refund (${order.code}): ${trimmed}`,
+                    paymentMethod: picked.payment.method,
                 });
-                if (!created || created.errorCode) {
-                    throw new core_2.UserInputError(`退款失败：${(_d = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _d !== void 0 ? _d : '未知原因'}`);
+                if (!created || created instanceof Error || created.errorCode) {
+                    throw new core_2.UserInputError(`退款失败：${(_e = (_d = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _d !== void 0 ? _d : created === null || created === void 0 ? void 0 : created.message) !== null && _e !== void 0 ? _e : '未知原因'}`);
                 }
                 await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, this.orderService, ctx, created.id);
                 rest -= part;
@@ -1011,7 +1011,7 @@ let MerchantAdminService = class MerchantAdminService {
                    FROM refund r
                    JOIN payment p ON p.id = r."paymentId"
                   WHERE p."orderId" = $1 AND r.state <> 'Failed'`, [Number(order.id)]);
-            const refundedTotal = Number((_f = (_e = refundedRows === null || refundedRows === void 0 ? void 0 : refundedRows[0]) === null || _e === void 0 ? void 0 : _e.amount) !== null && _f !== void 0 ? _f : 0);
+            const refundedTotal = Number((_g = (_f = refundedRows === null || refundedRows === void 0 ? void 0 : refundedRows[0]) === null || _f === void 0 ? void 0 : _f.amount) !== null && _g !== void 0 ? _g : 0);
             const after = await (0, refund_payment_1.refundablePayments)(this.connection, Number(order.id));
             const refundable = after.reduce((s, p) => s + p.remaining, 0);
             return { ok: true, amount: fen, refundedTotal, refundable };
@@ -1020,7 +1020,7 @@ let MerchantAdminService = class MerchantAdminService {
             try {
                 await runner.query('SELECT pg_advisory_unlock(hashtext($1))', [lockKey]);
             }
-            catch (_g) {
+            catch (_h) {
                 // 释放失败交给连接回收兜底
             }
             await runner.release();

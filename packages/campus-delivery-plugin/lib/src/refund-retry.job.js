@@ -142,7 +142,7 @@ let RefundRetryJob = class RefundRetryJob {
     }
     /** 锁内执行；返回本轮结果分类 */
     async retryOne(order, ctx) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         const fresh = rowsOf(await this.connection.rawConnection.query(`SELECT id, code, state, "customFieldsHallstatus" AS "hallStatus",
                         "customFieldsDeliverystatus" AS "deliveryStatus",
                         "customFieldsDeliveredat" AS "deliveredAt"
@@ -162,27 +162,27 @@ let RefundRetryJob = class RefundRetryJob {
             // 统一可退口径：仅 Settled/Authorized 且余额 > 0（余额已扣除 Pending/Settled 退款，排除 Failed）
             const refundable = await (0, refund_payment_1.refundablePayments)(this.connection, fresh.id);
             for (const picked of refundable) {
-                const created = await orderSvc.refundOrder(ctx, {
+                const created = await (0, refund_payment_1.createOrderRefund)(orderSvc, ctx, {
+                    orderId: fresh.id,
                     paymentId: picked.payment.id,
                     amount: picked.remaining,
-                    // fork 的 refund 表 shipping/adjustment NOT NULL，全额退款走 amount 通道
-                    shipping: 0,
-                    adjustment: 0,
+                    // 非 COD 路径由 helper 显式给 shipping/adjustment=0（refund 表 NOT NULL）
                     reason: `refund_failed auto retry (${fresh.code}) attempt ${attempts}`,
+                    paymentMethod: picked.payment.method,
                 });
-                if (!created || created.errorCode) {
-                    throw new Error(`refundOrder failed: ${(_b = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _b !== void 0 ? _b : 'no result'}`);
+                if (!created || created instanceof Error || created.errorCode) {
+                    throw new Error(`refundOrder failed: ${(_c = (_b = created === null || created === void 0 ? void 0 : created.errorCode) !== null && _b !== void 0 ? _b : created === null || created === void 0 ? void 0 : created.message) !== null && _c !== void 0 ? _c : 'no result'}`);
                 }
                 await (0, refund_payment_1.settleRefundOrMarkFailed)(this.connection, orderSvc, ctx, created.id);
             }
             // 已送达单不应再取消（A11）：送达后取消会污染对账/分账，入口直接跳过取消
             const delivered = !!fresh.deliveredAt
-                || String((_c = fresh.hallStatus) !== null && _c !== void 0 ? _c : '') === 'delivered'
-                || String((_d = fresh.deliveryStatus) !== null && _d !== void 0 ? _d : '') === 'delivered';
+                || String((_d = fresh.hallStatus) !== null && _d !== void 0 ? _d : '') === 'delivered'
+                || String((_e = fresh.deliveryStatus) !== null && _e !== void 0 ? _e : '') === 'delivered';
             if (delivered) {
                 core_2.Logger.warn(`退款重试跳过取消：order=${fresh.code} 已送达`, loggerCtx);
             }
-            else if (String((_e = fresh.state) !== null && _e !== void 0 ? _e : '') !== 'Cancelled') {
+            else if (String((_f = fresh.state) !== null && _f !== void 0 ? _f : '') !== 'Cancelled') {
                 let cancelled = await orderSvc.cancelOrder(ctx, {
                     orderId: fresh.id,
                     reason: `refund_failed auto retry cancel (${fresh.code})`,
@@ -204,7 +204,7 @@ let RefundRetryJob = class RefundRetryJob {
             return 'done';
         }
         catch (e) {
-            const message = String((_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e);
+            const message = String((_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : e);
             await this.dedupe.setJson(ERROR_KEY(fresh.id), { message, at: new Date().toISOString() }, exports.RETRY_STATE_TTL_MS);
             core_2.Logger.error(`退款重试失败 order=${fresh.code} attempt=${attempts}/${exports.REFUND_RETRY_MAX_ATTEMPTS}: ${message}`, loggerCtx);
             if (attempts >= exports.REFUND_RETRY_MAX_ATTEMPTS) {

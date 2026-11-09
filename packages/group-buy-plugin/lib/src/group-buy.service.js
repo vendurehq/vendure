@@ -371,7 +371,7 @@ let GroupBuyService = class GroupBuyService {
     }
     /** 对订单的 Settled 支付逐个退款（拼团失败/过期） */
     async refundOrderPayments(ctx, orderId) {
-        var _a;
+        var _a, _b, _c;
         const order = await this.connection.getRepository(ctx, core_1.Order).findOne({
             where: { id: orderId },
             relations: ['payments'],
@@ -381,6 +381,29 @@ let GroupBuyService = class GroupBuyService {
         }
         for (const payment of order.payments) {
             if (payment.state === 'Settled') {
+                if (String(payment.method) === 'cash-on-delivery') {
+                    // COD：只认 confirmed 收款，统一走 campus 闸门（无收款不建单；有收款建单即 Settled 并写关联）
+                    const policy = resolveCodRefundPolicy();
+                    if (!policy) {
+                        core_1.Logger.warn(`COD refund gate unavailable, skip refund for payment ${payment.id}`, constants_1.loggerCtx);
+                        continue;
+                    }
+                    try {
+                        const result = await policy.createRefund(ctx, {
+                            orderId: order.id,
+                            paymentId: payment.id,
+                            amount: payment.amount,
+                            reason: 'Group buy failed/expired',
+                        });
+                        if (result instanceof Error || (result === null || result === void 0 ? void 0 : result.errorCode)) {
+                            core_1.Logger.warn(`COD refund for payment ${payment.id} returned error: ${(_b = result === null || result === void 0 ? void 0 : result.message) !== null && _b !== void 0 ? _b : result}`, constants_1.loggerCtx);
+                        }
+                    }
+                    catch (e) {
+                        core_1.Logger.error(`Failed to refund COD payment ${payment.id} for order ${orderId}: ${(_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e}`, constants_1.loggerCtx);
+                    }
+                    continue;
+                }
                 try {
                     const result = await this.paymentService.createRefund(ctx, {
                         paymentId: payment.id,
@@ -413,4 +436,15 @@ exports.GroupBuyService = GroupBuyService = __decorate([
         core_1.PaymentService,
         core_1.EventBus])
 ], GroupBuyService);
+/** 软依赖解析 COD 退款闸门端口（campus-delivery-plugin 未安装时返回 null，COD 一律不建退款单）。 */
+function resolveCodRefundPolicy() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof (mod === null || mod === void 0 ? void 0 : mod.getCodRefundPolicyPort) === 'function' ? mod.getCodRefundPolicyPort() : null;
+    }
+    catch (_a) {
+        return null;
+    }
+}
 //# sourceMappingURL=group-buy.service.js.map

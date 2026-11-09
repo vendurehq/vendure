@@ -30,7 +30,7 @@ import { campusDayKey, campusHour, startOfCampusDay } from './campus-time';
 import { BusinessTransition, isWithinBusinessHours, nextBusinessTransition, parseBusinessHours } from './business-hours';
 import { ExternalProviderCode } from './route-matrix';
 import { HallService } from './hall.service';
-import { refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
+import { createOrderRefund, refundablePayments, settleRefundOrMarkFailed } from './refund-payment';
 import { ThirdPartyDeliveryService } from './third-party-delivery.service';
 import { normalizePrintMode } from './waimai-store.service';
 import { CloudPrintService } from './cloud-print.service';
@@ -2019,16 +2019,18 @@ export class MerchantAdminService {
             for (const picked of await refundablePayments(this.connection, Number(order.id))) {
                 const rest = picked.remaining;
                 if (rest > 0) {
-                    const created: any = await this.orderService.refundOrder(ctx, {
+                    const created: any = await createOrderRefund(this.orderService, ctx, {
+                        orderId: order.id,
                         paymentId: picked.payment.id,
                         amount: rest,
-                        // refund 表 shipping/adjustment 列 NOT NULL，显式给 0（同 T4）
-                        shipping: 0,
-                        adjustment: 0,
+                        // 非 COD 路径由 helper 显式给 shipping/adjustment=0（refund 表 NOT NULL）
                         reason: `merchant reject (${order.code})`,
-                    } as any);
-                    if (!created || created.errorCode) {
-                        throw new UserInputError(`退款失败：${created?.errorCode ?? '未知原因'}`);
+                        paymentMethod: picked.payment.method,
+                    });
+                    if (!created || created instanceof Error || created.errorCode) {
+                        throw new UserInputError(
+                            `退款失败：${created?.errorCode ?? created?.message ?? '未知原因'}`,
+                        );
                     }
                     await settleRefundOrMarkFailed(this.connection, this.orderService, ctx, created.id);
                 }
@@ -2098,16 +2100,18 @@ export class MerchantAdminService {
             for (const picked of payments) {
                 if (rest <= 0) break;
                 const part = Math.min(rest, picked.remaining);
-                const created: any = await this.orderService.refundOrder(ctx, {
+                const created: any = await createOrderRefund(this.orderService, ctx, {
+                    orderId: order.id,
                     paymentId: picked.payment.id,
                     amount: part,
-                    // refund 表 shipping/adjustment 列 NOT NULL，显式给 0（同 T4/拒单）
-                    shipping: 0,
-                    adjustment: 0,
+                    // 非 COD 路径由 helper 显式给 shipping/adjustment=0（refund 表 NOT NULL）
                     reason: `merchant refund (${order.code}): ${trimmed}`,
-                } as any);
-                if (!created || created.errorCode) {
-                    throw new UserInputError(`退款失败：${created?.errorCode ?? '未知原因'}`);
+                    paymentMethod: picked.payment.method,
+                });
+                if (!created || created instanceof Error || created.errorCode) {
+                    throw new UserInputError(
+                        `退款失败：${created?.errorCode ?? created?.message ?? '未知原因'}`,
+                    );
                 }
                 await settleRefundOrMarkFailed(this.connection, this.orderService, ctx, created.id);
                 rest -= part;
