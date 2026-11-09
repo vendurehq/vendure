@@ -333,8 +333,10 @@ export class PaymentMethodService {
      * handler and eligibility checker. By default only enabled methods are found.
      *
      * Pass `includeDisabled: true` when operating on an existing Payment (settle, cancel, refund),
-     * so that disabling a method only stops new payments. An enabled method is preferred when
-     * several share the code.
+     * so that disabling a method only stops new payments. With `includeDisabled`, an enabled
+     * method is preferred when several share the code.
+     *
+     * The `options` argument is available since v3.8.2.
      */
     async getMethodAndOperations(
         ctx: RequestContext,
@@ -352,7 +354,7 @@ export class PaymentMethodService {
             .where('method.code = :code', { code: method })
             .andWhere('channel.id = :channelId', { channelId: ctx.channelId });
         if (options?.includeDisabled) {
-            qb.orderBy('method.enabled', 'DESC');
+            qb.orderBy('method.enabled', 'DESC').addOrderBy('method.id', 'ASC');
         } else {
             qb.andWhere('method.enabled IS true');
         }
