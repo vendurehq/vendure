@@ -3,6 +3,7 @@ import {
     ForbiddenError,
     FulfillmentService,
     ID,
+    Logger,
     Order,
     OrderService,
     RequestContext,
@@ -15,6 +16,7 @@ import { Shop } from '@vendure/shop-plugin';
 
 import { PICKUP_PLUGIN_OPTIONS, PickupPluginOptions } from './constants';
 import { PickupRedemption, PickupRedemptionStatus } from './pickup-redemption.entity';
+import { getCodCollectionPort } from './cod-collection-port';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 去易混淆 0/O1/I/L
 
@@ -220,7 +222,42 @@ export class PickupService {
         if (cod && collect !== true) {
             throw new UserInputError('该单为到店付款，请先确认收款后再核销');
         }
-        return this.commitRedeem(ctx, redemption.orderId, code, 'shop', cod ? true : undefined);
+        const saved = await this.commitRedeem(ctx, redemption.orderId, code, 'shop', cod ? true : undefined);
+        if (cod && collect === true) {
+            await this.recordCodCollection(ctx, redemption.orderId, payments);
+        }
+        return saved;
+    }
+
+    /**
+     * 到店自取 COD 柜台收款：核销完成后登记现金收款台账（金额=本单 COD 应收）。
+     * 台账能力由 campus-delivery-plugin 注册；未安装时不阻断核销，仅告警由人工补录。
+     */
+    private async recordCodCollection(
+        ctx: RequestContext,
+        orderId: number,
+        payments: any[],
+    ): Promise<void> {
+        const codPayments = payments.filter(p => p?.method === 'cash-on-delivery');
+        if (!codPayments.length) return;
+        const port = getCodCollectionPort();
+        if (!port) {
+            Logger.warn(`COD 收款台账端口未注册，订单 ${orderId} 柜台收款未登记（需人工补录）`, 'Pickup');
+            return;
+        }
+        const amount = codPayments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+        try {
+            await port.recordCounterCollection(ctx, orderId, {
+                amount,
+                collectedByUserId: (ctx.activeUserId as number) ?? null,
+            });
+        } catch (e: any) {
+            // 核销已提交，收款记录失败不回滚核销；退款侧会因缺收款记录而拦截，留痕待补录
+            Logger.error(
+                `COD 柜台收款登记失败（订单 ${orderId}，金额 ${amount} 分，需人工补录）：${e?.message ?? e}`,
+                'Pickup',
+            );
+        }
     }
 
     /** 店员核销凭据（到店或线上单通用）。仅设置 order.collected 与 redemption.collected。 */

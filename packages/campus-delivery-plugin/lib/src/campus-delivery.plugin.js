@@ -190,6 +190,9 @@ const p43_rider_feishu_binding_1 = require("./migrations/p43-rider-feishu-bindin
 const p44_order_cancel_audit_1 = require("./migrations/p44-order-cancel-audit");
 const p45_cod_receipt_ledger_1 = require("./migrations/p45-cod-receipt-ledger");
 const cod_receipt_entities_1 = require("./cod-receipt.entities");
+const cod_receipt_service_1 = require("./cod-receipt.service");
+const cod_receipt_resolver_1 = require("./cod-receipt.resolver");
+const pickup_plugin_1 = require("@vendure/pickup-plugin");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -227,6 +230,22 @@ let CampusDeliveryPlugin = class CampusDeliveryPlugin {
         (0, packing_fee_process_1.bindPackingFeeDeps)(this.injector.get(core_1.TransactionalConnection), this.injector.get(core_1.OrderService));
         (0, addon_fee_process_1.bindAddonFeeDeps)(this.injector.get(core_1.TransactionalConnection), this.injector.get(core_1.OrderService));
         (0, order_gate_process_1.bindOrderGateConnection)(this.injector.get(core_1.TransactionalConnection));
+        // COD 柜台收款端口：到店自取核销确认收款时登记台账（pickup-plugin 未安装则保持原行为）
+        const codCollection = this.injector.get(cod_receipt_service_1.CodCollectionService);
+        (0, pickup_plugin_1.setCodCollectionPort)({
+            recordCounterCollection: async (ctx, orderId, input) => {
+                var _a, _b;
+                const receipt = await codCollection.register(ctx, orderId, {
+                    amount: input.amount,
+                    source: 'pickup_counter',
+                    collectedByRole: 'merchant',
+                    collectedById: (_a = input.collectedByUserId) !== null && _a !== void 0 ? _a : null,
+                    collectedByName: (_b = input.collectedByName) !== null && _b !== void 0 ? _b : null,
+                    note: '商家柜台确认收款',
+                });
+                return { receiptId: receipt.id, amount: receipt.amount };
+            },
+        });
         // 权限迁移（B 组漏项）：写操作拆出 CampusDispatch，给已持有看板权限的角色补授，防现有运营失权
         void this.grantDispatchPermission().catch(e => core_1.Logger.error(`grant CampusDispatch failed: ${String(e)}`, 'CampusDispatch'));
         // 待付款补偿任务：自管定时器（生产无 worker，ScheduledTask 不执行）
@@ -444,6 +463,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p43_rider_feishu_binding_1.P43RiderFeishuBindingMigration,
             p44_order_cancel_audit_1.P44OrderCancelAuditMigration,
             p45_cod_receipt_ledger_1.P45CodReceiptLedgerMigration,
+            cod_receipt_service_1.CodCollectionService,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,
@@ -3258,6 +3278,70 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     totalItems: Int!
                 }
 
+                """COD 现金收款记录（先有收款，才能退）"""
+                type CampusCodReceipt implements Node {
+                    id: ID!
+                    orderId: ID
+                    orderCode: String
+                    paymentId: ID!
+                    """实收金额（分）"""
+                    amount: Int!
+                    currencyCode: String!
+                    method: String!
+                    collectedAt: DateTime!
+                    """rider / merchant / admin"""
+                    collectedByRole: String!
+                    collectedById: Int
+                    collectedByName: String
+                    """delivery_confirm / merchant_handover / pickup_counter / admin_manual"""
+                    source: String!
+                    deliveryOrderId: Int
+                    handoverCode: String
+                    deliveryRecordId: Int
+                    """后台补录必填的凭证号"""
+                    voucherNo: String
+                    images: [String!]
+                    note: String
+                    """confirmed / voided"""
+                    status: String!
+                    voidedAt: DateTime
+                    voidedById: Int
+                    voidedByName: String
+                    voidReason: String
+                    createdAt: DateTime!
+                }
+
+                input CampusCodReceiptInput {
+                    """实收金额（分，必填）"""
+                    amount: Int!
+                    paymentId: ID
+                    method: String
+                    collectedAt: DateTime
+                    collectedByRole: String!
+                    collectedById: Int
+                    collectedByName: String
+                    source: String!
+                    deliveryOrderId: Int
+                    handoverCode: String
+                    deliveryRecordId: Int
+                    """来源为 admin_manual 时必填"""
+                    voucherNo: String
+                    images: [String!]
+                    note: String
+                }
+
+                extend type Query {
+                    """COD 收款台账（按订单或全量倒序，最多 200 条）"""
+                    campusCodReceipts(orderId: ID): [CampusCodReceipt!]!
+                }
+
+                extend type Mutation {
+                    """登记 COD 收款（运营/客服）；admin_manual 需凭证号"""
+                    campusRegisterCodReceipt(orderId: ID!, input: CampusCodReceiptInput!): CampusCodReceipt!
+                    """作废 COD 收款（主管权限；已关联退款单的不可作废）"""
+                    campusVoidCodReceipt(receiptId: ID!, reason: String!): CampusCodReceipt!
+                }
+
                 extend type Query {
                     campusTrackEventStats: CampusTrackEventStats!
                     campusTrackEventList(eventName: String, skip: Int, take: Int): CampusTrackEventList!
@@ -3265,7 +3349,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                 }
             `;
             },
-            resolvers: [campus_config_admin_resolver_1.CampusConfigAdminResolver, rider_admin_resolver_1.RiderAdminResolver, rider_ledger_admin_resolver_1.RiderLedgerAdminResolver, dispatch_admin_resolver_1.DispatchAdminResolver, merchant_admin_resolver_1.MerchantAdminResolver, after_sales_review_resolver_1.AfterSalesReviewAdminResolver, payment_timeout_admin_resolver_1.PaymentTimeoutAdminResolver, delivery_stats_resolver_1.DeliveryStatsResolver, sales_stats_resolver_1.SalesStatsResolver, address_change_resolver_1.AddressChangeAdminResolver, support_admin_resolver_1.SupportAdminResolver, compensation_admin_resolver_1.CompensationAdminResolver, chat_admin_resolver_1.ChatAdminResolver, campus_ad_resolver_1.CampusAdAdminResolver, campus_locker_resolver_1.CampusLockerAdminResolver, telemetry_resolver_1.TelemetryAdminResolver],
+            resolvers: [campus_config_admin_resolver_1.CampusConfigAdminResolver, rider_admin_resolver_1.RiderAdminResolver, rider_ledger_admin_resolver_1.RiderLedgerAdminResolver, dispatch_admin_resolver_1.DispatchAdminResolver, merchant_admin_resolver_1.MerchantAdminResolver, after_sales_review_resolver_1.AfterSalesReviewAdminResolver, payment_timeout_admin_resolver_1.PaymentTimeoutAdminResolver, delivery_stats_resolver_1.DeliveryStatsResolver, sales_stats_resolver_1.SalesStatsResolver, address_change_resolver_1.AddressChangeAdminResolver, support_admin_resolver_1.SupportAdminResolver, compensation_admin_resolver_1.CompensationAdminResolver, chat_admin_resolver_1.ChatAdminResolver, campus_ad_resolver_1.CampusAdAdminResolver, campus_locker_resolver_1.CampusLockerAdminResolver, telemetry_resolver_1.TelemetryAdminResolver, cod_receipt_resolver_1.CodReceiptAdminResolver],
         },
         shopApiExtensions: {
             schema: () => {
@@ -3826,7 +3910,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusGrabOrders(orderIds: [ID!]!): [CampusGrabResult!]!
                     campusStartTask(orderId: ID!, code: String): Order!
                     campusTransferTask(orderId: ID!, photos: [String!]!, note: String): Order!
-                    campusDeliverTask(orderId: ID!, photos: [String!]!, note: String): Order!
+                    campusDeliverTask(orderId: ID!, photos: [String!]!, note: String, cashAmount: Int): Order!
                     """R5 顾客侧重发交接码（仅本人待交接订单，10 分钟限流）"""
                     campusResendHandoverCode(orderId: ID!): String!
                     """A3 骑手侧重发交接码（仅本单骑手、已派单未取餐，3 分钟限频）"""

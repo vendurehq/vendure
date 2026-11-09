@@ -23,6 +23,8 @@ __exportStar(require("./delivery-slot.entity"), exports);
 __exportStar(require("./rider-credit-log.entity"), exports);
 __exportStar(require("./support.entities"), exports);
 __exportStar(require("./cod-receipt.entities"), exports);
+__exportStar(require("./cod-receipt.service"), exports);
+__exportStar(require("./cod-receipt.resolver"), exports);
 __exportStar(require("./rider-ops.entities"), exports);
 __exportStar(require("./support.service"), exports);
 __exportStar(require("./rider-ops.service"), exports);

@@ -42,6 +42,11 @@ export declare class PickupService {
     claimMyPickup(ctx: RequestContext, orderId: ID, code: string): Promise<PickupRedemption>;
     /** 店员核销（仅本店订单，跨店抛 Forbidden）。到店付款单必须确认收款（collect=true）后才放行，防漏收。 */
     claimPickupByShop(ctx: RequestContext, code: string, collect?: boolean): Promise<PickupRedemption>;
+    /**
+     * 到店自取 COD 柜台收款：核销完成后登记现金收款台账（金额=本单 COD 应收）。
+     * 台账能力由 campus-delivery-plugin 注册；未安装时不阻断核销，仅告警由人工补录。
+     */
+    private recordCodCollection;
     /** 店员核销凭据（到店或线上单通用）。仅设置 order.collected 与 redemption.collected。 */
     private commitRedeem;
     onOrderCancelled(orderId: number): Promise<void>;

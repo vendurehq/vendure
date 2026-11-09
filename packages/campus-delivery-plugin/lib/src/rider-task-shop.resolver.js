@@ -48,8 +48,8 @@ let RiderTaskShopResolver = class RiderTaskShopResolver {
     async campusTransferTask(ctx, orderId, photos, note) {
         return this.riderTaskService.transfer(ctx, orderId, photos, note);
     }
-    async campusDeliverTask(ctx, orderId, photos, note) {
-        return this.riderTaskService.deliver(ctx, orderId, photos, note);
+    async campusDeliverTask(ctx, orderId, photos, note, cashAmount) {
+        return this.riderTaskService.deliver(ctx, orderId, photos, note, cashAmount);
     }
     /** 骑手位置上报（配送中 10s 一次）：本人 + assigned/in_progress 才写，送达/转单由 service 清除。 */
     async campusRiderReportLocation(ctx, orderId, lat, lng) {
@@ -140,8 +140,9 @@ __decorate([
     __param(1, (0, graphql_1.Args)('orderId')),
     __param(2, (0, graphql_1.Args)('photos')),
     __param(3, (0, graphql_1.Args)('note', { nullable: true })),
+    __param(4, (0, graphql_1.Args)({ name: 'cashAmount', type: () => graphql_1.Int, nullable: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [core_1.RequestContext, Object, Array, String]),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, Array, String, Number]),
     __metadata("design:returntype", Promise)
 ], RiderTaskShopResolver.prototype, "campusDeliverTask", null);
 __decorate([

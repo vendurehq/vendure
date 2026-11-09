@@ -19,6 +19,7 @@ const common_1 = require("@nestjs/common");
 const shop_plugin_1 = require("@vendure/shop-plugin");
 const constants_1 = require("./constants");
 const pickup_redemption_entity_1 = require("./pickup-redemption.entity");
+const cod_collection_port_1 = require("./cod-collection-port");
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 去易混淆 0/O1/I/L
 // 到店收银（需人工确认收款）支付方式集合：下单时尚未收款，收款在提货当刻由店员确认。
 // CO 到店付款/货到付款、固定聚合码收款均为到店收银；余额/线上等支付则视为已在线收款。
@@ -228,7 +229,37 @@ let PickupService = class PickupService {
         if (cod && collect !== true) {
             throw new core_1.UserInputError('该单为到店付款，请先确认收款后再核销');
         }
-        return this.commitRedeem(ctx, redemption.orderId, code, 'shop', cod ? true : undefined);
+        const saved = await this.commitRedeem(ctx, redemption.orderId, code, 'shop', cod ? true : undefined);
+        if (cod && collect === true) {
+            await this.recordCodCollection(ctx, redemption.orderId, payments);
+        }
+        return saved;
+    }
+    /**
+     * 到店自取 COD 柜台收款：核销完成后登记现金收款台账（金额=本单 COD 应收）。
+     * 台账能力由 campus-delivery-plugin 注册；未安装时不阻断核销，仅告警由人工补录。
+     */
+    async recordCodCollection(ctx, orderId, payments) {
+        var _a, _b;
+        const codPayments = payments.filter(p => (p === null || p === void 0 ? void 0 : p.method) === 'cash-on-delivery');
+        if (!codPayments.length)
+            return;
+        const port = (0, cod_collection_port_1.getCodCollectionPort)();
+        if (!port) {
+            core_1.Logger.warn(`COD 收款台账端口未注册，订单 ${orderId} 柜台收款未登记（需人工补录）`, 'Pickup');
+            return;
+        }
+        const amount = codPayments.reduce((sum, p) => { var _a; return sum + Number((_a = p.amount) !== null && _a !== void 0 ? _a : 0); }, 0);
+        try {
+            await port.recordCounterCollection(ctx, orderId, {
+                amount,
+                collectedByUserId: (_a = ctx.activeUserId) !== null && _a !== void 0 ? _a : null,
+            });
+        }
+        catch (e) {
+            // 核销已提交，收款记录失败不回滚核销；退款侧会因缺收款记录而拦截，留痕待补录
+            core_1.Logger.error(`COD 柜台收款登记失败（订单 ${orderId}，金额 ${amount} 分，需人工补录）：${(_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : e}`, 'Pickup');
+        }
     }
     /** 店员核销凭据（到店或线上单通用）。仅设置 order.collected 与 redemption.collected。 */
     async commitRedeem(ctx, orderId, code, claimChannel, collected) {

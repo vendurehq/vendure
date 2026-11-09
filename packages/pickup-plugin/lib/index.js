@@ -16,6 +16,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./src/constants"), exports);
 __exportStar(require("./src/pickup-redemption.entity"), exports);
+__exportStar(require("./src/cod-collection-port"), exports);
 __exportStar(require("./src/pickup.service"), exports);
 __exportStar(require("./src/pickup.plugin"), exports);
 __exportStar(require("./src/pickup-customer.resolver"), exports);

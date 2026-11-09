@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Allow, Ctx, ID, Permission, RequestContext } from '@vendure/core';
 import { R2MarkService } from './r2-mark.service';
 import { HallService } from './hall.service';
@@ -70,8 +70,9 @@ export class RiderTaskShopResolver {
         @Args('orderId') orderId: ID,
         @Args('photos') photos: string[],
         @Args('note', { nullable: true }) note?: string,
+        @Args({ name: 'cashAmount', type: () => Int, nullable: true }) cashAmount?: number,
     ) {
-        return this.riderTaskService.deliver(ctx, orderId, photos, note);
+        return this.riderTaskService.deliver(ctx, orderId, photos, note, cashAmount);
     }
 
     /** 骑手位置上报（配送中 10s 一次）：本人 + assigned/in_progress 才写，送达/转单由 service 清除。 */

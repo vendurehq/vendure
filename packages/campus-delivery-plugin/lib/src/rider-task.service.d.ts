@@ -6,6 +6,7 @@ import { HallService } from './hall.service';
 import { PrivacyNumberService } from './privacy-number.service';
 import { RiderCreditService } from './rider-credit.service';
 import { RiderService } from './rider.service';
+import { CodCollectionService } from './cod-receipt.service';
 export declare class RiderTaskService {
     private connection;
     private riderService;
@@ -16,6 +17,8 @@ export declare class RiderTaskService {
     private feishu?;
     /** M5 跨实例交接码防爆破（多实例下失败计数与锁止共享）；未注入退回进程内 Map */
     private dedupe?;
+    /** COD 现金收款台账；未注入时送达不做收款登记（降级） */
+    private codCollection?;
     /** A3：骑手主动重发交接码的限频窗口（同单 3 分钟）；跨实例用 dedupe，未注入时退回进程内 Map */
     static readonly HANDOVER_RIDER_RESEND_MS: number;
     /** 交接码连续错误计数 / 锁止截止时间（orderId 维度；M5 经 dedupe 跨实例，未注入时退回进程内 Map） */
@@ -25,7 +28,9 @@ export declare class RiderTaskService {
     private riderResendAt;
     constructor(connection: TransactionalConnection, riderService: RiderService, credit: RiderCreditService, hall: HallService, notify: CampusNotifyService, privacy: PrivacyNumberService, feishu?: FeishuNotifyService | undefined, 
     /** M5 跨实例交接码防爆破（多实例下失败计数与锁止共享）；未注入退回进程内 Map */
-    dedupe?: CampusDedupeService | undefined);
+    dedupe?: CampusDedupeService | undefined, 
+    /** COD 现金收款台账；未注入时送达不做收款登记（降级） */
+    codCollection?: CodCollectionService | undefined);
     /** 骑手侧顾客联系方式（号码保护）：仅本单骑手可查，真实号不出服务端。
      * 未开启号码保护时返回真实号（行为与旧版一致），前端统一用 display/callable 展示与拨号。 */
     customerContact(ctx: RequestContext, orderId: ID): Promise<import("./privacy-number.service").PrivacyContact>;
@@ -90,8 +95,8 @@ export declare class RiderTaskService {
     /** 同单 3 分钟限频：dedupe 走原子计数（跨实例），未注入退回进程内 Map */
     private claimRiderResendWindow;
     private releaseRiderResendWindow;
-    /** 送达：拍照必传 → delivered → 分成入余额（0 分成单跳过入账） */
-    deliver(ctx: RequestContext, orderId: ID, photos: string[], note?: string): Promise<Order>;
+    /** 送达：拍照必传 → delivered → 分成入余额（0 分成单跳过入账）；COD 单需填实收金额并落收款台账 */
+    deliver(ctx: RequestContext, orderId: ID, photos: string[], note?: string, cashAmount?: number): Promise<Order>;
     /** 异常上报：仅配送中（已接单/配送中）可上报，记录上报时间供调度扫描超时升级 */
     reportException(ctx: RequestContext, orderId: ID, type: string, photos: string[], note?: string): Promise<Order>;
     /** 实收跑腿小费：以订单小费 surcharge 合计为准（0 元小费在 errand.service 只清不加） */

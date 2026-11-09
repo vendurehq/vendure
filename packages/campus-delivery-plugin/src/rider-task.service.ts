@@ -21,6 +21,7 @@ import { PrivacyNumberService } from './privacy-number.service';
 import { CREDIT_COMPLETE, RiderCreditService } from './rider-credit.service';
 import { RiderEarning } from './rider-earning.entity';
 import { RiderService } from './rider.service';
+import { CodCollectionService } from './cod-receipt.service';
 
 /** 校园骑手平均速度（m/s）：约 15km/h，用于 ETA 粗估 */
 const RIDER_SPEED_MPS = 4.2;
@@ -65,6 +66,8 @@ export class RiderTaskService {
         private feishu?: FeishuNotifyService,
         /** M5 跨实例交接码防爆破（多实例下失败计数与锁止共享）；未注入退回进程内 Map */
         private dedupe?: CampusDedupeService,
+        /** COD 现金收款台账；未注入时送达不做收款登记（降级） */
+        private codCollection?: CodCollectionService,
     ) {}
 
     /** 骑手侧顾客联系方式（号码保护）：仅本单骑手可查，真实号不出服务端。
@@ -402,11 +405,17 @@ export class RiderTaskService {
         if (this.dedupe) await this.dedupe.del(`handover_rider_resend:${orderKey}`);
     }
 
-    /** 送达：拍照必传 → delivered → 分成入余额（0 分成单跳过入账） */
-    async deliver(ctx: RequestContext, orderId: ID, photos: string[], note?: string) {
+    /** 送达：拍照必传 → delivered → 分成入余额（0 分成单跳过入账）；COD 单需填实收金额并落收款台账 */
+    async deliver(ctx: RequestContext, orderId: ID, photos: string[], note?: string, cashAmount?: number) {
         if (!photos?.length) throw new UserInputError('送达需至少一张照片');
         const order = await this.assertOwner(ctx, orderId, 'in_progress');
         const rider = await this.riderService.assertApprovedRider(ctx);
+        // COD 单：送达前必须先确认实收金额（金额必填），否则不落 delivered（防「已送达但无收款」）
+        const cashRequired = this.codCollection ? await this.codCollection.requiresCash(ctx, order.id) : false;
+        const collected = cashAmount == null ? null : Math.round(Number(cashAmount));
+        if (cashRequired && (!collected || collected <= 0)) {
+            throw new UserInputError('货到付款单送达需填写实收金额（单位：分）');
+        }
         // 小费以实际收取的 surcharge 为准：customFields.tip 可能因写入失败未真正计费，
         // 按 cf.tip 计分成会虚高（平台多发钱）。
         const tip = this.actualTip(order);
@@ -428,6 +437,33 @@ export class RiderTaskService {
         );
         const claimedRows = Array.isArray(claimed) ? claimed[0] : claimed;
         if (!claimedRows?.length) throw new UserInputError('订单已被取消或处理，无法送达');
+        // COD 收款台账：已送达即现金已收，登记 confirmed 收款并结算支付；失败不回滚送达（留痕待补录）
+        if (cashRequired && collected && this.codCollection) {
+            try {
+                await this.codCollection.register(ctx, order.id, {
+                    amount: collected,
+                    source: 'delivery_confirm',
+                    collectedByRole: 'rider',
+                    collectedById: rider.id as number,
+                    collectedByName:
+                        [rider.firstName, rider.lastName].filter(Boolean).join(' ').trim() || null,
+                    handoverCode: (order.customFields as any)?.handoverCode ?? null,
+                    note: '骑手送达确认实收',
+                });
+            } catch (e: any) {
+                Logger.error(
+                    `COD 收款登记失败（订单 ${order.code ?? order.id}，实收 ${collected} 分，需人工补录）：${e?.message ?? e}`,
+                    'RiderTask',
+                );
+                void this.feishu?.pushEvent(
+                    'alert',
+                    'COD 收款记录落库失败',
+                    `订单 ${order.code ?? order.id} 已送达，但实收 ${collected} 分未落收款台账，请人工补录。原因：${e?.message ?? e}`,
+                    order.code,
+                    `cod_receipt_failed:${order.code ?? order.id}`,
+                );
+            }
+        }
         if (earning === 0) {
             // 0 分成单：不写 earning 不调 addBalance（余额端口对 0 金额入账会抛错，
             // 且 0 金额 pending 行会在钱包补账时永久重试报错）。

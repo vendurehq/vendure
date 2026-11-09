@@ -5,5 +5,7 @@ export declare const CampusPermissions: {
     readonly CampusViewDispatch: "CampusViewDispatch";
     readonly CampusDispatch: "CampusDispatch";
     readonly CampusMerchant: "CampusMerchant";
+    readonly CampusCodReceipt: "CampusCodReceipt";
+    readonly CampusCodReceiptVoid: "CampusCodReceiptVoid";
 };
 export declare const campusPermissionDefinitions: PermissionDefinition[];
