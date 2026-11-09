@@ -31,9 +31,10 @@ let RiderAdminResolver = class RiderAdminResolver {
         return this.riderService.setRiderStatus(ctx, Number(customerId), status);
     }
     /** 绑定/解绑骑手飞书身份：openId 为空即解绑；可反复重绑（不是一次性绑定）。
-     * 抢单回调按 open_id 反查 Customer，绑定错人时运营先解绑再绑正确账号。 */
-    async campusSetRiderFeishuBinding(ctx, customerId, openId) {
-        return this.riderService.setFeishuBinding(ctx, Number(customerId), openId);
+     * open_id 是飞书应用维度标识，必须与 appId 成对绑定；appId 缺省取骑手应用环境变量。
+     * 抢单回调按「appId + open_id」反查 Customer，绑定错人时运营先解绑再绑正确账号。 */
+    async campusSetRiderFeishuBinding(ctx, customerId, openId, appId) {
+        return this.riderService.setFeishuBinding(ctx, Number(customerId), openId, appId);
     }
     /** P2-5 骑手合规：登记/更新健康证、保险、背调，返回最新合规判定 */
     async campusUpdateRiderCompliance(ctx, customerId, input) {
@@ -85,8 +86,9 @@ __decorate([
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('customerId')),
     __param(2, (0, graphql_1.Args)('openId', { nullable: true })),
+    __param(3, (0, graphql_1.Args)('appId', { nullable: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [core_1.RequestContext, Object, String]),
+    __metadata("design:paramtypes", [core_1.RequestContext, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], RiderAdminResolver.prototype, "campusSetRiderFeishuBinding", null);
 __decorate([

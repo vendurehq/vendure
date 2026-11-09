@@ -38,17 +38,17 @@ let FeishuRiderGrabService = class FeishuRiderGrabService {
     }
     /** 骑手群文本消息：只提示点卡片按钮，不解析任何指令（避免复用商家指令面） */
     async handleText(input) {
-        if (!this.client.enabled)
+        if (!this.client.riderEnabled)
             return;
         if (!this.isRiderChat(input.chatId))
             return;
-        await this.client.sendToChat(input.chatId, '骑手群仅支持点击「新单待抢」卡片上的「抢单」按钮，暂不支持文本指令。');
+        await this.client.sendToChat(input.chatId, '骑手群仅支持点击「新单待抢」卡片上的「抢单」按钮，暂不支持文本指令。', { app: 'rider' });
     }
-    /** 卡片回调：校验群 scope 与动作 → 反查骑手 → 抢单 → 回执 */
+    /** 卡片回调：校验群 scope 与动作 → 反查骑手 → 抢单 → 回执（全部走骑手独立应用） */
     async handleCardAction(input) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         const { chatId, openId, messageId } = input;
-        if (!this.client.enabled)
+        if (!this.client.riderEnabled)
             return;
         // 双重保险：事件层已按 scope 分流，这里再拒绝非骑手群，防止误配后被当成骑手回调
         if (!this.isRiderChat(chatId)) {
@@ -65,10 +65,19 @@ let FeishuRiderGrabService = class FeishuRiderGrabService {
             await this.reply(chatId, messageId, '卡片缺少订单信息，请使用最新推送的抢单卡片。');
             return;
         }
-        const resolution = await this.riderService.resolveFeishuRider(openId);
+        const riderAppId = String((_d = this.cfg.settings.riderAppId) !== null && _d !== void 0 ? _d : '');
+        const resolution = await this.riderService.resolveFeishuRider(openId, riderAppId);
         switch (resolution.kind) {
             case 'unbound':
+                // 运营补绑需要能定位到人：打出 open_id + 群/消息锚点（后台可按 open_id 查飞书通讯录）
+                core_1.Logger.warn(`飞书抢单未绑定骑手 open_id=${openId} app=${riderAppId || '-'} chat=${chatId} `
+                    + `message=${messageId !== null && messageId !== void 0 ? messageId : '-'} order=${code}`, loggerCtx);
                 await this.reply(chatId, messageId, '你的飞书账号尚未绑定骑手身份，请联系运营绑定后重试。');
+                return;
+            case 'legacyBinding':
+                core_1.Logger.warn(`飞书抢单绑定已失效（缺少应用标识或来自旧应用） open_id=${openId} app=${riderAppId || '-'} `
+                    + `chat=${chatId} message=${messageId !== null && messageId !== void 0 ? messageId : '-'} order=${code}；请运营解绑后重新绑定`, loggerCtx);
+                await this.reply(chatId, messageId, '你的飞书绑定来自旧应用或缺少应用标识，已失效，请联系运营重新绑定后重试。');
                 return;
             case 'conflict':
                 await this.reply(chatId, messageId, '你的飞书账号存在多条骑手绑定，请联系运营解绑多余绑定后重试。');
@@ -95,12 +104,12 @@ let FeishuRiderGrabService = class FeishuRiderGrabService {
             return;
         }
         // 卡片 value 同时带订单主键，双校验防止旧卡片/伪造单号串单
-        const cardOrderId = (_d = input.value) === null || _d === void 0 ? void 0 : _d.o;
+        const cardOrderId = (_e = input.value) === null || _e === void 0 ? void 0 : _e.o;
         if (cardOrderId != null && String(order.id) !== String(cardOrderId)) {
             await this.reply(chatId, messageId, '卡片与订单不匹配，请使用最新推送的抢单卡片。');
             return;
         }
-        const channel = (_e = order.channels) === null || _e === void 0 ? void 0 : _e[0];
+        const channel = (_f = order.channels) === null || _f === void 0 ? void 0 : _f[0];
         if (!channel) {
             core_1.Logger.warn(`订单 ${code} 未绑定渠道，无法抢单`, loggerCtx);
             await this.reply(chatId, messageId, '该订单未绑定店铺，暂时无法抢单。');
@@ -117,24 +126,24 @@ let FeishuRiderGrabService = class FeishuRiderGrabService {
             await this.reply(chatId, messageId, `抢单成功：${grabbed.code}，请尽快前往商家取餐。`);
         }
         catch (e) {
-            const msg = (_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : String(e);
+            const msg = (_g = e === null || e === void 0 ? void 0 : e.message) !== null && _g !== void 0 ? _g : String(e);
             core_1.Logger.info(`飞书抢单失败 chat=${chatId} open_id=${openId} order=${code} result=${msg}`, loggerCtx);
             await this.reply(chatId, messageId, `抢单失败：${msg}`);
         }
     }
-    /** 优先回在卡片话题里，拿不到锚点消息时退回群消息 */
+    /** 优先回在卡片话题里，拿不到锚点消息时退回群消息；统一走骑手独立应用 */
     async reply(chatId, messageId, text) {
         var _a;
         if (messageId) {
             try {
-                if (await this.client.replyToMessage(messageId, text, true))
+                if (await this.client.replyToMessage(messageId, text, true, 'rider'))
                     return;
             }
             catch (e) {
                 core_1.Logger.warn(`飞书骑手回执线程回复失败 anchor=${messageId}: ${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}`, loggerCtx);
             }
         }
-        await this.client.sendToChat(chatId, text);
+        await this.client.sendToChat(chatId, text, { app: 'rider' });
     }
 };
 exports.FeishuRiderGrabService = FeishuRiderGrabService;

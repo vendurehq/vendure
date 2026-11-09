@@ -4,6 +4,7 @@ import { Logger } from '@vendure/core';
 import { CampusDedupeService } from '../campus-dedupe.service';
 import { FeishuCommandService } from './feishu.command.service';
 import { FeishuConfigService } from './feishu.config';
+import { FeishuApp } from './feishu.client';
 import { FeishuRiderGrabService } from './feishu-rider-grab.service';
 import { decryptFeishuPayload, feishuSignature, signatureEquals } from './feishu.crypto';
 
@@ -41,13 +42,26 @@ export class FeishuEventService {
         private riderGrab?: FeishuRiderGrabService,
     ) {}
 
-    async handle(raw: any, headers?: FeishuRequestHeaders): Promise<FeishuEventResult> {
+    /**
+     * @param app 回调所属应用：ops=运维告警应用（/feishu/event），rider=骑手独立应用（/feishu/rider/event）。
+     *            验签、解密与 token 校验只使用该应用自己的凭证，两个应用的加密回调彻底隔离。
+     */
+    async handle(raw: any, headers?: FeishuRequestHeaders, app: FeishuApp = 'ops'): Promise<FeishuEventResult> {
         if (!this.cfg.enabled) return { status: 200, body: {} };
 
-        // H3：配置 Encrypt Key 时飞书会带签名头，必须先验签再解密，避免伪造/重放回调绕过 verifyToken
-        if (!this.verifySignature(raw, headers)) return { status: 403, body: {} };
+        const appCfg = this.appConfig(app);
+        if (!appCfg) {
+            if (app === 'rider') {
+                Logger.warn('骑手飞书回调不可用：未配置 FEISHU_RIDER_APP_ID/SECRET 或 FEISHU_ENABLED 未开启', loggerCtx);
+                return { status: 503, body: { error: 'rider feishu app not configured' } };
+            }
+            return { status: 200, body: {} };
+        }
 
-        const payload = await this.decode(raw);
+        // H3：配置 Encrypt Key 时飞书会带签名头，必须先验签再解密，避免伪造/重放回调绕过 verifyToken
+        if (!this.verifySignature(raw, headers, appCfg.encryptKey)) return { status: 403, body: {} };
+
+        const payload = await this.decode(raw, appCfg.encryptKey);
         if (!payload) return { status: 400, body: { error: 'invalid payload' } };
 
         // 卡片回调的事件体有时把 token 放在 event.token，两处都取
@@ -57,15 +71,20 @@ export class FeishuEventService {
             return { status: 200, body: { challenge: payload.challenge } };
         }
         // fail closed：未配置 verifyToken 时任何人都能伪造回调，直接拒绝
-        const allowed = this.verifyTokens();
+        const allowed = this.verifyTokens(appCfg.verifyToken);
         if (!allowed.length) {
-            Logger.error('未配置 FEISHU_VERIFY_TOKEN，拒绝飞书回调', loggerCtx);
+            Logger.error(
+                app === 'rider'
+                    ? '未配置 FEISHU_RIDER_VERIFY_TOKEN，拒绝骑手飞书回调'
+                    : '未配置 FEISHU_VERIFY_TOKEN，拒绝飞书回调',
+                loggerCtx,
+            );
             return { status: 403, body: {} };
         }
         if (typeof token !== 'string' || !allowed.includes(token)) {
             // 不打印 token 原文，只暴露事件类型与长度便于排查是哪个回调的验证令牌
             Logger.warn(
-                `飞书回调 token 校验失败 type=${payload?.header?.event_type ?? '-'} tokenLen=${
+                `飞书回调 token 校验失败 app=${app} type=${payload?.header?.event_type ?? '-'} tokenLen=${
                     typeof token === 'string' ? token.length : 'none'
                 }`,
                 loggerCtx,
@@ -74,13 +93,13 @@ export class FeishuEventService {
         }
 
         const eventId = payload?.header?.event_id as string | undefined;
-        if (eventId && (await this.isDuplicate(eventId))) {
+        if (eventId && (await this.isDuplicate(`${app}:${eventId}`))) {
             return { status: 200, body: {} };
         }
 
         const eventType = payload?.header?.event_type as string | undefined;
         if (eventType === 'card.action.trigger') {
-            return this.handleCardAction(payload.event ?? {});
+            return this.handleCardAction(payload.event ?? {}, app);
         }
         if (eventType !== 'im.message.receive_v1') {
             return { status: 200, body: {} };
@@ -101,8 +120,9 @@ export class FeishuEventService {
         const openId = event.sender?.sender_id?.open_id as string | undefined;
         if (!chatId || !openId || !text.trim()) return { status: 200, body: {} };
 
-        // 骑手群与商家/平台群彻底隔离：只走抢单回调，不进入指令服务
-        if (this.cfg.chatOf(chatId)?.scope === 'rider') {
+        // 两个应用彻底隔离：ops 回调只服务店铺/平台群，rider 回调只服务骑手群
+        if (!this.acceptChat(app, chatId)) return { status: 200, body: {} };
+        if (app === 'rider') {
             void this.riderGrab
                 ?.handleText({ chatId, openId, text })
                 .catch(e => Logger.error(`飞书骑手群消息处理失败 chat=${chatId}: ${e?.message ?? e}`, loggerCtx));
@@ -122,15 +142,17 @@ export class FeishuEventService {
     }
 
     /** 卡片按钮回调：value 里带着完整单号，直接转指令服务（先 200 再异步执行） */
-    private handleCardAction(event: any): FeishuEventResult {
+    private handleCardAction(event: any, app: FeishuApp): FeishuEventResult {
         const chatId = event.context?.open_chat_id ?? event.open_chat_id;
         const openId = event.operator?.open_id ?? event.open_id;
         const messageId = event.context?.open_message_id ?? event.open_message_id;
         const value = event.action?.value;
         if (!chatId || !openId || !value) return { status: 200, body: {} };
 
-        // 骑手群卡片只走抢单服务；商家群卡片仍走指令服务
-        if (this.cfg.chatOf(chatId)?.scope === 'rider') {
+        if (!this.acceptChat(app, chatId)) return { status: 200, body: {} };
+
+        // 骑手应用只走抢单服务；运维应用只走商家指令服务
+        if (app === 'rider') {
             void this.riderGrab
                 ?.handleCardAction({ chatId, openId, value, messageId })
                 .catch(e => Logger.error(`飞书骑手抢单回调失败 chat=${chatId}: ${e?.message ?? e}`, loggerCtx));
@@ -143,13 +165,42 @@ export class FeishuEventService {
         return { status: 200, body: {} };
     }
 
+    /** 按应用限定可处理的群：ops 不收骑手群事件，rider 只收骑手群事件 */
+    private acceptChat(app: FeishuApp, chatId: string): boolean {
+        const scope = this.cfg.chatOf(chatId)?.scope;
+        if (app === 'rider') {
+            if (scope !== 'rider') {
+                Logger.warn(`骑手回调收到非骑手群事件 chat=${chatId}，已忽略`, loggerCtx);
+                return false;
+            }
+            return true;
+        }
+        if (scope === 'rider') {
+            Logger.warn(
+                `运维回调收到骑手群事件 chat=${chatId}，请改由 /feishu/rider/event 处理，已忽略`,
+                loggerCtx,
+            );
+            return false;
+        }
+        return true;
+    }
+
+    /** 取该应用的验签/校验令牌配置；rider 缺凭证时返回 null（降级关闭） */
+    private appConfig(app: FeishuApp): { encryptKey?: string; verifyToken?: string } | null {
+        const s = this.cfg.settings;
+        if (app === 'rider') {
+            if (!s.riderAppId || !s.riderAppSecret) return null;
+            return { encryptKey: s.riderEncryptKey, verifyToken: s.riderVerifyToken };
+        }
+        return { encryptKey: s.encryptKey, verifyToken: s.verifyToken };
+    }
+
     /**
      * 签名校验（H3）：仅当配置了 FEISHU_ENCRYPT_KEY 时启用（飞书只在该模式下下发签名头）。
      * 该模式下请求体是 { encrypt: base64 }，JSON.stringify 可稳定复现签名原文。
      * 未配置 Encrypt Key 时飞书不下发签名，只能依赖 verifyToken（残余风险：token 泄露即可伪造回调）。
      */
-    private verifySignature(raw: any, headers?: FeishuRequestHeaders): boolean {
-        const encryptKey = this.cfg.settings.encryptKey;
+    private verifySignature(raw: any, headers: FeishuRequestHeaders | undefined, encryptKey?: string): boolean {
         if (!encryptKey) return true;
         const { timestamp, nonce, signature } = headers ?? {};
         if (!timestamp || !nonce || !signature) {
@@ -172,22 +223,21 @@ export class FeishuEventService {
         return true;
     }
 
-    private async decode(raw: any): Promise<any | null> {
+    private async decode(raw: any, encryptKey?: string): Promise<any | null> {
         if (!raw) return null;
         if (raw.encrypt) {
-            const key = this.cfg.settings.encryptKey;
-            if (!key) {
-                Logger.warn('收到加密事件但未配置 FEISHU_ENCRYPT_KEY', loggerCtx);
+            if (!encryptKey) {
+                Logger.warn('收到加密事件但该应用未配置 Encrypt Key', loggerCtx);
                 return null;
             }
-            return decryptFeishuPayload(raw.encrypt, key);
+            return decryptFeishuPayload(raw.encrypt, encryptKey);
         }
         return raw;
     }
 
     /** 事件订阅与卡片回调可能各有一份验证令牌，支持用逗号并列配置 */
-    private verifyTokens(): string[] {
-        return String(this.cfg.settings.verifyToken ?? '')
+    private verifyTokens(raw: string | undefined): string[] {
+        return String(raw ?? '')
             .split(',')
             .map(s => s.trim())
             .filter(Boolean);

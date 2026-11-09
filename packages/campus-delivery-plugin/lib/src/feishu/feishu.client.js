@@ -59,9 +59,24 @@ async function postJson(url, body, timeoutMs = HTTP_TIMEOUT_MS) {
 let FeishuClient = class FeishuClient {
     constructor(cfg) {
         this.cfg = cfg;
+        /** token 按 appId 分槽：两个应用并行运行时互不覆盖 */
+        this.tokens = new Map();
+        this.inflight = new Map();
     }
     get enabled() {
         return this.cfg.enabled;
+    }
+    /** 骑手应用是否可用（凭证齐全 + 飞书启用） */
+    get riderEnabled() {
+        const s = this.cfg.settings;
+        return !!(this.cfg.enabled && s.riderAppId && s.riderAppSecret);
+    }
+    /** 按用途选凭证；骑手应用缺失时返回空对象，调用方据此降级 */
+    appCreds(app = 'ops') {
+        const s = this.cfg.settings;
+        return app === 'rider'
+            ? { appId: s.riderAppId, appSecret: s.riderAppSecret }
+            : { appId: s.appId, appSecret: s.appSecret };
     }
     /** 推送到群自定义机器人（or 单群 webhook）；reasonOut（§119）回填失败原因，供后台展示 */
     async sendWebhook(text, reasonOut) {
@@ -92,66 +107,79 @@ let FeishuClient = class FeishuClient {
             return false;
         }
     }
-    /** 以自建应用身份发到指定群；未配置应用时退回 webhook */
+    /** 以自建应用身份发到指定群；骑手应用缺失时直接失败，ops 应用缺失时退回 webhook */
     async sendToChat(chatId, text, opts) {
-        const { appId, appSecret } = this.cfg.settings;
-        if (!appId || !appSecret)
+        var _a;
+        const app = (_a = opts === null || opts === void 0 ? void 0 : opts.app) !== null && _a !== void 0 ? _a : 'ops';
+        const { appId, appSecret } = this.appCreds(app);
+        if (!appId || !appSecret) {
+            if (app === 'rider') {
+                if (opts === null || opts === void 0 ? void 0 : opts.reasonOut)
+                    opts.reasonOut.reason = '未配置骑手飞书应用';
+                return false;
+            }
             return this.sendWebhook(text, opts === null || opts === void 0 ? void 0 : opts.reasonOut);
+        }
         const content = { text };
         if (opts === null || opts === void 0 ? void 0 : opts.atAll) {
             content.text = `<at user_id="all">所有人</at> ${text}`;
         }
-        return (await this.sendMessage(chatId, 'text', content, opts === null || opts === void 0 ? void 0 : opts.reasonOut)) != null;
+        return (await this.sendMessage(chatId, 'text', content, opts === null || opts === void 0 ? void 0 : opts.reasonOut, app)) != null;
     }
     /** 发交互卡片，返回 message_id（失败 null；调用方自行降级） */
-    async sendCard(chatId, card) {
-        return this.sendMessage(chatId, 'interactive', card);
+    async sendCard(chatId, card, app = 'ops') {
+        return this.sendMessage(chatId, 'interactive', card, undefined, app);
     }
     /** 更新已发送的卡片（局部刷新，不刷屏） */
-    async updateCard(messageId, card) {
-        if (!this.cfg.settings.appId)
+    async updateCard(messageId, card, app = 'ops') {
+        const { appId } = this.appCreds(app);
+        if (!appId)
             return false;
         const json = await this.request('PATCH', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}`, {
             content: JSON.stringify(card),
-        });
+        }, app);
         return this.ok(json);
     }
     /** 线程内回复（reply_in_thread=true 时落进该消息所在话题） */
-    async replyToMessage(messageId, text, inThread = true) {
-        if (!this.cfg.settings.appId)
+    async replyToMessage(messageId, text, inThread = true, app = 'ops') {
+        const { appId } = this.appCreds(app);
+        if (!appId)
             return false;
         const json = await this.request('POST', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}/reply`, {
             msg_type: 'text',
             content: JSON.stringify({ text }),
             reply_in_thread: inThread,
-        });
+        }, app);
         return this.ok(json);
     }
     /** 线程内回卡片（快捷回复面板落进订单话题，不另起话题） */
-    async replyCard(messageId, card, inThread = true) {
-        if (!this.cfg.settings.appId)
+    async replyCard(messageId, card, inThread = true, app = 'ops') {
+        const { appId } = this.appCreds(app);
+        if (!appId)
             return false;
         const json = await this.request('POST', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}/reply`, {
             msg_type: 'interactive',
             content: JSON.stringify(card),
             reply_in_thread: inThread,
-        });
+        }, app);
         return this.ok(json);
     }
     /** 回读单条消息（用于引用回复解析卡片里的单号） */
-    async getMessage(messageId) {
+    async getMessage(messageId, app = 'ops') {
         var _a, _b, _c;
-        if (!this.cfg.settings.appId)
+        const { appId } = this.appCreds(app);
+        if (!appId)
             return null;
-        const json = await this.request('GET', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}`);
+        const json = await this.request('GET', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}`, undefined, app);
         if (!this.ok(json))
             return null;
         return ((_c = (_b = (_a = json === null || json === void 0 ? void 0 : json.data) === null || _a === void 0 ? void 0 : _a.items) === null || _b === void 0 ? void 0 : _b[0]) !== null && _c !== void 0 ? _c : null);
     }
     /** 读取群消息（新→旧），用于日报去重与话题聚合，不落库 */
-    async listMessages(chatId, startSec, endSec, pageToken) {
+    async listMessages(chatId, startSec, endSec, pageToken, app = 'ops') {
         var _a, _b, _c;
-        if (!this.cfg.settings.appId)
+        const { appId } = this.appCreds(app);
+        if (!appId)
             return { items: [] };
         const qs = [
             'container_id_type=chat',
@@ -163,7 +191,7 @@ let FeishuClient = class FeishuClient {
         ];
         if (pageToken)
             qs.push(`page_token=${encodeURIComponent(pageToken)}`);
-        const json = await this.request('GET', `${API_BASE}/im/v1/messages?${qs.join('&')}`);
+        const json = await this.request('GET', `${API_BASE}/im/v1/messages?${qs.join('&')}`, undefined, app);
         if (!this.ok(json))
             return { items: [] };
         return {
@@ -183,24 +211,24 @@ let FeishuClient = class FeishuClient {
         }
         return ok;
     }
-    async sendMessage(chatId, msgType, content, reasonOut) {
+    async sendMessage(chatId, msgType, content, reasonOut, app = 'ops') {
         var _a, _b, _c, _d;
-        const { appId, appSecret } = this.cfg.settings;
+        const { appId, appSecret } = this.appCreds(app);
         if (!appId || !appSecret) {
             if (reasonOut)
-                reasonOut.reason = '未配置飞书应用';
+                reasonOut.reason = app === 'rider' ? '未配置骑手飞书应用' : '未配置飞书应用';
             return null;
         }
         const json = await this.request('POST', `${API_BASE}/im/v1/messages?receive_id_type=chat_id`, {
             receive_id: chatId,
             msg_type: msgType,
             content: JSON.stringify(content),
-        });
+        }, app);
         if (!this.ok(json)) {
             const reason = json
                 ? `code=${(_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : 'n/a'} msg=${(_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : 'n/a'}${(json === null || json === void 0 ? void 0 : json.__httpStatus) ? ` http=${json.__httpStatus}` : ''}`
                 : '请求失败（无法获取 access_token）';
-            core_1.Logger.warn(`飞书消息发送失败：${reason}`, loggerCtx);
+            core_1.Logger.warn(`飞书消息发送失败（${app}）：${reason}`, loggerCtx);
             if (reasonOut)
                 reasonOut.reason = reason;
             return null;
@@ -212,9 +240,9 @@ let FeishuClient = class FeishuClient {
     ok(json) {
         return !!json && !json.__httpStatus && json.code === 0;
     }
-    async request(method, url, body) {
+    async request(method, url, body, app = 'ops') {
         var _a;
-        const token = await this.tenantToken();
+        const token = await this.tenantToken(app);
         if (!token)
             return null;
         const ctrl = new AbortController();
@@ -252,13 +280,13 @@ let FeishuClient = class FeishuClient {
     get riderChatIds() {
         return this.cfg.riderChatIds;
     }
-    /** 只发骑手群；返回成功发送的群数（0 表示未配置或全部失败） */
+    /** 只发骑手群（走骑手独立应用）；返回成功发送的群数（0 表示未配置或全部失败） */
     async broadcastRiderCard(card) {
-        if (!this.enabled)
+        if (!this.riderEnabled)
             return 0;
         let sent = 0;
         for (const chatId of this.riderChatIds) {
-            if (await this.sendCard(chatId, card))
+            if (await this.sendCard(chatId, card, 'rider'))
                 sent += 1;
         }
         return sent;
@@ -296,17 +324,22 @@ let FeishuClient = class FeishuClient {
             opts.reasonOut.reason = '已映射群均发送失败';
         return ok;
     }
-    /** tenant_access_token 缓存（提前 5 分钟过期），单飞防并发重复取 */
-    async tenantToken() {
-        const { appId, appSecret } = this.cfg.settings;
+    /**
+     * tenant_access_token 缓存：按 appId 分槽（运维/骑手两应用互不覆盖），
+     * 提前 5 分钟过期，单飞防并发重复取。
+     */
+    async tenantToken(app = 'ops') {
+        const { appId, appSecret } = this.appCreds(app);
         if (!appId || !appSecret)
             return null;
         const now = Date.now();
-        if (this.token && this.token.expiresAt > now)
-            return this.token.value;
-        if (this.inflight)
-            return this.inflight;
-        this.inflight = (async () => {
+        const cached = this.tokens.get(appId);
+        if (cached && cached.expiresAt > now)
+            return cached.value;
+        const pending = this.inflight.get(appId);
+        if (pending)
+            return pending;
+        const task = (async () => {
             var _a, _b, _c, _d;
             try {
                 const json = await postJson(`${API_BASE}/auth/v3/tenant_access_token/internal`, {
@@ -314,22 +347,23 @@ let FeishuClient = class FeishuClient {
                     app_secret: appSecret,
                 });
                 if (!(json === null || json === void 0 ? void 0 : json.tenant_access_token)) {
-                    core_1.Logger.warn(`获取 tenant_access_token 失败：code=${(_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : 'n/a'} msg=${(_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : 'n/a'}`, loggerCtx);
+                    core_1.Logger.warn(`获取 tenant_access_token 失败（${app}）：code=${(_a = json === null || json === void 0 ? void 0 : json.code) !== null && _a !== void 0 ? _a : 'n/a'} msg=${(_b = json === null || json === void 0 ? void 0 : json.msg) !== null && _b !== void 0 ? _b : 'n/a'}`, loggerCtx);
                     return null;
                 }
                 const ttl = Number((_c = json.expire) !== null && _c !== void 0 ? _c : 7200) * 1000;
-                this.token = { value: json.tenant_access_token, expiresAt: now + ttl - 5 * 60000 };
+                this.tokens.set(appId, { value: json.tenant_access_token, expiresAt: now + ttl - 5 * 60000 });
                 return json.tenant_access_token;
             }
             catch (e) {
-                core_1.Logger.warn(`获取 tenant_access_token 异常：${(_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e}`, loggerCtx);
+                core_1.Logger.warn(`获取 tenant_access_token 异常（${app}）：${(_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e}`, loggerCtx);
                 return null;
             }
             finally {
-                this.inflight = undefined;
+                this.inflight.delete(appId);
             }
         })();
-        return this.inflight;
+        this.inflight.set(appId, task);
+        return task;
     }
 };
 exports.FeishuClient = FeishuClient;

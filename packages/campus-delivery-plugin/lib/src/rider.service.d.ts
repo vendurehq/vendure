@@ -1,14 +1,18 @@
 import { Customer, CustomerService, RequestContext, TransactionalConnection } from '@vendure/core';
 import { RiderOpsService } from './rider-ops.service';
+import { FeishuConfigService } from './feishu/feishu.config';
 import { type RiderCompliancePatch, type RiderComplianceResult } from './rider-compliance';
-/** 飞书 open_id 反查骑手的四态结果：
+/** 飞书 open_id 反查骑手的五态结果：
  * - unbound：没有任何 Customer 绑定该 open_id
- * - conflict：多条绑定（历史脏数据），不猜身份
+ * - legacyBinding：同 open_id 有绑定，但缺少 appId 或来自其他飞书应用（open_id 应用维度不同，视为失效）
+ * - conflict：同应用下多条绑定（历史脏数据），不猜身份
  * - notApproved：已绑定但未过审/已停用
  * - ok：可执行抢单
  */
 export type FeishuRiderResolution = {
     kind: 'unbound';
+} | {
+    kind: 'legacyBinding';
 } | {
     kind: 'conflict';
 } | {
@@ -22,7 +26,11 @@ export declare class RiderService {
     private connection;
     private customerService;
     private riderOps;
-    constructor(connection: TransactionalConnection, customerService: CustomerService, riderOps: RiderOpsService);
+    /** 骑手飞书应用凭证：绑定未显式传 appId 时取环境变量里的骑手应用 appId */
+    private feishuConfig?;
+    constructor(connection: TransactionalConnection, customerService: CustomerService, riderOps: RiderOpsService, 
+    /** 骑手飞书应用凭证：绑定未显式传 appId 时取环境变量里的骑手应用 appId */
+    feishuConfig?: FeishuConfigService | undefined);
     /** 当前登录顾客；未登录或无对应顾客一律 ForbiddenError。 */
     private requireCustomer;
     applyRider(ctx: RequestContext, input: {
@@ -43,11 +51,12 @@ export declare class RiderService {
     /** 回收某骑手名下在途任务回大厅（单条条件写，避免逐单先读后写）。
      *  仅活跃流转态 + 仍指派本人 + 未取消的单被重置；已送达/异常终态不受影响。 */
     private reclaimActiveTasks;
-    /** 飞书 open_id → 骑手 Customer。区分「未绑定」「绑定冲突」「已绑定但未审核通过」「可用」四态，
-     * 便于抢单回执给出可执行的下一步（去绑定 / 找运营 / 等审核），并保留解绑重绑能力。 */
-    resolveFeishuRider(openId: string): Promise<FeishuRiderResolution>;
-    /** 运营绑定/解绑骑手飞书身份：openId 为空即解绑（可反复重绑，不是一次性绑定）。 */
-    setFeishuBinding(ctx: RequestContext, customerId: number, openId?: string | null): Promise<boolean>;
+    /** 飞书 open_id → 骑手 Customer。open_id 是应用维度的，必须与骑手应用的 appId 一起匹配：
+     * 缺 appId（历史 A 方案绑定）或来自其他应用的一律视为失效，提示运营重绑，绝不静默当成有效。 */
+    resolveFeishuRider(openId: string, appId?: string): Promise<FeishuRiderResolution>;
+    /** 运营绑定/解绑骑手飞书身份：openId 为空即解绑（可反复重绑，不是一次性绑定）。
+     * appId 缺省取环境变量 FEISHU_RIDER_APP_ID，确保「应用 + open_id」成对落库。 */
+    setFeishuBinding(ctx: RequestContext, customerId: number, openId?: string | null, appId?: string | null): Promise<boolean>;
     assertApprovedRider(ctx: RequestContext): Promise<Customer>;
     myRiderProfile(ctx: RequestContext): Promise<{
         customerId: import("@vendure/core").ID;

@@ -19,10 +19,19 @@ export interface FeishuSettings {
     enabled: boolean;
     webhook?: string;
     secret?: string;
+    /** 运维应用（告警广播/店铺指令/工单通知） */
     appId?: string;
     appSecret?: string;
     verifyToken?: string;
     encryptKey?: string;
+    /**
+     * 骑手抢单独立应用（B 方案）：店主已否决复用运维告警机器人。
+     * 应用级凭证与 token 均按应用隔离，缺失时只关闭骑手抢单，不影响告警。
+     */
+    riderAppId?: string;
+    riderAppSecret?: string;
+    riderVerifyToken?: string;
+    riderEncryptKey?: string;
     chats: Record<string, FeishuChatConfig>;
     /** 每日汇总时间 HH:mm（UTC+8） */
     digestAt: string;
@@ -34,6 +43,8 @@ export declare class FeishuConfigService {
     readonly settings: FeishuSettings;
     constructor();
     get enabled(): boolean;
+    /** 骑手应用是否具备发送能力（缺任一项即视为未配置） */
+    get riderAppConfigured(): boolean;
     /** 骑手群 chat_id 列表（scope='rider'）；未配置返回空数组，调用方只告警不抛错 */
     get riderChatIds(): string[];
     chatOf(chatId: string): FeishuChatConfig | undefined;

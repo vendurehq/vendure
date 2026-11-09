@@ -26,10 +26,19 @@ export interface FeishuSettings {
     enabled: boolean;
     webhook?: string;
     secret?: string;
+    /** 运维应用（告警广播/店铺指令/工单通知） */
     appId?: string;
     appSecret?: string;
     verifyToken?: string;
     encryptKey?: string;
+    /**
+     * 骑手抢单独立应用（B 方案）：店主已否决复用运维告警机器人。
+     * 应用级凭证与 token 均按应用隔离，缺失时只关闭骑手抢单，不影响告警。
+     */
+    riderAppId?: string;
+    riderAppSecret?: string;
+    riderVerifyToken?: string;
+    riderEncryptKey?: string;
     chats: Record<string, FeishuChatConfig>;
     /** 每日汇总时间 HH:mm（UTC+8） */
     digestAt: string;
@@ -92,6 +101,10 @@ export function readFeishuSettings(env: NodeJS.ProcessEnv = process.env): Feishu
         appSecret: env.FEISHU_APP_SECRET?.trim() || undefined,
         verifyToken: env.FEISHU_VERIFY_TOKEN?.trim() || undefined,
         encryptKey: env.FEISHU_ENCRYPT_KEY?.trim() || undefined,
+        riderAppId: env.FEISHU_RIDER_APP_ID?.trim() || undefined,
+        riderAppSecret: env.FEISHU_RIDER_APP_SECRET?.trim() || undefined,
+        riderVerifyToken: env.FEISHU_RIDER_VERIFY_TOKEN?.trim() || undefined,
+        riderEncryptKey: env.FEISHU_RIDER_ENCRYPT_KEY?.trim() || undefined,
         chats: parseChatMap(env.FEISHU_CHAT_MAP),
         digestAt: /^\d{2}:\d{2}$/.test(env.FEISHU_DIGEST_AT ?? '') ? String(env.FEISHU_DIGEST_AT) : '08:30',
     };
@@ -120,10 +133,28 @@ export class FeishuConfigService {
         if (this.settings.enabled) {
             const mode = this.settings.webhook ? 'webhook' : 'app';
             Logger.info(`飞书已启用（${mode}，群数 ${Object.keys(this.settings.chats).length}）`, loggerCtx);
+            // 骑手抢单为独立应用：缺凭证只降级关闭抢单，绝不影响运维告警与店铺指令
+            if (!this.riderAppConfigured) {
+                Logger.warn(
+                    '未配置骑手飞书应用（FEISHU_RIDER_APP_ID / FEISHU_RIDER_APP_SECRET），骑手抢单已降级关闭；运维告警不受影响',
+                    loggerCtx,
+                );
+            } else {
+                if (!this.settings.riderVerifyToken) {
+                    Logger.warn(
+                        '骑手飞书应用缺少 FEISHU_RIDER_VERIFY_TOKEN，抢单卡片点击回调将不可用',
+                        loggerCtx,
+                    );
+                }
+                if (!this.settings.riderEncryptKey) {
+                    // 未配置 Encrypt Key 时飞书不下发签名头，只能依赖 verifyToken；仅提示不阻断
+                    Logger.info('骑手飞书应用未配置 FEISHU_RIDER_ENCRYPT_KEY，回调仅依赖 verifyToken 校验', loggerCtx);
+                }
+            }
             // 骑手群 chat_id 允许后填：缺失只告警，不影响启动与其他群指令
             if (!this.riderChatIds.length) {
                 Logger.warn(
-                    '未配置骑手群（FEISHU_CHAT_MAP 中 scope:"rider"），大厅新单将不会推送飞书抢单卡片',
+                    '未配置骑手群（FEISHU_CHAT_MAP 中 scope:"rider"），抢单卡片不启用',
                     loggerCtx,
                 );
             }
@@ -132,6 +163,11 @@ export class FeishuConfigService {
 
     get enabled(): boolean {
         return this.settings.enabled;
+    }
+
+    /** 骑手应用是否具备发送能力（缺任一项即视为未配置） */
+    get riderAppConfigured(): boolean {
+        return !!(this.settings.riderAppId && this.settings.riderAppSecret);
     }
 
     /** 骑手群 chat_id 列表（scope='rider'）；未配置返回空数组，调用方只告警不抛错 */

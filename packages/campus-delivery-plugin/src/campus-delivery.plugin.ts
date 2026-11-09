@@ -191,6 +191,7 @@ import { P43RiderFeishuBindingMigration } from './migrations/p43-rider-feishu-bi
 import { P44OrderCancelAuditMigration } from './migrations/p44-order-cancel-audit';
 import { P45CodReceiptLedgerMigration } from './migrations/p45-cod-receipt-ledger';
 import { P47SchemaDiffAlignmentMigration } from './migrations/p47-schema-diff-alignment';
+import { P46RiderFeishuAppMigration } from './migrations/p46-rider-feishu-app';
 import { CampusCodReceipt, CampusCodRefundLink } from './cod-receipt.entities';
 import { CodCollectionService } from './cod-receipt.service';
 import { CodReceiptAdminResolver } from './cod-receipt.resolver';
@@ -272,6 +273,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P44OrderCancelAuditMigration,
         P45CodReceiptLedgerMigration,
         P47SchemaDiffAlignmentMigration,
+        P46RiderFeishuAppMigration,
         CodCollectionService,
         CodRefundPolicyService,
         CampusDedupeService,
@@ -2748,7 +2750,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
                     campusUpdateSlot(id: ID!, input: DeliverySlotUpdateInput!): DeliverySlot!
                     campusSetRiderStatus(customerId: ID!, status: String!): CampusSetRiderStatusResult!
                     """绑定/解绑骑手飞书身份（openId 为空即解绑，可重复重绑）"""
-                    campusSetRiderFeishuBinding(customerId: ID!, openId: String): Boolean!
+                    campusSetRiderFeishuBinding(customerId: ID!, openId: String, appId: String): Boolean!
                     """骑手合规登记（P2-5：健康证/保险/背调），返回最新合规判定"""
                     campusUpdateRiderCompliance(customerId: ID!, input: RiderComplianceInput!): RiderComplianceResult!
                     campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!

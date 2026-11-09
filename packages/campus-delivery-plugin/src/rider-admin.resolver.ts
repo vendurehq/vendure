@@ -35,15 +35,17 @@ export class RiderAdminResolver {
     }
 
     /** 绑定/解绑骑手飞书身份：openId 为空即解绑；可反复重绑（不是一次性绑定）。
-     * 抢单回调按 open_id 反查 Customer，绑定错人时运营先解绑再绑正确账号。 */
+     * open_id 是飞书应用维度标识，必须与 appId 成对绑定；appId 缺省取骑手应用环境变量。
+     * 抢单回调按「appId + open_id」反查 Customer，绑定错人时运营先解绑再绑正确账号。 */
     @Mutation()
     @Allow(CampusPermissions.CampusAuditRider as any)
     async campusSetRiderFeishuBinding(
         @Ctx() ctx: RequestContext,
         @Args('customerId') customerId: ID,
         @Args('openId', { nullable: true }) openId?: string,
+        @Args('appId', { nullable: true }) appId?: string,
     ) {
-        return this.riderService.setFeishuBinding(ctx, Number(customerId), openId);
+        return this.riderService.setFeishuBinding(ctx, Number(customerId), openId, appId);
     }
 
     /** P2-5 骑手合规：登记/更新健康证、保险、背调，返回最新合规判定 */

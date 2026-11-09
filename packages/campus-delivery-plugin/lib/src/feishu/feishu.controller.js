@@ -20,6 +20,8 @@ function header(v) {
 }
 /**
  * 飞书开放平台回调（事件订阅）。
+ * - /feishu/event：运维告警应用（告警广播/店铺指令/工单通知）
+ * - /feishu/rider/event：骑手抢单独立应用（只用骑手应用自己的 verifyToken/encryptKey）
  * nginx 需把 /feishu/ 反代到 Vendure（proxy_pass 末尾不要加 /，否则路径被改写）。
  */
 let FeishuController = class FeishuController {
@@ -34,6 +36,15 @@ let FeishuController = class FeishuController {
         });
         res.status(result.status).json(result.body);
     }
+    /** 骑手独立应用回调：与运维回调完全隔离，两者加密凭证不同 */
+    async riderEvent(body, req, res) {
+        const result = await this.events.handle(body, {
+            timestamp: header(req.headers['x-lark-request-timestamp']),
+            nonce: header(req.headers['x-lark-request-nonce']),
+            signature: header(req.headers['x-lark-signature']),
+        }, 'rider');
+        res.status(result.status).json(result.body);
+    }
 };
 exports.FeishuController = FeishuController;
 __decorate([
@@ -45,6 +56,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], FeishuController.prototype, "event", null);
+__decorate([
+    (0, common_1.Post)('rider/event'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:returntype", Promise)
+], FeishuController.prototype, "riderEvent", null);
 exports.FeishuController = FeishuController = __decorate([
     (0, common_1.Controller)('feishu'),
     __metadata("design:paramtypes", [feishu_event_service_1.FeishuEventService])

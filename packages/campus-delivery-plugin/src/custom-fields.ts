@@ -138,9 +138,10 @@ export const campusCustomFields: CustomFields = {
         { name: 'riderInsuranceExpiry', type: 'datetime', nullable: true },
         { name: 'riderBackgroundCheck', type: 'string', nullable: true }, // none/pending/passed/failed
         { name: 'riderBackgroundCheckAt', type: 'datetime', nullable: true },
-        // 骑手飞书身份绑定（A 方案）：运营首次绑定、可解绑/重绑；空值=未绑定。
-        // 飞书抢单回调按 open_id 反查 Customer，再复用 assertApprovedRider 做权限判定。
+        // 骑手飞书身份绑定（B 方案：骑手独立应用）：运营首次绑定、可解绑/重绑；空值=未绑定。
+        // open_id 是应用维度的，必须与 riderFeishuAppId 一起匹配；缺 appId 的历史绑定视为失效。
         { name: 'riderFeishuOpenId', type: 'string', nullable: true },
+        { name: 'riderFeishuAppId', type: 'string', nullable: true },
         { name: 'riderFeishuBoundAt', type: 'datetime', nullable: true },
         { name: 'avatarUrl', type: 'string', nullable: true }, // 头像 URL（uploadCustomerAsset 产物）
         { name: 'invoiceTitles', type: 'string', nullable: true }, // 发票抬头列表 JSON（≤5 条，spec §3.2）

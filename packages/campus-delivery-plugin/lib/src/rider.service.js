@@ -13,13 +13,17 @@ exports.RiderService = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@vendure/core");
 const rider_ops_service_1 = require("./rider-ops.service");
+const feishu_config_1 = require("./feishu/feishu.config");
 const rider_compliance_1 = require("./rider-compliance");
 const CREDIT_LIMIT = 60;
 let RiderService = class RiderService {
-    constructor(connection, customerService, riderOps) {
+    constructor(connection, customerService, riderOps, 
+    /** 骑手飞书应用凭证：绑定未显式传 appId 时取环境变量里的骑手应用 appId */
+    feishuConfig) {
         this.connection = connection;
         this.customerService = customerService;
         this.riderOps = riderOps;
+        this.feishuConfig = feishuConfig;
     }
     /** 当前登录顾客；未登录或无对应顾客一律 ForbiddenError。 */
     async requireCustomer(ctx) {
@@ -110,12 +114,13 @@ let RiderService = class RiderService {
         const rows = Array.isArray(out) && Array.isArray(out[0]) ? out[0] : out;
         return Array.isArray(rows) ? rows.length : 0;
     }
-    /** 飞书 open_id → 骑手 Customer。区分「未绑定」「绑定冲突」「已绑定但未审核通过」「可用」四态，
-     * 便于抢单回执给出可执行的下一步（去绑定 / 找运营 / 等审核），并保留解绑重绑能力。 */
-    async resolveFeishuRider(openId) {
+    /** 飞书 open_id → 骑手 Customer。open_id 是应用维度的，必须与骑手应用的 appId 一起匹配：
+     * 缺 appId（历史 A 方案绑定）或来自其他应用的一律视为失效，提示运营重绑，绝不静默当成有效。 */
+    async resolveFeishuRider(openId, appId) {
         const id = String(openId !== null && openId !== void 0 ? openId : '').trim();
         if (!id)
             return { kind: 'unbound' };
+        const app = String(appId !== null && appId !== void 0 ? appId : '').trim();
         const rows = await this.connection.rawConnection.getRepository(core_1.Customer)
             .createQueryBuilder('customer')
             .leftJoinAndSelect('customer.user', 'user')
@@ -123,17 +128,23 @@ let RiderService = class RiderService {
             .getMany();
         if (!rows.length)
             return { kind: 'unbound' };
+        const matched = rows.filter(r => { var _a, _b; return String((_b = (_a = r.customFields) === null || _a === void 0 ? void 0 : _a.riderFeishuAppId) !== null && _b !== void 0 ? _b : '').trim() === app; });
+        // 有 open_id 绑定但没有一条带当前骑手应用标识：旧绑定已失效，必须重绑
+        if (!app || !matched.length)
+            return { kind: 'legacyBinding' };
         // 唯一性在绑定时已校验；历史脏数据/并发写入导致的重复绑定按冲突处理，不猜其中一人
-        if (rows.length > 1)
+        if (matched.length > 1)
             return { kind: 'conflict' };
-        const customer = rows[0];
+        const customer = matched[0];
         const cf = customer.customFields;
         if (cf.riderStatus !== 'approved')
             return { kind: 'notApproved', customer };
         return { kind: 'ok', customer };
     }
-    /** 运营绑定/解绑骑手飞书身份：openId 为空即解绑（可反复重绑，不是一次性绑定）。 */
-    async setFeishuBinding(ctx, customerId, openId) {
+    /** 运营绑定/解绑骑手飞书身份：openId 为空即解绑（可反复重绑，不是一次性绑定）。
+     * appId 缺省取环境变量 FEISHU_RIDER_APP_ID，确保「应用 + open_id」成对落库。 */
+    async setFeishuBinding(ctx, customerId, openId, appId) {
+        var _a, _b;
         await this.assertCustomerInChannel(ctx, customerId);
         const repo = this.connection.getRepository(ctx, core_1.Customer);
         const customer = await repo.findOne({ where: { id: customerId } });
@@ -141,9 +152,14 @@ let RiderService = class RiderService {
             throw new core_1.UserInputError('顾客不存在');
         }
         const value = String(openId !== null && openId !== void 0 ? openId : '').trim();
+        const app = String(appId !== null && appId !== void 0 ? appId : '').trim() || String((_b = (_a = this.feishuConfig) === null || _a === void 0 ? void 0 : _a.settings.riderAppId) !== null && _b !== void 0 ? _b : '').trim();
+        if (value && !app) {
+            throw new core_1.UserInputError('骑手飞书应用未配置（FEISHU_RIDER_APP_ID），无法绑定 open_id');
+        }
         if (value) {
             const occupied = await repo.createQueryBuilder('customer')
                 .where('customer.customFields.riderFeishuOpenId = :openId', { openId: value })
+                .andWhere('customer.customFields.riderFeishuAppId = :appId', { appId: app })
                 .andWhere('customer.id <> :id', { id: customerId })
                 .getCount();
             if (occupied) {
@@ -153,6 +169,7 @@ let RiderService = class RiderService {
         await repo.update(customerId, {
             customFields: {
                 riderFeishuOpenId: value || null,
+                riderFeishuAppId: value ? app : null,
                 riderFeishuBoundAt: value ? new Date() : null,
             },
         });
@@ -261,6 +278,7 @@ exports.RiderService = RiderService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [core_1.TransactionalConnection,
         core_1.CustomerService,
-        rider_ops_service_1.RiderOpsService])
+        rider_ops_service_1.RiderOpsService,
+        feishu_config_1.FeishuConfigService])
 ], RiderService);
 //# sourceMappingURL=rider.service.js.map

@@ -190,6 +190,7 @@ const p43_rider_feishu_binding_1 = require("./migrations/p43-rider-feishu-bindin
 const p44_order_cancel_audit_1 = require("./migrations/p44-order-cancel-audit");
 const p45_cod_receipt_ledger_1 = require("./migrations/p45-cod-receipt-ledger");
 const p47_schema_diff_alignment_1 = require("./migrations/p47-schema-diff-alignment");
+const p46_rider_feishu_app_1 = require("./migrations/p46-rider-feishu-app");
 const cod_receipt_entities_1 = require("./cod-receipt.entities");
 const cod_receipt_service_1 = require("./cod-receipt.service");
 const cod_receipt_resolver_1 = require("./cod-receipt.resolver");
@@ -474,6 +475,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p44_order_cancel_audit_1.P44OrderCancelAuditMigration,
             p45_cod_receipt_ledger_1.P45CodReceiptLedgerMigration,
             p47_schema_diff_alignment_1.P47SchemaDiffAlignmentMigration,
+            p46_rider_feishu_app_1.P46RiderFeishuAppMigration,
             cod_receipt_service_1.CodCollectionService,
             cod_refund_policy_service_1.CodRefundPolicyService,
             campus_dedupe_service_1.CampusDedupeService,
@@ -2950,7 +2952,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
                     campusUpdateSlot(id: ID!, input: DeliverySlotUpdateInput!): DeliverySlot!
                     campusSetRiderStatus(customerId: ID!, status: String!): CampusSetRiderStatusResult!
                     """绑定/解绑骑手飞书身份（openId 为空即解绑，可重复重绑）"""
-                    campusSetRiderFeishuBinding(customerId: ID!, openId: String): Boolean!
+                    campusSetRiderFeishuBinding(customerId: ID!, openId: String, appId: String): Boolean!
                     """骑手合规登记（P2-5：健康证/保险/背调），返回最新合规判定"""
                     campusUpdateRiderCompliance(customerId: ID!, input: RiderComplianceInput!): RiderComplianceResult!
                     campusAssignOrder(orderId: ID!, riderCustomerId: ID!): CampusDispatchResult!

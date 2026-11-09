@@ -124,9 +124,11 @@ export class FeishuNotifyService {
         return ok;
     }
 
-    /** 大厅新单 → 骑手群抢单卡片。未配置骑手群/未启用/发送失败只告警，绝不阻塞订单流程 */
+    /** 大厅新单 → 骑手群抢单卡片。未配置骑手应用/骑手群/未启用/发送失败只告警，绝不阻塞订单流程 */
     async pushRiderGrab(orderCode: string): Promise<void> {
         if (!this.client.enabled) return;
+        // 骑手独立应用未配置时降级关闭：启动日志已告警，这里静默跳过，不影响运维告警
+        if (!this.client.riderEnabled) return;
         if (!this.client.riderChatIds.length) {
             Logger.warn(`未配置骑手群（FEISHU_CHAT_MAP scope:"rider"），跳过抢单推送：${orderCode}`, loggerCtx);
             return;

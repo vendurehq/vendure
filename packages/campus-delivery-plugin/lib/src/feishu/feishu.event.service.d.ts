@@ -1,6 +1,7 @@
 import { CampusDedupeService } from '../campus-dedupe.service';
 import { FeishuCommandService } from './feishu.command.service';
 import { FeishuConfigService } from './feishu.config';
+import { FeishuApp } from './feishu.client';
 import { FeishuRiderGrabService } from './feishu-rider-grab.service';
 export interface FeishuEventResult {
     status: number;
@@ -29,9 +30,17 @@ export declare class FeishuEventService {
     dedupe?: CampusDedupeService | undefined, 
     /** 骑手群抢单回调（scope='rider'）；事件层按群定位分流，绝不与商家指令共用通道 */
     riderGrab?: FeishuRiderGrabService | undefined);
-    handle(raw: any, headers?: FeishuRequestHeaders): Promise<FeishuEventResult>;
+    /**
+     * @param app 回调所属应用：ops=运维告警应用（/feishu/event），rider=骑手独立应用（/feishu/rider/event）。
+     *            验签、解密与 token 校验只使用该应用自己的凭证，两个应用的加密回调彻底隔离。
+     */
+    handle(raw: any, headers?: FeishuRequestHeaders, app?: FeishuApp): Promise<FeishuEventResult>;
     /** 卡片按钮回调：value 里带着完整单号，直接转指令服务（先 200 再异步执行） */
     private handleCardAction;
+    /** 按应用限定可处理的群：ops 不收骑手群事件，rider 只收骑手群事件 */
+    private acceptChat;
+    /** 取该应用的验签/校验令牌配置；rider 缺凭证时返回 null（降级关闭） */
+    private appConfig;
     /**
      * 签名校验（H3）：仅当配置了 FEISHU_ENCRYPT_KEY 时启用（飞书只在该模式下下发签名头）。
      * 该模式下请求体是 { encrypt: base64 }，JSON.stringify 可稳定复现签名原文。

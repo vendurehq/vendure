@@ -9,6 +9,14 @@ const API_BASE = 'https://open.feishu.cn/open-apis';
 // Bug 4 修复：生产 PATCH updateCard / listMessages 翻页 8-10s 常见，5s 太严导致频繁超时
 const HTTP_TIMEOUT_MS = 10_000;
 
+/**
+ * 应用用途：
+ * - ops：运维告警应用（群广播、店铺指令、工单通知）
+ * - rider：骑手抢单独立应用（抢单卡片、抢单回执）
+ * 两者的 appId/appSecret 与 tenant_access_token 均互相隔离，调用时显式选择。
+ */
+export type FeishuApp = 'ops' | 'rider';
+
 /** 飞书消息体（只取用到的字段） */
 export interface FeishuMessage {
     message_id: string;
@@ -60,13 +68,28 @@ async function postJson(url: string, body: unknown, timeoutMs = HTTP_TIMEOUT_MS)
  */
 @Injectable()
 export class FeishuClient {
-    private token?: { value: string; expiresAt: number };
-    private inflight?: Promise<string | null>;
+    /** token 按 appId 分槽：两个应用并行运行时互不覆盖 */
+    private tokens = new Map<string, { value: string; expiresAt: number }>();
+    private inflight = new Map<string, Promise<string | null>>();
 
     constructor(private cfg: FeishuConfigService) {}
 
     get enabled(): boolean {
         return this.cfg.enabled;
+    }
+
+    /** 骑手应用是否可用（凭证齐全 + 飞书启用） */
+    get riderEnabled(): boolean {
+        const s = this.cfg.settings;
+        return !!(this.cfg.enabled && s.riderAppId && s.riderAppSecret);
+    }
+
+    /** 按用途选凭证；骑手应用缺失时返回空对象，调用方据此降级 */
+    private appCreds(app: FeishuApp = 'ops'): { appId?: string; appSecret?: string } {
+        const s = this.cfg.settings;
+        return app === 'rider'
+            ? { appId: s.riderAppId, appSecret: s.riderAppSecret }
+            : { appId: s.appId, appSecret: s.appSecret };
     }
 
     /** 推送到群自定义机器人（or 单群 webhook）；reasonOut（§119）回填失败原因，供后台展示 */
@@ -93,57 +116,72 @@ export class FeishuClient {
         }
     }
 
-    /** 以自建应用身份发到指定群；未配置应用时退回 webhook */
-    async sendToChat(chatId: string, text: string, opts?: { atAll?: boolean; reasonOut?: { reason: string } }): Promise<boolean> {
-        const { appId, appSecret } = this.cfg.settings;
-        if (!appId || !appSecret) return this.sendWebhook(text, opts?.reasonOut);
+    /** 以自建应用身份发到指定群；骑手应用缺失时直接失败，ops 应用缺失时退回 webhook */
+    async sendToChat(
+        chatId: string,
+        text: string,
+        opts?: { atAll?: boolean; reasonOut?: { reason: string }; app?: FeishuApp },
+    ): Promise<boolean> {
+        const app = opts?.app ?? 'ops';
+        const { appId, appSecret } = this.appCreds(app);
+        if (!appId || !appSecret) {
+            if (app === 'rider') {
+                if (opts?.reasonOut) opts.reasonOut.reason = '未配置骑手飞书应用';
+                return false;
+            }
+            return this.sendWebhook(text, opts?.reasonOut);
+        }
         const content: any = { text };
         if (opts?.atAll) {
             content.text = `<at user_id="all">所有人</at> ${text}`;
         }
-        return (await this.sendMessage(chatId, 'text', content, opts?.reasonOut)) != null;
+        return (await this.sendMessage(chatId, 'text', content, opts?.reasonOut, app)) != null;
     }
 
     /** 发交互卡片，返回 message_id（失败 null；调用方自行降级） */
-    async sendCard(chatId: string, card: unknown): Promise<string | null> {
-        return this.sendMessage(chatId, 'interactive', card);
+    async sendCard(chatId: string, card: unknown, app: FeishuApp = 'ops'): Promise<string | null> {
+        return this.sendMessage(chatId, 'interactive', card, undefined, app);
     }
 
     /** 更新已发送的卡片（局部刷新，不刷屏） */
-    async updateCard(messageId: string, card: unknown): Promise<boolean> {
-        if (!this.cfg.settings.appId) return false;
+    async updateCard(messageId: string, card: unknown, app: FeishuApp = 'ops'): Promise<boolean> {
+        const { appId } = this.appCreds(app);
+        if (!appId) return false;
         const json = await this.request('PATCH', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}`, {
             content: JSON.stringify(card),
-        });
+        }, app);
         return this.ok(json);
     }
 
     /** 线程内回复（reply_in_thread=true 时落进该消息所在话题） */
-    async replyToMessage(messageId: string, text: string, inThread = true): Promise<boolean> {
-        if (!this.cfg.settings.appId) return false;
+    async replyToMessage(messageId: string, text: string, inThread = true, app: FeishuApp = 'ops'): Promise<boolean> {
+        const { appId } = this.appCreds(app);
+        if (!appId) return false;
         const json = await this.request('POST', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}/reply`, {
             msg_type: 'text',
             content: JSON.stringify({ text }),
             reply_in_thread: inThread,
-        });
+        }, app);
         return this.ok(json);
     }
 
     /** 线程内回卡片（快捷回复面板落进订单话题，不另起话题） */
-    async replyCard(messageId: string, card: unknown, inThread = true): Promise<boolean> {
-        if (!this.cfg.settings.appId) return false;
+    async replyCard(messageId: string, card: unknown, inThread = true, app: FeishuApp = 'ops'): Promise<boolean> {
+        const { appId } = this.appCreds(app);
+        if (!appId) return false;
         const json = await this.request('POST', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}/reply`, {
             msg_type: 'interactive',
             content: JSON.stringify(card),
             reply_in_thread: inThread,
-        });
+        }, app);
         return this.ok(json);
     }
 
     /** 回读单条消息（用于引用回复解析卡片里的单号） */
-    async getMessage(messageId: string): Promise<FeishuMessage | null> {
-        if (!this.cfg.settings.appId) return null;
-        const json = await this.request('GET', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}`);
+    async getMessage(messageId: string, app: FeishuApp = 'ops'): Promise<FeishuMessage | null> {
+        const { appId } = this.appCreds(app);
+        if (!appId) return null;
+        const json = await this.request('GET', `${API_BASE}/im/v1/messages/${encodeURIComponent(messageId)}`, undefined, app);
         if (!this.ok(json)) return null;
         return (json?.data?.items?.[0] ?? null) as FeishuMessage | null;
     }
@@ -154,8 +192,10 @@ export class FeishuClient {
         startSec: number,
         endSec: number,
         pageToken?: string,
+        app: FeishuApp = 'ops',
     ): Promise<{ items: FeishuMessage[]; nextToken?: string }> {
-        if (!this.cfg.settings.appId) return { items: [] };
+        const { appId } = this.appCreds(app);
+        if (!appId) return { items: [] };
         const qs = [
             'container_id_type=chat',
             `container_id=${encodeURIComponent(chatId)}`,
@@ -165,7 +205,7 @@ export class FeishuClient {
             'page_size=50',
         ];
         if (pageToken) qs.push(`page_token=${encodeURIComponent(pageToken)}`);
-        const json = await this.request('GET', `${API_BASE}/im/v1/messages?${qs.join('&')}`);
+        const json = await this.request('GET', `${API_BASE}/im/v1/messages?${qs.join('&')}`, undefined, app);
         if (!this.ok(json)) return { items: [] };
         return {
             items: (json?.data?.items ?? []) as FeishuMessage[],
@@ -189,23 +229,24 @@ export class FeishuClient {
         msgType: string,
         content: unknown,
         reasonOut?: { reason: string },
+        app: FeishuApp = 'ops',
     ): Promise<string | null> {
-        const { appId, appSecret } = this.cfg.settings;
+        const { appId, appSecret } = this.appCreds(app);
         if (!appId || !appSecret) {
-            if (reasonOut) reasonOut.reason = '未配置飞书应用';
+            if (reasonOut) reasonOut.reason = app === 'rider' ? '未配置骑手飞书应用' : '未配置飞书应用';
             return null;
         }
         const json = await this.request('POST', `${API_BASE}/im/v1/messages?receive_id_type=chat_id`, {
             receive_id: chatId,
             msg_type: msgType,
             content: JSON.stringify(content),
-        });
+        }, app);
         if (!this.ok(json)) {
             const reason = json
                 ? `code=${json?.code ?? 'n/a'} msg=${json?.msg ?? 'n/a'}${json?.__httpStatus ? ` http=${json.__httpStatus}` : ''}`
                 : '请求失败（无法获取 access_token）';
             Logger.warn(
-                `飞书消息发送失败：${reason}`,
+                `飞书消息发送失败（${app}）：${reason}`,
                 loggerCtx,
             );
             if (reasonOut) reasonOut.reason = reason;
@@ -220,8 +261,8 @@ export class FeishuClient {
         return !!json && !json.__httpStatus && json.code === 0;
     }
 
-    private async request(method: string, url: string, body?: unknown): Promise<any | null> {
-        const token = await this.tenantToken();
+    private async request(method: string, url: string, body?: unknown, app: FeishuApp = 'ops'): Promise<any | null> {
+        const token = await this.tenantToken(app);
         if (!token) return null;
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), HTTP_TIMEOUT_MS);
@@ -259,12 +300,12 @@ export class FeishuClient {
         return this.cfg.riderChatIds;
     }
 
-    /** 只发骑手群；返回成功发送的群数（0 表示未配置或全部失败） */
+    /** 只发骑手群（走骑手独立应用）；返回成功发送的群数（0 表示未配置或全部失败） */
     async broadcastRiderCard(card: unknown): Promise<number> {
-        if (!this.enabled) return 0;
+        if (!this.riderEnabled) return 0;
         let sent = 0;
         for (const chatId of this.riderChatIds) {
-            if (await this.sendCard(chatId, card)) sent += 1;
+            if (await this.sendCard(chatId, card, 'rider')) sent += 1;
         }
         return sent;
     }
@@ -299,33 +340,42 @@ export class FeishuClient {
         return ok;
     }
 
-    /** tenant_access_token 缓存（提前 5 分钟过期），单飞防并发重复取 */
-    private async tenantToken(): Promise<string | null> {
-        const { appId, appSecret } = this.cfg.settings;
+    /**
+     * tenant_access_token 缓存：按 appId 分槽（运维/骑手两应用互不覆盖），
+     * 提前 5 分钟过期，单飞防并发重复取。
+     */
+    private async tenantToken(app: FeishuApp = 'ops'): Promise<string | null> {
+        const { appId, appSecret } = this.appCreds(app);
         if (!appId || !appSecret) return null;
         const now = Date.now();
-        if (this.token && this.token.expiresAt > now) return this.token.value;
-        if (this.inflight) return this.inflight;
-        this.inflight = (async () => {
+        const cached = this.tokens.get(appId);
+        if (cached && cached.expiresAt > now) return cached.value;
+        const pending = this.inflight.get(appId);
+        if (pending) return pending;
+        const task = (async () => {
             try {
                 const json = await postJson(`${API_BASE}/auth/v3/tenant_access_token/internal`, {
                     app_id: appId,
                     app_secret: appSecret,
                 });
                 if (!json?.tenant_access_token) {
-                    Logger.warn(`获取 tenant_access_token 失败：code=${json?.code ?? 'n/a'} msg=${json?.msg ?? 'n/a'}`, loggerCtx);
+                    Logger.warn(
+                        `获取 tenant_access_token 失败（${app}）：code=${json?.code ?? 'n/a'} msg=${json?.msg ?? 'n/a'}`,
+                        loggerCtx,
+                    );
                     return null;
                 }
                 const ttl = Number(json.expire ?? 7200) * 1000;
-                this.token = { value: json.tenant_access_token, expiresAt: now + ttl - 5 * 60_000 };
+                this.tokens.set(appId, { value: json.tenant_access_token, expiresAt: now + ttl - 5 * 60_000 });
                 return json.tenant_access_token;
             } catch (e: any) {
-                Logger.warn(`获取 tenant_access_token 异常：${e?.message ?? e}`, loggerCtx);
+                Logger.warn(`获取 tenant_access_token 异常（${app}）：${e?.message ?? e}`, loggerCtx);
                 return null;
             } finally {
-                this.inflight = undefined;
+                this.inflight.delete(appId);
             }
         })();
-        return this.inflight;
+        this.inflight.set(appId, task);
+        return task;
     }
 }

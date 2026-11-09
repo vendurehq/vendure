@@ -61,7 +61,7 @@ function parseChatMap(raw) {
     }
 }
 function readFeishuSettings(env = process.env) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
     const enabled = String((_a = env.FEISHU_ENABLED) !== null && _a !== void 0 ? _a : '').toLowerCase() === 'true'
         || String((_b = env.FEISHU_ENABLED) !== null && _b !== void 0 ? _b : '') === '1';
     const settings = {
@@ -72,8 +72,12 @@ function readFeishuSettings(env = process.env) {
         appSecret: ((_f = env.FEISHU_APP_SECRET) === null || _f === void 0 ? void 0 : _f.trim()) || undefined,
         verifyToken: ((_g = env.FEISHU_VERIFY_TOKEN) === null || _g === void 0 ? void 0 : _g.trim()) || undefined,
         encryptKey: ((_h = env.FEISHU_ENCRYPT_KEY) === null || _h === void 0 ? void 0 : _h.trim()) || undefined,
+        riderAppId: ((_j = env.FEISHU_RIDER_APP_ID) === null || _j === void 0 ? void 0 : _j.trim()) || undefined,
+        riderAppSecret: ((_k = env.FEISHU_RIDER_APP_SECRET) === null || _k === void 0 ? void 0 : _k.trim()) || undefined,
+        riderVerifyToken: ((_l = env.FEISHU_RIDER_VERIFY_TOKEN) === null || _l === void 0 ? void 0 : _l.trim()) || undefined,
+        riderEncryptKey: ((_m = env.FEISHU_RIDER_ENCRYPT_KEY) === null || _m === void 0 ? void 0 : _m.trim()) || undefined,
         chats: parseChatMap(env.FEISHU_CHAT_MAP),
-        digestAt: /^\d{2}:\d{2}$/.test((_j = env.FEISHU_DIGEST_AT) !== null && _j !== void 0 ? _j : '') ? String(env.FEISHU_DIGEST_AT) : '08:30',
+        digestAt: /^\d{2}:\d{2}$/.test((_o = env.FEISHU_DIGEST_AT) !== null && _o !== void 0 ? _o : '') ? String(env.FEISHU_DIGEST_AT) : '08:30',
     };
     if (!enabled)
         return settings;
@@ -94,14 +98,31 @@ let FeishuConfigService = class FeishuConfigService {
         if (this.settings.enabled) {
             const mode = this.settings.webhook ? 'webhook' : 'app';
             core_1.Logger.info(`飞书已启用（${mode}，群数 ${Object.keys(this.settings.chats).length}）`, loggerCtx);
+            // 骑手抢单为独立应用：缺凭证只降级关闭抢单，绝不影响运维告警与店铺指令
+            if (!this.riderAppConfigured) {
+                core_1.Logger.warn('未配置骑手飞书应用（FEISHU_RIDER_APP_ID / FEISHU_RIDER_APP_SECRET），骑手抢单已降级关闭；运维告警不受影响', loggerCtx);
+            }
+            else {
+                if (!this.settings.riderVerifyToken) {
+                    core_1.Logger.warn('骑手飞书应用缺少 FEISHU_RIDER_VERIFY_TOKEN，抢单卡片点击回调将不可用', loggerCtx);
+                }
+                if (!this.settings.riderEncryptKey) {
+                    // 未配置 Encrypt Key 时飞书不下发签名头，只能依赖 verifyToken；仅提示不阻断
+                    core_1.Logger.info('骑手飞书应用未配置 FEISHU_RIDER_ENCRYPT_KEY，回调仅依赖 verifyToken 校验', loggerCtx);
+                }
+            }
             // 骑手群 chat_id 允许后填：缺失只告警，不影响启动与其他群指令
             if (!this.riderChatIds.length) {
-                core_1.Logger.warn('未配置骑手群（FEISHU_CHAT_MAP 中 scope:"rider"），大厅新单将不会推送飞书抢单卡片', loggerCtx);
+                core_1.Logger.warn('未配置骑手群（FEISHU_CHAT_MAP 中 scope:"rider"），抢单卡片不启用', loggerCtx);
             }
         }
     }
     get enabled() {
         return this.settings.enabled;
+    }
+    /** 骑手应用是否具备发送能力（缺任一项即视为未配置） */
+    get riderAppConfigured() {
+        return !!(this.settings.riderAppId && this.settings.riderAppSecret);
     }
     /** 骑手群 chat_id 列表（scope='rider'）；未配置返回空数组，调用方只告警不抛错 */
     get riderChatIds() {

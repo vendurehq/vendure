@@ -24,13 +24,13 @@ export declare class FeishuRiderGrabService {
         openId: string;
         text?: string;
     }): Promise<void>;
-    /** 卡片回调：校验群 scope 与动作 → 反查骑手 → 抢单 → 回执 */
+    /** 卡片回调：校验群 scope 与动作 → 反查骑手 → 抢单 → 回执（全部走骑手独立应用） */
     handleCardAction(input: {
         chatId: string;
         openId: string;
         value?: any;
         messageId?: string;
     }): Promise<void>;
-    /** 优先回在卡片话题里，拿不到锚点消息时退回群消息 */
+    /** 优先回在卡片话题里，拿不到锚点消息时退回群消息；统一走骑手独立应用 */
     private reply;
 }
