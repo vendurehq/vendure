@@ -10,7 +10,7 @@ import { summate } from '@vendure/common/lib/shared-utils';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
-import { InternalServerError } from '../../common/error/errors';
+import { RelationNotJoinedError } from '../../common/error/errors';
 import { ChannelAware } from '../../common/types/common-types';
 import { getConfig } from '../../config/config-helpers';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
@@ -329,7 +329,7 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
                 "This can be done with the EntityHydratorService: `await entityHydratorService.hydrate(ctx, order, { relations: ['lines'] })`",
             ];
 
-            throw new InternalServerError(errorMessage.join('\n'));
+            throw new RelationNotJoinedError(errorMessage.join('\n'));
         }
     }
     private throwIfSurchargesNotJoined(propertyName: keyof Order) {
@@ -339,7 +339,7 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
                 "This can be done with the EntityHydratorService: `await entityHydratorService.hydrate(ctx, order, { relations: ['surcharges'] })`",
             ];
 
-            throw new InternalServerError(errorMessage.join('\n'));
+            throw new RelationNotJoinedError(errorMessage.join('\n'));
         }
     }
 }
