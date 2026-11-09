@@ -2,11 +2,11 @@
 // from `.github/workflows/cla_check.yml`. The rules live in `cla.mjs`.
 import {
     COMMENT_MARKER,
+    RECHECK_PHRASE,
     createSignature,
     getRequiredSigners,
     getUnsigned,
     isBackMerge,
-    isRecheckComment,
     isSignComment,
     renderComment,
 } from './cla.mjs';
@@ -16,12 +16,16 @@ const MAX_WRITE_ATTEMPTS = 5;
 /**
  * @param {{ github: any, context: any, core: any, options: {
  *   signaturesRepo: string, signaturesPath: string, signaturesBranch: string,
- *   documentUrl: string, statusContext: string, postComment: boolean } }} args
+ *   documentUrl: string, statusContext: string, postComment: boolean, botLogin: string } }} args
  */
 export async function run({ github, context, core, options }) {
     const { owner, repo } = context.repo;
     const comment = context.eventName === 'issue_comment' ? context.payload.comment : undefined;
-    if (comment && !isRelevantComment(context, comment, core)) {
+    // Every comment that the workflow lets through runs the whole check, not
+    // only the sign phrase. GitHub keeps only the newest queued run, so this
+    // run may have replaced the run for an earlier sign comment.
+    if (comment && !context.payload.issue.pull_request) {
+        core.info('The comment is on an issue, not a pull request.');
         return;
     }
 
@@ -39,14 +43,29 @@ export async function run({ github, context, core, options }) {
         issue_number: pullNumber,
         per_page: 100,
     });
-    const signatures = await recordSignatures(signatureStore(github, options), {
-        signers,
-        comments,
-        core,
-        repoId: context.payload.repository.id,
-        pullNumber,
-        pullRef: `${owner}/${repo}#${pullNumber}`,
-    });
+    let signatures;
+    try {
+        signatures = await recordSignatures(signatureStore(github, options), {
+            signers,
+            comments,
+            core,
+            repoId: context.payload.repository.id,
+            pullNumber,
+            pullRef: `${owner}/${repo}#${pullNumber}`,
+        });
+    } catch (error) {
+        // Without this, the status would keep its previous result.
+        await github.rest.repos.createCommitStatus({
+            owner,
+            repo,
+            sha: pull.head.sha,
+            context: options.statusContext,
+            state: 'error',
+            description: `Could not record a signature. Comment "${RECHECK_PHRASE}" to try again.`,
+            target_url: options.documentUrl,
+        });
+        throw error;
+    }
 
     const unsigned = getUnsigned(signers, signatures);
     const unsignedForHeadCommit = await addUnsignedFromPullsWithSameHead(github, {
@@ -72,20 +91,9 @@ export async function run({ github, context, core, options }) {
             comments,
             unsigned,
             documentUrl: options.documentUrl,
+            botLogin: options.botLogin,
         });
     }
-}
-
-function isRelevantComment(context, comment, core) {
-    if (!context.payload.issue.pull_request) {
-        core.info('The comment is on an issue, not a pull request.');
-        return false;
-    }
-    if (!isSignComment(comment.body) && !isRecheckComment(comment.body)) {
-        core.info('The comment is neither a signature nor a recheck.');
-        return false;
-    }
-    return true;
 }
 
 async function getSignersForPull(github, { owner, repo, pull }) {
@@ -263,8 +271,9 @@ function signatureStore(github, { signaturesRepo, signaturesPath, signaturesBran
  * is only posted when someone still has to sign, so pull requests from
  * people who signed earlier get no comment at all.
  */
-async function upsertComment(github, { owner, repo, pullNumber, comments, unsigned, documentUrl }) {
-    const existing = comments.find(c => c.user?.type === 'Bot' && c.body?.includes(COMMENT_MARKER));
+async function upsertComment(github, { owner, repo, pullNumber, comments, unsigned, documentUrl, botLogin }) {
+    // Only the CI bot's own comment. Another bot could quote the marker.
+    const existing = comments.find(c => c.user?.login === botLogin && c.body?.includes(COMMENT_MARKER));
     const body = renderComment({ unsigned, documentUrl });
 
     if (existing) {

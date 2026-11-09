@@ -16,6 +16,7 @@ const options = {
     documentUrl: 'https://example.com/CLA.md',
     statusContext: 'cla',
     postComment: true,
+    botLogin: 'vendure-ci-automation-bot[bot]',
 };
 
 const carol = { login: 'carol', id: 3, type: 'User' };
@@ -261,16 +262,55 @@ describe('run', () => {
         assert.equal(state.comments.length, 0);
     });
 
-    it('does nothing for other comments', async () => {
-        const { github, state } = fakeGitHub({ prAuthor: alice, commitAuthors: [alice] });
-        await run({
-            github,
-            context: withRepo(commentEvent(userComment(alice, 'LGTM'))),
-            core: logs(),
-            options,
+    it('runs the whole check for any comment the workflow lets through', async () => {
+        const otherComment = userComment(bob, 'Is the CLA needed here?', 556);
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [claude],
+            comments: [userComment(alice, SIGN_PHRASE), otherComment],
         });
+        await run({ github, context: withRepo(commentEvent(otherComment)), core: logs(), options });
+
+        assert.deepEqual(state.writes, ['@alice has signed the CLA in vendurehq/vendure#7']);
+        assert.equal(state.statuses[0].state, 'success');
+    });
+
+    it('does nothing for a comment on an issue', async () => {
+        const { github, state } = fakeGitHub({ prAuthor: alice, commitAuthors: [alice] });
+        const event = commentEvent(userComment(alice, SIGN_PHRASE));
+        delete event.payload.issue.pull_request;
+        await run({ github, context: withRepo(event), core: logs(), options });
 
         assert.equal(state.statuses.length, 0);
+    });
+
+    it('sets an error status when a signature cannot be recorded', async () => {
+        const signComment = userComment(alice, SIGN_PHRASE);
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [alice],
+            comments: [signComment],
+            conflicts: 10,
+        });
+        await assert.rejects(
+            run({ github, context: withRepo(commentEvent(signComment)), core: logs(), options }),
+            /conflict/,
+        );
+
+        assert.equal(state.statuses.length, 1);
+        assert.equal(state.statuses[0].state, 'error');
+        assert.match(state.statuses[0].description, /recheck/);
+    });
+
+    it("leaves another bot's comment alone, even when it quotes the marker", async () => {
+        const otherBot = { login: 'coderabbitai[bot]', id: 123, type: 'Bot' };
+        const quoted = { id: 1, user: otherBot, body: `> ${COMMENT_MARKER}` };
+        const { github, state } = fakeGitHub({ prAuthor: alice, commitAuthors: [alice], comments: [quoted] });
+        await run({ github, context: withRepo(prEvent), core: logs(), options });
+
+        assert.equal(state.comments[0].body, `> ${COMMENT_MARKER}`);
+        assert.equal(state.comments.length, 2);
+        assert.match(state.comments[1].body, /@alice/);
     });
 
     it('checks only the PR author in a back-merge', async () => {

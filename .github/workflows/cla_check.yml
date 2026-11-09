@@ -110,5 +110,6 @@ jobs:
                               documentUrl: 'https://github.com/vendurehq/vendure/blob/master/license/CLA.md',
                               statusContext: ${{ toJSON(inputs.status-context) }},
                               postComment: ${{ inputs.post-comment }},
+                              botLogin: ${{ toJSON(format('{0}[bot]', steps.app-token.outputs.app-slug)) }},
                           },
                       });

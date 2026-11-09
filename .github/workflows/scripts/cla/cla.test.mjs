@@ -5,7 +5,6 @@ import {
     getRequiredSigners,
     getUnsigned,
     isBackMerge,
-    isRecheckComment,
     isSignComment,
     renderComment,
     SIGN_PHRASE,
@@ -122,11 +121,6 @@ describe('comment matching', () => {
     it('rejects a comment that only contains the sign phrase', () => {
         assert.equal(isSignComment(`Sure. ${SIGN_PHRASE}`), false);
         assert.equal(isSignComment(undefined), false);
-    });
-
-    it('accepts recheck', () => {
-        assert.equal(isRecheckComment(' Recheck '), true);
-        assert.equal(isRecheckComment('please recheck'), false);
     });
 });
 

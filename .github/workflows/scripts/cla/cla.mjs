@@ -91,10 +91,6 @@ export function isSignComment(body) {
     return normalize(body) === normalize(SIGN_PHRASE);
 }
 
-export function isRecheckComment(body) {
-    return normalize(body) === RECHECK_PHRASE;
-}
-
 function normalize(text) {
     return (text ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
