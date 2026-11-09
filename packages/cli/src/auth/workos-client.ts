@@ -180,8 +180,7 @@ export async function pollDeviceAuthorization(
  * HTTP `status`.
  *
  * The messages of {@link SessionRefreshUnavailableError} for an answer end in
- * `answered <code> (HTTP <status>).`. `@vendure/cloud` parsed that suffix
- * before these errors carried `code` and `status`, so keep it.
+ * `answered <code> (HTTP <status>).`.
  */
 export async function exchangeRefreshToken(
     client: WorkosClient,

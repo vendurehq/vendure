@@ -175,9 +175,9 @@ const activeRefreshes = new Map<string, Promise<string>>();
  * redundant exchange is what strands a login.
  *
  * @throws NotLoggedInError when this machine has no login.
- * @throws SessionRejectedError when WorkOS refused the refresh token. The stored login is removed.
+ * @throws SessionRejectedError when the authentication service refused the refresh token. The stored login is removed.
  * @throws SessionRefreshUnavailableError on a transient failure. The stored login is kept.
- * @throws ReauthenticationRequiredError when WorkOS needs a new sign-in. The stored login is kept.
+ * @throws ReauthenticationRequiredError when the authentication service needs a new sign-in. The stored login is kept.
  * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
  * @since 3.8.0
  */
@@ -336,7 +336,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
  * organization is recorded with it.
  *
  * @throws NotLoggedInError when this machine has no login.
- * @throws SessionRejectedError when WorkOS refused the refresh token. The stored login is removed.
+ * @throws SessionRejectedError when the authentication service refused the refresh token. The stored login is removed.
  * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
  */
 export function scopeStoredLogin(

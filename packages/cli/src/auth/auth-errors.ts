@@ -119,6 +119,11 @@ export class ReauthenticationRequiredError extends Error {
  * error code, which may come from a proxy rather than the authentication
  * service.
  *
+ * Every other 4xx answer with an error code is final, including
+ * `invalid_client`. A rotated or misconfigured client cannot renew the stored
+ * login, and a new `vendure auth login` stores the current client with the
+ * new login. The stored login is kept, so a wrong guess costs a sign-in.
+ *
  * @since 3.8.2
  */
 export function isRenewalRefused(error: unknown): boolean {
