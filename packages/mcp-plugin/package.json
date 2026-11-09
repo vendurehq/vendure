@@ -1,6 +1,6 @@
 {
     "name": "@vendure/mcp-plugin",
-    "version": "3.8.0",
+    "version": "3.8.1",
     "license": "GPL-3.0-or-later",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -31,13 +31,16 @@
     "dependencies": {
         "@modelcontextprotocol/node": "2.0.0",
         "@modelcontextprotocol/server": "2.0.0",
-        "@vendure/mcp-sdk": "3.8.0",
+        "@vendure/mcp-sdk": "3.8.1",
         "zod": "^4.2.0"
     },
     "devDependencies": {
+        "@lingui/core": "^5.9.3",
+        "@lingui/format-po": "^5.9.3",
+        "@lingui/message-utils": "^5.9.3",
         "@modelcontextprotocol/client": "2.0.0",
         "@types/express": "^5.0.1",
-        "@vendure/common": "3.8.0",
-        "@vendure/core": "3.8.0"
+        "@vendure/common": "3.8.1",
+        "@vendure/core": "3.8.1"
     }
 }

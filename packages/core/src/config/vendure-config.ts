@@ -133,7 +133,7 @@ export interface ApiOptions {
     /**
      * @description
      * Has no effect. This option used to set the `debug` option of Apollo Server, which was
-     * removed in Apollo Server 4.
+     * removed in Apollo Server 4. Stack traces are never included in API error responses.
      *
      * @deprecated Will be removed in a future major version.
      * @default false
@@ -142,7 +142,7 @@ export interface ApiOptions {
     /**
      * @description
      * Has no effect. This option used to set the `debug` option of Apollo Server, which was
-     * removed in Apollo Server 4.
+     * removed in Apollo Server 4. Stack traces are never included in API error responses.
      *
      * @deprecated Will be removed in a future major version.
      * @default false

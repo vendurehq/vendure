@@ -23,7 +23,7 @@ import {
     VerifyCustomerAccountResult as VerifyCustomerAccountAdminResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { IsNull } from 'typeorm';
+import { IsNull, Not } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -309,7 +309,9 @@ export class CustomerService {
 
         if (hasEmailAddress(input)) {
             input.emailAddress = normalizeEmailAddress(input.emailAddress);
-            if (input.emailAddress !== customer.emailAddress) {
+            // A Customer may have been saved with capital letters, so the stored email address is
+            // normalized too. A difference only in case is not a new email address. See #5559
+            if (input.emailAddress !== normalizeEmailAddress(customer.emailAddress)) {
                 const existingCustomerInChannel = await this.connection
                     .getRepository(ctx, Customer)
                     .createQueryBuilder('customer')
@@ -340,6 +342,28 @@ export class CustomerService {
                         return new EmailAddressConflictAdminError();
                     }
 
+                    await this.userService.changeUserAndNativeIdentifier(
+                        ctx,
+                        customer.user.id,
+                        input.emailAddress,
+                    );
+                }
+            } else if (input.emailAddress !== customer.emailAddress) {
+                // Only the case differs. Another Customer may already use the lowercase form, as
+                // external logins before #5559 could create a second Customer for it. In that case
+                // the stored email address is kept, so that no two Customers have the same email
+                // address.
+                const otherCustomerWithEmailAddress = await this.connection
+                    .getRepository(ctx, Customer)
+                    .createQueryBuilder('customer')
+                    .where('customer.emailAddress = :emailAddress', { emailAddress: input.emailAddress })
+                    .andWhere('customer.id != :customerId', { customerId: input.id })
+                    .andWhere('customer.deletedAt is null')
+                    .getOne();
+
+                if (otherCustomerWithEmailAddress) {
+                    input.emailAddress = customer.emailAddress;
+                } else if (customer.user) {
                     await this.userService.changeUserAndNativeIdentifier(
                         ctx,
                         customer.user.id,
@@ -681,6 +705,15 @@ export class CustomerService {
         const customer = await this.findOneByUserId(ctx, user.id);
         if (!customer) {
             return false;
+        }
+        // A guest checkout Customer has no User, so it is not covered by the `getUserByEmailAddress`
+        // check above. Without this, the update would leave two live Customers on one email address.
+        const otherCustomerWithEmailAddress = await this.connection.getRepository(ctx, Customer).findOne({
+            select: { id: true },
+            where: { emailAddress: normalizedEmailAddress, id: Not(customer.id), deletedAt: IsNull() },
+        });
+        if (otherCustomerWithEmailAddress) {
+            return new EmailAddressConflictError();
         }
         const oldEmailAddress = customer.emailAddress;
         await this.historyService.createHistoryEntryForCustomer({

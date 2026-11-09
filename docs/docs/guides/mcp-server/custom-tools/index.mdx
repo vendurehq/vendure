@@ -189,7 +189,7 @@ tool calls go through it:
   A throw refuses those tools and is logged.
 - `canAccess()` receives the tool's `permissions`, or `[Permission.Public]` for a Shop tool that declares none.
 - `prepareAccessControl()` runs on the context passed to the tool handler, so `applyAccessControl()` filters the
-  queries made with that context. A tool or Core service can copy the context, for example to open its own
+  queries made with that context. A tool or Vendure Framework service can copy the context, for example to open its own
   transaction. Data your strategy stores per context object is not found on the copy, so key it on something a copy
   keeps, such as `ctx.session`.
 

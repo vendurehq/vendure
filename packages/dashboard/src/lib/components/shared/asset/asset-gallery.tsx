@@ -633,11 +633,7 @@ export function AssetGallery({
             {viewMode === 'grid' && (
                 <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    <Plural
-                        value={totalItems}
-                        one={`${totalItems} asset found`}
-                        other={`${totalItems} assets found`}
-                    />
+                    <Plural value={totalItems} one="# asset found" other="# assets found" />
                     {selected.length > 0 && (
                         <Trans>, {selected.length} selected</Trans>
                     )}

@@ -113,6 +113,9 @@ async function createGraphQLOptions(
         // driver reads as "serve GraphiQL unless NODE_ENV is production".
         playground: !!options.playground,
         csrfPrevention: configService.apiOptions.csrfPrevention ?? false,
+        // Apollo Server includes stack traces in error responses unless NODE_ENV is "production"
+        // or "test". They expose server file paths, so they are always turned off explicitly.
+        includeStacktraceInErrorResponses: false,
         context: (req: any) => req,
         // This is handled by the Express cors plugin
         cors: false,

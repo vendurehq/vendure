@@ -173,7 +173,11 @@ export class ProductVariant
     @Column(type => CustomProductVariantFields)
     customFields: CustomProductVariantFields;
 
-    @ManyToMany(type => Collection, collection => collection.productVariants)
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(type => Collection, collection => collection.productVariants, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     collections: Collection[];
 
     @ManyToMany(type => Channel, channel => channel.productVariants)

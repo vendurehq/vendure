@@ -1,3 +1,67 @@
+## <small>3.8.1 (2026-10-23)</small>
+
+
+#### Fixes
+
+* **asset-server-plugin** apply Cache-Control to newly generated images (#5573) ([6975b5d](https://github.com/vendurehq/vendure/commit/6975b5d)), closes [#5573](https://github.com/vendurehq/vendure/issues/5573)
+* **core,job-queue-plugin** find BullMQ jobs with custom ids in the A… (#5577) ([344ae77](https://github.com/vendurehq/vendure/commit/344ae77)), closes [#5577](https://github.com/vendurehq/vendure/issues/5577)
+* **core** accept relation custom field input keys in CustomFieldsValidationSubscriber (#5563) ([4d1f1bf](https://github.com/vendurehq/vendure/commit/4d1f1bf)), closes [#5563](https://github.com/vendurehq/vendure/issues/5563)
+* **core** assign variant options and option groups in assignProductVariantsToChannel (#5557) ([a29d8ff](https://github.com/vendurehq/vendure/commit/a29d8ff)), closes [#5557](https://github.com/vendurehq/vendure/issues/5557)
+* **core** declare inverse junction FK rules explicitly on many-to-many relations (#5597) ([c4d1325](https://github.com/vendurehq/vendure/commit/c4d1325)), closes [#5597](https://github.com/vendurehq/vendure/issues/5597)
+* **core** delete collection variant links inside the request transaction (#5554) ([a950ed9](https://github.com/vendurehq/vendure/commit/a950ed9)), closes [#5554](https://github.com/vendurehq/vendure/issues/5554)
+* **core** don't load a facet's existing values when creating a facet value (#5506) ([bc0d31d](https://github.com/vendurehq/vendure/commit/bc0d31d)), closes [#5506](https://github.com/vendurehq/vendure/issues/5506)
+* **core** ignore deleted product options when validating variant option ids (#5613) ([56df091](https://github.com/vendurehq/vendure/commit/56df091)), closes [#5613](https://github.com/vendurehq/vendure/issues/5613)
+* **core** keep the assets of other channels when updating the assets… (#5639) ([3fdf299](https://github.com/vendurehq/vendure/commit/3fdf299)), closes [#5639](https://github.com/vendurehq/vendure/issues/5639)
+* **core** keep the startup banner from failing the server or worker start ([ad11e04](https://github.com/vendurehq/vendure/commit/ad11e04))
+* **core** look up channels by token instead of caching every channel (#5248) ([c1034b1](https://github.com/vendurehq/vendure/commit/c1034b1)), closes [#5248](https://github.com/vendurehq/vendure/issues/5248)
+* **core** normalize the email address of customers created by extern… (#5583) ([b3612cf](https://github.com/vendurehq/vendure/commit/b3612cf)), closes [#5583](https://github.com/vendurehq/vendure/issues/5583)
+* **core** reload surcharges before recalculating order totals (#5370) ([9f87b90](https://github.com/vendurehq/vendure/commit/9f87b90)), closes [#5370](https://github.com/vendurehq/vendure/issues/5370)
+* **core** resolve the root collection in the default channel (#5587) ([5e1438d](https://github.com/vendurehq/vendure/commit/5e1438d)), closes [#5587](https://github.com/vendurehq/vendure/issues/5587)
+* **core** skip session header writes after response headers are sent (#5520) ([47f4f15](https://github.com/vendurehq/vendure/commit/47f4f15)), closes [#5520](https://github.com/vendurehq/vendure/issues/5520)
+* **core** skip soft-deleted options when assigning a product to a channel (#5493) ([ede0ba4](https://github.com/vendurehq/vendure/commit/ede0ba4)), closes [#5493](https://github.com/vendurehq/vendure/issues/5493)
+* **core** type the injector and ctx args of validate on list custom … (#5578) ([bc5c00b](https://github.com/vendurehq/vendure/commit/bc5c00b)), closes [#5578](https://github.com/vendurehq/vendure/issues/5578)
+* **create** allowlist native dependency install scripts for npm 12 (#5566) ([530fa0a](https://github.com/vendurehq/vendure/commit/530fa0a)), closes [#5566](https://github.com/vendurehq/vendure/issues/5566)
+* **create** enable email devMode only in development (#5498) ([2968db3](https://github.com/vendurehq/vendure/commit/2968db3)), closes [#5498](https://github.com/vendurehq/vendure/issues/5498)
+* **create** use Node 24 in the scaffolded Dockerfile (#5637) ([2f974ef](https://github.com/vendurehq/vendure/commit/2f974ef)), closes [#5637](https://github.com/vendurehq/vendure/issues/5637)
+* **dashboard** check all required Platform promotion fields ([469dc5b](https://github.com/vendurehq/vendure/commit/469dc5b))
+* **dashboard** keep stored user settings when signing in from a signed-out page (#5644) ([c8a818e](https://github.com/vendurehq/vendure/commit/c8a818e)), closes [#5644](https://github.com/vendurehq/vendure/issues/5644)
+* **dashboard** prevent duplicate module instances in experimental bundle mode (#5643) ([54a7951](https://github.com/vendurehq/vendure/commit/54a7951)), closes [#5643](https://github.com/vendurehq/vendure/issues/5643)
+* **dashboard** resolve relative build outDir against the user's vite root (#4053) (#5410) ([170c261](https://github.com/vendurehq/vendure/commit/170c261)), closes [#4053](https://github.com/vendurehq/vendure/issues/4053) [#5410](https://github.com/vendurehq/vendure/issues/5410)
+* **dashboard** select list query fields from the table's live column visibility (#5645) ([6d3127b](https://github.com/vendurehq/vendure/commit/6d3127b)), closes [#5645](https://github.com/vendurehq/vendure/issues/5645)
+* **dashboard** show an error instead of an endless loading screen fo… (#5620) ([0eca2d4](https://github.com/vendurehq/vendure/commit/0eca2d4)), closes [#5620](https://github.com/vendurehq/vendure/issues/5620)
+* **dashboard** show the permitted navigation after switching user without a reload (#5624) ([1dcaf0e](https://github.com/vendurehq/vendure/commit/1dcaf0e)), closes [#5624](https://github.com/vendurehq/vendure/issues/5624)
+* **dashboard** type the Platform promotion module and support server rendering ([a1edbb9](https://github.com/vendurehq/vendure/commit/a1edbb9))
+* **dashboard** use ICU plurals for counted messages (#5483) ([2c974e4](https://github.com/vendurehq/vendure/commit/2c974e4)), closes [#5483](https://github.com/vendurehq/vendure/issues/5483)
+* **email-plugin** write raw file transport output from the returned buffer (#5574) ([0ca0850](https://github.com/vendurehq/vendure/commit/0ca0850)), closes [#5574](https://github.com/vendurehq/vendure/issues/5574)
+* **job-queue-plugin** close the redis connection of the job buffer storage strategy on destroy (#5610) ([362afe6](https://github.com/vendurehq/vendure/commit/362afe6)), closes [#5610](https://github.com/vendurehq/vendure/issues/5610)
+* **job-queue-plugin** close the redis connections the bullmq strategy opens on destroy (#5526) ([c219b68](https://github.com/vendurehq/vendure/commit/c219b68)), closes [#5526](https://github.com/vendurehq/vendure/issues/5526)
+* **job-queue-plugin** scope bullmq job cancellation to the queue prefix (#5524) ([9242b47](https://github.com/vendurehq/vendure/commit/9242b47)), closes [#5524](https://github.com/vendurehq/vendure/issues/5524)
+* **job-queue-plugin** use a Redis or Cluster instance passed as connection (#5612) ([c1e8c79](https://github.com/vendurehq/vendure/commit/c1e8c79)), closes [#5612](https://github.com/vendurehq/vendure/issues/5612)
+
+#### Security
+
+This release fixes vulnerabilities which were responsibly disclosed to us via GitHub
+security advisories. Full details of each are in the linked advisory.
+
+* **core** Return a redacted copy of job data in the Admin API, so `Job.data`, `Job.result` and `Job.error` no longer contain the verification, password-reset and email-change tokens or other credentials stored in a job. The telemetry plugin records only the key names of job data ([GHSA-hxvp-ff3g-qcj7](https://github.com/vendurehq/vendure/security/advisories/GHSA-hxvp-ff3g-qcj7))
+* **core** Never include stack traces in GraphQL API error responses, whatever `NODE_ENV` is set to ([GHSA-qmrg-wpxj-c482](https://github.com/vendurehq/vendure/security/advisories/GHSA-qmrg-wpxj-c482))
+* **graphiql-plugin** Reject asset paths which resolve outside the assets directory, and return the same 404 for every file outside it ([GHSA-fw8w-3xpv-rg9p](https://github.com/vendurehq/vendure/security/advisories/GHSA-fw8w-3xpv-rg9p))
+
+##### Behaviour changes from the security fixes
+
+* The Admin API `Job.data`, `Job.result` and `Job.error` fields show `[redacted]` in place of email template variables and credential values. Email attachments show only `filename` and `contentType`.
+* The telemetry `job.data` span attribute holds only the key names of the job data.
+* GraphQL error responses no longer include stack traces outside production either. The `adminApiDebug` and `shopApiDebug` options were already deprecated no-ops in 3.8.0.
+
+#### Features
+
+* **cli** add a Vendure Platform trial entry to vendure add and @vendure/create (#5608) ([289afb3](https://github.com/vendurehq/vendure/commit/289afb3)), closes [#5608](https://github.com/vendurehq/vendure/issues/5608)
+* **cli** attribute Core telemetry to the Console Project on console link (#5581) ([8a009a0](https://github.com/vendurehq/vendure/commit/8a009a0)), closes [#5581](https://github.com/vendurehq/vendure/issues/5581)
+* **core** read the banner capabilities from the Platform catalog snapshot ([113258c](https://github.com/vendurehq/vendure/commit/113258c))
+* **core** show a Vendure Platform banner after server and worker startup ([55c5347](https://github.com/vendurehq/vendure/commit/55c5347))
+* **create** print one pricing hint after install (#5580) ([c52c315](https://github.com/vendurehq/vendure/commit/c52c315)), closes [#5580](https://github.com/vendurehq/vendure/issues/5580)
+* **dashboard** rename the pricing menu entry to Plans (#5582) ([f53a84d](https://github.com/vendurehq/vendure/commit/f53a84d)), closes [#5582](https://github.com/vendurehq/vendure/issues/5582)
+
 ## 3.8.0 (2026-10-12)
 
 

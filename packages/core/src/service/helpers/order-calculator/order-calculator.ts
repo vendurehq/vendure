@@ -222,11 +222,14 @@ export class OrderCalculator {
         order: Order,
         promotions: Promotion[],
     ): Promise<void> {
+        // Clear every line before testing any promotion. Otherwise the discounts from the previous
+        // calculation still reduce the subTotal which conditions such as minimum_order_amount test.
         for (const line of order.lines) {
-            // Must be re-calculated for each line, since the previous lines may have triggered promotions
-            // which affected the order price.
             line.clearAdjustments();
+        }
+        this.calculateOrderTotals(order);
 
+        for (const line of order.lines) {
             for (const promotion of promotions) {
                 // We need to test the promotion *again*, even though we've tested them for the line.
                 // This is because the previous Promotions may have adjusted the Order in such a way

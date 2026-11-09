@@ -558,9 +558,13 @@ export class UserService {
             (m): m is NativeAuthenticationMethod => m instanceof NativeAuthenticationMethod,
         );
         if (nativeAuthMethod) {
+            // A difference only in case is not a new identifier, so it does not cancel a pending
+            // change of the email address. See #5559
+            if (normalizeEmailAddress(nativeAuthMethod.identifier) !== normalizeEmailAddress(newIdentifier)) {
+                nativeAuthMethod.identifierChangeToken = null;
+                nativeAuthMethod.pendingIdentifier = null;
+            }
             nativeAuthMethod.identifier = newIdentifier;
-            nativeAuthMethod.identifierChangeToken = null;
-            nativeAuthMethod.pendingIdentifier = null;
             await this.connection
                 .getRepository(ctx, NativeAuthenticationMethod)
                 .save(nativeAuthMethod, { reload: false });

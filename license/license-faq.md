@@ -27,7 +27,7 @@ If you are unable or unwilling to contribute a patch under the GPL version 3 and
 
 ## I want to release my work under a different license than GPLv3, is that possible?
 Yes. There is a special exception described in the file `plugin-exception.txt` that allows you to distribute Vendure plugins under a different license.
-If you modify the Vendure core code, you must still release your changes under the GPLv3.
+If you modify the Vendure Framework code, you must still release your changes under the GPLv3.
 
 ## The GPL requires that I distribute the "source code" of my files. What does that mean for a web application?
 The "source code" of a file means the format that is intended for people to edit.
@@ -40,7 +40,7 @@ No. There is a special exception described in the file `plugin-exception.txt` th
 distribute Vendure plugins under a different license.
 
 ## Is it permitted for me to sell Vendure or a Vendure plugin?
-Yes. However, any modifications to Vendure Core must be made available under the terms of the GPL version 3.
+Yes. However, any modifications to the Vendure Framework must be made available under the terms of the GPL version 3.
 
 ## Do I have to give the code for my web site to anyone who visits it?
 

@@ -150,19 +150,9 @@ export class NodemailerEmailSender implements EmailSender {
             streamTransport: true,
             buffer: true,
         });
+        // With `buffer: true`, nodemailer returns the raw message as a Buffer, not a stream
         const result = await this.sendMail(email, transporter);
-        await this.writeStreamToFile(pathWithoutExt + '.txt', result);
-    }
-
-    private async writeStreamToFile(filePath: string, info: StreamTransportInfo): Promise<void> {
-        const writeStream = fs.createWriteStream(filePath);
-        return new Promise<void>((resolve, reject) => {
-            writeStream.on('open', () => {
-                info.message.pipe(writeStream);
-                writeStream.on('close', resolve);
-                writeStream.on('error', reject);
-            });
-        });
+        await fs.writeFile(pathWithoutExt + '.txt', result.message);
     }
 
     /**

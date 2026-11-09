@@ -6,9 +6,8 @@ import { GraphQLFormattedError } from 'graphql';
  * Hides graphql-js suggestions when invalid field names are given.
  * Based on ideas discussed in https://github.com/apollographql/apollo-server/issues/3919
  *
- * The suggestion is replaced with a bare "Invalid request" error rather than just having its
- * message rewritten, because the whole error is a disclosure risk: `extensions` carries a
- * stack trace whenever the server is not running with `NODE_ENV=production`.
+ * The whole error is replaced with a bare "Invalid request" error, so that none of its other
+ * fields (`locations`, `extensions`) reach the client either.
  */
 export class HideValidationErrorsPlugin implements ApolloServerPlugin {
     async requestDidStart(): Promise<GraphQLRequestListener<any>> {

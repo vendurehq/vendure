@@ -49,7 +49,7 @@ Scaffold a project with the server, worker, admin dashboard and GraphQL APIs rea
 npx @vendure/create my-shop
 ```
 
-Requires Node.js 20.19+ or 22.12+ and a SQL database (PostgreSQL, MySQL, MariaDB or SQLite). The [getting started guide](https://docs.vendure.io/guides/getting-started/installation/) covers configuration, seed data and your first plugin. Ask questions on [our Discord](https://vendure.io/discord).
+Requires Node.js 22.12+ (20.19+ still runs, but Node.js 20 is end-of-life) and a SQL database (PostgreSQL, MySQL, MariaDB or SQLite). The [getting started guide](https://docs.vendure.io/guides/getting-started/installation/) covers configuration, seed data and your first plugin. Ask questions on [our Discord](https://vendure.io/discord).
 
 ### Self-hosting
 

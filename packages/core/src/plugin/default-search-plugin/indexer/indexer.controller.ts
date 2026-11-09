@@ -88,7 +88,7 @@ export class IndexerController {
         return asyncObservable(async observer => {
             const timeStart = Date.now();
             const channel = ctx.channel ?? (await this.loadChannel(ctx, ctx.channelId));
-            const { count } = await this.getSearchIndexQueryBuilder(ctx, { channels: [channel] });
+            const { count } = await this.getSearchIndexQueryBuilder(ctx, { channels: [channel], take: 1 });
             Logger.verbose(`Reindexing ${count} variants for channel ${ctx.channel.code}`, workerLoggerCtx);
             const batches = Math.ceil(count / BATCH_SIZE);
 
@@ -143,6 +143,7 @@ export class IndexerController {
                     const { variants: batch } = await this.getSearchIndexQueryBuilder(ctx, {
                         channels: await this.getAllChannels(ctx),
                         productVariantIds: batchIds,
+                        take: batchIds.length,
                     });
 
                     await this.saveVariants(ctx, batch);
@@ -297,11 +298,15 @@ export class IndexerController {
         variantIds: ID[],
         channelId: ID,
     ): Promise<boolean> {
+        if (!variantIds.length) {
+            return true;
+        }
         const channel = await this.loadChannel(ctx, channelId);
         ctx.setChannel(channel);
         const { variants } = await this.getSearchIndexQueryBuilder(ctx, {
             channels: [channel],
             productVariantIds: variantIds,
+            take: variantIds.length,
         });
 
         if (variants) {
@@ -355,7 +360,7 @@ export class IndexerController {
             productId = undefined,
             productVariantIds = undefined,
             channels = [],
-            take = 50,
+            take,
             skip = 0,
         } = options ?? {};
         const where: FindOptionsWhere<ProductVariant> = {

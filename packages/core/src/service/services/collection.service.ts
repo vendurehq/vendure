@@ -1246,13 +1246,19 @@ export class CollectionService implements OnModuleInit {
             return cachedRoot;
         }
 
+        // A single root Collection is shared by all Channels and belongs to the default Channel,
+        // so it must not be looked up (or created) in the Channel of the current request.
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
         const existingRoot = await this.connection
             .getRepository(ctx, Collection)
             .createQueryBuilder('collection')
             .leftJoin('collection.channels', 'channel')
             .leftJoinAndSelect('collection.translations', 'translation')
             .where('collection.isRoot = :isRoot', { isRoot: true })
-            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
+            .andWhere('channel.id = :channelId', { channelId: defaultChannel.id })
+            // Stray roots created before #5584 may also be assigned to the default Channel.
+            // The original root is the oldest, and without an order the database may return either.
+            .orderBy('collection.id', 'ASC')
             .getOne();
 
         if (existingRoot) {
@@ -1277,7 +1283,7 @@ export class CollectionService implements OnModuleInit {
                 isRoot: true,
                 position: 0,
                 translations: [rootTranslation],
-                channels: [ctx.channel],
+                channels: [defaultChannel],
                 filters: [],
             }),
         );

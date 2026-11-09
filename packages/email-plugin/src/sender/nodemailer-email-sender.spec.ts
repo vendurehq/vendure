@@ -1,3 +1,6 @@
+import fs from 'fs-extra';
+import os from 'os';
+import path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EmailDetails, SESTransportOptions, SMTPTransportOptions } from '../types';
@@ -107,5 +110,34 @@ describe('NodemailerEmailSender', () => {
         await sender.send(email, options);
 
         expect(sendMail.mock.calls[1][1]).toBe(sendMail.mock.calls[0][1]);
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5571
+    it('writes the raw message to a .txt file with the file transport', async () => {
+        const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'vendure-email-raw-'));
+        try {
+            await new NodemailerEmailSender().send(email, { type: 'file', outputPath, raw: true });
+
+            const files = await fs.readdir(outputPath);
+            expect(files).toHaveLength(1);
+            expect(files[0]).toMatch(/\.txt$/);
+            const content = await fs.readFile(path.join(outputPath, files[0]), 'utf-8');
+            expect(content).toContain('Subject: Hello');
+            expect(content).toContain('To: customer@example.com');
+        } finally {
+            await fs.remove(outputPath);
+        }
+    });
+
+    it('rejects when the raw message cannot be written', async () => {
+        const root = await fs.mkdtemp(path.join(os.tmpdir(), 'vendure-email-raw-'));
+        const outputPath = path.join(root, 'missing');
+        try {
+            await expect(
+                new NodemailerEmailSender().send(email, { type: 'file', outputPath, raw: true }),
+            ).rejects.toThrow(/ENOENT/);
+        } finally {
+            await fs.remove(root);
+        }
     });
 });

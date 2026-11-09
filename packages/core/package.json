@@ -1,6 +1,6 @@
 {
     "name": "@vendure/core",
-    "version": "3.8.0",
+    "version": "3.8.1",
     "description": "A modern, headless ecommerce framework",
     "repository": {
         "type": "git",
@@ -25,7 +25,7 @@
         "build": "rimraf dist && tsc -p ./build/tsconfig.build.json && tsc -p ./build/tsconfig.cli.json && ts-node build/copy-static.ts build",
         "watch": "concurrently npm:tsc:watch npm:copy:watch",
         "lint": "eslint --fix .",
-        "test": "vitest --config vitest.config.mts --run",
+        "test": "vitest --config vitest.config.mts --run --typecheck",
         "e2e": "cross-env PACKAGE=core vitest --config ../../e2e-common/vitest.config.mts --run",
         "e2e:watch": "cross-env PACKAGE=core vitest --config ../../e2e-common/vitest.config.mts",
         "bench": "cross-env PACKAGE=core vitest --config ../../e2e-common/vitest.config.bench.ts --run",
@@ -54,7 +54,7 @@
         "@nestjs/platform-express": "^12.0.1",
         "@nestjs/typeorm": "^12.0.1",
         "@types/express": "^5.0.1",
-        "@vendure/common": "3.8.0",
+        "@vendure/common": "3.8.1",
         "bcrypt": "^6.0.0",
         "cookie-session": "^2.1.0",
         "cron-time-generator": "^2.0.3",
