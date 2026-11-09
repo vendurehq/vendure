@@ -19,7 +19,7 @@ import {
     type ErrorResultGuard,
 } from '@vendure/testing';
 import path from 'node:path';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -255,7 +255,9 @@ describe('Refund destinations', () => {
     const refundEvents: RefundEvent[] = [];
     // RefundEvents seen by a blocking handler, which runs inside the transaction.
     const blockingRefundEvents: RefundEvent[] = [];
-    const refundEventTotals = (events: RefundEvent[]) => events.map(e => e.refund.total);
+    // ofType() emits asynchronously, so the events are matched by the refund reason of each test.
+    const refundEventTotals = (events: RefundEvent[], reason: string) =>
+        events.filter(e => e.refund.reason === reason).map(e => e.refund.total);
 
     const refundGuard: ErrorResultGuard<{ id: string; total: number }> = createErrorResultGuard(
         input => input.total != null,
@@ -351,11 +353,6 @@ describe('Refund destinations', () => {
 
     afterAll(async () => {
         await server.destroy();
-    });
-
-    beforeEach(() => {
-        refundEvents.length = 0;
-        blockingRefundEvents.length = 0;
     });
 
     describe('refundDestinations query', () => {
@@ -532,7 +529,9 @@ describe('Refund destinations', () => {
             expect(storeCreditRefund.state).toBe('Settled');
 
             // OSS-939: one RefundEvent per Refund, not only for the returned one.
-            await vi.waitFor(() => expect(refundEventTotals(refundEvents)).toEqual([300, 700]));
+            await vi.waitFor(() =>
+                expect(refundEventTotals(refundEvents, 'split refund')).toEqual([300, 700]),
+            );
         });
 
         it('attaches the refund lines only to the first Refund', async () => {
@@ -624,7 +623,9 @@ describe('Refund destinations', () => {
             // The first target's Refund was committed, since its funds have already been moved.
             expect(await countRefunds()).toBe(refundCountBefore + 1);
             // OSS-939: the kept Refund still gets its RefundEvent.
-            await vi.waitFor(() => expect(refundEventTotals(refundEvents)).toEqual([100]));
+            await vi.waitFor(() =>
+                expect(refundEventTotals(refundEvents, 'fails on second target')).toEqual([100]),
+            );
         });
 
         // OSS-939
@@ -645,7 +646,11 @@ describe('Refund destinations', () => {
             refundGuard.assertErrorResult(refundOrder);
             expect(refundOrder.errorCode).toBe(ErrorCode.REFUND_INCOMPLETE_ERROR);
             expect(await countRefunds()).toBe(refundCountBefore + 2);
-            await vi.waitFor(() => expect(refundEventTotals(refundEvents)).toEqual([50, 60]));
+            await vi.waitFor(() =>
+                expect(refundEventTotals(refundEvents, 'transition fails on second target')).toEqual([
+                    50, 60,
+                ]),
+            );
         });
 
         it('creates no Refund when the first target fails', async () => {
@@ -700,7 +705,7 @@ describe('Refund destinations', () => {
                 'Payment provider unavailable',
             )();
 
-            expect(blockingRefundEvents).toEqual([]);
+            expect(refundEventTotals(blockingRefundEvents, 'spill-over fails')).toEqual([]);
         });
     });
 

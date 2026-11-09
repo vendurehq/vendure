@@ -1036,7 +1036,6 @@ describe('Order modification', () => {
                     quantity: 2,
                 },
             ]);
-            refundEvents.length = 0;
             const { modifyOrder } = await adminClient.query(modifyOrderForTestDocument, {
                 input: {
                     dryRun: false,
@@ -1049,7 +1048,11 @@ describe('Order modification', () => {
 
             const priceDelta = -order.lines[0].unitPriceWithTax;
             // OSS-939: modifyOrder publishes a RefundEvent for the Refund it creates.
-            await vi.waitFor(() => expect(refundEvents.map(e => e.refund.total)).toEqual([-priceDelta]));
+            await vi.waitFor(() =>
+                expect(
+                    refundEvents.filter(e => e.order.code === order.code).map(e => e.refund.total),
+                ).toEqual([-priceDelta]),
+            );
             const expectedTotal = order.totalWithTax + priceDelta;
             expect(modifyOrder.totalWithTax).toBe(expectedTotal);
             expect(modifyOrder.lines[0].quantity).toBe(1);
