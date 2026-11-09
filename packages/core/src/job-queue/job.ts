@@ -1,6 +1,7 @@
 import { JobState } from '@vendure/common/lib/generated-types';
 import { isClassInstance, isObject } from '@vendure/common/lib/shared-utils';
 
+import { RelationNotJoinedError } from '../common/error/errors';
 import { Logger } from '../config/logger/vendure-logger';
 
 import { JobConfig, JobData } from './types';
@@ -22,6 +23,8 @@ export type JobEventType = 'progress';
  * @docsPage Job
  */
 export type JobEventListener<T extends JobData<T>> = (job: Job<T>) => void;
+
+const SKIPPED = Symbol('skipped');
 
 /**
  * @description
@@ -106,7 +109,15 @@ export class Job<T extends JobData<T> = any> {
 
     constructor(config: JobConfig<T>) {
         this.queueName = config.queueName;
-        this._data = this.ensureDataIsSerializable(config.data);
+        const skippedPaths = new Set<string>();
+        this._data = this.ensureDataIsSerializable(config.data, skippedPaths);
+        if (skippedPaths.size) {
+            Logger.warn(
+                `Job [${this.queueName}] was queued without these properties, because they need a relation ` +
+                    `that was not loaded: ${[...skippedPaths].join(', ')}. ` +
+                    `Load the relations with the EntityHydrator before adding the job.`,
+            );
+        }
         this.id = config.id || null;
         this._state = config.state || JobState.PENDING;
         this.retries = config.retries || 0;
@@ -233,6 +244,7 @@ export class Job<T extends JobData<T> = any> {
      */
     private ensureDataIsSerializable(
         data: any,
+        skippedPaths: Set<string>,
         depth = 0,
         seen = new WeakMap<any, string[]>(),
         path: string[] = [],
@@ -266,27 +278,25 @@ export class Job<T extends JobData<T> = any> {
                 output = data.toJSON();
             } else {
                 for (const key of Object.keys(data)) {
-                    output[key] = this.ensureDataIsSerializable(
-                        (data as any)[key],
-                        depth,
-                        seen,
-                        path.concat(key),
-                    );
+                    const value = this.readProperty(data, key, path, skippedPaths);
+                    if (value !== SKIPPED) {
+                        output[key] = this.ensureDataIsSerializable(
+                            value,
+                            skippedPaths,
+                            depth,
+                            seen,
+                            path.concat(key),
+                        );
+                    }
                 }
                 if (isClassInstance(data)) {
                     const descriptors = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(data));
                     for (const name of Object.keys(descriptors)) {
                         const descriptor = descriptors[name];
                         if (typeof descriptor.get === 'function') {
-                            try {
-                                output[name] = (data as any)[name];
-                            } catch (e: any) {
-                                // Some getters throw when the data they depend on is not loaded,
-                                // e.g. `Order.totalQuantity` when `lines` is not joined. Skip them
-                                // so that the job can still be queued.
-                                Logger.debug(
-                                    `Job [${this.queueName}] skipped getter "${path.concat(name).join('.')}": ${String(e?.message)}`,
-                                );
+                            const value = this.readProperty(data, name, path, skippedPaths);
+                            if (value !== SKIPPED) {
+                                output[name] = value;
                             }
                         }
                     }
@@ -297,12 +307,36 @@ export class Job<T extends JobData<T> = any> {
                 output = [];
             }
             data.forEach((item, i) => {
-                output[i] = this.ensureDataIsSerializable(item, depth, seen, path.concat(i.toString()));
+                output[i] = this.ensureDataIsSerializable(
+                    item,
+                    skippedPaths,
+                    depth,
+                    seen,
+                    path.concat(i.toString()),
+                );
             });
         } else {
             return data;
         }
         return output;
+    }
+
+    /**
+     * Reads a property of the job data. Some entity getters need a relation that was not joined
+     * when the entity was loaded, e.g. `Order.totalQuantity` needs `Order.lines`, and throw a
+     * {@link RelationNotJoinedError}. Such a property is left out so that the job can still be queued.
+     * Any other error is rethrown.
+     */
+    private readProperty(data: any, name: string, path: string[], skippedPaths: Set<string>): any {
+        try {
+            return data[name];
+        } catch (e) {
+            if (e instanceof RelationNotJoinedError) {
+                skippedPaths.add(path.concat(name).join('.'));
+                return SKIPPED;
+            }
+            throw e;
+        }
     }
 
     private hasToJSONFunction(obj: any): obj is { toJSON(): any } {
