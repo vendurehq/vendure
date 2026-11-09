@@ -693,7 +693,6 @@ export const globalSettingsFragment = graphql(`
     fragment GlobalSettings on GlobalSettings {
         id
         availableLanguages
-        trackInventory
         outOfStockThreshold
         serverConfig {
             orderProcess {

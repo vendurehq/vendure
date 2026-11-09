@@ -19,8 +19,7 @@ import { StockLocation } from '../../entity/stock-location/stock-location.entity
 export interface AvailableStock {
     /**
      * @description
-     * The stockOnHand summed over the StockLevels which count towards the available stock
-     * and which track inventory.
+     * The stockOnHand summed over the StockLevels which count towards the available stock.
      */
     stockOnHand: number;
     stockAllocated: number;

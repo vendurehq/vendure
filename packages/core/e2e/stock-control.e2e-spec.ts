@@ -49,6 +49,7 @@ import {
     getStockMovementByTypeDocument,
     getStockMovementDocument,
     settlePaymentDocument,
+    updateChannelDocument,
     updateGlobalSettingsDocument,
     updateProductVariantsDocument,
 } from './graphql/shared-definitions';
@@ -195,10 +196,9 @@ describe('Stock control', () => {
         });
         await adminClient.asSuperAdmin();
 
-        await adminClient.query(updateGlobalSettingsDocument, {
-            input: {
-                trackInventory: false,
-            },
+        // v4 (OSS-1002): the default for INHERIT is Channel.trackInventory, not GlobalSettings.
+        await adminClient.query(updateChannelDocument, {
+            input: { id: 'T_1', trackInventory: false },
         });
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -611,9 +611,11 @@ describe('Stock control', () => {
         let order: TestOrderWithPaymentsFragment;
 
         beforeAll(async () => {
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', trackInventory: true },
+            });
             await adminClient.query(updateGlobalSettingsDocument, {
                 input: {
-                    trackInventory: true,
                     outOfStockThreshold: -5,
                 },
             });

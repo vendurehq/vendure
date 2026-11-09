@@ -136,8 +136,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
 
     /**
      * @description
-     * Splits the given StockLevels into the figures counted towards available stock and whether
-     * any of them does not track inventory. When there are no StockLevels, the ProductVariant and
+     * Sums the given StockLevels and reports whether any of them does not track inventory. When there are no StockLevels, the ProductVariant and
      * Channel settings decide whether the variant is untracked.
      *
      * @since 4.0.0
@@ -151,10 +150,12 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         let stockAllocated = 0;
         let hasUntrackedStock = false;
         for (const stockLevel of stockLevels) {
-            if (await this.isInventoryTracked(ctx, variant, stockLevel)) {
-                stockOnHand += stockLevel.stockOnHand;
-                stockAllocated += stockLevel.stockAllocated;
-            } else {
+            // Untracked levels are still summed: the Admin API's stockOnHand/stockAllocated show
+            // them, and any consumer checking available stock short-circuits on
+            // `hasUntrackedStock` first.
+            stockOnHand += stockLevel.stockOnHand;
+            stockAllocated += stockLevel.stockAllocated;
+            if (!hasUntrackedStock && !(await this.isInventoryTracked(ctx, variant, stockLevel))) {
                 hasUntrackedStock = true;
             }
         }
