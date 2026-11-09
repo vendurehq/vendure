@@ -14,6 +14,7 @@ type Case = {
     sessionToken: string;
     expectedHeader: string | null;
     expectedCookieToken: string | null;
+    expectedOneYearExpiry: boolean;
 };
 
 const AUTH_TOKEN_HEADER_KEY = 'vendure-auth-token';
@@ -27,6 +28,7 @@ const cases: Case[] = [
         sessionToken: 'replacement-token',
         expectedHeader: 'replacement-token',
         expectedCookieToken: null,
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['bearer'],
@@ -34,6 +36,7 @@ const cases: Case[] = [
         sessionToken: '',
         expectedHeader: '',
         expectedCookieToken: null,
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['bearer'],
@@ -41,6 +44,7 @@ const cases: Case[] = [
         sessionToken: 'replacement-token',
         expectedHeader: 'initial-token',
         expectedCookieToken: null,
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['bearer'],
@@ -48,6 +52,7 @@ const cases: Case[] = [
         sessionToken: '',
         expectedHeader: 'initial-token',
         expectedCookieToken: null,
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['cookie'],
@@ -55,6 +60,7 @@ const cases: Case[] = [
         sessionToken: 'replacement-token',
         expectedHeader: null,
         expectedCookieToken: 'replacement-token',
+        expectedOneYearExpiry: true,
     },
     {
         tokenMethod: ['cookie'],
@@ -62,6 +68,7 @@ const cases: Case[] = [
         sessionToken: '',
         expectedHeader: null,
         expectedCookieToken: '',
+        expectedOneYearExpiry: true,
     },
     {
         tokenMethod: ['cookie'],
@@ -69,6 +76,7 @@ const cases: Case[] = [
         sessionToken: 'replacement-token',
         expectedHeader: null,
         expectedCookieToken: 'initial-token',
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['cookie'],
@@ -76,6 +84,7 @@ const cases: Case[] = [
         sessionToken: '',
         expectedHeader: null,
         expectedCookieToken: 'initial-token',
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['bearer', 'cookie'],
@@ -83,6 +92,7 @@ const cases: Case[] = [
         sessionToken: 'replacement-token',
         expectedHeader: 'replacement-token',
         expectedCookieToken: 'replacement-token',
+        expectedOneYearExpiry: true,
     },
     {
         tokenMethod: ['bearer', 'cookie'],
@@ -90,6 +100,7 @@ const cases: Case[] = [
         sessionToken: '',
         expectedHeader: '',
         expectedCookieToken: '',
+        expectedOneYearExpiry: true,
     },
     {
         tokenMethod: ['bearer', 'cookie'],
@@ -97,6 +108,7 @@ const cases: Case[] = [
         sessionToken: 'replacement-token',
         expectedHeader: 'initial-token',
         expectedCookieToken: 'initial-token',
+        expectedOneYearExpiry: false,
     },
     {
         tokenMethod: ['bearer', 'cookie'],
@@ -104,13 +116,21 @@ const cases: Case[] = [
         sessionToken: '',
         expectedHeader: 'initial-token',
         expectedCookieToken: 'initial-token',
+        expectedOneYearExpiry: false,
     },
 ];
 
 describe('setSessionToken', () => {
     it.each(cases)(
         'tokenMethod $tokenMethod, headersSent $headersSent, sessionToken $sessionToken',
-        async ({ tokenMethod, headersSent, sessionToken, expectedHeader, expectedCookieToken }) => {
+        async ({
+            tokenMethod,
+            headersSent,
+            sessionToken,
+            expectedHeader,
+            expectedCookieToken,
+            expectedOneYearExpiry,
+        }) => {
             const authOptions = {
                 ...defaultConfig.authOptions,
                 tokenMethod,
@@ -160,7 +180,7 @@ describe('setSessionToken', () => {
                     token: expectedCookieToken,
                 });
                 const expires = /expires=([^;]+)/.exec(cookie)?.[1];
-                if (headersSent) {
+                if (!expectedOneYearExpiry) {
                     // rememberMe arrived after the cookie was written, so it stays a browser-session cookie.
                     expect(expires).toBeUndefined();
                 } else {
