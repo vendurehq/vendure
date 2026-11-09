@@ -244,7 +244,7 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
     /**
      * @description
      * Sets the default subject of the email. The subject string may use Handlebars variables defined by the
-     * setTemplateVars() method.
+     * setTemplateVars() method. The subject is plain text, so these variables are not HTML-escaped.
      */
     setSubject(defaultSubject: string | SetSubjectFn<Event>): EmailEventHandler<T, Event> {
         if (typeof defaultSubject === 'string') {
@@ -258,7 +258,7 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
     /**
      * @description
      * Sets the default from field of the email. The from string may use Handlebars variables defined by the
-     * setTemplateVars() method.
+     * setTemplateVars() method. The from field is plain text, so these variables are not HTML-escaped.
      */
     setFrom(from: string): EmailEventHandler<T, Event> {
         this.from = from;
