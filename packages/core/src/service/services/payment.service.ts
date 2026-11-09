@@ -202,10 +202,9 @@ export class PaymentService {
      */
     async settlePayment(ctx: RequestContext, paymentId: ID): Promise<PaymentStateTransitionError | Payment> {
         const payment = await this.getPaymentInChannelOrThrow(ctx, paymentId);
-        const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperations(
+        const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperationsForPayment(
             ctx,
-            payment.method,
-            { includeDisabled: true },
+            payment,
         );
         const settlePaymentResult = await handler.settlePayment(
             ctx,
@@ -228,10 +227,9 @@ export class PaymentService {
 
     async cancelPayment(ctx: RequestContext, paymentId: ID): Promise<PaymentStateTransitionError | Payment> {
         const payment = await this.getPaymentInChannelOrThrow(ctx, paymentId);
-        const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperations(
+        const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperationsForPayment(
             ctx,
-            payment.method,
-            { includeDisabled: true },
+            payment,
         );
         const cancelPaymentResult = await handler.cancelPayment(
             ctx,
@@ -653,10 +651,9 @@ export class PaymentService {
         let paymentMethod: PaymentMethod | undefined;
         let handler: PaymentMethodHandler | undefined;
         try {
-            const methodAndHandler = await this.paymentMethodService.getMethodAndOperations(
+            const methodAndHandler = await this.paymentMethodService.getMethodAndOperationsForPayment(
                 ctx,
-                payment.method,
-                { includeDisabled: true },
+                payment,
             );
             paymentMethod = methodAndHandler.paymentMethod;
             handler = methodAndHandler.handler;
