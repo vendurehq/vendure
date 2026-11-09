@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { LanguageCode, mergeConfig } from '@vendure/core';
+import { CurrencyCode } from '@vendure/common/lib/generated-types';
+import {
+    LanguageCode,
+    mergeConfig,
+    Payment,
+    PaymentMethodService,
+    RequestContextService,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, type ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,6 +23,7 @@ import { paymentFragment, refundFragment } from './graphql/fragments-admin';
 import { type FragmentOf, graphql } from './graphql/graphql-admin';
 import {
     cancelPaymentDocument,
+    createChannelDocument,
     getOrderDocument,
     refundOrderDocument,
     settlePaymentDocument,
@@ -56,6 +64,14 @@ const createPaymentMethodDocument = graphql(`
     mutation CreateSharedCodePaymentMethod($input: CreatePaymentMethodInput!) {
         createPaymentMethod(input: $input) {
             id
+        }
+    }
+`);
+
+const deletePaymentMethodDocument = graphql(`
+    mutation DeleteDisabledTestPaymentMethod($id: ID!, $force: Boolean) {
+        deletePaymentMethod(id: $id, force: $force) {
+            result
         }
     }
 `);
@@ -120,7 +136,24 @@ describe('Payments of a disabled PaymentMethod', () => {
         await adminClient.query(updatePaymentMethodDocument, { input: { id: method.id, enabled } });
     }
 
-    // OSS-937 — disabling a method must not block settling, cancelling or refunding its existing payments
+    async function createMethod(code: string, handlerCode: string, enabled: boolean) {
+        const { createPaymentMethod } = await adminClient.query(createPaymentMethodDocument, {
+            input: {
+                code,
+                enabled,
+                handler: { code: handlerCode, arguments: [] },
+                translations: [{ languageCode: LanguageCode.en, name: handlerCode }],
+            },
+        });
+        return createPaymentMethod;
+    }
+
+    async function getPaymentState(orderId: string) {
+        const { order } = await adminClient.query(getOrderDocument, { id: orderId });
+        return order!.payments![0].state;
+    }
+
+    // Disabling a method must not block settling, cancelling or refunding its existing payments
     it('settles an Authorized payment after its method is disabled', async () => {
         await setEnabled(twoStagePaymentMethod.code, true);
         const order = await placeOrder(twoStagePaymentMethod.code);
@@ -159,9 +192,7 @@ describe('Payments of a disabled PaymentMethod', () => {
         const { refundOrder } = await adminClient.query(refundOrderDocument, {
             input: {
                 paymentId: order.payments![0].id,
-                lines: [{ orderLineId: order.lines[0].id, quantity: 1 }],
-                shipping: 0,
-                adjustment: 0,
+                amount: order.payments![0].amount,
                 reason: 'disabled method',
             },
         });
@@ -189,19 +220,8 @@ describe('Payments of a disabled PaymentMethod', () => {
     it('uses the enabled method when a disabled one shares its code', async () => {
         const code = 'shared-code';
         // The disabled method is created first, so it has the lower id. Its handler fails to settle.
-        for (const [handlerCode, enabled] of [
-            [failsToSettlePaymentMethod.code, false],
-            [twoStagePaymentMethod.code, true],
-        ] as const) {
-            await adminClient.query(createPaymentMethodDocument, {
-                input: {
-                    code,
-                    enabled,
-                    handler: { code: handlerCode, arguments: [] },
-                    translations: [{ languageCode: LanguageCode.en, name: handlerCode }],
-                },
-            });
-        }
+        await createMethod(code, failsToSettlePaymentMethod.code, false);
+        await createMethod(code, twoStagePaymentMethod.code, true);
         const order = await placeOrder(code);
         expect(order.payments![0].state).toBe('Authorized');
 
@@ -210,5 +230,91 @@ describe('Payments of a disabled PaymentMethod', () => {
         });
         paymentGuard.assertSuccess(settlePayment);
         expect(settlePayment.state).toBe('Settled');
+    });
+
+    // A Payment stores only the method code, so with several disabled methods on that code the
+    // lookup must not guess which handler took the payment
+    it('does not settle when several disabled methods share the code', async () => {
+        const code = 'ambiguous-code';
+        // Created first, so it has the lower id. Its handler fails to settle.
+        await createMethod(code, failsToSettlePaymentMethod.code, false);
+        const { id } = await createMethod(code, twoStagePaymentMethod.code, true);
+        const order = await placeOrder(code);
+        expect(order.payments![0].state).toBe('Authorized');
+
+        await adminClient.query(updatePaymentMethodDocument, { input: { id, enabled: false } });
+
+        await expect(adminClient.query(settlePaymentDocument, { id: order.payments![0].id })).rejects.toThrow(
+            'error.payment-method-not-found',
+        );
+        expect(await getPaymentState(order.id)).toBe('Authorized');
+    });
+
+    it('does not settle a payment whose method was deleted', async () => {
+        const code = 'deleted-method';
+        const { id } = await createMethod(code, twoStagePaymentMethod.code, true);
+        const order = await placeOrder(code);
+        expect(order.payments![0].state).toBe('Authorized');
+
+        await adminClient.query(deletePaymentMethodDocument, { id, force: true });
+
+        await expect(adminClient.query(settlePaymentDocument, { id: order.payments![0].id })).rejects.toThrow(
+            'error.payment-method-not-found',
+        );
+        expect(await getPaymentState(order.id)).toBe('Authorized');
+    });
+
+    it('does not resolve a disabled method of another channel', async () => {
+        const secondChannelToken = 'second-channel-token';
+        await adminClient.query(createChannelDocument, {
+            input: {
+                code: 'second-channel',
+                token: secondChannelToken,
+                defaultLanguageCode: LanguageCode.en,
+                currencyCode: CurrencyCode.USD,
+                pricesIncludeTax: true,
+                defaultShippingZoneId: 'T_1',
+                defaultTaxZoneId: 'T_1',
+            },
+        });
+        // Assigned to the default channel only
+        await setEnabled(twoStagePaymentMethod.code, false);
+
+        const requestContextService = server.app.get(RequestContextService);
+        const paymentMethodService = server.app.get(PaymentMethodService);
+        const defaultCtx = await requestContextService.create({ apiType: 'admin' });
+        const secondCtx = await requestContextService.create({
+            apiType: 'admin',
+            channelOrToken: secondChannelToken,
+        });
+
+        const payment = new Payment({ method: twoStagePaymentMethod.code });
+
+        const { paymentMethod } = await paymentMethodService.getMethodAndOperationsForPayment(
+            defaultCtx,
+            payment,
+        );
+        expect(paymentMethod.enabled).toBe(false);
+        await expect(
+            paymentMethodService.getMethodAndOperationsForPayment(secondCtx, payment),
+        ).rejects.toThrow('error.payment-method-not-found');
+    });
+
+    it('settles with the same method that took the payment when two enabled methods share a code', async () => {
+        const code = 'twin-code';
+        const first = await createMethod(code, twoStagePaymentMethod.code, true);
+        await createMethod(code, twoStagePaymentMethod.code, true);
+
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const paymentMethodService = server.app.get(PaymentMethodService);
+        const forCreate = await paymentMethodService.getMethodAndOperations(ctx, code);
+        const forPayment = await paymentMethodService.getMethodAndOperationsForPayment(
+            ctx,
+            new Payment({ method: code }),
+        );
+
+        expect(forPayment.paymentMethod.id).toBe(forCreate.paymentMethod.id);
+        // The lowest id wins, in both lookups
+        expect(`T_${forCreate.paymentMethod.id}`).toBe(first.id);
     });
 });
