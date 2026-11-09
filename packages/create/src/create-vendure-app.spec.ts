@@ -111,8 +111,10 @@ describe('createVendureApp()', () => {
         const { DOCKER_NOT_RESPONDING_MESSAGE } = await import('./helpers');
         events.length = 0;
         probeDockerDaemonMock.mockResolvedValue('not-responding');
-        // The stubbed project has no email templates, and copying them calls process.exit(0),
-        // so only the exit(1) under test stops the run.
+        // A failed template copy also exits with code 1, so give it a source to copy. Then only
+        // the Docker check can produce the exit(1) under test.
+        const templateDir = path.join(tmpdir(), 'vendure-create-missing-package', 'templates');
+        mkdirSync(templateDir, { recursive: true });
         const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
             if (code === 1) {
                 throw new Error('process.exit');
@@ -126,10 +128,12 @@ describe('createVendureApp()', () => {
             true,
             undefined,
             'postgres',
-        ).then(
-            () => 'returned',
-            (e: Error) => e.message,
-        );
+        )
+            .then(
+                () => 'returned',
+                (e: Error) => e.message,
+            )
+            .finally(() => rmSync(path.dirname(templateDir), { recursive: true, force: true }));
 
         expect(outcome).toBe('process.exit');
         expect(exit).toHaveBeenCalledWith(1);
