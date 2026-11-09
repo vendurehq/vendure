@@ -54,7 +54,7 @@ vi.mock('./helpers', async importOriginal => {
 });
 vi.mock('node:timers/promises', () => ({ setTimeout: () => Promise.resolve(undefined) }));
 
-describe('createVendureApp() Console hint', () => {
+describe('createVendureApp()', () => {
     const originalArgv = process.argv;
     let workDir: string;
 
@@ -90,6 +90,20 @@ describe('createVendureApp() Console hint', () => {
         expect(events[2]).toContain('Happy hacking!');
     }, 30000);
 
+    // OSS-932 - a failed email template copy stops create with a non-zero exit code.
+    it('exits with code 1 when the email templates cannot be copied', async () => {
+        const { createVendureApp } = await import('./create-vendure-app');
+        mkdirSync(path.join(workDir, 'app-templates'));
+        // Importing the module already called process.exit(1), so drop that call first.
+        const exitSpy = vi.mocked(process.exit);
+        exitSpy.mockClear();
+
+        // resolvePackageRootDir points at a missing package, so the template copy fails first.
+        await createVendureApp(path.join(workDir, 'app-templates'), false, 'silent', true);
+
+        expect(exitSpy.mock.calls[0]).toEqual([1]);
+    }, 30000);
+
     // CLO-1224 - --ci never ran the Docker check, so an unresponsive daemon hung the
     // cleanup and `docker compose up` that follow.
     it('stops before calling Docker when the daemon does not respond in --ci postgres mode', async () => {
@@ -97,8 +111,10 @@ describe('createVendureApp() Console hint', () => {
         const { DOCKER_NOT_RESPONDING_MESSAGE } = await import('./helpers');
         events.length = 0;
         probeDockerDaemonMock.mockResolvedValue('not-responding');
-        // The stubbed project has no email templates, and copying them calls process.exit(0),
-        // so only the exit(1) under test stops the run.
+        // A failed template copy also exits with code 1, so give it a source to copy. Then only
+        // the Docker check can produce the exit(1) under test.
+        const templateDir = path.join(tmpdir(), 'vendure-create-missing-package', 'templates');
+        mkdirSync(templateDir, { recursive: true });
         const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
             if (code === 1) {
                 throw new Error('process.exit');
@@ -112,10 +128,12 @@ describe('createVendureApp() Console hint', () => {
             true,
             undefined,
             'postgres',
-        ).then(
-            () => 'returned',
-            (e: Error) => e.message,
-        );
+        )
+            .then(
+                () => 'returned',
+                (e: Error) => e.message,
+            )
+            .finally(() => rmSync(path.dirname(templateDir), { recursive: true, force: true }));
 
         expect(outcome).toBe('process.exit');
         expect(exit).toHaveBeenCalledWith(1);
