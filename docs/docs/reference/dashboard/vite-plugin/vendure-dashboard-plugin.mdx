@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="254" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="270" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -23,7 +23,7 @@ Parameters
 
 ## VitePluginVendureDashboardOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="40" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.4.0" />
 
 Options for the [vendureDashboardPlugin](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#venduredashboardplugin) Vite plugin.
 
@@ -168,6 +168,7 @@ type VitePluginVendureDashboardOptions = {
         bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
+        platformPromotion?: boolean;
         uiConfig?: boolean;
         gqlTada?: boolean;
         transformIndexHtml?: boolean;
@@ -216,6 +217,19 @@ type VitePluginVendureDashboardOptions = {
      * ```
      */
     theme?: DashboardThemeOptions;
+    /**
+     * @description
+     * Set to `false` to turn off the Vendure Platform items in the Dashboard: locked navigation
+     * items, locked pages, page cards and the related page actions. The build then sends no
+     * request to `api.vendure.io`. The environment variable
+     * `VENDURE_DASHBOARD_PLATFORM_PROMOTION=false` has the same effect. Do not use
+     * `disablePlugins.platformPromotion` for this: it removes a module that the Dashboard needs,
+     * and the build fails.
+     *
+     * @default true
+     * @since 3.9.0
+     */
+    platformPromotion?: boolean;
 } & UiConfigPluginOptions
 ```
 ## PathAdapter

@@ -1,5 +1,13 @@
+import { OnApplicationBootstrap } from '@nestjs/common';
 import { JobState } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import {
+    JobQueue,
+    JobQueueService,
+    mergeConfig,
+    PluginCommonModule,
+    RequestContextService,
+    VendurePlugin,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -11,6 +19,49 @@ import { PluginWithJobQueue } from './fixtures/test-plugins/with-job-queue';
 import { graphql } from './graphql/graphql-admin';
 import { cancelJobDocument, getRunningJobsDocument } from './graphql/shared-definitions';
 import { pollUntil } from './utils/poll-until';
+
+let mailQueue: JobQueue<any> | undefined;
+
+@VendurePlugin({ imports: [PluginCommonModule] })
+class MailQueuePlugin implements OnApplicationBootstrap {
+    constructor(private jobQueueService: JobQueueService) {}
+
+    async onApplicationBootstrap() {
+        mailQueue = await this.jobQueueService.createQueue<any>({
+            name: 'in-memory-send-email',
+            process: () => Promise.resolve(),
+        });
+    }
+}
+
+const getJobDataDocument = graphql(`
+    query GetJobData($id: ID!) {
+        job(jobId: $id) {
+            id
+            data
+        }
+    }
+`);
+
+const getJobsDataDocument = graphql(`
+    query GetJobsData($options: JobListOptions) {
+        jobs(options: $options) {
+            items {
+                id
+                data
+            }
+        }
+    }
+`);
+
+const getJobsByIdDataDocument = graphql(`
+    query GetJobsByIdData($ids: [ID!]!) {
+        jobsById(jobIds: $ids) {
+            id
+            data
+        }
+    }
+`);
 
 const getJobDocument = graphql(`
     query GetJob($id: ID!) {
@@ -35,7 +86,7 @@ describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
     const activeConfig = testConfig();
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(activeConfig, {
-            plugins: [PluginWithJobQueue],
+            plugins: [PluginWithJobQueue, MailQueuePlugin],
         }),
     );
     let runningJobId: string;
@@ -88,5 +139,39 @@ describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
 
         const { job } = await adminClient.query(getJobDocument, { id: runningJobId });
         expect(job?.state).toBe(JobState.CANCELLED);
+    });
+
+    // Jobs held by the InMemoryJobQueueStrategy go through the same
+    // redaction as jobs read from the database. That job.data is not mutated is covered by
+    // job-entity.resolver.spec.ts, because this strategy already returns copies.
+    it('job, jobs and jobsById redact credentials from in-memory job data', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        if (!mailQueue) {
+            throw new Error('The in-memory-send-email queue was not created');
+        }
+        const added = await mailQueue.add({
+            ctx: ctx.serialize(),
+            type: 'password-reset',
+            recipient: 'in-memory@test.com',
+            templateVars: { passwordResetToken: 'e2e-secret-in-memory-reset-token' },
+            user: { authenticationMethods: [{ passwordHash: 'e2e-secret-in-memory-password-hash' }] },
+            attachments: [
+                { filename: 'a.txt', content: '"e2e-secret-in-memory-content"', path: '/tmp/a.txt' },
+            ],
+        });
+        const jobId = `T_${String(added.id)}`;
+
+        const { job } = await adminClient.query(getJobDataDocument, { id: jobId });
+        const { jobs } = await adminClient.query(getJobsDataDocument, {
+            options: { filter: { id: { eq: jobId } } },
+        });
+        const { jobsById } = await adminClient.query(getJobsByIdDataDocument, { ids: [jobId] });
+
+        const responses = [job, ...jobs.items, ...jobsById];
+        expect(responses.map(j => j?.id)).toEqual([jobId, jobId, jobId]);
+        const serialized = JSON.stringify(responses);
+        expect(serialized).not.toContain('e2e-secret-in-memory-reset-token');
+        expect(serialized).not.toContain('e2e-secret-in-memory-password-hash');
+        expect(serialized).not.toContain('e2e-secret-in-memory-content');
     });
 });

@@ -28,7 +28,8 @@ export function setSessionToken(options: {
             req.session.token = sessionToken;
         }
     }
-    if (usingBearer) {
+    // A parallel resolver can finish after an error has already sent the response.
+    if (usingBearer && !res.headersSent) {
         res.set(authOptions.authTokenHeaderKey, sessionToken);
     }
 }

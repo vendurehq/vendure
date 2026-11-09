@@ -21,7 +21,7 @@
     "country-code-not-valid": "The countryCode \"{ countryCode }\" was not recognized",
     "currency-not-available-in-channel": "The currency \"{ currencyCode }\" is not available in the current Channel",
     "customer-does-not-belong-to-customer-group": "Customer does not belong to this CustomerGroup",
-    "customer-has-no-user-account": "This Customer has no user account, so there is nothing to verify",
+    "customer-has-no-user-account": "This Customer has no user account",
     "default-channel-not-found": "Default channel not found",
     "entity-has-no-translation-in-language": "Translatable entity \"{ entityName }\" has not been translated into the requested language ({ languageCode })",
     "entity-with-id-not-found": "No { entityName } with the id \"{ id }\" could be found",

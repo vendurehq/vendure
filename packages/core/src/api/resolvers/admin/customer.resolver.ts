@@ -9,6 +9,7 @@ import {
     MutationDeleteCustomerArgs,
     MutationDeleteCustomerNoteArgs,
     MutationDeleteCustomersArgs,
+    MutationRequestCustomerPasswordResetArgs,
     MutationUpdateCustomerAddressArgs,
     MutationUpdateCustomerArgs,
     MutationUpdateCustomerNoteArgs,
@@ -174,5 +175,16 @@ export class CustomerResolver {
     @Allow(Permission.UpdateCustomer)
     async deleteCustomerNote(@Ctx() ctx: RequestContext, @Args() args: MutationDeleteCustomerNoteArgs) {
         return this.customerService.deleteCustomerNote(ctx, args.id);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.UpdateCustomer)
+    async requestCustomerPasswordReset(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationRequestCustomerPasswordResetArgs,
+    ): Promise<Success> {
+        await this.customerService.requestCustomerPasswordReset(ctx, args.id);
+        return { success: true };
     }
 }

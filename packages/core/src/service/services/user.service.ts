@@ -461,6 +461,18 @@ export class UserService {
         if (!user) {
             return;
         }
+        return this.setPasswordResetTokenForUser(ctx, user);
+    }
+
+    /**
+     * @description
+     * Sets the {@link NativeAuthenticationMethod} `passwordResetToken` on the given User, which must be
+     * loaded with its `authenticationMethods`. Returns `undefined` if the User has no
+     * NativeAuthenticationMethod.
+     *
+     * @since 3.9.0
+     */
+    async setPasswordResetTokenForUser(ctx: RequestContext, user: User): Promise<User | undefined> {
         const nativeAuthMethod = user.getNativeAuthenticationMethod(false);
         if (!nativeAuthMethod) {
             return undefined;
@@ -558,9 +570,13 @@ export class UserService {
             (m): m is NativeAuthenticationMethod => m instanceof NativeAuthenticationMethod,
         );
         if (nativeAuthMethod) {
+            // A difference only in case is not a new identifier, so it does not cancel a pending
+            // change of the email address. See #5559
+            if (normalizeEmailAddress(nativeAuthMethod.identifier) !== normalizeEmailAddress(newIdentifier)) {
+                nativeAuthMethod.identifierChangeToken = null;
+                nativeAuthMethod.pendingIdentifier = null;
+            }
             nativeAuthMethod.identifier = newIdentifier;
-            nativeAuthMethod.identifierChangeToken = null;
-            nativeAuthMethod.pendingIdentifier = null;
             await this.connection
                 .getRepository(ctx, NativeAuthenticationMethod)
                 .save(nativeAuthMethod, { reload: false });

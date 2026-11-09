@@ -287,7 +287,7 @@ describe('loginWithDevice', () => {
 
         await expect(
             loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Acme' }),
-        ).rejects.toThrow(/More than one.*\n.*11111111/s);
+        ).rejects.toThrow(/More than one of your Customer Accounts is named "Acme".*\n.*11111111/s);
         expect(readStoredAuth(options)).toBeUndefined();
     });
 
@@ -732,5 +732,126 @@ describe('logout', () => {
             );
         });
         expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+    });
+});
+
+describe('separate config directories', () => {
+    let otherDir: string;
+    let other: AuthOptions;
+    let otherStored: StoredAuth;
+    let otherBefore: string;
+
+    const authFile = (dir: string) => path.join(dir, 'auth.json');
+
+    beforeEach(() => {
+        otherDir = mkdtempSync(path.join(tmpdir(), 'vendure-auth-other-'));
+        other = { env: { VENDURE_CLI_CONFIG_DIR: otherDir }, now: () => NOW };
+        otherStored = storedAuth({ accessToken: accessToken(3600, { sid: 'b' }), refreshToken: 'refresh_b' });
+        writeStoredAuth(otherStored, other);
+        otherBefore = fs.readFileSync(authFile(otherDir), 'utf-8');
+    });
+
+    afterEach(() => {
+        fs.removeSync(otherDir);
+    });
+
+    async function expectOtherLoginIntact() {
+        await expect(getAccessToken(other)).resolves.toBe(otherStored.accessToken);
+        expect(fs.readFileSync(authFile(otherDir), 'utf-8')).toBe(otherBefore);
+        expect(fs.readdirSync(otherDir)).toEqual(['auth.json']);
+    }
+
+    it('keeps the other login when one logs out', async () => {
+        const stored = storedAuth();
+        writeStoredAuth(stored, options);
+        const workos = fakeWorkos([{ status: 204, body: null }]);
+
+        await logout({ ...options, fetch: workos.fetch });
+
+        expect(workos.requests).toHaveLength(1);
+        expect(workos.requests[0].authorization).toBe(`Bearer ${stored.accessToken}`);
+
+        expect(fs.existsSync(authFile(configDir))).toBe(false);
+        await expectOtherLoginIntact();
+    });
+
+    it('keeps the other login when WorkOS refuses one refresh token', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
+
+        await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toBeInstanceOf(
+            SessionRejectedError,
+        );
+
+        expect(workos.requests[0].body.refresh_token).toBe('refresh_1');
+        expect(fs.existsSync(authFile(configDir))).toBe(false);
+        await expectOtherLoginIntact();
+    });
+
+    it('renews a login in one directory and writes only that directory', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10) }), options);
+        const renewed = accessToken(300);
+        const workos = fakeWorkos([authentication(renewed, 'refresh_2', 'org_1')]);
+
+        await expect(getAccessToken({ ...options, fetch: workos.fetch })).resolves.toBe(renewed);
+
+        expect(readStoredAuth(options)).toMatchObject({ accessToken: renewed, refreshToken: 'refresh_2' });
+        expect(workos.requests[0].body.refresh_token).toBe('refresh_1');
+        await expectOtherLoginIntact();
+    });
+
+    it('renews both at once, each with its own refresh token', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_a' }), options);
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_b' }), other);
+        const renewedA = accessToken(300, { sid: 'a' });
+        const renewedB = accessToken(300, { sid: 'b' });
+        const workosA = fakeWorkos([authentication(renewedA, 'refresh_a2', 'org_1')]);
+        const workosB = fakeWorkos([authentication(renewedB, 'refresh_b2', 'org_1')]);
+
+        const [tokenA, tokenB] = await Promise.all([
+            getAccessToken({ ...options, fetch: workosA.fetch }),
+            getAccessToken({ ...other, fetch: workosB.fetch }),
+        ]);
+
+        expect(tokenA).toBe(renewedA);
+        expect(tokenB).toBe(renewedB);
+        expect(workosA.requests.map(r => r.body.refresh_token)).toEqual(['refresh_a']);
+        expect(workosB.requests.map(r => r.body.refresh_token)).toEqual(['refresh_b']);
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_a2');
+        expect(readStoredAuth(other)?.refreshToken).toBe('refresh_b2');
+    });
+
+    it('renews one while a renewal in the other is still waiting on WorkOS', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_a' }), options);
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_b' }), other);
+        const renewedA = accessToken(300, { sid: 'a' });
+        const renewedB = accessToken(300, { sid: 'b' });
+        const workosA = fakeWorkos([authentication(renewedA, 'refresh_a2', 'org_1')]);
+        const workosB = fakeWorkos([authentication(renewedB, 'refresh_b2', 'org_1')]);
+        let release!: () => void;
+        const released = new Promise<void>(resolve => (release = resolve));
+        let started!: () => void;
+        const aStarted = new Promise<void>(resolve => (started = resolve));
+        const heldFetch = (async (url: string, init: RequestInit) => {
+            started();
+            await released;
+            return workosA.fetch(url, init);
+        }) as typeof globalThis.fetch;
+
+        const pendingA = getAccessToken({ ...options, fetch: heldFetch });
+        await aStarted;
+        const { waitMs } = SESSION_LOCK_OPTIONS;
+        SESSION_LOCK_OPTIONS.waitMs = 20;
+        try {
+            await expect(getAccessToken({ ...other, fetch: workosB.fetch })).resolves.toBe(renewedB);
+        } finally {
+            SESSION_LOCK_OPTIONS.waitMs = waitMs;
+            release();
+        }
+
+        await expect(pendingA).resolves.toBe(renewedA);
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_a2');
+        expect(readStoredAuth(other)?.refreshToken).toBe('refresh_b2');
     });
 });

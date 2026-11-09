@@ -1,4 +1,4 @@
-import { findNextAvailablePosition } from '@/vdb/components/ui/grid-layout.js';
+import { DEFAULT_COLS, findNextAvailablePosition, layoutsOverlap } from '@/vdb/components/ui/grid-layout.js';
 import type {
     DashboardWidgetDefinition,
     DashboardWidgetInstance,
@@ -86,12 +86,21 @@ export function mergeHiddenWidgetIds(
 export function buildInitialWidgetState(
     settings: Pick<UserSettings, 'widgetInstances' | 'widgetLayout' | 'hiddenWidgets'>,
     registered: Array<[string, DashboardWidgetDefinition]>,
+    options: { someWidgetsFiltered?: boolean } = {},
 ): InitialWidgetState {
     // Saved instances are the source of truth; the legacy `widgetLayout` record is read only
     // as a fallback so existing single-instance layouts migrate transparently.
     const persistedInstances = settings.widgetInstances ?? [];
     const legacyLayouts = settings.widgetLayout ?? {};
     const hiddenIds = new Set(settings.hiddenWidgets ?? []);
+
+    // The defaultSize.x/y positions describe one layout of the full widget set on an empty grid.
+    // They are used only when the user has no saved instances or legacy layout entries, and no
+    // widget was filtered out by permissions. Otherwise each new widget goes to the first free slot.
+    const useDefaultPositions =
+        settings.widgetInstances === undefined &&
+        settings.widgetLayout === undefined &&
+        !options.someWidgetsFiltered;
 
     const visible: DashboardWidgetInstance[] = [];
     const hidden: DashboardWidgetInstance[] = [];
@@ -128,12 +137,23 @@ export function buildInitialWidgetState(
 
         const instance = buildWidgetInstance(widget, id, legacyLayout);
         if (!legacyLayout) {
-            const pos = findNextAvailablePosition(
-                { ...instance.layout, i: instance.id, y: 0 },
-                visible.map(v => ({ ...v.layout, i: v.id })),
+            const occupiedLayouts = visible.map(v => ({ ...v.layout, i: v.id }));
+            const candidateLayout = { ...instance.layout, i: instance.id };
+            const isOutOfBounds =
+                candidateLayout.x < 0 ||
+                candidateLayout.y < 0 ||
+                candidateLayout.x + candidateLayout.w > DEFAULT_COLS;
+            const hasOverlap = occupiedLayouts.some(occupied =>
+                layoutsOverlap(candidateLayout, occupied),
             );
-            instance.layout.x = pos.x;
-            instance.layout.y = pos.y;
+            if (!useDefaultPositions || isOutOfBounds || hasOverlap) {
+                const pos = findNextAvailablePosition(
+                    { ...candidateLayout, y: 0 },
+                    occupiedLayouts,
+                );
+                instance.layout.x = pos.x;
+                instance.layout.y = pos.y;
+            }
         }
         visible.push(instance);
     });

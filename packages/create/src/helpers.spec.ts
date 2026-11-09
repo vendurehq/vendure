@@ -435,6 +435,25 @@ describe('getMonorepoRootPackageJson', () => {
             getMonorepoRootPackageJson('x', getPackageManagerInfo('yarn'), 'sqlite').trustedDependencies,
         ).toBeUndefined();
     });
+
+    // npm ≥12 blocks dependency install scripts unless listed in `allowScripts`.
+    it('adds allowScripts only for npm, driver-aware', () => {
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').allowScripts).toEqual({
+            bcrypt: true,
+            'better-sqlite3': true,
+            esbuild: true,
+            re2: true,
+            sharp: true,
+        });
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'postgres').allowScripts,
+        ).toEqual({ bcrypt: true, esbuild: true, sharp: true });
+        for (const pm of ['yarn', 'pnpm', 'bun'] as const) {
+            expect(
+                getMonorepoRootPackageJson('x', getPackageManagerInfo(pm), 'sqlite').allowScripts,
+            ).toBeUndefined();
+        }
+    });
 });
 
 describe('getSingleProjectPackageJson', () => {
@@ -460,6 +479,23 @@ describe('getSingleProjectPackageJson', () => {
         expect(
             getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').dependenciesMeta,
         ).toBeUndefined();
+        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').allowScripts).toEqual(
+            {
+                bcrypt: true,
+                'better-sqlite3': true,
+                esbuild: true,
+                re2: true,
+                sharp: true,
+            },
+        );
+        expect(
+            getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'postgres').allowScripts,
+        ).toEqual({ bcrypt: true, esbuild: true, sharp: true });
+        for (const pm of ['yarn', 'pnpm', 'bun'] as const) {
+            expect(
+                getSingleProjectPackageJson('x', getPackageManagerInfo(pm), 'sqlite').allowScripts,
+            ).toBeUndefined();
+        }
     });
 });
 
@@ -581,11 +617,44 @@ describe('registerTemplateHelpers + Dockerfile template', () => {
 
     it('renders a pnpm Dockerfile on node with corepack and a frozen install', () => {
         const out = renderDockerfile('pnpm');
-        expect(out).toContain('FROM node:20');
+        expect(out).toContain('FROM node:24');
         expect(out).toContain('RUN corepack enable');
         expect(out).toContain('COPY package.json pnpm-lock.yaml ./');
         expect(out).toContain('RUN pnpm install --frozen-lockfile');
         expect(out).toContain('RUN pnpm run build');
+    });
+
+    // The install and build steps need dev dependencies, so NODE_ENV=production must come after them.
+    it.each(['npm', 'bun'] as const)('sets NODE_ENV=production after the %s build step', pm => {
+        const lines = renderDockerfile(pm).split('\n');
+        const envLine = lines.indexOf('ENV NODE_ENV=production');
+        const buildLine = lines.findIndex(line => line.startsWith('RUN') && line.endsWith('run build'));
+        const installLine = lines.indexOf(`RUN ${getPackageManagerInfo(pm).ciInstall}`);
+        expect(installLine).toBeGreaterThan(-1);
+        expect(envLine).toBeGreaterThan(-1);
+        expect(buildLine).toBeGreaterThan(installLine);
+        expect(envLine).toBeGreaterThan(buildLine);
+    });
+});
+
+// The scaffolded .env sets APP_ENV=dev, which enables the EmailPlugin dev mailbox and other
+// dev-only settings, so it must not be committed or copied into the Docker image.
+describe('ignore templates', () => {
+    function readTemplateLines(fileName: string): string[] {
+        return fs.readFileSync(path.join(__dirname, '../templates', fileName), 'utf-8').split('\n');
+    }
+
+    it('keeps .env out of git', () => {
+        expect(readTemplateLines('gitignore.template')).toEqual(
+            expect.arrayContaining(['.env', '.env.*', '!.env.example']),
+        );
+        expect(readTemplateLines('monorepo/root-gitignore.template')).toContain('.env');
+    });
+
+    it('keeps .env and local build output out of the Docker build context', () => {
+        expect(readTemplateLines('dockerignore.template')).toEqual(
+            expect.arrayContaining(['.env', '.env.*', 'node_modules', 'dist']),
+        );
     });
 });
 

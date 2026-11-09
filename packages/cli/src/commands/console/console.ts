@@ -15,13 +15,18 @@ import {
     scopeStoredLogin,
 } from '../../auth/auth-session';
 import { StoredOrganization } from '../../auth/auth-store';
-import { AuthOrganization } from '../../auth/console-api';
+import { AuthOrganization, OrganizationNotFoundError, describeOrganizations } from '../../auth/console-api';
 import { CliCommandExit } from '../../shared/cli-command-exit';
-import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
+import { isNonInteractiveEnvironment } from '../../utilities/utils';
 
 import { openConsoleBrowser } from './authentication';
 import { ConsoleSession } from './cli-auth';
-import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
+import {
+    ConsoleLinkContext,
+    ConsoleLinkOutcome,
+    ConsoleSessionUnavailableReason,
+    RegisteredConsoleLinkHook,
+} from './console-link-hook';
 import {
     ConsoleOrigins,
     DEFAULT_CONSOLE_API_URL,
@@ -30,7 +35,7 @@ import {
     trustedConsoleOrigins,
 } from './console-origins';
 import { ConsoleReporter } from './console-reporter';
-import { ConsoleCommandResult, ConsoleLinkResultContribution } from './console-result';
+import { ConsoleCommandResult, ConsoleLinkResultContribution, ConsoleMissingInput } from './console-result';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
     ManifestReadResult,
@@ -44,6 +49,14 @@ import {
     writeProjectLinkManifestAtomic,
 } from './project-link-manifest';
 import { nonEmptyString, objectValue, uuid } from './project-link-validation';
+import {
+    TelemetryAttribution,
+    ensureTelemetryInstallationId,
+    isTelemetryDisabled,
+    readTelemetryAttribution,
+    removeTelemetryAttribution,
+    writeTelemetryAttribution,
+} from './telemetry-attribution';
 
 const PROJECTS_PATH = '/v1/projects';
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -60,6 +73,8 @@ export interface ConsoleCommandOptions {
     yes?: boolean;
     /** The organization to link a project of: its Account identifier or its name. */
     organization?: string;
+    /** The Console Project to link: its id or its slug. Replaces the project prompt. */
+    consoleProject?: string;
 }
 
 export interface ConsoleCommandDependencies {
@@ -93,6 +108,8 @@ interface ConsoleEndpoints {
 interface ConsoleProject {
     id: string;
     name: string;
+    /** The Project's URL name in Console, when Console sends one. */
+    slug?: string;
 }
 
 /** The CLI login a command uses, matched to the Console it calls. */
@@ -118,6 +135,23 @@ class CommandInterruptedError extends Error {
     }
 }
 
+/**
+ * A refusal the CLI words itself because an input it was given names nothing
+ * it can link. Unlike other errors, `--json` reports it: an `incomplete` result
+ * with the input to change and the next steps. The next steps hold no option
+ * values, only what Console returned and the flags to use.
+ */
+class ConsoleInputError extends Error {
+    constructor(
+        message: string,
+        readonly missingInput: ConsoleMissingInput,
+        readonly nextSteps: string[],
+    ) {
+        super(message);
+        this.name = 'ConsoleInputError';
+    }
+}
+
 const defaultReporter: ConsoleReporter = {
     error: message => log.error(message),
     info: message => log.info(message),
@@ -135,18 +169,13 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         isNonInteractive: () => isNonInteractiveEnvironment(),
         now: () => Date.now(),
         openUrl: openConsoleBrowser,
+        // Every caller checks `isNonInteractive()` first, so these prompts always have a terminal.
         prompt: async message => {
-            const result = await withInteractiveTimeout(() => confirm({ message }), {
-                examples: ['vendure console link --force', 'vendure console unlink --force'],
-                helpCommands: ['vendure console --help'],
-            });
+            const result = await confirm({ message });
             return isCancel(result) ? undefined : result;
         },
         select: async (message, choices) => {
-            const result = await withInteractiveTimeout(() => select({ message, options: choices }), {
-                examples: ['vendure console link'],
-                helpCommands: ['vendure console --help'],
-            });
+            const result = await select({ message, options: choices });
             return isCancel(result) ? undefined : String(result);
         },
         reporter: defaultReporter,
@@ -250,6 +279,14 @@ function reportConsoleCommandError(
     state: ConsoleCommandState,
     interruptedExitCode: number | undefined,
 ): number {
+    if (error instanceof ConsoleInputError && interruptedExitCode === undefined) {
+        state.result.outcome = 'incomplete';
+        state.result.missingInputs.push(error.missingInput);
+        state.result.nextSteps.push(...error.nextSteps);
+        reporter.error(error.message);
+        error.nextSteps.forEach(step => reporter.info(step));
+        return 1;
+    }
     state.result.outcome = 'failed';
     state.result.nextSteps.push('Check the Console configuration and rerun vendure console link.');
     if (interruptedExitCode !== undefined || error instanceof CommandInterruptedError) {
@@ -310,7 +347,7 @@ async function runConsoleCommand(
         return status(projectRoot, dependencies.env, dependencies.reporter);
     }
     if (normalizedAction === 'unlink') {
-        return unlink(projectRoot, options, dependencies);
+        return unlink(projectRoot, options, dependencies, signal);
     }
     return link(projectRoot, options, dependencies, signal, state);
 }
@@ -381,7 +418,35 @@ async function link(
         dependencies.env,
         existing.kind === 'valid' ? existing.manifest.console : undefined,
     );
+    const requestedProject = options.consoleProject?.trim() || undefined;
     if (existing.kind === 'valid' && !options.force) {
+        const linked = requestedProject
+            ? await namesLinkedProject(
+                  requestedProject,
+                  options.organization?.trim() || undefined,
+                  existing.manifest,
+                  endpoints,
+                  dependencies,
+                  signal,
+              )
+            : 'same';
+        if (linked !== 'same') {
+            const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
+            throw linked === 'different'
+                ? new ConsoleInputError(
+                      `This project is already linked to ${current}.`,
+                      { input: 'projectLinkReplacement', flag: '--force' },
+                      ['Add --force to replace the link with the Project that --console-project names.'],
+                  )
+                : new ConsoleInputError(
+                      `This project is already linked to ${current}, and the CLI could not check whether ` +
+                          `--console-project ${String(requestedProject)} names that Project.`,
+                      { input: 'consoleProject', flag: '--console-project' },
+                      [
+                          `Pass the linked Project's id, ${existing.manifest.project.id}, to --console-project to keep the link.`,
+                      ],
+                  );
+        }
         // A repeated link reuses the manifest and reruns plugin setup.
         return repair(
             projectRoot,
@@ -395,14 +460,41 @@ async function link(
         );
     }
     const replacementFlag = options.force ? ' --force' : '';
-    if (options.nonInteractive) {
+    if (options.nonInteractive && !requestedProject) {
         state.result.outcome = 'incomplete';
-        state.result.missingInputs.push({ input: 'projectLinkApproval', command: 'vendure console link' });
+        state.result.missingInputs.push({
+            input: 'projectLinkApproval',
+            flag: '--console-project',
+            command: 'vendure console link',
+        });
         const nextStep =
-            `Run vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} ` +
-            'interactively, sign in and choose the Console Project. Then rerun this command.';
+            'Rerun with --console-project <id|slug> to link that Project with the stored CLI login, or run ' +
+            `vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} interactively ` +
+            'to sign in and choose the Console Project.';
         state.result.nextSteps.push(nextStep);
-        dependencies.reporter.error('Choosing the Console Project to link requires an interactive run.');
+        dependencies.reporter.error(
+            'Choosing the Console Project to link requires --console-project <id|slug> or an interactive run.',
+        );
+        dependencies.reporter.info(nextStep);
+        return 1;
+    }
+    // `--non-interactive` does not sign in, so it needs the stored login before anything changes.
+    const nonInteractiveLogin = options.nonInteractive
+        ? await nonInteractiveStoredLogin(endpoints, options, dependencies, signal)
+        : undefined;
+    if (options.nonInteractive && !nonInteractiveLogin) {
+        const requestedOrganization = options.organization?.trim();
+        const command = requestedOrganization
+            ? `vendure auth login --organization ${JSON.stringify(requestedOrganization)}`
+            : 'vendure auth login';
+        state.result.outcome = 'incomplete';
+        state.result.missingInputs.push({ input: 'consoleSession', command });
+        const nextStep = `Run ${command} in a terminal, then rerun this command.`;
+        state.result.nextSteps.push(nextStep);
+        dependencies.reporter.error(
+            `No CLI login${requestedOrganization ? ` for ${requestedOrganization}` : ''} for ${endpoints.apiUrl} is stored on this ` +
+                'machine, and --non-interactive does not sign in.',
+        );
         dependencies.reporter.info(nextStep);
         return 1;
     }
@@ -412,8 +504,21 @@ async function link(
             return confirmed === 'cancelled' ? 0 : 1;
         }
     }
+    // Only `--force` gets here with a valid manifest. The user leaves its
+    // Project, so its attribution ends also when telemetry is off.
+    const previousAttribution =
+        existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
+    if (
+        existing.kind === 'valid' &&
+        previousAttribution &&
+        (await detachTelemetry(existing.manifest, previousAttribution, 'replace', dependencies, signal))
+    ) {
+        // Console no longer attributes the old link, also when the new link does not complete.
+        removeTelemetryAttribution(projectRoot);
+    }
 
-    const login = await signIn(endpoints, options.organization, dependencies, signal);
+    const login =
+        nonInteractiveLogin ?? (await signIn(endpoints, options.organization, dependencies, signal));
     const stored = readAuthStatus(login.auth).organization;
     const organization = await resolveAccount(
         login,
@@ -427,10 +532,21 @@ async function link(
     const project = await chooseProject(
         await listProjects(endpoints, login, accountName, dependencies, signal),
         accountName,
+        requestedProject,
         endpoints,
         dependencies,
     );
-    const linkedManifest = await linkProject(endpoints, login, project, accountName, dependencies, signal);
+    const telemetryDisabled = isTelemetryDisabled(dependencies.env);
+    const installationId = telemetryDisabled ? undefined : ensureTelemetryInstallationId(projectRoot);
+    const linkedManifest = await linkProject(
+        endpoints,
+        login,
+        project,
+        accountName,
+        installationId,
+        dependencies,
+        signal,
+    );
     throwIfAborted(signal);
     const manifest = withConsoleOrigins(linkedManifest, {
         appOrigin: endpoints.consoleUrl,
@@ -443,6 +559,29 @@ async function link(
     dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
     dependencies.reporter.info(`Wrote ${manifestPath}`);
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
+    if (installationId) {
+        if (!writeTelemetryAttribution(projectRoot, { linkId: manifest.link.id, installationId })) {
+            dependencies.reporter.warn(
+                'Could not record the telemetry attribution in .vendure, so vendure console status and unlink do not know about it.',
+            );
+        }
+        dependencies.reporter.info(
+            `Telemetry from this installation is attributed to Console Project ${manifest.project.name}. ` +
+                'Set VENDURE_DISABLE_TELEMETRY=true to turn telemetry off.',
+        );
+    } else {
+        // A record of the replaced link is no longer of use. A failed detach printed its details.
+        removeTelemetryAttribution(projectRoot);
+        if (telemetryDisabled) {
+            dependencies.reporter.info(
+                'VENDURE_DISABLE_TELEMETRY is set, so this link does not attribute telemetry to the Console Project.',
+            );
+        } else {
+            dependencies.reporter.warn(
+                'Could not read or create a telemetry installation ID that Console accepts, so this link does not attribute telemetry to the Console Project.',
+            );
+        }
+    }
 
     const code = await runConsoleLinkHooks(
         {
@@ -521,6 +660,86 @@ async function signIn(
             throw new NotLoggedInError();
         }
         return { auth, accessToken };
+    } catch (error) {
+        if (signal.aborted) {
+            throw new CommandInterruptedError();
+        }
+        throw error;
+    }
+}
+
+/**
+ * Whether `--console-project` names the Project the manifest links. The
+ * manifest holds only the Project's id, so a slug is looked up with the stored
+ * login for the manifest's account. `'unknown'` when there is no such login
+ * or Console sends no slug for the linked Project. A failed lookup throws, and
+ * so does a value that names no active Project of the account.
+ * Only `'different'`, another active Project or another account named by
+ * `--organization`, may lead to `--force`, which replaces the link.
+ */
+async function namesLinkedProject(
+    requested: string,
+    organization: string | undefined,
+    manifest: ProjectLinkManifest,
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<'same' | 'different' | 'unknown'> {
+    if (organization && !matchesManifestAccount(organization, manifest)) {
+        return 'different';
+    }
+    const linkedId = manifest.project.id.toLowerCase();
+    const wanted = requested.toLowerCase();
+    if (wanted === linkedId) {
+        return 'same';
+    }
+    try {
+        const login = await storedLogin(
+            consoleAuthOptions(endpoints, dependencies, signal),
+            manifest.account.id,
+        );
+        if (!login) {
+            return 'unknown';
+        }
+        const projects = await listProjects(endpoints, login, manifest.account.name, dependencies, signal);
+        const match = findProject(projects, requested);
+        if (match) {
+            return match.id.toLowerCase() === linkedId ? 'same' : 'different';
+        }
+        if (projects.find(project => project.id.toLowerCase() === linkedId)?.slug === undefined) {
+            // The value may still be the linked Project's slug.
+            return 'unknown';
+        }
+        throw projectNotFound(requested, manifest.account.name, projects);
+    } catch (error) {
+        if (signal.aborted || error instanceof CommandInterruptedError) {
+            throw new CommandInterruptedError();
+        }
+        // A failed lookup is not a different Project, so it must not lead to --force.
+        throw error;
+    }
+}
+
+/** Whether `--organization` names the manifest's account, by Account identifier or name. */
+function matchesManifestAccount(organization: string, manifest: ProjectLinkManifest): boolean {
+    const value = organization.toLowerCase();
+    return (
+        manifest.account.id.toLowerCase() === value || manifest.account.name.trim().toLowerCase() === value
+    );
+}
+
+/** The stored login for a `--non-interactive` link, which does not sign in. */
+async function nonInteractiveStoredLogin(
+    endpoints: ConsoleEndpoints,
+    options: ConsoleCommandOptions,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<ConsoleLogin | undefined> {
+    try {
+        return await storedLogin(
+            consoleAuthOptions(endpoints, dependencies, signal),
+            options.organization?.trim() || undefined,
+        );
     } catch (error) {
         if (signal.aborted) {
             throw new CommandInterruptedError();
@@ -699,16 +918,19 @@ async function listProjects(
         .map(project => ({
             id: uuid(project.id, 'Console returned an invalid project id.'),
             name: nonEmptyString(project.name, 'Console returned an invalid project name.'),
+            ...(typeof project.slug === 'string' && project.slug ? { slug: project.slug } : {}),
         }));
 }
 
 /**
- * The project to link. An organization with one active project links that
- * project. With more, the user chooses, which needs a terminal.
+ * The project to link: the one `--console-project` names by id or slug. Without
+ * it, an organization with one active project links that project. With more,
+ * the user chooses, which needs a terminal.
  */
 async function chooseProject(
     projects: ConsoleProject[],
     accountName: string,
+    requested: string | undefined,
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleProject> {
@@ -718,13 +940,24 @@ async function chooseProject(
                 'You can create it without a plan or trial. Then run vendure console link again.',
         );
     }
+    if (requested) {
+        const match = findProject(projects, requested);
+        if (!match) {
+            throw projectNotFound(requested, accountName, projects);
+        }
+        return match;
+    }
     if (projects.length === 1) {
         return projects[0];
     }
     if (dependencies.isNonInteractive()) {
-        throw new Error(
-            `${accountName} has ${projects.length} projects. Run vendure console link in a terminal to choose one:\n` +
-                projects.map(project => `  ${project.name} (${project.id})`).join('\n'),
+        throw new ConsoleInputError(
+            `${accountName} has ${projects.length} projects.`,
+            { input: 'consoleProject', flag: '--console-project' },
+            [
+                'Choose one with vendure console link --console-project <id|slug>, or run vendure console link ' +
+                    `in a terminal:\n${describeProjects(projects)}`,
+            ],
         );
     }
     const projectId = await dependencies.select(
@@ -738,12 +971,46 @@ async function chooseProject(
     return chosen;
 }
 
-/** Links the project through Console's `POST /v1/projects/:projectId/link` and returns the manifest. */
+/** The project that `--console-project` names by id or slug, ignoring case. */
+function findProject(projects: ConsoleProject[], requested: string): ConsoleProject | undefined {
+    const wanted = requested.toLowerCase();
+    return projects.find(
+        project => project.id.toLowerCase() === wanted || project.slug?.toLowerCase() === wanted,
+    );
+}
+
+function projectNotFound(
+    requested: string,
+    accountName: string,
+    projects: ConsoleProject[],
+): ConsoleInputError {
+    return new ConsoleInputError(
+        `--console-project ${requested} is not an active project of ${accountName}, the Customer Account ` +
+            'this login uses.',
+        { input: 'consoleProject', flag: '--console-project' },
+        [
+            `Pass the id or slug of one of the projects of ${accountName} to --console-project:\n${describeProjects(projects)}`,
+            'To link a project of another Customer Account, add --organization <Account identifier>.',
+        ],
+    );
+}
+
+function describeProjects(projects: ConsoleProject[]): string {
+    return projects
+        .map(project => `  ${project.name} (${project.slug ? `${project.slug}, ` : ''}${project.id})`)
+        .join('\n');
+}
+
+/**
+ * Links the project through Console's `POST /v1/projects/:projectId/link` and returns the manifest.
+ * With `installationId`, Console attributes the telemetry of that installation to the project.
+ */
 async function linkProject(
     endpoints: ConsoleEndpoints,
     login: ConsoleLogin,
     project: ConsoleProject,
     accountName: string,
+    installationId: string | undefined,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<ProjectLinkManifest> {
@@ -751,7 +1018,13 @@ async function linkProject(
     try {
         value = await requestWithLogin(
             `${endpoints.apiUrl}${PROJECTS_PATH}/${encodeURIComponent(project.id)}/link`,
-            { method: 'POST' },
+            installationId
+                ? {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ telemetryInstallationId: installationId }),
+                  }
+                : { method: 'POST' },
             login,
             dependencies,
             signal,
@@ -786,7 +1059,13 @@ async function requestWithLogin(
     const send = () =>
         requestJson(
             url,
-            { ...init, headers: { Authorization: `Bearer ${login.accessToken}` } },
+            {
+                ...init,
+                headers: {
+                    ...(init.headers as Record<string, string>),
+                    Authorization: `Bearer ${login.accessToken}`,
+                },
+            },
             dependencies,
             signal,
         );
@@ -842,12 +1121,20 @@ async function repair(
     if (!(await confirmRepair(currentManifest, options, dependencies))) {
         return 0;
     }
-    const session = dependencies.hooks.some(hook => hook.requiresSession)
+    const { session, sessionUnavailable } = dependencies.hooks.some(hook => hook.requiresSession)
         ? await repairSession(currentManifest, endpoints, options, dependencies, signal)
-        : undefined;
+        : {};
 
     const code = await runConsoleLinkHooks(
-        { projectRoot, manifest: currentManifest, manifestPath, endpoints, outcome: 'repaired', session },
+        {
+            projectRoot,
+            manifest: currentManifest,
+            manifestPath,
+            endpoints,
+            outcome: 'repaired',
+            session,
+            sessionUnavailable,
+        },
         options,
         dependencies,
         signal,
@@ -894,12 +1181,23 @@ function codingAssistantGuideUrl(endpoints: ConsoleEndpoints): string {
     return `https://${host}.vendure.io/how-to-use`;
 }
 
+/** The session for a repair's hooks, or why there is none. */
+interface RepairSession {
+    session?: ConsoleSession;
+    sessionUnavailable?: ConsoleSessionUnavailableReason;
+}
+
 /**
  * The session for a repair, which asks Console nothing itself. It is the CLI
  * login for the manifest's account, or the one `--organization` names. When no
  * such login is stored, an interactive run signs in with the device flow. A
  * failed sign-in does not stop the repair: the hooks run without a session and
  * report what they could not do.
+ *
+ * A login for another account is enough to tell whether the user is a member
+ * of the manifest's account at all. A manifest from a cloned repository often
+ * names a Project of somebody else's account, and signing in again as the same
+ * user does not help with that.
  */
 async function repairSession(
     manifest: ProjectLinkManifest,
@@ -907,30 +1205,89 @@ async function repairSession(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
-): Promise<ConsoleSession | undefined> {
-    const organization = options.organization?.trim() || manifest.account.id;
+): Promise<RepairSession> {
+    const requested = options.organization?.trim() || undefined;
+    const organization = requested ?? manifest.account.id;
+    const auth = consoleAuthOptions(endpoints, dependencies, signal);
     try {
-        const login = dependencies.isNonInteractive()
-            ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), organization)
-            : await signIn(endpoints, organization, dependencies, signal);
-        if (login) {
-            return hookSession(login);
+        const stored = await storedLogin(auth, organization);
+        if (stored) {
+            return { session: hookSession(stored) };
         }
-        dependencies.reporter.warn(
-            `No CLI login for ${manifest.account.name} is stored on this machine, so plugin setup runs ` +
-                'without a Console session. Run vendure console link interactively to sign in.',
-        );
+        const memberships = requested ? undefined : await storedLoginOrganizations(auth, signal);
+        if (memberships && !memberships.some(org => isManifestAccount(org, manifest))) {
+            reportInaccessibleAccount(manifest, memberships, dependencies.reporter);
+            return { sessionUnavailable: 'account-inaccessible' };
+        }
+        if (dependencies.isNonInteractive()) {
+            dependencies.reporter.warn(
+                `No CLI login for ${manifest.account.name} is stored on this machine, so plugin setup runs ` +
+                    'without a Console session. Run vendure console link interactively to sign in.',
+            );
+            return { sessionUnavailable: 'not-signed-in' };
+        }
+        return { session: hookSession(await signIn(endpoints, organization, dependencies, signal)) };
     } catch (error) {
         if (signal.aborted || error instanceof CommandInterruptedError) {
             throw new CommandInterruptedError();
         }
+        if (error instanceof OrganizationNotFoundError && !requested) {
+            reportInaccessibleAccount(manifest, error.organizations, dependencies.reporter);
+            return { sessionUnavailable: 'account-inaccessible' };
+        }
         dependencies.reporter.warn(
             `Could not sign in to Vendure Console: ${
                 error instanceof Error ? error.message : String(error)
-            } Plugin setup runs without a Console session.`,
+            }\nPlugin setup runs without a Console session.`,
         );
+        return { sessionUnavailable: 'sign-in-failed' };
     }
-    return undefined;
+}
+
+/**
+ * The Customer Accounts of the stored login's user, or `undefined` when no
+ * login is stored or Console cannot list them.
+ */
+async function storedLoginOrganizations(
+    auth: AuthOptions,
+    signal: AbortSignal,
+): Promise<AuthOrganization[] | undefined> {
+    if (!readAuthStatus(auth).loggedIn) {
+        return undefined;
+    }
+    try {
+        return await listOrganizations(auth);
+    } catch {
+        if (signal.aborted) {
+            throw new CommandInterruptedError();
+        }
+        return undefined;
+    }
+}
+
+function isManifestAccount(organization: AuthOrganization, manifest: ProjectLinkManifest): boolean {
+    return organization.customerAccountId.toLowerCase() === manifest.account.id.toLowerCase();
+}
+
+/** The signed-in user is not a member of the account the manifest links to. */
+function reportInaccessibleAccount(
+    manifest: ProjectLinkManifest,
+    organizations: AuthOrganization[],
+    reporter: ConsoleReporter,
+): void {
+    reporter.warn(
+        [
+            `This project is linked to ${manifest.project.name} in the Customer Account "${manifest.account.name}", ` +
+                'which your Vendure Console login cannot access.',
+            organizations.length
+                ? `Your Customer Accounts:\n${describeOrganizations(organizations)}`
+                : 'Your login is not a member of any Customer Account.',
+            'To link this project to one of your own Projects, run vendure console link --force. ' +
+                `To keep this link, ask an administrator of "${manifest.account.name}" to add you to that account.`,
+            'If you use another Vendure Console login for that account, run vendure auth login with it.',
+            'Plugin setup runs without a Console session.',
+        ].join('\n'),
+    );
 }
 
 /**
@@ -975,6 +1332,7 @@ interface ConsoleLinkHookInputs {
     endpoints: ConsoleEndpoints;
     outcome: ConsoleLinkOutcome;
     session?: ConsoleSession;
+    sessionUnavailable?: ConsoleSessionUnavailableReason;
 }
 
 /** Runs plugin hooks in registration order and stops after the first failure. */
@@ -989,7 +1347,11 @@ async function runConsoleLinkHooks(
         try {
             await hook(
                 createConsoleLinkContext(
-                    { ...inputs, session: requiresSession ? inputs.session : undefined },
+                    {
+                        ...inputs,
+                        session: requiresSession ? inputs.session : undefined,
+                        sessionUnavailable: requiresSession ? inputs.sessionUnavailable : undefined,
+                    },
                     options,
                     dependencies,
                     signal,
@@ -1068,6 +1430,7 @@ function createConsoleLinkContext(
         },
         outcome: inputs.outcome,
         session: inputs.session ? structuredClone(inputs.session) : undefined,
+        ...(inputs.sessionUnavailable ? { sessionUnavailable: inputs.sessionUnavailable } : {}),
         signal,
         reporter: dependencies.reporter,
         outputMode: options.json ? 'json' : 'human',
@@ -1132,6 +1495,7 @@ function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleRe
 
     const { manifest } = result;
     const endpoints = resolveConsoleEndpoints(env, manifest.console);
+    const attribution = readTelemetryAttribution(projectRoot, manifest);
     reporter.info(
         [
             `Account: ${manifest.account.name} (${manifest.account.id})`,
@@ -1142,6 +1506,11 @@ function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleRe
             `Console: ${endpoints.consoleUrl}`,
             `Console API: ${endpoints.apiUrl}`,
             `Manifest: ${result.path}`,
+            isTelemetryDisabled(env)
+                ? 'Telemetry: off (VENDURE_DISABLE_TELEMETRY)'
+                : attribution
+                  ? `Telemetry: attributed to ${manifest.project.name} (installation ${attribution.installationId})`
+                  : 'Telemetry: not attributed. Run vendure console link --force to attribute it.',
             LOGIN_STATUS_HINT,
         ].join('\n'),
     );
@@ -1173,6 +1542,7 @@ async function unlink(
     projectRoot: string,
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
 ): Promise<number> {
     const existing = readProjectLinkManifest(projectRoot);
     if (existing.kind === 'missing') {
@@ -1184,12 +1554,69 @@ async function unlink(
     if (confirmed !== 'confirmed') {
         return confirmed === 'cancelled' ? 0 : 1;
     }
+    const attribution =
+        existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
+    if (existing.kind === 'valid' && attribution) {
+        await detachTelemetry(existing.manifest, attribution, 'unlink', dependencies, signal);
+    }
     removeProjectLinkManifest(projectRoot);
+    removeTelemetryAttribution(projectRoot);
     dependencies.reporter.success(`Removed local Project Link Manifest at ${existing.path}.`);
     dependencies.reporter.info(
         'The Console Project, its Project Link and your CLI login were not changed. Run vendure auth logout to sign out.',
     );
     return 0;
+}
+
+/**
+ * Asks Console to stop attributing the telemetry of this installation to the
+ * linked project, and returns whether it did. A failure does not stop the
+ * unlink, or the link that replaces this one. A replacement uses only a stored login for the old
+ * account, so the user does not sign in to an account they are leaving.
+ */
+async function detachTelemetry(
+    manifest: ProjectLinkManifest,
+    attribution: TelemetryAttribution,
+    reason: 'unlink' | 'replace',
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<boolean> {
+    try {
+        const endpoints = resolveConsoleEndpoints(dependencies.env, manifest.console);
+        const login =
+            reason === 'replace' || dependencies.isNonInteractive()
+                ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), manifest.account.id)
+                : await signIn(endpoints, manifest.account.id, dependencies, signal);
+        if (!login) {
+            throw new Error(`No CLI login for ${manifest.account.name} is stored on this machine.`);
+        }
+        const linkUrl = `${endpoints.apiUrl}${PROJECTS_PATH}/${encodeURIComponent(manifest.project.id)}/link`;
+        await requestWithLogin(
+            `${linkUrl}/telemetry-installations/${encodeURIComponent(attribution.installationId)}`,
+            { method: 'DELETE' },
+            login,
+            dependencies,
+            signal,
+        );
+        dependencies.reporter.info(
+            `Telemetry from this installation is no longer attributed to Console Project ${manifest.project.name}.`,
+        );
+        return true;
+    } catch (error) {
+        if (signal.aborted || error instanceof CommandInterruptedError) {
+            throw new CommandInterruptedError();
+        }
+        const detail = error instanceof Error ? error.message : String(error);
+        dependencies.reporter.warn(
+            reason === 'replace'
+                ? `Could not tell Vendure Console to stop attributing telemetry to ${manifest.project.name} ` +
+                      `(project ${manifest.project.id}, installation ${attribution.installationId}): ${detail} ` +
+                      'Its attribution may stay in Console until someone unlinks it there.'
+                : `Could not tell Vendure Console to stop attributing telemetry to ${manifest.project.name}: ${detail} ` +
+                      'Set VENDURE_DISABLE_TELEMETRY=true to turn telemetry off.',
+        );
+        return false;
+    }
 }
 
 async function confirmManifestChange(
@@ -1255,6 +1682,9 @@ async function requestJson(
                 `Vendure Console API request failed with HTTP ${response.status}.`,
                 response.status,
             );
+        }
+        if (response.status === 204) {
+            return undefined;
         }
         return await readJsonBody(response, requestController.signal);
     } catch (error) {

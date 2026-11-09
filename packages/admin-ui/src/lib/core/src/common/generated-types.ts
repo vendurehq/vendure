@@ -3019,7 +3019,12 @@ export type Mutation = {
   createProductOption: ProductOption;
   /** Create a new ProductOptionGroup */
   createProductOptionGroup: ProductOptionGroup;
-  /** Create a set of ProductVariants based on the OptionGroups assigned to the given Product */
+  /**
+   * Creates ProductVariants for the given Product. Each input must name exactly one option from
+   * each OptionGroup assigned to the Product. A create is rejected if another variant of the
+   * Product already holds the same combination of options. A Product with no OptionGroups may
+   * hold any number of variants.
+   */
   createProductVariants: Array<Maybe<ProductVariant>>;
   createPromotion: CreatePromotionResult;
   /** Create a new Province */
@@ -3191,6 +3196,19 @@ export type Mutation = {
   /** Removes StockLocations from the specified Channel */
   removeStockLocationsFromChannel: Array<StockLocation>;
   requestCompleted: Scalars['Int']['output'];
+  /**
+   * Requests a password reset email to be sent to the Customer, the same as the Customer calling
+   * `requestPasswordReset` from the Shop API: it sets a reset token and publishes a
+   * `PasswordResetEvent`, which the EmailPlugin uses to send the email. The event carries the
+   * administrator's RequestContext, so the email uses the administrator's language.
+   *
+   * When `authOptions.requireVerification` is on, a Customer who has not verified their account is
+   * marked as verified when they complete the reset. No `AccountVerifiedEvent` is published.
+   *
+   * Throws for a Customer with no User (a guest checkout), and for a User with no native
+   * authentication method, since neither has a native credential to reset.
+   */
+  requestCustomerPasswordReset: Success;
   /**
    * Requests a password reset email to be sent to the Administrator with the given email address. To
    * prevent leaking information about which email addresses exist, the mutation resolves to `Success`
@@ -3966,6 +3984,11 @@ export type MutationRemoveShippingMethodsFromChannelArgs = {
 
 export type MutationRemoveStockLocationsFromChannelArgs = {
   input: RemoveStockLocationsFromChannelInput;
+};
+
+
+export type MutationRequestCustomerPasswordResetArgs = {
+  id: Scalars['ID']['input'];
 };
 
 

@@ -1,14 +1,24 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { IdOperators } from '@vendure/common/lib/generated-types';
-import { GraphQLField, GraphQLSchema } from 'graphql';
+import { GraphQLField, GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { Observable } from 'rxjs';
 import { GqlExecutionContext } from '../../common/nestjs-graphql-internals';
 
+import { getApiType } from '../common/get-api-type';
 import { GraphqlValueTransformer } from '../common/graphql-value-transformer';
 import { IdCodecService } from '../common/id-codec.service';
 import { parseContext } from '../common/parse-context';
 
 export const ID_CODEC_TRANSFORM_KEYS = 'idCodecTransformKeys';
+
+/**
+ * The Admin API fields whose `ID` arguments are job ids rather than entity ids, keyed by parent
+ * type name. Their arguments are not decoded unless {@link IdCodecService.transformJobIds} is true.
+ */
+const JOB_ID_FIELDS: Record<string, string[]> = {
+    Query: ['job', 'jobsById'],
+    Mutation: ['cancelJob'],
+};
 
 /**
  * This interceptor automatically decodes incoming requests so that any
@@ -24,7 +34,7 @@ export class IdInterceptor implements NestInterceptor {
 
     intercept(context: ExecutionContext, next: CallHandler<any>): Observable<any> {
         const { isGraphQL, info } = parseContext(context);
-        if (isGraphQL && info) {
+        if (isGraphQL && info && !this.isUntransformedJobIdField(info)) {
             const args = GqlExecutionContext.create(context).getArgs();
             // Read the argument types from the definition of the field being resolved. `info.operation`
             // does not include named fragment definitions, and two fields in one operation can each have
@@ -34,6 +44,14 @@ export class IdInterceptor implements NestInterceptor {
             this.decodeIdArguments(transformer, field, args);
         }
         return next.handle();
+    }
+
+    private isUntransformedJobIdField(info: GraphQLResolveInfo): boolean {
+        return (
+            !this.idCodecService.transformJobIds &&
+            !!JOB_ID_FIELDS[info.parentType.name]?.includes(info.fieldName) &&
+            getApiType(info) === 'admin'
+        );
     }
 
     private getTransformerForSchema(schema: GraphQLSchema): GraphqlValueTransformer {

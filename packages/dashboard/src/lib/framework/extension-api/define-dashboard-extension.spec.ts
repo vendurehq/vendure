@@ -16,6 +16,7 @@ import {
     setNavMenuConfig,
 } from '../nav-menu/nav-menu-extensions.js';
 import { setNavVisibility } from '../nav-menu/nav-menu-helpers.js';
+import { getLockedNavItemCapability } from '../platform-promotion/register-locked-navigation.js';
 import { globalRegistry } from '../registry/global-registry.js';
 import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
@@ -147,6 +148,30 @@ describe('defineDashboardExtension - navSections', () => {
         const settingsSection = result.sections.find(s => s.id === 'settings');
         expect(settingsSection).toBeDefined();
         expect(settingsSection?.title).toBe('Preferences');
+    });
+
+    // OSS-891: a Platform plugin which adds its nav item in Phase 2 keeps it, unlocked.
+    it('adds no locked Platform item where a function-form navSections added the real one', () => {
+        defineDashboardExtension({
+            navSections: (navConfig: NavMenuConfig): NavMenuConfig => ({
+                sections: [
+                    ...navConfig.sections,
+                    {
+                        id: 'quotes',
+                        title: 'Quotes',
+                        items: [{ id: 'quote-list', title: 'All Quotes', url: '/quotes' }],
+                    },
+                ],
+            }),
+        });
+
+        executeDashboardExtensionCallbacks();
+
+        const quotes = getNavMenuConfig().sections.filter(s => s.id === 'quotes');
+        expect(quotes).toHaveLength(1);
+        const items = 'items' in quotes[0] ? (quotes[0].items ?? []) : [];
+        expect(items).toHaveLength(1);
+        expect(getLockedNavItemCapability(items[0])).toBeUndefined();
     });
 
     it('function-form sees all array-form registrations regardless of order', () => {

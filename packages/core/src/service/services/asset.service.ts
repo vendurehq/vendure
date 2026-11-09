@@ -19,7 +19,7 @@ import { IncomingMessage } from 'http';
 import mime from 'mime-types';
 import path from 'path';
 import { Readable } from 'stream';
-import { IsNull } from 'typeorm';
+import { In, IsNull } from 'typeorm';
 import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
 import { camelCase } from 'typeorm/util/StringUtils';
 
@@ -220,10 +220,8 @@ export class AssetService {
             orderableAssets = entityWithAssets?.assets ?? [];
         } else if (0 < orderableAssets.length) {
             // the Assets are already loaded, but we need to limit them by Channel
-            if (orderableAssets[0].asset?.channels) {
-                orderableAssets = orderableAssets.filter(
-                    a => !!a.asset.channels.map(c => c.id).find(id => idsAreEqual(id, ctx.channelId)),
-                );
+            if (orderableAssets.every(oa => oa.asset?.channels)) {
+                orderableAssets = orderableAssets.filter(oa => this.isOrderableAssetInChannel(ctx, oa));
             } else {
                 const assetsInChannel = await this.connection
                     .getRepository(ctx, Asset)
@@ -249,8 +247,16 @@ export class AssetService {
         input: EntityAssetInput,
     ): Promise<T> {
         const { assetIds, featuredAssetId } = input;
-        if (featuredAssetId === null || (assetIds && assetIds.length === 0)) {
+        if (featuredAssetId === null) {
             entity.featuredAsset = null;
+            return entity;
+        }
+        if (assetIds && assetIds.length === 0) {
+            // An empty list only removes the Assets of the current Channel, so a featured Asset
+            // of another Channel is kept. See #5629
+            if (!(await this.isFeaturedAssetOfOtherChannel(ctx, entity))) {
+                entity.featuredAsset = null;
+            }
             return entity;
         }
         if (featuredAssetId === undefined) {
@@ -282,14 +288,19 @@ export class AssetService {
                 .map(id => assets.find(a => idsAreEqual(a.id, id)))
                 .filter(asset => asset?.usage === AssetUsage.LIBRARY)
                 .filter(notNullOrUndefined);
-            await this.removeExistingOrderableAssets(ctx, entity);
+            const { removed, kept } = await this.removeExistingOrderableAssets(ctx, entity);
             if (sortedAssets.length > 0) {
-                entity.assets = await this.createOrderableAssets(ctx, entity, sortedAssets);
+                const positions = this.getPositionsForChannelAssets(removed, kept, sortedAssets.length);
+                entity.assets = [
+                    ...kept,
+                    ...(await this.createOrderableAssets(ctx, entity, sortedAssets, positions)),
+                ];
             } else {
-                entity.assets = [];
+                entity.assets = kept;
             }
         } else if (assetIds && assetIds.length === 0) {
-            await this.removeExistingOrderableAssets(ctx, entity);
+            const { kept } = await this.removeExistingOrderableAssets(ctx, entity);
+            entity.assets = kept;
         }
         return entity;
     }
@@ -678,8 +689,11 @@ export class AssetService {
         ctx: RequestContext,
         entity: EntityWithAssets,
         assets: Asset[],
+        positions: number[],
     ): Promise<OrderableAsset[]> {
-        const orderableAssets = assets.map((asset, i) => this.getOrderableAsset(ctx, entity, asset, i));
+        const orderableAssets = assets.map((asset, i) =>
+            this.getOrderableAsset(ctx, entity, asset, positions[i]),
+        );
         return this.connection.getRepository(ctx, orderableAssets[0].constructor).save(orderableAssets);
     }
 
@@ -687,23 +701,93 @@ export class AssetService {
         ctx: RequestContext,
         entity: EntityWithAssets,
         asset: Asset,
-        index: number,
+        position: number,
     ): OrderableAsset {
         const entityIdProperty = this.getHostEntityIdProperty(entity);
         const orderableAssetType = this.getOrderableAssetType(ctx, entity);
         return new orderableAssetType({
             assetId: asset.id,
-            position: index,
+            position,
             [entityIdProperty]: entity.id,
         });
     }
 
-    private async removeExistingOrderableAssets(ctx: RequestContext, entity: EntityWithAssets) {
+    /**
+     * Returns the positions for the Assets saved in the current Channel. Each saved Asset takes a
+     * position freed by a removed OrderableAsset of this Channel, in ascending order. This keeps the
+     * kept OrderableAssets of other Channels in their place relative to them. Any remaining Assets
+     * go after the highest existing position.
+     */
+    private getPositionsForChannelAssets(
+        removed: OrderableAsset[],
+        kept: OrderableAsset[],
+        count: number,
+    ): number[] {
+        const freedPositions = removed.map(oa => oa.position).sort((a, b) => a - b);
+        let nextPosition = Math.max(-1, ...[...removed, ...kept].map(oa => oa.position)) + 1;
+        return Array.from({ length: count }, (_, i) => freedPositions[i] ?? nextPosition++);
+    }
+
+    /**
+     * Removes the OrderableAssets of the current Channel. Those of other Channels are not visible in
+     * the current Channel, so they are not part of the input and are kept. See #5629
+     */
+    private async removeExistingOrderableAssets(
+        ctx: RequestContext,
+        entity: EntityWithAssets,
+    ): Promise<{ removed: OrderableAsset[]; kept: OrderableAsset[] }> {
         const propertyName = this.getHostEntityIdProperty(entity);
         const orderableAssetType = this.getOrderableAssetType(ctx, entity);
-        await this.connection.getRepository(ctx, orderableAssetType).delete({
-            [propertyName]: entity.id,
-        });
+        const orderableAssets = await this.connection
+            .getRepository(ctx, orderableAssetType)
+            .createQueryBuilder('orderable_asset')
+            .leftJoinAndSelect('orderable_asset.asset', 'asset')
+            .leftJoinAndSelect('asset.channels', 'asset_channel')
+            .where(`orderable_asset.${propertyName} = :id`, { id: entity.id })
+            .getMany();
+        const removed: OrderableAsset[] = [];
+        const kept: OrderableAsset[] = [];
+        for (const orderableAsset of orderableAssets) {
+            (this.isOrderableAssetInChannel(ctx, orderableAsset) ? removed : kept).push(orderableAsset);
+        }
+        if (removed.length) {
+            await this.connection.getRepository(ctx, orderableAssetType).delete({
+                id: In(removed.map(orderableAsset => orderableAsset.id)),
+            });
+        }
+        return { removed, kept };
+    }
+
+    /**
+     * Requires `orderableAsset.asset.channels` to be loaded.
+     */
+    private isOrderableAssetInChannel(ctx: RequestContext, orderableAsset: OrderableAsset): boolean {
+        return orderableAsset.asset.channels.some(channel => idsAreEqual(channel.id, ctx.channelId));
+    }
+
+    /**
+     * Returns true when the featured Asset is not in the current Channel. featuredAsset is one column
+     * shared by all Channels, so an empty Asset list in one Channel must not clear an Asset from
+     * another Channel.
+     */
+    private async isFeaturedAssetOfOtherChannel(
+        ctx: RequestContext,
+        entity: EntityWithAssets,
+    ): Promise<boolean> {
+        if (!entity.id) {
+            return false;
+        }
+        const featuredAsset = await this.getFeaturedAsset(ctx, entity);
+        if (!featuredAsset) {
+            return false;
+        }
+        const featuredAssetInChannel = await this.connection.findOneInChannel(
+            ctx,
+            Asset,
+            featuredAsset.id,
+            ctx.channelId,
+        );
+        return !featuredAssetInChannel;
     }
 
     private getOrderableAssetType(ctx: RequestContext, entity: EntityWithAssets): Type<OrderableAsset> {

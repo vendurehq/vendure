@@ -13,6 +13,7 @@ import {
     resolvePackageBin,
     signalToExitCode,
 } from '../../shared/cli-process-utils';
+import { showConsoleHintIfUnlinked } from '../../shared/console-hint';
 import { showStarPromptOnce } from '../../shared/star-prompt';
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils';
 
@@ -86,6 +87,8 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
         );
 
         validateProjectFiles(projectDir, processes);
+        // Once per process start. File-watcher restarts happen inside startDevProcess.
+        showConsoleHintIfUnlinked(projectDir);
 
         const children = processes.map(processDefinition =>
             startDevProcess(projectDir, processDefinition, {

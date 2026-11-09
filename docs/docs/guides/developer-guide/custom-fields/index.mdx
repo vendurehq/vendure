@@ -337,6 +337,7 @@ All custom fields share some common properties:
 - [`index`](#index)
 - [`validate`](#validate)
 - [`requiresPermission`](#requirespermission)
+- [`secret`](#secret)
 - [`deprecated`](#deprecated)
 
 #### name
@@ -710,13 +711,42 @@ const config = {
 
 :::note
 
-The `requiresPermission` property only affects the _Admin API_. Access to a custom field via the _Shop API_ is controlled by the `public` property.
+The Shop API also checks `requiresPermission`, unless the field sets `public: true`. Customers do not have admin permissions,
+so if `public` is not set, the field returns `null` in the Shop API and customers cannot set its value.
+Set `public: true` to let every Shop API user read and write the field, or `public: false` to remove it from the Shop API.
 
 If you need special logic to control access to a custom field in the Shop API, you can set `public: false` and then implement
 a custom [field resolver](/developer-guide/extend-graphql-api/#add-fields-to-existing-types) which contains the necessary logic, and returns
 the entity's custom field value if the current customer meets the requirements.
 
 :::
+
+#### secret
+
+<CustomFieldProperty required={false} type="boolean" />
+
+Since v3.8.0, setting `secret: true` on a `string` or `text` field encrypts its value in the database. In the GraphQL API,
+users without the `ReadSecret` permission receive a redaction placeholder instead of the real value. Use it for sensitive
+values such as third-party API keys.
+
+```ts title="src/vendure-config.ts"
+const config = {
+    // ...
+    customFields: {
+        Customer: [
+            {
+                name: 'externalApiKey',
+                type: 'string',
+                secret: true, // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+Secret fields require an encryption key to be configured. They cannot be combined with `unique` or `length`, are not
+supported on `relation`, `struct` or list fields, and cannot be filtered or sorted. See the
+[Secret Fields guide](/developer-guide/secret-fields/) for setup and details.
 
 #### deprecated
 

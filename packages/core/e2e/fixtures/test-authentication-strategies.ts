@@ -288,6 +288,50 @@ export class TestSSOStrategyShop implements AuthenticationStrategy<{ email: stri
 }
 
 /**
+ * Like TestSSOStrategyShop, but looks up the User with findCustomerUser(), which only checks the
+ * current Channel, as the documented example of an AuthenticationStrategy does.
+ */
+export class TestSSOStrategyShopChannelScoped implements AuthenticationStrategy<{
+    email: string;
+    verified?: boolean;
+}> {
+    readonly name = 'test_sso_strategy_shop_channel_scoped';
+    private externalAuthenticationService: ExternalAuthenticationService;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+    }
+
+    defineInputType(): DocumentNode {
+        return gql`
+            input TestSSOInputShopChannelScoped {
+                email: String!
+                verified: Boolean
+            }
+        `;
+    }
+
+    async authenticate(
+        ctx: RequestContext,
+        data: { email: string; verified?: boolean },
+    ): Promise<User | false | string> {
+        const { email, verified } = data;
+        const user = await this.externalAuthenticationService.findCustomerUser(ctx, this.name, email);
+        if (user) {
+            return user;
+        }
+        return this.externalAuthenticationService.createCustomerAndUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: email,
+            emailAddress: email,
+            firstName: 'SSO Customer First Name',
+            lastName: 'SSO Customer Last Name',
+            verified: verified ?? true,
+        });
+    }
+}
+
+/**
  * Simulates an external provider which forwards an email address that has NOT been verified as
  * belonging to the authenticating user (e.g. a custom OAuth provider that omits `email_verified`).
  * Used to assert that such an identity cannot be linked to a pre-existing account.

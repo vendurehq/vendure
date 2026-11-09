@@ -15,6 +15,7 @@ import {
     EventBus,
     NativeAuthenticationMethod,
     OrderService,
+    PasswordResetEvent,
     RequestContextService,
     TransactionalConnection,
 } from '@vendure/core';
@@ -25,11 +26,13 @@ import {
     ErrorResultGuard,
 } from '@vendure/testing';
 import path from 'path';
+import { firstValueFrom, timeout } from 'rxjs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { requestCustomerPasswordResetDocument } from './graphql/admin-definitions';
 import { customerFragment } from './graphql/fragments-admin';
 import { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import { FragmentOf as FragmentOfShop } from './graphql/graphql-shop';
@@ -58,6 +61,7 @@ import {
     activeOrderCustomerDocument,
     addItemToOrderDocument,
     registerAccountDocument,
+    resetPasswordDocument,
     setCustomerDocument,
     updatedOrderFragment,
 } from './graphql/shop-definitions';
@@ -1003,7 +1007,7 @@ describe('Customer resolver', () => {
                 await adminClient.query(verifyCustomerAccountDocument, {
                     id: setCustomerForOrder.customer!.id,
                 });
-            }, 'This Customer has no user account, so there is nothing to verify'),
+            }, 'This Customer has no user account'),
         );
 
         describe('customer who registered with a password', () => {
@@ -1050,6 +1054,155 @@ describe('Customer resolver', () => {
                 const login = await shopClient.asUserWithCredentials(emailAddress, 'test-password');
                 expect(login.identifier).toBe(emailAddress);
             });
+        });
+    });
+
+    describe('requestCustomerPasswordReset', () => {
+        function nextPasswordResetEvent(): Promise<PasswordResetEvent> {
+            return firstValueFrom(server.app.get(EventBus).ofType(PasswordResetEvent).pipe(timeout(5000)));
+        }
+
+        async function createCustomer(emailAddress: string, password?: string): Promise<string> {
+            const { createCustomer: customer } = await adminClient.query(createCustomerDocument, {
+                input: { emailAddress, firstName: 'Reset', lastName: 'Customer' },
+                password,
+            });
+            customerErrorGuard.assertSuccess(customer);
+            return customer.id;
+        }
+
+        it('sends a reset email to a verified Customer and records the administrator', async () => {
+            const emailAddress = 'verified-admin-reset@test.com';
+            const customerId = await createCustomer(emailAddress, 'test-password');
+            const eventPromise = nextPasswordResetEvent();
+
+            const { requestCustomerPasswordReset } = await adminClient.query(
+                requestCustomerPasswordResetDocument,
+                { id: customerId },
+            );
+
+            expect(requestCustomerPasswordReset.success).toBe(true);
+            const event = await eventPromise;
+            expect(event.user.identifier).toBe(emailAddress);
+            expect(event.user.getNativeAuthenticationMethod().passwordResetToken).toBeTruthy();
+
+            const { customer } = await adminClient.query(getCustomerHistoryDocument, {
+                id: customerId,
+                options: {
+                    filter: { type: { eq: HistoryEntryType.CUSTOMER_PASSWORD_RESET_REQUESTED } },
+                },
+            });
+            customerHistoryGuard.assertSuccess(customer);
+            expect(customer.history.items.length).toBe(1);
+            expect(customer.history.items[0].administrator?.id).toBe('T_1');
+        });
+
+        it('verifies a Customer who completes a reset sent before they verified their account', async () => {
+            const emailAddress = 'unverified-admin-reset@test.com';
+            const customerId = await createCustomer(emailAddress);
+            const eventPromise = nextPasswordResetEvent();
+
+            await adminClient.query(requestCustomerPasswordResetDocument, { id: customerId });
+
+            const event = await eventPromise;
+            expect(event.user.identifier).toBe(emailAddress);
+            const token = event.user.getNativeAuthenticationMethod().passwordResetToken;
+            expect(token).toBeTruthy();
+            const { customer: history } = await adminClient.query(getCustomerHistoryDocument, {
+                id: customerId,
+                options: {
+                    filter: { type: { eq: HistoryEntryType.CUSTOMER_PASSWORD_RESET_REQUESTED } },
+                },
+            });
+            customerHistoryGuard.assertSuccess(history);
+            expect(history.history.items.length).toBe(1);
+
+            await shopClient.asAnonymousUser();
+            const { resetPassword } = await shopClient.query(resetPasswordDocument, {
+                token: token!,
+                password: 'new-password',
+            });
+            expect(resetPassword).toEqual(expect.objectContaining({ identifier: emailAddress }));
+            const { customer } = await adminClient.query(getCustomerWithUserDocument, { id: customerId });
+            expect(customer?.user?.verified).toBe(true);
+        });
+
+        it(
+            'throws for a Customer with no User',
+            assertThrowsWithMessage(async () => {
+                await shopClient.asAnonymousUser();
+                await shopClient.query(addItemToOrderDocument, {
+                    productVariantId: 'T_1',
+                    quantity: 1,
+                });
+                const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+                    input: {
+                        firstName: 'Guest',
+                        lastName: 'AdminReset',
+                        emailAddress: 'guest-admin-reset@test.com',
+                    },
+                });
+                setCustomerForOrderGuard.assertSuccess(setCustomerForOrder);
+
+                await adminClient.query(requestCustomerPasswordResetDocument, {
+                    id: setCustomerForOrder.customer!.id,
+                });
+            }, 'This Customer has no user account'),
+        );
+
+        it(
+            'throws for a User with no native authentication method',
+            assertThrowsWithMessage(async () => {
+                const emailAddress = 'external-only-admin-reset@test.com';
+                const customerId = await createCustomer(emailAddress, 'test-password');
+                const methods = server.app
+                    .get(TransactionalConnection)
+                    .rawConnection.getRepository(NativeAuthenticationMethod);
+                const method = await methods
+                    .createQueryBuilder('method')
+                    .innerJoin('method.user', 'user')
+                    .where('user.identifier = :identifier', { identifier: emailAddress })
+                    .getOneOrFail();
+                await methods.delete(method.id);
+
+                await adminClient.query(requestCustomerPasswordResetDocument, { id: customerId });
+            }, 'A password cannot be set for a User with no native authentication method'),
+        );
+
+        it(
+            'throws for an unknown Customer',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(requestCustomerPasswordResetDocument, { id: 'T_999' });
+            }, 'No Customer with the id "999" could be found'),
+        );
+
+        it('is refused without the UpdateCustomer permission', async () => {
+            const customerId = await createCustomer('permission-admin-reset@test.com', 'test-password');
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: {
+                    code: 'read-only-customers-reset',
+                    description: 'Read-only customers',
+                    permissions: [Permission.ReadCustomer],
+                },
+            });
+            await adminClient.query(createAdministratorDocument, {
+                input: {
+                    emailAddress: 'read-only-reset-admin@test.com',
+                    firstName: 'Read',
+                    lastName: 'Only',
+                    password: 'test-password',
+                    roleIds: [createRole.id],
+                },
+            });
+
+            await adminClient.asUserWithCredentials('read-only-reset-admin@test.com', 'test-password');
+            try {
+                await expect(
+                    adminClient.query(requestCustomerPasswordResetDocument, { id: customerId }),
+                ).rejects.toThrow('You are not currently authorized to perform this action');
+            } finally {
+                await adminClient.asSuperAdmin();
+            }
         });
     });
 });

@@ -5,18 +5,22 @@ import {
     Asset,
     Collection,
     Country,
+    CustomerService,
     CustomFields,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     Facet,
     FacetValue,
+    Logger,
     manualFulfillmentHandler,
     mergeConfig,
     Product,
+    productIdCollectionFilter,
     ProductOption,
     ProductOptionGroup,
     ProductVariant,
     RequestContext,
+    RequestContextService,
     ShippingMethod,
     TransactionalConnection,
 } from '@vendure/core';
@@ -24,7 +28,7 @@ import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
 import { Repository } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -34,6 +38,7 @@ import { TestPlugin1636_1664 } from './fixtures/test-plugins/issue-1636-1664/iss
 import { PluginIssue2453 } from './fixtures/test-plugins/issue-2453/plugin-issue2453';
 import { TestCustomEntity, WithCustomEntity } from './fixtures/test-plugins/with-custom-entity';
 import { addItemToOrderDocument } from './graphql/shop-definitions';
+import { awaitRunningJobs } from './utils/await-running-jobs';
 import { sortById } from './utils/test-order-utils';
 
 const entitiesWithCustomFields: Array<keyof CustomFields> = [
@@ -631,6 +636,82 @@ describe('Custom field relations', () => {
                     }
                 `);
                 assertCustomFieldIds(updateCustomer.customFields, 'T_4', ['T_2', 'T_4']);
+            });
+
+            // #5543 — relation custom field input keys `<name>Id` / `<name>Ids` must not log a warning
+            it('does not warn about relation input keys on admin createCustomer and updateCustomer', async () => {
+                const warnSpy = vi.spyOn(Logger, 'warn');
+                try {
+                    const { createCustomer } = await adminClient.query(gql`
+                        mutation {
+                            createCustomer(
+                                input: {
+                                    emailAddress: "issue-5543@test.com"
+                                    firstName: "Issue"
+                                    lastName: "5543"
+                                    customFields: { singleId: "T_1", multiIds: ["T_1", "T_2"] }
+                                }
+                            ) {
+                                ... on Customer {
+                                    id
+                                    ${customFieldsSelection}
+                                }
+                            }
+                        }
+                    `);
+                    assertCustomFieldIds(createCustomer.customFields, 'T_1', ['T_1', 'T_2']);
+
+                    const { updateCustomer } = await adminClient.query(gql`
+                        mutation {
+                            updateCustomer(
+                                input: {
+                                    id: "${createCustomer.id as string}"
+                                    customFields: { singleId: "T_2", multiIds: ["T_3"] }
+                                }
+                            ) {
+                                ... on Customer {
+                                    id
+                                    ${customFieldsSelection}
+                                }
+                            }
+                        }
+                    `);
+                    assertCustomFieldIds(updateCustomer.customFields, 'T_2', ['T_3']);
+
+                    const customFieldWarnings = warnSpy.mock.calls
+                        .map(([message]) => String(message))
+                        .filter(message => message.startsWith('Custom field '));
+                    expect(customFieldWarnings).toEqual([]);
+                } finally {
+                    warnSpy.mockRestore();
+                }
+            });
+
+            // #5543 — keys which only resemble a relation input key are still reported
+            it('still warns about keys which are not a configured input key', async () => {
+                const customerService = server.app.get(CustomerService);
+                const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+                const warnSpy = vi.spyOn(Logger, 'warn');
+                try {
+                    await customerService.create(ctx, {
+                        emailAddress: 'issue-5543-unknown@test.com',
+                        firstName: 'Issue',
+                        lastName: '5543',
+                        customFields: { primitiveId: 'x', singleIds: [1], multiId: 1 },
+                    });
+
+                    expect(warnSpy).toHaveBeenCalledWith(
+                        'Custom field primitiveId not found for entity Customer',
+                    );
+                    expect(warnSpy).toHaveBeenCalledWith(
+                        'Custom field singleIds not found for entity Customer',
+                    );
+                    expect(warnSpy).toHaveBeenCalledWith(
+                        'Custom field multiId not found for entity Customer',
+                    );
+                } finally {
+                    warnSpy.mockRestore();
+                }
             });
         });
 
@@ -1990,6 +2071,101 @@ describe('Custom field relations', () => {
             expect(customEntity.customEntityListInverse).toEqual([
                 expect.objectContaining({ id: collectionIdInternal }),
             ]);
+        });
+    });
+
+    describe('deleting a Collection referenced by a relation custom field', () => {
+        async function createCollectionWithProducts(slug: string, productIds: string[], parentId?: string) {
+            const { createCollection } = await adminClient.query(
+                gql`
+                    mutation ($input: CreateCollectionInput!) {
+                        createCollection(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        parentId,
+                        inheritFilters: false,
+                        translations: [{ languageCode: 'en', name: slug, description: '', slug }],
+                        filters: [
+                            {
+                                code: productIdCollectionFilter.code,
+                                arguments: [{ name: 'productIds', value: JSON.stringify(productIds) }],
+                            },
+                        ],
+                    },
+                },
+            );
+            return createCollection.id as string;
+        }
+
+        async function getVariantCount(id: string): Promise<number> {
+            const { collection } = await adminClient.query(
+                gql`
+                    query ($id: ID!) {
+                        collection(id: $id) {
+                            productVariants {
+                                totalItems
+                            }
+                        }
+                    }
+                `,
+                { id },
+            );
+            return collection.productVariants.totalItems;
+        }
+
+        async function referenceFromProduct(collectionId: string) {
+            await adminClient.query(
+                gql`
+                    mutation ($collectionId: ID) {
+                        updateProduct(input: { id: "T_3", customFields: { cfCollectionId: $collectionId } }) {
+                            id
+                        }
+                    }
+                `,
+                { collectionId },
+            );
+        }
+
+        function deleteCollection(id: string) {
+            return adminClient.query(
+                gql`
+                    mutation ($id: ID!) {
+                        deleteCollection(id: $id) {
+                            result
+                        }
+                    }
+                `,
+                { id },
+            );
+        }
+
+        it('keeps the variants of the collection when the delete fails', async () => {
+            const collectionId = await createCollectionWithProducts('delete-blocked', ['T_1', 'T_2']);
+            await awaitRunningJobs(adminClient);
+            const variantCount = await getVariantCount(collectionId);
+            expect(variantCount).toBe(6);
+            await referenceFromProduct(collectionId);
+
+            await expect(deleteCollection(collectionId)).rejects.toThrow(/foreign key/i);
+
+            expect(await getVariantCount(collectionId)).toBe(variantCount);
+        });
+
+        it('keeps the variants of the parent when deleting a descendant fails', async () => {
+            const parentId = await createCollectionWithProducts('delete-blocked-parent', ['T_1', 'T_2']);
+            const childId = await createCollectionWithProducts('delete-blocked-child', ['T_1'], parentId);
+            await awaitRunningJobs(adminClient);
+            const variantCount = await getVariantCount(parentId);
+            expect(variantCount).toBe(6);
+            await referenceFromProduct(childId);
+
+            await expect(deleteCollection(parentId)).rejects.toThrow(/foreign key/i);
+
+            expect(await getVariantCount(parentId)).toBe(variantCount);
         });
     });
 });

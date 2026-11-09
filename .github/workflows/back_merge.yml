@@ -98,6 +98,17 @@ jobs:
                     echo "::notice::$TARGET is already up to date with $SOURCE"
                   elif git merge "origin/$SOURCE" --no-edit; then
                     echo "result=clean" >> "$GITHUB_OUTPUT"
+                  # docs/manifest.json is a build output that docs_ci.yml compiles and commits
+                  # on each branch separately, so it differs between branches and conflicts on
+                  # almost every docs change. Keeping the target's copy is safe: it is compiled
+                  # from docs/src/manifest.ts, and if the merge brings docs source changes, the
+                  # push below (app token) triggers docs_ci.yml on the target, which recompiles it.
+                  elif [ "$(git diff --name-only --diff-filter=U)" = "docs/manifest.json" ] \
+                    && git checkout --ours docs/manifest.json \
+                    && git add docs/manifest.json \
+                    && git commit --no-edit; then
+                    echo "result=clean" >> "$GITHUB_OUTPUT"
+                    echo "::notice::Kept $TARGET's docs/manifest.json; Docs CI regenerates it"
                   else
                     git merge --abort
                     echo "result=conflict" >> "$GITHUB_OUTPUT"

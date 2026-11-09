@@ -280,9 +280,9 @@ test.describe('manage product variants', () => {
         // Click "Add variant" button
         await page.getByRole('button', { name: 'Add variant' }).click();
 
-        // The dialog should open
+        // The dialog should open and show its form once the product has reloaded
         const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible();
+        await expect(dialog.getByRole('button', { name: 'Create variant' })).toBeVisible();
 
         // Select an option for each option group using the combobox selectors.
         // For the first group, select our unique option ("E2E Unique Test") created in beforeAll.
@@ -522,6 +522,184 @@ test.describe('force-remove an in-use option group (#4703)', () => {
 
         // The group is gone, so its remove control no longer renders.
         await expect(page.getByRole('button', { name: 'Remove option group' })).toHaveCount(0);
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// #5325 — a forced option group removal can leave two variants on the same combination.
+// Each must still save when the edit does not touch its options.
+test.describe('variants that share a combination after a forced option group removal', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let variantId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E Shared Combination Product',
+                            slug: 'e2e-shared-combination-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+
+        const createGroup = (code: string, name: string, options: Array<{ code: string; name: string }>) =>
+            client.gql(
+                `mutation ($input: CreateProductOptionGroupInput!) {
+                    createProductOptionGroup(input: $input) { id options { id code } }
+                }`,
+                {
+                    input: {
+                        code,
+                        translations: [{ languageCode: 'en', name }],
+                        options: options.map(o => ({
+                            code: o.code,
+                            translations: [{ languageCode: 'en', name: o.name }],
+                        })),
+                    },
+                },
+            );
+        const size = (
+            await createGroup('e2e-shared-size', 'Shared Size', [
+                { code: 'e2e-shared-small', name: 'Small' },
+                { code: 'e2e-shared-medium', name: 'Medium' },
+            ])
+        ).createProductOptionGroup;
+        const colour = (
+            await createGroup('e2e-shared-colour', 'Shared Colour', [
+                { code: 'e2e-shared-red', name: 'Red' },
+                { code: 'e2e-shared-blue', name: 'Blue' },
+            ])
+        ).createProductOptionGroup;
+
+        for (const group of [size, colour]) {
+            await client.gql(
+                `mutation ($productId: ID!, $optionGroupId: ID!) {
+                    addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+                }`,
+                { productId, optionGroupId: group.id },
+            );
+        }
+
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { ... on ProductVariant { id } }
+            }`,
+            {
+                input: colour.options.map((option: { id: string; code: string }) => ({
+                    productId,
+                    sku: `E2E-SHARED-${option.code}`,
+                    price: 1000,
+                    optionIds: [
+                        size.options.find((o: { code: string }) => o.code === 'e2e-shared-small').id,
+                        option.id,
+                    ],
+                    translations: [{ languageCode: 'en', name: `E2E Shared ${option.code}` }],
+                })),
+            },
+        );
+        variantId = variants.createProductVariants[0].id;
+
+        // Both variants now hold only "Small".
+        await client.gql(
+            `mutation ($productId: ID!, $optionGroupId: ID!) {
+                removeOptionGroupFromProduct(productId: $productId, optionGroupId: $optionGroupId, force: true) {
+                    ... on Product { id }
+                }
+            }`,
+            { productId, optionGroupId: colour.id },
+        );
+        await page.close();
+    });
+
+    test('saves an edit that does not touch the options', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        await expect(page.getByLabel('Shared Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
+
+        const skuInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('SKU', { exact: true }) })
+            .getByRole('textbox');
+        await skuInput.fill(`E2E-SHARED-${Date.now()}`);
+
+        await expect(page.getByText(/already exists/i)).toHaveCount(0);
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect(page.getByText('Successfully updated product variant')).toBeVisible({ timeout: 15_000 });
+    });
+
+    test('retyping the held option in another case is not an edit', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        const sizeInput = page.getByLabel('Shared Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        await sizeInput.fill('small');
+        await page.keyboard.press('Escape');
+
+        await expect(page.getByText(/already exists/i)).toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled();
+    });
+
+    test('a failed option change is not sent with a later unrelated edit', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        const sizeInput = page.getByLabel('Shared Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Fail the first update, which carries the move to "Medium".
+        let failedOnce = false;
+        await page.route('**/admin-api**', async route => {
+            const isUpdate = (route.request().postData() ?? '').includes('mutation UpdateProductVariant(');
+            if (isUpdate && !failedOnce) {
+                failedOnce = true;
+                await route.fulfill({ json: { errors: [{ message: 'Simulated failure' }] } });
+                return;
+            }
+            await route.continue();
+        });
+        await sizeInput.fill('Medium');
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect.poll(() => failedOnce).toBe(true);
+
+        // Back to the held option, then an edit that does not touch the options.
+        await sizeInput.fill('Small');
+        await page.keyboard.press('Escape');
+        const skuInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('SKU', { exact: true }) })
+            .getByRole('textbox');
+        await skuInput.fill(`E2E-SHARED-${Date.now()}`);
+
+        const updateRequest = page.waitForRequest(
+            req =>
+                req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProductVariant('),
+            { timeout: 15_000 },
+        );
+        await page.getByRole('button', { name: 'Update' }).click();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+        expect(input).not.toHaveProperty('optionIds');
     });
 
     test.afterAll(async ({ browser }) => {
@@ -1079,6 +1257,202 @@ test.describe('variant update sends only changed fields (OSS-567)', () => {
                 .filter({ hasText: /updated/i })
                 .first(),
         ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// An option group may hold two options with the same display name and different
+// codes. The suggestion list keys its rows on the display name, so it cannot tell those two
+// rows apart. Picking one must never move the variant onto the other option's id, which the
+// duplicate-combination guard would not see because the displayed text does not change.
+test.describe('two options in a group share a display name', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let variantOnSecondOptionId: string;
+
+    // Reads the option codes actually stored against a variant, so an assertion cannot be
+    // satisfied by the page merely displaying the right name.
+    async function storedOptionCodes(page: import('@playwright/test').Page, variantId: string) {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const data = await client.gql(`query ($id: ID!) { productVariant(id: $id) { options { code } } }`, {
+            id: variantId,
+        });
+        return (data.productVariant.options as Array<{ code: string }>).map(option => option.code).sort();
+    }
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E Duplicate Option Name Product',
+                            slug: 'e2e-duplicate-option-name-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+
+        const group = await client.gql(
+            `mutation ($input: CreateProductOptionGroupInput!) {
+                createProductOptionGroup(input: $input) { id options { id code } }
+            }`,
+            {
+                input: {
+                    code: 'e2e-dupname-size',
+                    translations: [{ languageCode: 'en', name: 'Collision Size' }],
+                    options: [
+                        { code: 'e2e-dupname-a', translations: [{ languageCode: 'en', name: 'Small' }] },
+                        { code: 'e2e-dupname-b', translations: [{ languageCode: 'en', name: 'Small' }] },
+                    ],
+                },
+            },
+        );
+        const optionIdByCode: Record<string, string> = {};
+        for (const option of group.createProductOptionGroup.options) {
+            optionIdByCode[option.code] = option.id;
+        }
+
+        // A second group, so a test can edit one group while the ambiguous one stays untouched.
+        const colourGroup = await client.gql(
+            `mutation ($input: CreateProductOptionGroupInput!) {
+                createProductOptionGroup(input: $input) { id options { id code } }
+            }`,
+            {
+                input: {
+                    code: 'e2e-dupname-colour',
+                    translations: [{ languageCode: 'en', name: 'Collision Colour' }],
+                    options: [
+                        { code: 'e2e-dupname-red', translations: [{ languageCode: 'en', name: 'Red' }] },
+                        { code: 'e2e-dupname-blue', translations: [{ languageCode: 'en', name: 'Blue' }] },
+                    ],
+                },
+            },
+        );
+        for (const option of colourGroup.createProductOptionGroup.options) {
+            optionIdByCode[option.code] = option.id;
+        }
+
+        for (const optionGroupId of [
+            group.createProductOptionGroup.id,
+            colourGroup.createProductOptionGroup.id,
+        ]) {
+            await client.gql(
+                `mutation ($productId: ID!, $optionGroupId: ID!) {
+                    addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+                }`,
+                { productId, optionGroupId },
+            );
+        }
+
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { id sku }
+            }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: 'E2E-DUPNAME-A',
+                        price: 1000,
+                        optionIds: [optionIdByCode['e2e-dupname-a'], optionIdByCode['e2e-dupname-red']],
+                        translations: [{ languageCode: 'en', name: 'E2E Duplicate Option Name A' }],
+                    },
+                    {
+                        productId,
+                        sku: 'E2E-DUPNAME-B',
+                        price: 1000,
+                        optionIds: [optionIdByCode['e2e-dupname-b'], optionIdByCode['e2e-dupname-red']],
+                        translations: [{ languageCode: 'en', name: 'E2E Duplicate Option Name B' }],
+                    },
+                ],
+            },
+        );
+        variantOnSecondOptionId = variants.createProductVariants.find(
+            (variant: { sku: string }) => variant.sku === 'E2E-DUPNAME-B',
+        ).id;
+        await page.close();
+    });
+
+    test('picking the identically named row leaves the variant on its own option', async ({ page }) => {
+        await page.goto(`/product-variants/${variantOnSecondOptionId}`);
+        const sizeInput = page.getByLabel('Collision Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Open the suggestions and pick the first row, which is the option this variant does
+        // not hold. Both rows read "Small".
+        await sizeInput.click();
+        const suggestions = page.locator('[data-slot="combobox-item"]');
+        await expect(suggestions).toHaveCount(2);
+        await suggestions.first().click();
+
+        // Nothing the admin can see has changed, so there must be nothing to save.
+        await expect(sizeInput).toHaveValue('Small');
+        await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled();
+    });
+
+    test('editing another group keeps the ambiguous group on its stored option', async ({ page }) => {
+        await page.goto(`/product-variants/${variantOnSecondOptionId}`);
+        const sizeInput = page.getByLabel('Collision Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Change only Colour. Size still reads "Small", which two options in its group share.
+        const colourInput = page.getByLabel('Collision Colour', { exact: true });
+        await colourInput.fill('Blue');
+        await page.getByRole('option', { name: 'Blue' }).click();
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect(page.getByText('Successfully updated product variant')).toBeVisible({ timeout: 15_000 });
+
+        expect(await storedOptionCodes(page, variantOnSecondOptionId)).toEqual([
+            'e2e-dupname-b',
+            'e2e-dupname-blue',
+        ]);
+    });
+
+    test('editing only the SKU submits no option ids', async ({ page }) => {
+        await page.goto(`/product-variants/${variantOnSecondOptionId}`);
+        const sizeInput = page.getByLabel('Collision Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        const skuInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('SKU', { exact: true }) })
+            .getByRole('textbox');
+        const newSku = `E2E-DUPNAME-B-${Date.now()}`;
+        await skuInput.fill(newSku);
+
+        const updateRequest = page.waitForRequest(
+            req =>
+                req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProductVariant('),
+            { timeout: 15_000 },
+        );
+        await page.getByRole('button', { name: 'Update' }).click();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        expect(Object.keys(input).sort()).toEqual(['id', 'sku']);
+        expect(await storedOptionCodes(page, variantOnSecondOptionId)).toEqual([
+            'e2e-dupname-b',
+            'e2e-dupname-blue',
+        ]);
     });
 
     test.afterAll(async ({ browser }) => {

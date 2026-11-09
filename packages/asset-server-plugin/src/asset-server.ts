@@ -58,7 +58,7 @@ export class AssetServer {
             if (typeof cacheHeader === 'string') {
                 this.cacheHeader = cacheHeader;
             } else {
-                this.cacheHeader = [cacheHeader.restriction, `max-age: ${cacheHeader.maxAge}`]
+                this.cacheHeader = [cacheHeader.restriction, `max-age=${cacheHeader.maxAge}`]
                     .filter(value => !!value)
                     .join(', ');
             }
@@ -147,6 +147,7 @@ export class AssetServer {
                         }
                         res.set('Content-Type', mimeType);
                         this.setAssetSecurityHeaders(res, mimeType);
+                        res.setHeader('Cache-Control', this.cacheHeader);
                         res.send(imageBuffer);
                         return;
                     } catch (e: any) {

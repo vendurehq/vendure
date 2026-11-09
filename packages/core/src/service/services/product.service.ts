@@ -373,9 +373,15 @@ export class ProductService {
             ([] as ID[]).concat(...productsWithVariants.map(p => p.assets.map(a => a.assetId))),
         );
         await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
-        // Also assign option groups and options to the target channel
-        const allOptionGroups = productsWithVariants.flatMap(p => p.optionGroups);
-        const allOptions = allOptionGroups.flatMap(g => g.options);
+        // Also assign option groups and options to the target channel.
+        // deletedAt is a normal column, so the relations above include soft-deleted
+        // rows. assignToChannels throws on those.
+        const allOptionGroups = productsWithVariants
+            .flatMap(p => p.optionGroups)
+            .filter(group => !group.deletedAt);
+        const allOptions = allOptionGroups
+            .flatMap(group => group.options)
+            .filter(option => !option.deletedAt);
         const uniqueGroupIds = unique(allOptionGroups.map(g => g.id));
         const uniqueOptionIds = unique(allOptions.map(o => o.id));
         await Promise.all([

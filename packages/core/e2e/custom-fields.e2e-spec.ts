@@ -7,6 +7,7 @@ import {
     OrderService,
     Product,
     ProductService,
+    RequestContext,
     RequestContextService,
     TransactionalConnection,
 } from '@vendure/core';
@@ -26,6 +27,7 @@ import { fixPostgresTimezone } from './utils/fix-pg-timezone';
 fixPostgresTimezone();
 
 const validateInjectorSpy = vi.fn();
+const validateListInjectorSpy = vi.fn();
 
 const customConfig = mergeConfig(testConfig(), {
     dbConnectionOptions: {
@@ -179,7 +181,8 @@ const customConfig = mergeConfig(testConfig(), {
                 name: 'intListWithValidation',
                 type: 'int',
                 list: true,
-                validate: value => {
+                validate: (value, injector, ctx) => {
+                    validateListInjectorSpy(injector.get(TransactionalConnection), ctx);
                     if (!value.includes(42)) {
                         return 'Must include the number 42!';
                     }
@@ -744,6 +747,19 @@ describe('Custom fields', () => {
                 values: [1, 42, 3],
             });
             expect(updateProduct.customFields.intListWithValidation).toEqual([1, 42, 3]);
+        });
+
+        // #5575 — the validate function of a list field receives the injector and ctx
+        it('can inject providers into list field validation fn', async () => {
+            validateListInjectorSpy.mockClear();
+            await adminClient.query(updateProductIntListDocument, {
+                id: 'T_1',
+                values: [42],
+            });
+            expect(validateListInjectorSpy).toHaveBeenCalledTimes(1);
+            const [connection, ctx] = validateListInjectorSpy.mock.calls[0];
+            expect(connection instanceof TransactionalConnection).toBe(true);
+            expect(ctx instanceof RequestContext).toBe(true);
         });
 
         it('can inject providers into validation fn', async () => {

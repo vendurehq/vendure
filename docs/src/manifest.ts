@@ -13,7 +13,7 @@ const folder = (relativePath: string) => join(packageRoot, relativePath);
 
 const manifestInput: DocsPackageManifestInput = {
     id: 'core',
-    name: 'Vendure Core Documentation',
+    name: 'Vendure Framework Documentation',
     version: lernaJson.version,
     vendureVersion: 'v3',
     basePath: packageRoot,
@@ -225,6 +225,11 @@ const manifestInput: DocsPackageManifestInput = {
                     title: 'Custom Fields',
                     slug: 'custom-fields',
                     file: file('docs/guides/developer-guide/custom-fields/index.mdx'),
+                },
+                {
+                    title: 'Secret Fields',
+                    slug: 'secret-fields',
+                    file: file('docs/guides/developer-guide/secret-fields/index.mdx'),
                 },
                 {
                     title: 'Error Handling',

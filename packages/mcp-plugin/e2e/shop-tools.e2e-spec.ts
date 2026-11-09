@@ -1248,19 +1248,58 @@ describe('MCP built-in shop tools', () => {
     // The suite's only test of the answer to an unknown channel token: a looser duplicate in
     // mcp-transport.e2e-spec.ts accepted any status at or above 400.
     it('rejects an invalid vendure-token instead of falling back to the default channel', async () => {
-        const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }), {
-            headers: { [CHANNEL_TOKEN_HEADER]: 'not-a-real-channel-token' },
-        });
+        // With a single Channel every token resolves to the default Channel, so this needs a
+        // second one. Created here rather than shared: the second channel is deleted by an
+        // earlier test.
+        const created = await adminClient.query(
+            gql`
+                mutation CreateInvalidTokenChannel($input: CreateChannelInput!) {
+                    createChannel(input: $input) {
+                        ... on Channel {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: 'shop-tools-invalid-token-channel',
+                    token: 'shop-tools-invalid-token-channel-token',
+                    ...channelInputDefaults,
+                },
+            },
+        );
+        expect(created.createChannel.id).toBeDefined();
+        try {
+            const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }), {
+                headers: { [CHANNEL_TOKEN_HEADER]: 'not-a-real-channel-token' },
+            });
 
-        expect(response.status).toBe(400);
-        expect(response.body).toMatchObject({
-            statusCode: 400,
-            message: expect.stringContaining(CHANNEL_TOKEN_HEADER),
-            path: '/mcp/shop',
-        });
-        // An unusable channel token is a bad request, not a failed authentication, so the caller
-        // must not be challenged for credentials.
-        expect(response.headers.get('www-authenticate')).toBeNull();
+            expect(response.status).toBe(400);
+            expect(response.body).toMatchObject({
+                statusCode: 400,
+                message: expect.stringContaining(CHANNEL_TOKEN_HEADER),
+                path: '/mcp/shop',
+            });
+            // An unusable channel token is a bad request, not a failed authentication, so the caller
+            // must not be challenged for credentials.
+            expect(response.headers.get('www-authenticate')).toBeNull();
+        } finally {
+            await adminClient.query(
+                gql`
+                    mutation DeleteInvalidTokenChannel($id: ID!) {
+                        deleteChannel(id: $id) {
+                            result
+                        }
+                    }
+                `,
+                { id: created.createChannel.id },
+            );
+        }
     });
 
     it('lets an anonymous caller get an order only while orderByCodeAccessStrategy allows it', async () => {

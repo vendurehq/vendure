@@ -49,6 +49,7 @@ import {
     createCustomerDocument,
     customerDetailDocument,
     removeCustomerFromGroupDocument,
+    requestCustomerPasswordResetDocument,
     updateCustomerDocument,
     verifyCustomerAccountDocument,
 } from './customers.graphql.js';
@@ -178,6 +179,18 @@ function CustomerDetailPage() {
                 {entity?.user && !entity.user.verified && (
                     <ActionBarItem itemId="verify-button" requiresPermission={['UpdateCustomer']}>
                         <VerifyAccountDialog customerId={entity.id} onVerified={refreshEntity} />
+                    </ActionBarItem>
+                )}
+                {entity?.user && (
+                    <ActionBarItem itemId="reset-password-button" requiresPermission={['UpdateCustomer']}>
+                        <ResetPasswordDialog
+                            customerId={entity.id}
+                            onSent={() =>
+                                queryClient.invalidateQueries({
+                                    queryKey: customerHistoryQueryKey(entity.id),
+                                })
+                            }
+                        />
                     </ActionBarItem>
                 )}
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateCustomer']}>
@@ -429,6 +442,50 @@ function VerifyAccountDialog({ customerId, onVerified }: { customerId: string; o
                         onClick={() => verifyCustomer({ id: customerId, password: password || undefined })}
                     >
                         <Trans>Verify</Trans>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function ResetPasswordDialog({ customerId, onSent }: { customerId: string; onSent: () => void }) {
+    const { t } = useLingui();
+    const [open, setOpen] = useState(false);
+
+    const { mutate: requestPasswordReset, isPending } = useMutation({
+        mutationFn: api.mutate(requestCustomerPasswordResetDocument),
+        onSuccess: () => {
+            toast.success(t`Password reset requested`);
+            setOpen(false);
+            onSent();
+        },
+        onError: err => {
+            toast.error(err instanceof Error ? err.message : t`Unknown error`);
+        },
+    });
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger render={<Button type="button" variant="secondary" />}>
+                <Trans>Reset password</Trans>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        <Trans>Reset password</Trans>
+                    </DialogTitle>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose render={<Button type="button" variant="secondary" />}>
+                        <Trans>Cancel</Trans>
+                    </DialogClose>
+                    <Button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => requestPasswordReset({ id: customerId })}
+                    >
+                        <Trans>Send reset link</Trans>
                     </Button>
                 </DialogFooter>
             </DialogContent>

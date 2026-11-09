@@ -2,8 +2,18 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { NavMenuItem, NavMenuSection } from '../../framework/nav-menu/nav-menu-extensions.js';
+import {
+    getNavMenuConfig,
+    type NavMenuItem,
+    type NavMenuSection,
+    setNavMenuConfig,
+} from '../../framework/nav-menu/nav-menu-extensions.js';
 import { resetNavMenuWarnings } from '../../framework/nav-menu/resolve-nav-menu.js';
+import {
+    createPlatformPromotionState,
+    platformPromotionFixture,
+} from '../../framework/platform-promotion/platform-promotion.fixture.js';
+import { registerLockedNavigation } from '../../framework/platform-promotion/register-locked-navigation.js';
 import {
     buildDashboardUserContext,
     type DashboardUserContext,
@@ -12,6 +22,18 @@ import { NavMain } from './nav-main.js';
 
 const useDashboardUserContextMock = vi.hoisted(() => vi.fn());
 const hasPermissionsMock = vi.hoisted(() => vi.fn((_permissions: string[]) => true));
+const platformPromotionMock = vi.hoisted(() => ({ granted: [] as string[], hideAll: false }));
+
+vi.mock('@/vdb/hooks/use-platform-promotion.js', () => ({
+    usePlatformPromotion: () =>
+        createPlatformPromotionState(platformPromotionMock.granted, platformPromotionMock.hideAll),
+}));
+
+vi.mock('@/vdb/components/platform-promotion/platform-promo.js', () => ({
+    LockedNavIcon: ({ promotion }: { promotion: { tier: string } }) => (
+        <span data-locked-tier={promotion.tier} />
+    ),
+}));
 
 // NavItemWrapper is a dev-mode-only decorator which returns its children unchanged in
 // production. Stubbing it as a marker element is what makes the resolved entry ids
@@ -149,6 +171,8 @@ describe('NavMain', () => {
         hasPermissionsMock.mockReset();
         hasPermissionsMock.mockReturnValue(true);
         resetNavMenuWarnings();
+        platformPromotionMock.granted = [];
+        platformPromotionMock.hideAll = false;
     });
 
     // With no isVisible predicate anywhere, NavMain renders exactly the entries a
@@ -257,5 +281,54 @@ describe('NavMain', () => {
         render(items);
 
         expect(useDashboardUserContextMock).toHaveBeenCalledWith({ includeCustomFields: true });
+    });
+
+    describe('locked Platform items', () => {
+        // The registered config, so the locked items are the objects which were registered.
+        function lockedConfig(): Array<NavMenuSection | NavMenuItem> {
+            return [...vanillaConfig(), ...getNavMenuConfig().sections];
+        }
+
+        const LOCKED_IDS = platformPromotionFixture.navItems.filter(i => i.promoted).map(i => i.id);
+
+        beforeEach(() => {
+            // The built-in sections exist before the locked items are registered.
+            setNavMenuConfig({
+                sections: [
+                    {
+                        id: 'customers',
+                        title: 'Customers',
+                        placement: 'top',
+                        order: 400,
+                        items: [{ id: 'customers', title: 'Customers', url: '/customers', order: 100 }],
+                    },
+                ],
+            });
+            registerLockedNavigation(platformPromotionFixture);
+        });
+
+        it('renders locked items in their sections with the lock icon', () => {
+            const markup = render(lockedConfig());
+            expect(getRenderedNavIds(markup)).toEqual(expect.arrayContaining(LOCKED_IDS));
+            expect(markup).toContain('data-locked-tier="starter"');
+            expect(markup.match(/data-locked-tier=/g)).toHaveLength(LOCKED_IDS.length);
+        });
+
+        it('hides the item of a granted capability', () => {
+            platformPromotionMock.granted = ['org.accounts'];
+            const renderedIds = getRenderedNavIds(render(lockedConfig()));
+            expect(renderedIds).not.toContain('companies');
+            expect(renderedIds).toContain('customers');
+            expect(renderedIds).toContain('quote-list');
+        });
+
+        it('hides all locked items and their empty Platform sections on "hide all"', () => {
+            platformPromotionMock.hideAll = true;
+            const renderedIds = getRenderedNavIds(render(lockedConfig()));
+            expect(renderedIds).toEqual(expect.arrayContaining([...VANILLA_IDS, 'customers']));
+            for (const id of [...LOCKED_IDS, 'quotes', 'approvals', 'configurators']) {
+                expect(renderedIds).not.toContain(id);
+            }
+        });
     });
 });

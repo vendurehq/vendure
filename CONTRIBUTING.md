@@ -91,7 +91,7 @@ git push origin master
 ## Setting up the dev environment
 
 > [!IMPORTANT]
-> The following instructions are for those who want to develop the Vendure core framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
+> The following instructions are for those who want to develop the Vendure Framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
 ### Prerequisites
 
@@ -452,7 +452,7 @@ To make a release:
 
 It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
-Next it will build all packages to ensure the distributed files are up to date.
+Next it will refresh the Platform catalog snapshot (`packages/common/src/platform-promotion-snapshot.ts`) from `https://api.vendure.io/v1/catalog`. The Dashboard build and the Core startup banner use this snapshot. Then it will build all packages to ensure the distributed files are up to date. Do not set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH` for a release. Check the output for `Platform catalog snapshot updated`. If it says `Platform catalog snapshot not changed`, the release keeps the old snapshot. After the command, `git show --stat HEAD` lists the snapshot file if the catalog data changed.
 
 Finally, the command will create changelog entries for this release and create a tagged commit.
 

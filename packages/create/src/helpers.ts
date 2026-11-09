@@ -387,13 +387,7 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];
     }
-    if (pmInfo.name === 'yarn') {
-        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
-    }
-    if (pmInfo.name === 'bun') {
-        pkg.trustedDependencies = getNativeBuildDependencies(dbType);
-    }
-    return pkg;
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
 }
 
 /**
@@ -410,21 +404,15 @@ export function getSingleProjectPackageJson(
         private: true,
         scripts: getServerPackageScripts(),
     };
-    if (pmInfo.name === 'yarn') {
-        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
-    }
-    if (pmInfo.name === 'bun') {
-        pkg.trustedDependencies = getNativeBuildDependencies(dbType);
-    }
-    return pkg;
+    return { ...pkg, ...getBuildScriptAllowlistFields(pmInfo, dbType) };
 }
 
 /**
  * Native dependencies whose install/build scripts must run for the scaffolded project to
  * work — otherwise e.g. better-sqlite3's native binding is never compiled and the server
- * crashes on startup. pnpm (v10+), yarn (v4.14+) and bun block dependency build scripts
- * unless allowlisted, so this list feeds their respective allowlist mechanisms
- * (`onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
+ * crashes on startup. npm (v12+), pnpm (v10+), yarn (v4.14+) and bun block dependency
+ * build scripts unless allowlisted, so this list feeds their respective allowlist mechanisms
+ * (`allowScripts`, `onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
  * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
  * guaranteed linear time; without its native binding those filters fall back to the built-in
@@ -442,11 +430,42 @@ export function getNativeBuildDependencies(dbType: DbType): string[] {
 }
 
 /**
+ * Returns the root package.json fields that allowlist native dependency build scripts for
+ * the given package manager. pnpm gets none: its allowlist lives in pnpm-workspace.yaml
+ * (see `getPnpmWorkspaceYaml()`).
+ */
+export function getBuildScriptAllowlistFields(
+    pmInfo: PackageManagerInfo,
+    dbType: DbType,
+): Record<string, unknown> {
+    switch (pmInfo.name) {
+        case 'npm':
+            return { allowScripts: getNpmAllowScripts(dbType) };
+        case 'yarn':
+            return { dependenciesMeta: getYarnDependenciesMeta(dbType) };
+        case 'bun':
+            return { trustedDependencies: getNativeBuildDependencies(dbType) };
+        case 'pnpm':
+            return {};
+    }
+}
+
+/**
  * Yarn ≥4.14 does not run dependency build scripts unless they are allowlisted via
  * `dependenciesMeta` in the top-level package.json (`built: true` per package).
  */
 export function getYarnDependenciesMeta(dbType: DbType): Record<string, { built: true }> {
     return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, { built: true }]));
+}
+
+/**
+ * npm ≥12 does not run dependency install scripts unless they are allowlisted via
+ * `allowScripts` in the top-level package.json. Entries are name-only (not pinned to a
+ * version) so they keep matching as dependencies are upgraded. Older npm versions ignore
+ * the field.
+ */
+export function getNpmAllowScripts(dbType: DbType): Record<string, true> {
+    return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, true]));
 }
 
 /**

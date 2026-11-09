@@ -16,6 +16,10 @@ export default ({ mode }: { mode: string }) => {
     const adminApiPort = process.env.VITE_ADMIN_API_PORT ? +process.env.VITE_ADMIN_API_PORT : 'auto';
 
     process.env.IS_LOCAL_DEV = adminApiHost.includes('localhost') ? 'true' : 'false';
+    if (process.env.VITEST) {
+        // Unit tests never fetch the Platform catalog from api.vendure.io.
+        process.env.VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH = 'true';
+    }
 
     const vendureConfigPath = process.env.VENDURE_CONFIG_PATH
         ?? (process.env.VITEST

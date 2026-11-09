@@ -1,9 +1,12 @@
+import { setupI18n } from '@lingui/core';
+import { I18nProvider } from '@lingui/react';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UserSettingsContext, type UserSettingsContextType } from '../../providers/user-settings.js';
 import type { ActionBarItemPosition } from '../extension-api/types/layout.js';
+import { createPlatformPromotionState } from '../platform-promotion/platform-promotion.fixture.js';
 import { globalRegistry } from '../registry/global-registry.js';
 import { ActionBarItem } from './action-bar-item-wrapper.js';
 import { registerDashboardActionBarItem, registerDashboardPageBlock } from './layout-extensions.js';
@@ -13,6 +16,11 @@ import { PageContext } from './page-provider.js';
 const useIsMobileMock = vi.hoisted(() => vi.fn(() => false));
 const useCopyToClipboardMock = vi.hoisted(() => vi.fn(() => [null, vi.fn()]));
 const hasPermissionsMock = vi.hoisted(() => vi.fn((_perms: string[]) => true));
+const platformPromotionMock = vi.hoisted(() => ({ hideAll: true }));
+
+vi.mock('@/vdb/hooks/use-platform-promotion.js', () => ({
+    usePlatformPromotion: () => createPlatformPromotionState([], platformPromotionMock.hideAll),
+}));
 
 vi.mock('@/vdb/hooks/use-mobile.js', () => ({
     useIsMobile: useIsMobileMock,
@@ -33,6 +41,8 @@ vi.mock('@/vdb/hooks/use-local-format.js', () => ({
         formatDate: (value: string | Date) => String(value),
     }),
 }));
+
+const i18n = setupI18n({ locale: 'en', messages: { en: {} } });
 
 function registerBlock(
     id: string,
@@ -68,7 +78,7 @@ function registerActionBarItem(id: string, position?: ActionBarItemPosition, pag
     });
 }
 
-function renderPageLayout(children: React.ReactNode, { isDesktop = true } = {}) {
+function renderPageLayout(children: React.ReactNode, { isDesktop = true, pageId = 'customer-list' } = {}) {
     useIsMobileMock.mockReturnValue(!isDesktop);
     const noop = () => undefined;
     const contextValue = {
@@ -99,9 +109,11 @@ function renderPageLayout(children: React.ReactNode, { isDesktop = true } = {}) 
 
     return renderToStaticMarkup(
         <UserSettingsContext.Provider value={contextValue}>
-            <PageContext.Provider value={{ pageId: 'customer-list' }}>
-                <PageLayout>{children}</PageLayout>
-            </PageContext.Provider>
+            <I18nProvider i18n={i18n}>
+                <PageContext.Provider value={{ pageId }}>
+                    <PageLayout>{children}</PageLayout>
+                </PageContext.Provider>
+            </I18nProvider>
         </UserSettingsContext.Provider>,
     );
 }
@@ -114,7 +126,7 @@ function renderActionBar(
             </button>
         </ActionBarItem>
     ),
-    { isDesktop = true } = {},
+    { isDesktop = true, pageId = 'customer-list' } = {},
 ) {
     useIsMobileMock.mockReturnValue(!isDesktop);
     const noop = () => undefined;
@@ -146,7 +158,7 @@ function renderActionBar(
 
     return renderToStaticMarkup(
         <UserSettingsContext.Provider value={contextValue}>
-            <PageContext.Provider value={{ pageId: 'customer-list' }}>
+            <PageContext.Provider value={{ pageId }}>
                 <PageActionBar>{children}</PageActionBar>
             </PageContext.Provider>
         </UserSettingsContext.Provider>,
@@ -176,6 +188,7 @@ describe('PageLayout', () => {
         useCopyToClipboardMock.mockReset();
         useCopyToClipboardMock.mockReturnValue([null, vi.fn()]);
         hasPermissionsMock.mockReset();
+        platformPromotionMock.hideAll = true;
         const pageBlockRegistry = globalRegistry.get('dashboardPageBlockRegistry');
         pageBlockRegistry.clear();
         const actionBarItemRegistry = globalRegistry.get('dashboardActionBarItemRegistry');
@@ -422,5 +435,59 @@ describe('PageLayout', () => {
 
         expect(getRenderedActionBarIds(markup)).toEqual(['replacement']);
         expect(markup).not.toContain('[--primary:var(--secondary)]');
+    });
+
+    // OSS-891: one card for the locked Platform blocks of a page, at the bottom of its column
+    it('renders one locked Platform card at the bottom of the column with most locked blocks', () => {
+        platformPromotionMock.hideAll = false;
+        hasPermissionsMock.mockReturnValue(true);
+
+        const markup = renderPageLayout(
+            <>
+                <PageBlock column="side" blockId="state">
+                    <div data-testid="page-block-state">state</div>
+                </PageBlock>
+                <PageBlock column="main" blockId="order-table">
+                    <div data-testid="page-block-order-table">lines</div>
+                </PageBlock>
+            </>,
+            { pageId: 'order-detail' },
+        );
+
+        expect(markup.match(/data-testid="platform-promotion-page-card"/g)).toHaveLength(1);
+        const sideColumn = markup.slice(markup.indexOf('@3xl/layout:col-span-1'));
+        expect(sideColumn.indexOf('page-block-state')).toBeLessThan(
+            sideColumn.indexOf('platform-promotion-page-card'),
+        );
+        expect(markup.indexOf('page-block-order-table')).toBeLessThan(
+            markup.indexOf('@3xl/layout:col-span-1'),
+        );
+    });
+
+    it('renders no locked Platform card when all locked items are hidden', () => {
+        hasPermissionsMock.mockReturnValue(true);
+
+        const markup = renderWithOriginal();
+        const orderMarkup = renderPageLayout(<PageBlock column="main" blockId="x" />, {
+            pageId: 'order-detail',
+        });
+
+        expect(markup).not.toContain('platform-promotion-page-card');
+        expect(orderMarkup).not.toContain('platform-promotion-page-card');
+    });
+
+    it('adds the action menu of a page with locked Platform actions', () => {
+        hasPermissionsMock.mockReturnValue(true);
+        expect(renderActionBar(undefined, { pageId: 'product-detail' })).not.toContain(
+            'action-bar-dropdown-trigger',
+        );
+
+        platformPromotionMock.hideAll = false;
+        expect(renderActionBar(undefined, { pageId: 'product-detail' })).toContain(
+            'action-bar-dropdown-trigger',
+        );
+        expect(renderActionBar(undefined, { pageId: 'customer-list' })).not.toContain(
+            'action-bar-dropdown-trigger',
+        );
     });
 });

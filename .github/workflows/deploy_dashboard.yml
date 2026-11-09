@@ -23,6 +23,8 @@ on:
 
 env:
     NODE_OPTIONS: '--max_old_space_size=4096'
+    # CI never fetches the Platform catalog from api.vendure.io. The Dashboard uses its bundled snapshot.
+    VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH: 'true'
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

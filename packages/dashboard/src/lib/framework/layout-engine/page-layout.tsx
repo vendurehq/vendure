@@ -1,3 +1,7 @@
+import {
+    PlatformPromotionPageCard,
+    usePlatformPromotionActionItem,
+} from '@/vdb/components/platform-promotion/platform-promotion-page-card.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
 import { FormErrorSummary } from '@/vdb/components/shared/form-error-summary.js';
 import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confirmation.js';
@@ -10,6 +14,7 @@ import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
 import { usePermissions } from '@/vdb/hooks/use-permissions.js';
+import { usePlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import { useIsServerConfigLoaded } from '@/vdb/hooks/use-server-config.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useCopyToClipboard } from '@uidotdev/usehooks';
@@ -38,6 +43,7 @@ import {
 import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provider.js';
 import { PageContext, PageContextValue } from '@/vdb/framework/layout-engine/page-provider.js';
 import { Trans } from '@lingui/react/macro';
+import { getLockedPageCard } from '../platform-promotion/locked-capabilities.js';
 import { getDashboardActionBarItems, getDashboardPageBlocks } from './layout-extensions.js';
 import { LocationWrapper } from './location-wrapper.js';
 
@@ -240,6 +246,7 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     const childArray: React.ReactElement<PageBlockProps>[] = [];
     const extensionBlocks = getDashboardPageBlocks(page.pageId ?? '');
     const { hasPermissions } = usePermissions();
+    const lockedPageCard = getLockedPageCard(usePlatformPromotion(), page.pageId);
     React.Children.forEach(children, child => {
         if (isPageBlock(child)) {
             childArray.push(child);
@@ -335,6 +342,19 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
         }
     }
 
+    // The card for locked Platform blocks goes at the bottom of its column.
+    if (lockedPageCard) {
+        finalChildArray.push(
+            <PlatformPromotionPageCard
+                key="platform-promotion"
+                pageId={page.pageId}
+                card={lockedPageCard}
+                column={lockedPageCard.column}
+                blockId="platform-promotion"
+            />,
+        );
+    }
+
     const fullWidthBlocks = finalChildArray.filter(
         child => isPageBlock(child) && getBlockColumn(child) === 'full',
     );
@@ -418,6 +438,7 @@ export function PageActionBar({
 }>) {
     const page = usePage();
     const actionBarItems = page.pageId ? getDashboardActionBarItems(page.pageId) : [];
+    const platformPromotionAction = usePlatformPromotionActionItem(page.pageId);
     const childArray = React.Children.toArray(children);
 
     // Extract different child types
@@ -473,6 +494,7 @@ export function PageActionBar({
             type: 'dropdown' as const,
         })),
         ...actionBarItems.filter(item => item.type === 'dropdown'),
+        ...(platformPromotionAction.item ? [platformPromotionAction.item] : []),
     ];
 
     // Merge and sort inline items with extension items
@@ -547,6 +569,7 @@ export function PageActionBar({
                     <EntityInfoDropdown entity={page.entity} />
                 </div>
             )}
+            {platformPromotionAction.dialog}
         </div>
     );
 }

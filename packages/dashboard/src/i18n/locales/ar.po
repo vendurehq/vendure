@@ -292,6 +292,11 @@ msgstr "البائعون"
 msgid "Options"
 msgstr "الخيارات"
 
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgctxt "Vendure Platform plan name"
+msgid "Growth"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "Loading top products…"
 msgstr "جارٍ تحميل أفضل المنتجات…"
@@ -356,6 +361,10 @@ msgstr "تحديد الأدوار"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
 msgstr "تم إنشاء الدور بنجاح"
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "لم يتم تعريف مجموعات خيارات بعد. أضف مجموعات خيارات عندما تختلف الأشكال بخاصية مشتركة (مثل الحجم، اللون، المادة). بدون ذلك، أضف الأشكال واحدًا تلو الآخر أدناه."
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
@@ -636,6 +645,10 @@ msgstr "المسؤولون"
 #~ msgid "Gross price: <0/>"
 #~ msgstr "السعر الإجمالي: <0/>"
 
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgid "Start free trial"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-pagination.tsx
 #: src/lib/components/data-table/data-table.tsx
 msgid "Go to next page"
@@ -715,6 +728,10 @@ msgstr "إنشاء {enabledCount} متغيرات"
 msgid "Payment #{0} transitioned to {1}"
 msgstr "تم نقل الدفع #{0} إلى {1}"
 
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "{count, plural, one {# more for collections with Vendure Platform: {names}} other {# more for collections with Vendure Platform: {names}}}"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 msgid "Error loading customer history: {0}"
@@ -768,6 +785,10 @@ msgstr "نقل المجموعات"
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "Roles"
 msgstr "الأدوار"
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgid "More with Vendure Platform"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Grid view"
@@ -892,6 +913,11 @@ msgstr ""
 msgid "Successfully updated channel"
 msgstr "تم تحديث القناة بنجاح"
 
+#. placeholder {0}: lines.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+msgid "{0, plural, one {# item} other {# items}}"
+msgstr "{0, plural, zero {لا توجد عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}"
+
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
 msgstr "عرض أقل"
@@ -1001,11 +1027,9 @@ msgstr "هل أنت متأكد من حذف طلب المسودة هذا؟"
 msgid "Fulfillment created"
 msgstr "تم إنشاء التنفيذ"
 
-#. placeholder {0}: testResult.length
-#. placeholder {1}: testResult.length !== 1 ? 's' : ''
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
-msgid "Found {0} eligible shipping method{1}"
-msgstr "تم العثور على {0} طريقة شحن مؤهلة"
+#~ msgid "Found {0} eligible shipping method{1}"
+#~ msgstr "تم العثور على {0} طريقة شحن مؤهلة"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
@@ -1275,8 +1299,8 @@ msgid "Table settings"
 msgstr "إعدادات الجدول"
 
 #: src/lib/components/layout/nav-user.tsx
-msgid "Explore Platform & Cloud"
-msgstr "استكشاف المنصة والسحابة"
+#~ msgid "Explore Platform & Cloud"
+#~ msgstr "استكشاف المنصة والسحابة"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 5 seconds"
@@ -1379,6 +1403,11 @@ msgstr "مفاتيح API"
 msgid "Search {name}..."
 msgstr "بحث {name}..."
 
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+msgstr "{0, plural, zero {هل أنت متأكد أنك تريد إزالة # دولة من هذه المنطقة؟} one {هل أنت متأكد أنك تريد إزالة دولة واحدة من هذه المنطقة؟} two {هل أنت متأكد أنك تريد إزالة دولتين من هذه المنطقة؟} few {هل أنت متأكد أنك تريد إزالة # دول من هذه المنطقة؟} many {هل أنت متأكد أنك تريد إزالة # دولة من هذه المنطقة؟} other {هل أنت متأكد أنك تريد إزالة # دولة من هذه المنطقة؟}}"
+
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
 msgstr "تحرير الملف"
@@ -1433,6 +1462,10 @@ msgstr "لم يتم العثور على نتائج"
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Set a shipping address and select a shipping method"
 msgstr "قم بتعيين عنوان الشحن واختيار طريقة الشحن"
+
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "{count, plural, one {# more for products with Vendure Platform: {names}} other {# more for products with Vendure Platform: {names}}}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Off"
@@ -1506,6 +1539,10 @@ msgstr "لم يتم تحديد عناصر"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid ", {0} selected"
 msgstr "، {0} محدد"
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#~ msgid "Scale"
+#~ msgstr ""
 
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
@@ -1747,6 +1784,10 @@ msgstr "قبل"
 msgid "Failed to set customer for order: {0}"
 msgstr "فشل تعيين العميل للطلب: {0}"
 
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Size"
 msgstr "الحجم"
@@ -1776,6 +1817,11 @@ msgstr "العودة"
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} المزيد"
+
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
+msgstr "{0, plural, one {تمت إزالة دولة واحدة من المنطقة} two {تمت إزالة دولتين من المنطقة} few {تمت إزالة # دول من المنطقة} other {تمت إزالة # دولة من المنطقة}}"
 
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Use as the default billing address"
@@ -1843,6 +1889,10 @@ msgstr "عادي"
 msgid "Filters"
 msgstr "الفلاتر"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "selected collection"
+msgstr "المجموعة المحددة"
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Customer Groups"
@@ -1894,10 +1944,9 @@ msgstr "تم الإنشاء"
 msgid "Loading addresses..."
 msgstr "جارٍ تحميل العناوين..."
 
-#. placeholder {0}: collectionsToMove.length === 1 ? 'this collection' : `${collectionsToMove.length} collections`
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Select a target collection to move {0} to."
-msgstr "حدد مجموعة مستهدفة لنقل {0} إليها."
+#~ msgid "Select a target collection to move {0} to."
+#~ msgstr "حدد مجموعة مستهدفة لنقل {0} إليها."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
@@ -2138,6 +2187,10 @@ msgstr "لا توجد قيم خصائص"
 msgid "A reason for the refund is required"
 msgstr "سبب الاسترداد مطلوب"
 
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "More with Platform"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Could not remove option group"
 msgstr "تعذرت إزالة مجموعة الخيارات"
@@ -2149,6 +2202,11 @@ msgstr "فشل تحديث الفئة الضريبية"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "تم تسوية الاسترداد بنجاح"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, =1 {Select a target collection to move this collection to.} other {Select a target collection to move # collections to.}}"
+msgstr "{0, plural, =1 {حدد مجموعة مستهدفة لنقل هذه المجموعة إليها.} two {حدد مجموعة مستهدفة لنقل المجموعتين إليها.} few {حدد مجموعة مستهدفة لنقل # مجموعات إليها.} other {حدد مجموعة مستهدفة لنقل # مجموعة إليها.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -2206,6 +2264,10 @@ msgstr "طريقة الدفع"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Destination"
+msgstr ""
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgid "Or add it to this project:"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2296,6 +2358,10 @@ msgstr "إزالة من المنطقة"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Select from globally available languages for this channel"
 msgstr "حدد من اللغات المتاحة عالميًا لهذه القناة"
+
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "{count, plural, one {# more for customers with Vendure Platform: {names}} other {# more for customers with Vendure Platform: {names}}}"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Upload timed out"
@@ -3089,6 +3155,10 @@ msgstr "فئة ضريبية جديدة"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "لا توجد مواقع مخزون متاحة على القناة الحالية"
 
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#~ msgid "Enterprise"
+#~ msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Successfully created channel"
 msgstr "تم إنشاء القناة بنجاح"
@@ -3156,6 +3226,10 @@ msgstr "إعادة حساب الشحن"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "حدد الخيارات التي يجب تطبيقها على الشكل الموجود \"{0}\""
+
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "{totalItems, plural, one {# asset found} other {# assets found}}"
+msgstr "{totalItems, plural, zero {لم يتم العثور على أي ملفات} one {تم العثور على ملف واحد} two {تم العثور على ملفين} few {تم العثور على # ملفات} other {تم العثور على # ملف}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
@@ -3292,6 +3366,12 @@ msgstr "عميل جديد"
 msgid "Image"
 msgstr "الصورة"
 
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgid "Upgrade to {tierLabel}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Successfully created administrator"
 msgstr "تم إنشاء المسؤول بنجاح"
@@ -3342,6 +3422,11 @@ msgstr "فشل إزالة العميل من المجموعة"
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "1 property"
 msgstr ""
+
+#. placeholder {0}: testResult.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
+msgid "{0, plural, one {Found # eligible shipping method} other {Found # eligible shipping methods}}"
+msgstr "{0, plural, one {تم العثور على طريقة شحن مؤهلة واحدة} two {تم العثور على طريقتي شحن مؤهلتين} few {تم العثور على # طرق شحن مؤهلة} other {تم العثور على # طريقة شحن مؤهلة}}"
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Upload failed (HTTP {detail})"
@@ -3473,11 +3558,13 @@ msgstr "أمس"
 #~ msgid "Option name"
 #~ msgstr "اسم الخيار"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr "هل أنت متأكد أنك تريد إزالة {0} {1} من هذه المنطقة؟"
+#~ msgid "Are you sure you want to remove {0} {1} from this zone?"
+#~ msgstr "هل أنت متأكد أنك تريد إزالة {0} {1} من هذه المنطقة؟"
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#~ msgid "Growth"
+#~ msgstr ""
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3520,6 +3607,7 @@ msgstr "لم يتم تحديد علامات"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Back"
 msgstr "رجوع"
 
@@ -3958,6 +4046,11 @@ msgstr "اللغات المتاحة"
 msgid "Color 3"
 msgstr ""
 
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgctxt "Vendure Platform plan name"
+msgid "Scale"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "{saleable} in stock"
 msgstr "{saleable} في المخزون"
@@ -4247,6 +4340,10 @@ msgstr "الخصائص الخاصة غير مرئية في المتجر"
 msgid "Select a tax category"
 msgstr "حدد فئة ضريبية"
 
+#: src/lib/components/layout/nav-user.tsx
+msgid "Plans"
+msgstr ""
+
 #~ msgid "fulfillmentState.Created"
 #~ msgstr "تم الإنشاء"
 
@@ -4408,6 +4505,10 @@ msgstr "{0, plural, zero {تعذر حذف {2} موقع مخزون} one {تعذر
 #: src/lib/components/data-table/data-table-views-tabs.tsx
 msgid "Unsaved view"
 msgstr "عرض غير محفوظ"
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgid "Talk to sales"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "{rejected, plural, one {{0}} other {{1}}}"
@@ -4593,12 +4694,9 @@ msgstr "حدد الحالة التالية"
 msgid "No alerts"
 msgstr "لا توجد تنبيهات"
 
-#. placeholder {0}: collectionsToMove.length
-#. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
-#. placeholder {2}: selectedCollectionId === topLevelCollectionId ? 'top level' : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Moving {0} collection{1} into {2}"
-msgstr "نقل {0} مجموعة إلى {2}"
+#~ msgid "Moving {0} collection{1} into {2}"
+#~ msgstr "نقل {0} مجموعة إلى {2}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
@@ -5020,6 +5118,10 @@ msgstr "مسؤول عام"
 #~ msgid "Some resources are down"
 #~ msgstr "بعض الموارد معطلة"
 
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "{count, plural, one {# more with Vendure Platform: {names}} other {# more with Vendure Platform: {names}}}"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/resizable-image.tsx
 msgid "Resize image from left"
 msgstr "تغيير حجم الصورة من اليسار"
@@ -5062,11 +5164,9 @@ msgstr "اختبار طرق الشحن"
 msgid "Payment settled successfully"
 msgstr "تم تسوية الدفع بنجاح"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Removed {0} {1} from zone"
-msgstr "تمت إزالة {0} {1} من المنطقة"
+#~ msgid "Removed {0} {1} from zone"
+#~ msgstr "تمت إزالة {0} {1} من المنطقة"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -5194,6 +5294,10 @@ msgstr "نمط الجدول"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment failed"
 msgstr "فشل الدفع"
+
+#: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
+msgid "{count, plural, one {# more for orders with Vendure Platform: {names}} other {# more for orders with Vendure Platform: {names}}}"
+msgstr ""
 
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Add channel"
@@ -5646,6 +5750,10 @@ msgstr "إلغاء التعديل"
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "طبق الفلاتر على الجدول وانقر على \"حفظ العرض\" للبدء."
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#~ msgid "Starter"
+#~ msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Link URL"
@@ -6178,6 +6286,11 @@ msgstr "معاينة {0}"
 msgid "Successfully updated seller"
 msgstr "تم تحديث البائع بنجاح"
 
+#: src/lib/components/platform-promotion/platform-promo.tsx
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgid "{tierLabel} plan"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 msgid "Failed to transition order to state"
 msgstr "فشل نقل الطلب إلى الحالة"
@@ -6186,6 +6299,11 @@ msgstr "فشل نقل الطلب إلى الحالة"
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show all ({0})"
 msgstr "عرض الكل ({0})"
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgctxt "Vendure Platform plan name"
+msgid "Starter"
+msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Failed to create tax rate"
@@ -6320,6 +6438,10 @@ msgstr "بدون ضريبة:"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Successfully added option value"
 msgstr "تمت إضافة قيمة الخيار بنجاح"
+
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "top level"
+msgstr "المستوى الأعلى"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
@@ -6618,6 +6740,11 @@ msgstr "استرداد وإلغاء الطلب"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
 msgstr "تم التحقق من تحديث البريد الإلكتروني"
+
+#: src/lib/components/platform-promotion/platform-promo.tsx
+msgctxt "Vendure Platform plan name"
+msgid "Enterprise"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is between"
@@ -7089,10 +7216,6 @@ msgstr "المزيد من خيارات التنسيق"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "تم استرداد {totalQuantity} عنصر(عناصر)"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
-msgstr "لم يتم تعريف مجموعات خيارات بعد. أضف مجموعات خيارات لإنشاء أشكال مختلفة من منتجك (مثل الحجم، اللون، المادة)"
-
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"
 msgstr "البريد الإلكتروني الجديد:"
@@ -7241,6 +7364,10 @@ msgstr "إضافة دفع إلى الطلب"
 #~ msgid "Loading..."
 #~ msgstr "جارٍ التحميل..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "أنشئ متغيرات لتركيبات الخيارات غير الموجودة بعد. التركيبات الموجودة بالفعل معروضة للتوضيح ولا يمكن تعديلها."
@@ -7301,13 +7428,18 @@ msgid "Failed to add customer to group"
 msgstr "فشل إضافة العميل إلى المجموعة"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
-msgstr ""
+#~ msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Manage variants"
 msgstr "إدارة الأشكال"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into {destination}} other {Moving # collections into {destination}}}"
+msgstr "{0, plural, one {نقل مجموعة واحدة إلى: {destination}} two {نقل مجموعتين إلى: {destination}} few {نقل # مجموعات إلى: {destination}} other {نقل # مجموعة إلى: {destination}}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied global view \"{viewName}\""

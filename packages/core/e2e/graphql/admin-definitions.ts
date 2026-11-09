@@ -494,3 +494,11 @@ export const testRemoveStockLocationsFromChannelDocument = graphql(`
         }
     }
 `);
+
+export const requestCustomerPasswordResetDocument = graphql(`
+    mutation RequestCustomerPasswordReset($id: ID!) {
+        requestCustomerPasswordReset(id: $id) {
+            success
+        }
+    }
+`);

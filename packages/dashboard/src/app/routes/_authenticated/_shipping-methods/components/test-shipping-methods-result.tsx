@@ -1,6 +1,6 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import { Check } from 'lucide-react';
 import { MetadataBadges } from './metadata-badges.js';
 import { PriceDisplay } from './price-display.js';
@@ -59,10 +59,11 @@ export function TestShippingMethodsResult({
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 mb-4">
                         <span className="text-sm font-medium">
-                            <Trans>
-                                Found {testResult.length} eligible shipping method
-                                {testResult.length !== 1 ? 's' : ''}
-                            </Trans>
+                            <Plural
+                                value={testResult.length}
+                                one="Found # eligible shipping method"
+                                other="Found # eligible shipping methods"
+                            />
                         </span>
                     </div>
                     {testResult.map(method => (

@@ -155,7 +155,7 @@ function extract(outputFile = 'missing-translations.txt') {
     }
 
     const lines = [
-        '# Translation Request for Vendure Core Configurable Operations',
+        '# Translation Request for Vendure Framework Configurable Operations',
         '',
         'These are the descriptions and argument labels of the promotion conditions, shipping',
         'calculators, collection filters and payment handlers shown in the Vendure admin UI.',

@@ -35,7 +35,8 @@ export class Fulfillment extends VendureEntity implements HasCustomFields {
     @OneToMany(type => FulfillmentLine, fulfillmentLine => fulfillmentLine.fulfillment)
     lines: FulfillmentLine[];
 
-    @ManyToMany(type => Order, order => order.fulfillments)
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(type => Order, order => order.fulfillments, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
     orders: Order[];
 
     @Column(type => CustomFulfillmentFields)

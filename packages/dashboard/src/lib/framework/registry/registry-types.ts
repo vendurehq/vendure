@@ -18,6 +18,7 @@ import { DataDisplayComponent } from '../component-registry/component-registry.j
 import { DashboardAlertDefinition } from '../extension-api/types/alerts.js';
 import { DataTableDisplayComponent } from '../extension-api/types/data-table.js';
 import { NavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
+import { PlatformGrantedCapabilitiesStore } from '../platform-promotion/platform-granted-capabilities.js';
 
 export interface GlobalRegistryContents {
     extensionSourceChangeCallbacks: Set<() => void>;
@@ -41,4 +42,5 @@ export interface GlobalRegistryContents {
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
     dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;
+    platformGrantedCapabilities: PlatformGrantedCapabilitiesStore;
 }

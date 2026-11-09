@@ -21,6 +21,7 @@ class UserService {
     verifyUserByToken(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, User>>;
     verifyUserWithoutToken(ctx: RequestContext, userId: ID, password?: string) => Promise<User | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError>;
     setPasswordResetToken(ctx: RequestContext, emailAddress: string) => Promise<User | undefined>;
+    setPasswordResetTokenForUser(ctx: RequestContext, user: User) => Promise<User | undefined>;
     getUserByPasswordResetToken(ctx: RequestContext, passwordResetToken: string) => Promise<User | undefined>;
     resetPasswordByToken(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
@@ -140,6 +141,13 @@ route is therefore only safe behind the `UpdateCustomer` permission.
 
 Sets the [NativeAuthenticationMethod](/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod) `passwordResetToken` as part of the User password reset
 flow.
+### setPasswordResetTokenForUser
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}  since="3.9.0"  />
+
+Sets the [NativeAuthenticationMethod](/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod) `passwordResetToken` on the given User, which must be
+loaded with its `authenticationMethods`. Returns `undefined` if the User has no
+NativeAuthenticationMethod.
 ### getUserByPasswordResetToken
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, passwordResetToken: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}  since="3.8.0"  />

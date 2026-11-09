@@ -26,6 +26,10 @@ export type TypeTree = {
  */
 export type TypeTreeNode = {
     type: GraphQLNamedType | undefined;
+    /**
+     * The type of the object which this field belongs to. Only set for output fields.
+     */
+    parentType?: GraphQLNamedType;
     parent: TypeTreeNode | TypeTree;
     isList: boolean;
     fragmentRefs: string[];
@@ -46,12 +50,12 @@ export class GraphqlValueTransformer {
     transformValues(
         typeTree: TypeTree,
         data: Record<string, unknown>,
-        visitorFn: (value: any, type: GraphQLNamedType) => any,
+        visitorFn: (value: any, type: GraphQLNamedType, parentType?: GraphQLNamedType) => any,
     ) {
         this.traverse(data, (key, value, path) => {
             const typeTreeNode = this.getTypeNodeByPath(typeTree, path);
             const type = (typeTreeNode && typeTreeNode.type) as GraphQLNamedType;
-            return visitorFn(value, type);
+            return visitorFn(value, type, typeTreeNode?.parentType);
         });
     }
 
@@ -84,6 +88,7 @@ export class GraphqlValueTransformer {
                 if (node.kind === 'Field') {
                     const newNode: TypeTreeNode = {
                         type: (type && getNamedType(type)) || undefined,
+                        parentType: typeInfo.getParentType() ?? undefined,
                         isList: this.isList(type),
                         fragmentRefs: [],
                         parent: currentNode,

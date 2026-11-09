@@ -1,8 +1,10 @@
+import { getPlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import {
     getNavMenuConfig,
     setNavMenuConfig,
     validateNavigationShortcuts,
 } from '../nav-menu/nav-menu-extensions.js';
+import { registerLockedNavigation } from '../platform-promotion/register-locked-navigation.js';
 import { globalRegistry } from '../registry/global-registry.js';
 
 import { registerDashboardCustomProviders } from './custom-providers.js';
@@ -55,6 +57,9 @@ export function executeDashboardExtensionCallbacks() {
         }
         setNavMenuConfig(config);
     }
+
+    // Locked Platform nav items and pages fill the places that no installed plugin took.
+    registerLockedNavigation(getPlatformPromotion().promotion);
 
     const shortcutValidation = validateNavigationShortcuts(getNavMenuConfig());
     setNavMenuConfig(shortcutValidation.config);

@@ -100,6 +100,8 @@ The CLI will guide you through the process of adding new functionality to your p
 The `add` command is much more than a simple file generator. It is able to
 analyze your project source code to deeply understand and correctly update your project files.
 
+The first entry, "Vendure Platform features (B2B, advanced search, ...), free trial", links the project to Vendure Console with `vendure console link`, opens the free trial page of the Console Project in your browser, and then runs `npx @vendure-platform/create@latest add` to install the Vendure Platform packages. You can cancel at each step. The CLI makes no network call before you select this entry. `npx vendure add --platform` starts the same flow, and needs an interactive terminal.
+
 ### Non-Interactive Mode
 
 For automation or when you know exactly what you need to add, you can use the non-interactive mode with specific arguments and options:
@@ -140,6 +142,7 @@ npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
 
 | Flag | Long Form                  | Description                        | Example                                                                  |
 | ---- | -------------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+|      | `--platform`               | Start the Platform trial flow      | `vendure add --platform`                                                 |
 | `-p` | `--plugin <n>`             | Create a new plugin                | `vendure add -p MyPlugin`                                                |
 | `-e` | `--entity <n>`             | Add a new entity to a plugin       | `vendure add -e MyEntity --selected-plugin MyPlugin`                     |
 | `-s` | `--service <n>`            | Add a new service to a plugin      | `vendure add -s MyService --selected-plugin MyPlugin`                    |
@@ -436,6 +439,15 @@ Project. With more than one, you choose the Project in the terminal. Console rec
 writes `.vendure/project.json` in the resolved Vendure project. Your role in the organization must allow you to
 develop the Project.
 
+To link a Project without choosing it in the terminal, pass its id or its slug, the name in its Console URL:
+
+```bash
+npx vendure console link --console-project parts-counter
+```
+
+If the Customer Account has no active Project with that id or slug, the command stops, lists the Projects it has,
+and links nothing. Add `--organization` when the Project belongs to another of your Customer Accounts.
+
 To link a Project of a different organization, pass its Account identifier (in Vendure Console under **Settings**) or
 its name:
 
@@ -451,6 +463,39 @@ The CLI sends the access token only to the selected Console API, and never print
 If the organization has no active Project, the command stops and links nothing. Create a Project in Vendure Console
 at [console.vendure.io](https://console.vendure.io). You can create it without a plan or trial. Then run
 `vendure console link` again.
+
+### Telemetry attribution
+
+A link attributes the [telemetry](/guides/developer-guide/telemetry/) of this installation to the Console Project.
+The CLI sends the telemetry installation ID with the link request, and Vendure Console stores it with the Project.
+Vendure can then see whether a linked Project has started and taken orders. Linking is your consent to this. The CLI
+prints:
+
+```text
+Telemetry from this installation is attributed to Console Project <name>. Set VENDURE_DISABLE_TELEMETRY=true to turn telemetry off.
+```
+
+The installation ID is the one the Vendure server uses: `.vendure/.installation-id` in the nearest directory above the
+project that has `node_modules`. If that file does not exist, the CLI creates it. The server reads the file at its next
+start. A server that already keeps a different ID in its database, for example a production deployment, continues to
+send telemetry with that ID. Only the installation that ran `vendure console link` is attributed.
+
+With `VENDURE_DISABLE_TELEMETRY=true` (or `1`), the link sends no installation ID and the CLI creates none. A
+project that was never linked sends anonymous telemetry, as before. After an unlink, telemetry is anonymous only if
+Console removed the attribution. See [Unlink a project](#unlink-a-project).
+
+A link with `--force` first tells Console to stop the attribution of the link it replaces. It does this also when
+`VENDURE_DISABLE_TELEMETRY` is set. For this request the CLI uses only a stored login for the account of the replaced
+link. It does not sign you in to that account. If the request fails, the CLI shows a warning that names the replaced
+Project, its ID and the installation ID, and continues with the new link. The attribution can then stay with the
+replaced Project until someone removes it in Console.
+
+Console moves an existing attribution to the new Project only within the same Console account. If an attribution that
+the CLI could not stop belongs to a different account, it stays with that account until that account unlinks the
+installation. The CLI cannot see this case, so it still reports the new Project as attributed.
+
+A repeated link without `--force` does not contact Console, so it does not attribute a project that was linked before
+this feature or on another machine. Run `vendure console link --force` to attribute it.
 
 ### Use Vendure development workflows in your coding assistant
 
@@ -481,15 +526,28 @@ For automation, run:
 npx vendure console link --json --non-interactive --project ./apps/server
 ```
 
-`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. If the
-project has no manifest, the command returns `incomplete` with exit code 1 and an interactive repair command. It
-sends no request to Console. `--force` still means a different Project Link, so it requires an interactive run even
-with `--yes`. Neither flag authorizes a plugin to replace credentials or registry tokens.
+`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. To
+create a Project Link, pass the Project with `--console-project`. The command then uses the login stored by
+`vendure auth login`:
+
+```bash
+npx vendure console link --non-interactive --console-project parts-counter
+npx vendure console link --non-interactive --force --console-project parts-counter
+```
+
+Without `--console-project`, a project with no manifest returns `incomplete` with exit code 1, names the flag and
+an interactive command, and sends no request to Console. Without a stored login, the command returns `incomplete`
+and names `vendure auth login`. `--force` still means a different Project Link, so without `--console-project` it
+requires an interactive run even with `--yes`. Neither flag authorizes a plugin to replace credentials or registry
+tokens.
 
 `--json` writes one result to stdout and disables terminal prompts. Reporter progress, including the sign-in code,
 goes to stderr. Sign-in remains available unless `--non-interactive` is set. Without a terminal, the command links
-only an organization's single Project. When there are more, it fails and lists them. Human output remains the
-default.
+the Project that `--console-project` names, or an organization's single Project. When there are more and no
+`--console-project`, or when `--console-project` names none of them, the result is `incomplete`: `missingInputs`
+names `--console-project`, and `nextSteps` lists the Projects with their slugs. For a value that names none of them,
+`nextSteps` also points to `--organization`. When `--console-project` names another Project than the linked one,
+`missingInputs` names `--force`. Human output remains the default.
 The result has this shape:
 
 ```json
@@ -520,8 +578,9 @@ Use `status` to validate and display the local link:
 npx vendure console status
 ```
 
-The output includes the Account, Project, Console origins, schema version, and protocol version. This command reads
-local state only. It does not contact Vendure Console and does not sign you in. Use `vendure auth status` to see who is
+The output includes the Account, Project, Console origins, schema version, protocol version, and telemetry
+attribution. The telemetry line is `attributed` when the current link sent this installation's ID, `off` when
+`VENDURE_DISABLE_TELEMETRY` is set, and `not attributed` otherwise. This command reads local state only. It does not contact Vendure Console and does not sign you in. Use `vendure auth status` to see who is
 signed in.
 
 ### Unlink a project
@@ -532,8 +591,14 @@ Use `unlink` to remove the local manifest:
 npx vendure console unlink
 ```
 
-This command removes only `.vendure/project.json`. It does not delete the Console Project or its Project Link, and it
-does not revoke server-side credentials. Your CLI login stays. Run `vendure auth logout` to sign out.
+This command removes `.vendure/project.json`. If the link attributed telemetry, the CLI first tells Vendure Console to
+stop the attribution. For this, it uses your CLI login, and signs you in when it runs in a terminal. If Console cannot
+be reached or refuses the request, the CLI shows a warning and still removes the local link and its attribution
+record. Console then continues to attribute telemetry from this installation to the Project until the attribution is
+removed. In that case, set `VENDURE_DISABLE_TELEMETRY=true` to stop telemetry from this installation.
+
+The command does not delete the Console Project or its Project Link, and it does not revoke server-side credentials.
+Your CLI login stays. Run `vendure auth logout` to sign out.
 
 ### Project selection and confirmation
 
@@ -552,12 +617,25 @@ npx vendure console link --force
 npx vendure console unlink --force
 ```
 
+Before it links, `vendure console link --force` tells Console to stop the telemetry attribution of the link it
+replaces. See [Telemetry attribution](#telemetry-attribution).
+
 `--force` also permits replacement of an invalid manifest. It does not bypass ambiguous project selection or a manifest
-that belongs to another project root.
+that belongs to another project root. Use `--console-project` to choose the Project. On a linked project,
+`--console-project` with a different Project needs `--force`.
+
+A prompt in a terminal waits for your answer. In a run without a terminal, or with `CI` or
+`VENDURE_CLI_NON_INTERACTIVE` set, the command does not prompt. Where it needs an answer, it stops and names the flag
+that gives it.
 
 Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
 is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
 may have arrived with a clone.
+
+A cloned manifest can link a Project of a Customer Account that you are not a member of. The repair then names that
+account, and plugin setup runs without a Console session. Run `vendure console link --force` to link the project to
+one of your own Projects, or ask an administrator of that account to add you. If you use another Vendure Console login
+for that account, run `vendure auth login` with it.
 
 Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes and plugin setup on a
 repair. It does not answer questions asked by a plugin hook:
@@ -1032,7 +1110,7 @@ export default defineCliPlugin({
 ```
 
 The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
-`outcome`, the optional `session`, `signal`, `reporter`, `confirm`,
+`outcome`, the optional `session` and `sessionUnavailable`, `signal`, `reporter`, `confirm`,
 `isNonInteractive`, `force`, `outputMode`, immutable parsed `options`, and `contributeResult`. Each hook gets its own manifest and endpoint
 objects. A session is also copied when the hook requested one and a CLI login
 exists.
@@ -1095,6 +1173,14 @@ Core's `--yes` and `--force` apply only to Core decisions. On a repair, a sessio
 for the manifest's account, or for the organization that `--organization` names. An interactive repair signs in
 first when no such login is stored. A non-interactive repair does not sign in. If the login is missing, report
 incomplete setup through `contributeResult`. Core does not read plugin credential stores.
+
+When a session-requesting hook gets no session, `context.sessionUnavailable` says why:
+
+- `'not-signed-in'`: no CLI login for the account is stored, and the run does not sign in. Ask the user to sign in.
+- `'account-inaccessible'`: the signed-in user is not a member of the manifest's Customer Account, and Core has
+  said so. Signing in again as the same user does not help. Point to `vendure console link --force`, and do not
+  fall back to `getAccessToken()`, whose login belongs to another account.
+- `'sign-in-failed'`: the sign-in failed, and Core has reported why.
 
 Check `context.isNonInteractive` before calling `context.confirm`. The confirm
 function rejects in a non-interactive run. Put multi-choice setup in a plugin

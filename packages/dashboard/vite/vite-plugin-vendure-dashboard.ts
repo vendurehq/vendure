@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { PluginOption } from 'vite';
@@ -22,6 +23,7 @@ import { dashboardMetadataPlugin } from './vite-plugin-dashboard-metadata.js';
 import { gqlTadaPlugin } from './vite-plugin-gql-tada.js';
 import { hmrPlugin } from './vite-plugin-hmr.js';
 import { linguiBabelPlugin } from './vite-plugin-lingui-babel.js';
+import { platformPromotionPlugin } from './vite-plugin-platform-promotion.js';
 import { dashboardTailwindSourcePlugin } from './vite-plugin-tailwind-source.js';
 import { DashboardThemeOptions, themeVariablesPlugin } from './vite-plugin-theme.js';
 import { transformIndexHtmlPlugin } from './vite-plugin-transform-index.js';
@@ -177,6 +179,7 @@ export type VitePluginVendureDashboardOptions = {
         bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
+        platformPromotion?: boolean;
         uiConfig?: boolean;
         gqlTada?: boolean;
         transformIndexHtml?: boolean;
@@ -225,6 +228,19 @@ export type VitePluginVendureDashboardOptions = {
      * ```
      */
     theme?: DashboardThemeOptions;
+    /**
+     * @description
+     * Set to `false` to turn off the Vendure Platform items in the Dashboard: locked navigation
+     * items, locked pages, page cards and the related page actions. The build then sends no
+     * request to `api.vendure.io`. The environment variable
+     * `VENDURE_DASHBOARD_PLATFORM_PROMOTION=false` has the same effect. Do not use
+     * `disablePlugins.platformPromotion` for this: it removes a module that the Dashboard needs,
+     * and the build fails.
+     *
+     * @default true
+     * @since 3.9.0
+     */
+    platformPromotion?: boolean;
 } & UiConfigPluginOptions;
 
 /**
@@ -351,6 +367,10 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
             plugin: () => dashboardMetadataPlugin(),
         },
         {
+            key: 'platformPromotion',
+            plugin: () => platformPromotionPlugin({ enabled: options.platformPromotion }),
+        },
+        {
             key: 'uiConfig',
             plugin: () => uiConfigPlugin(options),
         },
@@ -401,6 +421,29 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
 
 /**
  * @description
+ * Walks up from `fromFile` until it finds a `package.json` whose `name` field
+ * matches `packageName`, and returns that directory.
+ */
+export function findPackageRoot(fromFile: string, packageName: string): string {
+    let dir = path.dirname(fromFile);
+    while (true) {
+        const packageJsonPath = path.join(dir, 'package.json');
+        if (
+            fs.existsSync(packageJsonPath) &&
+            JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).name === packageName
+        ) {
+            return dir;
+        }
+        const parentDir = path.dirname(dir);
+        if (parentDir === dir) {
+            throw new Error(`Could not find the root of the "${packageName}" package above ${fromFile}`);
+        }
+        dir = parentDir;
+    }
+}
+
+/**
+ * @description
  * Returns the path to the root of the `@vendure/dashboard` package.
  */
 function getDashboardPackageRoot(): string {
@@ -408,7 +451,8 @@ function getDashboardPackageRoot(): string {
     // containing e.g. spaces resolve correctly, and handles Windows drive letters.
     const fileUrl = import.meta.resolve('@vendure/dashboard');
     const packagePath = fileUrl.startsWith('file:') ? fileURLToPath(fileUrl) : fileUrl;
-    return path.join(packagePath, '../../../');
+
+    return findPackageRoot(packagePath, '@vendure/dashboard');
 }
 
 /**

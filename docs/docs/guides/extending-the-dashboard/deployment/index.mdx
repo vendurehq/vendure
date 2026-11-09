@@ -99,6 +99,16 @@ npx vite build
 
 This command creates optimized production files in the `dist/dashboard` directory that the DashboardPlugin will serve.
 
+### Vendure Platform catalog
+
+The Dashboard reads data about Vendure Platform capabilities from the Vendure catalog at build time. The build, and the start of the Vite dev server, send one request to `https://api.vendure.io/v1/catalog` and put the result into the built files. The browser makes no request to `api.vendure.io`.
+
+If the request fails or takes more than 2 seconds, the build uses a copy of the catalog that ships with `@vendure/common`. The build does not fail.
+
+For a build with no internet access, set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH=true`. The build then uses the bundled copy and sends no request.
+
+To build the Dashboard without the Vendure Platform items, set the `platformPromotion: false` option of `vendureDashboardPlugin`, or set `VENDURE_DASHBOARD_PLATFORM_PROMOTION=false`. The build then sends no request to `api.vendure.io`.
+
 ## Accessing the Dashboard
 
 Once configured and built, your dashboard will be accessible at:

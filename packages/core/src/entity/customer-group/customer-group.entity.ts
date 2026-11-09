@@ -22,7 +22,11 @@ export class CustomerGroup extends VendureEntity implements HasCustomFields {
 
     @Column() name: string;
 
-    @ManyToMany(type => Customer, customer => customer.groups)
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(type => Customer, customer => customer.groups, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     customers: Customer[];
 
     @Column(type => CustomCustomerGroupFields)

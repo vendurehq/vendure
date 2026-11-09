@@ -26,6 +26,7 @@ class CustomerService {
     resetPassword(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
     >;
+    requestCustomerPasswordReset(ctx: RequestContext, customerId: ID) => Promise<void>;
     requestUpdateEmailAddress(ctx: RequestContext, userId: ID, newEmailAddress: string) => Promise<boolean | EmailAddressConflictError>;
     updateEmailAddress(ctx: RequestContext, token: string) => Promise<boolean | IdentifierChangeTokenInvalidError | IdentifierChangeTokenExpiredError>;
     createOrUpdate(ctx: RequestContext, input: Partial<CreateCustomerInput> & { emailAddress: string }, errorOnExistingUser: boolean = false) => Promise<Customer | EmailAddressConflictError>;
@@ -145,6 +146,20 @@ a token which can be used in the `resetPassword()` method.
 
 Given a valid password reset token created by a call to the `requestPasswordReset()` method,
 this method will change the Customer's password to that given as the `password` argument.
+### requestCustomerPasswordReset
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="3.9.0"  />
+
+Requests a password reset email for the Customer on behalf of an administrator, the same as
+`CustomerService.requestPasswordReset`: sets a reset token and publishes a
+[PasswordResetEvent](/reference/typescript-api/events/event-types#passwordresetevent). The event carries the administrator's RequestContext, so an email
+sent from it uses the administrator's language.
+
+When `authOptions.requireVerification` is on, a Customer who has not verified their account is
+marked as verified when they complete the reset. No [AccountVerifiedEvent](/reference/typescript-api/events/event-types#accountverifiedevent) is published.
+
+A Customer with no User (a guest checkout), or whose User has no native authentication method,
+has no native credential to reset, and is rejected.
 ### requestUpdateEmailAddress
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, newEmailAddress: string) => Promise<boolean | EmailAddressConflictError>`}   />

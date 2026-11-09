@@ -242,3 +242,11 @@ export const deleteCustomersDocument = graphql(`
         }
     }
 `);
+
+export const requestCustomerPasswordResetDocument = graphql(`
+    mutation RequestCustomerPasswordReset($id: ID!) {
+        requestCustomerPasswordReset(id: $id) {
+            success
+        }
+    }
+`);

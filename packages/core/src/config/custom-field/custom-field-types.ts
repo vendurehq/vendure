@@ -163,10 +163,12 @@ export type TypedCustomListFieldConfig<
     T extends CustomFieldType,
     C extends CustomField,
 > = BaseTypedCustomFieldConfig<T, C> & {
-    list?: true;
+    list: true;
     defaultValue?: Array<DefaultValueType<T>>;
     validate?: (
         value: Array<DefaultValueType<T>>,
+        injector: Injector,
+        ctx: RequestContext,
     ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
 };
 
@@ -251,9 +253,11 @@ export type TypedStructListFieldConfig<
     T extends StructFieldType,
     C extends GraphQLStructField,
 > = BaseTypedStructFieldConfig<T, C> & {
-    list?: true;
+    list: true;
     validate?: (
         value: Array<DefaultValueType<T>>,
+        injector: Injector,
+        ctx: RequestContext,
     ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
 };
 

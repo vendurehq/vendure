@@ -1,6 +1,6 @@
 import { JobListOptions, JobState } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { Brackets, DataSource, EntityManager, FindOptionsWhere, In, LessThan } from 'typeorm';
+import { DataSource, EntityManager, FindOptionsWhere, In, LessThan } from 'typeorm';
 
 import { Injector } from '../../common/injector';
 import { InspectableJobQueueStrategy, JobQueueStrategy } from '../../config';
@@ -24,11 +24,13 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
     private rawConnection: DataSource | undefined;
     private connection: TransactionalConnection | undefined;
     private listQueryBuilder: ListQueryBuilder;
+    private skipLockedSupported: boolean | undefined;
 
     init(injector: Injector) {
         this.rawConnection = injector.get(TransactionalConnection).rawConnection;
         this.connection = injector.get(TransactionalConnection);
         this.listQueryBuilder = injector.get(ListQueryBuilder);
+        this.skipLockedSupported = undefined;
         super.init(injector);
     }
 
@@ -37,12 +39,17 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         super.destroy();
     }
 
-    async add<Data extends JobData<Data> = object>(job: Job<Data>, jobOptions?: JobQueueStrategyJobOptions<Data>): Promise<Job<Data>> {
+    async add<Data extends JobData<Data> = object>(
+        job: Job<Data>,
+        jobOptions?: JobQueueStrategyJobOptions<Data>,
+    ): Promise<Job<Data>> {
         if (!this.connectionAvailable(this.rawConnection)) {
             throw new Error('Connection not available');
         }
-        const jobRecordRepository = jobOptions?.ctx && this.connection ? this.connection.getRepository(jobOptions.ctx, JobRecord) :
-            this.rawConnection.getRepository(JobRecord);
+        const jobRecordRepository =
+            jobOptions?.ctx && this.connection
+                ? this.connection.getRepository(jobOptions.ctx, JobRecord)
+                : this.rawConnection.getRepository(JobRecord);
         const constrainedData = this.constrainDataSize(job);
         const newRecord = this.toRecord(job, constrainedData, this.setRetries(job.queueName, job));
         const record = await jobRecordRepository.save(newRecord);
@@ -89,11 +96,18 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         const isSQLite =
             connectionType === 'sqlite' || connectionType === 'sqljs' || connectionType === 'better-sqlite3';
 
+        const skipLocked = !isSQLite && (await this.supportsSkipLocked(connection));
+
         return new Promise(async (resolve, reject) => {
             if (isSQLite) {
                 try {
                     // SQLite driver does not support concurrent transactions. See https://github.com/typeorm/typeorm/issues/1884
-                    const result = await this.getNextAndSetAsRunning(connection.manager, queueName, false);
+                    const result = await this.getNextAndSetAsRunning(
+                        connection.manager,
+                        queueName,
+                        false,
+                        false,
+                    );
                     resolve(result);
                 } catch (e: any) {
                     reject(e);
@@ -105,7 +119,12 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
                 // running concurrent workers.
                 connection
                     .transaction(async transactionManager => {
-                        const result = await this.getNextAndSetAsRunning(transactionManager, queueName, true);
+                        const result = await this.getNextAndSetAsRunning(
+                            transactionManager,
+                            queueName,
+                            true,
+                            skipLocked,
+                        );
                         resolve(result);
                     })
                     .catch(err => reject(err));
@@ -113,52 +132,151 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         });
     }
 
+    /**
+     * Picks the oldest PENDING or RETRYING job of the queue (skipping RETRYING jobs which are still
+     * within their backoff delay) and marks it as RUNNING.
+     *
+     * See https://github.com/vendurehq/vendure/issues/5495: each state is looked up with its own
+     * `LIMIT 1` query, so that the database can seek to a single row via the
+     * (queueName, state, createdAt) index. Those lookups take no locks. Only the chosen job is
+     * then locked, by its primary key. A locking range query would also lock the gaps around the
+     * range under REPEATABLE READ (the MySQL/MariaDB default), which blocks inserts and makes
+     * concurrent workers deadlock when they set their jobs to RUNNING.
+     */
     private async getNextAndSetAsRunning(
         manager: EntityManager,
         queueName: string,
         setLock: boolean,
-        waitingJobIds: ID[] = [],
+        skipLocked: boolean,
     ): Promise<Job | undefined> {
-        const qb = manager
-            .getRepository(JobRecord)
-            .createQueryBuilder('record')
-            .where('record.queueName = :queueName', { queueName })
-            .andWhere(
-                new Brackets(qb1 => {
-                    qb1.where('record.state = :pending', {
-                        pending: JobState.PENDING,
-                    }).orWhere('record.state = :retrying', { retrying: JobState.RETRYING });
-                }),
-            )
-            .orderBy('record.createdAt', 'ASC');
-
-        if (waitingJobIds.length) {
-            qb.andWhere('record.id NOT IN (:...waitingJobIds)', { waitingJobIds });
-        }
-
-        if (setLock) {
-            qb.setLock('pessimistic_write');
-        }
-        const record = await qb.getOne();
-        if (record) {
-            const job = this.fromRecord(record);
-            if (record.state === JobState.RETRYING && typeof this.backOffStrategy === 'function') {
-                const msSinceLastFailure = Date.now() - +record.updatedAt;
-                const backOffDelayMs = this.backOffStrategy(queueName, record.attempts, job);
-                if (msSinceLastFailure < backOffDelayMs) {
-                    return await this.getNextAndSetAsRunning(manager, queueName, setLock, [
-                        ...waitingJobIds,
-                        record.id,
-                    ]);
-                }
+        // Jobs which are within their backoff delay, or which another worker took first
+        const skippedJobIds: ID[] = [];
+        for (;;) {
+            const candidate = await this.findNextRecord(manager, queueName, skippedJobIds);
+            if (!candidate) {
+                return;
             }
+            const record = setLock
+                ? await this.lockRecord(manager, queueName, candidate, skipLocked)
+                : candidate;
+            if (!record) {
+                skippedJobIds.push(candidate.id);
+                continue;
+            }
+            const job = this.fromRecord(record);
             job.start();
             record.state = JobState.RUNNING;
             await manager.getRepository(JobRecord).save(record, { reload: false });
             return job;
-        } else {
+        }
+    }
+
+    /**
+     * Returns the oldest PENDING job, or an older RETRYING job which is not within its backoff
+     * delay. The ids of RETRYING jobs within their backoff delay are added to `skippedJobIds`.
+     */
+    private async findNextRecord(
+        manager: EntityManager,
+        queueName: string,
+        skippedJobIds: ID[],
+    ): Promise<JobRecord | undefined> {
+        const pending = await this.findOldestRecord(manager, queueName, JobState.PENDING, skippedJobIds);
+        for (;;) {
+            const retrying = await this.findOldestRecord(
+                manager,
+                queueName,
+                JobState.RETRYING,
+                skippedJobIds,
+            );
+            if (!retrying || (pending && +pending.createdAt <= +retrying.createdAt)) {
+                return pending ?? undefined;
+            }
+            if (!this.isWithinBackoff(queueName, retrying)) {
+                return retrying;
+            }
+            skippedJobIds.push(retrying.id);
+        }
+    }
+
+    private findOldestRecord(
+        manager: EntityManager,
+        queueName: string,
+        state: JobState,
+        excludeIds: ID[],
+    ): Promise<JobRecord | null> {
+        const qb = manager
+            .getRepository(JobRecord)
+            .createQueryBuilder('record')
+            .where('record.queueName = :queueName', { queueName })
+            .andWhere('record.state = :state', { state })
+            .orderBy('record.createdAt', 'ASC')
+            .limit(1);
+        if (excludeIds.length) {
+            qb.andWhere('record.id NOT IN (:...excludeIds)', { excludeIds });
+        }
+        return qb.getOne();
+    }
+
+    /**
+     * Locks the row of the given job, unless another worker has taken the job in the meantime.
+     */
+    private async lockRecord(
+        manager: EntityManager,
+        queueName: string,
+        candidate: JobRecord,
+        skipLocked: boolean,
+    ): Promise<JobRecord | undefined> {
+        const qb = manager
+            .getRepository(JobRecord)
+            .createQueryBuilder('record')
+            .where('record.id = :id', { id: candidate.id })
+            .andWhere('record.state = :state', { state: candidate.state })
+            .setLock('pessimistic_write');
+        if (skipLocked) {
+            // A job which is locked is being taken by another worker, so there is no point in
+            // waiting for it.
+            qb.setOnLocked('skip_locked');
+        }
+        const record = await qb.getOne();
+        if (!record || (record.state === JobState.RETRYING && this.isWithinBackoff(queueName, record))) {
             return;
         }
+        return record;
+    }
+
+    private isWithinBackoff(queueName: string, record: JobRecord): boolean {
+        if (typeof this.backOffStrategy !== 'function') {
+            return false;
+        }
+        const msSinceLastFailure = Date.now() - +record.updatedAt;
+        const backOffDelayMs = this.backOffStrategy(queueName, record.attempts, this.fromRecord(record));
+        return msSinceLastFailure < backOffDelayMs;
+    }
+
+    /**
+     * `FOR UPDATE SKIP LOCKED` is supported by PostgreSQL, MySQL 8.0+ and MariaDB 10.6+. On older
+     * MySQL and MariaDB versions it is a syntax error, so the server version is checked once.
+     */
+    private async supportsSkipLocked(connection: DataSource): Promise<boolean> {
+        if (this.skipLockedSupported === undefined) {
+            this.skipLockedSupported = await this.detectSkipLockedSupport(connection);
+        }
+        return this.skipLockedSupported;
+    }
+
+    private async detectSkipLockedSupport(connection: DataSource): Promise<boolean> {
+        const type = getDatabaseType(connection);
+        if (type === 'postgres') {
+            return true;
+        }
+        if (type !== 'mysql' && type !== 'mariadb') {
+            return false;
+        }
+        // The raw version string is used rather than the TypeORM driver's `version`, because
+        // the driver strips the "-MariaDB" suffix, and a MariaDB server can also be used via
+        // the "mysql" driver.
+        const result: Array<{ version: string }> = await connection.query('SELECT VERSION() AS version');
+        return serverSupportsSkipLocked(String(result[0]?.version ?? ''));
     }
 
     async update(job: Job<any>): Promise<void> {
@@ -247,4 +365,21 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
     private fromRecord(this: void, jobRecord: JobRecord): Job<any> {
         return new Job<any>(jobRecord);
     }
+}
+
+/**
+ * Whether a MySQL or MariaDB server with the given `SELECT VERSION()` string supports
+ * `SELECT ... FOR UPDATE SKIP LOCKED` (MySQL 8.0+, MariaDB 10.6+).
+ */
+export function serverSupportsSkipLocked(versionString: string): boolean {
+    const match = versionString.match(/^(\d+)\.(\d+)/);
+    if (!match) {
+        return false;
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    if (/mariadb/i.test(versionString)) {
+        return major > 10 || (major === 10 && minor >= 6);
+    }
+    return major >= 8;
 }
