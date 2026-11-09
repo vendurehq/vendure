@@ -175,7 +175,12 @@ export class McpOauthService {
         let resource: string;
         let toolset: McpToolset;
         try {
-            ({ resource, toolset } = this.oauthMetadata.resolveResource(input.resource));
+            // RFC 8707 leaves the `resource` parameter optional for clients. Servers may
+            // require it — and by default this one does — but `oauth.defaultResource` lets
+            // the operator name a fallback for clients that omit it (#5744).
+            ({ resource, toolset } = this.oauthMetadata.resolveResource(
+                input.resource ?? oauth.defaultResource,
+            ));
         } catch (e) {
             if (e instanceof McpOauthError) {
                 return redirectError(e.code, e.message);
@@ -566,19 +571,24 @@ export class McpOauthService {
     }
 
     private async exchangeAuthorizationCode(input: TokenInput) {
+        const oauth = this.resolvedOauth();
+        // The same fallback as in createAuthorizationRedirect (#5744): without a configured
+        // default the behavior below is unchanged. The authorize/token consistency check
+        // further down still holds — both steps see the same effective resource.
+        const requestedResource = input.resource ?? oauth.defaultResource;
         if (
             !input.code ||
             !input.client_id ||
             !input.redirect_uri ||
             !input.code_verifier ||
-            !input.resource
+            !requestedResource
         ) {
             throw new McpOauthError(
                 'invalid_request',
                 'code, client_id, redirect_uri, code_verifier and resource are required',
             );
         }
-        const { resource } = this.oauthMetadata.resolveResource(input.resource);
+        const { resource } = this.oauthMetadata.resolveResource(requestedResource);
         const ctx = await this.createAdminCtx();
         const codeRepo = this.connection.getRepository(ctx, McpAuthorizationCode);
         const codeHash = this.hashLookup(input.code);

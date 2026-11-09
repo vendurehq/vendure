@@ -45,6 +45,20 @@ export interface McpOauthOptions {
      */
     issuer?: string;
     /**
+     * @description
+     * Resource indicator (RFC 8707) that authorization and token requests fall back to
+     * when the client omits the `resource` parameter. By default an omitted parameter is
+     * rejected (`invalid_target` at the authorize step, `invalid_request` at the token
+     * endpoint), because the resource decides which toolset the grant covers. Setting a
+     * default relaxes that for clients that never send the parameter — some MCP clients
+     * (e.g. Mistral AI's connectors) omit it even though RFC 8707 leaves it optional.
+     *
+     * The value must be one of this server's served MCP endpoints, e.g.
+     * `https://shop.example.com/mcp/admin`; with the shop endpoint disabled there is
+     * only one valid choice.
+     */
+    defaultResource?: string;
+    /**
      * @default 900
      */
     accessTokenTtlSeconds?: number;

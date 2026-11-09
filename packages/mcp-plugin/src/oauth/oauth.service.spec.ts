@@ -53,6 +53,47 @@ describe('McpOauthService PKCE / grant gating', () => {
     });
 });
 
+describe('McpOauthService defaultResource fallback', () => {
+    // RFC 8707 leaves the `resource` parameter optional for clients; `oauth.defaultResource`
+    // names the resource for clients that omit it (#5744). Without it the behavior is unchanged.
+    const codeGrant = {
+        grant_type: 'authorization_code',
+        code: 'some-code',
+        client_id: 'some-client',
+        redirect_uri: 'https://client.example.com/callback',
+        code_verifier: 'some-verifier',
+    };
+
+    it('still rejects a token request that omits resource when no default is configured', async () => {
+        const service = createService({ oauth: { tokenSecret: 's' } });
+        await expect(service.exchangeToken(codeGrant)).rejects.toThrow(
+            'code, client_id, redirect_uri, code_verifier and resource are required',
+        );
+    });
+
+    it('falls back to the configured defaultResource when the token request omits resource', async () => {
+        // The fallback passes the required-fields gate and resolves the default resource; the
+        // exchange then proceeds into the DB layer, which is not wired in this unit harness.
+        // The assertion is that it no longer fails with the missing-resource rejection.
+        const service = createService({
+            oauth: { tokenSecret: 's', defaultResource: `${ISSUER}/mcp/admin` },
+        });
+        await expect(service.exchangeToken(codeGrant)).rejects.not.toThrow(
+            'code, client_id, redirect_uri, code_verifier and resource are required',
+        );
+    });
+
+    it('validates the configured defaultResource through the same resolver', async () => {
+        // An invalid default fails exactly like an invalid explicit resource would.
+        const service = createService({
+            oauth: { tokenSecret: 's', defaultResource: 'not-a-url' },
+        });
+        await expect(service.exchangeToken(codeGrant)).rejects.toThrow(
+            'Unsupported OAuth resource',
+        );
+    });
+});
+
 describe('McpOauthService OAuth credential lookup hashing', () => {
     it('hashes an OAuth credential with domain separation before storage and lookup', () => {
         const service = createService({ oauth: { tokenSecret: 'test-secret' } });
