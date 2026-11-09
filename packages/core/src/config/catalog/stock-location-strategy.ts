@@ -3,6 +3,7 @@ import { ID } from '@vendure/common/lib/shared-types';
 import { RequestContext } from '../../api/common/request-context';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
 
@@ -16,8 +17,25 @@ import { StockLocation } from '../../entity/stock-location/stock-location.entity
  * @docsPage StockLocationStrategy
  */
 export interface AvailableStock {
+    /**
+     * @description
+     * The stockOnHand summed over the StockLevels which count towards the available stock
+     * and which track inventory.
+     */
     stockOnHand: number;
     stockAllocated: number;
+    /**
+     * @description
+     * True when at least one StockLevel which counts towards the available stock does not track
+     * inventory (or when there is no such StockLevel and the ProductVariant does not track
+     * inventory in the active Channel). The ProductVariant can then be sold without limit.
+     *
+     * When a strategy leaves this undefined, core falls back to the ProductVariant/Channel
+     * setting, which is the pre-v4 behaviour.
+     *
+     * @since 4.0.0
+     */
+    hasUntrackedStock?: boolean;
 }
 
 /**
@@ -53,6 +71,23 @@ export interface LocationWithQuantity {
  * @since 2.0.0
  */
 export interface StockLocationStrategy extends InjectableStrategy {
+    /**
+     * @description
+     * Decides whether inventory is tracked for the ProductVariant, at the given StockLevel when one
+     * is passed, in the context of the active Channel. Stock movement bookkeeping (whether an
+     * Allocation, Sale, Release or Cancellation changes the StockLevel figures) follows this.
+     *
+     * When not implemented, core uses {@link resolveTrackInventory}: StockLevel, then
+     * ProductVariant, then Channel.
+     *
+     * @since 4.0.0
+     */
+    isInventoryTracked?(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        stockLevel?: StockLevel,
+    ): boolean | Promise<boolean>;
+
     /**
      * @description
      * Returns the available stock for the given ProductVariant, taking into account

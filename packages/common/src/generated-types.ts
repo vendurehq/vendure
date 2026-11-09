@@ -2161,7 +2161,6 @@ export type GlobalSettings = {
   id: Scalars['ID']['output'];
   outOfStockThreshold: Scalars['Int']['output'];
   serverConfig: ServerConfig;
-  trackInventory: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -6869,12 +6868,18 @@ export type StockLevel = Node & {
   stockLocation: StockLocation;
   stockLocationId: Scalars['ID']['output'];
   stockOnHand: Scalars['Int']['output'];
+  /**
+   * Whether inventory is tracked for this ProductVariant at this StockLocation. INHERIT defers to
+   * the ProductVariant's `trackInventory`, and then to the Channel's.
+   */
+  trackInventory: GlobalFlag;
   updatedAt: Scalars['DateTime']['output'];
 };
 
 export type StockLevelInput = {
   stockLocationId: Scalars['ID']['input'];
   stockOnHand: Scalars['Int']['input'];
+  trackInventory?: InputMaybe<GlobalFlag>;
 };
 
 export type StockLocation = Node & {
@@ -7451,7 +7456,6 @@ export type UpdateGlobalSettingsInput = {
   availableLanguages?: InputMaybe<Array<LanguageCode>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
-  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type UpdateGlobalSettingsResult = ChannelDefaultLanguageError | GlobalSettings;

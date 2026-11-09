@@ -5,7 +5,7 @@ import { filter } from 'rxjs/operators';
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
 import { Injector } from '../../common/injector';
-import { ProductVariant } from '../../entity/index';
+import { idsAreEqual } from '../../common/utils';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
@@ -80,24 +80,24 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         productVariantId: ID,
         stockLevels: StockLevel[],
     ): Promise<AvailableStock> {
-        let stockOnHand = 0;
-        let stockAllocated = 0;
+        const variant = await this.getVariant(ctx, productVariantId);
+        const applicable: StockLevel[] = [];
         for (const stockLevel of stockLevels) {
-            const applies = await this.stockLevelAppliesToActiveChannel(ctx, stockLevel);
-            if (applies) {
-                stockOnHand += stockLevel.stockOnHand;
-                stockAllocated += stockLevel.stockAllocated;
+            if (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel)) {
+                applicable.push(stockLevel);
             }
         }
-        return { stockOnHand, stockAllocated };
+        return this.sumStockLevels(ctx, variant, applicable);
     }
 
     /**
      * @description
-     * This method takes into account whether the stock location is applicable to the active channel.
-     * It furthermore respects the `trackInventory` and `outOfStockThreshold` settings of the ProductVariant,
-     * in order to allocate stock only from locations which are relevant to the active channel and which
-     * have sufficient stock available.
+     * Allocates from the active Channel's StockLocations in order. A tracked StockLevel gives at
+     * most `stockOnHand - stockAllocated - outOfStockThreshold`; an untracked one gives whatever is
+     * still needed. Tracked StockLevels are read under a write lock, so concurrent allocations of
+     * the same variant cannot both take the same units.
+     *
+     * @since 4.0.0 - Tracking is resolved per StockLevel
      */
     async forAllocation(
         ctx: RequestContext,
@@ -105,40 +105,20 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const variant = await this.connection.getEntityOrThrow(
-            ctx,
-            ProductVariant,
-            orderLine.productVariantId,
-            { loadEagerRelations: false },
-        );
+        const variant = await this.getVariant(ctx, orderLine.productVariantId);
+        const { effectiveOutOfStockThreshold } = await this.getVariantStockSettings(ctx, variant);
+        const stockLevels = await this.getStockLevelsForAllocation(ctx, variant);
         let totalAllocated = 0;
         const locations: LocationWithQuantity[] = [];
-        const { inventoryNotTracked, effectiveOutOfStockThreshold } = await this.getVariantStockSettings(
-            ctx,
-            variant,
-        );
-        // Only a tracked variant's figures decide how much is allocated, so only those need the lock.
-        let stockLevels: StockLevel[];
-        if (inventoryNotTracked) {
-            stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
-                where: { productVariantId: orderLine.productVariantId },
-                loadEagerRelations: false,
-            });
-        } else {
-            const stockLevelService = await this.getStockLevelService();
-            stockLevels = await stockLevelService.getLockedStockLevelsForVariant(
-                ctx,
-                orderLine.productVariantId,
-            );
-        }
         for (const stockLocation of stockLocations) {
-            const stockLevel = stockLevels.find(sl => sl.stockLocationId === stockLocation.id);
+            const stockLevel = stockLevels.find(sl => idsAreEqual(sl.stockLocationId, stockLocation.id));
             if (stockLevel && (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
-                const quantityAvailable = inventoryNotTracked
-                    ? Number.MAX_SAFE_INTEGER
-                    : stockLevel.stockOnHand - stockLevel.stockAllocated - effectiveOutOfStockThreshold;
+                const tracked = await this.isInventoryTracked(ctx, variant, stockLevel);
+                const quantityAvailable = tracked
+                    ? stockLevel.stockOnHand - stockLevel.stockAllocated - effectiveOutOfStockThreshold
+                    : Number.MAX_SAFE_INTEGER;
                 if (quantityAvailable > 0) {
-                    const quantityToAllocate = Math.min(quantity, quantityAvailable);
+                    const quantityToAllocate = Math.min(quantity - totalAllocated, quantityAvailable);
                     locations.push({
                         location: stockLocation,
                         quantity: quantityToAllocate,

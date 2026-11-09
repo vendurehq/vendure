@@ -137,6 +137,7 @@ input CreateProductVariantOptionInput {
 input StockLevelInput {
     stockLocationId: ID!
     stockOnHand: Int!
+    trackInventory: GlobalFlag
 }
 
 

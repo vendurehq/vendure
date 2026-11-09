@@ -5,7 +5,6 @@ import {
     CurrencyCode,
     DeletionResponse,
     DeletionResult,
-    GlobalFlag,
     Permission,
     ProductVariantFilterParameter,
     RemoveProductVariantsFromChannelInput,
@@ -336,19 +335,12 @@ export class ProductVariantService {
         variant: ProductVariant,
         options?: StockLevelReadOptions,
     ): Promise<number> {
-        const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
-
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
-        if (inventoryNotTracked) {
+        const { outOfStockThreshold } = await this.globalSettingsService.getSettings(ctx);
+        const { stockOnHand, stockAllocated, hasUntrackedStock } =
+            await this.stockLevelService.getAvailableStock(ctx, variant.id, options);
+        if (await this.isUntracked(ctx, variant, hasUntrackedStock)) {
             return Number.MAX_SAFE_INTEGER;
         }
-        const { stockOnHand, stockAllocated } = await this.stockLevelService.getAvailableStock(
-            ctx,
-            variant.id,
-            options,
-        );
         const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
             ? outOfStockThreshold
             : variant.outOfStockThreshold;
@@ -356,12 +348,26 @@ export class ProductVariantService {
         return stockOnHand - stockAllocated - effectiveOutOfStockThreshold;
     }
 
-    private async getOutOfStockThreshold(ctx: RequestContext, variant: ProductVariant): Promise<number> {
-        const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
+    /**
+     * `hasUntrackedStock` comes from the StockLocationStrategy. A strategy written before v4
+     * leaves it undefined, in which case the ProductVariant/Channel setting decides, as it did
+     * before StockLevels could override it.
+     */
+    private async isUntracked(
+        ctx: RequestContext,
+        variant: ProductVariant,
+        hasUntrackedStock: boolean | undefined,
+    ): Promise<boolean> {
+        if (hasUntrackedStock !== undefined) {
+            return hasUntrackedStock;
+        }
+        return !(await this.stockLevelService.isInventoryTracked(ctx, variant));
+    }
 
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
+    private async getOutOfStockThreshold(ctx: RequestContext, variant: ProductVariant): Promise<number> {
+        const { outOfStockThreshold } = await this.globalSettingsService.getSettings(ctx);
+
+        const inventoryNotTracked = !(await this.stockLevelService.isInventoryTracked(ctx, variant));
         if (inventoryNotTracked) {
             return 0;
         } else {
@@ -386,14 +392,13 @@ export class ProductVariantService {
      * for those variants which are tracking inventory.
      */
     async getFulfillableStockLevel(ctx: RequestContext, variant: ProductVariant): Promise<number> {
-        const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
-        if (inventoryNotTracked) {
+        const { stockOnHand, hasUntrackedStock } = await this.stockLevelService.getAvailableStock(
+            ctx,
+            variant.id,
+        );
+        if (await this.isUntracked(ctx, variant, hasUntrackedStock)) {
             return Number.MAX_SAFE_INTEGER;
         }
-        const { stockOnHand } = await this.stockLevelService.getAvailableStock(ctx, variant.id);
         return stockOnHand;
     }
 

@@ -1,4 +1,3 @@
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import type { GlobalSettingsService, StockLevelService } from '../../service/index';
 
@@ -14,6 +13,7 @@ import { StockLocation } from '../../entity/stock-location/stock-location.entity
 import { Allocation } from '../../entity/stock-movement/allocation.entity';
 
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
+import { resolveTrackInventory } from './track-inventory';
 
 export abstract class BaseStockLocationStrategy implements StockLocationStrategy {
     protected connection: TransactionalConnection;
@@ -114,21 +114,103 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
     }
 
     /**
+     * @description
+     * Decides whether inventory is tracked for the ProductVariant, at the given StockLevel when one
+     * is passed. The default resolves StockLevel, then ProductVariant, then the active Channel
+     * (see {@link resolveTrackInventory}). Override to apply other rules, e.g. based on custom
+     * fields of the StockLocation or Channel.
+     *
+     * @since 4.0.0
+     */
+    isInventoryTracked(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        stockLevel?: StockLevel,
+    ): boolean | Promise<boolean> {
+        return resolveTrackInventory({
+            stockLevel: stockLevel?.trackInventory,
+            variant: productVariant.trackInventory,
+            channel: ctx.channel.trackInventory,
+        });
+    }
+
+    /**
+     * @description
+     * Splits the given StockLevels into the figures counted towards available stock and whether
+     * any of them does not track inventory. When there are no StockLevels, the ProductVariant and
+     * Channel settings decide whether the variant is untracked.
+     *
+     * @since 4.0.0
+     */
+    protected async sumStockLevels(
+        ctx: RequestContext,
+        variant: ProductVariant,
+        stockLevels: StockLevel[],
+    ): Promise<Required<AvailableStock>> {
+        let stockOnHand = 0;
+        let stockAllocated = 0;
+        let hasUntrackedStock = false;
+        for (const stockLevel of stockLevels) {
+            if (await this.isInventoryTracked(ctx, variant, stockLevel)) {
+                stockOnHand += stockLevel.stockOnHand;
+                stockAllocated += stockLevel.stockAllocated;
+            } else {
+                hasUntrackedStock = true;
+            }
+        }
+        if (!stockLevels.length && !(await this.isInventoryTracked(ctx, variant))) {
+            hasUntrackedStock = true;
+        }
+        return { stockOnHand, stockAllocated, hasUntrackedStock };
+    }
+
+    protected getVariant(ctx: RequestContext, productVariantId: ID): Promise<ProductVariant> {
+        return this.connection.getEntityOrThrow(ctx, ProductVariant, productVariantId, {
+            loadEagerRelations: false,
+            includeSoftDeleted: true,
+        });
+    }
+
+    /**
+     * Reads the variant's StockLevels, with a write lock only if at least one of them tracks
+     * inventory. Untracked stock is never capped, so there is no reason to make concurrent
+     * checkouts of it wait for each other.
+     */
+    protected async getStockLevelsForAllocation(
+        ctx: RequestContext,
+        variant: ProductVariant,
+    ): Promise<StockLevel[]> {
+        const unlocked = await this.connection.getRepository(ctx, StockLevel).find({
+            where: { productVariantId: variant.id },
+            loadEagerRelations: false,
+        });
+        let anyTracked = false;
+        for (const level of unlocked) {
+            if (await this.isInventoryTracked(ctx, variant, level)) {
+                anyTracked = true;
+                break;
+            }
+        }
+        if (!anyTracked) {
+            return unlocked;
+        }
+        const stockLevelService = await this.getStockLevelService();
+        return stockLevelService.getLockedStockLevelsForVariant(ctx, variant.id);
+    }
+
+    /**
      * Resolves the two ProductVariant settings which decide how much of it may be allocated:
-     * whether its inventory is tracked at all, and the threshold below which its stock may not
-     * fall. Both can defer to the global settings, so both are resolved here rather than read
-     * from the ProductVariant directly.
+     * whether its inventory is tracked in the active Channel (ignoring StockLevel overrides),
+     * and the threshold below which its stock may not fall.
      */
     protected async getVariantStockSettings(
         ctx: RequestContext,
         variant: ProductVariant,
     ): Promise<{ inventoryNotTracked: boolean; effectiveOutOfStockThreshold: number }> {
         const globalSettingsService = await this.getGlobalSettingsService();
-        const { outOfStockThreshold, trackInventory } = await globalSettingsService.getSettings(ctx);
+        const { outOfStockThreshold } = await globalSettingsService.getSettings(ctx);
 
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
+        const inventoryNotTracked = !(await this.isInventoryTracked(ctx, variant));
         const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
             ? outOfStockThreshold
             : variant.outOfStockThreshold;
@@ -193,25 +275,28 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
  * @since 2.0.0
  */
 export class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
-    getAvailableStock(ctx: RequestContext, productVariantId: ID, stockLevels: StockLevel[]): AvailableStock {
-        let stockOnHand = 0;
-        let stockAllocated = 0;
-        for (const stockLevel of stockLevels) {
-            stockOnHand += stockLevel.stockOnHand;
-            stockAllocated += stockLevel.stockAllocated;
-        }
-        return { stockOnHand, stockAllocated };
+    async getAvailableStock(
+        ctx: RequestContext,
+        productVariantId: ID,
+        stockLevels: StockLevel[],
+    ): Promise<AvailableStock> {
+        const variant = await this.getVariant(ctx, productVariantId);
+        return this.sumStockLevels(ctx, variant, stockLevels);
     }
 
     /**
      * @description
      * Allocates from the first StockLocation, capped at the quantity the ProductVariant still has
-     * available: `stockOnHand - stockAllocated - outOfStockThreshold`, summed over every
+     * available: `stockOnHand - stockAllocated - outOfStockThreshold`, summed over every tracked
      * StockLevel of the variant, which is the same figure the saleable stock check uses. The
      * StockLevels are read under a write lock, so a concurrent allocation of the same variant
      * waits and then sees this one's result.
      *
+     * If the variant has a StockLevel which does not track inventory, the whole quantity is
+     * allocated from that StockLevel's location without a cap.
+     *
      * @since 3.7.4 - The quantity is capped and the StockLevels are read under a lock
+     * @since 4.0.0 - Untracked StockLevels are allocated from without a cap
      */
     async forAllocation(
         ctx: RequestContext,
@@ -219,31 +304,22 @@ export class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const variant = await this.connection.getEntityOrThrow(
-            ctx,
-            ProductVariant,
-            orderLine.productVariantId,
-            { loadEagerRelations: false },
-        );
-        const { inventoryNotTracked, effectiveOutOfStockThreshold } = await this.getVariantStockSettings(
-            ctx,
-            variant,
-        );
-        if (inventoryNotTracked) {
-            // Nothing is counted for an untracked variant, so there is nothing to cap it against
-            // and no reason to make concurrent checkouts of it wait for each other.
+        const variant = await this.getVariant(ctx, orderLine.productVariantId);
+        const { effectiveOutOfStockThreshold } = await this.getVariantStockSettings(ctx, variant);
+        const stockLevels = await this.getStockLevelsForAllocation(ctx, variant);
+        for (const stockLevel of stockLevels) {
+            if (!(await this.isInventoryTracked(ctx, variant, stockLevel))) {
+                const location =
+                    stockLocations.find(l => idsAreEqual(l.id, stockLevel.stockLocationId)) ??
+                    stockLocations[0];
+                return [{ location, quantity }];
+            }
+        }
+        if (!stockLevels.length && !(await this.isInventoryTracked(ctx, variant))) {
+            // Nothing is counted for an untracked variant, so there is nothing to cap it against.
             return [{ location: stockLocations[0], quantity }];
         }
-        const stockLevelService = await this.getStockLevelService();
-        const stockLevels = await stockLevelService.getLockedStockLevelsForVariant(
-            ctx,
-            orderLine.productVariantId,
-        );
-        const { stockOnHand, stockAllocated } = this.getAvailableStock(
-            ctx,
-            orderLine.productVariantId,
-            stockLevels,
-        );
+        const { stockOnHand, stockAllocated } = await this.sumStockLevels(ctx, variant, stockLevels);
         // A negative threshold is a permitted backorder depth, so this stays above
         // `stockOnHand` by exactly that much. A variant with no StockLevel row counts as zero of
         // both figures, which is what the saleable stock check makes of it too.

@@ -65,8 +65,10 @@ const GET_SALES = graphqlAdmin(`
         productVariant(id: $id) {
             stockMovements(options: { take: 100 }) {
                 items {
-                    type
-                    quantity
+                    ... on StockMovement {
+                        type
+                        quantity
+                    }
                 }
             }
         }
@@ -77,16 +79,6 @@ const UPDATE_VARIANT = graphqlAdmin(`
     mutation GranularUpdateVariant($input: [UpdateProductVariantInput!]!) {
         updateProductVariants(input: $input) {
             id
-        }
-    }
-`);
-
-const UPDATE_GLOBAL_SETTINGS = graphqlAdmin(`
-    mutation GranularUpdateGlobalSettings($input: UpdateGlobalSettingsInput!) {
-        updateGlobalSettings(input: $input) {
-            ... on GlobalSettings {
-                id
-            }
         }
     }
 `);
@@ -299,7 +291,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
-        await adminClient.query(UPDATE_GLOBAL_SETTINGS, { input: { trackInventory: true } });
+        // The default Channel has trackInventory: true, which is the default for INHERIT.
         defaultLocationId = 'T_1';
         const { createStockLocation } = await adminClient.query(CREATE_STOCK_LOCATION, {
             input: { name: 'Untracked dropship location' },
@@ -546,8 +538,8 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
 
             const { productVariant } = await adminClient.query(GET_SALES, { id: 'T_4' });
             const saleTotal = productVariant!.stockMovements.items
-                .filter(m => m.type === 'SALE')
-                .reduce((sum, m) => sum + m.quantity, 0);
+                .filter((m: any) => m.type === 'SALE')
+                .reduce((sum: number, m: any) => sum + m.quantity, 0);
             // On master each per-location Sale records the whole line quantity, so this is -10.
             expect(saleTotal).toBe(-5);
         });

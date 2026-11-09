@@ -5,5 +5,10 @@ type StockLevel implements Node {
     stockLocationId: ID!
     stockOnHand: Int!
     stockAllocated: Int!
+    """
+    Whether inventory is tracked for this ProductVariant at this StockLocation. INHERIT defers to
+    the ProductVariant's `trackInventory`, and then to the Channel's.
+    """
+    trackInventory: GlobalFlag!
     stockLocation: StockLocation!
 }

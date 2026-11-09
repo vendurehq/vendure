@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import DataLoader from 'dataloader';
@@ -14,6 +13,7 @@ import { RequestContext } from '../../api/common/request-context';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Instrument } from '../../common/instrument-decorator';
 import { AvailableStock } from '../../config/catalog/stock-location-strategy';
+import { resolveTrackInventory } from '../../config/catalog/track-inventory';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { TransactionalConnection } from '../../connection/transactional-connection';
@@ -154,6 +154,49 @@ export class StockLevelService {
             ? await this.getLockedStockLevelsForVariant(ctx, productVariantId)
             : await this.getStockLevelLoader(ctx).load(productVariantId);
         return stockLocationStrategy.getAvailableStock(ctx, productVariantId, stockLevels);
+    }
+
+    /**
+     * @description
+     * Whether inventory is tracked for the ProductVariant in the active Channel, at the given
+     * StockLevel when one is passed. Delegates to `StockLocationStrategy.isInventoryTracked` when
+     * the configured strategy implements it, else uses {@link resolveTrackInventory}.
+     *
+     * @since 4.0.0
+     */
+    async isInventoryTracked(
+        ctx: RequestContext,
+        productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>,
+        stockLevel?: StockLevel,
+    ): Promise<boolean> {
+        const { stockLocationStrategy } = this.configService.catalogOptions;
+        if (typeof stockLocationStrategy.isInventoryTracked === 'function') {
+            return stockLocationStrategy.isInventoryTracked(ctx, productVariant as ProductVariant, stockLevel);
+        }
+        return resolveTrackInventory({
+            stockLevel: stockLevel?.trackInventory,
+            variant: productVariant.trackInventory,
+            channel: ctx.channel.trackInventory,
+        });
+    }
+
+    /**
+     * @description
+     * Whether inventory is tracked for the ProductVariant at the given StockLocation. Loads the
+     * StockLevel if it exists.
+     *
+     * @since 4.0.0
+     */
+    async isInventoryTrackedAtLocation(
+        ctx: RequestContext,
+        productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>,
+        stockLocationId: ID,
+    ): Promise<boolean> {
+        const stockLevel = await this.connection.getRepository(ctx, StockLevel).findOne({
+            where: { productVariantId: productVariant.id, stockLocationId },
+            loadEagerRelations: false,
+        });
+        return this.isInventoryTracked(ctx, productVariant, stockLevel ?? undefined);
     }
 
     /**
@@ -375,20 +418,34 @@ export class StockLevelService {
         }
     }
 
+    /**
+     * A variant needs locking if it is tracked at the variant/Channel level, or if any of its
+     * StockLevels overrides that to tracked.
+     */
     private async filterToTrackedIds(ctx: RequestContext, ids: ID[]): Promise<ID[]> {
-        const { trackInventory } = await this.globalSettingsService.getSettings(ctx);
         const variants = await this.connection.getRepository(ctx, ProductVariant).find({
             where: { id: In(ids) },
             select: { id: true, trackInventory: true },
             loadEagerRelations: false,
         });
-        return variants
-            .filter(
-                v =>
-                    v.trackInventory === GlobalFlag.TRUE ||
-                    (v.trackInventory === GlobalFlag.INHERIT && trackInventory),
-            )
-            .map(v => v.id);
+        const stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
+            where: { productVariantId: In(ids) },
+            loadEagerRelations: false,
+        });
+        const tracked: ID[] = [];
+        for (const variant of variants) {
+            if (await this.isInventoryTracked(ctx, variant)) {
+                tracked.push(variant.id);
+                continue;
+            }
+            for (const level of stockLevels.filter(l => l.productVariantId === variant.id)) {
+                if (await this.isInventoryTracked(ctx, variant, level)) {
+                    tracked.push(variant.id);
+                    break;
+                }
+            }
+        }
+        return tracked;
     }
 
     /**
