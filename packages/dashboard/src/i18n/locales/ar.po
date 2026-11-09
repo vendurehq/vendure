@@ -4771,7 +4771,7 @@ msgstr "تم حذف العرض العام بنجاح"
 #. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0, plural, one {# property} other {# properties}}"
-msgstr "{0, plural, one {خاصية واحدة} two {خاصيتان} few {# خصائص} other {# خاصية}}"
+msgstr "{0, plural, zero {لا توجد خصائص} one {خاصية واحدة} two {خاصيتان} few {# خصائص} other {# خاصية}}"
 
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "Edit Layout"
