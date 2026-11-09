@@ -85,7 +85,28 @@ export class RefundService {
       );
     }
 
-    // 3. 调用 OrderService.refundOrder 创建 Refund
+    // 3. COD：只认 confirmed 收款，统一走 campus 闸门（无收款不建单；有收款建单即 Settled）
+    if (String(payment.method) === 'cash-on-delivery') {
+      const policy = resolveCodRefundPolicy();
+      if (!policy) {
+        throw new UserInputError('COD 退款闸门不可用：无收款记录能力，拒绝创建退款单');
+      }
+      const result: any = await policy.createRefund(ctx, {
+        orderId: order.id,
+        paymentId: payment.id,
+        amount: input.amount,
+        reason: input.reason ?? 'POS 退货退款',
+      });
+      if (result instanceof Error || result?.errorCode) {
+        throw new UserInputError(`创建退款失败: ${result?.message ?? result?.errorCode ?? '未知原因'}`);
+      }
+      return this.connection.getRepository(Refund).findOne({
+        where: { id: (result as any).id },
+        relations: ['payment', 'payment.order'],
+      }) as Promise<Refund>;
+    }
+
+    // 4. 调用 OrderService.refundOrder 创建 Refund
     //    Refund 实体的 shipping/adjustment 字段虽 @deprecated 但仍 NOT NULL，
     //    必须显式传 0 避免 "NOT NULL constraint failed: refund.shipping"
     const refundResult = await this.orderService.refundOrder(ctx, {
@@ -194,5 +215,18 @@ export class RefundService {
       where: { id: In(refundIds) },
       relations: ['payment'],
     });
+  }
+}
+
+/** 软依赖解析 COD 退款闸门端口（campus/cjk 未安装时返回 null，COD 一律不建退款单）。 */
+function resolveCodRefundPolicy(): {
+  createRefund(ctx: RequestContext, input: any): Promise<any>;
+} | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('@vendure/cjk-plugin');
+    return typeof mod?.getCodRefundPolicyPort === 'function' ? mod.getCodRefundPolicyPort() : null;
+  } catch {
+    return null;
   }
 }

@@ -915,27 +915,54 @@ export class AfterSalesService {
             for (const leg of plan) {
                 let refund: any;
                 try {
-                    const refundResult = await this.orderService!.refundOrder(ctx, {
-                        paymentId: leg.paymentId,
-                        amount: leg.amount,
-                        reason: `After-sales refund #${request.id}`,
-                        shipping: 0, // Refund.shipping 为 NOT NULL 列，必须显式置 0
-                        adjustment: 0,
-                    } as any);
-                    if (isGraphQlErrorResult(refundResult)) {
-                        return failPartial(
-                            `refundOrder 拒绝: ${JSON.stringify(refundResult)}`,
-                            `after-sales #${request.id} refundOrder 拒绝 (partial ${settledAmount})`,
-                        );
-                    }
-                    refund = refundResult as any;
-                    if (refund.state === 'Pending') {
-                        const settled = await this.orderService!.settleRefund(ctx, {
-                            id: refund.id as ID,
-                            transactionId: refund.transactionId ?? '',
+                    const pay = await this.connection
+                        .getRepository(ctx, Payment)
+                        .findOne({ where: { id: leg.paymentId } as any });
+                    if (pay && String(pay.method) === 'cash-on-delivery') {
+                        // COD：只认 confirmed 收款；有收款建单即 Settled，无收款不建退款单
+                        const policy = resolveCodRefundPolicy();
+                        if (!policy) {
+                            return failPartial(
+                                'COD 退款闸门不可用：无收款记录能力',
+                                `after-sales #${request.id} COD 闸门不可用 (partial ${settledAmount})`,
+                            );
+                        }
+                        const result: any = await policy.createRefund(ctx, {
+                            orderId: request.orderId,
+                            paymentId: leg.paymentId,
+                            amount: leg.amount,
+                            reason: `After-sales refund #${request.id}`,
+                        });
+                        if (result instanceof Error || result?.errorCode) {
+                            return failPartial(
+                                `refundOrder 拒绝: ${result?.message ?? result?.errorCode ?? '未知原因'}`,
+                                `after-sales #${request.id} COD refundOrder 拒绝 (partial ${settledAmount})`,
+                            );
+                        }
+                        refund = result;
+                    } else {
+                        const refundResult = await this.orderService!.refundOrder(ctx, {
+                            paymentId: leg.paymentId,
+                            amount: leg.amount,
+                            reason: `After-sales refund #${request.id}`,
+                            shipping: 0, // Refund.shipping 为 NOT NULL 列，必须显式置 0
+                            adjustment: 0,
                         } as any);
-                        refund.state = (settled as any).state;
-                        refund.transactionId = (settled as any).transactionId ?? refund.transactionId;
+                        if (isGraphQlErrorResult(refundResult)) {
+                            return failPartial(
+                                `refundOrder 拒绝: ${JSON.stringify(refundResult)}`,
+                                `after-sales #${request.id} refundOrder 拒绝 (partial ${settledAmount})`,
+                            );
+                        }
+                        refund = refundResult as any;
+                        if (refund.state === 'Pending') {
+                            const settled = await this.orderService!.settleRefund(ctx, {
+                                id: refund.id as ID,
+                                transactionId: refund.transactionId ?? '',
+                            } as any);
+                            refund.state = (settled as any).state;
+                            refund.transactionId = (settled as any).transactionId ?? refund.transactionId;
+                        }
                     }
                 } catch (e: any) {
                     // 该笔未成功（或结算异常）：已成功的笔次保留并提交，剩余额度留给重试
@@ -1438,5 +1465,18 @@ export class AfterSalesService {
         }
         // commitState 统一出口：fromState=ExchangeShipped 的 Closed 事件驱动「换货完成」站内信
         return this.commitState(ctx, request, 'ExchangeShipped', 'Closed');
+    }
+}
+
+/** 软依赖解析 COD 退款闸门端口（campus/cjk 未安装时返回 null，COD 一律不建退款单）。 */
+function resolveCodRefundPolicy(): {
+    createRefund(ctx: RequestContext, input: any): Promise<any>;
+} | null {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof mod?.getCodRefundPolicyPort === 'function' ? mod.getCodRefundPolicyPort() : null;
+    } catch {
+        return null;
     }
 }

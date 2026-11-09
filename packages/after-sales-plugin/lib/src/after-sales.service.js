@@ -765,7 +765,7 @@ let AfterSalesService = AfterSalesService_1 = class AfterSalesService {
      * 下次重试会自动按更新后的剩余额度继续退，避免重复退款。
      */
     async executeRefund(ctx, request) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g;
         const plan = await this.planRefunds(ctx, request.orderId, request.refundAmount);
         if (plan == null) {
             throw new core_1.UserInputError(`Cannot refund: insufficient refundable balance for order ${request.orderId}`);
@@ -804,30 +804,52 @@ let AfterSalesService = AfterSalesService_1 = class AfterSalesService {
             for (const leg of plan) {
                 let refund;
                 try {
-                    const refundResult = await this.orderService.refundOrder(ctx, {
-                        paymentId: leg.paymentId,
-                        amount: leg.amount,
-                        reason: `After-sales refund #${request.id}`,
-                        shipping: 0, // Refund.shipping 为 NOT NULL 列，必须显式置 0
-                        adjustment: 0,
-                    });
-                    if ((0, core_1.isGraphQlErrorResult)(refundResult)) {
-                        return failPartial(`refundOrder 拒绝: ${JSON.stringify(refundResult)}`, `after-sales #${request.id} refundOrder 拒绝 (partial ${settledAmount})`);
-                    }
-                    refund = refundResult;
-                    if (refund.state === 'Pending') {
-                        const settled = await this.orderService.settleRefund(ctx, {
-                            id: refund.id,
-                            transactionId: (_a = refund.transactionId) !== null && _a !== void 0 ? _a : '',
+                    const pay = await this.connection
+                        .getRepository(ctx, core_1.Payment)
+                        .findOne({ where: { id: leg.paymentId } });
+                    if (pay && String(pay.method) === 'cash-on-delivery') {
+                        // COD：只认 confirmed 收款；有收款建单即 Settled，无收款不建退款单
+                        const policy = resolveCodRefundPolicy();
+                        if (!policy) {
+                            return failPartial('COD 退款闸门不可用：无收款记录能力', `after-sales #${request.id} COD 闸门不可用 (partial ${settledAmount})`);
+                        }
+                        const result = await policy.createRefund(ctx, {
+                            orderId: request.orderId,
+                            paymentId: leg.paymentId,
+                            amount: leg.amount,
+                            reason: `After-sales refund #${request.id}`,
                         });
-                        refund.state = settled.state;
-                        refund.transactionId = (_b = settled.transactionId) !== null && _b !== void 0 ? _b : refund.transactionId;
+                        if (result instanceof Error || (result === null || result === void 0 ? void 0 : result.errorCode)) {
+                            return failPartial(`refundOrder 拒绝: ${(_b = (_a = result === null || result === void 0 ? void 0 : result.message) !== null && _a !== void 0 ? _a : result === null || result === void 0 ? void 0 : result.errorCode) !== null && _b !== void 0 ? _b : '未知原因'}`, `after-sales #${request.id} COD refundOrder 拒绝 (partial ${settledAmount})`);
+                        }
+                        refund = result;
+                    }
+                    else {
+                        const refundResult = await this.orderService.refundOrder(ctx, {
+                            paymentId: leg.paymentId,
+                            amount: leg.amount,
+                            reason: `After-sales refund #${request.id}`,
+                            shipping: 0, // Refund.shipping 为 NOT NULL 列，必须显式置 0
+                            adjustment: 0,
+                        });
+                        if ((0, core_1.isGraphQlErrorResult)(refundResult)) {
+                            return failPartial(`refundOrder 拒绝: ${JSON.stringify(refundResult)}`, `after-sales #${request.id} refundOrder 拒绝 (partial ${settledAmount})`);
+                        }
+                        refund = refundResult;
+                        if (refund.state === 'Pending') {
+                            const settled = await this.orderService.settleRefund(ctx, {
+                                id: refund.id,
+                                transactionId: (_c = refund.transactionId) !== null && _c !== void 0 ? _c : '',
+                            });
+                            refund.state = settled.state;
+                            refund.transactionId = (_d = settled.transactionId) !== null && _d !== void 0 ? _d : refund.transactionId;
+                        }
                     }
                 }
                 catch (e) {
                     // 该笔未成功（或结算异常）：已成功的笔次保留并提交，剩余额度留给重试
                     await markRefundFailed(refund);
-                    return failPartial(`退款异常: ${(_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e}`, `after-sales #${request.id} refund leg 异常 (partial ${settledAmount}): ${(_d = e === null || e === void 0 ? void 0 : e.message) !== null && _d !== void 0 ? _d : e}`);
+                    return failPartial(`退款异常: ${(_e = e === null || e === void 0 ? void 0 : e.message) !== null && _e !== void 0 ? _e : e}`, `after-sales #${request.id} refund leg 异常 (partial ${settledAmount}): ${(_f = e === null || e === void 0 ? void 0 : e.message) !== null && _f !== void 0 ? _f : e}`);
                 }
                 if (refund.state !== 'Settled') {
                     await markRefundFailed(refund);
@@ -838,7 +860,7 @@ let AfterSalesService = AfterSalesService_1 = class AfterSalesService {
                     transactionIds.push(String(refund.transactionId));
             }
             request.refundTransactionId = transactionIds.length ? transactionIds.join(',') : null;
-            request.actualRefundAmount = ((_e = request.actualRefundAmount) !== null && _e !== void 0 ? _e : 0) + settledAmount;
+            request.actualRefundAmount = ((_g = request.actualRefundAmount) !== null && _g !== void 0 ? _g : 0) + settledAmount;
             request.refundError = null;
             request.refundedAt = new Date();
             await this.commitState(ctx, request, fromState, 'Refunded');
@@ -1318,4 +1340,15 @@ exports.AfterSalesService = AfterSalesService = AfterSalesService_1 = __decorate
     __metadata("design:paramtypes", [core_1.TransactionalConnection,
         core_1.ListQueryBuilder])
 ], AfterSalesService);
+/** 软依赖解析 COD 退款闸门端口（campus/cjk 未安装时返回 null，COD 一律不建退款单）。 */
+function resolveCodRefundPolicy() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof (mod === null || mod === void 0 ? void 0 : mod.getCodRefundPolicyPort) === 'function' ? mod.getCodRefundPolicyPort() : null;
+    }
+    catch (_a) {
+        return null;
+    }
+}
 //# sourceMappingURL=after-sales.service.js.map

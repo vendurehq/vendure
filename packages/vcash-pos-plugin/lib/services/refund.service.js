@@ -45,7 +45,7 @@ let RefundService = class RefundService {
      * @param input.reason 退款原因
      */
     async createRefund(ctx, input) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e, _f;
         // 1. 校验原单存在且可退款
         const order = await this.orderService.findOne(ctx, input.originalOrderId, [
             'payments',
@@ -72,13 +72,33 @@ let RefundService = class RefundService {
         if (!payment) {
             throw new core_1.UserInputError(`Payment ${input.paymentId} 不属于订单 ${input.originalOrderId}`);
         }
-        // 3. 调用 OrderService.refundOrder 创建 Refund
+        // 3. COD：只认 confirmed 收款，统一走 campus 闸门（无收款不建单；有收款建单即 Settled）
+        if (String(payment.method) === 'cash-on-delivery') {
+            const policy = resolveCodRefundPolicy();
+            if (!policy) {
+                throw new core_1.UserInputError('COD 退款闸门不可用：无收款记录能力，拒绝创建退款单');
+            }
+            const result = await policy.createRefund(ctx, {
+                orderId: order.id,
+                paymentId: payment.id,
+                amount: input.amount,
+                reason: (_b = input.reason) !== null && _b !== void 0 ? _b : 'POS 退货退款',
+            });
+            if (result instanceof Error || (result === null || result === void 0 ? void 0 : result.errorCode)) {
+                throw new core_1.UserInputError(`创建退款失败: ${(_d = (_c = result === null || result === void 0 ? void 0 : result.message) !== null && _c !== void 0 ? _c : result === null || result === void 0 ? void 0 : result.errorCode) !== null && _d !== void 0 ? _d : '未知原因'}`);
+            }
+            return this.connection.getRepository(core_1.Refund).findOne({
+                where: { id: result.id },
+                relations: ['payment', 'payment.order'],
+            });
+        }
+        // 4. 调用 OrderService.refundOrder 创建 Refund
         //    Refund 实体的 shipping/adjustment 字段虽 @deprecated 但仍 NOT NULL，
         //    必须显式传 0 避免 "NOT NULL constraint failed: refund.shipping"
         const refundResult = await this.orderService.refundOrder(ctx, {
             paymentId: input.paymentId,
             amount: input.amount,
-            reason: (_b = input.reason) !== null && _b !== void 0 ? _b : 'POS 退货退款',
+            reason: (_e = input.reason) !== null && _e !== void 0 ? _e : 'POS 退货退款',
             shipping: 0,
             adjustment: 0,
         });
@@ -96,7 +116,7 @@ let RefundService = class RefundService {
         else if (payment.method === 'aggregate') {
             // 聚合码：标记需人工退款
             await this.connection.getRepository(core_1.Refund).update(refundResult.id, {
-                metadata: Object.assign(Object.assign({}, ((_c = refundResult.metadata) !== null && _c !== void 0 ? _c : {})), { needsManualRefund: true, originalPaymentMethod: 'aggregate' }),
+                metadata: Object.assign(Object.assign({}, ((_f = refundResult.metadata) !== null && _f !== void 0 ? _f : {})), { needsManualRefund: true, originalPaymentMethod: 'aggregate' }),
             });
         }
         // 5. 返回最新 Refund
@@ -174,4 +194,15 @@ exports.RefundService = RefundService = __decorate([
         core_1.TransactionalConnection,
         core_1.OrderService])
 ], RefundService);
+/** 软依赖解析 COD 退款闸门端口（campus/cjk 未安装时返回 null，COD 一律不建退款单）。 */
+function resolveCodRefundPolicy() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof (mod === null || mod === void 0 ? void 0 : mod.getCodRefundPolicyPort) === 'function' ? mod.getCodRefundPolicyPort() : null;
+    }
+    catch (_a) {
+        return null;
+    }
+}
 //# sourceMappingURL=refund.service.js.map
