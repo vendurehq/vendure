@@ -7,19 +7,20 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import { getOrderDocument } from './graphql/shared-definitions';
+import { testSuccessfulPaymentMethod, twoStagePaymentMethod } from './fixtures/test-payment-methods';
+import { ResultOf } from './graphql/graphql-admin';
+import { getCustomerListDocument, getOrderDocument } from './graphql/shared-definitions';
 import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-definitions';
 import { proceedToArrangingPayment } from './utils/test-order-utils';
 
 /**
- * The default PaymentProcess transitions the Order to PaymentSettled once its payments cover the
- * total, but discards the result. An OrderProcess that refuses that transition leaves a settled
- * Payment on an Order in ArrangingPayment, and addPaymentToOrder reports success.
+ * The default PaymentProcess transitions the Order to PaymentSettled or PaymentAuthorized once its
+ * payments cover the total. When an OrderProcess refuses that transition, addPaymentToOrder must
+ * return the OrderStateTransitionError, and keep the Payment that was already taken.
  */
-const refusePaymentSettledProcess: CustomOrderProcess<never> = {
+const refusePaymentStatesProcess: CustomOrderProcess<never> = {
     onTransitionStart(fromState, toState) {
-        if (toState === 'PaymentSettled') {
+        if (toState === 'PaymentSettled' || toState === 'PaymentAuthorized') {
             return 'No kitchen capacity for this order';
         }
     },
@@ -29,53 +30,73 @@ describe('PaymentProcess with a refused Order transition', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             orderOptions: {
-                process: [defaultOrderProcess, refusePaymentSettledProcess] as any,
+                process: [defaultOrderProcess, refusePaymentStatesProcess] as any,
             },
             paymentOptions: {
-                paymentMethodHandlers: [testSuccessfulPaymentMethod],
+                paymentMethodHandlers: [testSuccessfulPaymentMethod, twoStagePaymentMethod],
             },
         }),
     );
+
+    let customers: ResultOf<typeof getCustomerListDocument>['customers']['items'];
 
     beforeAll(async () => {
         await server.init({
             initialData: {
                 ...initialData,
-                paymentMethods: [
-                    {
-                        name: testSuccessfulPaymentMethod.code,
-                        handler: { code: testSuccessfulPaymentMethod.code, arguments: [] },
-                    },
-                ],
+                paymentMethods: [testSuccessfulPaymentMethod, twoStagePaymentMethod].map(handler => ({
+                    name: handler.code,
+                    handler: { code: handler.code, arguments: [] },
+                })),
             },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
-            customerCount: 1,
+            customerCount: 2,
         });
         await adminClient.asSuperAdmin();
+        ({
+            customers: { items: customers },
+        } = await adminClient.query(getCustomerListDocument));
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
         await server.destroy();
     });
 
-    // OSS-936 — a refused PaymentSettled transition must not be reported as success
-    it('addPaymentToOrder reports the refused transition instead of returning the Order', async () => {
-        await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+    async function addPaymentAsCustomer(customerIndex: number, method: string) {
+        await shopClient.asUserWithCredentials(customers[customerIndex].emailAddress, 'test');
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
         const orderId = await proceedToArrangingPayment(shopClient);
-
         const { addPaymentToOrder } = await shopClient.query(addPaymentDocument, {
-            input: { method: testSuccessfulPaymentMethod.code, metadata: {} },
+            input: { method, metadata: {} },
         });
-
         const { order } = await adminClient.query(getOrderDocument, { id: orderId });
-        // Shows the state the customer is left in: charged, but the Order was not placed.
-        expect({
-            orderState: order!.state,
-            paymentStates: order!.payments!.map(p => p.state),
-        }).toEqual({ orderState: 'ArrangingPayment', paymentStates: ['Settled'] });
+        return { addPaymentToOrder, order: order! };
+    }
 
-        // Expected: the caller learns that the Order could not move on.
+    // OSS-936 — a refused PaymentSettled transition must not be reported as success
+    it('returns OrderStateTransitionError when the PaymentSettled transition is refused', async () => {
+        const { addPaymentToOrder, order } = await addPaymentAsCustomer(0, testSuccessfulPaymentMethod.code);
+
+        // The Payment is kept, and the Order was not placed.
+        expect(order.state).toBe('ArrangingPayment');
+        expect(order.payments!.map(p => p.state)).toEqual(['Settled']);
+
         expect(addPaymentToOrder.__typename).toBe('OrderStateTransitionError');
+        expect((addPaymentToOrder as { transitionError: string }).transitionError).toBe(
+            'No kitchen capacity for this order',
+        );
+    });
+
+    // OSS-936 — a refused PaymentAuthorized transition must not be reported as success
+    it('returns OrderStateTransitionError when the PaymentAuthorized transition is refused', async () => {
+        const { addPaymentToOrder, order } = await addPaymentAsCustomer(1, twoStagePaymentMethod.code);
+
+        expect(order.state).toBe('ArrangingPayment');
+        expect(order.payments!.map(p => p.state)).toEqual(['Authorized']);
+
+        expect(addPaymentToOrder.__typename).toBe('OrderStateTransitionError');
+        expect((addPaymentToOrder as { transitionError: string }).transitionError).toBe(
+            'No kitchen capacity for this order',
+        );
     });
 });
