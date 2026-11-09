@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "paths": {
+      "@/vdb/*": ["../../dashboard/src/lib/*"],
+      "@/graphql/*": ["../../dashboard/src/app/graphql/*"]
+    }
+  }
+}
