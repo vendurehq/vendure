@@ -646,12 +646,14 @@ async function signIn(
     organization: string | undefined,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
+    /** The caller already found that the stored login cannot be used, so do not renew it again. */
+    skipStoredLogin = false,
 ): Promise<ConsoleLogin> {
     const auth = consoleAuthOptions(endpoints, dependencies, signal);
     const wanted = organization?.trim() || undefined;
     try {
         // Inside the try: renewing a stored login can be interrupted too.
-        const { login } = await storedLogin(auth, wanted);
+        const { login } = skipStoredLogin ? ({} as StoredLogin) : await storedLogin(auth, wanted);
         if (login) {
             return login;
         }
@@ -1246,7 +1248,9 @@ async function repairSession(
                 dependencies.reporter.info(
                     `${reason}${refusal instanceof SessionRejectedError ? '.' : ''} Signing in again.`,
                 );
-                return { session: hookSession(await signIn(endpoints, organization, dependencies, signal)) };
+                return {
+                    session: hookSession(await signIn(endpoints, organization, dependencies, signal, true)),
+                };
             }
             dependencies.reporter.warn(
                 refusal instanceof SessionRejectedError

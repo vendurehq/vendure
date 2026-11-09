@@ -619,7 +619,33 @@ describe('console link command line login', () => {
         expect(run.messages.join('\n')).toContain(
             'Your Vendure CLI session for Acme has expired or was revoked. Signing in again.',
         );
+        expect(sessions[0]?.accessToken).toBeTruthy();
         expect(sessions[0]?.accessToken).toBe(readStoredAuth({ env: run.env })?.accessToken);
+    });
+
+    // CLO-1244 — a refusal that keeps the login must not trigger a second renewal before signing in again
+    it('signs in again without renewing a second time after a refusal that keeps the login', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        let refreshes = 0;
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: {
+                refresh: () => {
+                    refreshes++;
+                    return refreshes === 1
+                        ? jsonResponse({ error: 'sso_required' }, 400)
+                        : new Response('', { status: 503 });
+                },
+            },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(refreshes).toBe(1);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions[0]?.accessToken).toBeTruthy();
     });
 
     it("signs in to the manifest's account for an interactive repair without a matching login", async () => {
