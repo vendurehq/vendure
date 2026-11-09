@@ -78,6 +78,9 @@ describe('default React email templates', () => {
             expect(body).toContain('$10 off computer equipment');
             expect(body).toContain('/mailbox/placeholder-image?w=50&amp;h=50');
             expect(text).toContain('Thank you for your order!');
+            // The order summary is a data table, so each row is on its own line in the text version
+            expect(text).toMatch(/1 x Curvy Monitor 24 inch\s+\$133\.74\n/);
+            expect(text).toMatch(/\nSub-total:\s+\$181\.73\n/);
         });
 
         it('formats money and dates in the language of the email', async () => {

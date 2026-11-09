@@ -16,9 +16,12 @@ export class DevMailbox {
         event: EventWithContext,
     ) => void | undefined;
 
-    serve(options: EmailPluginDevModeOptions): Router {
+    serve(options: EmailPluginDevModeOptions, apiRouter?: Router): Router {
         const { outputPath, handlers } = options;
         const server = Router();
+        if (apiRouter) {
+            server.use('/api', apiRouter);
+        }
         server.get('/', (req, res) => {
             res.sendFile('dev-mailbox.html', { root: path.join(__dirname, '../..') });
         });

@@ -28,8 +28,8 @@ import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { EmailProcessor } from './email-processor';
 import { EmailRenderService } from './email-render.service';
-import { EmailGenerator, EmailGeneratorInput } from './generator/email-generator';
 import { EmailEventListener } from './event-listener';
+import { EmailGenerator, EmailGeneratorInput } from './generator/email-generator';
 import { NoopEmailGenerator } from './generator/noop-email-generator';
 import { orderConfirmationHandler } from './handler/default-email-handlers';
 import { EmailEventHandler } from './handler/event-handler';
@@ -628,6 +628,35 @@ describe('EmailPlugin', () => {
             await pause();
 
             expect(callCount).toBe(1);
+        });
+    });
+
+    describe('loadData keeps earlier setup', () => {
+        const ctx = RequestContext.deserialize({
+            _channel: { code: DEFAULT_CHANNEL_CODE },
+            _languageCode: LanguageCode.en,
+        } as any);
+
+        it('keeps a subject function and language set before loadData()', async () => {
+            const handler = new EmailEventListener('react-test')
+                .on(MockEvent)
+                .setFrom('noreply@test.com')
+                .setRecipient(() => 'test@test.com')
+                .setSubject(async () => 'Subject from a function')
+                .setLanguageCode(() => LanguageCode.de)
+                .setTemplate(
+                    defineEmailTemplate(() => {
+                        const { languageCode } = useEmailContext();
+                        return createElement('p', null, `lang:${languageCode}`);
+                    }),
+                )
+                .loadData(async () => ({ loaded: true }));
+
+            await initPluginWithHandlers([handler], { templateLoader: [] });
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].subject).toBe('Subject from a function');
+            expect(onSend.mock.calls[0][0].body).toContain('lang:de');
         });
     });
 

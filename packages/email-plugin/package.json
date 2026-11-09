@@ -9,6 +9,12 @@
         "templates/**/*",
         "dev-mailbox.html"
     ],
+    "vendure": {
+        "cliPlugin": "./lib/src/cli/cli-plugin.js",
+        "cliCommands": [
+            "email"
+        ]
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/vendurehq/vendure.git",

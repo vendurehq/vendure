@@ -7,8 +7,9 @@ import fs from 'fs-extra';
 import { deserializeAttachments } from './attachment-utils';
 import { isDevModeOptions, resolveTransportSettings } from './common';
 import { EMAIL_PLUGIN_OPTIONS, loggerCtx } from './constants';
-import { EmailSendEvent } from './email-send-event';
+import { DevOutbox, getDevOutboxDir } from './dev/dev-outbox';
 import { EmailRenderService } from './email-render.service';
+import { EmailSendEvent } from './email-send-event';
 import { EmailSender } from './sender/email-sender';
 import { NodemailerEmailSender } from './sender/nodemailer-email-sender';
 import {
@@ -26,6 +27,7 @@ import {
 @Injectable()
 export class EmailProcessor {
     protected emailSender: EmailSender;
+    private devOutbox: DevOutbox | undefined;
 
     constructor(
         @Inject(EMAIL_PLUGIN_OPTIONS) protected options: InitializedEmailPluginOptions,
@@ -37,6 +39,9 @@ export class EmailProcessor {
     async init() {
         this.emailSender = this.options.emailSender ? this.options.emailSender : new NodemailerEmailSender();
         await this.renderService.init();
+        if (isDevModeOptions(this.options)) {
+            this.devOutbox = new DevOutbox(getDevOutboxDir(this.options.outputPath));
+        }
         const transport = await this.getTransportSettings();
         if (transport.type === 'file') {
             // ensure the configured directory exists before
@@ -49,6 +54,7 @@ export class EmailProcessor {
     async process(data: IntermediateEmailDetails) {
         const ctx = RequestContext.deserialize(data.ctx);
         let emailDetails: EmailDetails = {} as any;
+        let templateInfo: { templateOrigin?: string; templateKind?: string } = {};
         try {
             const { templateOrigin, templateKind, ...generated } = await this.renderService.render(ctx, {
                 type: data.type,
@@ -59,6 +65,7 @@ export class EmailProcessor {
                 languageCode: data.languageCode as LanguageCode | undefined,
                 channelCode: data.channelCode,
             });
+            templateInfo = { templateOrigin, templateKind };
             emailDetails = {
                 ...generated,
                 text: data.text ?? generated.text,
@@ -70,6 +77,7 @@ export class EmailProcessor {
             };
             const transportSettings = await this.getTransportSettings(ctx);
             await this.emailSender.send(emailDetails, transportSettings);
+            await this.recordInDevOutbox(data, emailDetails, templateInfo);
             await this.eventBus.publish(
                 new EmailSendEvent(ctx, emailDetails, true, undefined, data.metadata),
             );
@@ -80,11 +88,52 @@ export class EmailProcessor {
             } else {
                 Logger.error(String(err), loggerCtx);
             }
+            await this.recordInDevOutbox(data, emailDetails, templateInfo, err);
 
             await this.eventBus.publish(
                 new EmailSendEvent(ctx, emailDetails, false, err as Error, data.metadata),
             );
             throw err;
+        }
+    }
+
+    private async recordInDevOutbox(
+        data: IntermediateEmailDetails,
+        email: Partial<EmailDetails>,
+        templateInfo: { templateOrigin?: string; templateKind?: string },
+        error?: unknown,
+    ) {
+        if (!this.devOutbox) {
+            return;
+        }
+        try {
+            await this.devOutbox.record({
+                status: error ? 'failed' : 'sent',
+                type: data.type,
+                recipient: email.recipient ?? data.recipient,
+                from: email.from ?? data.from,
+                subject: email.subject ?? data.subject,
+                cc: email.cc ?? data.cc,
+                bcc: email.bcc ?? data.bcc,
+                replyTo: email.replyTo ?? data.replyTo,
+                html: email.body,
+                text: email.text,
+                attachments: (email.attachments ?? data.attachments ?? []).map(a => ({
+                    filename: a.filename || undefined,
+                })),
+                metadata: data.metadata,
+                languageCode: data.languageCode,
+                channelCode: data.channelCode,
+                correlationId: data.devCorrelationId,
+                ...templateInfo,
+                error: error
+                    ? error instanceof Error
+                        ? { message: error.message, stack: error.stack }
+                        : { message: String(error) }
+                    : undefined,
+            });
+        } catch (e: any) {
+            Logger.warn(`Could not write to the dev outbox: ${String(e?.message ?? e)}`, loggerCtx);
         }
     }
 

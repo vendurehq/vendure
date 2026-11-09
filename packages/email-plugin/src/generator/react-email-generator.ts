@@ -2,6 +2,7 @@ import { render, toPlainText } from '@react-email/render';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { createElement } from 'react';
 
+import { EMAIL_DATA_TABLE_CLASS } from '../components/order-blocks';
 import { EmailRenderReactContext } from '../template/email-context';
 import { EmailTemplateSource } from '../template/email-template';
 import { interpolateTemplateString } from '../template/interpolate';
@@ -42,7 +43,15 @@ export class ReactEmailGenerator implements EmailGenerator {
             from: interpolateTemplateString(input.from, templateVars),
             subject: interpolateTemplateString(input.subject, templateVars),
             body,
-            text: toPlainText(body),
+            text: toPlainText(body, {
+                selectors: [
+                    {
+                        selector: `table.${EMAIL_DATA_TABLE_CLASS}`,
+                        format: 'dataTable',
+                        options: { maxColumnWidth: 60 },
+                    },
+                ],
+            }),
         };
     }
 }

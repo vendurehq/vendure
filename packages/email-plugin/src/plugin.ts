@@ -15,6 +15,7 @@ import {
     PluginCommonModule,
     ProcessContext,
     registerPluginStartupMessage,
+    RequestContext,
     Type,
     VendurePlugin,
 } from '@vendure/core';
@@ -22,6 +23,8 @@ import {
 import { getDevModeProductionWarning, isDevModeOptions, resolveTransportSettings } from './common';
 import { EMAIL_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { DevMailbox } from './dev-mailbox';
+import { DevEmailApi } from './dev/dev-email-api';
+import { DevOutbox, getDevOutboxDir } from './dev/dev-outbox';
 import { EmailProcessor } from './email-processor';
 import { EmailRenderService } from './email-render.service';
 import { HandlebarsMjmlGenerator } from './generator/handlebars-mjml-generator';
@@ -395,7 +398,17 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             }
             Logger.info('Creating dev mailbox middleware', loggerCtx);
             this.devMailbox = new DevMailbox();
-            consumer.apply(this.devMailbox.serve(this.options)).forRoutes(this.options.route);
+            const devApi = new DevEmailApi({
+                options: this.options,
+                injector: new Injector(this.moduleRef),
+                renderService: this.renderService,
+                outbox: new DevOutbox(getDevOutboxDir(this.options.outputPath)),
+                resolveGlobalTemplateVars: ctx => this.resolveGlobalTemplateVars(ctx),
+                enqueue: details => this.enqueue(details),
+            });
+            consumer
+                .apply(this.devMailbox.serve(this.options, devApi.router()))
+                .forRoutes(this.options.route);
             this.devMailbox.handleMockEvent((handler, event) => this.handleEvent(handler, event));
             registerPluginStartupMessage('Dev mailbox', this.options.route);
         }
@@ -430,25 +443,34 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
         Logger.debug(`Handling event "${handler.type}"`, loggerCtx);
         try {
             const injector = new Injector(this.moduleRef);
-            let globalTemplateVars = this.options.globalTemplateVars;
-            if (typeof globalTemplateVars === 'function') {
-                globalTemplateVars = await globalTemplateVars(event.ctx, injector);
-            }
-            const result = await handler.handle(
-                event as any,
-                globalTemplateVars as { [key: string]: any },
-                injector,
-            );
+            const globalTemplateVars = await this.resolveGlobalTemplateVars(event.ctx);
+            const result = await handler.handle(event as any, globalTemplateVars, injector);
             if (!result) {
                 return;
             }
-            if (this.jobQueue) {
-                await this.jobQueue.add(result, { retries: 5 });
-            } else if (this.testingProcessor) {
-                await this.testingProcessor.process(result);
-            }
+            await this.enqueue(result);
         } catch (e: any) {
             Logger.error(e.message, loggerCtx, e.stack);
+        }
+    }
+
+    private async resolveGlobalTemplateVars(ctx: RequestContext): Promise<{ [key: string]: any }> {
+        const globalTemplateVars = this.options.globalTemplateVars;
+        if (typeof globalTemplateVars === 'function') {
+            return globalTemplateVars(ctx, new Injector(this.moduleRef));
+        }
+        return globalTemplateVars ?? {};
+    }
+
+    private async enqueue(details: IntermediateEmailDetails) {
+        if (this.jobQueue) {
+            await this.jobQueue.add(details, { retries: 5 });
+        } else if (this.testingProcessor) {
+            await this.testingProcessor.process(details);
+        } else {
+            throw new Error(
+                'The EmailPlugin has not finished bootstrapping, so the email cannot be queued yet',
+            );
         }
     }
 }

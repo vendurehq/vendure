@@ -408,6 +408,10 @@ export type IntermediateEmailDetails = {
      */
     languageCode?: string;
     channelCode?: string;
+    /**
+     * Set by the dev mode tooling to find the outbox entry of an email it sent.
+     */
+    devCorrelationId?: string;
     attachments: SerializedAttachment[];
     cc?: string;
     bcc?: string;
@@ -605,3 +609,35 @@ export type SetMetadataFn<Event> = (event: Event) => EmailMetadata | Promise<Ema
  * @docsPage Email Plugin Types
  */
 export type EmailMetadata = Record<string, any>;
+
+/**
+ * @description
+ * A function which builds a sample event for an {@link EmailEventHandler} from the data in the
+ * database. See `EmailEventHandler.setSampleEvent()`.
+ *
+ * @docsCategory core plugins/EmailPlugin
+ * @docsPage Email Plugin Types
+ * @since 4.0.0
+ */
+export type SampleEventFn<Event> = (input: {
+    ctx: RequestContext;
+    injector: Injector;
+    /**
+     * @description
+     * Arguments given by the caller, e.g. `{ order: 'ABC123' }` for
+     * `vendure email render order-confirmation --arg order=ABC123`.
+     */
+    args: Record<string, string>;
+}) => Promise<WithoutData<Event> | undefined> | WithoutData<Event> | undefined;
+
+type WithoutData<Event> = { [K in keyof Event as K extends 'data' ? never : K]: Event[K] };
+
+/**
+ * The outcome of `EmailEventHandler.prepare()`.
+ *
+ * @internal
+ */
+export type EmailPrepareResult =
+    | { status: 'ready'; details: IntermediateEmailDetails }
+    | { status: 'filtered'; filterIndex: number }
+    | { status: 'load-data-failed'; error: unknown };

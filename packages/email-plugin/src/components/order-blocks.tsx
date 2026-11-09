@@ -7,6 +7,17 @@ import type { CSSProperties } from 'react';
 import { EmailHeading, EmailSection, FormattedDate, Money } from './blocks';
 import { useEmailBranding } from './branding';
 
+/**
+ * @description
+ * Add this class to a `<table>` of data (as opposed to a layout table) so that the plain text version
+ * of the email renders each of its rows on its own line.
+ *
+ * @docsCategory core plugins/EmailPlugin
+ * @docsPage Email components
+ * @since 4.0.0
+ */
+export const EMAIL_DATA_TABLE_CLASS = 'email-data-table';
+
 /*
  * The props of the order components are minimal structural types rather than the Order entity, so
  * that they accept an Order entity, its JSON-serialized form (which is what templates receive after
@@ -174,6 +185,7 @@ export function OrderSummary({
     const currencyCode = order.currencyCode;
     return (
         <table
+            className={EMAIL_DATA_TABLE_CLASS}
             width="100%"
             cellPadding={0}
             cellSpacing={0}
