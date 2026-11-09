@@ -55,14 +55,14 @@ export const testConfig = () => {
 function getBasePort(): number {
     const packageName = process.env.PACKAGE || 'core';
     const offsets: Record<string, number> = {
-        core: 3010,
-        'asset-server-plugin': 3220,
-        'graphiql-plugin': 3230,
-        cli: 3240,
-        'harden-plugin': 3260,
-        'mcp-plugin': 3270,
+        core: 16010,
+        'asset-server-plugin': 16220,
+        'graphiql-plugin': 16230,
+        cli: 16240,
+        'harden-plugin': 16260,
+        'mcp-plugin': 16270,
     };
-    return offsets[packageName] ?? 3250;
+    return offsets[packageName] ?? 16250;
 }
 
 /**
