@@ -436,7 +436,7 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             }
         } catch (e: any) {
             Logger.error(
-                `Could not handle event "${event.constructor.name}" with the "${handler.type}" email handler: ${e.message as string}`,
+                `Could not handle event "${handler.event.name}" with the "${handler.type}" email handler: ${e.message as string}`,
                 loggerCtx,
                 e.stack,
             );
