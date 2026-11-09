@@ -142,7 +142,8 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                         // that races this update. If the update throws, remove it again so the
                         // concurrency slot isn't wedged.
                         this.activeJobs.push(nextJob);
-                        if (await this.deferIfForceStopped(nextJob)) {
+                        if (this.forceStopped) {
+                            await this.deferForceStoppedJob(nextJob);
                             break;
                         }
                         try {
@@ -151,7 +152,10 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                             this.removeJobFromActive(nextJob);
                             throw err;
                         }
-                        if (await this.deferIfForceStopped(nextJob)) {
+                        // Check synchronously, with no await between here and subscribing to
+                        // queueStopped$ below, so a forced stop cannot slip in between the two.
+                        if (this.forceStopped) {
+                            await this.deferForceStoppedJob(nextJob);
                             break;
                         }
                         const onProgress = (job: Job) => this.jobQueueStrategy.update(job);
@@ -279,13 +283,9 @@ class ActiveQueue<Data extends JobData<Data> = object> {
      * A job whose claim or initial update was still in flight when the graceful shutdown
      * timed out has missed STOP_SIGNAL, so it must not be started. Return it to PENDING instead.
      */
-    private async deferIfForceStopped(job: Job<Data>): Promise<boolean> {
-        if (!this.forceStopped) {
-            return false;
-        }
+    private async deferForceStoppedJob(job: Job<Data>): Promise<void> {
         job.defer();
         await this.onFailOrComplete(job);
-        return true;
     }
 
     private async onFailOrComplete(job: Job<Data>) {

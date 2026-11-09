@@ -308,6 +308,46 @@ describe('PollingJobQueueStrategy', () => {
         },
     );
 
+    // #4949 — a forced stop landing just after the initial update must still keep the job from completing
+    it.each([0, 1, 2, 3, 4])(
+        'defers the job when a forced stop lands %i microtasks after its initial update',
+        async depth => {
+            // A negative timeout makes stop() force the stop synchronously on its first poll.
+            const forcedStrategy = new InMemoryJobQueueStrategy({
+                concurrency: 1,
+                pollInterval: 10,
+                gracefulShutdownTimeout: -1,
+            });
+            forcedStrategy.init({ get: () => ({ isWorker: false }) } as any);
+            const process = async () => {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                return true;
+            };
+            let stopPromise: Promise<void> | undefined;
+            const originalUpdate = forcedStrategy.update.bind(forcedStrategy);
+            vi.spyOn(forcedStrategy, 'update').mockImplementation(async (job: Job) => {
+                await originalUpdate(job);
+                if (!stopPromise && job.state === JobState.RUNNING) {
+                    let delay = Promise.resolve();
+                    for (let i = 0; i < depth; i++) {
+                        delay = delay.then(() => undefined);
+                    }
+                    stopPromise = delay.then(() => forcedStrategy.stop('test', process));
+                }
+            });
+            try {
+                await forcedStrategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+                await forcedStrategy.start('test', process);
+                await vi.waitFor(() => expect(stopPromise).toBeDefined(), { timeout: 2000, interval: 5 });
+                await stopPromise;
+
+                expect((await forcedStrategy.findOne('job-1'))?.state).toBe(JobState.PENDING);
+            } finally {
+                forcedStrategy.destroy();
+            }
+        },
+    );
+
     // #5440 — a job cancelled while running stays CANCELLED whatever its process function returns
     it.each([
         ['undefined', undefined],
