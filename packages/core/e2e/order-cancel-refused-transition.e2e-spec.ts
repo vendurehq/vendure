@@ -13,14 +13,24 @@ import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-defin
 import { proceedToArrangingPayment } from './utils/test-order-utils';
 
 /**
- * OrderService.cancelOrder() cancels the lines (and writes stock movements) before it attempts the
- * Cancelled transition. When an OrderProcess refuses that transition, the error is returned but the
- * line cancellations are already saved, so the Order keeps its state with every line cancelled.
+ * OrderService.cancelOrder() cancels the lines (and writes stock movements) before it transitions the
+ * Order to Cancelled. When an OrderProcess refuses that transition, nothing may be changed: not the
+ * lines, not the stock, not the state.
  */
-const refuseCancelProcess: CustomOrderProcess<never> = {
-    onTransitionStart(fromState, toState) {
-        if (toState === 'Cancelled') {
-            return 'This order has been released to the kitchen';
+let cancelGuard: 'refuse' | 'refuseWithFalse' | 'requireZeroSubTotal' = 'refuse';
+
+const guardCancelProcess: CustomOrderProcess<never> = {
+    onTransitionStart(fromState, toState, { order }) {
+        if (toState !== 'Cancelled') {
+            return;
+        }
+        switch (cancelGuard) {
+            case 'refuse':
+                return 'This order has been released to the kitchen';
+            case 'refuseWithFalse':
+                return false;
+            case 'requireZeroSubTotal':
+                return order.subTotalWithTax === 0 ? undefined : 'The order still has a subtotal';
         }
     },
 };
@@ -79,7 +89,7 @@ describe('cancelOrder refused by an OrderProcess', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             orderOptions: {
-                process: [defaultOrderProcess, refuseCancelProcess] as any,
+                process: [defaultOrderProcess, guardCancelProcess] as any,
             },
             paymentOptions: {
                 paymentMethodHandlers: [testSuccessfulPaymentMethod],
@@ -163,5 +173,36 @@ describe('cancelOrder refused by an OrderProcess', () => {
         expect(order.state).toBe('PaymentSettled');
         expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
         expect(await getStock()).toEqual(stockBefore);
+    });
+
+    it('returns the validation error rather than the transition error for invalid lines', async () => {
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+            input: { orderId, lines: [{ orderLineId: lineId, quantity: 5 }] },
+        });
+        expect(cancelOrder.errorCode).toBe('QUANTITY_TOO_GREAT_ERROR');
+    });
+
+    it('leaves the Order lines untouched when onTransitionStart returns false', async () => {
+        cancelGuard = 'refuseWithFalse';
+        const stockBefore = await getStock();
+
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
+        expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+
+        const { order } = await adminClient.query(GET_ORDER, { id: orderId });
+        expect(order.state).toBe('PaymentSettled');
+        expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
+        expect(await getStock()).toEqual(stockBefore);
+    });
+
+    it('checks the transition against the Order totals after the cancellation', async () => {
+        cancelGuard = 'requireZeroSubTotal';
+
+        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
+        expect(cancelOrder.state).toBe('Cancelled');
+
+        const { order } = await adminClient.query(GET_ORDER, { id: orderId });
+        expect(order.lines.map((l: any) => l.quantity)).toEqual([0]);
+        expect((await getStock()).stockAllocated).toBe(0);
     });
 });
