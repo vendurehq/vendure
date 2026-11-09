@@ -212,7 +212,7 @@
             </tr>
         </table>
     </div>
-    <iframe srcdoc="${email.body.replace(/"/g, '&quot;')}"></iframe>
+    <iframe srcdoc="${escapeHTMLEntities(email.body)}"></iframe>
 `;
 
         document.querySelector('.detail').innerHTML = content;
