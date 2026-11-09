@@ -31,65 +31,69 @@ export async function run({ github, context, core, options }) {
 
     const pullNumber = context.payload.pull_request?.number ?? context.payload.issue.number;
     const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: pullNumber });
-    if (pull.state !== 'open') {
-        core.info(`Pull request #${pullNumber} is ${pull.state}.`);
-        return;
-    }
+    const store = signatureStore(github, options);
 
-    const signers = await getSignersForPull(github, { owner, repo, pull });
-    const comments = await github.paginate(github.rest.issues.listComments, {
-        owner,
-        repo,
-        issue_number: pullNumber,
-        per_page: 100,
-    });
     let signatures;
-    try {
-        signatures = await recordSignatures(signatureStore(github, options), {
-            signers,
-            comments,
-            core,
-            repoId: context.payload.repository.id,
-            pullNumber,
-            pullRef: `${owner}/${repo}#${pullNumber}`,
-        });
-    } catch (error) {
-        // Without this, the status would keep its previous result.
-        await github.rest.repos.createCommitStatus({
+    let signers;
+    let comments;
+    if (pull.state === 'open') {
+        signers = await getSignersForPull(github, { owner, repo, pull });
+        comments = await github.paginate(github.rest.issues.listComments, {
             owner,
             repo,
-            sha: pull.head.sha,
-            context: options.statusContext,
-            state: 'error',
-            description: `Could not record a signature. Comment "${RECHECK_PHRASE}" to try again.`,
-            target_url: options.documentUrl,
+            issue_number: pullNumber,
+            per_page: 100,
         });
-        throw error;
+        try {
+            signatures = await recordSignatures(store, {
+                signers,
+                comments,
+                core,
+                repoId: context.payload.repository.id,
+                pullNumber,
+                pullRef: `${owner}/${repo}#${pullNumber}`,
+            });
+        } catch (error) {
+            // Without this, the status would keep its previous result.
+            await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha: pull.head.sha,
+                context: options.statusContext,
+                state: 'error',
+                description: `Could not record a signature. Comment "${RECHECK_PHRASE}" to try again.`,
+                target_url: options.documentUrl,
+            });
+            throw error;
+        }
+    } else {
+        ({ signatures } = await store.read());
     }
 
-    const unsigned = getUnsigned(signers, signatures);
-    const unsignedForHeadCommit = await addUnsignedFromPullsWithSameHead(github, {
+    // The commits whose status this event can change: the PR's head commit,
+    // and on a push, the commit that was its head before.
+    const shas = new Set([pull.head.sha]);
+    if (context.payload.action === 'synchronize' && context.payload.before) {
+        shas.add(context.payload.before);
+    }
+    const openPulls = await github.paginate(github.rest.pulls.list, {
         owner,
         repo,
-        pull,
-        unsigned,
-        signatures,
+        state: 'open',
+        per_page: 100,
     });
-    await reportStatus(github, {
-        owner,
-        repo,
-        sha: pull.head.sha,
-        unsigned: unsignedForHeadCommit,
-        options,
-        core,
-    });
-    if (options.postComment) {
+    const knownSigners = signers ? new Map([[pull.number, signers]]) : new Map();
+    for (const sha of shas) {
+        await refreshStatus(github, { owner, repo, sha, openPulls, knownSigners, signatures, options, core });
+    }
+
+    if (pull.state === 'open' && options.postComment) {
         await upsertComment(github, {
             owner,
             repo,
             pullNumber,
             comments,
-            unsigned,
+            unsigned: getUnsigned(signers, signatures),
             documentUrl: options.documentUrl,
             botLogin: options.botLogin,
         });
@@ -110,32 +114,37 @@ async function getSignersForPull(github, { owner, repo, pull }) {
 }
 
 /**
- * A commit status belongs to a commit, not to a pull request. When other open
- * pull requests have the same head commit, they show the same `cla` status,
- * so the status has to cover them as well. Otherwise a success for this pull
- * request would hide someone who has not signed for another one.
+ * Sets the `cla` status of a commit. A commit status belongs to a commit, not
+ * to a pull request, so every open pull request with this head commit shows
+ * it. The status therefore lists who has to sign for any of them. Otherwise a
+ * success for one would hide someone who has not signed for another. With no
+ * open pull request at this commit, nobody sees the status, and it is left
+ * as it is.
  */
-async function addUnsignedFromPullsWithSameHead(github, { owner, repo, pull, unsigned, signatures }) {
-    const openPulls = await github.paginate(github.rest.pulls.list, {
-        owner,
-        repo,
-        state: 'open',
-        per_page: 100,
-    });
-    const sameHead = openPulls.filter(p => p.number !== pull.number && p.head.sha === pull.head.sha);
-
-    const result = new Map(unsigned.map(s => [s.id, s]));
-    for (const { number } of sameHead) {
-        // The list omits the commit count, which listPullCommits needs.
-        const { data: other } = await github.rest.pulls.get({ owner, repo, pull_number: number });
-        const otherSigners = await getSignersForPull(github, { owner, repo, pull: other });
-        for (const signer of getUnsigned(otherSigners, signatures)) {
-            if (!result.has(signer.id)) {
-                result.set(signer.id, signer);
+async function refreshStatus(
+    github,
+    { owner, repo, sha, openPulls, knownSigners, signatures, options, core },
+) {
+    const pullsAtSha = openPulls.filter(p => p.head.sha === sha);
+    if (pullsAtSha.length === 0) {
+        core.info(`No open pull request has ${sha} as its head commit.`);
+        return;
+    }
+    const unsigned = new Map();
+    for (const { number } of pullsAtSha) {
+        let signers = knownSigners.get(number);
+        if (!signers) {
+            // The list omits the commit count, which listPullCommits needs.
+            const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+            signers = await getSignersForPull(github, { owner, repo, pull });
+        }
+        for (const signer of getUnsigned(signers, signatures)) {
+            if (!unsigned.has(signer.id)) {
+                unsigned.set(signer.id, signer);
             }
         }
     }
-    return [...result.values()];
+    await reportStatus(github, { owner, repo, sha, unsigned: [...unsigned.values()], options, core });
 }
 
 // pulls.listCommits returns at most 250 commits.

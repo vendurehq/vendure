@@ -45,19 +45,19 @@ function fakeGitHub({
         comments: [...comments],
         writes: [],
     };
-    const pull = (number, user, headSha, authors) => ({
+    const pull = (number, user, headSha, authors, pullState = 'open') => ({
         number,
-        state: 'open',
+        state: pullState,
         user,
         commits: authors.length > 0 ? commitCount : 0,
         authors,
         head: { sha: headSha, ref: headRef, repo: { full_name: 'vendurehq/vendure' } },
         base: { sha: 'base-sha', repo: { full_name: 'vendurehq/vendure' } },
     });
-    // `otherPulls` are further open pull requests: { number, user, headSha, commitAuthors }.
+    // `otherPulls` are further pull requests: { number, user, headSha, commitAuthors, state? }.
     const pulls = [
         pull(7, prAuthor, 'head-sha', commitAuthors),
-        ...otherPulls.map(p => pull(p.number, p.user, p.headSha, p.commitAuthors)),
+        ...otherPulls.map(p => pull(p.number, p.user, p.headSha, p.commitAuthors, p.state)),
     ];
     const rest = {
         pulls: {
@@ -109,7 +109,7 @@ function fakeGitHub({
     const paginate = async (method, params, mapFn) => {
         state.paginated = [...(state.paginated ?? []), method];
         if (method === 'list') {
-            return pulls;
+            return pulls.filter(p => p.state === 'open');
         }
         if (method === 'listCommits') {
             return commitsOf(params.pull_number);
@@ -359,5 +359,66 @@ describe('run', () => {
             ['carol', 'alice'],
         );
         assert.equal(state.statuses[0].state, 'success');
+    });
+
+    // Pull request #8 by bob has the same head commit as #7 by alice, who has signed.
+    const pullEvent = (number, action, extra = {}) => ({
+        eventName: 'pull_request_target',
+        payload: { action, pull_request: { number }, repository: { id: 136938012 }, ...extra },
+    });
+
+    it('sets the status to success for the remaining PR when an unsigned PR with the same head closes', async () => {
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [alice],
+            signatures: [{ name: 'alice', id: 1 }],
+            otherPulls: [
+                { number: 8, user: bob, headSha: 'head-sha', commitAuthors: [bob], state: 'closed' },
+            ],
+        });
+        await run({ github, context: withRepo(pullEvent(8, 'closed')), core: logs(), options });
+
+        assert.deepEqual(
+            state.statuses.map(s => [s.sha, s.state]),
+            [['head-sha', 'success']],
+        );
+        assert.equal(state.writes.length, 0);
+        assert.equal(state.comments.length, 0);
+    });
+
+    it('updates the status of both commits when an unsigned PR moves to another head commit', async () => {
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [alice],
+            signatures: [{ name: 'alice', id: 1 }],
+            otherPulls: [{ number: 8, user: bob, headSha: 'new-sha', commitAuthors: [bob] }],
+        });
+        await run({
+            github,
+            context: withRepo(pullEvent(8, 'synchronize', { before: 'head-sha' })),
+            core: logs(),
+            options,
+        });
+
+        assert.deepEqual(
+            state.statuses.map(s => [s.sha, s.state]),
+            [
+                ['new-sha', 'failure'],
+                ['head-sha', 'success'],
+            ],
+        );
+    });
+
+    it('sets no status when the closed PR was the only one at its head commit', async () => {
+        const { github, state } = fakeGitHub({
+            prAuthor: alice,
+            commitAuthors: [alice],
+            otherPulls: [
+                { number: 8, user: bob, headSha: 'lone-sha', commitAuthors: [bob], state: 'closed' },
+            ],
+        });
+        await run({ github, context: withRepo(pullEvent(8, 'closed')), core: logs(), options });
+
+        assert.equal(state.statuses.length, 0);
     });
 });

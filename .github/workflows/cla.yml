@@ -6,7 +6,7 @@ on:
     issue_comment:
         types: [created]
     pull_request_target:
-        types: [opened, reopened, synchronize]
+        types: [opened, reopened, synchronize, closed]
 
 permissions: {}
 
