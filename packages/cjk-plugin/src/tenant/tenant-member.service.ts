@@ -176,6 +176,17 @@ export const BUSINESS_PERMISSIONS: string[] = PERMISSION_CATALOG.flatMap((g) =>
 export const GLOBAL_ROLE_PREFIX = 'g-';
 /** 官方租户位数量：tenantNo 1..20 预留给官方自营租户（见 seedOfficialTenants） */
 export const OFFICIAL_TENANT_SLOTS = 20;
+
+/**
+ * 租户编号起始位扩展点（不硬编码方案，留给部署决策）：
+ * - 默认 0 = 沿用「当前最大 tenantNo + 1」，空库首个租户为 1（现有行为不变）；
+ * - 若决定「官方自营先占 1..20、业务租户从 21 起」，设 TENANT_NO_START=20；
+ * - 若决定「业务租户固定偏移」，填偏移上限即可。取值在调用时读取，避免构建期固化。
+ */
+export function tenantNoStart(): number {
+    const raw = Number(process.env.TENANT_NO_START ?? 0);
+    return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+}
 /** 业务租户总数上限（不含官方自营租户）；创建时超限拒绝 */
 export const BUSINESS_TENANT_CAPACITY = 100;
 /** 全局角色 code 规范化：输入 code 自动统一为 `g-{code}`，避免手动误输入前缀产生重复 */
@@ -324,7 +335,21 @@ export class TenantMemberService {
     /** 新建租户：自动分配 tenantNo（当前最大+1），code 由 tenantNo 派生 `t{tenantNo}`，避免手输冲突 */
     async createChannel(
         ctx: RequestContext,
-        input: { name: string; token?: string; isOfficial?: boolean },
+        input: {
+            name: string;
+            token?: string;
+            isOfficial?: boolean;
+            /** 可选：默认语言（默认 zh_Hans，跨境渠道传 ko） */
+            defaultLanguageCode?: string;
+            /** 可选：默认币种（默认 CNY，跨境渠道传 KRW） */
+            currencyCode?: string;
+            /** 可选：渠道自定义字段（如 ONE BRIDGE 的 onebridgeEnabled / 频道配置） */
+            extraCustomFields?: Record<string, unknown>;
+            /** 可选：多域名（域名解析只读 customDomains，必须与 nginx proxy_set_header Host 一致） */
+            customDomains?: string[];
+            /** 可选：对外访问地址（默认按主域 + /t{tenantNo} 生成） */
+            domain?: string;
+        },
     ): Promise<any> {
         // 业务租户容量：官方位 1-20（isOfficial=true）不计入；超限直接拒绝，避免无限扩张
         const businessCount = await this.countBusinessTenants(ctx);
@@ -339,16 +364,19 @@ export class TenantMemberService {
         const channel = await this.channelService.create(ctx, {
             code,
             token: input.token,
-            defaultLanguageCode: 'zh_Hans' as any,
-            currencyCode: 'CNY' as any,
+            defaultLanguageCode: (input.defaultLanguageCode ?? 'zh_Hans') as any,
+            currencyCode: (input.currencyCode ?? 'CNY') as any,
             pricesIncludeTax: true,
             customFields: {
+                ...(input.extraCustomFields ?? {}),
+                ...(input.customDomains?.length ? { customDomains: input.customDomains } : {}),
                 tenantNo,
                 isOfficial: input.isOfficial ?? false,
                 enabled: true,
                 shopName: input.name,
                 // 默认对外访问地址：主域 + 路径后缀（如 www.youshop.cn/t1），不占用子域
                 ...(defaultDomain ? { domain: `${defaultDomain}/${code}` } : {}),
+                ...(input.domain ? { domain: input.domain } : {}),
             },
         } as any);
         // 自动创建 3 个默认角色（租户管理员/销售/库存），保证人员可即时绑定角色
@@ -411,7 +439,7 @@ export class TenantMemberService {
         }).length;
     }
 
-    /** 取当前最大 tenantNo，自增 1；无数据时从 0 开始（第 1 个租户得到 1）。
+    /** 取「当前最大 tenantNo」与「可配置起始位」的较大者，自增 1；无数据时默认第 1 个租户得到 1。
      *  用 TypeORM 原生 read 绕开 channelService.findAll 的 take≤1000 限制（否则新建租户必报「查询结果大于1000」）。 */
     private async nextTenantNo(ctx: RequestContext): Promise<number> {
         const repo = this.connection.getRepository(ctx, Channel);
@@ -419,7 +447,8 @@ export class TenantMemberService {
         const nos = (channels as any[])
             .map((c: any) => Number(c?.customFields?.tenantNo))
             .filter((n: number) => Number.isFinite(n));
-        return (nos.length ? Math.max(...nos) : 0) + 1;
+        const currentMax = nos.length ? Math.max(...nos) : 0;
+        return Math.max(currentMax, tenantNoStart()) + 1;
     }
 
     /**

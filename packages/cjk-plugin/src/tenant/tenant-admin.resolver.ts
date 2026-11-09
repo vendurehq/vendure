@@ -104,7 +104,19 @@ export class TenantAdminResolver {
     @Allow(Permission.SuperAdmin)
     async createTenant(
         @Ctx() ctx: RequestContext,
-        @Args() args: { input: { name: string; token?: string; isOfficial?: boolean } },
+        @Args()
+        args: {
+            input: {
+                name: string;
+                token?: string;
+                isOfficial?: boolean;
+                defaultLanguageCode?: string;
+                currencyCode?: string;
+                customDomains?: string[];
+                domain?: string;
+                extraCustomFields?: Record<string, unknown>;
+            };
+        },
     ): Promise<any> {
         return this.tenantMemberService.createChannel(ctx, args.input);
     }

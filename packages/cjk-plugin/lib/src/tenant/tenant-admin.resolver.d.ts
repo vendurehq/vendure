@@ -33,6 +33,11 @@ export declare class TenantAdminResolver {
             name: string;
             token?: string;
             isOfficial?: boolean;
+            defaultLanguageCode?: string;
+            currencyCode?: string;
+            customDomains?: string[];
+            domain?: string;
+            extraCustomFields?: Record<string, unknown>;
         };
     }): Promise<any>;
     updateTenant(ctx: RequestContext, args: {

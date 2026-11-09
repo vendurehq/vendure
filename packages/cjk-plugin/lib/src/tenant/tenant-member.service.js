@@ -13,6 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TenantMemberService = exports.RESET_PASSWORD_TTL_MS = exports.BUSINESS_TENANT_CAPACITY = exports.OFFICIAL_TENANT_SLOTS = exports.GLOBAL_ROLE_PREFIX = exports.BUSINESS_PERMISSIONS = exports.PERMISSION_CATALOG = void 0;
+exports.tenantNoStart = tenantNoStart;
 exports.normalizeGlobalRoleCode = normalizeGlobalRoleCode;
 exports.randomStrongPassword = randomStrongPassword;
 exports.canGrantRole = canGrantRole;
@@ -164,6 +165,17 @@ exports.BUSINESS_PERMISSIONS = exports.PERMISSION_CATALOG.flatMap((g) => g.items
 exports.GLOBAL_ROLE_PREFIX = 'g-';
 /** 官方租户位数量：tenantNo 1..20 预留给官方自营租户（见 seedOfficialTenants） */
 exports.OFFICIAL_TENANT_SLOTS = 20;
+/**
+ * 租户编号起始位扩展点（不硬编码方案，留给部署决策）：
+ * - 默认 0 = 沿用「当前最大 tenantNo + 1」，空库首个租户为 1（现有行为不变）；
+ * - 若决定「官方自营先占 1..20、业务租户从 21 起」，设 TENANT_NO_START=20；
+ * - 若决定「业务租户固定偏移」，填偏移上限即可。取值在调用时读取，避免构建期固化。
+ */
+function tenantNoStart() {
+    var _a;
+    const raw = Number((_a = process.env.TENANT_NO_START) !== null && _a !== void 0 ? _a : 0);
+    return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+}
 /** 业务租户总数上限（不含官方自营租户）；创建时超限拒绝 */
 exports.BUSINESS_TENANT_CAPACITY = 100;
 /** 全局角色 code 规范化：输入 code 自动统一为 `g-{code}`，避免手动误输入前缀产生重复 */
@@ -293,7 +305,7 @@ let TenantMemberService = class TenantMemberService {
     }
     /** 新建租户：自动分配 tenantNo（当前最大+1），code 由 tenantNo 派生 `t{tenantNo}`，避免手输冲突 */
     async createChannel(ctx, input) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e, _f, _g;
         // 业务租户容量：官方位 1-20（isOfficial=true）不计入；超限直接拒绝，避免无限扩张
         const businessCount = await this.countBusinessTenants(ctx);
         if (businessCount >= exports.BUSINESS_TENANT_CAPACITY) {
@@ -305,10 +317,10 @@ let TenantMemberService = class TenantMemberService {
         const channel = await this.channelService.create(ctx, {
             code,
             token: input.token,
-            defaultLanguageCode: 'zh_Hans',
-            currencyCode: 'CNY',
+            defaultLanguageCode: ((_c = input.defaultLanguageCode) !== null && _c !== void 0 ? _c : 'zh_Hans'),
+            currencyCode: ((_d = input.currencyCode) !== null && _d !== void 0 ? _d : 'CNY'),
             pricesIncludeTax: true,
-            customFields: Object.assign({ tenantNo, isOfficial: (_c = input.isOfficial) !== null && _c !== void 0 ? _c : false, enabled: true, shopName: input.name }, (defaultDomain ? { domain: `${defaultDomain}/${code}` } : {})),
+            customFields: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, ((_e = input.extraCustomFields) !== null && _e !== void 0 ? _e : {})), (((_f = input.customDomains) === null || _f === void 0 ? void 0 : _f.length) ? { customDomains: input.customDomains } : {})), { tenantNo, isOfficial: (_g = input.isOfficial) !== null && _g !== void 0 ? _g : false, enabled: true, shopName: input.name }), (defaultDomain ? { domain: `${defaultDomain}/${code}` } : {})), (input.domain ? { domain: input.domain } : {})),
         });
         // 自动创建 3 个默认角色（租户管理员/销售/库存），保证人员可即时绑定角色
         const channelId = String(channel.id);
@@ -368,7 +380,7 @@ let TenantMemberService = class TenantMemberService {
             return ((_b = c === null || c === void 0 ? void 0 : c.customFields) === null || _b === void 0 ? void 0 : _b.isOfficial) !== true;
         }).length;
     }
-    /** 取当前最大 tenantNo，自增 1；无数据时从 0 开始（第 1 个租户得到 1）。
+    /** 取「当前最大 tenantNo」与「可配置起始位」的较大者，自增 1；无数据时默认第 1 个租户得到 1。
      *  用 TypeORM 原生 read 绕开 channelService.findAll 的 take≤1000 限制（否则新建租户必报「查询结果大于1000」）。 */
     async nextTenantNo(ctx) {
         const repo = this.connection.getRepository(ctx, core_1.Channel);
@@ -376,7 +388,8 @@ let TenantMemberService = class TenantMemberService {
         const nos = channels
             .map((c) => { var _a; return Number((_a = c === null || c === void 0 ? void 0 : c.customFields) === null || _a === void 0 ? void 0 : _a.tenantNo); })
             .filter((n) => Number.isFinite(n));
-        return (nos.length ? Math.max(...nos) : 0) + 1;
+        const currentMax = nos.length ? Math.max(...nos) : 0;
+        return Math.max(currentMax, tenantNoStart()) + 1;
     }
     /**
      * 租户启停（仅超管）；停用时同步释放该渠道的门店认领并重算商户认领状态。

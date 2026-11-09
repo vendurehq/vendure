@@ -23,6 +23,13 @@ export declare const BUSINESS_PERMISSIONS: string[];
 export declare const GLOBAL_ROLE_PREFIX = "g-";
 /** 官方租户位数量：tenantNo 1..20 预留给官方自营租户（见 seedOfficialTenants） */
 export declare const OFFICIAL_TENANT_SLOTS = 20;
+/**
+ * 租户编号起始位扩展点（不硬编码方案，留给部署决策）：
+ * - 默认 0 = 沿用「当前最大 tenantNo + 1」，空库首个租户为 1（现有行为不变）；
+ * - 若决定「官方自营先占 1..20、业务租户从 21 起」，设 TENANT_NO_START=20；
+ * - 若决定「业务租户固定偏移」，填偏移上限即可。取值在调用时读取，避免构建期固化。
+ */
+export declare function tenantNoStart(): number;
 /** 业务租户总数上限（不含官方自营租户）；创建时超限拒绝 */
 export declare const BUSINESS_TENANT_CAPACITY = 100;
 /** 全局角色 code 规范化：输入 code 自动统一为 `g-{code}`，避免手动误输入前缀产生重复 */
@@ -76,6 +83,16 @@ export declare class TenantMemberService {
         name: string;
         token?: string;
         isOfficial?: boolean;
+        /** 可选：默认语言（默认 zh_Hans，跨境渠道传 ko） */
+        defaultLanguageCode?: string;
+        /** 可选：默认币种（默认 CNY，跨境渠道传 KRW） */
+        currencyCode?: string;
+        /** 可选：渠道自定义字段（如 ONE BRIDGE 的 onebridgeEnabled / 频道配置） */
+        extraCustomFields?: Record<string, unknown>;
+        /** 可选：多域名（域名解析只读 customDomains，必须与 nginx proxy_set_header Host 一致） */
+        customDomains?: string[];
+        /** 可选：对外访问地址（默认按主域 + /t{tenantNo} 生成） */
+        domain?: string;
     }): Promise<any>;
     /** 渠道创建成功后同步到 SSO 渠道表 sso_channels（fire-and-forget，失败仅告警不阻塞租户创建）。
      *  保证渠道报表/点击追踪不因渠道缺失而丢数据。需配置 SSO_CHANNEL_SYNC_URL 与
@@ -84,7 +101,7 @@ export declare class TenantMemberService {
     /** 统计业务租户数（不含官方自营）：isOfficial !== true 且 tenantNo 在官方位之后。
      *  与 nextTenantNo 一样用 repo.find() 绕开 channelService.findAll 的 take≤1000 限制。 */
     private countBusinessTenants;
-    /** 取当前最大 tenantNo，自增 1；无数据时从 0 开始（第 1 个租户得到 1）。
+    /** 取「当前最大 tenantNo」与「可配置起始位」的较大者，自增 1；无数据时默认第 1 个租户得到 1。
      *  用 TypeORM 原生 read 绕开 channelService.findAll 的 take≤1000 限制（否则新建租户必报「查询结果大于1000」）。 */
     private nextTenantNo;
     /**

@@ -1076,6 +1076,11 @@ function mergeCustomFields<T extends { name: string }>(
                     name: String!
                     token: String
                     isOfficial: Boolean
+                    defaultLanguageCode: LanguageCode
+                    currencyCode: CurrencyCode
+                    customDomains: [String!]
+                    domain: String
+                    extraCustomFields: JSON
                 }
 
                 input UpdateTenantInput {
