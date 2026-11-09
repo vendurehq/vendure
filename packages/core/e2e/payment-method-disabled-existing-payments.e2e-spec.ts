@@ -1,24 +1,39 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { mergeConfig } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
+import { LanguageCode, mergeConfig } from '@vendure/core';
+import { createErrorResultGuard, createTestEnvironment, type ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { singleStageRefundablePaymentMethod, twoStagePaymentMethod } from './fixtures/test-payment-methods';
-import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-definitions';
+import {
+    failsToSettlePaymentMethod,
+    singleStageRefundablePaymentMethod,
+    twoStagePaymentMethod,
+} from './fixtures/test-payment-methods';
+import { paymentFragment, refundFragment } from './graphql/fragments-admin';
+import { type FragmentOf, graphql } from './graphql/graphql-admin';
+import {
+    cancelPaymentDocument,
+    getOrderDocument,
+    refundOrderDocument,
+    settlePaymentDocument,
+} from './graphql/shared-definitions';
+import {
+    addItemToOrderDocument,
+    addPaymentDocument,
+    transitionToStateDocument,
+} from './graphql/shop-definitions';
 import { proceedToArrangingPayment } from './utils/test-order-utils';
 
 /**
- * PaymentMethodService.getMethodAndOperations() only finds enabled methods, and settle, cancel and
- * refund all go through it. Disabling a method should stop new payments, not strand existing ones.
+ * Disabling a PaymentMethod stops new payments with it, but its existing payments can still be
+ * settled, cancelled and refunded.
  */
 
-const GET_PAYMENT_METHODS = gql`
-    query GetPaymentMethods {
+const getPaymentMethodsDocument = graphql(`
+    query GetPaymentMethodCodes {
         paymentMethods {
             items {
                 id
@@ -26,84 +41,43 @@ const GET_PAYMENT_METHODS = gql`
             }
         }
     }
-`;
+`);
 
-const UPDATE_PAYMENT_METHOD = gql`
-    mutation UpdatePaymentMethod($input: UpdatePaymentMethodInput!) {
+const updatePaymentMethodDocument = graphql(`
+    mutation SetPaymentMethodEnabled($input: UpdatePaymentMethodInput!) {
         updatePaymentMethod(input: $input) {
             id
             enabled
         }
     }
-`;
+`);
 
-const GET_ORDER_PAYMENTS = gql`
-    query GetOrderPayments($id: ID!) {
-        order(id: $id) {
+const createPaymentMethodDocument = graphql(`
+    mutation CreateSharedCodePaymentMethod($input: CreatePaymentMethodInput!) {
+        createPaymentMethod(input: $input) {
             id
-            lines {
-                id
-            }
-            payments {
-                id
-                state
-            }
         }
     }
-`;
-
-const SETTLE_PAYMENT = gql`
-    mutation SettlePayment($id: ID!) {
-        settlePayment(id: $id) {
-            ... on Payment {
-                id
-                state
-            }
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-`;
-
-const CANCEL_PAYMENT = gql`
-    mutation CancelPayment($id: ID!) {
-        cancelPayment(id: $id) {
-            ... on Payment {
-                id
-                state
-            }
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-`;
-
-const REFUND_ORDER = gql`
-    mutation RefundOrder($input: RefundOrderInput!) {
-        refundOrder(input: $input) {
-            ... on Refund {
-                id
-                state
-            }
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-`;
+`);
 
 describe('Payments of a disabled PaymentMethod', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: {
-                paymentMethodHandlers: [twoStagePaymentMethod, singleStageRefundablePaymentMethod],
+                paymentMethodHandlers: [
+                    twoStagePaymentMethod,
+                    singleStageRefundablePaymentMethod,
+                    failsToSettlePaymentMethod,
+                ],
             },
         }),
+    );
+
+    const paymentGuard: ErrorResultGuard<FragmentOf<typeof paymentFragment>> = createErrorResultGuard(
+        input => !!input.state,
+    );
+    const refundGuard: ErrorResultGuard<FragmentOf<typeof refundFragment>> = createErrorResultGuard(
+        input => !!input.state,
     );
 
     beforeAll(async () => {
@@ -136,58 +110,68 @@ describe('Payments of a disabled PaymentMethod', () => {
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
         const orderId = await proceedToArrangingPayment(shopClient);
         await shopClient.query(addPaymentDocument, { input: { method: methodCode, metadata: {} } });
-        const { order } = await adminClient.query(GET_ORDER_PAYMENTS, { id: orderId });
-        return order;
+        const { order } = await adminClient.query(getOrderDocument, { id: orderId as string });
+        return order!;
     }
 
     async function setEnabled(methodCode: string, enabled: boolean) {
-        const { paymentMethods } = await adminClient.query(GET_PAYMENT_METHODS);
-        const method = paymentMethods.items.find((m: any) => m.code === methodCode);
-        await adminClient.query(UPDATE_PAYMENT_METHOD, { input: { id: method.id, enabled } });
+        const { paymentMethods } = await adminClient.query(getPaymentMethodsDocument);
+        const method = paymentMethods.items.find(m => m.code === methodCode)!;
+        await adminClient.query(updatePaymentMethodDocument, { input: { id: method.id, enabled } });
     }
 
     // OSS-937 — disabling a method must not block settling, cancelling or refunding its existing payments
     it('settles an Authorized payment after its method is disabled', async () => {
+        await setEnabled(twoStagePaymentMethod.code, true);
         const order = await placeOrder(twoStagePaymentMethod.code);
-        expect(order.payments[0].state).toBe('Authorized');
+        expect(order.payments![0].state).toBe('Authorized');
 
         await setEnabled(twoStagePaymentMethod.code, false);
 
-        const { settlePayment } = await adminClient.query(SETTLE_PAYMENT, { id: order.payments[0].id });
+        const { settlePayment } = await adminClient.query(settlePaymentDocument, {
+            id: order.payments![0].id,
+        });
+        paymentGuard.assertSuccess(settlePayment);
         expect(settlePayment.state).toBe('Settled');
     });
 
+    it('cancels an Authorized payment after its method is disabled', async () => {
+        await setEnabled(twoStagePaymentMethod.code, true);
+        const order = await placeOrder(twoStagePaymentMethod.code);
+        expect(order.payments![0].state).toBe('Authorized');
+
+        await setEnabled(twoStagePaymentMethod.code, false);
+
+        const { cancelPayment } = await adminClient.query(cancelPaymentDocument, {
+            paymentId: order.payments![0].id,
+        });
+        paymentGuard.assertSuccess(cancelPayment);
+        expect(cancelPayment.state).toBe('Cancelled');
+    });
+
     it('refunds a Settled payment after its method is disabled', async () => {
+        await setEnabled(singleStageRefundablePaymentMethod.code, true);
         const order = await placeOrder(singleStageRefundablePaymentMethod.code);
-        expect(order.payments[0].state).toBe('Settled');
+        expect(order.payments![0].state).toBe('Settled');
 
         await setEnabled(singleStageRefundablePaymentMethod.code, false);
 
-        const { refundOrder } = await adminClient.query(REFUND_ORDER, {
+        const { refundOrder } = await adminClient.query(refundOrderDocument, {
             input: {
-                paymentId: order.payments[0].id,
+                paymentId: order.payments![0].id,
                 lines: [{ orderLineId: order.lines[0].id, quantity: 1 }],
                 shipping: 0,
                 adjustment: 0,
                 reason: 'disabled method',
             },
         });
+        refundGuard.assertSuccess(refundOrder);
         expect(refundOrder.state).toBe('Settled');
-    });
-
-    it('cancels an Authorized payment after its method is disabled', async () => {
-        await setEnabled(twoStagePaymentMethod.code, true);
-        const order = await placeOrder(twoStagePaymentMethod.code);
-        expect(order.payments[0].state).toBe('Authorized');
-
-        await setEnabled(twoStagePaymentMethod.code, false);
-
-        const { cancelPayment } = await adminClient.query(CANCEL_PAYMENT, { id: order.payments[0].id });
-        expect(cancelPayment.state).toBe('Cancelled');
     });
 
     // #3382 — a disabled method must still reject new payments
     it('does not accept a new payment with a disabled method', async () => {
+        await setEnabled(twoStagePaymentMethod.code, false);
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
         await proceedToArrangingPayment(shopClient);
@@ -197,5 +181,34 @@ describe('Payments of a disabled PaymentMethod', () => {
                 input: { method: twoStagePaymentMethod.code, metadata: {} },
             }),
         ).rejects.toThrow('error.payment-method-not-found');
+
+        // Leave the active order editable for the next test
+        await shopClient.query(transitionToStateDocument, { state: 'AddingItems' });
+    });
+
+    it('uses the enabled method when a disabled one shares its code', async () => {
+        const code = 'shared-code';
+        // The disabled method is created first, so it has the lower id. Its handler fails to settle.
+        for (const [handlerCode, enabled] of [
+            [failsToSettlePaymentMethod.code, false],
+            [twoStagePaymentMethod.code, true],
+        ] as const) {
+            await adminClient.query(createPaymentMethodDocument, {
+                input: {
+                    code,
+                    enabled,
+                    handler: { code: handlerCode, arguments: [] },
+                    translations: [{ languageCode: LanguageCode.en, name: handlerCode }],
+                },
+            });
+        }
+        const order = await placeOrder(code);
+        expect(order.payments![0].state).toBe('Authorized');
+
+        const { settlePayment } = await adminClient.query(settlePaymentDocument, {
+            id: order.payments![0].id,
+        });
+        paymentGuard.assertSuccess(settlePayment);
+        expect(settlePayment.state).toBe('Settled');
     });
 });
