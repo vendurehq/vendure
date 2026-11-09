@@ -57,8 +57,8 @@ without the schema files and the server then fails to boot with "No type definit
 found", which tells you nothing about the actual incompatibility.
 
 `build:for-tests` runs each stage separately and keeps going. `tsc` emits its output even when
-it reports errors, so everything needed to boot a server is produced. The `build` job in
-`typeorm_v1.yml` still compiles strictly and reports the type errors, so the e2e jobs are free
+it reports errors, so everything needed to boot a server is produced. The `build` jobs in
+`build_and_test.yml` and `typeorm_v0_3.yml` still compile strictly and report the type errors, so the e2e jobs are free
 to report what fails once the code is running.
 
 ## In CI
