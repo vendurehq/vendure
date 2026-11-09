@@ -3,6 +3,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+const { probeDockerDaemonMock, cleanUpDockerResourcesMock } = vi.hoisted(() => ({
+    probeDockerDaemonMock: vi.fn(),
+    cleanUpDockerResourcesMock: vi.fn(),
+}));
+
 const { events, projectRequireStub } = vi.hoisted(() => {
     const hoistedEvents: string[] = [];
     // One object stands in for everything the scaffold requires from the new project: ts-node,
@@ -43,6 +48,8 @@ vi.mock('./helpers', async importOriginal => {
         checkDbConnection: () => Promise.resolve(undefined),
         createProjectRequire: () => () => projectRequireStub,
         resolvePackageRootDir: () => path.join(tmpdir(), 'vendure-create-missing-package'),
+        probeDockerDaemon: probeDockerDaemonMock,
+        cleanUpDockerResources: cleanUpDockerResourcesMock,
     };
 });
 vi.mock('node:timers/promises', () => ({ setTimeout: () => Promise.resolve(undefined) }));
@@ -54,6 +61,7 @@ describe('createVendureApp() Console hint', () => {
     beforeAll(() => {
         workDir = mkdtempSync(path.join(tmpdir(), 'vendure-create-hint-'));
         mkdirSync(path.join(workDir, 'app'));
+        mkdirSync(path.join(workDir, 'ci-postgres-app'));
         vi.stubEnv('FORCE_HYPERLINK', '0');
         // Importing the module runs it once without a project directory. process.exit must not stop the test run.
         process.argv = ['node', 'create'];
@@ -80,5 +88,38 @@ describe('createVendureApp() Console hint', () => {
         expect(events[0]).toContain('Setup complete!');
         expect(events[1]).toBe(`hint: ${getConsoleHint(false)}`);
         expect(events[2]).toContain('Happy hacking!');
+    }, 30000);
+
+    // CLO-1224 - --ci never ran the Docker check, so an unresponsive daemon hung the
+    // cleanup and `docker compose up` that follow.
+    it('stops before calling Docker when the daemon does not respond in --ci postgres mode', async () => {
+        const { createVendureApp } = await import('./create-vendure-app');
+        const { DOCKER_NOT_RESPONDING_MESSAGE } = await import('./helpers');
+        events.length = 0;
+        probeDockerDaemonMock.mockResolvedValue('not-responding');
+        // The stubbed project has no email templates, and copying them calls process.exit(0),
+        // so only the exit(1) under test stops the run.
+        const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
+            if (code === 1) {
+                throw new Error('process.exit');
+            }
+        }) as never);
+
+        const outcome = await createVendureApp(
+            path.join(workDir, 'ci-postgres-app'),
+            false,
+            'silent',
+            true,
+            undefined,
+            'postgres',
+        ).then(
+            () => 'returned',
+            (e: Error) => e.message,
+        );
+
+        expect(outcome).toBe('process.exit');
+        expect(exit).toHaveBeenCalledWith(1);
+        expect(events.at(-1)).toContain(DOCKER_NOT_RESPONDING_MESSAGE);
+        expect(cleanUpDockerResourcesMock).not.toHaveBeenCalled();
     }, 30000);
 });
