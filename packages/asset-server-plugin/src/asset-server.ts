@@ -134,7 +134,10 @@ export class AssetServer {
                     }
                     try {
                         const parameters = await this.getImageTransformParameters(req);
-                        const image = await transformImage(file, parameters);
+                        const image = await transformImage(file, {
+                            ...parameters,
+                            format: this.getOutputFormat(decodedReqPath, parameters.format),
+                        });
                         const imageBuffer = await image.toBuffer();
                         const cachedFileName = this.getFileNameFromParameters(req.path, parameters);
                         if (!req.query.cache || req.query.cache === 'true') {
@@ -249,13 +252,13 @@ export class AssetServer {
         const decodedReqPath = this.sanitizeFilePath(filePath);
         if (imageParamsString !== '') {
             const imageParamHash = this.md5(imageParamsString);
-            // Without a requested format, sharp writes SVG input as PNG. The cached file must be
-            // named for what it contains, because its extension decides the served Content-Type.
-            const isSvg = this.getMimeType(decodedReqPath) === 'image/svg+xml';
-            const outputFormat = imageFormat || (isSvg ? 'png' : undefined);
             return path.posix.join(
                 this.cacheDir,
-                this.addSuffix(decodedReqPath, imageParamHash, outputFormat),
+                this.addSuffix(
+                    decodedReqPath,
+                    imageParamHash,
+                    this.getOutputFormat(decodedReqPath, imageFormat),
+                ),
             );
         } else {
             return decodedReqPath;
@@ -305,6 +308,22 @@ export class AssetServer {
         const baseName = path.basename(fileName, originalExt);
         const dirName = path.dirname(fileName);
         return path.posix.join(dirName, `${baseName}${suffix}${effectiveExt}`);
+    }
+
+    /**
+     * The format a transform of `filePath` is written in. SVG is always rasterised to PNG when no
+     * format is requested. The transform and the cache file name both use this, because the cache
+     * file extension decides the served Content-Type.
+     */
+    private getOutputFormat(
+        filePath: string,
+        format: ImageTransformParameters['format'],
+    ): ImageTransformParameters['format'] {
+        const validFormat = getValidFormat(format);
+        if (validFormat) {
+            return validFormat;
+        }
+        return this.getMimeType(filePath) === 'image/svg+xml' ? 'png' : undefined;
     }
 
     /**

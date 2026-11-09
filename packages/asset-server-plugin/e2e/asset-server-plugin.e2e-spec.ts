@@ -225,6 +225,18 @@ describe('AssetServerPlugin', () => {
             expect(res.headers.get('content-security-policy')).toBe(MARKUP_CSP);
         });
 
+        // Upload validation accepts JPEG bytes under an `.svg` name. Its transform is cached and
+        // served as PNG, so the bytes must be PNG too.
+        it('rasterises a resized .svg asset to PNG whatever its bytes are', async () => {
+            const jpegContentAsset = await uploadAsset('jpeg-content.svg');
+            const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+            const res = await fetch(`${jpegContentAsset.source}?w=40`);
+            const body = Buffer.from(await res.arrayBuffer());
+
+            expect(res.headers.get('content-type')).toBe('image/png');
+            expect(body.subarray(0, 8).equals(pngSignature)).toBe(true);
+        });
+
         it('serves an HTML asset as an attachment (non-SVG markup branch)', async () => {
             const htmlAsset = await uploadAsset('test.html');
             const res = await fetch(htmlAsset.source);
