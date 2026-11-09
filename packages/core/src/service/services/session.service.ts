@@ -11,6 +11,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/session-cache-strategy';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
@@ -337,7 +338,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     ): Promise<CachedSession | T> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user'],
+            relations: findOptionsArrayToObject<Session>(['user']),
         });
         if (session) {
             session.activeOrder = order;
@@ -362,7 +363,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
-                relations: ['user'],
+                relations: findOptionsArrayToObject<Session>(['user']),
             });
             if (session) {
                 session.activeOrder = null;
@@ -382,7 +383,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     async setActiveChannel(serializedSession: CachedSession, channel: Channel): Promise<CachedSession> {
         const session = await this.connection.rawConnection.getRepository(Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user'],
+            relations: findOptionsArrayToObject<Session>(['user']),
         });
         if (session) {
             session.activeChannel = channel;

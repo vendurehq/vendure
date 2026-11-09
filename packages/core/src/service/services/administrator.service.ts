@@ -211,7 +211,7 @@ export class AdministratorService {
     ): Promise<Administrator | undefined> {
         const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
             // The User is always loaded, since it is what the authority check is based on.
-            relations: unique([...(relations ?? ['avatar']), 'user']),
+            relations: findOptionsArrayToObject<Administrator>(unique([...(relations ?? ['avatar']), 'user'])),
             where: {
                 id: administratorId,
                 deletedAt: IsNull(),

@@ -1548,7 +1548,7 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
             });
             const userIds = rows.map(row => String(row.userId));
             const live = await connection.getRepository(Administrator).find({
-                relations: ['user'],
+                relations: { user: true },
                 where: { deletedAt: IsNull(), user: { id: In(userIds) } },
             });
             return live.map(a => `T_${String(a.user.id)}`);

@@ -1,0 +1,70 @@
+---
+title: "TypeORM v1"
+metaTitle: "Vendure v4 TypeORM v1 - Migration Guide"
+metaDescription: "Vendure v4 installs TypeORM v1 by default and still runs on TypeORM 0.3. What plugin authors with custom entities, queries or migrations must change."
+order: 6
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+Vendure v4 depends on TypeORM v1 by default. `@vendure/core` declares `typeorm` as `^0.3.21 || ^1.1.2`, so a fresh install resolves to v1, and a project whose lockfile pins TypeORM 0.3 can stay on it.
+
+<Callout type="info">
+Vendure supports both versions from the same source. If your plugins work on both, you do not have to move at the same time as the Vendure upgrade.
+</Callout>
+
+## Moving to TypeORM v1
+
+Update the dependency and reinstall:
+
+```bash
+npm install typeorm@^1.1.2
+```
+
+If you use SQLite through `better-sqlite3`, install version 12 or later, which TypeORM v1 requires. New projects created with `@vendure/create` already get both.
+
+## Staying on TypeORM 0.3
+
+Keep `typeorm` at `0.3.x` in your own `package.json` (or use your package manager's `overrides`), and keep it on a single copy. Entity metadata is registered against one `typeorm` module instance, so a second copy nested in `node_modules` fails in ways that look like version incompatibilities.
+
+## What plugin authors must change
+
+These changes keep working on both versions.
+
+### String-array `relations`
+
+TypeORM v1 removed the string-array form of `relations` on `find*` methods and throws `String-array "relations" syntax has been removed`. Use the object form, or Vendure's `findOptionsArrayToObject()` helper to convert a list of relation paths:
+
+```ts
+import { findOptionsArrayToObject } from '@vendure/core';
+
+// Before
+repository.findOne({ where: { id }, relations: ['user', 'user.roles'] });
+
+// After
+repository.findOne({
+    where: { id },
+    relations: findOptionsArrayToObject<Session>(['user', 'user.roles']),
+});
+// or: relations: { user: { roles: true } }
+```
+
+Vendure's own `ListQueryBuilder`, `EntityHydrator` and service methods still accept string arrays; they convert them for you.
+
+### Deep imports and driver types
+
+Some `typeorm/...` deep import paths changed. Import from the package root where possible. For the Postgres options type, which lives at a different path in each version, derive it instead:
+
+```ts
+import { DataSourceOptions } from 'typeorm';
+
+type PostgresOptions = Extract<DataSourceOptions, { type: 'postgres' }>;
+```
+
+### The `sqlite` driver type
+
+The `'sqlite'` driver type is no longer part of TypeORM v1's `DataSourceOptions['type']` union. Code that switches on the driver type and still lists `'sqlite'` should compare against a `string`, or drop the case if you only use `better-sqlite3` and `sqljs`.
+
+## Migrations
+
+Run `npx vendure migrate` as usual. Generated migration files import `MigrationInterface` and `QueryRunner` from `typeorm`, which works on both versions. With pnpm, `typeorm` must be a direct dependency of your project for those imports to resolve.

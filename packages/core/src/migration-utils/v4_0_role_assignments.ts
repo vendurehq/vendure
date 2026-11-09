@@ -979,7 +979,8 @@ async function getExplicitIdClauses(
 }
 
 function getUuidExpression(queryRunner: QueryRunner): string {
-    const type = queryRunner.connection.options.type;
+    // `sqlite` was removed from the driver type union in TypeORM v1, but 0.3 still reports it.
+    const type: string = queryRunner.connection.options.type;
     switch (type) {
         case 'mysql':
         case 'mariadb':
