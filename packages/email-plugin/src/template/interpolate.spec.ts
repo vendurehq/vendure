@@ -10,9 +10,9 @@ describe('interpolateTemplateString()', () => {
     };
 
     it('replaces simple and nested paths', () => {
-        expect(interpolateTemplateString('Order #{{ order.code }} for {{order.customer.firstName}}', vars)).toBe(
-            'Order #ABC for Ann',
-        );
+        expect(
+            interpolateTemplateString('Order #{{ order.code }} for {{order.customer.firstName}}', vars),
+        ).toBe('Order #ABC for Ann');
     });
 
     it('supports array indices', () => {

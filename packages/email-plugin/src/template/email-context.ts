@@ -57,7 +57,9 @@ export const EmailRenderReactContext = createContext<EmailRenderContext | undefi
 export function useEmailContext(): EmailRenderContext {
     const value = useContext(EmailRenderReactContext);
     if (!value) {
-        throw new Error('useEmailContext() can only be used inside an email template rendered by the EmailPlugin');
+        throw new Error(
+            'useEmailContext() can only be used inside an email template rendered by the EmailPlugin',
+        );
     }
     return value;
 }

@@ -65,8 +65,10 @@ export interface EmailGeneratorInput {
  * @docsPage EmailGenerator
  * @docsWeight 0
  */
-export interface EmailGenerator<T extends string = any, E extends VendureEvent = any>
-    extends InjectableStrategy {
+export interface EmailGenerator<
+    T extends string = any,
+    E extends VendureEvent = any,
+> extends InjectableStrategy {
     /**
      * @description
      * Any necessary setup can be performed here.

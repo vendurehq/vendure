@@ -22,7 +22,10 @@ export function interpolateTemplateString(template: string, vars: Record<string,
 }
 
 function resolvePath(vars: Record<string, any>, path: string): unknown {
-    const segments = path.replace(/\[(\w+)\]/g, '.$1').split('.').filter(Boolean);
+    const segments = path
+        .replace(/\[(\w+)\]/g, '.$1')
+        .split('.')
+        .filter(Boolean);
     let current: any = vars;
     for (const segment of segments) {
         if (current == null) {

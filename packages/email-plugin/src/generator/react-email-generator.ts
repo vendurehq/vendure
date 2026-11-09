@@ -1,5 +1,5 @@
-import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { render, toPlainText } from '@react-email/render';
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { createElement } from 'react';
 
 import { EmailRenderReactContext } from '../template/email-context';
