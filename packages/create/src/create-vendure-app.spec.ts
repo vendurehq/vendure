@@ -47,7 +47,7 @@ vi.mock('./helpers', async importOriginal => {
 });
 vi.mock('node:timers/promises', () => ({ setTimeout: () => Promise.resolve(undefined) }));
 
-describe('createVendureApp() Console hint', () => {
+describe('createVendureApp()', () => {
     const originalArgv = process.argv;
     let workDir: string;
 
@@ -86,7 +86,9 @@ describe('createVendureApp() Console hint', () => {
     it('exits with code 1 when the email templates cannot be copied', async () => {
         const { createVendureApp } = await import('./create-vendure-app');
         mkdirSync(path.join(workDir, 'app-templates'));
-        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+        // Importing the module already called process.exit(1), so drop that call first.
+        const exitSpy = vi.mocked(process.exit);
+        exitSpy.mockClear();
 
         // resolvePackageRootDir points at a missing package, so the template copy fails first.
         await createVendureApp(path.join(workDir, 'app-templates'), false, 'silent', true);
