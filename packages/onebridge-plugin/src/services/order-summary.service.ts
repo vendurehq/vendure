@@ -16,7 +16,12 @@ export class OnebridgeOrderSummaryService {
 
     async summary(ctx: RequestContext, orderCode: string, enforceOwnership: boolean): Promise<any> {
         resolveChannelToken(ctx);
-        const order = await this.orderService.findOneByCode(ctx, orderCode, ['customer', 'lines', 'lines.productVariant']);
+        const order = await this.orderService.findOneByCode(ctx, orderCode, [
+            'customer',
+            'lines',
+            'lines.productVariant',
+            'lines.productVariant.product',
+        ]);
         if (!order) throw Errors.orderNotFound(orderCode);
         if (enforceOwnership) await this.assertOwnership(ctx, order);
         const customFields = order.customFields as Record<string, any>;
@@ -40,7 +45,7 @@ export class OnebridgeOrderSummaryService {
                     id: line.id,
                     productVariantId: variant?.id ?? null,
                     name: translated?.name ?? variant?.sku ?? '',
-                    spec: (variant?.customFields as any)?.spec ?? null,
+                    spec: ((variant as any)?.product?.customFields as any)?.spec ?? null,
                     qty: line.quantity,
                     price: line.linePriceWithTax,
                 };
