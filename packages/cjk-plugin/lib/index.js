@@ -52,6 +52,7 @@ __exportStar(require("./src/shipping/shipping-profile-method.entity"), exports);
 __exportStar(require("./src/shipping/shipping-profile.service"), exports);
 __exportStar(require("./src/shipping/shipping-profile-admin.resolver"), exports);
 __exportStar(require("./src/shipping/shipping-profile-permissions"), exports);
+__exportStar(require("./src/payment/cod-refund-port"), exports);
 __exportStar(require("./src/payment/payment-profile.entity"), exports);
 __exportStar(require("./src/payment/payment-profile.service"), exports);
 __exportStar(require("./src/payment/payment-profile-admin.resolver"), exports);

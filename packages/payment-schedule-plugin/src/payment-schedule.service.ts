@@ -37,6 +37,20 @@ import {
     ScheduleTrigger,
 } from './schedule-config';
 
+/** 软依赖解析 COD 退款闸门端口（cjk-plugin 未安装时返回 null，COD 一律不可退）。 */
+function resolveCodRefundPolicy(): {
+    hasConfirmedReceipt(ctx: RequestContext, paymentId: ID | number): Promise<boolean>;
+    createRefund(ctx: RequestContext, input: any): Promise<any>;
+} | null {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof mod?.getCodRefundPolicyPort === 'function' ? mod.getCodRefundPolicyPort() : null;
+    } catch {
+        return null;
+    }
+}
+
 export interface CreateScheduleItemInput {
     seq: number;
     kind: ItemKind;
@@ -1015,8 +1029,46 @@ export class PaymentScheduleService {
         reason: string,
     ): Promise<boolean> {
         if (!(await this.paymentSupportsRefund(ctx, payment))) {
+            if (String(payment.method) === 'cash-on-delivery') {
+                // COD 无收款记录：不建退款单、不发现金工单（未收款无可退）；退款侧只认 confirmed 收款
+                Logger.warn(
+                    `COD payment ${payment.id} has no confirmed receipt, skip refund for order ${order.code}`,
+                    loggerCtx,
+                );
+                return false;
+            }
             await this.createManualCashRefundTask(ctx, order, payment, amount, reason);
             return false;
+        }
+        if (String(payment.method) === 'cash-on-delivery') {
+            // COD 有收款记录：统一走 campus 闸门（锁收款、校验额度、建单即 Settled）
+            const policy = resolveCodRefundPolicy();
+            if (!policy) {
+                Logger.error(`COD refund gate unavailable, refuse refund for payment ${payment.id}`, loggerCtx);
+                return false;
+            }
+            try {
+                const result = await policy.createRefund(ctx, {
+                    orderId: order.id,
+                    paymentId: payment.id,
+                    amount,
+                    reason,
+                });
+                if (result instanceof Error || (result as any)?.errorCode) {
+                    Logger.warn(
+                        `COD refund payment ${payment.id} failed: ${(result as any)?.message ?? result}`,
+                        loggerCtx,
+                    );
+                    return false;
+                }
+                if (String((result as any)?.state) === 'Settled') {
+                    return true;
+                }
+                return await this.settleRefundAndVerify(ctx, result as Refund, payment);
+            } catch (e: any) {
+                Logger.error(`Failed to refund COD payment ${payment.id}: ${e?.message ?? e}`, loggerCtx);
+                return false;
+            }
         }
         try {
             const result = await this.paymentService.createRefund(
@@ -1050,6 +1102,15 @@ export class PaymentScheduleService {
             if (!handlerCode) {
                 Logger.warn(`Payment method ${payment.method} not found, assume refundable`, loggerCtx);
                 return true;
+            }
+            if (String(handlerCode) === 'cash-on-delivery') {
+                // 单一政策：COD 是否可退 = 是否有 confirmed 收款记录（不再按静态 code 名单一刀切）
+                const policy = resolveCodRefundPolicy();
+                if (!policy) {
+                    Logger.warn(`COD refund gate not registered, treat payment ${payment.id} as non-refundable`, loggerCtx);
+                    return false;
+                }
+                return policy.hasConfirmedReceipt(ctx, payment.id);
             }
             return !NO_REFUND_HANDLER_CODES.includes(String(handlerCode));
         } catch (e: any) {

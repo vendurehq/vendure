@@ -194,6 +194,8 @@ import { CampusCodReceipt, CampusCodRefundLink } from './cod-receipt.entities';
 import { CodCollectionService } from './cod-receipt.service';
 import { CodReceiptAdminResolver } from './cod-receipt.resolver';
 import { setCodCollectionPort } from '@vendure/pickup-plugin';
+import { CodRefundPolicyService } from './cod-refund-policy.service';
+import { setCodRefundPolicyPort } from '@vendure/cjk-plugin';
 import { CampusDedupeService } from './campus-dedupe.service';
 import { WithdrawReconcileJob } from './withdraw-reconcile.job';
 import { CompensationTaskService } from './compensation-task.service';
@@ -269,6 +271,7 @@ import { AfterSalesReviewAdminResolver, AfterSalesReviewShopResolver } from './a
         P44OrderCancelAuditMigration,
         P45CodReceiptLedgerMigration,
         CodCollectionService,
+        CodRefundPolicyService,
         CampusDedupeService,
         WithdrawReconcileJob,
         CompensationTaskService,
@@ -3860,6 +3863,13 @@ export class CampusDeliveryPlugin implements OnApplicationBootstrap {
                 });
                 return { receiptId: receipt.id as number, amount: receipt.amount };
             },
+        });
+        // COD 退款闸门端口：唯一政策=只认 confirmed 收款；handler/支付排期退款统一走该闸门
+        const codRefundPolicy = this.injector.get(CodRefundPolicyService);
+        setCodRefundPolicyPort({
+            hasConfirmedReceipt: (ctx, paymentId) => codRefundPolicy.hasConfirmedReceipt(ctx, paymentId),
+            authorize: (ctx, input) => codRefundPolicy.authorize(ctx, input),
+            createRefund: (ctx, input) => codRefundPolicy.createRefund(ctx, input),
         });
         // 权限迁移（B 组漏项）：写操作拆出 CampusDispatch，给已持有看板权限的角色补授，防现有运营失权
         void this.grantDispatchPermission().catch(e =>

@@ -19,6 +19,17 @@ const constants_1 = require("./constants");
 const order_payment_schedule_entity_1 = require("./order-payment-schedule.entity");
 const order_schedule_item_entity_1 = require("./order-schedule-item.entity");
 const schedule_config_1 = require("./schedule-config");
+/** 软依赖解析 COD 退款闸门端口（cjk-plugin 未安装时返回 null，COD 一律不可退）。 */
+function resolveCodRefundPolicy() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require('@vendure/cjk-plugin');
+        return typeof (mod === null || mod === void 0 ? void 0 : mod.getCodRefundPolicyPort) === 'function' ? mod.getCodRefundPolicyPort() : null;
+    }
+    catch (_a) {
+        return null;
+    }
+}
 // PaymentSettled：租赁买断场景——期次付清→completed→追加买断项拉回 in_progress 后仍需可付（Task 18）
 const PAYABLE_SOURCE_STATES = ['ArrangingPayment', 'Deposited', 'PartiallyPaid', 'PaymentSettled'];
 const OPEN_SCHEDULE_STATUSES = ['pending', 'in_progress'];
@@ -895,10 +906,43 @@ let PaymentScheduleService = class PaymentScheduleService {
      *   结算抛错或回读未达 Settled → 退款单置 Failed（保留审计痕迹）并告警，返回 false 交上层人工处理。
      */
     async refundPayment(ctx, order, payment, amount, reason) {
-        var _a;
+        var _a, _b, _c;
         if (!(await this.paymentSupportsRefund(ctx, payment))) {
+            if (String(payment.method) === 'cash-on-delivery') {
+                // COD 无收款记录：不建退款单、不发现金工单（未收款无可退）；退款侧只认 confirmed 收款
+                core_1.Logger.warn(`COD payment ${payment.id} has no confirmed receipt, skip refund for order ${order.code}`, constants_1.loggerCtx);
+                return false;
+            }
             await this.createManualCashRefundTask(ctx, order, payment, amount, reason);
             return false;
+        }
+        if (String(payment.method) === 'cash-on-delivery') {
+            // COD 有收款记录：统一走 campus 闸门（锁收款、校验额度、建单即 Settled）
+            const policy = resolveCodRefundPolicy();
+            if (!policy) {
+                core_1.Logger.error(`COD refund gate unavailable, refuse refund for payment ${payment.id}`, constants_1.loggerCtx);
+                return false;
+            }
+            try {
+                const result = await policy.createRefund(ctx, {
+                    orderId: order.id,
+                    paymentId: payment.id,
+                    amount,
+                    reason,
+                });
+                if (result instanceof Error || (result === null || result === void 0 ? void 0 : result.errorCode)) {
+                    core_1.Logger.warn(`COD refund payment ${payment.id} failed: ${(_a = result === null || result === void 0 ? void 0 : result.message) !== null && _a !== void 0 ? _a : result}`, constants_1.loggerCtx);
+                    return false;
+                }
+                if (String(result === null || result === void 0 ? void 0 : result.state) === 'Settled') {
+                    return true;
+                }
+                return await this.settleRefundAndVerify(ctx, result, payment);
+            }
+            catch (e) {
+                core_1.Logger.error(`Failed to refund COD payment ${payment.id}: ${(_b = e === null || e === void 0 ? void 0 : e.message) !== null && _b !== void 0 ? _b : e}`, constants_1.loggerCtx);
+                return false;
+            }
         }
         try {
             const result = await this.paymentService.createRefund(ctx, { paymentId: payment.id, amount, reason, shipping: 0, adjustment: 0 }, order, payment);
@@ -913,7 +957,7 @@ let PaymentScheduleService = class PaymentScheduleService {
             return await this.settleRefundAndVerify(ctx, result, payment);
         }
         catch (e) {
-            core_1.Logger.error(`Failed to refund payment ${payment.id}: ${(_a = e === null || e === void 0 ? void 0 : e.message) !== null && _a !== void 0 ? _a : e}`, constants_1.loggerCtx);
+            core_1.Logger.error(`Failed to refund payment ${payment.id}: ${(_c = e === null || e === void 0 ? void 0 : e.message) !== null && _c !== void 0 ? _c : e}`, constants_1.loggerCtx);
             return false;
         }
     }
@@ -928,6 +972,15 @@ let PaymentScheduleService = class PaymentScheduleService {
             if (!handlerCode) {
                 core_1.Logger.warn(`Payment method ${payment.method} not found, assume refundable`, constants_1.loggerCtx);
                 return true;
+            }
+            if (String(handlerCode) === 'cash-on-delivery') {
+                // 单一政策：COD 是否可退 = 是否有 confirmed 收款记录（不再按静态 code 名单一刀切）
+                const policy = resolveCodRefundPolicy();
+                if (!policy) {
+                    core_1.Logger.warn(`COD refund gate not registered, treat payment ${payment.id} as non-refundable`, constants_1.loggerCtx);
+                    return false;
+                }
+                return policy.hasConfirmedReceipt(ctx, payment.id);
             }
             return !NO_REFUND_HANDLER_CODES.includes(String(handlerCode));
         }

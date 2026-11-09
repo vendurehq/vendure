@@ -193,6 +193,8 @@ const cod_receipt_entities_1 = require("./cod-receipt.entities");
 const cod_receipt_service_1 = require("./cod-receipt.service");
 const cod_receipt_resolver_1 = require("./cod-receipt.resolver");
 const pickup_plugin_1 = require("@vendure/pickup-plugin");
+const cod_refund_policy_service_1 = require("./cod-refund-policy.service");
+const cjk_plugin_1 = require("@vendure/cjk-plugin");
 const campus_dedupe_service_1 = require("./campus-dedupe.service");
 const withdraw_reconcile_job_1 = require("./withdraw-reconcile.job");
 const compensation_task_service_1 = require("./compensation-task.service");
@@ -245,6 +247,13 @@ let CampusDeliveryPlugin = class CampusDeliveryPlugin {
                 });
                 return { receiptId: receipt.id, amount: receipt.amount };
             },
+        });
+        // COD 退款闸门端口：唯一政策=只认 confirmed 收款；handler/支付排期退款统一走该闸门
+        const codRefundPolicy = this.injector.get(cod_refund_policy_service_1.CodRefundPolicyService);
+        (0, cjk_plugin_1.setCodRefundPolicyPort)({
+            hasConfirmedReceipt: (ctx, paymentId) => codRefundPolicy.hasConfirmedReceipt(ctx, paymentId),
+            authorize: (ctx, input) => codRefundPolicy.authorize(ctx, input),
+            createRefund: (ctx, input) => codRefundPolicy.createRefund(ctx, input),
         });
         // 权限迁移（B 组漏项）：写操作拆出 CampusDispatch，给已持有看板权限的角色补授，防现有运营失权
         void this.grantDispatchPermission().catch(e => core_1.Logger.error(`grant CampusDispatch failed: ${String(e)}`, 'CampusDispatch'));
@@ -464,6 +473,7 @@ exports.CampusDeliveryPlugin = CampusDeliveryPlugin = __decorate([
             p44_order_cancel_audit_1.P44OrderCancelAuditMigration,
             p45_cod_receipt_ledger_1.P45CodReceiptLedgerMigration,
             cod_receipt_service_1.CodCollectionService,
+            cod_refund_policy_service_1.CodRefundPolicyService,
             campus_dedupe_service_1.CampusDedupeService,
             withdraw_reconcile_job_1.WithdrawReconcileJob,
             compensation_task_service_1.CompensationTaskService,

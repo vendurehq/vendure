@@ -36,6 +36,7 @@ export * from './src/shipping/shipping-profile-method.entity';
 export * from './src/shipping/shipping-profile.service';
 export * from './src/shipping/shipping-profile-admin.resolver';
 export * from './src/shipping/shipping-profile-permissions';
+export * from './src/payment/cod-refund-port';
 export * from './src/payment/payment-profile.entity';
 export * from './src/payment/payment-profile.service';
 export * from './src/payment/payment-profile-admin.resolver';

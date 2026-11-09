@@ -8,6 +8,7 @@ export * from './rider-credit-log.entity';
 export * from './support.entities';
 export * from './cod-receipt.entities';
 export * from './cod-receipt.service';
+export * from './cod-refund-policy.service';
 export * from './cod-receipt.resolver';
 export * from './rider-ops.entities';
 export * from './support.service';
