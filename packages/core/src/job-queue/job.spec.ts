@@ -23,6 +23,31 @@ describe('Job class', () => {
             });
         });
 
+        // OSS-940 — a getter that throws must not prevent the job from being created
+        it('skips getters that throw', () => {
+            class Order {
+                code = 123;
+                get totalPrice() {
+                    return 42;
+                }
+                get totalQuantity(): number {
+                    throw new Error('lines not joined');
+                }
+            }
+
+            const job = new Job({
+                queueName: 'test',
+                data: { order: new Order() },
+            });
+
+            expect(job.data).toEqual({
+                order: {
+                    code: 123,
+                    totalPrice: 42,
+                },
+            });
+        });
+
         it('getters are converted to plain properties (nested)', () => {
             class Order {
                 code = 123;

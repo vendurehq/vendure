@@ -278,7 +278,13 @@ export class Job<T extends JobData<T> = any> {
                     for (const name of Object.keys(descriptors)) {
                         const descriptor = descriptors[name];
                         if (typeof descriptor.get === 'function') {
-                            output[name] = (data as any)[name];
+                            try {
+                                output[name] = (data as any)[name];
+                            } catch {
+                                // Some getters throw when the data they depend on is not loaded,
+                                // e.g. `Order.totalQuantity` when `lines` is not joined. Skip them
+                                // so that the job can still be queued.
+                            }
                         }
                     }
                 }
