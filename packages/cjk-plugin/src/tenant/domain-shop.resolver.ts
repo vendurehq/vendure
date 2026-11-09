@@ -24,10 +24,11 @@ export class DomainShopResolver {
         return this.domainResolverService.resolveByCode(ctx, code);
     }
 
-    /** 全部「可用店铺」列表（已停用渠道不返回）：多租户路由判定 + 店铺切换器的公开数据源 */
+    /** 全部「可用店铺」列表（已停用渠道不返回）：多租户路由判定 + 店铺切换器的公开数据源。
+     *  token 仅当前渠道有值，其余为 null（避免公开批量下发全部渠道 token）。 */
     @Query()
     @Allow(Permission.Public)
     async shopChannels(@Ctx() ctx: RequestContext): Promise<ShopChannelEntry[]> {
-        return this.domainResolverService.listShopChannels();
+        return this.domainResolverService.listShopChannels(ctx);
     }
 }

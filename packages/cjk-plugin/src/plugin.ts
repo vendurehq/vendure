@@ -2213,7 +2213,7 @@ function mergeCustomFields<T extends { name: string }>(
 
                 type ShopChannel {
                     code: String!
-                    token: String!
+                    token: String
                     name: String
                     tenantNo: Int
                     isOfficial: Boolean!
