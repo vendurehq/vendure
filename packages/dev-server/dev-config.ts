@@ -234,7 +234,9 @@ const CSRF_ALLOWED_ORIGINS = new Set<string>(
         'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,' +
         'http://localhost:5280,http://localhost:3000,' +
         // 本地联调：C 端静态页与同源反代，127.0.0.1 与 localhost 不等价，需分别列出
-        'http://127.0.0.1:3100,http://localhost:3100,http://g.joho.cn'
+        'http://127.0.0.1:3100,http://localhost:3100,' +
+        // C 端 dev-server 预期端口 3001
+        'http://127.0.0.1:3001,http://localhost:3001,http://g.joho.cn'
     )
         .split(',')
         .map(s => s.trim().toLowerCase())
