@@ -181,7 +181,7 @@ function listFiles(dir, reader, maxDepth = Infinity) {
         }
     };
     visit('', 1);
-    return files.sort();
+    return files.sort((a, b) => a.localeCompare(b));
 }
 
 /**
