@@ -361,13 +361,16 @@ test.describe('Stored user settings on login', () => {
      * request still goes to the server first, so that the server decides whether the session
      * may read the settings: without a valid session it answers FORBIDDEN, as with the plugin.
      * The emulated stored value has no `activeChannelId`, so the Dashboard writes the settings
-     * back soon after the login, once it has set the active channel.
+     * back soon after the login, once it has set the active channel. `stores` holds one stored
+     * value per administrator, and `currentStore` names the one the current session reads and writes.
      */
-    async function emulateUserSettingsStore(page: Page) {
-        let storedSettings: Record<string, any> = {
-            displayLanguage: 'en',
-            tableSettings: { [MARKER_TABLE_ID]: markerTableSettings },
-        };
+    async function emulateUserSettingsStore(
+        page: Page,
+        stores: Record<string, Record<string, any>> = {
+            default: { displayLanguage: 'en', tableSettings: { [MARKER_TABLE_ID]: markerTableSettings } },
+        },
+        currentStore: () => string = () => 'default',
+    ) {
         const savedValues: Array<Record<string, any>> = [];
         await page.route('**/admin-api**', async route => {
             const request = route.request().postDataJSON();
@@ -389,13 +392,13 @@ test.describe('Stored user settings on login', () => {
                 return;
             }
             if (isWrite) {
-                storedSettings = request.variables.input.value;
-                savedValues.push(storedSettings);
+                stores[currentStore()] = request.variables.input.value;
+                savedValues.push(request.variables.input.value);
             }
             await route.fulfill({
                 response,
                 json: isRead
-                    ? { data: { getSettingsStoreValue: storedSettings } }
+                    ? { data: { getSettingsStoreValue: stores[currentStore()] } }
                     : {
                           data: {
                               setSettingsStoreValue: {
@@ -448,6 +451,102 @@ test.describe('Stored user settings on login', () => {
         await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
 
         await expectStoredSettingsKept(page, savedValues);
+    });
+
+    // #5646: after logging out, the next login must use the next administrator's stored settings
+    test('keeps the stored settings of the next user after logging out', async ({ page, browser }) => {
+        const suffix = `${Date.now()}-${Math.round(Math.random() * 1000)}`;
+        const password = 'test-password';
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { activeChannel } = await client.gql(`query { activeChannel { id } }`);
+        const roleIds: string[] = [];
+        const administratorIds: string[] = [];
+        const createAdministrator = async (name: string) => {
+            const { createRole } = await client.gql(
+                `mutation ($input: CreateRoleInput!) { createRole(input: $input) { id } }`,
+                {
+                    input: {
+                        code: `${name}-${suffix}`,
+                        description: 'Catalog access',
+                        permissions: ['ReadCatalog'],
+                        channelIds: [activeChannel.id],
+                    },
+                },
+            );
+            roleIds.push(createRole.id);
+            const emailAddress = `${name}-${suffix}@test.com`;
+            const { createAdministrator: administrator } = await client.gql(
+                `mutation ($input: CreateAdministratorInput!) { createAdministrator(input: $input) { id } }`,
+                {
+                    input: {
+                        firstName: 'Settings',
+                        lastName: name,
+                        emailAddress,
+                        password,
+                        roleIds: [createRole.id],
+                    },
+                },
+            );
+            administratorIds.push(administrator.id);
+            return emailAddress;
+        };
+
+        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        try {
+            const firstEmailAddress = await createAdministrator('SettingsFirst');
+            const secondEmailAddress = await createAdministrator('SettingsSecond');
+
+            const firstTableSettings = { pageSize: 11 };
+            let currentUser = 'first';
+            const stores = {
+                first: { displayLanguage: 'en', tableSettings: { [MARKER_TABLE_ID]: firstTableSettings } },
+                second: { displayLanguage: 'en', tableSettings: { [MARKER_TABLE_ID]: markerTableSettings } },
+            };
+            const userPage = await context.newPage();
+            const savedValues = await emulateUserSettingsStore(userPage, stores, () => currentUser);
+            const loginPage = new LoginPage(userPage);
+            await loginPage.goto();
+            await loginPage.login(firstEmailAddress, password);
+            await expect(userPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
+            await expect.poll(() => savedValues.length, { timeout: 15_000 }).toBeGreaterThan(0);
+
+            await userPage
+                .locator('[data-sidebar="footer"] [data-sidebar="menu-button"]')
+                .filter({ hasText: 'Settings SettingsFirst' })
+                .click();
+            await userPage.getByRole('menuitem', { name: 'Log out' }).click();
+            await loginPage.expectVisible();
+
+            const savedBeforeSecondLogin = savedValues.length;
+            currentUser = 'second';
+            await loginPage.login(secondEmailAddress, password);
+            await expect(userPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
+            const markerInBrowser = () =>
+                userPage.evaluate(
+                    ([settingsKey, tableId]) =>
+                        JSON.parse(localStorage.getItem(settingsKey) ?? '{}').tableSettings?.[tableId],
+                    [LS_KEY_USER_SETTINGS, MARKER_TABLE_ID],
+                );
+            await expect.poll(markerInBrowser, { timeout: 15_000 }).toEqual(markerTableSettings);
+
+            for (const value of savedValues.slice(savedBeforeSecondLogin)) {
+                expect(value.tableSettings?.[MARKER_TABLE_ID]).toEqual(markerTableSettings);
+            }
+            expect(stores.second.tableSettings?.[MARKER_TABLE_ID]).toEqual(markerTableSettings);
+        } finally {
+            // The emulated store may still be handling a request, which fails once the context closes
+            await Promise.all(context.pages().map(p => p.unrouteAll({ behavior: 'ignoreErrors' })));
+            await context.close();
+            await client
+                .gql(`mutation ($ids: [ID!]!) { deleteAdministrators(ids: $ids) { result } }`, {
+                    ids: administratorIds,
+                })
+                .catch(() => {});
+            await client
+                .gql(`mutation ($ids: [ID!]!) { deleteRoles(ids: $ids) { result } }`, { ids: roleIds })
+                .catch(() => {});
+        }
     });
 });
 
