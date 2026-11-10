@@ -361,6 +361,11 @@ msgstr "Rol succesvol aangemaakt"
 msgid "Are you sure you want to delete this variant?"
 msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
+msgstr "{0, plural, one {# collectie verplaatsen naar de geselecteerde collectie} other {# collecties verplaatsen naar de geselecteerde collectie}}"
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
@@ -893,7 +898,9 @@ msgid "Successfully updated channel"
 msgstr "Kanaal succesvol bijgewerkt"
 
 #. placeholder {0}: lines.length
+#. placeholder {0}: summary.count
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0, plural, one {# item} other {# items}}"
 msgstr "{0, plural, one {# artikel} other {# artikelen}}"
 
@@ -1551,6 +1558,11 @@ msgstr "Voorraad"
 msgid "No sales for this period"
 msgstr "Geen verkopen in deze periode"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Asset"
+msgstr "Bestand selecteren"
+
 #: src/lib/components/shared/customer-selector.tsx
 msgid "No customers found"
 msgstr "Geen klanten gevonden"
@@ -1708,6 +1720,11 @@ msgstr "Promotie succesvol bijgewerkt"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {{rejected} taak kon niet worden geannuleerd} other {{rejected} taken konden niet worden geannuleerd}}"
 
+#. placeholder {0}: failedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Failed to upload # asset} other {Failed to upload # assets}}"
+msgstr "{0, plural, one {Uploaden van # bestand mislukt} other {Uploaden van # bestanden mislukt}}"
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "We couldn't load these metrics"
 msgstr "We konden deze statistieken niet laden"
@@ -1861,8 +1878,8 @@ msgid "Filters"
 msgstr "Filters"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "selected collection"
-msgstr "geselecteerde collectie"
+#~ msgid "selected collection"
+#~ msgstr "geselecteerde collectie"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -1980,6 +1997,7 @@ msgstr "Tabel van {row} bij {col} invoegen"
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
@@ -2912,10 +2930,9 @@ msgstr "Maat, kleur, etc."
 msgid "Browse facets"
 msgstr "Facetten doorbladeren"
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} items"
-msgstr ""
+#~ msgid "{0} items"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
@@ -3324,6 +3341,11 @@ msgstr "Productopties"
 msgid "Select country"
 msgstr "Selecteer land"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection to the top level} other {Moving # collections to the top level}}"
+msgstr "{0, plural, one {# collectie verplaatsen naar het hoogste niveau} other {# collecties verplaatsen naar het hoogste niveau}}"
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund only partially completed"
 msgstr ""
@@ -3359,8 +3381,8 @@ msgid "Failed to remove customer from group"
 msgstr "Klant uit groep verwijderen mislukt"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 property"
-msgstr ""
+#~ msgid "1 property"
+#~ msgstr ""
 
 #. placeholder {0}: testResult.length
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
@@ -4265,6 +4287,10 @@ msgstr "Een nieuwe productvariant aanmaken met opties, prijzen en voorraad"
 msgid "Private facets are not visible in the shop"
 msgstr "Privéfacetten zijn niet zichtbaar in de winkel"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select an asset"
+msgstr "Blader en selecteer een bestand"
+
 #: src/lib/components/shared/tax-category-selector.tsx
 msgid "Select a tax category"
 msgstr "Selecteer een belastingcategorie"
@@ -4456,6 +4482,11 @@ msgstr "Nieuw kanaal"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "Naam optiegroep"
+
+#. placeholder {0}: selectedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Select # Asset} other {Select # Assets}}"
+msgstr "{0, plural, one {# bestand selecteren} other {# bestanden selecteren}}"
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -4727,6 +4758,11 @@ msgstr "Straatnaam 2"
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Global view deleted successfully"
 msgstr "Globale weergave succesvol verwijderd"
+
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
+msgid "{0, plural, one {# property} other {# properties}}"
+msgstr "{0, plural, one {# eigenschap} other {# eigenschappen}}"
 
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "Edit Layout"
@@ -5782,10 +5818,9 @@ msgstr "Voorraad op voorraad"
 msgid "New address"
 msgstr ""
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} properties"
-msgstr ""
+#~ msgid "{0} properties"
+#~ msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
 msgid "Filter by {columnId}"
@@ -5956,6 +5991,11 @@ msgstr "Tags toevoegen..."
 #~ msgid "Failed to create product option group"
 #~ msgstr "Aanmaken van productoptiegroep mislukt"
 
+#. placeholder {0}: createdAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Uploaded # asset} other {Uploaded # assets}}"
+msgstr "{0, plural, one {# bestand geüpload} other {# bestanden geüpload}}"
+
 #. placeholder {0}: selectedIds.length
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "{0} items selected"
@@ -6068,10 +6108,9 @@ msgstr "Belastingtarieven"
 msgid "Failed to remove customers from group"
 msgstr "Klanten konden niet uit de groep worden verwijderd"
 
-#. placeholder {0}: failedAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Failed to upload {0} assets"
-msgstr ""
+#~ msgid "Failed to upload {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"
@@ -6344,8 +6383,8 @@ msgid "Successfully added option value"
 msgstr "Optiewaarde succesvol toegevoegd"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "top level"
-msgstr "hoogste niveau"
+#~ msgid "top level"
+#~ msgstr "hoogste niveau"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
@@ -6630,8 +6669,8 @@ msgid "Language"
 msgstr "Taal"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 item"
-msgstr ""
+#~ msgid "1 item"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "New Collection"
@@ -6640,6 +6679,10 @@ msgstr "Nieuwe collectie"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund and cancel order"
 msgstr "Bestelling restitueren en annuleren"
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Assets"
+msgstr "Bestanden selecteren"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -6727,10 +6770,9 @@ msgstr "Facet succesvol bijgewerkt"
 msgid "Strikethrough"
 msgstr "Doorhalen"
 
-#. placeholder {0}: createdAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Uploaded {0} assets"
-msgstr ""
+#~ msgid "Uploaded {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
@@ -7048,6 +7090,10 @@ msgstr "Rijen per pagina"
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select one or more assets"
+msgstr "Blader en selecteer een of meer bestanden"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
