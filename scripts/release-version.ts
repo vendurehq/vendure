@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
-import { execFileSync, execSync } from 'child_process';
+import { execSync } from 'node:child_process';
+import path from 'node:path';
+import { parseArgs } from 'node:util';
 import { releaseVersion } from 'nx/release';
-import path from 'path';
-import { parseArgs } from 'util';
 
 /**
  * Sets one new version on all packages in `packages/*` and prepares the release commit.
@@ -83,15 +83,15 @@ async function main() {
     if (skipGit) {
         return;
     }
-    // The message is passed as one argument, so the shell does not parse it.
-    for (const args of [
-        ['commit', '-m', message],
-        ['tag', '-a', tag, '-m', tag],
-    ]) {
-        console.log(`${dryRun ? '[dry-run] ' : '\n$ '}git ${args.map(arg => JSON.stringify(arg)).join(' ')}`);
-        if (!dryRun) {
-            execFileSync('git', args, { cwd: repoRoot, stdio: 'inherit' });
-        }
+    // git reads the message from stdin, so the shell does not parse it.
+    console.log(dryRun ? `[dry-run] git commit -F - <<< "${message}"` : `\n$ git commit -F -`);
+    if (!dryRun) {
+        execSync('git commit -F -', { cwd: repoRoot, input: message, stdio: ['pipe', 'inherit', 'inherit'] });
+    }
+    const tagStep = `git tag -a ${tag} -m ${tag}`;
+    console.log(dryRun ? `[dry-run] ${tagStep}` : `\n$ ${tagStep}`);
+    if (!dryRun) {
+        execSync(tagStep, { cwd: repoRoot, stdio: 'inherit' });
     }
 }
 
