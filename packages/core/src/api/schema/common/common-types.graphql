@@ -7,7 +7,8 @@ scalar Upload
 scalar Money
 
 """
-A string input field marked with this directive must not be empty or whitespace-only when it is provided.
+A string input field marked with this directive must not be empty or whitespace-only when it is provided
+in the arguments of a mutation. Query arguments are not checked.
 """
 directive @nonBlank on INPUT_FIELD_DEFINITION
 
