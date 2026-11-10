@@ -62,6 +62,7 @@ let MyOrdersShopResolver = class MyOrdersShopResolver {
         this.connection = connection;
     }
     async myOrders(ctx, options, relations) {
+        var _a;
         if (!ctx.activeUserId) {
             return { items: [], totalItems: 0 };
         }
@@ -69,7 +70,9 @@ let MyOrdersShopResolver = class MyOrdersShopResolver {
         if (!customer) {
             return { items: [], totalItems: 0 };
         }
-        const effectiveOptions = options !== null && options !== void 0 ? options : { take: 10, sort: { createdAt: 'DESC' } };
+        // A3：默认 createdAt DESC。之前 `options ?? 默认值` 只要前端传了 options（哪怕只有 take），
+        // 默认排序就整块被丢掉，SQL 退化成插入顺序（实测升序）。
+        const effectiveOptions = Object.assign(Object.assign({ take: 10 }, (options !== null && options !== void 0 ? options : {})), { sort: (_a = options === null || options === void 0 ? void 0 : options.sort) !== null && _a !== void 0 ? _a : { createdAt: 'DESC' } });
         return this.listQueryBuilder
             .build(core_1.Order, effectiveOptions, { ctx, channelId: ctx.channelId, relations })
             .andWhere('order.customer.id = :customerId', { customerId: customer.id })

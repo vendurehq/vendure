@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setOnebridgeChannelToken = setOnebridgeChannelToken;
 exports.resolveChannelToken = resolveChannelToken;
+exports.isOnebridgeChannel = isOnebridgeChannel;
 const errors_1 = require("../errors");
 /**
  * ONE BRIDGE Channel token 配置（plugin init 时注入）。
@@ -18,5 +19,9 @@ function resolveChannelToken(ctx) {
         throw errors_1.Errors.channelNotResolved(configuredChannelToken, token);
     }
     return token;
+}
+/** 事件订阅等无显式入参的场景：判断当前 ctx 是否属于 ONE BRIDGE 渠道（未配置 token 时视为是） */
+function isOnebridgeChannel(ctx) {
+    return !configuredChannelToken || configuredChannelToken === ctx.channel.token;
 }
 //# sourceMappingURL=channel-context.js.map

@@ -86,7 +86,7 @@ let OnebridgePaymentCallbackService = class OnebridgePaymentCallbackService {
             operator: 'korea-pg-callback',
             idempotencyKey,
         }));
-        await this.advanceStage(ctx, orderCode);
+        await this.finalizeAfterPayment(ctx, orderCode);
         core_1.Logger.info(`korea-pg callback paid: order=${orderCode} transaction=${payload.transactionId} channel=${ctx.channel.token}`, types_1.loggerCtx);
         return { success: true, duplicate: false, code: null, orderCode };
     }
@@ -100,16 +100,25 @@ let OnebridgePaymentCallbackService = class OnebridgePaymentCallbackService {
             }
         }
     }
-    /** net 线付款完成后 wait_pay → shipping（demo/data.js 阶段流转）；其他业务线不动阶段 */
-    async advanceStage(ctx, orderCode) {
+    /**
+     * 支付成功收尾（A4）：
+     * 1) net 线付款完成后 wait_pay → shipping（demo/data.js 阶段流转）；其他业务线不动阶段；
+     * 2) 无论阶段是否变化都显式刷新 updatedAt —— 之前阶段非 wait_pay 时直接 return，
+     *    支付成功后 updatedAt 仍是下单时间，C 端据此判断「无新动态」。
+     */
+    async finalizeAfterPayment(ctx, orderCode) {
+        var _a;
         const order = await this.orderService.findOneByCode(ctx, orderCode);
         if (!order)
             return;
-        const customFields = order.customFields;
-        if (customFields.crossBorderStage !== 'wait_pay')
-            return;
-        customFields.crossBorderStage = 'shipping';
-        await this.connection.getRepository(ctx, core_1.Order).save(order);
+        const customFields = Object.assign({}, ((_a = order.customFields) !== null && _a !== void 0 ? _a : {}));
+        if (!customFields.crossBorderStage || customFields.crossBorderStage === 'wait_pay') {
+            customFields.crossBorderStage = 'shipping';
+        }
+        await this.connection.getRepository(ctx, core_1.Order).update(order.id, {
+            customFields,
+            updatedAt: new Date(),
+        });
     }
     auditDuplicate(ctx, orderCode, payload, idempotencyKey) {
         core_1.Logger.warn(`${types_1.ONEBRIDGE_ERROR_CODES.PAYMENT_CALLBACK_DUPLICATE} ${JSON.stringify({

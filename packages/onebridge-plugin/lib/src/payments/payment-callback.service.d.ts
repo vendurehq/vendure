@@ -29,7 +29,12 @@ export declare class OnebridgePaymentCallbackService {
     handleKoreaPg(ctx: RequestContext, payload: KoreaPgCallbackPayload): Promise<KoreaPgCallbackResult>;
     /** 结算该订单下仍处于 Authorized 的 korea-pg 支付；无支付记录时保持时间轴落账（桩期口径） */
     private settleAuthorizedPayments;
-    /** net 线付款完成后 wait_pay → shipping（demo/data.js 阶段流转）；其他业务线不动阶段 */
-    private advanceStage;
+    /**
+     * 支付成功收尾（A4）：
+     * 1) net 线付款完成后 wait_pay → shipping（demo/data.js 阶段流转）；其他业务线不动阶段；
+     * 2) 无论阶段是否变化都显式刷新 updatedAt —— 之前阶段非 wait_pay 时直接 return，
+     *    支付成功后 updatedAt 仍是下单时间，C 端据此判断「无新动态」。
+     */
+    private finalizeAfterPayment;
     private auditDuplicate;
 }

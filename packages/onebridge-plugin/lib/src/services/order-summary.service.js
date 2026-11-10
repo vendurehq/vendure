@@ -29,7 +29,10 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
             'customer',
             'lines',
             'lines.productVariant',
+            // A1：name 取变体/商品译名，必须显式加载 translations；否则 fallback 到 sku（L2201308）
+            'lines.productVariant.translations',
             'lines.productVariant.product',
+            'lines.productVariant.product.translations',
         ]);
         if (!order)
             throw errors_1.Errors.orderNotFound(orderCode);
@@ -50,14 +53,13 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
             items: ((_g = order.lines) !== null && _g !== void 0 ? _g : []).map((line) => {
-                var _a, _b, _c, _d, _e, _f, _g;
+                var _a;
                 const variant = line.productVariant;
-                const translated = (_a = variant === null || variant === void 0 ? void 0 : variant.translations) === null || _a === void 0 ? void 0 : _a.find((t) => t.languageCode === ctx.languageCode);
                 return {
                     id: line.id,
-                    productVariantId: (_b = variant === null || variant === void 0 ? void 0 : variant.id) !== null && _b !== void 0 ? _b : null,
-                    name: (_d = (_c = translated === null || translated === void 0 ? void 0 : translated.name) !== null && _c !== void 0 ? _c : variant === null || variant === void 0 ? void 0 : variant.sku) !== null && _d !== void 0 ? _d : '',
-                    spec: (_g = (_f = (_e = variant === null || variant === void 0 ? void 0 : variant.product) === null || _e === void 0 ? void 0 : _e.customFields) === null || _f === void 0 ? void 0 : _f.spec) !== null && _g !== void 0 ? _g : null,
+                    productVariantId: (_a = variant === null || variant === void 0 ? void 0 : variant.id) !== null && _a !== void 0 ? _a : null,
+                    name: this.resolveItemName(ctx, variant),
+                    spec: this.resolveItemSpec(variant),
                     qty: line.quantity,
                     price: line.linePriceWithTax,
                 };
@@ -127,6 +129,55 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
         finally {
             await runner.release();
         }
+    }
+    /**
+     * A1：行项名称优先取「变体译名 → 商品译名 → 商品 customFields.krName/cnName → SKU」。
+     * 之前只读 variant.translations 且未 join，取不到就回落 sku（L2201308）。
+     */
+    resolveItemName(ctx, variant) {
+        var _a, _b, _c, _d;
+        const product = variant === null || variant === void 0 ? void 0 : variant.product;
+        const candidates = [
+            this.pickTranslationName(variant === null || variant === void 0 ? void 0 : variant.translations, ctx.languageCode),
+            this.pickTranslationName(product === null || product === void 0 ? void 0 : product.translations, ctx.languageCode),
+            (_a = product === null || product === void 0 ? void 0 : product.customFields) === null || _a === void 0 ? void 0 : _a.krName,
+            (_b = product === null || product === void 0 ? void 0 : product.customFields) === null || _b === void 0 ? void 0 : _b.cnName,
+            this.pickTranslationName(variant === null || variant === void 0 ? void 0 : variant.translations),
+            this.pickTranslationName(product === null || product === void 0 ? void 0 : product.translations),
+            variant === null || variant === void 0 ? void 0 : variant.sku,
+        ];
+        return (_d = (_c = candidates.find(value => typeof value === 'string' && value.trim() !== '')) === null || _c === void 0 ? void 0 : _c.trim()) !== null && _d !== void 0 ? _d : '';
+    }
+    /** 指定语言优先；未指定时按 ko → en → 第一条，避免 channel 默认语言缺译时回落 sku */
+    pickTranslationName(translations, languageCode) {
+        var _a;
+        if (!Array.isArray(translations) || translations.length === 0)
+            return undefined;
+        if (languageCode) {
+            const exact = translations.find(t => t.languageCode === languageCode);
+            if (exact === null || exact === void 0 ? void 0 : exact.name)
+                return exact.name;
+        }
+        const ko = translations.find(t => t.languageCode === 'ko');
+        if (ko === null || ko === void 0 ? void 0 : ko.name)
+            return ko.name;
+        const en = translations.find(t => t.languageCode === 'en');
+        if (en === null || en === void 0 ? void 0 : en.name)
+            return en.name;
+        return (_a = translations.find(t => t === null || t === void 0 ? void 0 : t.name)) === null || _a === void 0 ? void 0 : _a.name;
+    }
+    /** A2：规格取商品 customFields.spec（种子缺值时回落变体的 accuracy/material 组合） */
+    resolveItemSpec(variant) {
+        var _a, _b, _c;
+        const productCustomFields = ((_b = (_a = variant === null || variant === void 0 ? void 0 : variant.product) === null || _a === void 0 ? void 0 : _a.customFields) !== null && _b !== void 0 ? _b : {});
+        const spec = typeof productCustomFields.spec === 'string' ? productCustomFields.spec.trim() : '';
+        if (spec)
+            return spec;
+        const variantCustomFields = ((_c = variant === null || variant === void 0 ? void 0 : variant.customFields) !== null && _c !== void 0 ? _c : {});
+        const composed = [variantCustomFields.accuracy, variantCustomFields.material]
+            .filter((value) => typeof value === 'string' && value.trim() !== '')
+            .join(' / ');
+        return composed || null;
     }
     async assertOwnership(ctx, order) {
         var _a;

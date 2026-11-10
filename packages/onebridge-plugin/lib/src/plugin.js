@@ -20,6 +20,7 @@ const migrations_1 = require("./migrations");
 const payments_1 = require("./payments");
 const permissions_1 = require("./permissions");
 const services_1 = require("./services");
+const order_lifecycle_subscriber_1 = require("./subscribers/order-lifecycle.subscriber");
 function mergePermissions(existing, additions) {
     const names = new Set((existing !== null && existing !== void 0 ? existing : []).map(p => p.getMetadata()[0].name));
     return [
@@ -56,6 +57,7 @@ exports.OnebridgePlugin = OnebridgePlugin = OnebridgePlugin_1 = __decorate([
             services_1.OnebridgeCustomsService,
             services_1.OnebridgeOrderSummaryService,
             payments_1.OnebridgePaymentCallbackService,
+            order_lifecycle_subscriber_1.OnebridgeOrderLifecycleSubscriber,
         ],
         controllers: [payments_1.OnebridgePaymentController],
         shopApiExtensions: {

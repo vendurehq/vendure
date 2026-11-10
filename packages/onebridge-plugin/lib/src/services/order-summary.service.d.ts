@@ -16,5 +16,14 @@ export declare class OnebridgeOrderSummaryService {
     orderTracks(ctx: RequestContext, orderCode: string, enforceOwnership?: boolean): Promise<any>;
     /** 读取最近一条物流轨迹；logistics-plugin 未安装/未建表时返回 null（不阻断联调） */
     private latestLogisticsTrack;
+    /**
+     * A1：行项名称优先取「变体译名 → 商品译名 → 商品 customFields.krName/cnName → SKU」。
+     * 之前只读 variant.translations 且未 join，取不到就回落 sku（L2201308）。
+     */
+    private resolveItemName;
+    /** 指定语言优先；未指定时按 ko → en → 第一条，避免 channel 默认语言缺译时回落 sku */
+    private pickTranslationName;
+    /** A2：规格取商品 customFields.spec（种子缺值时回落变体的 accuracy/material 组合） */
+    private resolveItemSpec;
     private assertOwnership;
 }
