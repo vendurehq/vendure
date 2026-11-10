@@ -89,7 +89,13 @@ export class MyOrdersShopResolver {
         if (!customer) {
             return { items: [], totalItems: 0 };
         }
-        const effectiveOptions = options ?? { take: 10, sort: { createdAt: 'DESC' } };
+        // A3：默认 createdAt DESC。之前 `options ?? 默认值` 只要前端传了 options（哪怕只有 take），
+        // 默认排序就整块被丢掉，SQL 退化成插入顺序（实测升序）。
+        const effectiveOptions = {
+            take: 10,
+            ...(options ?? {}),
+            sort: options?.sort ?? { createdAt: 'DESC' as const },
+        };
         return this.listQueryBuilder
             .build(Order, effectiveOptions, { ctx, channelId: ctx.channelId, relations })
             .andWhere('order.customer.id = :customerId', { customerId: customer.id })
