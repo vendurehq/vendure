@@ -15,10 +15,17 @@
 //   ONE_BRIDGE_ADMIN_USER / ONE_BRIDGE_ADMIN_PASS
 //   ONE_BRIDGE_CHANNEL_NAME       default: ONE BRIDGE
 //   ONE_BRIDGE_CHANNEL_TOKEN      default: onebridge-dev-token（占位，生产必须覆盖）
-//   ONE_BRIDGE_CUSTOM_DOMAINS     default: g.joho.cn（逗号分隔，可多个）
+//   ONE_BRIDGE_CUSTOM_DOMAINS     default: g.joho.cn,onebridge.localhost（逗号分隔，可多个；
+//                                 后者仅供本地联调，C 端反代 Host 用 onebridge.localhost 即可命中 KRW 渠道）
 //   ONE_BRIDGE_DOMAIN             default: 取 customDomains 第一个
 //   ONE_BRIDGE_CONFIG_OUT         default: tools/onebridge-channel.json（回写实际分配的 code/tenantNo/token）
 // 幂等: 已存在启用 ONE BRIDGE 的渠道时只校验并打印现状，不覆盖既有数据。
+//
+// 本地联调（customDomains 必须与 C 端反代实际转发的 Host 一致，127.0.0.1 与 g.joho.cn 可并列）：
+//   ONE_BRIDGE_CUSTOM_DOMAINS=127.0.0.1:3100,g.joho.cn ONE_BRIDGE_CHANNEL_TOKEN=onebridge-dev-token \
+//     node tools/seed-onebridge-channel.mjs
+// 创建完成后把回写到的 token 填进 packages/dev-server/.env 的 ONE_BRIDGE_CHANNEL_TOKEN，
+// 插件才会把该租户的请求强制绑定到 KRW Channel（未填则按 ctx.channel.token 判定）。
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -27,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 const ADMIN = process.argv[2] || process.env.ONE_BRIDGE_ADMIN_URL || 'http://127.0.0.1:3000/admin-api';
 const CHANNEL_NAME = process.env.ONE_BRIDGE_CHANNEL_NAME || 'ONE BRIDGE';
 const CHANNEL_TOKEN = process.env.ONE_BRIDGE_CHANNEL_TOKEN || 'onebridge-dev-token';
-const CUSTOM_DOMAINS = (process.env.ONE_BRIDGE_CUSTOM_DOMAINS || 'g.joho.cn')
+const CUSTOM_DOMAINS = (process.env.ONE_BRIDGE_CUSTOM_DOMAINS || 'g.joho.cn,onebridge.localhost')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
@@ -129,6 +136,166 @@ async function ensureKoreaPgPaymentMethod(token, channelId) {
     return paymentMethodId;
 }
 
+/**
+ * 渠道税区/配送区（LV-07 前置）：没有 defaultTaxZone 的渠道无法加购（"active tax zone could not be determined"）。
+ * 幂等：按名称复用 Korea 区域与 0% 税率，再写回渠道的默认税区/配送区。
+ */
+async function ensureChannelZones(token, channelId) {
+    const countries = await adminGql(
+        `query{countries(options:{filter:{code:{eq:"KR"}}}){items{id code}}}`,
+        {},
+        token,
+    );
+    const countryId = countries.data?.countries?.items?.[0]?.id;
+    if (!countryId) throw new Error('未找到国家 KR，无法建立税区');
+
+    const zones = await adminGql(`query{zones{items{id name}}}`, {}, token);
+    let zoneId = (zones.data?.zones?.items ?? []).find(z => z.name === 'Korea')?.id;
+    if (!zoneId) {
+        const created = await adminGql(
+            `mutation($input:CreateZoneInput!){createZone(input:$input){id name}}`,
+            { input: { name: 'Korea', memberIds: [countryId] } },
+            token,
+        );
+        if (created.errors || !created.data?.createZone?.id) throw new Error('创建税区 Korea 失败');
+        zoneId = created.data.createZone.id;
+        log(`已创建税区: Korea id=${zoneId}`);
+    }
+
+    const categories = await adminGql(`query{taxCategories{items{id name}}}`, {}, token);
+    const items = categories.data?.taxCategories?.items ?? [];
+    const categoryId = (items.find(c => c.name === 'Standard') ?? items[0])?.id;
+    if (!categoryId) throw new Error('未找到税率分类（Standard）');
+
+    const rates = await adminGql(`query{taxRates{items{id name}}}`, {}, token);
+    const rateName = 'KR VAT 0% (stub)';
+    if (!(rates.data?.taxRates?.items ?? []).some(r => r.name === rateName)) {
+        const created = await adminGql(
+            `mutation($input:CreateTaxRateInput!){createTaxRate(input:$input){id name value}}`,
+            { input: { name: rateName, enabled: true, value: 0, categoryId, zoneId } },
+            token,
+        );
+        if (created.errors || !created.data?.createTaxRate?.id) throw new Error('创建税率失败（桩，0%）');
+        log(`已创建税率: ${rateName}`);
+    }
+
+    const updated = await adminGql(
+        `mutation($input:UpdateChannelInput!){updateChannel(input:$input){
+            ... on Channel { id defaultTaxZone{id name} defaultShippingZone{id name} }
+            ... on ErrorResult { errorCode message }
+        }}`,
+        { input: { id: channelId, defaultTaxZoneId: zoneId, defaultShippingZoneId: zoneId } },
+        token,
+    );
+    const ch = updated.data?.updateChannel;
+    if (updated.errors || !ch?.id) throw new Error('写回渠道默认税区/配送区失败');
+    log(`渠道默认税区/配送区: ${ch.defaultTaxZone?.name ?? '-'} / ${ch.defaultShippingZone?.name ?? '-'}`);
+    return { zoneId };
+}
+
+/** 渠道配送档案（LV-07 前置）：cjk 的分箱策略要求变体归属「租户默认配送档案」，
+ *  且该档案必须绑定订单使用的配送方式，否则结算时会报 "not all lines have shipping"。
+ *  幂等：按 code 复用配送方式与档案。 */
+async function ensureChannelShipping(token, channelToken, channelId) {
+    const found = await adminGql(
+        `query{shippingMethods(options:{filter:{code:{eq:"onebridge-flat"}}}){items{id code}}}`,
+        {},
+        token,
+    );
+    let methodId = found.data?.shippingMethods?.items?.[0]?.id;
+    if (!methodId) {
+        const created = await adminGql(
+            `mutation($input:CreateShippingMethodInput!){createShippingMethod(input:$input){id code}}`,
+            {
+                input: {
+                    code: 'onebridge-flat',
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: { code: 'default-shipping-eligibility-checker', arguments: [] },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        arguments: [
+                            { name: 'rate', value: '0' },
+                            { name: 'includesTax', value: 'true' },
+                            { name: 'taxRate', value: '0' },
+                        ],
+                    },
+                    translations: [{ languageCode: 'ko', name: '기본 배송', description: '스텁 배송 (LV-07)' }],
+                },
+            },
+            token,
+        );
+        if (created.errors || !created.data?.createShippingMethod?.id) throw new Error('创建配送方式 onebridge-flat 失败');
+        methodId = created.data.createShippingMethod.id;
+        log(`已创建配送方式: onebridge-flat id=${methodId}`);
+    }
+    const assigned = await adminGql(
+        `mutation($input:AssignShippingMethodsToChannelInput!){assignShippingMethodsToChannel(input:$input){id}}`,
+        { input: { channelId, shippingMethodIds: [methodId] } },
+        token,
+    );
+    if (assigned.errors) throw new Error('配送方式绑定渠道失败');
+
+    const profiles = await adminGql(
+        `query{shippingProfiles(options:{take:100}){items{id code isGlobal isTenantDefault}}}`,
+        {},
+        token,
+        channelToken,
+    );
+    // 注意：shippingProfiles 的 options.filter 只支持 name 模糊匹配，code 需在结果里精确筛
+    let profile = (profiles.data?.shippingProfiles?.items ?? []).find(p => p.code === 'onebridge-default');
+    let profileId = profile?.id;
+    if (profileId && profile.isGlobal) {
+        // 全局档案不能设为租户默认：纠正为渠道档案
+        const fixed = await adminGql(
+            `mutation($input:UpdateShippingProfileInput!){updateShippingProfile(input:$input){id isGlobal}}`,
+            { input: { id: profileId, isGlobal: false } },
+            token,
+            channelToken,
+        );
+        if (fixed.errors) throw new Error('纠正配送档案为渠道私有失败');
+    }
+    if (profileId) {
+        const ensured = await adminGql(
+            `mutation($input:UpdateShippingProfileInput!){updateShippingProfile(input:$input){id}}`,
+            { input: { id: profileId, shippingMethodIds: [methodId] } },
+            token,
+            channelToken,
+        );
+        if (ensured.errors) throw new Error('配送档案绑定配送方式失败');
+    }
+    if (!profileId) {
+        const created = await adminGql(
+            `mutation($input:CreateShippingProfileInput!){createShippingProfile(input:$input){id code}}`,
+            {
+                input: {
+                    name: 'ONE BRIDGE 默认配送',
+                    code: 'onebridge-default',
+                    enabled: true,
+                    isGlobal: false,
+                    shippingMethodIds: [methodId],
+                },
+            },
+            token,
+            channelToken,
+        );
+        if (created.errors || !created.data?.createShippingProfile?.id) {
+            throw new Error(`创建默认配送档案失败: ${(created.errors ?? []).map(e => e.message).join(' | ')}`);
+        }
+        profileId = created.data.createShippingProfile.id;
+        log(`已创建配送档案: onebridge-default id=${profileId}`);
+    }
+    const setDefault = await adminGql(
+        `mutation($id:ID!){setTenantDefaultShippingProfile(id:$id)}`,
+        { id: profileId },
+        token,
+        channelToken,
+    );
+    if (setDefault.errors || setDefault.data?.setTenantDefaultShippingProfile !== true) {
+        throw new Error('设置租户默认配送档案失败');
+    }
+    log(`租户默认配送档案: id=${profileId}（绑定配送方式 ${methodId}）`);
+}
+
 async function main() {
     for (const [key, isPlaceholder] of Object.entries(PLACEHOLDERS)) {
         if (isPlaceholder) {
@@ -176,6 +343,8 @@ async function main() {
             created: false,
         });
         await ensureKoreaPgPaymentMethod(token, existing.id);
+        await ensureChannelZones(token, existing.id);
+        await ensureChannelShipping(token, existing.token, existing.id);
         return;
     }
 
@@ -239,6 +408,8 @@ async function main() {
     writeConfig(config);
     log(`可用币种: ${updatedChannel.availableCurrencyCodes.join(',')}；金额精度保持 Vendure 默认 2`);
     await ensureKoreaPgPaymentMethod(token, result.id);
+    await ensureChannelZones(token, result.id);
+    await ensureChannelShipping(token, result.token, result.id);
     log('业务频道/内容文案未灌入：韩文待定稿后由内容接口维护，避免自造韩文。');
 }
 
