@@ -280,3 +280,8 @@ export function canRefundOrder(order: Order): boolean {
     const notInInitialState = order.state !== 'PaymentAuthorized' && order.active !== true;
     return hasSettled && notInInitialState;
 }
+
+export function canCancelOrderWithoutRefund(order: Order): boolean {
+    if (!order || order.type !== 'Regular' || order.active === true) return false;
+    return !orderHasSettledPayments(order) && order.nextStates.includes('Cancelled');
+}
