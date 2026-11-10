@@ -249,6 +249,12 @@ export class OnebridgeShopResolver {
 
     @Query()
     @Allow(Permission.Public)
+    siteContentBundle(@Ctx() ctx: any, @Args('options') options: any) {
+        return this.contentService.shopBundle(ctx, options);
+    }
+
+    @Query()
+    @Allow(Permission.Public)
     serviceChannels(@Ctx() ctx: any) {
         return this.contentService.serviceChannels(ctx);
     }

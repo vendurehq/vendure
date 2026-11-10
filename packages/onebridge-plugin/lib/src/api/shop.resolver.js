@@ -399,6 +399,9 @@ let OnebridgeShopResolver = class OnebridgeShopResolver {
     siteContent(ctx, options) {
         return this.contentService.shopList(ctx, 'site_block', options);
     }
+    siteContentBundle(ctx, options) {
+        return this.contentService.shopBundle(ctx, options);
+    }
     serviceChannels(ctx) {
         return this.contentService.serviceChannels(ctx);
     }
@@ -513,6 +516,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], OnebridgeShopResolver.prototype, "siteContent", null);
+__decorate([
+    (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.Public),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('options')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], OnebridgeShopResolver.prototype, "siteContentBundle", null);
 __decorate([
     (0, graphql_1.Query)(),
     (0, core_1.Allow)(core_1.Permission.Public),

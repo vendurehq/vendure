@@ -30,6 +30,13 @@ interface SaveContentInput {
     sort?: number;
     published?: boolean;
 }
+export interface SiteContentBundlePayload {
+    blocks: ContentEntry[];
+    modules: ContentEntry[];
+    shared: ContentEntry[];
+    roles: ContentEntry[];
+    reviews: ContentEntry[];
+}
 /** 内容实体（CT-03）：标题/正文成对多语；韩文必填，中文可缺省由前端回落。 */
 export declare class OnebridgeContentService {
     private connection;
@@ -40,6 +47,14 @@ export declare class OnebridgeContentService {
     }): Promise<ContentEntry[]>;
     /** 单条已发布内容（C 端详情页 P13/P16 用） */
     shopFindBySlug(ctx: RequestContext, type: ContentType, slug: string): Promise<ContentEntry | null>;
+    /**
+     * 聚合视图（可选消费方式）：保留 siteContent 扁平原样，另按分组口径提供 modules/shared/roles/reviews。
+     * 数据源、渠道隔离、published 过滤、排序与 take 夹取全部复用 shopList，不新增查询条件。
+     */
+    shopBundle(ctx: RequestContext, options?: {
+        needType?: NeedType | null;
+        take?: number;
+    }): Promise<SiteContentBundlePayload>;
     /** 频道级配置（CT-03 serviceChannels），数据源为 Channel customField 的 struct list */
     serviceChannels(ctx: RequestContext): any[];
     adminList(ctx: RequestContext, options?: ContentListOptions): Promise<{
@@ -51,5 +66,7 @@ export declare class OnebridgeContentService {
     private repo;
     private validate;
     private parsePoints;
+    /** payload.section 优先；否则按 slug 的 `section-` / `section_` 前缀判定 */
+    private siteSectionOf;
 }
 export {};

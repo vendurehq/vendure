@@ -72,6 +72,7 @@ export declare class OnebridgeShopResolver {
     logisticsChannels(ctx: any, options: any): Promise<import("..").ContentEntry[]>;
     logisticsChannel(ctx: any, slug: string): Promise<import("..").ContentEntry | null>;
     siteContent(ctx: any, options: any): Promise<import("..").ContentEntry[]>;
+    siteContentBundle(ctx: any, options: any): Promise<import("../services/content.service").SiteContentBundlePayload>;
     serviceChannels(ctx: any): any[];
     specSheets(ctx: any, take?: number): Promise<import("../services/spec-sheet.service").SpecSheetPayload[]>;
     inspectionReports(ctx: any, args: any): Promise<import("..").InspectionReport[]>;

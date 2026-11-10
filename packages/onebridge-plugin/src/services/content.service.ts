@@ -36,6 +36,27 @@ interface SaveContentInput {
     published?: boolean;
 }
 
+type SiteSection = 'modules' | 'shared' | 'roles' | 'reviews';
+
+/** site_block 分组口径：payload.section 优先，其次 slug 前缀；未命中只进 blocks */
+const SITE_SECTIONS: Array<[string, SiteSection]> = [
+    ['modules', 'modules'],
+    ['shared', 'shared'],
+    ['roles', 'roles'],
+    ['reviews', 'reviews'],
+    ['module', 'modules'],
+    ['role', 'roles'],
+    ['review', 'reviews'],
+];
+
+export interface SiteContentBundlePayload {
+    blocks: ContentEntry[];
+    modules: ContentEntry[];
+    shared: ContentEntry[];
+    roles: ContentEntry[];
+    reviews: ContentEntry[];
+}
+
 /** 内容实体（CT-03）：标题/正文成对多语；韩文必填，中文可缺省由前端回落。 */
 @Injectable()
 export class OnebridgeContentService {
@@ -64,6 +85,29 @@ export class OnebridgeContentService {
         return this.repo(ctx).findOne({
             where: { channelToken, contentType: type, slug: slug.trim(), published: true },
         });
+    }
+
+    /**
+     * 聚合视图（可选消费方式）：保留 siteContent 扁平原样，另按分组口径提供 modules/shared/roles/reviews。
+     * 数据源、渠道隔离、published 过滤、排序与 take 夹取全部复用 shopList，不新增查询条件。
+     */
+    async shopBundle(
+        ctx: RequestContext,
+        options?: { needType?: NeedType | null; take?: number },
+    ): Promise<SiteContentBundlePayload> {
+        const blocks = await this.shopList(ctx, 'site_block', options);
+        const bundle: SiteContentBundlePayload = {
+            blocks,
+            modules: [],
+            shared: [],
+            roles: [],
+            reviews: [],
+        };
+        for (const entry of blocks) {
+            const section = this.siteSectionOf(entry);
+            if (section) bundle[section].push(entry);
+        }
+        return bundle;
     }
 
     /** 频道级配置（CT-03 serviceChannels），数据源为 Channel customField 的 struct list */
@@ -181,5 +225,20 @@ export class OnebridgeContentService {
         } catch {
             return [];
         }
+    }
+
+    /** payload.section 优先；否则按 slug 的 `section-` / `section_` 前缀判定 */
+    private siteSectionOf(entry: ContentEntry): SiteSection | null {
+        const payload = (entry.payload ?? {}) as Record<string, unknown>;
+        const section = typeof payload.section === 'string' ? payload.section.trim().toLowerCase() : '';
+        if (section) {
+            const matched = SITE_SECTIONS.find(([key]) => key === section);
+            if (matched) return matched[1];
+        }
+        const slug = (entry.slug ?? '').toLowerCase();
+        const byPrefix = SITE_SECTIONS.find(
+            ([key]) => slug.startsWith(`${key}-`) || slug.startsWith(`${key}_`),
+        );
+        return byPrefix ? byPrefix[1] : null;
     }
 }

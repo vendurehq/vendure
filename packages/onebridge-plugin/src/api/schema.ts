@@ -287,6 +287,17 @@ const contentShopType = /* GraphQL */ `
     }
 `;
 
+/** siteContent 的可选聚合视图：blocks 为扁平原样，其余为按 group 口径拆出的子集。 */
+const siteContentBundleType = /* GraphQL */ `
+    type SiteContentBundle {
+        blocks: [OnebridgeContent!]!
+        modules: [OnebridgeContent!]!
+        shared: [OnebridgeContent!]!
+        roles: [OnebridgeContent!]!
+        reviews: [OnebridgeContent!]!
+    }
+`;
+
 /** CT-09 specSheets：字段为 Product customFields + 首个变体 priceWithTax 的投影（零 DDL）。 */
 const specSheetType = /* GraphQL */ `
     type SpecSheet {
@@ -303,6 +314,7 @@ export const onebridgeShopTypeDefs = /* GraphQL */ `
     ${onebridgeEnums}
     ${rfqTypes}
     ${contentShopType}
+    ${siteContentBundleType}
     ${specSheetType}
 
     extend type Query {
@@ -316,6 +328,8 @@ export const onebridgeShopTypeDefs = /* GraphQL */ `
         logisticsChannels(locale: Locale, options: ContentQueryOptions): [OnebridgeContent!]!
         logisticsChannel(slug: String!): OnebridgeContent
         siteContent(locale: Locale, options: ContentQueryOptions): [OnebridgeContent!]!
+        # 可选聚合视图：blocks 与 siteContent 完全一致；modules/shared/roles/reviews 为分组子集
+        siteContentBundle(locale: Locale, options: ContentQueryOptions): SiteContentBundle!
         serviceChannels(locale: Locale): [ServiceChannel!]!
         specSheets(take: Int): [SpecSheet!]!
         inspectionReports(orderCode: String, rfqCode: String): [InspectionReport!]!
