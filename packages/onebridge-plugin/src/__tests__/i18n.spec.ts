@@ -27,13 +27,51 @@ describe('ONE BRIDGE 文案 locales（定稿只改 locales）', () => {
         expect(STAGE_META.done.stageIndex).toBe(6);
     });
 
-    it('韩文缺失（清关 6 态 / 物流 5 节点）回落中文，不自造译文', () => {
+    it('清关 6 态使用 C 端既有韩文，不自造译文', () => {
         expect(Object.keys(zh.customsStatus).sort()).toEqual([...CUSTOMS_STATUSES].sort());
+        const expected: Record<(typeof CUSTOMS_STATUSES)[number], string> = {
+            not_started: '통관 전',
+            docs_preparing: '서류 준비 중',
+            declared: '신고 완료',
+            inspecting: '검사 중',
+            cleared: '통관 완료',
+            hold: '보류',
+        };
         for (const status of CUSTOMS_STATUSES) {
-            expect(customsStatusLabel(status, 'ko')).toBe(zh.customsStatus[status]);
+            expect(customsStatusLabel(status, 'ko')).toBe(expected[status]);
+            expect(customsStatusLabel(status, 'ko').trim().length).toBeGreaterThan(0);
         }
+    });
+
+    it('物流 5 节点：已有韩文直接使用，缺失项逐项回落中文', () => {
         expect(logisticsSteps('zh')).toHaveLength(5);
-        expect(logisticsSteps('ko')).toEqual(logisticsSteps('zh'));
+        expect(logisticsSteps('ko')).toEqual([
+            '요청 접수',
+            '확인 · 견적',
+            zh.logistics.steps[2],
+            zh.logistics.steps[3],
+            '배송 · 사후',
+        ]);
+    });
+
+    it('三条时间轴仅回填已有韩文，其余字段回落中文且无空串 / key 泄漏', () => {
+        for (const line of ['net', 'pond', 'hook'] as const) {
+            expect(ko.timeline[line]).toHaveLength(zh.timeline[line].length);
+            const koNodes = timelineCopy(line, 'ko');
+            const zhNodes = timelineCopy(line, 'zh');
+            expect(koNodes).toHaveLength(zhNodes.length);
+            koNodes.forEach((node, index) => {
+                expect(node.title.trim().length).toBeGreaterThan(0);
+                expect(node.desc.trim().length).toBeGreaterThan(0);
+                expect(node.title).not.toContain('undefined');
+                expect(node.desc).not.toContain('undefined');
+                const koCopy = ko.timeline[line][index];
+                if (!koCopy?.title) expect(node.title).toBe(zhNodes[index].title);
+                if (!koCopy?.desc) expect(node.desc).toBe(zhNodes[index].desc);
+            });
+        }
+        expect(timelineNodeCopy('hook', 0, 'ko').title).toBe('요청 · 사양 확정');
+        expect(timelineNodeCopy('hook', 6, 'ko').title).toBe(zh.timeline.hook[6].title);
     });
 
     it('14 态韩文占位在定稿后应替换，当前保留 C 端示意译文', () => {
