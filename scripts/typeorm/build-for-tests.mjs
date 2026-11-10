@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Runs the same builds as `lerna run ci`, but without stopping at type errors, so
+ * Runs the same builds as `nx run-many -t ci`, but without stopping at type errors, so
  * that the database-backed suites can run and report what breaks at runtime.
  *
- * Packages are selected by the presence of a `ci` script, as `lerna run ci` selects
+ * Packages are selected by the presence of a `ci` script, as `nx run-many -t ci` selects
  * them. Any package without one is named in the output, since some of those have
  * e2e suites and an unbuilt package fails in ways that read like a version
  * incompatibility.
@@ -69,7 +69,7 @@ if (failed.length) {
 const skippedWithE2e = notBuilt.filter(pkg => pkg.hasE2e);
 if (skippedWithE2e.length) {
     console.log(
-        `\nNot built (no \`ci\` script), but has an e2e suite that \`lerna run e2e\` will run: ` +
+        `\nNot built (no \`ci\` script), but has an e2e suite that \`nx run-many -t e2e\` will run: ` +
             `${skippedWithE2e.map(pkg => pkg.name).join(', ')}. ` +
             'A failure in those suites may be a missing build rather than a TypeORM incompatibility.',
     );

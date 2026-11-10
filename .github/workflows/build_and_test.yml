@@ -39,6 +39,7 @@ jobs:
         outputs:
             packages: ${{ steps.check.outputs.packages }}
             dashboard: ${{ steps.check.outputs.dashboard }}
+            nx: ${{ steps.check.outputs.nx }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -63,11 +64,27 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
             - uses: ./.github/actions/setup
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-build-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-build-
             - name: Build
-              run: bun run build
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t build
     unit-tests:
         name: unit tests
         needs: detect-changes
@@ -75,19 +92,37 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         strategy:
             fail-fast: false
             matrix:
                 node: [22.x, 24.x]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx lerna run ci
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: Unit tests
-              run: bun run test
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t test --output-style=stream
     dashboard-i18n:
         name: dashboard i18n sync
         needs: detect-changes
@@ -128,8 +163,15 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             - uses: ./.github/actions/setup
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx lerna run ci --scope @vendure/testing --include-dependencies
+              run: bun run nx run @vendure/testing:ci
             - name: Cache Playwright browsers
               id: playwright-cache
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -185,6 +227,8 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         services:
             redis:
                 image: redis:7.4.1
@@ -196,16 +240,31 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx lerna run ci
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: sqljs
-              run: bun run e2e
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     e2e-mariadb:
         name: e2e (mariadb)
         needs: detect-changes
@@ -213,6 +272,8 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         services:
             mariadb:
                 # With v11.6.2+, a default was changed, (https://mariadb.com/kb/en/innodb-system-variables/#innodb_snapshot_isolation)
@@ -233,17 +294,32 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx lerna run ci
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mariadb
-              run: bun run e2e
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     e2e-mysql:
         name: e2e (mysql)
         needs: detect-changes
@@ -251,6 +327,8 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         services:
             mysql:
                 image: vendure/mysql-8-native-auth:latest
@@ -281,17 +359,32 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx lerna run ci
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mysql
-              run: bun run e2e
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     e2e-postgres:
         name: e2e (postgres)
         needs: detect-changes
@@ -299,6 +392,8 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         services:
             postgres:
                 image: postgres:16
@@ -318,17 +413,32 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            - name: Cache Nx
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .nx/cache
+                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx lerna run ci
+              env:
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_POSTGRES_PORT: ${{ job.services.postgres.ports['5432'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: postgres
-              run: bun run e2e
+                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     all-passed:
         name: all-passed
         runs-on: ubuntu-latest
