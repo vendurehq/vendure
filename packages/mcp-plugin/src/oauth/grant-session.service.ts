@@ -12,6 +12,7 @@ import {
 } from '@vendure/core';
 
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
+import { McpGrantUserType } from '../types';
 
 import { deleteCachedVendureSession } from './oauth-utils';
 
@@ -67,7 +68,7 @@ export class McpGrantSessionService {
                 // The lapsed session row may still be in the table, because Vendure clears
                 // expired sessions with a background job rather than on read.
                 staleSessionToken = await this.deleteVendureSessionRow(txCtx, staleSessionId);
-                const created = await this.createVendureSession(txCtx, user);
+                const created = await this.createVendureSession(txCtx, user, grant.actorType);
                 createdSessionToken = created.token;
                 const claim = await this.connection
                     .getRepository(txCtx, McpOauthGrant)
@@ -129,9 +130,22 @@ export class McpGrantSessionService {
         return session;
     }
 
-    /** No token is supplied, so the session's identifier can't be derived from the OAuth tokens that reach it. */
-    createVendureSession(ctx: RequestContext, user: User): Promise<AuthenticatedSession> {
-        return this.sessionService.createNewAuthenticatedSession(ctx, user, MCP_SESSION_STRATEGY);
+    /**
+     * No token is supplied, so the session's identifier can't be derived from the OAuth tokens that reach it.
+     * The API is taken from the grant's actor type because every caller runs in an admin context, whatever the grant is for.
+     */
+    createVendureSession(
+        ctx: RequestContext,
+        user: User,
+        actorType: McpGrantUserType,
+    ): Promise<AuthenticatedSession> {
+        return this.sessionService.createNewAuthenticatedSession(
+            ctx,
+            user,
+            MCP_SESSION_STRATEGY,
+            undefined,
+            actorType === 'admin' ? 'admin' : 'shop',
+        );
     }
 
     /** Returns the deleted session's token too, since a cached session keeps serving until its entry ages out even after the row is gone. */

@@ -35,6 +35,9 @@
         "zod": "^4.2.0"
     },
     "devDependencies": {
+        "@lingui/core": "^5.9.3",
+        "@lingui/format-po": "^5.9.3",
+        "@lingui/message-utils": "^5.9.3",
         "@modelcontextprotocol/client": "2.0.0",
         "@types/express": "^5.0.1",
         "@vendure/common": "3.8.1",

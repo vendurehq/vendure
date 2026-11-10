@@ -75,16 +75,38 @@ describe('pollDeviceAuthorization', () => {
         expect(run.waits).toEqual([5000, 5000, 5000]);
     });
 
-    it('names an unexpected WorkOS error code', async () => {
+    it('names an unexpected error code without naming the identity provider', async () => {
         const run = poll([{ status: 403, body: { code: 'sso_required' } }]);
 
         await expect(pollDeviceAuthorization(CLIENT, DEVICE, run.options)).rejects.toThrow(
-            'The login failed: WorkOS answered sso_required (HTTP 403).',
+            'The login failed: the authentication service answered sso_required (HTTP 403).',
+        );
+    });
+
+    // CLO-1083: a user holding many roles in one organization could not sign in.
+    it('says what to do when the token would be too big', async () => {
+        const run = poll([{ status: 400, body: { error: 'token_too_big' } }]);
+
+        await expect(pollDeviceAuthorization(CLIENT, DEVICE, run.options)).rejects.toThrow(
+            'The login failed: the authentication service answered token_too_big (HTTP 400). ' +
+                'Your account holds too many roles in the organization for a sign-in token. ' +
+                'Ask an organization admin to remove the roles you do not need from your membership, then try again.',
         );
     });
 });
 
 describe('startDeviceAuthorization', () => {
+    it('names the HTTP answer without naming the identity provider', async () => {
+        const fetch = (() =>
+            Promise.resolve(
+                new Response(JSON.stringify({ error: 'invalid_client' }), { status: 400 }),
+            )) as typeof globalThis.fetch;
+
+        await expect(startDeviceAuthorization(CLIENT, { fetch })).rejects.toThrow(
+            'Could not start the login: the authentication service answered invalid_client (HTTP 400).',
+        );
+    });
+
     const authorization = {
         device_code: 'device_1',
         user_code: 'ABCD-EFGH',
@@ -120,7 +142,7 @@ describe('startDeviceAuthorization', () => {
             )) as typeof globalThis.fetch;
 
         await expect(startDeviceAuthorization(CLIENT, { fetch })).rejects.toThrow(
-            'WorkOS returned a malformed device authorization.',
+            'The authentication service returned a malformed device authorization.',
         );
     });
 });

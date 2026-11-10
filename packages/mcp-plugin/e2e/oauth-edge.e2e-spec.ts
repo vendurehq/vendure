@@ -1,5 +1,6 @@
 import {
     Administrator,
+    AuthenticatedSession,
     Channel,
     Customer,
     mergeConfig,
@@ -122,6 +123,28 @@ describe('McpPlugin OAuth edge & security cases', () => {
             issuer: ISSUER,
             vendureAuthToken: customerAuthToken,
         });
+
+    // #5701 - the session backing a grant must record the API its tokens are for, since the
+    // Admin API refuses a session that does not record 'admin'.
+    it('records the API of the grant on the Vendure session it creates', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const connection = server.app.get(TransactionalConnection);
+        const sessionApiTypeFor = async (accessToken: string) => {
+            const grant = await connection
+                .getRepository(ctx, McpOauthGrant)
+                .findOneOrFail({ where: { accessTokenHash: lookupHash(accessToken) } });
+            const session = await connection
+                .getRepository(ctx, AuthenticatedSession)
+                .findOneOrFail({ where: { id: grant.vendureSessionId } });
+            return session.apiType;
+        };
+
+        const admin = await runAdminFlow();
+        const shop = await runShopFlow();
+
+        expect(await sessionApiTypeFor(admin.access_token)).toBe('admin');
+        expect(await sessionApiTypeFor(shop.access_token)).toBe('shop');
+    });
 
     const authorizeAdminToCode = async (overrides?: { redirectUri?: string; resource?: string }) => {
         const redirectUri = overrides?.redirectUri ?? 'https://example.com/cb';
