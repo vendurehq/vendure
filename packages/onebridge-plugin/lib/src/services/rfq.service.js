@@ -107,17 +107,33 @@ let OnebridgeRfqService = class OnebridgeRfqService {
         throw new core_1.UserInputError('Unable to allocate RFQ code, please retry');
     }
     async myRfqs(ctx, options) {
-        var _a, _b;
+        var _a, _b, _c;
         const channelToken = (0, channel_context_1.resolveChannelToken)(ctx);
         const customerId = await this.requireCustomerId(ctx);
         const take = Math.min(100, Math.max(1, (_a = options === null || options === void 0 ? void 0 : options.take) !== null && _a !== void 0 ? _a : 20));
         const skip = Math.max(0, (_b = options === null || options === void 0 ? void 0 : options.skip) !== null && _b !== void 0 ? _b : 0);
-        const [items, totalItems] = await this.rfqRepo(ctx).findAndCount({
-            where: { channelToken, customerId },
-            order: { createdAt: 'DESC' },
-            skip,
-            take,
+        // 只加不改：channelToken + customerId 的既有隔离条件不变，needType/stage/keyword 为新增可选过滤
+        const qb = this.rfqRepo(ctx)
+            .createQueryBuilder('rfq')
+            .where('rfq.channelToken = :channelToken AND rfq.customerId = :customerId', {
+            channelToken,
+            customerId,
         });
+        if (options === null || options === void 0 ? void 0 : options.needType)
+            qb.andWhere('rfq.needType = :needType', { needType: options.needType });
+        if (options === null || options === void 0 ? void 0 : options.stage)
+            qb.andWhere('rfq.stage = :stage', { stage: options.stage });
+        const keyword = (_c = options === null || options === void 0 ? void 0 : options.keyword) === null || _c === void 0 ? void 0 : _c.trim();
+        if (keyword) {
+            qb.andWhere('(rfq.code LIKE :kw OR rfq.item LIKE :kw OR rfq.customerName LIKE :kw)', {
+                kw: `%${keyword}%`,
+            });
+        }
+        const [items, totalItems] = await qb
+            .orderBy('rfq.createdAt', 'DESC')
+            .skip(skip)
+            .take(take)
+            .getManyAndCount();
         return { items, totalItems };
     }
     async findRfqForCustomer(ctx, code) {

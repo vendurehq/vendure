@@ -145,12 +145,26 @@ export class OnebridgeRfqService {
         const customerId = await this.requireCustomerId(ctx);
         const take = Math.min(100, Math.max(1, options?.take ?? 20));
         const skip = Math.max(0, options?.skip ?? 0);
-        const [items, totalItems] = await this.rfqRepo(ctx).findAndCount({
-            where: { channelToken, customerId },
-            order: { createdAt: 'DESC' },
-            skip,
-            take,
-        });
+        // 只加不改：channelToken + customerId 的既有隔离条件不变，needType/stage/keyword 为新增可选过滤
+        const qb = this.rfqRepo(ctx)
+            .createQueryBuilder('rfq')
+            .where('rfq.channelToken = :channelToken AND rfq.customerId = :customerId', {
+                channelToken,
+                customerId,
+            });
+        if (options?.needType) qb.andWhere('rfq.needType = :needType', { needType: options.needType });
+        if (options?.stage) qb.andWhere('rfq.stage = :stage', { stage: options.stage });
+        const keyword = options?.keyword?.trim();
+        if (keyword) {
+            qb.andWhere('(rfq.code LIKE :kw OR rfq.item LIKE :kw OR rfq.customerName LIKE :kw)', {
+                kw: `%${keyword}%`,
+            });
+        }
+        const [items, totalItems] = await qb
+            .orderBy('rfq.createdAt', 'DESC')
+            .skip(skip)
+            .take(take)
+            .getManyAndCount();
         return { items, totalItems };
     }
 
