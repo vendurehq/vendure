@@ -1,4 +1,4 @@
-import { AdministratorService, AuthService, ChannelService, ID, RequestContext, RoleService, TransactionalConnection } from '@vendure/core';
+import { AdministratorService, AuthService, ChannelService, ID, RequestContext, RequestContextCacheService, RoleService, TransactionalConnection } from '@vendure/core';
 import type { CjkPluginOptions } from '../types';
 import { TenantMember } from './tenant-member.entity';
 import { VirtualPhysicalStockService } from '../inventory/virtual-physical-stock.service';
@@ -62,9 +62,10 @@ export declare class TenantMemberService {
     private roleService;
     private channelService;
     private authService;
+    private requestContextCache;
     private virtualPhysicalStockService;
     private pluginOptions?;
-    constructor(connection: TransactionalConnection, administratorService: AdministratorService, roleService: RoleService, channelService: ChannelService, authService: AuthService, virtualPhysicalStockService: VirtualPhysicalStockService, pluginOptions?: CjkPluginOptions | undefined);
+    constructor(connection: TransactionalConnection, administratorService: AdministratorService, roleService: RoleService, channelService: ChannelService, authService: AuthService, requestContextCache: RequestContextCacheService, virtualPhysicalStockService: VirtualPhysicalStockService, pluginOptions?: CjkPluginOptions | undefined);
     /** 校验角色权限全部在业务权限白名单内（超管专属权限不入租户角色）。Authenticated 为基础权限不计入 */
     assertBusinessPermissions(permissions: string[]): void;
     /** 校验请求方是该 channel 的租户管理员（或超管） */
@@ -78,6 +79,12 @@ export declare class TenantMemberService {
     private channelOperatorPerms;
     /** 权限门禁（权威）：非超管授予的角色必须 canGrantRole 通过，否则抛错。调用点须已过 assertRolesInChannel。 */
     assertCanGrant(ctx: RequestContext, roleIds: ID[]): Promise<void>;
+    /**
+     * Vendure 要求 Channel.defaultLanguageCode 必须在 GlobalSettings.availableLanguages 中，
+     * 否则 channelService.create 返回 LanguageNotAvailableError（无 id），渠道也不会落库。
+     * 新建租户时按需把语言补进全局启用列表，避免租户创建依赖部署侧的 languages 配置。
+     */
+    private ensureLanguageEnabled;
     /** 新建租户：自动分配 tenantNo（当前最大+1），code 由 tenantNo 派生 `t{tenantNo}`，避免手输冲突 */
     createChannel(ctx: RequestContext, input: {
         name: string;

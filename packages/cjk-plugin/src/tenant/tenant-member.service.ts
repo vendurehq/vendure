@@ -5,10 +5,12 @@ import {
     AuthService,
     Channel,
     ChannelService,
+    GlobalSettings,
     ID,
     Logger,
     Permission,
     RequestContext,
+    RequestContextCacheService,
     Role,
     RoleService,
     TransactionalConnection,
@@ -271,6 +273,7 @@ export class TenantMemberService {
         private roleService: RoleService,
         private channelService: ChannelService,
         private authService: AuthService,
+        private requestContextCache: RequestContextCacheService,
         private virtualPhysicalStockService: VirtualPhysicalStockService,
         @Optional() @Inject(CJK_PLUGIN_OPTIONS) private pluginOptions?: CjkPluginOptions,
     ) {}
@@ -332,6 +335,24 @@ export class TenantMemberService {
         }
     }
 
+    /**
+     * Vendure 要求 Channel.defaultLanguageCode 必须在 GlobalSettings.availableLanguages 中，
+     * 否则 channelService.create 返回 LanguageNotAvailableError（无 id），渠道也不会落库。
+     * 新建租户时按需把语言补进全局启用列表，避免租户创建依赖部署侧的 languages 配置。
+     */
+    private async ensureLanguageEnabled(ctx: RequestContext, languageCode: string): Promise<void> {
+        const repo = this.connection.getRepository(ctx, GlobalSettings);
+        const [settings] = await repo.find({ take: 1, order: { createdAt: 'ASC' } as any });
+        if (!settings) return;
+        const enabled = (settings.availableLanguages ?? []) as string[];
+        if (enabled.includes(languageCode)) return;
+        settings.availableLanguages = [...enabled, languageCode] as any;
+        await repo.save(settings);
+        // 同一请求内 channelService.create 的语言校验读的是 GlobalSettingsService 的请求级缓存，同步为最新值
+        this.requestContextCache.set(ctx, 'GlobalSettings', settings);
+        Logger.info(`已自动启用语言 ${languageCode}（原启用：${enabled.join(',') || '无'}）`, loggerCtx);
+    }
+
     /** 新建租户：自动分配 tenantNo（当前最大+1），code 由 tenantNo 派生 `t{tenantNo}`，避免手输冲突 */
     async createChannel(
         ctx: RequestContext,
@@ -361,10 +382,12 @@ export class TenantMemberService {
         const tenantNo = await this.nextTenantNo(ctx);
         const code = `t${tenantNo}`;
         const defaultDomain = this.pluginOptions?.tenant?.defaultPublicDomain;
+        const defaultLanguageCode = (input.defaultLanguageCode ?? 'zh_Hans') as any;
+        await this.ensureLanguageEnabled(ctx, defaultLanguageCode);
         const channel = await this.channelService.create(ctx, {
             code,
             token: input.token,
-            defaultLanguageCode: (input.defaultLanguageCode ?? 'zh_Hans') as any,
+            defaultLanguageCode,
             currencyCode: (input.currencyCode ?? 'CNY') as any,
             pricesIncludeTax: true,
             customFields: {
@@ -379,8 +402,27 @@ export class TenantMemberService {
                 ...(input.domain ? { domain: input.domain } : {}),
             },
         } as any);
+        // createChannel 的返回是 ErrorResultUnion：LanguageNotAvailableError 等错误对象没有 id，
+        // 直接返回会被 GraphQL 非空 Channel 序列化成 "Cannot return null for non-nullable field Channel.id"
+        if ((channel as any)?.errorCode) {
+            throw new Error(
+                `TENANT_CHANNEL_CREATE_FAILED: ${(channel as any).message ?? (channel as any).errorCode}`,
+            );
+        }
         // 自动创建 3 个默认角色（租户管理员/销售/库存），保证人员可即时绑定角色
         const channelId = String((channel as any).id);
+        // 新渠道必须挂上 __customer_role__：否则该渠道的登录会员拿不到 Authenticated 权限，
+        // C 端所有 @Allow(Permission.Authenticated) 的查询（me/orderSummary/myOrders 等）都会 403
+        try {
+            const customerRole = await this.connection
+                .getRepository(ctx, Role)
+                .findOne({ where: { code: '__customer_role__' } });
+            if (customerRole) {
+                await this.roleService.assignRoleToChannel(ctx, customerRole.id, channelId);
+            }
+        } catch (e: any) {
+            Logger.warn(`租户 ${code} 绑定客户角色失败: ${e.message}`, loggerCtx);
+        }
         try {
             await Promise.all(
                 OFFICIAL_ROLE_TEMPLATES.map((tpl) =>

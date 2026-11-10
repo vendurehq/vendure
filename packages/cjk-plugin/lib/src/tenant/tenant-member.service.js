@@ -234,12 +234,13 @@ function dedupeRolesByLabel(roles) {
     return [...seen.values()];
 }
 let TenantMemberService = class TenantMemberService {
-    constructor(connection, administratorService, roleService, channelService, authService, virtualPhysicalStockService, pluginOptions) {
+    constructor(connection, administratorService, roleService, channelService, authService, requestContextCache, virtualPhysicalStockService, pluginOptions) {
         this.connection = connection;
         this.administratorService = administratorService;
         this.roleService = roleService;
         this.channelService = channelService;
         this.authService = authService;
+        this.requestContextCache = requestContextCache;
         this.virtualPhysicalStockService = virtualPhysicalStockService;
         this.pluginOptions = pluginOptions;
     }
@@ -303,9 +304,29 @@ let TenantMemberService = class TenantMemberService {
             }
         }
     }
+    /**
+     * Vendure 要求 Channel.defaultLanguageCode 必须在 GlobalSettings.availableLanguages 中，
+     * 否则 channelService.create 返回 LanguageNotAvailableError（无 id），渠道也不会落库。
+     * 新建租户时按需把语言补进全局启用列表，避免租户创建依赖部署侧的 languages 配置。
+     */
+    async ensureLanguageEnabled(ctx, languageCode) {
+        var _a;
+        const repo = this.connection.getRepository(ctx, core_1.GlobalSettings);
+        const [settings] = await repo.find({ take: 1, order: { createdAt: 'ASC' } });
+        if (!settings)
+            return;
+        const enabled = ((_a = settings.availableLanguages) !== null && _a !== void 0 ? _a : []);
+        if (enabled.includes(languageCode))
+            return;
+        settings.availableLanguages = [...enabled, languageCode];
+        await repo.save(settings);
+        // 同一请求内 channelService.create 的语言校验读的是 GlobalSettingsService 的请求级缓存，同步为最新值
+        this.requestContextCache.set(ctx, 'GlobalSettings', settings);
+        core_1.Logger.info(`已自动启用语言 ${languageCode}（原启用：${enabled.join(',') || '无'}）`, constants_1.loggerCtx);
+    }
     /** 新建租户：自动分配 tenantNo（当前最大+1），code 由 tenantNo 派生 `t{tenantNo}`，避免手输冲突 */
     async createChannel(ctx, input) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         // 业务租户容量：官方位 1-20（isOfficial=true）不计入；超限直接拒绝，避免无限扩张
         const businessCount = await this.countBusinessTenants(ctx);
         if (businessCount >= exports.BUSINESS_TENANT_CAPACITY) {
@@ -314,16 +335,36 @@ let TenantMemberService = class TenantMemberService {
         const tenantNo = await this.nextTenantNo(ctx);
         const code = `t${tenantNo}`;
         const defaultDomain = (_b = (_a = this.pluginOptions) === null || _a === void 0 ? void 0 : _a.tenant) === null || _b === void 0 ? void 0 : _b.defaultPublicDomain;
+        const defaultLanguageCode = ((_c = input.defaultLanguageCode) !== null && _c !== void 0 ? _c : 'zh_Hans');
+        await this.ensureLanguageEnabled(ctx, defaultLanguageCode);
         const channel = await this.channelService.create(ctx, {
             code,
             token: input.token,
-            defaultLanguageCode: ((_c = input.defaultLanguageCode) !== null && _c !== void 0 ? _c : 'zh_Hans'),
+            defaultLanguageCode,
             currencyCode: ((_d = input.currencyCode) !== null && _d !== void 0 ? _d : 'CNY'),
             pricesIncludeTax: true,
             customFields: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, ((_e = input.extraCustomFields) !== null && _e !== void 0 ? _e : {})), (((_f = input.customDomains) === null || _f === void 0 ? void 0 : _f.length) ? { customDomains: input.customDomains } : {})), { tenantNo, isOfficial: (_g = input.isOfficial) !== null && _g !== void 0 ? _g : false, enabled: true, shopName: input.name }), (defaultDomain ? { domain: `${defaultDomain}/${code}` } : {})), (input.domain ? { domain: input.domain } : {})),
         });
+        // createChannel 的返回是 ErrorResultUnion：LanguageNotAvailableError 等错误对象没有 id，
+        // 直接返回会被 GraphQL 非空 Channel 序列化成 "Cannot return null for non-nullable field Channel.id"
+        if (channel === null || channel === void 0 ? void 0 : channel.errorCode) {
+            throw new Error(`TENANT_CHANNEL_CREATE_FAILED: ${(_h = channel.message) !== null && _h !== void 0 ? _h : channel.errorCode}`);
+        }
         // 自动创建 3 个默认角色（租户管理员/销售/库存），保证人员可即时绑定角色
         const channelId = String(channel.id);
+        // 新渠道必须挂上 __customer_role__：否则该渠道的登录会员拿不到 Authenticated 权限，
+        // C 端所有 @Allow(Permission.Authenticated) 的查询（me/orderSummary/myOrders 等）都会 403
+        try {
+            const customerRole = await this.connection
+                .getRepository(ctx, core_1.Role)
+                .findOne({ where: { code: '__customer_role__' } });
+            if (customerRole) {
+                await this.roleService.assignRoleToChannel(ctx, customerRole.id, channelId);
+            }
+        }
+        catch (e) {
+            core_1.Logger.warn(`租户 ${code} 绑定客户角色失败: ${e.message}`, constants_1.loggerCtx);
+        }
         try {
             await Promise.all(role_templates_1.OFFICIAL_ROLE_TEMPLATES.map((tpl) => this.createTenantRole(ctx, channelId, {
                 code: `t${tenantNo}-${tpl.busiPrefix}`,
@@ -1176,13 +1217,14 @@ let TenantMemberService = class TenantMemberService {
 exports.TenantMemberService = TenantMemberService;
 exports.TenantMemberService = TenantMemberService = __decorate([
     (0, common_1.Injectable)(),
-    __param(6, (0, common_1.Optional)()),
-    __param(6, (0, common_1.Inject)(constants_1.CJK_PLUGIN_OPTIONS)),
+    __param(7, (0, common_1.Optional)()),
+    __param(7, (0, common_1.Inject)(constants_1.CJK_PLUGIN_OPTIONS)),
     __metadata("design:paramtypes", [core_1.TransactionalConnection,
         core_1.AdministratorService,
         core_1.RoleService,
         core_1.ChannelService,
         core_1.AuthService,
+        core_1.RequestContextCacheService,
         virtual_physical_stock_service_1.VirtualPhysicalStockService, Object])
 ], TenantMemberService);
 //# sourceMappingURL=tenant-member.service.js.map
