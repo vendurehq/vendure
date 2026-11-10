@@ -462,9 +462,7 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
             const count = async () => {
                 const result: Record<string, number> = {};
                 for (const name of CHANNEL_AWARE) {
-                    const table = dataSource.getMetadata(`${name}Channel`).tableName;
-                    const [{ c }] = await dataSource.query(`SELECT COUNT(*) AS c FROM "${table}"`);
-                    result[table] = Number(c);
+                    result[name] = await dataSource.getRepository(`${name}Channel`).count();
                 }
                 return result;
             };
