@@ -200,7 +200,9 @@ export class CustomerService {
 
     /**
      * @description
-     * Creates a new Customer, including creation of a new User with the special `customer` Role.
+     * Creates a new Customer, including creation of a new User. Customer permissions are
+     * derived from channel membership (see {@link CUSTOMER_PERMISSIONS}), so no Role is
+     * involved.
      *
      * If the `password` argument is specified, the Customer will be immediately verified. If not,
      * then an {@link AccountRegistrationEvent} is published, so that the customer can have their
@@ -701,12 +703,18 @@ export class CustomerService {
     async requestCustomerPasswordReset(ctx: RequestContext, customerId: ID): Promise<void> {
         const customer = await this.connection.getEntityOrThrow(ctx, Customer, customerId, {
             channelId: ctx.channelId,
-            relations: ['user', 'user.authenticationMethods'],
+            relations: ['user'],
         });
         if (!customer.user) {
             throw new UserInputError('error.customer-has-no-user-account');
         }
-        const user = await this.userService.setPasswordResetTokenForUser(ctx, customer.user);
+        // Loaded separately rather than as the `user.authenticationMethods` relation of the Customer
+        // query: TypeORM 0.3.29+ drops that nested relation when it is merged into the already
+        // loaded `user`.
+        const userWithAuthMethods = await this.connection.getEntityOrThrow(ctx, User, customer.user.id, {
+            relations: ['authenticationMethods'],
+        });
+        const user = await this.userService.setPasswordResetTokenForUser(ctx, userWithAuthMethods);
         if (!user) {
             throw new UserInputError('error.cannot-set-password-without-native-credential');
         }

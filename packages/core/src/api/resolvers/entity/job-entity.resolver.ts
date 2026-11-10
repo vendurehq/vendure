@@ -44,7 +44,9 @@ export class JobEntityResolver {
                 _session: session
                     ? {
                           ...omit(session, ['token']),
-                          user: session.user ? omit(session.user, ['channelPermissions']) : {},
+                          user: session.user
+                              ? omit(session.user, ['channelPermissions', 'globalPermissions'])
+                              : {},
                       }
                     : {},
             };

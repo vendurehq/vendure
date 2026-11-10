@@ -195,4 +195,49 @@ describe('dependency-check', () => {
         expect(result.status).toBe('warn');
         expect(result.details?.some(d => d.includes('Multiple graphql versions'))).toBe(true);
     });
+    it('passes without a removed-package warning when no removed package is installed', async () => {
+        const appDir = path.join(tmpDir, 'packages', 'api');
+        fs.mkdirpSync(appDir);
+        fs.writeJsonSync(path.join(appDir, 'package.json'), { name: 'api' });
+        const corePkgDir = path.join(tmpDir, 'node_modules', '@vendure', 'core');
+        fs.mkdirpSync(corePkgDir);
+        fs.writeJsonSync(path.join(corePkgDir, 'package.json'), {
+            name: '@vendure/core',
+            version: '4.0.0',
+            main: 'index.js',
+        });
+        fs.writeFileSync(path.join(corePkgDir, 'index.js'), '');
+
+        process.chdir(appDir);
+        const result = await runDependencyCheck();
+
+        expect(result.status).toBe('pass');
+        expect(result.details?.some(d => d.includes('is not supported in Vendure v4'))).toBe(false);
+    });
+
+    it('warns about each Angular admin UI package that was removed in v4', async () => {
+        const appDir = path.join(tmpDir, 'packages', 'api');
+        fs.mkdirpSync(appDir);
+        fs.writeJsonSync(path.join(appDir, 'package.json'), { name: 'api' });
+        // Hoisted to the workspace root, which the check must find through module resolution
+        for (const [name, version] of [
+            ['@vendure/core', '4.0.0'],
+            ['@vendure/admin-ui-plugin', '3.8.1'],
+        ]) {
+            const pkgDir = path.join(tmpDir, 'node_modules', ...name.split('/'));
+            fs.mkdirpSync(pkgDir);
+            fs.writeJsonSync(path.join(pkgDir, 'package.json'), { name, version, main: 'index.js' });
+            fs.writeFileSync(path.join(pkgDir, 'index.js'), '');
+        }
+
+        process.chdir(appDir);
+        const result = await runDependencyCheck();
+
+        expect(result.status).toBe('warn');
+        expect(result.details).toContain(
+            '@vendure/admin-ui-plugin@3.8.1 is not supported in Vendure v4: ' +
+                'replace AdminUiPlugin with DashboardPlugin from @vendure/dashboard',
+        );
+        expect(result.details?.some(d => d.startsWith('@vendure/admin-ui@'))).toBe(false);
+    });
 });

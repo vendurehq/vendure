@@ -918,7 +918,7 @@ describe('bundleEntryPlugin', () => {
         '<head></head>',
         '<body>',
         '<div id="app"></div>',
-        '<script type="module" src="/src/app/main.jsx"></script>',
+        '<script type="module" src="/src/app/main.tsx"></script>',
         '</body>',
         '</html>',
     ].join('\n');
@@ -939,7 +939,7 @@ describe('bundleEntryPlugin', () => {
         });
         expect(result).toContain('/dist/bundle/main.js');
         expect(result).toContain("import '/src/app/styles.css';");
-        expect(result).not.toContain('/src/app/main.jsx');
+        expect(result).not.toContain('/src/app/main.tsx');
     });
 
     it('does not load the pre-built dashboard.css, and imports styles.css after the bundle', () => {
@@ -957,14 +957,14 @@ describe('bundleEntryPlugin', () => {
     it('matches the script src even when Vite has already prepended the base path', () => {
         const plugin = bundleEntryPlugin();
         const htmlWithBase = sourceEntryHtml.replace(
-            'src="/src/app/main.jsx"',
-            'src="/dashboard/src/app/main.jsx"',
+            'src="/src/app/main.tsx"',
+            'src="/dashboard/src/app/main.tsx"',
         );
         const result = callBundleEntryTransform(plugin, htmlWithBase, {
             filename: 'index.html',
         });
         expect(result).toContain('/dist/bundle/main.js');
-        expect(result).not.toContain('main.jsx');
+        expect(result).not.toContain('main.tsx');
     });
 
     it('leaves HTML unchanged when the source-entry script is not present', () => {

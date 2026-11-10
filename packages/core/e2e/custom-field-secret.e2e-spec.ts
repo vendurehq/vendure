@@ -151,7 +151,6 @@ describe('secret custom fields', () => {
                 code: 'cf-secret-manager',
                 description: 'Catalog manager',
                 permissions: [Permission.ReadCatalog, Permission.CreateCatalog, Permission.UpdateCatalog],
-                channelIds: ['T_1'],
             },
         });
         const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
@@ -160,7 +159,7 @@ describe('secret custom fields', () => {
                 firstName: 'CF',
                 lastName: 'Manager',
                 password: manager.password,
-                roleIds: [createRole.id],
+                roleAssignments: ['T_1'].map(channelId => ({ roleId: createRole.id, channelId })),
             },
         });
         managerAdminId = createAdministrator.id;

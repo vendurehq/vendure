@@ -86,7 +86,7 @@ docs MCP. Do not send the IDs or names.
 
 ## 4. Runtime and tools
 
-- Node.js: `node --version`. Vendure supports Node.js v20, v22 and v24.
+- Node.js: `node --version`. Vendure requires Node.js 22.12 or newer and supports v22, v24 and v26.
 - Package manager: the `packageManager` field in `package.json`, then
   `<manager> --version`.
 

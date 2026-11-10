@@ -53,7 +53,7 @@ export interface DashboardThemeOptions extends ThemeVariables {
      * ```ts
      * vendureDashboardPlugin({
      *     theme: {
-     *         additionalStylesheets: [path.resolve(__dirname, 'src/dashboard.css')],
+     *         additionalStylesheets: [path.resolve(import.meta.dirname, 'src/dashboard.css')],
      *     },
      * })
      * ```

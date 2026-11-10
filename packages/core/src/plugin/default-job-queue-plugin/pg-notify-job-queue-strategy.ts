@@ -3,8 +3,7 @@ import { ID } from '@vendure/common/lib/shared-types';
 import { randomUUID } from 'crypto';
 import type { Client, Notification } from 'pg';
 import type { ConnectionOptions } from 'tls';
-import { DataSource, EntityManager } from 'typeorm';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { DataSource, DataSourceOptions, EntityManager } from 'typeorm';
 
 import { Injector } from '../../common/injector';
 import { Logger } from '../../config/logger/vendure-logger';
@@ -39,6 +38,9 @@ const MIN_RETRY_WAIT_MS = 50;
  * The listener is idle most of the time. Without keepalive packets a NAT or load balancer
  * can drop the connection without a reset, and the client never notices it is gone.
  */
+// The Postgres options type is exported from a different path in TypeORM 0.3 and v1, so derive it.
+type PostgresOptions = Extract<DataSourceOptions, { type: 'postgres' }>;
+
 const LISTENER_KEEPALIVE: PgNotifyListenerConnection = {
     keepAlive: true,
     keepAliveInitialDelayMillis: 60_000,
@@ -448,7 +450,7 @@ export class PgNotifyJobQueueStrategy extends SqlJobQueueStrategy {
         if (this.listenerConnection) {
             return { ...LISTENER_KEEPALIVE, ...this.listenerConnection };
         }
-        const options = this.dataSource?.options as PostgresConnectionOptions | undefined;
+        const options = this.dataSource?.options as PostgresOptions | undefined;
         // Mirrors how TypeORM's Postgres driver builds its pool config: credentials from
         // the replication master if there is one, then `extra` on top.
         const credentials = options?.replication?.master ?? options;

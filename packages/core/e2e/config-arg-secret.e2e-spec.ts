@@ -2,8 +2,8 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
     CollectionFilter,
-    DefaultEncryptionStrategy,
     defaultCollectionFilters,
+    DefaultEncryptionStrategy,
     LanguageCode,
     mergeConfig,
     PaymentMethod,
@@ -122,7 +122,6 @@ describe('secret config args', () => {
                     Permission.CreateCollection,
                     Permission.UpdateCollection,
                 ],
-                channelIds: ['T_1'],
             },
         });
         await adminClient.query(createAdministratorDocument, {
@@ -131,7 +130,7 @@ describe('secret config args', () => {
                 firstName: 'PM',
                 lastName: 'Manager',
                 password: manager.password,
-                roleIds: [createRole.id],
+                roleAssignments: ['T_1'].map(channelId => ({ roleId: createRole.id, channelId })),
             },
         });
     }, TEST_SETUP_TIMEOUT_MS);

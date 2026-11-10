@@ -1,12 +1,12 @@
 ---
 title: "Administrators & Roles"
 metaTitle: "Managing Administrators and Permission Roles in Vendure"
-metaDescription: "Create administrator accounts, define roles with granular CRUD permissions, and compose multiple roles together to control staff access in the Vendure Admin UI."
+metaDescription: "Create administrator accounts, define roles with granular CRUD permissions, and compose multiple roles together to control staff access in the Vendure Dashboard."
 ---
 
-An **administrator** is a staff member who has access to the Admin UI, and is able to view and modify some or all of the items and settings.
+An **administrator** is a staff member who has access to the Dashboard, and is able to view and modify some or all of the items and settings.
 
-The exact permissions of _what_ a given administrator may view and modify is defined by which **roles** are assigned to that administrator.
+The exact permissions of _what_ a given administrator may view and modify is defined by which **roles** are assigned to that administrator, and on which **channels**.
 
 ## Defining a Role
 
@@ -23,12 +23,18 @@ In general, it is advisable to create roles with the fewest amount of privileges
 
 ### The SuperAdmin role
 
-This is a special role which cannot be deleted or modified. This role grants _all permissions_ and is used to set up the store initially, and make certain special changes (such as creating new Channels).
+This is a special role which cannot be deleted or modified. This role grants _all permissions_ on every channel, including channels created later. It is used to set up the store initially, and make certain special changes (such as creating new Channels).
+
+### The RoleEditor role
+
+Creating, editing and deleting roles requires the **RoleEditor** role. An administrator can manage a role only when they hold RoleEditor on every channel where that role is assigned. Nobody holds RoleEditor by default: a SuperAdmin grants it to the administrators who manage roles.
 
 ## Creating Administrators
 
-For each individual that needs to log in to the Admin UI, you should create a new administrator account. 
+For each individual that needs to log in to the Dashboard, you should create a new administrator account. 
 
-Apart from filling in their details and selecting a strong password, you then need to assign at least one role. Roles "add together", meaning that when more than one role is assigned, the combined set of permissions of all assigned roles is granted to that administrator. 
+Apart from filling in their details and selecting a strong password, you then need to assign at least one role, and choose the channel it applies to. The same role can be assigned on several channels, and an administrator can hold different roles on different channels. Roles "add together", meaning that when more than one role is assigned on a channel, the combined set of permissions of those roles is granted to that administrator on that channel.
+
+You can only assign a role on a channel when you hold every permission of that role on that channel yourself. 
 
 Thus, it is possible to create a set of specific roles "Inventory Manager", "Order Manager", "Customer Services", "Marketing Manager", and _compose_ them together as needed.

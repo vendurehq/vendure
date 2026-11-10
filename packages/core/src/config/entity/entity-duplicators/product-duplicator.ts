@@ -103,12 +103,14 @@ export const productDuplicator = new EntityDuplicator({
                     taxCategory: true,
                 },
             });
+            // Share option groups with the duplicated product instead of copying them
             if (product.optionGroups?.length) {
                 for (const optionGroup of product.optionGroups) {
                     await productService.addOptionGroupToProduct(ctx, duplicatedProduct.id, optionGroup.id);
                 }
             }
             const variantInput: CreateProductVariantInput[] = productVariants.map((variant, i) => {
+                // Since we share option groups, variants reference the same option IDs
                 const optionIds = variant.options.map(o => o.id);
                 const price =
                     variant.productVariantPrices.find(p => idsAreEqual(p.channelId, ctx.channelId))?.price ??

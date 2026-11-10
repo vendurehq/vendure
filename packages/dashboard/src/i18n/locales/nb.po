@@ -49,8 +49,8 @@ msgid "Text style"
 msgstr "Tekststil"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
-msgid "The selected permissions will be applied to the these channels."
-msgstr "De valgte tillatelsene vil bli brukt på disse kanalene."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "De valgte tillatelsene vil bli brukt på disse kanalene."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
@@ -236,6 +236,10 @@ msgstr "Ingen oppfyllelser"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, one {Kunne ikke slette {1} lagerplassering: {messages}} other {Kunne ikke slette {2} lagerplasseringer: {messages}}}"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Når dette er aktivert, vil prisene som er angitt i produktkatalogen inkludere mva for standard skattesone."
@@ -355,8 +359,8 @@ msgid "Orders"
 msgstr "Bestillinger"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Select roles"
-msgstr "Velg roller"
+#~ msgid "Select roles"
+#~ msgstr "Velg roller"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
@@ -445,6 +449,7 @@ msgstr "Lagerlokasjon opprettet"
 msgid "No widgets to add"
 msgstr "Ingen widgeter å legge til"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -654,6 +659,11 @@ msgstr ""
 msgid "Go to next page"
 msgstr "Gå til neste side"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Add role"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Remove link"
 msgstr "Fjern lenke"
@@ -712,6 +722,11 @@ msgstr "Administrer globale lagrede visninger som er synlige for alle brukere"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "Søk betalingsmetoder..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -777,9 +792,9 @@ msgstr "Legger til..."
 msgid "Move Collections"
 msgstr "Flytt samlinger"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -854,6 +869,10 @@ msgstr "Kjør test"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "Skattesats: {taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Vennligst legg til produkter og fullfør leveringsadressen for å kjøre testen."
@@ -886,6 +905,11 @@ msgstr "Fjern formatering"
 msgid "Order draft is ready to be completed"
 msgstr "Ordreutkastet er klart til å fullføres"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -896,6 +920,7 @@ msgstr "Metadata"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "Kunne ikke angi fraktmetode for bestillingen: {0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "Filtrer..."
@@ -1111,7 +1136,6 @@ msgstr "Kunne ikke opprette produkt"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
-#: src/lib/components/shared/role-code-label.tsx
 msgid "Customer"
 msgstr "Kunde"
 
@@ -1431,6 +1455,11 @@ msgstr "Ressurser"
 msgid "Email address"
 msgstr "E-postadresse"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1535,6 +1564,10 @@ msgstr "Test fraktmetodene dine ved å simulere en ny bestilling."
 msgid "No items selected"
 msgstr "Ingen varer valgt"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
+
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid ", {0} selected"
@@ -1606,8 +1639,8 @@ msgid "Address deleted"
 msgstr "Adresse slettet"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Only roles assigned to your account are available."
-msgstr "Bare roller tilordnet din konto er tilgjengelige."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Bare roller tilordnet din konto er tilgjengelige."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1828,6 +1861,7 @@ msgid "Use as the default billing address"
 msgstr "Bruk som standard fakturaadresse"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
@@ -1866,6 +1900,10 @@ msgstr "Laster metrikker…"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Customer account verified"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Read"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -1944,6 +1982,12 @@ msgstr "Opprettet"
 msgid "Loading addresses..."
 msgstr "Laster adresser..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "Velg en målsamling å flytte {0} til."
@@ -1989,9 +2033,12 @@ msgid "Insert {row} by {col} table"
 msgstr "Sett inn {row} x {col}-tabell"
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
@@ -2033,6 +2080,12 @@ msgstr "Produktvariant opprettet"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Refund from this method"
 msgstr "Refusjon fra denne metoden"
+
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -2077,6 +2130,10 @@ msgstr "Slett variant"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "No modifications made"
 msgstr "Ingen endringer gjort"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2166,6 +2223,7 @@ msgstr "Refusjon nødvendig"
 msgid "Fulfill order"
 msgstr "Oppfyll bestilling"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/forgot-password-form.tsx
 msgid "Send reset link"
 msgstr "Send tilbakestillingslenke"
@@ -2199,6 +2257,10 @@ msgstr "Kunne ikke fjerne opsjonsgruppen"
 msgid "Failed to update tax category"
 msgstr "Kunne ikke oppdatere skattekategori"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "Refusjon gjennomført"
@@ -2209,6 +2271,7 @@ msgid "{0, plural, =1 {Select a target collection to move this collection to.} o
 msgstr "{0, plural, =1 {Velg en målsamling å flytte denne samlingen til.} other {Velg en målsamling å flytte # samlinger til.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -2268,6 +2331,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2476,6 +2543,11 @@ msgstr "Velg et språk"
 #: src/lib/components/layout/nav-user.tsx
 msgid "Log out"
 msgstr "Logg ut"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -2942,6 +3014,11 @@ msgstr "Slutter"
 msgid "Page {0} of {1}"
 msgstr "Side {0} av {1}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "Sats"
@@ -3047,6 +3124,11 @@ msgstr "{count, plural, one {Er du sikker på at du vil fjerne {count} kunde fra
 msgid "Search countries..."
 msgstr "Søk etter land..."
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Stock on Hand"
@@ -3084,6 +3166,11 @@ msgstr "Tilordne eksisterende"
 msgid "Generate variants"
 msgstr "Generer varianter"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is null"
@@ -3098,6 +3185,9 @@ msgstr "Dette er kundene i kundegruppen <0>{customerGroupName}</0>."
 msgid "Manage global views"
 msgstr "Administrer globale visninger"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "Standardkanal"
@@ -3206,6 +3296,10 @@ msgstr "Brukte visning \"{viewName}\""
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "Fjernet {successCount} fasetter fra kanal"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3474,6 +3568,7 @@ msgid "Delete Global View"
 msgstr "Slett global visning"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -3587,6 +3682,11 @@ msgstr "Bestillingshistorikk"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "Overstyr"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3727,6 +3827,10 @@ msgstr "Refusjon"
 msgid "Modify"
 msgstr "Endre"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "No global languages configured"
 msgstr "Ingen globale språk konfigurert"
@@ -3791,6 +3895,10 @@ msgstr "Kolonner"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Failed to upload image"
 msgstr "Kunne ikke laste opp bildet"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "No assets match these filters"
@@ -3877,6 +3985,10 @@ msgstr "Inkluderer mva. på {taxRate}%"
 msgid "Order metrics"
 msgstr "Bestillingsberegninger"
 
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
+
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
 msgstr "Bekreft nytt passord"
@@ -3909,7 +4021,6 @@ msgstr "Kunne ikke rotere API-nøkkelen"
 msgid "in"
 msgstr "i"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/lib/components/shared/role-selector.tsx
 msgid "Search roles..."
 msgstr "Søk roller..."
@@ -3987,6 +4098,10 @@ msgstr "Selger opprettet"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4187,6 +4302,10 @@ msgstr "Siste kunder-widget"
 msgid "Latest Orders Widget"
 msgstr "Siste bestillinger-widget"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Loading stock levels…"
 msgstr "Laster lagernivåer…"
@@ -4233,12 +4352,13 @@ msgstr "Ingen sjekkere funnet"
 msgid "Settle payment"
 msgstr "Gjennomfør betaling"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Channels"
 msgstr "Kanaler"
@@ -4268,6 +4388,10 @@ msgstr "Ny lagerlokasjon"
 msgid "Select item"
 msgstr "Velg vare"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "New product"
@@ -4292,6 +4416,10 @@ msgstr "Legg til handling"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Assign options to existing variant"
 #~ msgstr "Tildel opsjoner til eksisterende variant"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx
@@ -4321,6 +4449,10 @@ msgstr "Velg dato og klokkeslett"
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Owner"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -4534,6 +4666,10 @@ msgstr "Ny kanal"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "Opsjonsgruppens navn"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -5291,6 +5427,10 @@ msgstr "Hvis det finnes en konto for {submittedEmailAddress}, vil du motta en e-
 msgid "Schedule Pattern"
 msgstr "Tidsplanmønster"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show granted only"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment failed"
 msgstr "Betaling mislyktes"
@@ -5448,6 +5588,10 @@ msgstr "f.eks. Rød, Stor, Bomull"
 msgid "Failed to update profile"
 msgstr "Kunne ikke oppdatere profil"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5520,6 +5664,10 @@ msgstr "Samling oppdatert"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "Betalingsmetode oppdatert"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5603,6 +5751,10 @@ msgstr "Spørringsutvidelse er ugyldig: må ha minst ett toppnivåfelt"
 msgid "Query extension mismatch: "
 msgstr "Uoverensstemmelse i spørringsutvidelse:"
 
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
 msgstr "offentlig"
@@ -5614,6 +5766,12 @@ msgstr "Skattekategori oppdatert"
 #: src/app/routes/_authenticated/_collections/components/collection-bulk-actions.tsx
 msgid "Move"
 msgstr "Flytt"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "All channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Edit or delete existing tags"
@@ -5693,6 +5851,8 @@ msgstr "Feil vare"
 msgid "Summary of modifications"
 msgstr "Oppsummering av endringer"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Reset password"
 msgstr "Tilbakestill passord"
@@ -5834,6 +5994,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Stat / Fylke"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
@@ -6018,6 +6182,7 @@ msgstr "Tilbakestill passordet ditt"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Password reset requested"
 msgstr "Tilbakestilling av passord forespurt"
 
@@ -6113,6 +6278,7 @@ msgstr "System"
 msgid "Variant name"
 msgstr "Variantnavn"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6190,6 +6356,10 @@ msgstr "Forhåndsvis bestillingsendringer"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Successfully updated product option group"
 #~ msgstr "Produktalternativgruppe oppdatert"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -6277,6 +6447,10 @@ msgstr "Søk etter samlinger..."
 msgid "Add option group to product"
 msgstr "Legg til opsjonsgruppe til produkt"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Preview of {0}"
@@ -6285,6 +6459,10 @@ msgstr "Forhåndsvisning av {0}"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
 msgstr "Selger oppdatert"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Assign role"
+msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 #: src/lib/components/platform-promotion/platform-promo.tsx
@@ -6709,6 +6887,10 @@ msgstr "Video"
 msgid "less than"
 msgstr "mindre enn"
 
+#: src/lib/components/shared/role-code-label.tsx
+msgid "Role Editor"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Varianten kunne ikke legges til. Sørg for at foreldreproduktet er aktivert."
@@ -6984,6 +7166,10 @@ msgstr "Refusjons-ID"
 msgid "Order custom fields updated"
 msgstr "Egendefinerte ordrefelt oppdatert"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role assigned"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Search entries..."
 msgstr "Søk etter oppføringer..."
@@ -7006,6 +7192,7 @@ msgid "Move to the top level"
 msgstr "Flytt til toppnivå"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "Tøm"
 
@@ -7069,6 +7256,10 @@ msgstr "useWidgetFilters må brukes innenfor en WidgetFiltersProvider"
 msgid "Edit as form"
 msgstr "Rediger som skjema"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
@@ -7109,6 +7300,10 @@ msgstr "Administrer varianter"
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "There was a problem loading your latest orders."
 msgstr "Det oppstod et problem med å laste de siste bestillingene dine."
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/shared/stock-level-label.tsx
 msgid "Stock allocated"
@@ -7316,6 +7511,10 @@ msgstr "Ingen resultat ennå"
 msgid "Payment settled"
 msgstr "Betaling gjennomført"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Available Conditions"
 msgstr "Tilgjengelige betingelser"
@@ -7474,6 +7673,11 @@ msgstr "Opsjon"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "Order process"
 msgstr "Ordreprosess"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/shared/customer-selector.tsx

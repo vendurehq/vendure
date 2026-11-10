@@ -92,20 +92,10 @@ export class AuthService {
         authenticationStrategyName: string,
         apiType?: ApiType,
     ): Promise<AuthenticatedSession | NotVerifiedError> {
-        if (!user.roles || !user.roles[0]?.channels) {
-            const userWithRoles = await this.connection
-                .getRepository(ctx, User)
-                .createQueryBuilder('user')
-                .leftJoinAndSelect('user.roles', 'role')
-                .leftJoinAndSelect('role.channels', 'channel')
-                .where('user.id = :userId', { userId: user.id })
-                .getOne();
-            user.roles = userWithRoles?.roles || [];
-        }
         if (!user.authenticationMethods) {
             // The verification backstop below depends on the auth methods being loaded. If a caller
             // (e.g. a plugin) passes a User without them, load them here rather than let the security
-            // check silently no-op, mirroring the roles reload above.
+            // check silently no-op.
             const userWithAuth = await this.connection
                 .getRepository(ctx, User)
                 .createQueryBuilder('user')

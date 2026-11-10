@@ -1,4 +1,4 @@
-export const REQUIRED_NODE_VERSION = '^20.19.0 || >=22.12.0';
+export const REQUIRED_NODE_VERSION = '>=22.12.0';
 /**
  * Oldest Node.js major release that has not reached end-of-life. Used to warn (not block)
  * users on EOL versions, for which native deps often stop publishing prebuilt binaries.
@@ -19,17 +19,17 @@ export const TYPESCRIPT_VERSION = '5.8.2';
  * range `@vendure/core` depends on so pnpm dedupes to a single instance - a mismatch would produce
  * duplicate TypeORM copies with separate decorator metadata. Enforced by a test in helpers.spec.ts.
  */
-export const TYPEORM_VERSION = '^0.3.21';
+export const TYPEORM_VERSION = '^0.3.21 || ^1.1.2';
 /**
  * Vite must be a direct dependency of the scaffolded project because the
  * generated vite.config.mts imports `vite` directly, and strict
  * (non-hoisting) package managers like pnpm don't expose transitive deps.
  * The range tracks @vendure/dashboard's declaration so the scaffold stays
- * on the same Vite major line as the dashboard (currently v7); the caret
- * caps at <8.0.0, which is important because Vite 8 ships a Rolldown-based
- * bundler with breaking changes.
+ * on the same Vite major line as the dashboard (currently v8, the
+ * Rolldown-based release); the caret caps at <9.0.0 so a future major with
+ * breaking changes is not picked up implicitly.
  */
-export const VITE_VERSION = '^7.3.1';
+export const VITE_VERSION = '^8.3.5';
 /**
  * `concurrently` runs the generated `dev`/`start` scripts. The major is pinned because
  * the `<pm>:script:*` shorthand expansion (relied on by both the server scripts and the

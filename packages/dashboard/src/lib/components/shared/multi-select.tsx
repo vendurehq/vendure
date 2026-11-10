@@ -1,4 +1,6 @@
+import { Trans } from '@lingui/react/macro';
 import { MultiSelect as UiMultiSelect } from '@vendure-io/ui/components/molecules/multi-select';
+import { useState } from 'react';
 import {
     Combobox,
     ComboboxChip,
@@ -33,6 +35,11 @@ export interface MultiSelectProps<T extends boolean> {
     searchPlaceholder?: string;
     showSearch?: boolean;
     className?: string;
+    /**
+     * For a searchable multi-select: the number of selected chips shown before the rest are
+     * collapsed into a "+N more" toggle, so a large selection does not push the page down.
+     */
+    maxVisibleChips?: number;
 }
 
 export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
@@ -45,7 +52,9 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
         searchPlaceholder = 'Search...',
         showSearch,
         className,
+        maxVisibleChips,
     } = props;
+    const [chipsExpanded, setChipsExpanded] = useState(false);
 
     // Same rule as the v1 component: show a filtering input for explicit opt-in or long lists.
     const withSearch = showSearch === true || items.length > 10;
@@ -55,6 +64,10 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
 
         if (multiple) {
             const selectedItems = (value as string[]).map(v => byValue.get(v) ?? { value: v, label: v });
+            const collapsible = maxVisibleChips != null && selectedItems.length > maxVisibleChips;
+            const shownItems =
+                collapsible && !chipsExpanded ? selectedItems.slice(0, maxVisibleChips) : selectedItems;
+            const hiddenCount = selectedItems.length - shownItems.length;
             return (
                 <Combobox
                     items={items}
@@ -67,11 +80,27 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
                     isItemEqualToValue={(a: MultiSelectItem, b: MultiSelectItem) => a.value === b.value}
                 >
                     <ComboboxChips className={className}>
-                        {selectedItems.map(item => (
+                        {shownItems.map(item => (
                             <ComboboxChip key={item.value} aria-label={item.label}>
                                 {item.display ?? item.label}
                             </ComboboxChip>
                         ))}
+                        {collapsible && (
+                            <button
+                                type="button"
+                                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                                onClick={event => {
+                                    event.stopPropagation();
+                                    setChipsExpanded(expanded => !expanded);
+                                }}
+                            >
+                                {hiddenCount > 0 ? (
+                                    <Trans>+{hiddenCount} more</Trans>
+                                ) : (
+                                    <Trans>Show fewer</Trans>
+                                )}
+                            </button>
+                        )}
                         <ComboboxChipsInput
                             placeholder={selectedItems.length === 0 ? placeholder : searchPlaceholder}
                         />
@@ -91,7 +120,8 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
         }
 
         const selectedItem =
-            byValue.get(value as string) ?? (value ? { value: value as string, label: value as string } : null);
+            byValue.get(value as string) ??
+            (value ? { value: value as string, label: value as string } : null);
         return (
             <Combobox
                 items={items}

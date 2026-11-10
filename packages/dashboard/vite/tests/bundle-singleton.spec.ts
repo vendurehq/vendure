@@ -1,12 +1,9 @@
-import { execFile } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { buildShippedBundle } from './utils/build-shipped-bundle.js';
 import { auditBundleSingletons, BundleSingletonAudit } from './utils/bundle-singleton-audit.js';
-
-const execFileAsync = promisify(execFile);
 
 // Dashboard package root — this file lives at <root>/vite/tests/.
 const packageRoot = join(__dirname, '..', '..');
@@ -22,8 +19,11 @@ describe('bundle singleton duplication', () => {
     let audit: BundleSingletonAudit;
 
     beforeAll(async () => {
-        // Rebuild the bundle so the audit reflects the CURRENT externals list.
-        await execFileAsync('npm', ['run', 'build:lib'], { cwd: packageRoot });
+        // Rebuild the bundle so the audit reflects the CURRENT externals list. With
+        // RUN_BUNDLE_AUDIT=true, bundle-audit.global-setup.ts has already built it.
+        if (process.env.RUN_BUNDLE_AUDIT !== 'true') {
+            await buildShippedBundle(packageRoot);
+        }
         audit = await auditBundleSingletons({ packageRoot });
         await writeAuditReport(audit);
         // eslint-disable-next-line no-console
@@ -35,6 +35,13 @@ describe('bundle singleton duplication', () => {
         expect(offenders, `Duplicated singleton libraries:\n  ${offenders.join('\n  ')}`).toEqual([]);
     });
 
+    it('loads every external with an ESM import, not a CommonJS __require()', () => {
+        expect(
+            audit.externalRequires,
+            `__require() of an external in dist/bundle: ${audit.externalRequires.join(', ')}`,
+        ).toEqual([]);
+    });
+
     it('detects every still-bundled library in the extension build (guards against a stale marker)', () => {
         // A library that is NOT externalised is frozen into the bundle and must
         // be detectable in the extension build — otherwise its marker is stale
@@ -43,9 +50,10 @@ describe('bundle singleton duplication', () => {
         const undetected = audit.results
             .filter(r => !r.externalInLib && !r.inExtensionBuild)
             .map(r => r.candidate.pkg);
-        expect(undetected, `Stale marker — not detected in the extension build: ${undetected.join(', ')}`).toEqual(
-            [],
-        );
+        expect(
+            undetected,
+            `Stale marker — not detected in the extension build: ${undetected.join(', ')}`,
+        ).toEqual([]);
     });
 });
 

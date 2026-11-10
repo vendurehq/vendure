@@ -1,0 +1,368 @@
+---
+title: "Role Assignments"
+metaTitle: "Vendure v4 Role Assignments - Migration Guide"
+metaDescription: "Migrate from v3 Roles scoped to Channels to v4 role assignments: preview and run the data migration, and update plugins, API clients and storefronts."
+order: 5
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+In v3 a Role carried both its permissions and the Channels it applied to, and a User held Roles directly. In v4 a Role is a set of permissions owned by one Channel. A `RoleAssignment` grants a Role to a User on one Channel:
+
+```text
+v3  role.permissions = [...]
+    role.channels    = [channel B]
+    user.roles       = [role]
+
+v4  role.permissions = [...]
+    role.channel     = default channel (shared) or channel B (private to B)
+    role_assignment (user, role, channel B)
+```
+
+The same Role can now be granted to different Users on different Channels, so a multi-vendor marketplace no longer needs a copy of each Role per seller.
+
+Where a Role may be assigned depends on the Channel that owns it:
+
+- A Role owned by the **default Channel** is a shared Role. It can be assigned on any Channel. Define the Roles every seller needs, such as "Order Fulfillment", once on the default Channel.
+- A Role owned by **any other Channel** is private to it. It can only be assigned there, and administrators of other Channels cannot see it.
+
+A Role is owned by the Channel it was created on, and keeps that owner. Deleting a Channel deletes the Roles it owns. On a single-channel store every Role is a shared Role, so nothing changes.
+
+What else changes with it:
+
+- `User.roles` and `Role.channels` are removed. A new `role_assignment` table replaces the `user_roles_role` and `role_channels_channel` join tables.
+- Customers no longer hold a Customer role. A Customer gets the `Authenticated` permission on each Channel they are a member of, and nowhere else.
+- Every Role is owned by a Channel, see above.
+- Creating, editing and deleting Roles needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions, bundled in a new `RoleEditor` system Role, on the Channel that owns the Role.
+- SuperAdmin is held once and applies on every Channel, including Channels created later.
+
+## Previewing the migration
+
+Run [`previewRoleAssignmentMigration`](/reference/typescript-api/migration/preview-role-assignment-migration) after updating the Vendure packages and **before** migrating, while the database still has its v3 tables. It only reads, so it is safe to run against production:
+
+```ts
+import { formatRoleAssignmentMigrationPreview, previewRoleAssignmentMigration } from '@vendure/core';
+
+const queryRunner = dataSource.createQueryRunner();
+const preview = await previewRoleAssignmentMigration(queryRunner);
+console.log(formatRoleAssignmentMigrationPreview(preview));
+await queryRunner.release();
+```
+
+<Callout type="warning">
+With `synchronize: true`, starting Vendure v4 migrates the data straight away. Run the preview before you start v4 for the first time.
+</Callout>
+
+The report has these sections:
+
+- **Migration:** how many Users get rows and how many rows the migration writes, with an estimated run time. The estimate comes from measurements on PostgreSQL. Time the migration on a copy of your production database before you plan the [migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration).
+- **Administrators and API keys:** no change in access.
+- **Customers holding other roles:** Customers who are not Administrators but hold a Role besides the Customer role, for example to unlock B2B features. The migration copies those grants like any other. See [Customers holding Roles](#customers-holding-roles).
+- **Shop customers:** per Channel, how many Customers lose access because they are not a member of it, and how many gain access because they are a member of a Channel the Customer role did not cover. See [Storefront changes](#storefront-changes) for what this means for shoppers.
+- **Customer role permissions:** permissions that were added to the Customer role by hand. v4 has no Customer role and no replacement for this, so these are lost.
+- **Roles assigned to no channel:** Roles that will have no assignments. Assign them per Channel after migrating if they are still needed.
+- **Roles becoming shared:** Roles assigned to more than one Channel. They become shared Roles, owned by the default Channel. Every grant stays valid, but from v4 an administrator holding their permissions on any Channel can grant them there, and only administrators with `UpdateRole` on the default Channel can edit them. To keep a Role private to each Channel, create one Role per Channel after migrating.
+
+**Done when:** you have acted on the sections marked "action needed", and noted the "Users with role assignments" and "Role assignments to be written" counts to compare after migrating.
+
+## Migrating the data
+
+In v3 a User received each of their Roles' permissions on every Channel the Role was assigned to. [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) writes out that cross product as explicit `(user, role, channel)` rows, with these exceptions:
+
+- **Customer role:** no rows. Customers get `Authenticated` on the Channels they are a member of (the `customer_channels_channel` table), derived at check time.
+- **SuperAdmin role:** one row per holder, on the default Channel. That row grants every permission on every Channel.
+- **Roles assigned to no Channel:** no rows. These Roles granted nothing in v3, so nobody loses access. The Roles themselves stay.
+- **Soft-deleted Users:** no rows. Their login already fails, so no access is lost. In v4 a deleted Administrator or API key holds no assignments.
+
+It gives every Role its owning Channel. A Role assigned to exactly one Channel is owned by that Channel. Every other Role, assigned to several Channels, to none or only to the default Channel, is owned by the default Channel. All existing grants stay valid under these owners.
+
+It also creates the `RoleEditor` Role, without granting it to anyone, and adds the new Role permissions to the SuperAdmin Role. It leaves the v3 tables `user_roles_role` and `role_channels_channel` in place, so v3 servers keep working until the last one is replaced. [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) then drops them and deletes the Customer role. The backup taken before the migration is the way back to v3, and holds the v3 grants should you need them later.
+
+### Calling the helpers
+
+Call both helpers in your v4 migration after the generated statements that create the `role_assignment` table. For a rolling deployment, call `removeLegacyRoleData` from a later migration instead. See [Database migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration) for the whole migration.
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { migrateRoleAssignmentData, removeLegacyRoleData } from '@vendure/core';
+
+export class V4Upgrade1234567890 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        // --- Auto-generated DDL ---
+        // (Create role_assignment table and FK constraints)
+        // ...
+
+        // --- Populate the new table with existing data and verify it ---
+        await migrateRoleAssignmentData(queryRunner);
+        // --- Drop the v3 tables once no v3 server or worker is running ---
+        await removeLegacyRoleData(queryRunner);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // Auto-generated reverse DDL
+    }
+}
+```
+
+When it succeeds, `migrateRoleAssignmentData` logs a line like this:
+
+```text
+Successfully migrated 1240 role assignments to the role_assignment table in 0.8 s. It now holds 1240 role assignments for 310 users. Compare with the counts of previewRoleAssignmentMigration(). The legacy tables user_roles_role and role_channels_channel are kept for v3 servers. Once none is running, call removeLegacyRoleData().
+```
+
+**Done when:** the role assignment and user counts in that line match the preview's "Role assignments to be written" and "Users with role assignments".
+
+With `dbConnectionOptions.synchronize` enabled, there is no migration to call them from. Vendure runs both on the first v4 startup instead, in one transaction. Run the preview first all the same.
+
+Table names use the `entityPrefix` of your connection options.
+
+### Startup check
+
+Vendure v4 refuses to start while the `user_roles_role` table holds rows and `migrateRoleAssignmentData` has not run. Without this check it would start with an empty `role_assignment` table and lock out every Administrator except the configured superadmin.
+
+### Verification
+
+After copying, `migrateRoleAssignmentData` checks that `role_assignment` holds exactly the grants the v3 tables describe under the rules above. If any row is missing or extra, it throws an error that names the affected Users, Roles and Channels, and does not record the copy, so v4 still refuses to start. It records the copy in a `role_assignment_migration` table, which `removeLegacyRoleData` reads and then drops.
+
+### During a rolling deployment
+
+Between `migrateRoleAssignmentData` and `removeLegacyRoleData`, v3 and v4 servers can serve the same shop. v4 works fully, but the two do not see each other's role changes:
+
+- A change made on a v4 server does not reach the v3 servers.
+- A grant revoked on a v3 server is removed from `role_assignment` when `removeLegacyRoleData` runs. Other changes made on a v3 server are not carried over. `removeLegacyRoleData` lists them as "Not applied".
+- The Customer role cannot be assigned on v4. It exists only until `removeLegacyRoleData` deletes it.
+
+Do not change Roles, Administrators, API keys or Channels while both run. v4 logs a warning on startup until `removeLegacyRoleData` has run.
+
+Retiring the v3 servers is also a security step. Every v3 server still applies the v3 rules, for instance Role changes under `UpdateAdministrator`, against the `role` table which v4 reads too. A permission added to a shared Role on a v3 server reaches its v4 holders on every Channel where v4 assigned it, which the v3 check never sees. Keep the rolling window short, and do not give Administrators access to a v3 server once v4 serves traffic.
+
+<Callout type="info">
+A Customer who registers on a v4 server while v3 servers still run gets no v3 Customer role, so v3 servers refuse their customer-scoped requests, such as `activeCustomer`, with a `ForbiddenError`. Requests which reach a v4 server work. Once the last v3 server is replaced, everything works again without the Customer logging in anew. Existing Customers and guest checkouts are not affected. To avoid it, replace the v3 servers at a quiet time, or route each session to one server (sticky sessions).
+</Callout>
+
+<Callout type="info">
+If v3 and v4 servers share a session cache, for example `DefaultSessionCacheStrategy` over Redis or the database, v3 servers also refuse most requests of a SuperAdmin with a `ForbiddenError`, for up to `sessionCacheTTL` each time a v4 server caches their session. v4 caches SuperAdmin access in `globalPermissions`, which v3 does not read. Requests which reach a v4 server work, and other Administrators are not affected. To avoid it, replace the v3 servers at a quiet time, or use sticky sessions.
+</Callout>
+
+## After migrating
+
+### Check the result
+
+1. Log in to the Dashboard as an Administrator who is not a SuperAdmin. They see the Channels they had access to in v3.
+2. Run the `roleAssignments` query in the Admin API as a SuperAdmin. It returns the migrated rows.
+
+**Done when:** both checks pass.
+
+### Clear the session cache
+
+A cached session keeps the permissions it was cached with until it expires after [`sessionCacheTTL`](/reference/typescript-api/auth/auth-options#sessioncachettl) seconds (300 by default). A session cached by v3 grants Customers `Authenticated` on every Channel, and v4 uses it as it is. Without further action, v4 uses sessions cached by v3 for up to `sessionCacheTTL` after the last v3 server stops.
+
+To end that window at once, clear the session cache after the last v3 server has stopped, and before the first v4 server takes traffic if your deployment allows it. Clearing it earlier does not help, because v3 servers keep caching sessions with v3 permissions. If the window is acceptable, wait `sessionCacheTTL` instead.
+
+Sessions themselves stay in the database, so nobody is logged out. Each session is loaded from the database again on its next request.
+
+- **Default `CacheStrategy` (in memory):** nothing to do. Each server has its own cache, and a v4 server starts with an empty one.
+- **`RedisCachePlugin`:** delete the keys matching `vendure-cache:vendure-session-cache:*`, for example with `redis-cli --scan --pattern 'vendure-cache:vendure-session-cache:*' | xargs redis-cli del`.
+- **`DefaultCachePlugin`:** delete the rows of the `cache_item` table whose `key` starts with `vendure-session-cache:`. Their `cache_tag` rows are deleted with them.
+- **Custom [`SessionCacheStrategy`](/reference/typescript-api/auth/session-cache-strategy):** delete the sessions from its store.
+
+The names above use the default `namespace` of the `RedisCachePlugin`, the default `cachePrefix` of the `DefaultSessionCacheStrategy`, and no `entityPrefix`. Adjust them if you changed any of these.
+
+**Done when:** the session cache holds no `vendure-session-cache:` entries, or `sessionCacheTTL` has passed since the last v3 server stopped.
+
+### Grant the RoleEditor Role
+
+In v3 the Administrator permissions covered Role CRUD. In v4 Role CRUD needs `CreateRole`, `UpdateRole` and `DeleteRole`, bundled in the `RoleEditor` Role, which the migration grants to nobody. Until a SuperAdmin grants it, only SuperAdmins can create, edit or delete Roles.
+
+An Administrator can edit or delete a Role only when they hold `UpdateRole` or `DeleteRole` on the Channel that owns it. To add permissions to a Role, they must also hold those permissions on the owning Channel and on every Channel where the Role is assigned. Grant `RoleEditor` on the default Channel to the administrators who maintain the shared Roles, and on a seller's Channel to the administrators who maintain that seller's own Roles.
+
+### Customers holding Roles
+
+A v3 Customer could hold a Role besides the Customer role, for example to unlock features of a B2B plugin. The migration copies those grants. They keep working for plugin operations which check them on the Shop API. They do not reach the Admin API: since GHSA-5fpx-9m35-w745 (v3.8.x) the Admin API refuses a session created on the Shop API.
+
+`assignRolesToUser` and `removeRolesFromUser` accept only Administrators and API keys, so these grants cannot be changed through the Admin API. Change them in code with `RoleAssignmentService.createAssignments()` and `deleteAssignments()`, which perform no authorization and so belong in trusted plugin code only.
+
+## Updating your code
+
+### Running the codemod
+
+The `role-assignments` codemod makes the mechanical edits:
+
+```bash
+npx vendure codemod role-assignments [path]
+```
+
+Without a path it runs in the current directory. It edits:
+
+- GraphQL documents (`.graphql` files and `gql` / `graphql` templates): removes `channels` from Role selections, and `channelIds` from inline `createRole` / `updateRole` inputs.
+- TypeORM and Vendure `relations` options: removes `User.roles` and `Role.channels` paths.
+
+Code whose replacement depends on what it is meant to do, such as reading `user.roles`, is left for you. The codemod marks it with a comment naming the replacement and logs each one:
+
+```ts
+// TODO(vendure-v4): User.roles was removed in v4. Read the Roles of a User with RoleAssignmentService.resolveUserRoles(ctx, userId); grant or revoke them per Channel with RoleAssignmentService.assign() / remove().
+const roles = user.roles;
+```
+
+Search for `TODO(vendure-v4)` and work through each comment using the sections below. Running the codemod again adds no duplicate comments. It does not rewrite `RoleChangeEvent` subscribers (see [Events](#events)). For the full list of code it does not change, see [Finding code to update](/developer-guide/migrating-from-v3/breaking-api-changes#finding-code-to-update).
+
+### What stays the same
+
+You do not need to change:
+
+- `@Allow()` decorators and the permissions they name.
+- Custom permissions defined with `PermissionDefinition`. SuperAdmins hold them automatically, as before.
+- Calls to `RequestContext.userHasPermissions()` and `userHasAllPermissions()` without a `channelId`. They check the active Channel, as before.
+
+### Entities
+
+- `User.roles` and `Role.channels` are removed. Reading either is a compile error, and loading either through `relations` makes TypeORM throw.
+  - To read the Roles of a User, use [`RoleAssignmentService.resolveUserRoles(ctx, userId)`](/reference/typescript-api/services/role-assignment-service#resolveuserroles).
+  - To find where a Role is granted, query the `RoleAssignment` entity, for example `{ where: { roleId } }`.
+  - Queries that join `user_roles_role` or `role_channels_channel` must join `role_assignment` instead.
+- `Role` is no longer `ChannelAware`. `ChannelService.assignToChannels()` and `removeFromChannels()` no longer accept a Role.
+- `Role` has a new `channel` / `channelId`: the owning Channel. `RoleService.create()` sets it to the active Channel. A Role saved directly through a repository without an owner cannot be granted until the next server start, which makes it a shared Role.
+- The new `RoleAssignment` entity has `userId`, `roleId` and `channelId`.
+
+### Services
+
+To grant or revoke a Role on a Channel, use [`RoleAssignmentService.assign()`](/reference/typescript-api/services/role-assignment-service#assign) and [`remove()`](/reference/typescript-api/services/role-assignment-service#remove). Both check that the active user may grant each Role on its Channel.
+
+```diff
+- await this.roleService.assignRoleToChannel(ctx, roleId, channelId);
+- user.roles.push(role);
++ await this.roleAssignmentService.assign(ctx, userId, [{ roleId, channelId }]);
+```
+
+| v3 | v4 |
+|---|---|
+| `RoleService.getChannelsForRole()` | Query the `RoleAssignment` entity by `roleId`. |
+| `RoleService.assignRoleToChannel()` | `RoleAssignmentService.assign()` |
+| `RoleService.getCustomerRole()` | Removed. There is no Customer role. |
+| `RoleService.assertActiveUserCanGrantRoles(ctx, roleIds)` | Takes `(roleId, channelId)` pairs. |
+| `UserService.createApiKeyUser(ctx, identifier, roles)` | `createApiKeyUser(ctx, identifier)`, then `RoleAssignmentService.assign()`. |
+| `ExternalAuthenticationService.createAdministratorAndUser()` | Pass `roleAssignments: [{ role, channelId }]` to name the Channel of each grant. The deprecated `roles` grants a Role owned by a non-default Channel on that Channel, and a shared Role on the active Channel, which the client chooses with the `vendure-token` header. A Role is never granted on a Channel where it may not be assigned. In v3 the Roles applied on their own Channels. |
+
+### Events
+
+`RoleChangeEvent` is removed. It was keyed on the Administrator and carried only Role ids, so it could not express the Channel of a grant. Subscribe to [`RoleAssignmentEvent`](/reference/typescript-api/events/event-types#roleassignmentevent) instead:
+
+```diff
+- this.eventBus.ofType(RoleChangeEvent).subscribe(event => {
+-     const roleIds = event.roleIds;
+-     const administrator = event.admin;
++ this.eventBus.ofType(RoleAssignmentEvent).subscribe(event => {
++     const roleIds = event.assignments.map(a => a.roleId);
++     const userId = event.user.id;
+      // ...
+  });
+```
+
+`RoleAssignmentEvent` has `user`, `assignments` (the `{ roleId, channelId }` pairs the write changed) and `type` (`'assigned'` or `'removed'`). It fires in more cases than `RoleChangeEvent` did:
+
+- It is keyed on the User, so it also covers API key Users. To get the Administrator, look it up by `event.user.id`.
+- It fires for every write that changes a grant: `assignRolesToUser`, `removeRolesFromUser`, Administrator and API key creation and updates, and SSO Administrator creation. `RoleChangeEvent` fired only on `updateAdministrator` with `roleIds`.
+- Deleting an Administrator, an API key or a Channel fires `removed` for the rows it removes.
+- A write that changes nothing fires no event.
+
+`AdministratorEvent` still fires as before, but `event.entity.user.roles` is gone with the relation.
+
+### Customers
+
+- `RoleService.getCustomerRole()` is removed. A Customer holds `Authenticated` on each Channel they are a member of, exported as `CUSTOMER_PERMISSIONS` from `@vendure/core`.
+- `CUSTOMER_ROLE_CODE` and `CUSTOMER_ROLE_DESCRIPTION` in `@vendure/common` are deprecated.
+- If you broadened the Customer role's permissions with a direct repository write, that has no v4 equivalent.
+
+### Sessions and permission checks
+
+- `CachedSessionUser` has a new `globalPermissions` property. It holds the permissions that apply on every Channel, which is how SuperAdmin access is stored. A custom `SessionCacheStrategy` that stores selected fields must include it.
+- `RequestContext.userHasPermissions()` and `userHasAllPermissions()` take an optional `channelId`. The default is the active Channel.
+- Vendure no longer re-syncs the SuperAdmin Role's stored permissions on startup. Check for `Permission.SuperAdmin` instead of reading the Role's permission list.
+- Role assignment changes evict the affected User's cached sessions, so they take effect on the User's next request.
+
+### Admin API
+
+Removed:
+
+- `Role.channels`
+- `channelIds` on `CreateRoleInput` and `UpdateRoleInput`
+
+`createRole` creates the Role on the active Channel, the one in the `vendure-token` header. Send it with the default Channel's token to create a shared Role.
+
+Added:
+
+```graphql
+assignRolesToUser(input: { userId: ID!, assignments: [RoleAssignmentInput!]! }): User!
+removeRolesFromUser(input: { userId: ID!, assignments: [RoleAssignmentInput!]! }): User!
+roleAssignments(options: RoleAssignmentListOptions): RoleAssignmentList!
+extend type User { roleAssignments: [RoleAssignment!]! }
+
+input RoleAssignmentInput { roleId: ID!  channelId: ID! }
+```
+
+- `assignRolesToUser` adds pairs, and `removeRolesFromUser` removes them. Both skip pairs that need no change.
+- The active user must hold every permission of a Role on a Channel to grant or revoke it there. A Role owned by a Channel other than the default one can only be granted on that Channel, even by a SuperAdmin.
+- The active user must have authority over the User: they must be able to grant every assignment the User holds. This is the rule that decides which Administrators they can see, so for any other User both mutations return a not-found error.
+- The active user must hold `UpdateAdministrator` (or `UpdateApiKey` for an API key's User) on the Channel of every pair, not only on the active Channel. The `roleAssignments` input of `createAdministrator` and `createApiKey` needs `CreateAdministrator` or `CreateApiKey` on the Channel of every pair.
+- `roleAssignments` and `User.roleAssignments` return the assignments of the Users the active user has authority over, all of them, and nothing for other Users. So the list shows exactly the assignments the active user may change.
+- `createAdministrator` and `createApiKey` accept a `roleAssignments` input.
+- `Role.channel` returns the owning Channel.
+- An API key cannot be granted the SuperAdmin Role, and can only be granted Roles on the Channels it belongs to: the Channel it was created on and the default Channel. Keys which hold SuperAdmin after migrating keep it until you remove it; replace them with keys holding the permissions they need.
+- An Administrator cannot remove their own last role assignment or delete themselves. Both would lock them out with no way back through the API.
+- An Administrator who holds no role assignments, for example one suspended by removing all their Roles, belongs to no Channel. Only an actor holding `ReadAdministrator` on every Channel can see them, and `UpdateAdministrator` (or `DeleteAdministrator`) on every Channel to change them, assign them Roles or delete them. Otherwise an Administrator of one Channel could take over a suspended Administrator of another.
+- `createRole` and `updateRole` refuse the codes of the system Roles (`__super_admin_role__`, `__role_editor_role__`) and of the v3 Customer role.
+
+#### `roleIds` now applies to the active Channel only
+
+The `roleIds` input on `createAdministrator`, `updateAdministrator`, `createApiKey` and `updateApiKey`, and the `assignRoleToAdministrator` mutation, still work but are deprecated.
+
+**They now apply to the active Channel only**, the one in the `vendure-token` header. In v3 `roleIds` replaced an Administrator's Roles everywhere, and the Channels came from each Role. Single-channel stores see no difference. Multi-channel clients should move to `assignRolesToUser` and `removeRolesFromUser`, which take the id of the Administrator's User (`administrator.user.id`):
+
+```diff
+- updateAdministrator(input: { id: "1", roleIds: ["2", "3"] }) { id }
++ assignRolesToUser(input: {
++     userId: "7"
++     assignments: [{ roleId: "2", channelId: "1" }, { roleId: "3", channelId: "1" }]
++ }) { id }
+```
+
+Other changes to these inputs:
+
+- `CreateAdministratorInput.roleIds` is now optional.
+- Passing both `roleIds` and `roleAssignments` to a create mutation is an error.
+- On update, `roleIds` fails as a whole if it would revoke a pair the active user may not revoke.
+
+#### Administrators and Channels
+
+If you are upgrading from 3.7.3 or later, these already apply:
+
+- An actor can see, update or delete an Administrator only when the actor may grant every Role assignment that Administrator holds. For other Administrators the API returns a not-found error. Only SuperAdmins can see a SuperAdmin.
+- The same rule applies to API keys (GHSA-37xp-mjp8-6f9x, from 3.8.x): `apiKeys`, `apiKey`, `updateApiKey`, `rotateApiKey` and `deleteApiKeys` only see or change a key whose User holds role assignments the actor may grant. `ApiKeyService.create()` refuses to bind a key to an existing User outside the actor's authority.
+- `updateChannel` and `deleteChannel` check `UpdateChannel` / `DeleteChannel` on the target Channel, not the active one.
+
+### Testing
+
+- Delete the cached e2e data in `e2e/__data__` after upgrading. The cached database still has the v3 tables, and v4 refuses to start on it instead of migrating.
+- `SimpleGraphQLClient.asUserWithCredentials()` switches the client to a Channel token when the login returns exactly one Channel. Customers now get only the Channels they are a member of, so this happens more often. Set the token you want again after logging in.
+
+## Storefront changes
+
+Single-channel storefronts are not affected.
+
+### Customers can use only their member Channels
+
+In v3 the Customer role was assigned to every Channel, so a Customer of Channel A could use customer-scoped operations, such as `activeCustomer`, on Channel B. In v4 a Customer holds `Authenticated` only on the Channels they are a member of.
+
+With the default `CustomerChannelAssignmentStrategy`, nothing changes for the shopper: a signed-in Customer becomes a member of a Channel on their first request there, and that first request already succeeds.
+
+With a [`CustomerChannelAssignmentStrategy`](/reference/typescript-api/auth/customer-channel-assignment-strategy) that declines the assignment, customer-scoped operations on that Channel now fail:
+
+- The error is a thrown `ForbiddenError` (GraphQL error code `FORBIDDEN`), not an `ErrorResult`.
+- Public operations on the Channel, such as product queries, still work for the same session.
+- The default Channel is never gated. Every signed-in Customer keeps `Authenticated` there.
+
+In v3, a declining strategy only meant the membership was not saved, and the request went through. If Customers should keep access to such a Channel, add the memberships before migrating. The [preview](#previewing-the-migration) lists, per Channel, how many Customers lose access.
+
+### `CurrentUser.channels` lists member Channels only
+
+The `channels` returned by `login`, `authenticate` and `me` used to list every Channel of the instance for a Customer. In v4 it lists the Channels the Customer is a member of, and grows as they visit new Channels. Storefront code that builds a Channel picker from this list, or treats a single entry as a special case, sees fewer entries.

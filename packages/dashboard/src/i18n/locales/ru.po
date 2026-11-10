@@ -49,8 +49,8 @@ msgid "Text style"
 msgstr "Стиль текста"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
-msgid "The selected permissions will be applied to the these channels."
-msgstr "Выбранные разрешения будут применены к этим каналам."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "Выбранные разрешения будут применены к этим каналам."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
@@ -236,6 +236,10 @@ msgstr "Нет выполнений"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, one {Не удалось удалить {1} складскую локацию: {messages}} few {Не удалось удалить {2} складские локации: {messages}} many {Не удалось удалить {2} складских локаций: {messages}} other {Не удалось удалить {2} складских локаций: {messages}}}"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "При включении цены, введённые в каталоге товаров, будут включать налог для зоны по умолчанию."
@@ -355,8 +359,8 @@ msgid "Orders"
 msgstr "Заказы"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Select roles"
-msgstr "Выбрать роли"
+#~ msgid "Select roles"
+#~ msgstr "Выбрать роли"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
@@ -445,6 +449,7 @@ msgstr "Место хранения успешно создано"
 msgid "No widgets to add"
 msgstr "Нет виджетов для добавления"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -654,6 +659,11 @@ msgstr ""
 msgid "Go to next page"
 msgstr "Перейти на следующую страницу"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Add role"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Remove link"
 msgstr "Удалить ссылку"
@@ -712,6 +722,11 @@ msgstr "Управление глобальными сохранёнными п�
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "Поиск способов оплаты..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -777,9 +792,9 @@ msgstr "Добавление..."
 msgid "Move Collections"
 msgstr "Переместить коллекции"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -854,6 +869,10 @@ msgstr "Запустить тест"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "Налоговая ставка: {taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Пожалуйста, добавьте товары и укажите адрес доставки для запуска теста."
@@ -886,6 +905,11 @@ msgstr "Очистить форматирование"
 msgid "Order draft is ready to be completed"
 msgstr "Черновик заказа готов к завершению"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -896,6 +920,7 @@ msgstr "Метаданные"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "Не удалось задать способ доставки для заказа: {0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "Фильтровать..."
@@ -1111,7 +1136,6 @@ msgstr "Не удалось создать товар"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
-#: src/lib/components/shared/role-code-label.tsx
 msgid "Customer"
 msgstr "Клиент"
 
@@ -1431,6 +1455,11 @@ msgstr "Ресурсы"
 msgid "Email address"
 msgstr "Адрес электронной почты"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1535,6 +1564,10 @@ msgstr "Проверьте свои способы доставки, симул�
 msgid "No items selected"
 msgstr "Элементы не выбраны"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
+
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid ", {0} selected"
@@ -1606,8 +1639,8 @@ msgid "Address deleted"
 msgstr "Адрес удалён"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Only roles assigned to your account are available."
-msgstr "Доступны только роли, назначенные вашей учётной записи."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Доступны только роли, назначенные вашей учётной записи."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1828,6 +1861,7 @@ msgid "Use as the default billing address"
 msgstr "Использовать как адрес выставления счёта по умолчанию"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
@@ -1866,6 +1900,10 @@ msgstr "Загрузка метрик…"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Customer account verified"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Read"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -1944,6 +1982,12 @@ msgstr "Создано"
 msgid "Loading addresses..."
 msgstr "Загрузка адресов..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "Выберите целевую коллекцию для перемещения {0}."
@@ -1989,9 +2033,12 @@ msgid "Insert {row} by {col} table"
 msgstr "Вставить таблицу {row} на {col}"
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
@@ -2033,6 +2080,12 @@ msgstr "Вариант товара успешно создан"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Refund from this method"
 msgstr "Возврат этим способом"
+
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -2077,6 +2130,10 @@ msgstr "Удалить вариант"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "No modifications made"
 msgstr "Изменения не внесены"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2166,6 +2223,7 @@ msgstr "Требуется возврат"
 msgid "Fulfill order"
 msgstr "Выполнить заказ"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/forgot-password-form.tsx
 msgid "Send reset link"
 msgstr "Отправить ссылку для сброса"
@@ -2199,6 +2257,10 @@ msgstr "Не удалось удалить группу опций"
 msgid "Failed to update tax category"
 msgstr "Не удалось обновить налоговую категорию"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "Возврат успешно проведён"
@@ -2209,6 +2271,7 @@ msgid "{0, plural, =1 {Select a target collection to move this collection to.} o
 msgstr "{0, plural, =1 {Выберите целевую коллекцию для перемещения этой коллекции.} one {Выберите целевую коллекцию для перемещения # коллекции.} few {Выберите целевую коллекцию для перемещения # коллекций.} many {Выберите целевую коллекцию для перемещения # коллекций.} other {Выберите целевую коллекцию для перемещения # коллекции.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -2268,6 +2331,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2476,6 +2543,11 @@ msgstr "Выберите язык"
 #: src/lib/components/layout/nav-user.tsx
 msgid "Log out"
 msgstr "Выйти"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -2942,6 +3014,11 @@ msgstr "Заканчивается"
 msgid "Page {0} of {1}"
 msgstr "Страница {0} из {1}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "Ставка"
@@ -3047,6 +3124,11 @@ msgstr "{count, plural, one {Вы уверены, что хотите удали
 msgid "Search countries..."
 msgstr "Поиск стран..."
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Stock on Hand"
@@ -3084,6 +3166,11 @@ msgstr "Назначить существующую"
 msgid "Generate variants"
 msgstr "Сгенерировать варианты"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is null"
@@ -3098,6 +3185,9 @@ msgstr "Это клиенты из группы клиентов <0>{customerGro
 msgid "Manage global views"
 msgstr "Управление глобальными представлениями"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "Канал по умолчанию"
@@ -3206,6 +3296,10 @@ msgstr "Применен вид „{viewName}\""
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} фасетов успешно удалено из канала"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3474,6 +3568,7 @@ msgid "Delete Global View"
 msgstr "Удалить глобальное представление"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -3587,6 +3682,11 @@ msgstr "История заказов"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "Переопределить"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3727,6 +3827,10 @@ msgstr "Возврат"
 msgid "Modify"
 msgstr "Изменить"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "No global languages configured"
 msgstr "Глобальные языки не настроены"
@@ -3791,6 +3895,10 @@ msgstr "Столбцы"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Failed to upload image"
 msgstr "Не удалось загрузить изображение"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "No assets match these filters"
@@ -3877,6 +3985,10 @@ msgstr "Включая налог {taxRate}%"
 msgid "Order metrics"
 msgstr "Метрики заказов"
 
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
+
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
 msgstr "Подтвердите новый пароль"
@@ -3909,7 +4021,6 @@ msgstr "Не удалось выполнить ротацию API key"
 msgid "in"
 msgstr "в"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/lib/components/shared/role-selector.tsx
 msgid "Search roles..."
 msgstr "Поиск ролей..."
@@ -3987,6 +4098,10 @@ msgstr "Продавец успешно создан"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4187,6 +4302,10 @@ msgstr "Виджет «Последние клиенты»"
 msgid "Latest Orders Widget"
 msgstr "Виджет последних заказов"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Loading stock levels…"
 msgstr "Загрузка уровней запасов…"
@@ -4233,12 +4352,13 @@ msgstr "Проверки не найдены"
 msgid "Settle payment"
 msgstr "Провести платёж"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Channels"
 msgstr "Каналы"
@@ -4268,6 +4388,10 @@ msgstr "Новое место хранения"
 msgid "Select item"
 msgstr "Выбрать элемент"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "New product"
@@ -4292,6 +4416,10 @@ msgstr "Добавить действие"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Assign options to existing variant"
 #~ msgstr "Назначить опции существующему варианту"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx
@@ -4321,6 +4449,10 @@ msgstr "Выберите дату и время"
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Owner"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -4534,6 +4666,10 @@ msgstr "Новый канал"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "Название группы опций"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -5291,6 +5427,10 @@ msgstr "Если аккаунт для {submittedEmailAddress} существу�
 msgid "Schedule Pattern"
 msgstr "Шаблон расписания"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show granted only"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment failed"
 msgstr "Платёж не прошёл"
@@ -5448,6 +5588,10 @@ msgstr "например, Красный, Большой, Хлопок"
 msgid "Failed to update profile"
 msgstr "Не удалось обновить профиль"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5520,6 +5664,10 @@ msgstr "Коллекция успешно обновлена"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "Способ оплаты успешно обновлён"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5603,6 +5751,10 @@ msgstr "Расширение запроса недействительно: до
 msgid "Query extension mismatch: "
 msgstr "Несоответствие расширения запроса: "
 
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
 msgstr "публичное"
@@ -5614,6 +5766,12 @@ msgstr "Налоговая категория успешно обновлена"
 #: src/app/routes/_authenticated/_collections/components/collection-bulk-actions.tsx
 msgid "Move"
 msgstr "Переместить"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "All channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Edit or delete existing tags"
@@ -5693,6 +5851,8 @@ msgstr "Неверный товар"
 msgid "Summary of modifications"
 msgstr "Сводка изменений"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Reset password"
 msgstr "Сбросить пароль"
@@ -5834,6 +5994,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Регион / Область"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
@@ -6018,6 +6182,7 @@ msgstr "Сброс пароля"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Password reset requested"
 msgstr "Запрошен сброс пароля"
 
@@ -6113,6 +6278,7 @@ msgstr "Система"
 msgid "Variant name"
 msgstr "Название варианта"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6190,6 +6356,10 @@ msgstr "Просмотр изменений заказа"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Successfully updated product option group"
 #~ msgstr "Группа опций товара успешно обновлена"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -6277,6 +6447,10 @@ msgstr "Поиск коллекций..."
 msgid "Add option group to product"
 msgstr "Добавить группу опций к товару"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Preview of {0}"
@@ -6285,6 +6459,10 @@ msgstr "Предварительный просмотр {0}"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
 msgstr "Продавец успешно обновлён"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Assign role"
+msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 #: src/lib/components/platform-promotion/platform-promo.tsx
@@ -6709,6 +6887,10 @@ msgstr "Видео"
 msgid "less than"
 msgstr "меньше чем"
 
+#: src/lib/components/shared/role-code-label.tsx
+msgid "Role Editor"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Не удалось добавить вариант. Убедитесь, что родительский товар включен."
@@ -6984,6 +7166,10 @@ msgstr "ID возврата"
 msgid "Order custom fields updated"
 msgstr "Пользовательские поля заказа обновлены"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role assigned"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Search entries..."
 msgstr "Поиск записей..."
@@ -7006,6 +7192,7 @@ msgid "Move to the top level"
 msgstr "Переместить на верхний уровень"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "Очистить"
 
@@ -7069,6 +7256,10 @@ msgstr "useWidgetFilters должен использоваться внутри 
 msgid "Edit as form"
 msgstr "Редактировать как форму"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
@@ -7109,6 +7300,10 @@ msgstr "Управление вариантами"
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "There was a problem loading your latest orders."
 msgstr "Возникла проблема при загрузке последних заказов."
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/shared/stock-level-label.tsx
 msgid "Stock allocated"
@@ -7316,6 +7511,10 @@ msgstr "Результатов пока нет"
 msgid "Payment settled"
 msgstr "Платёж проведён"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Available Conditions"
 msgstr "Доступные условия"
@@ -7474,6 +7673,11 @@ msgstr "Опция"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "Order process"
 msgstr "Процесс заказа"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/shared/customer-selector.tsx

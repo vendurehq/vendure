@@ -145,11 +145,6 @@ The sections above cover localizing **your own** extensions. If instead you want
 built-in Dashboard UI into a new language — or improve an existing translation — those catalogs live
 in the Vendure repository and the change is contributed via a pull request.
 
-:::note
-This is for the **React Dashboard** (`@vendure/dashboard`). The legacy Angular Admin UI has its own
-[separate translation workflow](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization).
-:::
-
 The Dashboard's own message catalogs live at `packages/dashboard/src/i18n/locales/{locale}.po`, one
 `.po` file per supported language. The English catalog (`en.po`) is the source and is always complete;
 the others are translations of it.

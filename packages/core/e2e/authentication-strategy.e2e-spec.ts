@@ -163,6 +163,11 @@ describe('AuthenticationStrategy', () => {
             currentUserGuard.assertSuccess(authenticate);
 
             expect(authenticate.identifier).toEqual(userData.email);
+            // The Customer was created in this request's transaction; its membership of the
+            // default Channel must still be listed in the login response.
+            expect(authenticate.channels.map(c => [c.code, c.permissions])).toEqual([
+                ['__default_channel__', ['Authenticated']],
+            ]);
 
             const { customers: after } = await adminClient.query(getCustomersDocument);
             expect(after.totalItems).toBe(2);

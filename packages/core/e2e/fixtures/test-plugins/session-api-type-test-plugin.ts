@@ -10,17 +10,13 @@ import {
     PluginCommonModule,
     RequestContext,
     RequestContextService,
+    RoleService,
     SessionService,
     Transaction,
     UserService,
     VendurePlugin,
 } from '@vendure/core';
 import gql from 'graphql-tag';
-
-/**
- * The SuperAdmin Role in the e2e seed data.
- */
-const SUPER_ADMIN_ROLE_ID = '1';
 
 /**
  * Test fixture only. These routes are unauthenticated and mint privileged sessions and API-Keys from a
@@ -37,6 +33,7 @@ export class SessionApiTypeTestController {
         private apiKeyService: ApiKeyService,
         private authService: AuthService,
         private requestContextService: RequestContextService,
+        private roleService: RoleService,
         private sessionService: SessionService,
         private userService: UserService,
     ) {}
@@ -147,7 +144,7 @@ export class SessionApiTypeTestController {
         const result = await this.apiKeyService.create(
             ctx,
             {
-                roleIds: [SUPER_ADMIN_ROLE_ID],
+                roleIds: [(await this.roleService.getRoleEditorRole(ctx)).id],
                 translations: [{ languageCode: LanguageCode.en, name }],
             },
             ctx.activeUserId,
@@ -180,7 +177,10 @@ export class SessionApiTypeTestController {
  */
 @Resolver()
 export class ShopApiKeyTestResolver {
-    constructor(private apiKeyService: ApiKeyService) {}
+    constructor(
+        private apiKeyService: ApiKeyService,
+        private roleService: RoleService,
+    ) {}
 
     @Transaction()
     @Mutation()
@@ -192,7 +192,7 @@ export class ShopApiKeyTestResolver {
         const result = await this.apiKeyService.create(
             ctx,
             {
-                roleIds: [SUPER_ADMIN_ROLE_ID],
+                roleIds: [(await this.roleService.getRoleEditorRole(ctx)).id],
                 translations: [{ languageCode: LanguageCode.en, name: 'Shop-context key' }],
             },
             ctx.activeUserId,

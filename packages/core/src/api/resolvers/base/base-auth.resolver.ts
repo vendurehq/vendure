@@ -5,7 +5,6 @@ import {
 import {
     AuthenticationResult as AdminAuthenticationResult,
     CurrentUser,
-    CurrentUserChannel,
     MutationAuthenticateArgs,
     MutationLoginArgs,
     Success,
@@ -22,7 +21,7 @@ import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentic
 import { ConfigService } from '../../../config/config.service';
 import { LogLevel } from '../../../config/logger/vendure-logger';
 import { User } from '../../../entity/user/user.entity';
-import { getUserChannelsPermissions } from '../../../service/helpers/utils/get-user-channels-permissions';
+import { RolePermissionResolver } from '../../../service/helpers/role-permission-resolver/role-permission-resolver';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
@@ -39,6 +38,7 @@ export class BaseAuthResolver {
         protected administratorService: AdministratorService,
         protected configService: ConfigService,
         protected apiKeyService: ApiKeyService,
+        protected rolePermissionResolver: RolePermissionResolver,
     ) {}
 
     /**
@@ -102,7 +102,7 @@ export class BaseAuthResolver {
             }
         }
         const user = userId && (await this.userService.getUserById(ctx, userId));
-        return user ? this.publiclyAccessibleUser(user) : null;
+        return user ? await this.publiclyAccessibleUser(ctx, user) : null;
     }
 
     /**
@@ -133,7 +133,7 @@ export class BaseAuthResolver {
             rememberMe: args.rememberMe || false,
             sessionToken: session.token,
         });
-        return this.publiclyAccessibleUser(session.user);
+        return await this.publiclyAccessibleUser(ctx, session.user);
     }
 
     /**
@@ -153,12 +153,18 @@ export class BaseAuthResolver {
 
     /**
      * Exposes a subset of the User properties which we want to expose to the public API.
+     * `channels` lists every Channel the user holds permissions on, so a SuperAdmin's
+     * global permissions are expanded across all Channels here. They are read within the
+     * request's transaction, so that a Customer created by this request (e.g. on a first login
+     * through an external authentication strategy) is listed on its Channels.
      */
-    protected publiclyAccessibleUser(user: User): CurrentUser {
+    protected async publiclyAccessibleUser(ctx: RequestContext, user: User): Promise<CurrentUser> {
+        const resolved = await this.rolePermissionResolver.resolvePermissions(user.id, ctx);
+        const channels = await this.rolePermissionResolver.expandGlobalPermissions(resolved, ctx);
         return {
             id: user.id,
             identifier: user.identifier,
-            channels: getUserChannelsPermissions(user) as CurrentUserChannel[],
+            channels,
         };
     }
 }

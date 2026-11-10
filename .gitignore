@@ -9,7 +9,8 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .env
-lerna-debug.log
+.nx/cache
+.nx/workspace-data
 dist
 e2e/__data__/*
 docs/resources/_gen/*
@@ -389,7 +390,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-__admin-ui/
 
 # Vendure telemetry installation ID
 .vendure/

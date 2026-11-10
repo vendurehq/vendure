@@ -33,6 +33,13 @@
         "i18n:apply": "node ./scripts/translate/i18n-tool.mjs apply",
         "ci": "npm run build"
     },
+    "nx": {
+        "targets": {
+            "e2e": {
+                "parallelism": false
+            }
+        }
+    },
     "publishConfig": {
         "access": "public"
     },
@@ -83,7 +90,7 @@
         "reflect-metadata": "^0.2.2",
         "rxjs": "^7.8.1",
         "semver": "^7.6.0",
-        "typeorm": "^0.3.21"
+        "typeorm": "^0.3.21 || ^1.1.2"
     },
     "devDependencies": {
         "@nestjs/testing": "^12.0.1",

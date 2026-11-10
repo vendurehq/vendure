@@ -108,6 +108,8 @@ describe('ChannelService cache', () => {
             {} as any,
             eventBus as any,
             {} as any,
+            { removeAllAssignmentsOnChannel: vi.fn() } as any,
+            { deleteRolesOwnedByChannel: vi.fn() } as any,
         );
     });
 

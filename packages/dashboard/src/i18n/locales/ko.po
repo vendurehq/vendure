@@ -49,8 +49,8 @@ msgid "Text style"
 msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
-msgid "The selected permissions will be applied to the these channels."
-msgstr "선택한 권한이 이 채널에 적용됩니다."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "선택한 권한이 이 채널에 적용됩니다."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
@@ -236,6 +236,10 @@ msgstr "이행 없음"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, other {{2}개 재고 위치 삭제 실패: {messages}}}"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "이 옵션을 활성화하면 상품 카탈로그에 입력된 가격에 기본 세금 지역의 세금이 포함됩니다."
@@ -351,8 +355,8 @@ msgid "Orders"
 msgstr "주문"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Select roles"
-msgstr "역할 선택"
+#~ msgid "Select roles"
+#~ msgstr "역할 선택"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
@@ -441,6 +445,7 @@ msgstr "재고 위치가 생성되었습니다"
 msgid "No widgets to add"
 msgstr ""
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -642,6 +647,11 @@ msgstr ""
 msgid "Go to next page"
 msgstr "다음 페이지로 이동"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Add role"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Remove link"
 msgstr "링크 제거"
@@ -700,6 +710,11 @@ msgstr "모든 사용자에게 표시되는 전역 저장 뷰 관리"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "결제 방법 검색..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -765,9 +780,9 @@ msgstr "추가 중..."
 msgid "Move Collections"
 msgstr "컬렉션 이동"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -842,6 +857,10 @@ msgstr "테스트 실행"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "세율: {taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "테스트를 실행하려면 상품을 추가하고 배송지 주소를 완성하세요."
@@ -874,6 +893,11 @@ msgstr ""
 msgid "Order draft is ready to be completed"
 msgstr "임시 저장 주문은 완료할 준비가 되었습니다"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -884,6 +908,7 @@ msgstr "메타데이터"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "주문의 배송 방법 설정 실패: {0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "필터..."
@@ -1103,7 +1128,6 @@ msgstr "상품 생성 실패"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
-#: src/lib/components/shared/role-code-label.tsx
 msgid "Customer"
 msgstr "고객"
 
@@ -1423,6 +1447,11 @@ msgstr "에셋"
 msgid "Email address"
 msgstr "이메일 주소"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1527,6 +1556,10 @@ msgstr "새 주문을 시뮬레이션하여 배송 방법을 테스트하세요.
 msgid "No items selected"
 msgstr "선택한 항목 없음"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
+
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid ", {0} selected"
@@ -1598,8 +1631,8 @@ msgid "Address deleted"
 msgstr "주소가 삭제되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Only roles assigned to your account are available."
-msgstr "계정에 할당된 역할만 사용할 수 있습니다."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "계정에 할당된 역할만 사용할 수 있습니다."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1820,6 +1853,7 @@ msgid "Use as the default billing address"
 msgstr "기본 청구지 주소로 사용"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
@@ -1858,6 +1892,10 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Customer account verified"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Read"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -1936,6 +1974,12 @@ msgstr "생성일"
 msgid "Loading addresses..."
 msgstr "주소 로딩 중..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "{0}을(를) 이동할 대상 컬렉션을 선택하세요."
@@ -1981,9 +2025,12 @@ msgid "Insert {row} by {col} table"
 msgstr ""
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
@@ -2025,6 +2072,12 @@ msgstr "상품 변형이 생성되었습니다"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Refund from this method"
 msgstr "이 방법에서 환불"
+
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -2069,6 +2122,10 @@ msgstr "변형 삭제"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "No modifications made"
 msgstr "수정 없음"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2158,6 +2215,7 @@ msgstr "환불 필요"
 msgid "Fulfill order"
 msgstr "주문 이행"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/forgot-password-form.tsx
 msgid "Send reset link"
 msgstr ""
@@ -2191,6 +2249,10 @@ msgstr "옵션 그룹을 제거할 수 없습니다"
 msgid "Failed to update tax category"
 msgstr "세금 카테고리 업데이트 실패"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "환불이 정산되었습니다"
@@ -2201,6 +2263,7 @@ msgid "{0, plural, =1 {Select a target collection to move this collection to.} o
 msgstr "{0, plural, =1 {이 컬렉션을 이동할 대상 컬렉션을 선택하세요.} other {컬렉션 # 개를 이동할 대상 컬렉션을 선택하세요.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -2254,6 +2317,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2462,6 +2529,11 @@ msgstr "언어 선택"
 #: src/lib/components/layout/nav-user.tsx
 msgid "Log out"
 msgstr "로그아웃"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -2928,6 +3000,11 @@ msgstr "종료 일시"
 msgid "Page {0} of {1}"
 msgstr "{1} 페이지 중 {0} 페이지"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "요율"
@@ -3033,6 +3110,11 @@ msgstr "{count, plural, other {이 그룹에서 {count}명의 고객을 제거�
 msgid "Search countries..."
 msgstr ""
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Stock on Hand"
@@ -3070,6 +3152,11 @@ msgstr "기존 항목 할당"
 msgid "Generate variants"
 msgstr ""
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is null"
@@ -3084,6 +3171,9 @@ msgstr "<0>{customerGroupName}</0> 고객 그룹의 고객입니다."
 msgid "Manage global views"
 msgstr "전역 뷰 관리"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "기본 채널"
@@ -3188,6 +3278,10 @@ msgstr "뷰 \"{viewName}\"가 적용되었습니다"
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "채널에서 {successCount}개 속성이 제거되었습니다"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3456,6 +3550,7 @@ msgid "Delete Global View"
 msgstr "전역 뷰 삭제"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -3569,6 +3664,11 @@ msgstr "주문 이력"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "재정의"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3709,6 +3809,10 @@ msgstr "환불"
 msgid "Modify"
 msgstr "수정"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "No global languages configured"
 msgstr "전역 언어가 구성되지 않았습니다"
@@ -3772,6 +3876,10 @@ msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Failed to upload image"
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -3859,6 +3967,10 @@ msgstr "{taxRate}% 세금 포함"
 msgid "Order metrics"
 msgstr "주문 지표"
 
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
+
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
 msgstr ""
@@ -3891,7 +4003,6 @@ msgstr "API 키 교체 실패"
 msgid "in"
 msgstr "포함"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/lib/components/shared/role-selector.tsx
 msgid "Search roles..."
 msgstr "역할 검색..."
@@ -3965,6 +4076,10 @@ msgstr "판매자가 생성되었습니다"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4165,6 +4280,10 @@ msgstr ""
 msgid "Latest Orders Widget"
 msgstr "최근 주문 위젯"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Loading stock levels…"
 msgstr ""
@@ -4211,12 +4330,13 @@ msgstr "확인 도구를 찾을 수 없습니다"
 msgid "Settle payment"
 msgstr "결제 정산"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Channels"
 msgstr "채널"
@@ -4246,6 +4366,10 @@ msgstr "새 재고 위치"
 msgid "Select item"
 msgstr "항목 선택"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "New product"
@@ -4270,6 +4394,10 @@ msgstr "작업 추가"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Assign options to existing variant"
 #~ msgstr "기존 변형에 옵션 할당"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx
@@ -4299,6 +4427,10 @@ msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Owner"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -4505,6 +4637,10 @@ msgstr "새 채널"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "옵션 그룹 이름"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -5254,6 +5390,10 @@ msgstr ""
 msgid "Schedule Pattern"
 msgstr "일정 패턴"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show granted only"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment failed"
 msgstr "결제 실패"
@@ -5403,6 +5543,10 @@ msgstr "예: 레드, 라지, 코튼"
 msgid "Failed to update profile"
 msgstr "프로필 업데이트 실패"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5475,6 +5619,10 @@ msgstr "컬렉션이 업데이트되었습니다"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "결제 방법이 업데이트되었습니다"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5558,6 +5706,10 @@ msgstr "쿼리 확장이 유효하지 않습니다: 최소 하나의 최상위 �
 msgid "Query extension mismatch: "
 msgstr "쿼리 확장 불일치:"
 
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
 msgstr "공개"
@@ -5569,6 +5721,12 @@ msgstr "세금 카테고리가 업데이트되었습니다"
 #: src/app/routes/_authenticated/_collections/components/collection-bulk-actions.tsx
 msgid "Move"
 msgstr "이동"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "All channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Edit or delete existing tags"
@@ -5648,6 +5806,8 @@ msgstr "잘못된 상품"
 msgid "Summary of modifications"
 msgstr "수정 요약"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Reset password"
 msgstr ""
@@ -5789,6 +5949,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "시/도"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/lib/components/login/login-form.tsx
 #~ msgid "Welcome back!"
@@ -5977,6 +6141,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Password reset requested"
 msgstr "비밀번호 재설정이 요청되었습니다"
 
@@ -6060,6 +6225,7 @@ msgstr "시스템"
 msgid "Variant name"
 msgstr "변형 이름"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6129,6 +6295,10 @@ msgstr "저장"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Preview order modifications"
 msgstr "주문 수정사항 미리보기"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -6212,6 +6382,10 @@ msgstr ""
 msgid "Add option group to product"
 msgstr "상품에 옵션 그룹 추가"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Preview of {0}"
@@ -6220,6 +6394,10 @@ msgstr "{0} 미리보기"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
 msgstr "판매자가 업데이트되었습니다"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Assign role"
+msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 #: src/lib/components/platform-promotion/platform-promo.tsx
@@ -6641,6 +6819,10 @@ msgstr "비디오"
 msgid "less than"
 msgstr "보다 작음"
 
+#: src/lib/components/shared/role-code-label.tsx
+msgid "Role Editor"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "변형을 추가할 수 없습니다. 상위 상품이 활성화되어 있는지 확인하세요."
@@ -6908,6 +7090,10 @@ msgstr "환불 ID"
 msgid "Order custom fields updated"
 msgstr "주문 사용자 정의 필드가 업데이트되었습니다"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role assigned"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Search entries..."
 msgstr ""
@@ -6930,6 +7116,7 @@ msgid "Move to the top level"
 msgstr "최상위 레벨로 이동"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "지우기"
 
@@ -6993,6 +7180,10 @@ msgstr "useWidgetFilters는 WidgetFiltersProvider 내에서 사용해야 합니�
 msgid "Edit as form"
 msgstr ""
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
@@ -7032,6 +7223,10 @@ msgstr "변형 관리"
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "There was a problem loading your latest orders."
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
 msgstr ""
 
 #: src/lib/components/shared/stock-level-label.tsx
@@ -7240,6 +7435,10 @@ msgstr "아직 결과 없음"
 msgid "Payment settled"
 msgstr "결제가 완료되었습니다"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Available Conditions"
 msgstr "사용 가능한 조건"
@@ -7394,6 +7593,11 @@ msgstr "옵션"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "Order process"
 msgstr "주문 프로세스"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/shared/customer-selector.tsx

@@ -146,13 +146,6 @@ export const addCommandDef: CliCommandDefinition = {
             interactiveCategory: 'Plugin: Dashboard',
             interactiveFn: addDashboard,
         },
-        {
-            short: '-u',
-            long: '--ui-extensions [plugin]',
-            description:
-                'Add UI extensions to a plugin (deprecated: considering migrating to the new Dashboard)',
-            required: false,
-        },
     ],
     action: async options => {
         return runCliCommand(async () => {

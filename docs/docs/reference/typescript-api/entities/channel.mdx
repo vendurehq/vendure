@@ -109,11 +109,6 @@ class Channel extends VendureEntity {
         onUpdate: 'NO ACTION',
     })
     customers: Customer[];
-    @ManyToMany(type => Role, role => role.channels, {
-        onDelete: 'CASCADE',
-        onUpdate: 'NO ACTION',
-    })
-    roles: Role[];
     @ManyToMany(type => StockLocation, stockLocation => stockLocation.channels, {
         onDelete: 'CASCADE',
         onUpdate: 'NO ACTION',
@@ -261,11 +256,6 @@ out of stock.
 ### customers
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>[]`}   />
-
-
-### roles
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/role#role'>Role</a>[]`}   />
 
 
 ### stockLocations

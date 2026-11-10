@@ -49,8 +49,8 @@ msgid "Text style"
 msgstr "文字樣式"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
-msgid "The selected permissions will be applied to the these channels."
-msgstr "所選權限將套用至這些通路。"
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "所選權限將套用至這些通路。"
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
@@ -236,6 +236,10 @@ msgstr "無履行"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, other {無法刪除 {2} 個庫存地點：{messages}}}"
 
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Shared"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "啟用後，商品目錄中輸入的價格將包含預設稅務區域的稅金。"
@@ -355,8 +359,8 @@ msgid "Orders"
 msgstr "訂單"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Select roles"
-msgstr "選擇角色"
+#~ msgid "Select roles"
+#~ msgstr "選擇角色"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
@@ -445,6 +449,7 @@ msgstr "已成功建立庫存位置"
 msgid "No widgets to add"
 msgstr "沒有可新增的小工具"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -654,6 +659,11 @@ msgstr ""
 msgid "Go to next page"
 msgstr "前往下一頁"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Add role"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Remove link"
 msgstr "移除連結"
@@ -712,6 +722,11 @@ msgstr "管理對所有使用者可見的全域儲存檢視"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "搜尋付款方式..."
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping address unset for order"
@@ -777,9 +792,9 @@ msgstr "正在新增..."
 msgid "Move Collections"
 msgstr "移動集合"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
 #: src/app/routes/_authenticated/_roles/roles.tsx
@@ -854,6 +869,10 @@ msgstr "執行測試"
 #~ msgid "Tax rate: {taxRate}%"
 #~ msgstr "稅率：{taxRate}%"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "請新增商品並填寫配送地址以執行測試。"
@@ -886,6 +905,11 @@ msgstr "清除格式"
 msgid "Order draft is ready to be completed"
 msgstr "訂單草稿已準備就緒可以完成"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "Show fewer"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata"
@@ -896,6 +920,7 @@ msgstr "中繼資料"
 msgid "Failed to set shipping method for order: {0}"
 msgstr "設定訂單配送方式失敗：{0}"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Filter..."
 msgstr "篩選..."
@@ -1111,7 +1136,6 @@ msgstr "建立商品失敗"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
-#: src/lib/components/shared/role-code-label.tsx
 msgid "Customer"
 msgstr "客戶"
 
@@ -1431,6 +1455,11 @@ msgstr "資源"
 msgid "Email address"
 msgstr "電子郵件地址"
 
+#. placeholder {0}: items.length
+#: src/lib/components/shared/channel-selector.tsx
+msgid "Select all ({0})"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
@@ -1535,6 +1564,10 @@ msgstr "透過模擬新訂單來測試您的配送方式。"
 msgid "No items selected"
 msgstr "未選取項目"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "1 channel"
+msgstr ""
+
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid ", {0} selected"
@@ -1606,8 +1639,8 @@ msgid "Address deleted"
 msgstr "地址已刪除"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
-msgid "Only roles assigned to your account are available."
-msgstr "僅您帳戶已指派的角色可用。"
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "僅您帳戶已指派的角色可用。"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1828,6 +1861,7 @@ msgid "Use as the default billing address"
 msgstr "用作預設帳單地址"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
@@ -1866,6 +1900,10 @@ msgstr "正在載入指標…"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Customer account verified"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Read"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -1944,6 +1982,12 @@ msgstr "已建立"
 msgid "Loading addresses..."
 msgstr "正在載入地址..."
 
+#. placeholder {0}: roleLabel(group.role)
+#. placeholder {1}: channelLabel(channel.code)
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} on {1}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #~ msgid "Select a target collection to move {0} to."
 #~ msgstr "選取要將 {0} 移動到的目標集合。"
@@ -1989,9 +2033,12 @@ msgid "Insert {row} by {col} table"
 msgstr "插入 {row}×{col} 表格"
 
 #: src/app/common/duplicate-entity-dialog.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
@@ -2033,6 +2080,12 @@ msgstr "已成功建立商品變體"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Refund from this method"
 msgstr "從此方式退款"
+
+#. placeholder {0}: roleLabel(roleToRemove.role)
+#. placeholder {1}: roleToRemove.channels.length
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove {0} from {1} channels?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -2077,6 +2130,10 @@ msgstr "刪除變體"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "No modifications made"
 msgstr "未進行修改"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
@@ -2166,6 +2223,7 @@ msgstr "需要退款"
 msgid "Fulfill order"
 msgstr "履行訂單"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/forgot-password-form.tsx
 msgid "Send reset link"
 msgstr "傳送重設連結"
@@ -2199,6 +2257,10 @@ msgstr "無法移除選項群組"
 msgid "Failed to update tax category"
 msgstr "更新稅務類別失敗"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role is owned by the channel <0/> and can only be assigned there."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "退款已成功完成"
@@ -2209,6 +2271,7 @@ msgid "{0, plural, =1 {Select a target collection to move this collection to.} o
 msgstr "{0, plural, =1 {選取要將此集合移動到的目標集合。} other {選取要將 # 個集合移動到的目標集合。}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -2268,6 +2331,10 @@ msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "Or add it to this project:"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Filter role assignments"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2476,6 +2543,11 @@ msgstr "選取一種語言"
 #: src/lib/components/layout/nav-user.tsx
 msgid "Log out"
 msgstr "登出"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -2942,6 +3014,11 @@ msgstr "結束於"
 msgid "Page {0} of {1}"
 msgstr "第 {0} 頁，共 {1} 頁"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Remove from all channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
 msgstr "費率"
@@ -3047,6 +3124,11 @@ msgstr "{count, plural, other {您確定要從此群組中移除{count}位客戶
 msgid "Search countries..."
 msgstr "搜尋國家..."
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Stock on Hand"
@@ -3084,6 +3166,11 @@ msgstr "指派現有"
 msgid "Generate variants"
 msgstr "產生變體"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is null"
@@ -3098,6 +3185,9 @@ msgstr "這些是 <0>{customerGroupName}</0> 客戶群組中的客戶。"
 msgid "Manage global views"
 msgstr "管理全域檢視"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "預設通路"
@@ -3206,6 +3296,10 @@ msgstr "已套用檢視「{viewName}」"
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "已成功從通路中移除 {successCount} 個屬性"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
@@ -3474,6 +3568,7 @@ msgid "Delete Global View"
 msgstr "刪除全域檢視"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -3587,6 +3682,11 @@ msgstr "訂單歷程"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
 msgstr "覆蓋"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/lib/components/shared/multi-select.tsx
+msgid "+{hiddenCount} more"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Transaction ID is required"
@@ -3727,6 +3827,10 @@ msgstr "退款"
 msgid "Modify"
 msgstr "修改"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "No global languages configured"
 msgstr "未設定全域語言"
@@ -3791,6 +3895,10 @@ msgstr "欄"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Failed to upload image"
 msgstr "圖片上傳失敗"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be owned by the channel <0/> and can only be assigned there. Create it on the default channel to share it across channels."
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "No assets match these filters"
@@ -3877,6 +3985,10 @@ msgstr "含 {taxRate}% 稅"
 msgid "Order metrics"
 msgstr "訂單指標"
 
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr ""
+
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Confirm new password"
 msgstr "確認新密碼"
@@ -3909,7 +4021,6 @@ msgstr "輪換 API Key 失敗"
 msgid "in"
 msgstr "在"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/lib/components/shared/role-selector.tsx
 msgid "Search roles..."
 msgstr "搜尋角色..."
@@ -3987,6 +4098,10 @@ msgstr "已成功建立賣家"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Failed to update profile picture"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Only roles you hold are shown."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4187,6 +4302,10 @@ msgstr "最新客戶小工具"
 msgid "Latest Orders Widget"
 msgstr "最新訂單小工具"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Loading stock levels…"
 msgstr "正在載入庫存水準…"
@@ -4233,12 +4352,13 @@ msgstr "找不到檢查器"
 msgid "Settle payment"
 msgstr "完成付款"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Channels"
 msgstr "通路"
@@ -4268,6 +4388,10 @@ msgstr "新增庫存位置"
 msgid "Select item"
 msgstr "選取項目"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "{shownCount} of {totalCount} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "New product"
@@ -4292,6 +4416,10 @@ msgstr "新增動作"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Assign options to existing variant"
 #~ msgstr "將選項指派給現有變體"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx
@@ -4321,6 +4449,10 @@ msgstr "選擇日期與時間"
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
+msgstr ""
+
+#: src/app/routes/_authenticated/_roles/roles.tsx
+msgid "Owner"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -4534,6 +4666,10 @@ msgstr "新增通路"
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Group Name"
 msgstr "選項群組名稱"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
 
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
@@ -5291,6 +5427,10 @@ msgstr "如果 {submittedEmailAddress} 對應的帳戶存在，您將收到一�
 msgid "Schedule Pattern"
 msgstr "排程模式"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show granted only"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment failed"
 msgstr "付款失敗"
@@ -5448,6 +5588,10 @@ msgstr "例如：紅色、大號、棉質"
 msgid "Failed to update profile"
 msgstr "更新個人資料失敗"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Show permissions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Italic"
@@ -5520,6 +5664,10 @@ msgstr "已成功更新集合"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Successfully updated payment method"
 msgstr "已成功更新付款方式"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+msgid "Changes save immediately."
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View deleted successfully"
@@ -5603,6 +5751,10 @@ msgstr "查詢擴充無效：必須至少有一個頂層欄位"
 msgid "Query extension mismatch: "
 msgstr "查詢擴充不符："
 
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "public"
 msgstr "公開"
@@ -5614,6 +5766,12 @@ msgstr "已成功更新稅務類別"
 #: src/app/routes/_authenticated/_collections/components/collection-bulk-actions.tsx
 msgid "Move"
 msgstr "移動"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "All channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Edit or delete existing tags"
@@ -5693,6 +5851,8 @@ msgstr "發錯商品"
 msgid "Summary of modifications"
 msgstr "修改摘要"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
 msgid "Reset password"
 msgstr "重設密碼"
@@ -5834,6 +5994,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "州/省"
+
+#: src/lib/components/layout/channel-switcher.tsx
+msgid "Filter channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
@@ -6018,6 +6182,7 @@ msgstr "重設您的密碼"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Password reset requested"
 msgstr "已要求重設密碼"
 
@@ -6113,6 +6278,7 @@ msgstr "系統"
 msgid "Variant name"
 msgstr "變體名稱"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
@@ -6190,6 +6356,10 @@ msgstr "預覽訂單修改"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Successfully updated product option group"
 #~ msgstr "成功更新商品選項群組"
+
+#: src/app/routes/_authenticated/_administrators/components/roles-page-block.tsx
+#~ msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+#~ msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts
@@ -6277,6 +6447,10 @@ msgstr "搜尋集合..."
 msgid "Add option group to product"
 msgstr "將選項群組新增至商品"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Preview of {0}"
@@ -6285,6 +6459,10 @@ msgstr "{0} 的預覽"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
 msgstr "已成功更新賣家"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Assign role"
+msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 #: src/lib/components/platform-promotion/platform-promo.tsx
@@ -6709,6 +6887,10 @@ msgstr "影片"
 msgid "less than"
 msgstr "小於"
 
+#: src/lib/components/shared/role-code-label.tsx
+msgid "Role Editor"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "無法新增變體。請確保父產品已啟用。"
@@ -6984,6 +7166,10 @@ msgstr "退款 ID"
 msgid "Order custom fields updated"
 msgstr "訂單自訂欄位已更新"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "Role assigned"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Search entries..."
 msgstr "搜尋條目..."
@@ -7006,6 +7192,7 @@ msgid "Move to the top level"
 msgstr "移動到頂層"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
+#: src/lib/components/shared/channel-selector.tsx
 msgid "Clear"
 msgstr "清除"
 
@@ -7069,6 +7256,10 @@ msgstr "useWidgetFilters 必須在 WidgetFiltersProvider 中使用"
 msgid "Edit as form"
 msgstr "以表單形式編輯"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
@@ -7109,6 +7300,10 @@ msgstr "管理變體"
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "There was a problem loading your latest orders."
 msgstr "載入最新訂單時發生問題。"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This role will be shared: it is created on the default channel, so it can be assigned on every channel."
+msgstr ""
 
 #: src/lib/components/shared/stock-level-label.tsx
 msgid "Stock allocated"
@@ -7316,6 +7511,10 @@ msgstr "尚無結果"
 msgid "Payment settled"
 msgstr "付款已完成"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx
+msgid "This is a shared role, owned by the default channel. It can be assigned on every channel."
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Available Conditions"
 msgstr "可用條件"
@@ -7474,6 +7673,11 @@ msgstr "選項"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "Order process"
 msgstr "訂單流程"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/shared/customer-selector.tsx

@@ -4,23 +4,24 @@ import { ShieldCheck } from 'lucide-react';
 /**
  * Demonstrates the function form of `navSections`.
  *
- * This moves the "Administrators" and "Roles" nav items from the
- * "Settings" section into a new "Access & Identity" section.
+ * This moves the "Administrators" and "Roles" nav items (from the "Settings"
+ * section) and "API Keys" (from the "System" section) into a new
+ * "Access & Identity" section.
  */
 defineDashboardExtension({
     navSections: (config: NavMenuConfig): NavMenuConfig => {
-        const idsToMove = ['administrators', 'roles'];
+        const idsToMove = ['administrators', 'roles', 'api-keys'];
 
-        // Find the settings section and extract the items we want to move
-        const settings = config.sections.find(s => s.id === 'settings');
-        const settingsItems = settings && 'items' in settings ? settings.items ?? [] : [];
-        const movedItems = settingsItems.filter(i => idsToMove.includes(i.id));
+        // Extract the items we want to move from whichever sections hold them
+        const movedItems = config.sections.flatMap(section =>
+            'items' in section ? (section.items ?? []).filter(i => idsToMove.includes(i.id)) : [],
+        );
 
         return {
             sections: [
-                // Keep all existing sections, but remove the moved items from Settings
+                // Keep all existing sections, but remove the moved items
                 ...config.sections.map(section =>
-                    section.id === 'settings' && 'items' in section
+                    'items' in section
                         ? { ...section, items: section.items?.filter(i => !idsToMove.includes(i.id)) }
                         : section,
                 ),

@@ -190,7 +190,6 @@ describe('Serialized RequestContext in job data', () => {
         // Admin B holds only ReadSettings, which is all the `jobs` query requires.
         const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
-                channelIds: ['T_1'],
                 code: 'read-settings-only',
                 description: 'Read settings only',
                 permissions: [Permission.ReadSettings],
@@ -202,7 +201,7 @@ describe('Serialized RequestContext in job data', () => {
                 lastName: 'Settings',
                 emailAddress: restrictedAdminIdentifier,
                 password: restrictedAdminPassword,
-                roleIds: [createRole.id],
+                roleAssignments: ['T_1'].map(channelId => ({ roleId: createRole.id, channelId })),
             },
         });
 
@@ -453,7 +452,6 @@ describe('Serialized RequestContext in job data', () => {
         it('cancelJob does not return secrets to a DeleteSettings administrator', async () => {
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
-                    channelIds: ['T_1'],
                     code: 'delete-settings-only',
                     description: 'Delete settings only',
                     permissions: [Permission.DeleteSettings],
@@ -465,7 +463,7 @@ describe('Serialized RequestContext in job data', () => {
                     lastName: 'Settings',
                     emailAddress: 'delete-settings@test.com',
                     password: 'test',
-                    roleIds: [createRole.id],
+                    roleAssignments: ['T_1'].map(channelId => ({ roleId: createRole.id, channelId })),
                 },
             });
             const { port, adminApiPath } = activeConfig.apiOptions;

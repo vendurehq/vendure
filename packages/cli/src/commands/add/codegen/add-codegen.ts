@@ -58,12 +58,6 @@ export async function addCodegen(options?: AddCodegenOptions): Promise<CliComman
             isDevDependency: true,
         },
     ];
-    if (plugins.some(p => p.hasUiExtensions())) {
-        packagesToInstall.push({
-            pkg: '@graphql-codegen/client-preset',
-            isDevDependency: true,
-        });
-    }
     const packageManager = packageJson.determinePackageManager();
     const packageJsonFile = packageJson.locatePackageJsonWithVendureDependency();
     log.info(`Detected package manager: ${packageManager}`);
@@ -100,21 +94,6 @@ export async function addCodegen(options?: AddCodegenOptions): Promise<CliComman
             kind: StructureKind.PropertyAssignment,
             initializer: `{ plugins: ['typescript'] }`,
         });
-
-        if (pluginRef.hasUiExtensions()) {
-            const uiExtensionsPath = `${path.dirname(relativePluginPath)}/ui`;
-            codegenFile.addEntryToGeneratesObject({
-                name: `'${uiExtensionsPath}/gql/'`,
-                kind: StructureKind.PropertyAssignment,
-                initializer: `{
-                        preset: 'client',
-                        documents: '${uiExtensionsPath}/**/*.ts',
-                        presetConfig: {
-                            fragmentMasking: false,
-                        },
-                     }`,
-            });
-        }
     }
 
     packageJson.addScriptToRootPackageJson('codegen', 'graphql-codegen --config codegen.ts');

@@ -20,7 +20,7 @@ In order to make the best use of both your time and that of the Vendure maintain
   - [Release Process](#release-process)
 - [Specific Contributions](#specific-contributions)
   - [Contributing to the documentation](#contributing-to-the-documentation)
-  - [Contributing to the Dashboard / Admin UI translations](#contributing-to-the-dashboard--admin-ui-translations)
+  - [Contributing to the Dashboard translations](#contributing-to-the-dashboard-translations)
 - [Help & Support](#help--support)
   - [Where to get help](#where-to-get-help)
   - [Contributor License Agreement](#contributor-license-agreement)
@@ -95,7 +95,7 @@ git push origin master
 
 ### Prerequisites
 
-- Node.js `^20.19.0 || >=22.12.0`
+- Node.js `>=22.12.0`
 - [Bun](https://bun.sh/) — the canonical package manager for this repo. Install via `curl -fsSL https://bun.sh/install | bash` or one of the [other supported methods](https://bun.sh/docs/installation).
 
 We use Bun (not npm) for installing dependencies because it provides two security features that defend against supply-chain attacks: a configurable minimum-release-age check on dependencies and an explicit `trustedDependencies` allow-list for packages whose lifecycle scripts we permit to run. See [#4674](https://github.com/vendurehq/vendure/issues/4674) for the rationale.
@@ -117,7 +117,7 @@ The root directory has a `package.json` which contains build-related dependencie
 
 `bun run build`
 
-Packages must be built (i.e. TypeScript compiled, Admin UI app built, certain assets copied etc.) before being used.
+Packages must be built (i.e. TypeScript compiled, Dashboard built, certain assets copied etc.) before being used.
 
 Note that this can take a few minutes.
 
@@ -182,36 +182,16 @@ bun run dev
 
 This will start the development server, and you should see output in your terminal indicating that the **Vendure development server** has successfully started.
 
-The output lists the available endpoints for the Shop API, Admin API, GraphiQL interfaces, asset server, development mailbox, and the Admin UI, along with their respective URLs.
+The output lists the available endpoints for the Shop API, Admin API, GraphiQL interfaces, asset server, development mailbox, and the Dashboard, along with their respective URLs.
 
 You can now access these services in your browser for development and testing.
 
-Default Admin UI credentials:
+Default Dashboard credentials:
 
 Username: `superadmin`
 Password: `superadmin`
 
 ## Development Workflow
-
-### Testing Admin UI changes locally
-
-If you are making changes to the Admin UI, you need to start the Admin UI independent from the dev-server:
-
-> [!NOTE]
-> You don't need this step when you just use the Admin UI just
-> to test backend changes since the `dev-server` package ships with a default admin-ui
-
-```
-cd packages/admin-ui
-bun run dev
-```
-
-This will run a separate process of admin-ui on "http://localhost:4200", you can login with the default credentials:
-
-Username: `superadmin`
-Password: `superadmin`
-
-This will auto restart when you make changes to the Admin UI.
 
 ### Testing your changes locally
 
@@ -372,12 +352,11 @@ start-case, pascal-case and upper-case subjects.
 
 `scope` indicates the package affected by the commit:
 
-* admin-ui
-* admin-ui-plugin
 * asset-server-plugin
 * common
 * core
 * create
+* dashboard
 * email-plugin
 * etc.
 
@@ -414,14 +393,12 @@ checked against the same format when a pull request is opened or its title is ed
 
 ### Code Generation
 
-[graphql-code-generator](https://github.com/dotansimha/graphql-code-generator) is used to automatically create TypeScript interfaces for all GraphQL server operations and Admin UI queries. These generated interfaces are used in both the Admin UI and the server.
+[graphql-code-generator](https://github.com/dotansimha/graphql-code-generator) is used to automatically create TypeScript interfaces for all GraphQL server operations. These generated interfaces are used by the server and in e2e tests.
 
 Running `bun run codegen` will generate the following files:
 
 - [`packages/common/src/generated-types.ts`](./packages/common/src/generated-types.ts): Types, Inputs & resolver args relating to the Admin API
 - [`packages/common/src/generated-shop-types.ts`](./packages/common/src/generated-shop-types.ts): Types, Inputs & resolver args relating to the Shop API
-- [`packages/admin-ui/src/lib/core/src/common/generated-types.ts`](./packages/admin-ui/src/lib/core/src/common/generated-types.ts): Types & operations relating to the admin-ui queries & mutations.
-- [`packages/admin-ui/src/lib/core/src/common/introspection-result.ts`](./packages/admin-ui/src/lib/core/src/common/introspection-result.ts): Used by the Apollo Client [`IntrospectionFragmentMatcher`](https://www.apollographql.com/docs/react/data/fragments/#fragments-on-unions-and-interfaces) to correctly handle fragments in the Admin UI.
 - Also generates types used in e2e tests in those packages which feature e2e tests (core, asset-server-plugin etc).
 
 ### Testing
@@ -444,13 +421,13 @@ When **debugging e2e tests**, set an environment variable `E2E_DEBUG=true` which
 
 ### Release Process
 
-All packages in this repo are released at every version change (using [Lerna's fixed mode](https://lerna.js.org/docs/features/version-and-publish#fixedlocked-mode-default)). This simplifies both the development (tracking multiple disparate versions is tough) and also the developer experience for users of the framework (it is simple to see that all packages are up-to-date and compatible).
+All packages in this repo are released at every version change (using a fixed release group of [Nx Release](https://nx.dev/docs/guides/nx-release), configured in `nx.json`). This simplifies both the development (tracking multiple disparate versions is tough) and also the developer experience for users of the framework (it is simple to see that all packages are up-to-date and compatible).
 
 To make a release:
 
 #### 1. `bun run publish-release`
 
-It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
+It will run `nx release version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
 Next it will refresh the Platform catalog snapshot (`packages/common/src/platform-promotion-snapshot.ts`) from `https://api.vendure.io/v1/catalog`. The Dashboard build and the Core startup banner use this snapshot. Then it will build all packages to ensure the distributed files are up to date. Do not set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH` for a release. Check the output for `Platform catalog snapshot updated`. If it says `Platform catalog snapshot not changed`, the release keeps the old snapshot. After the command, `git show --stat HEAD` lists the snapshot file if the catalog data changed.
 
@@ -458,13 +435,13 @@ Finally, the command will create changelog entries for this release and create a
 
 #### 2. `git push origin master --follow-tags`
 
-Push the version commit and the new tag to `master`. (Lerna is run with `--no-push` so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Admin UI.)
+Push the version commit and the new tag to `master`. (The release script does not push, so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Dashboard.)
 
 Publishing itself happens in CI, not locally: it is triggered by creating the GitHub release in the next step, using OIDC trusted publishing (no npm token or local OTP is involved).
 
 #### 3. Create a GitHub release
 
-Create a GitHub release based on the tag generated by Lerna. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
+Create a GitHub release based on the tag generated by the release script. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
 
 > [!IMPORTANT]
 > Staged packages are **not yet live** on npm. They sit in npm's [staging area](https://www.npmjs.com/settings/~/staged-packages) awaiting manual approval. This is a deliberate supply-chain safeguard: a release only goes public after a maintainer approves it with 2FA, so a compromised CI run cannot publish to the `latest` tag on its own. See [#4772](https://github.com/vendurehq/vendure/issues/4772) for the rationale.
@@ -512,12 +489,9 @@ docs/docs
 > [!NOTE]
 > Files in the [reference](https://docs.vendure.io/reference/) directory are auto-generated. To edit reference documentation, modify the [JSDoc](https://jsdoc.app/about-getting-started) comments in the source code and run `bun run docs:build` from the project root directory.
 
-### Contributing to the Dashboard / Admin UI translations
+### Contributing to the Dashboard translations
 
-If you wish to contribute translations into another language (or improve an existing set of translations):
-
-- **React Dashboard** (`@vendure/dashboard`) — see [Contributing a translation of the Dashboard itself](https://docs.vendure.io/guides/extending-the-dashboard/localization/#contributing-a-translation-of-the-dashboard-itself) in the Localization guide.
-- **Legacy Angular Admin UI** (`@vendure/admin-ui`) — see the [Localization guide](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization) in the admin-ui package.
+If you wish to contribute translations into another language (or improve an existing set of translations), see [Contributing a translation of the Dashboard itself](https://docs.vendure.io/guides/extending-the-dashboard/localization/#contributing-a-translation-of-the-dashboard-itself) in the Localization guide.
 
 ## Help & Support
 

@@ -13,8 +13,6 @@ import { CheckResult } from '../types';
  * or from a published registry to avoid manual maintenance.
  */
 const VENDURE_PACKAGES = [
-    '@vendure/admin-ui',
-    '@vendure/admin-ui-plugin',
     '@vendure/asset-server-plugin',
     '@vendure/cli',
     '@vendure/common',
@@ -28,8 +26,17 @@ const VENDURE_PACKAGES = [
     '@vendure/sentry-plugin',
     '@vendure/telemetry-plugin',
     '@vendure/testing',
-    '@vendure/ui-devkit',
 ];
+
+/**
+ * Packages that existed in Vendure v3 but were removed in v4. They are no longer
+ * published, so if one is still installed it is left over from an older version.
+ */
+const REMOVED_VENDURE_PACKAGES: Record<string, string> = {
+    '@vendure/admin-ui': 'migrate to @vendure/dashboard',
+    '@vendure/admin-ui-plugin': 'replace AdminUiPlugin with DashboardPlugin from @vendure/dashboard',
+    '@vendure/ui-devkit': 'migrate Angular UI extensions to Dashboard extensions',
+};
 
 /**
  * Dependencies that must not be duplicated in node_modules.
@@ -62,8 +69,9 @@ const DB_DRIVER_MAP: Record<string, string> = {
  * 1. Detects mismatched @vendure/* package versions (via require.resolve)
  * 2. Detects duplicate singleton dependencies (via node_modules tree scan)
  * 3. Verifies the configured DB driver is installed (via require.resolve)
+ * 4. Warns about installed packages that were removed in Vendure v4 (via require.resolve)
  *
- * Version alignment and DB driver checks use Node's module resolution
+ * Version alignment, removed-package and DB driver checks use Node's module resolution
  * (require.resolve) so hoisted packages in monorepo workspaces are found
  * correctly. Duplicate detection scans the node_modules tree from cwd.
  */
@@ -147,6 +155,16 @@ export async function runDependencyCheck(): Promise<CheckResult> {
             worstStatus = 'warn';
         }
         details.push(dbDriverResult.message);
+    }
+
+    // 4. Warn about leftover packages that no longer exist in Vendure v4
+    const localRequire = createRequire(path.join(cwd, 'package.json'));
+    for (const [pkg, advice] of Object.entries(REMOVED_VENDURE_PACKAGES)) {
+        const version = resolvePackageVersion(localRequire, pkg);
+        if (version) {
+            if (worstStatus === 'pass') worstStatus = 'warn';
+            details.push(`${pkg}@${version} is not supported in Vendure v4: ${advice}`);
+        }
     }
 
     const message =

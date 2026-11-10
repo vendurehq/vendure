@@ -4,7 +4,7 @@ A CLI tool for rapidly scaffolding a new Vendure server application. Heavily ins
 
 ## Usage
 
-Vendure Create requires [Node.js](https://nodejs.org/en/) `^20.19.0 || >=22.12.0` to be installed.
+Vendure Create requires [Node.js](https://nodejs.org/en/) `>=22.12.0` to be installed.
 
 ```sh
 npx @vendure/create my-app

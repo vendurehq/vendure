@@ -1,6 +1,8 @@
+import { SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
 import {
     buildDashboardUserContext,
     DashboardUserContext,
+    DashboardUserRole,
 } from '@/vdb/framework/user-context/dashboard-user-context.js';
 import { useAdminCustomFields } from '@/vdb/hooks/use-admin-custom-fields.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
@@ -64,19 +66,40 @@ export function useDashboardUserContext(options?: DashboardUserContextOptions): 
         [channels, activeChannel?.id],
     );
 
+    // Roles are granted per Channel through RoleAssignments, so a Role's Channels are the
+    // Channels of the administrator's assignments of it. The SuperAdmin Role is held on every
+    // Channel, although it is stored as a single default-channel assignment.
+    const administrator = useMemo(() => {
+        if (!user) {
+            return undefined;
+        }
+        const roles = new Map<string, DashboardUserRole>();
+        for (const { channelId, role } of user.user.roleAssignments) {
+            const entry = roles.get(role.id) ?? { ...role, channels: [] };
+            entry.channels.push({ id: channelId });
+            roles.set(role.id, entry);
+        }
+        for (const role of roles.values()) {
+            if (role.code === SUPER_ADMIN_ROLE_CODE) {
+                role.channels = (channels ?? []).map(c => ({ id: c.id }));
+            }
+        }
+        return { ...user, user: { ...user.user, roles: [...roles.values()] } };
+    }, [user, channels]);
+
     // Memoize on leaf values, not on the hook return objects. AuthProvider returns a
     // fresh object literal on every render, so depending on it directly would produce
     // a new context every render and re-run every visibility rule.
     const ctx = useMemo(
         () =>
             buildDashboardUserContext({
-                administrator: user ?? undefined,
+                administrator,
                 channels: channels ?? undefined,
                 activeChannel: activeChannelWithPermissions,
                 customFields,
                 hasPermissions,
             }),
-        [user, channels, activeChannelWithPermissions, customFields, hasPermissions],
+        [administrator, channels, activeChannelWithPermissions, customFields, hasPermissions],
     );
 
     return { ctx, ready };

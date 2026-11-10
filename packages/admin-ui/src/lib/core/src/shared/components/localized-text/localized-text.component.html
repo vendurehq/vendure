@@ -1,2 +1,0 @@
-<ng-container *ngIf="isString(text)">{{ text | translate }}</ng-container>
-<ng-container *ngIf="!isString(text)">{{ text | customFieldLabel : (uiLanguage$ | async) }}</ng-container>

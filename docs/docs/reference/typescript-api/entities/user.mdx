@@ -2,7 +2,7 @@
 title: "User"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/user/user.entity.ts" sourceLine="21" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/user/user.entity.ts" sourceLine="20" packageName="@vendure/core" />
 
 A User represents any authenticated user of the Vendure API. This includes both
 [Administrator](/reference/typescript-api/entities/administrator#administrator)s as well as registered [Customer](/reference/typescript-api/entities/customer#customer)s.
@@ -18,9 +18,6 @@ class User extends VendureEntity implements HasCustomFields, SoftDeletable {
     authenticationMethods: AuthenticationMethod[];
     @Column({ default: false })
     verified: boolean;
-    @ManyToMany(type => Role)
-    @JoinTable()
-    roles: Role[];
     @Column({ type: Date, nullable: true })
     lastLogin: Date | null;
     @Column(type => CustomUserFields)
@@ -59,11 +56,6 @@ class User extends VendureEntity implements HasCustomFields, SoftDeletable {
 ### verified
 
 <MemberInfo kind="property" type={`boolean`}   />
-
-
-### roles
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/role#role'>Role</a>[]`}   />
 
 
 ### lastLogin

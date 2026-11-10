@@ -4,7 +4,6 @@ import {
     LanguageCode,
     Permission,
 } from '@vendure/common/lib/generated-types';
-import { SUPER_ADMIN_USER_IDENTIFIER } from '@vendure/common/lib/shared-constants';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, it } from 'vitest';
@@ -22,6 +21,8 @@ describe('ApiKey resolver', () => {
     const adminApiUrl = `http://localhost:${config.apiOptions.port}/${String(config.apiOptions.adminApiPath)}`;
 
     let createdApiKeyId: string;
+    // API keys cannot hold the SuperAdmin Role, so the keys hold every other permission
+    let fullAccessRoleId: string;
 
     beforeAll(async () => {
         await server.init({
@@ -30,6 +31,20 @@ describe('ApiKey resolver', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
+        const nonAssignable: string[] = [
+            Permission.SuperAdmin,
+            Permission.Owner,
+            Permission.Public,
+            Permission.Authenticated,
+        ];
+        const { createRole } = await adminClient.query(CREATE_ROLE, {
+            input: {
+                code: 'full-access',
+                description: 'Every permission except SuperAdmin',
+                permissions: Object.values(Permission).filter(p => !nonAssignable.includes(p)),
+            },
+        });
+        fullAccessRoleId = createRole.id;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -39,7 +54,7 @@ describe('ApiKey resolver', () => {
     it('createApiKey', async ({ expect }) => {
         const result = await adminClient.query(CREATE_API_KEY, {
             input: {
-                roleIds: ['1'],
+                roleIds: [fullAccessRoleId],
                 translations: [{ languageCode: LanguageCode.en, name: 'Test API Key' }],
             },
         });
@@ -90,7 +105,7 @@ describe('ApiKey resolver', () => {
     it('rotateApiKey', async ({ expect }) => {
         const apiKey = await adminClient.query(CREATE_API_KEY, {
             input: {
-                roleIds: ['1'],
+                roleIds: [fullAccessRoleId],
                 translations: [{ languageCode: LanguageCode.en, name: 'Test API Key' }],
             },
         });
@@ -103,7 +118,7 @@ describe('ApiKey resolver', () => {
         const { apiKey, entityId } = (
             await adminClient.query(CREATE_API_KEY, {
                 input: {
-                    roleIds: ['1'],
+                    roleIds: [fullAccessRoleId],
                     translations: [{ languageCode: LanguageCode.en, name: 'Test API Key' }],
                 },
             })
@@ -111,7 +126,7 @@ describe('ApiKey resolver', () => {
 
         type _fetchResponse =
             | {
-                  data?: { administrator?: { user?: { identifier?: string } } };
+                  data?: { activeChannel?: { code?: string } };
                   errors?: any[];
               }
             | undefined;
@@ -122,26 +137,26 @@ describe('ApiKey resolver', () => {
                 'Content-Type': 'application/json',
                 [String(config.authOptions.apiKeyHeaderKey)]: apiKey,
             },
-            body: '{ "query": "query { administrator(id: 1) { user { identifier } } }" }',
+            body: '{ "query": "query { activeChannel { code } }" }',
         };
 
         // (1/4): Successfully read
 
         const readOk01 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
-        expect(readOk01?.data?.administrator?.user?.identifier).toBe(SUPER_ADMIN_USER_IDENTIFIER);
+        expect(readOk01?.data?.activeChannel?.code).toBe('__default_channel__');
 
         // (2/4): Fail to read due to rotation of key
 
         const rotate = await adminClient.query(ROTATE_API_KEY, { id: entityId });
         const readErr01 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
         expect(readErr01?.errors).toBeDefined();
-        expect(readErr01?.data?.administrator?.user?.identifier).toBeUndefined();
+        expect(readErr01?.data?.activeChannel?.code).toBeUndefined();
 
         // (3/4): Successfully read via rotated key
 
         fetchConfig.headers[String(config.authOptions.apiKeyHeaderKey)] = rotate.rotateApiKey.apiKey;
         const readOk02 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
-        expect(readOk02?.data?.administrator?.user?.identifier).toBe(SUPER_ADMIN_USER_IDENTIFIER);
+        expect(readOk02?.data?.activeChannel?.code).toBe('__default_channel__');
 
         // (4/4): Fail to read due to deletion
 
@@ -150,7 +165,7 @@ describe('ApiKey resolver', () => {
 
         const readErr02 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
         expect(readErr02?.errors).toBeDefined();
-        expect(readErr02?.data?.administrator?.user?.identifier).toBeUndefined();
+        expect(readErr02?.data?.activeChannel?.code).toBeUndefined();
     });
 
     // The API-Key session's user is a synthetic "API-Key user" which has no Administrator row.
@@ -161,7 +176,7 @@ describe('ApiKey resolver', () => {
         const { apiKey } = (
             await adminClient.query(CREATE_API_KEY, {
                 input: {
-                    roleIds: ['1'],
+                    roleIds: [fullAccessRoleId],
                     translations: [{ languageCode: LanguageCode.en, name: 'Audit trail key' }],
                 },
             })

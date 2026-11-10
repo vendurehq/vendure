@@ -154,7 +154,6 @@ describe('duplicateEntity channel scope', () => {
         // An administrator who may only create catalog entities in channel B.
         const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
-                channelIds: [channelBId],
                 code: 'channel-b-creator',
                 description: 'Can create catalog entities in channel B only',
                 permissions: [
@@ -172,7 +171,7 @@ describe('duplicateEntity channel scope', () => {
                 lastName: 'Admin',
                 emailAddress: CHANNEL_B_ADMIN_IDENTIFIER,
                 password: CHANNEL_B_ADMIN_PASSWORD,
-                roleIds: [createRole.id],
+                roleAssignments: [channelBId].map(channelId => ({ roleId: createRole.id, channelId })),
             },
         });
     }, TEST_SETUP_TIMEOUT_MS);

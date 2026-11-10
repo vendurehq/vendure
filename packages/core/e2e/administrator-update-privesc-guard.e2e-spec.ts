@@ -23,9 +23,11 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
  * tests and reassigns the SuperAdmin's identifier via updateActiveAdministrator, which would make
  * re-authenticating as the SuperAdmin here unreliable.
  */
+// GHSA-v85r-wfgv-jcqc — a non-SuperAdmin must not modify an Administrator outside their authority.
 describe('AdministratorService.update privilege-escalation guard', () => {
     const { server, adminClient } = createTestEnvironment(testConfig());
 
+    const DEFAULT_CHANNEL_ID = 'T_1';
     const manager = { emailAddress: 'admin-manager@test.com', password: 'test-password' };
     let superAdminId: string;
     let staffId: string;
@@ -39,15 +41,18 @@ describe('AdministratorService.update privilege-escalation guard', () => {
         await adminClient.asSuperAdmin();
 
         const { administrators } = await adminClient.query(getAdministratorsDocument);
-        superAdminId = administrators.items.find(a => a.user.identifier === SUPER_ADMIN_USER_IDENTIFIER)!.id;
+        const superAdmin = administrators.items.find(a => a.user.identifier === SUPER_ADMIN_USER_IDENTIFIER);
+        if (!superAdmin) {
+            throw new Error('Could not find the SuperAdmin');
+        }
+        superAdminId = superAdmin.id;
 
-        // A "staff" administrator holding a narrow set of permissions.
+        // A "staff" administrator holding a narrow set of permissions on the default Channel.
         const { createRole: staffRole } = await adminClient.query(createRoleDocument, {
             input: {
                 code: 'staff',
                 description: 'Catalog staff',
                 permissions: [Permission.ReadCatalog],
-                channelIds: ['T_1'],
             },
         });
         const { createAdministrator: staff } = await adminClient.query(createAdministratorDocument, {
@@ -56,13 +61,13 @@ describe('AdministratorService.update privilege-escalation guard', () => {
                 firstName: 'Stan',
                 lastName: 'Staff',
                 password: 'test-password',
-                roleIds: [staffRole.id],
+                roleAssignments: [{ roleId: staffRole.id, channelId: DEFAULT_CHANNEL_ID }],
             },
         });
         staffId = staff.id;
 
         // An "admin manager": not a SuperAdmin, but holds a superset of the staff permissions plus the
-        // ability to manage administrators.
+        // ability to manage administrators, on the same Channel as the staff assignment.
         const { createRole: managerRole } = await adminClient.query(createRoleDocument, {
             input: {
                 code: 'admin-manager',
@@ -72,7 +77,6 @@ describe('AdministratorService.update privilege-escalation guard', () => {
                     Permission.ReadAdministrator,
                     Permission.UpdateAdministrator,
                 ],
-                channelIds: ['T_1'],
             },
         });
         await adminClient.query(createAdministratorDocument, {
@@ -81,7 +85,7 @@ describe('AdministratorService.update privilege-escalation guard', () => {
                 firstName: 'Manny',
                 lastName: 'Manager',
                 password: manager.password,
-                roleIds: [managerRole.id],
+                roleAssignments: [{ roleId: managerRole.id, channelId: DEFAULT_CHANNEL_ID }],
             },
         });
     }, TEST_SETUP_TIMEOUT_MS);
@@ -90,7 +94,7 @@ describe('AdministratorService.update privilege-escalation guard', () => {
         await server.destroy();
     });
 
-    // The lookup inside update() applies the visibility rule, so the manager is told the SuperAdmin
+    // GHSA-v85r-wfgv-jcqc — the lookup inside update() applies the visibility rule, so the manager is told the SuperAdmin
     // does not exist.
     it(
         'blocks a non-SuperAdmin from resetting the SuperAdmin password',

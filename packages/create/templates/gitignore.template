@@ -1,6 +1,5 @@
 node_modules
 dist
-admin-ui
 static/assets
 static/email/test-emails
 # Commit the identity-only Project Link Manifest. Keep all other local Vendure state ignored.

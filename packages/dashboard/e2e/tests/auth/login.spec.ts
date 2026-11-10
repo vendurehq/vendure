@@ -42,7 +42,8 @@ test.describe('Login', () => {
 test.describe('Administrator without access to any channel', () => {
     const password = 'test-password';
 
-    async function createAdministrator(client: VendureAdminClient, channelIds?: string[]) {
+    // Without a channelId the administrator holds no role assignment, so it has access to no channel
+    async function createAdministrator(client: VendureAdminClient, channelId?: string) {
         const suffix = `${Date.now()}-${Math.round(Math.random() * 1000)}`;
         const emailAddress = `no-channel-${suffix}@test.com`;
         const { createRole } = await client.gql(
@@ -52,25 +53,27 @@ test.describe('Administrator without access to any channel', () => {
                     code: `no-channel-${suffix}`,
                     description: 'Role for an administrator without channels',
                     permissions: ['ReadCatalog'],
-                    channelIds,
                 },
             },
         );
         const { createAdministrator: administrator } = await client.gql(
-            `mutation ($input: CreateAdministratorInput!) { createAdministrator(input: $input) { id } }`,
+            `mutation ($input: CreateAdministratorInput!) {
+                createAdministrator(input: $input) { id user { id } }
+            }`,
             {
                 input: {
                     firstName: 'No',
                     lastName: 'Channel',
                     emailAddress,
                     password,
-                    roleIds: [createRole.id],
+                    roleAssignments: channelId ? [{ roleId: createRole.id, channelId }] : [],
                 },
             },
         );
         return {
             emailAddress,
             administratorId: administrator.id as string,
+            userId: administrator.user.id as string,
             roleId: createRole.id as string,
         };
     }
@@ -116,7 +119,7 @@ test.describe('Administrator without access to any channel', () => {
     test('shows an error and the login form after logging in', async ({ page, browser }) => {
         const client = new VendureAdminClient(page);
         await client.login();
-        const administrator = await createAdministrator(client, []);
+        const administrator = await createAdministrator(client);
         const { context, page: adminPage, loginPage } = await newLoginPage(browser);
         try {
             await loginPage.goto();
@@ -144,17 +147,22 @@ test.describe('Administrator without access to any channel', () => {
     }) => {
         const client = new VendureAdminClient(page);
         await client.login();
-        const administrator = await createAdministrator(client);
+        const { activeChannel } = await client.gql(`query { activeChannel { id } }`);
+        const administrator = await createAdministrator(client, activeChannel.id);
+        const assignment = {
+            userId: administrator.userId,
+            assignments: [{ roleId: administrator.roleId, channelId: activeChannel.id }],
+        };
         const { context, page: adminPage, loginPage } = await newLoginPage(browser);
         try {
             await loginPage.goto();
             await loginPage.login(administrator.emailAddress, password);
             await expect(adminPage).not.toHaveURL(/\/login/, { timeout: 15_000 });
 
-            const { activeChannel } = await client.gql(`query { activeChannel { id } }`);
-            await client.gql(`mutation ($input: UpdateRoleInput!) { updateRole(input: $input) { id } }`, {
-                input: { id: administrator.roleId, channelIds: [] },
-            });
+            await client.gql(
+                `mutation ($input: RemoveRolesFromUserInput!) { removeRolesFromUser(input: $input) { id } }`,
+                { input: assignment },
+            );
             await adminPage.reload();
 
             await expect(
@@ -165,9 +173,10 @@ test.describe('Administrator without access to any channel', () => {
             await loginPage.expectVisible();
 
             // The session was ended, so it stays signed out even once the access is given back
-            await client.gql(`mutation ($input: UpdateRoleInput!) { updateRole(input: $input) { id } }`, {
-                input: { id: administrator.roleId, channelIds: [activeChannel.id] },
-            });
+            await client.gql(
+                `mutation ($input: AssignRolesToUserInput!) { assignRolesToUser(input: $input) { id } }`,
+                { input: assignment },
+            );
             await adminPage.reload();
             await loginPage.expectVisible();
             await expect(adminPage).toHaveURL(/\/login/);
@@ -204,7 +213,7 @@ test.describe('Administrator without access to any channel', () => {
     }) => {
         const client = new VendureAdminClient(page);
         await client.login();
-        const administrator = await createAdministrator(client, []);
+        const administrator = await createAdministrator(client);
         const { context, page: adminPage, loginPage } = await newLoginPage(browser);
         try {
             const refetch = await failFirstCurrentUserRefetch(adminPage);
@@ -281,7 +290,6 @@ test.describe('Switching user', () => {
                         code,
                         description: 'Catalog access',
                         permissions: ['ReadCatalog'],
-                        channelIds: [roleChannelId],
                     },
                 },
             );
@@ -294,7 +302,7 @@ test.describe('Switching user', () => {
                         lastName,
                         emailAddress: administratorEmailAddress,
                         password,
-                        roleIds: [createRole.id],
+                        roleAssignments: [{ roleId: createRole.id, channelId: roleChannelId }],
                     },
                 },
             );
@@ -470,7 +478,6 @@ test.describe('Stored user settings on login', () => {
                         code: `${name}-${suffix}`,
                         description: 'Catalog access',
                         permissions: ['ReadCatalog'],
-                        channelIds: [activeChannel.id],
                     },
                 },
             );
@@ -484,7 +491,7 @@ test.describe('Stored user settings on login', () => {
                         lastName: name,
                         emailAddress,
                         password,
-                        roleIds: [createRole.id],
+                        roleAssignments: [{ roleId: createRole.id, channelId: activeChannel.id }],
                     },
                 },
             );
