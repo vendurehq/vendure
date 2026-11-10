@@ -23,11 +23,9 @@ exports.OFFICIAL_ROLE_TEMPLATES = [
             // 收银/POS：租户管理员可操作到店自提核销收款，且可向下授权「收银员」角色
             'ManageOwnShop',
             'TenantRoleManage', 'TenantMemberManage',
-            // 租户配置（支付/地图/登录方式等）写入专用权限，替代原先「渠道成员即可写」的判定
-            'TenantSettingsManage',
-            // 营销活动：读走 Promotion 只读权限；写走租户专用 TenantPromotionManage（仅限本渠道，B2）
-            core_1.Permission.ReadPromotion,
-            'TenantPromotionManage',
+            // TenantSettingsManage / ReadPromotion / TenantPromotionManage 为超管专属权限，
+            // 授予租户角色会 FORBIDDEN_PERMISSION 并导致默认角色创建失败，故不纳入模板；
+            // 租户配置与营销活动写入改由超管操作
             // 多人协同盘库（规格 §9）：StocktakeCount/StocktakePost 为超管专属权限，
             // 授予租户角色会 FORBIDDEN_PERMISSION（每次启动补种 warn），移除——租户侧盘点由超管操作
         ],
@@ -56,8 +54,8 @@ exports.OFFICIAL_ROLE_TEMPLATES = [
             core_1.Permission.ReadProduct,
             core_1.Permission.UpdateProduct,
             core_1.Permission.ReadOrder,
-            // 多人协同盘库（规格 §9）：仓管/盘点员只「能盘」，不过账
-            'StocktakeCount',
+            // 多人协同盘库（规格 §9）：StocktakeCount/StocktakePost 为超管专属权限，
+            // 授予租户角色会 FORBIDDEN_PERMISSION，故不纳入模板——租户侧盘点由超管操作
         ],
     },
     {
