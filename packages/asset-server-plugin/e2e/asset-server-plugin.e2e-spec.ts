@@ -115,12 +115,13 @@ describe('AssetServerPlugin', () => {
 
     it('caps the generated preview at 1600 px with the default options', async () => {
         const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'asset-server-plugin-'));
-        const largeImagePath = path.join(tmpDir, 'large-image.jpg');
-        await sharp({ create: { width: 4000, height: 3000, channels: 3, background: '#888888' } })
-            .jpeg()
-            .toFile(largeImagePath);
 
         try {
+            const largeImagePath = path.join(tmpDir, 'large-image.jpg');
+            await sharp({ create: { width: 4000, height: 3000, channels: 3, background: '#888888' } })
+                .jpeg()
+                .toFile(largeImagePath);
+
             const { createAssets } = await adminClient.fileUploadMutation({
                 mutation: createAssetsDocument,
                 filePaths: [largeImagePath],

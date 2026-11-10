@@ -51,6 +51,15 @@ describe('SharpAssetPreviewStrategy', () => {
         });
     });
 
+    it('keeps the default for a width that is undefined when the height is set', async () => {
+        const strategy = new SharpAssetPreviewStrategy({ maxWidth: undefined, maxHeight: 800 });
+
+        expect(await previewSize(strategy, await createJpeg(4000, 1000))).toEqual({
+            width: 1600,
+            height: 400,
+        });
+    });
+
     it('uses the configured dimensions', async () => {
         const strategy = new SharpAssetPreviewStrategy({ maxWidth: 500, maxHeight: 500 });
 
