@@ -176,9 +176,11 @@ export class ChannelService {
      * Assigns the entity to the given Channels and saves all changes to the database.
      *
      * If the entity has a channel assignment entity with per-channel data (see
-     * {@link ChannelAssignment}), each new assignment starts with a copy of the entity's data in the
-     * active Channel (the Channel it is assigned from). If `assignmentData` is given, it is then
-     * applied to the entity's assignments in all the given Channels, new or existing.
+     * {@link ChannelAssignment}), each new assignment starts with a copy of the entity's data from an
+     * existing assignment: in the active Channel if the entity is assigned to it, otherwise in the
+     * default Channel, otherwise in any Channel. If `assignmentData` is given, it is then applied to
+     * the entity's assignments in all the given Channels, new or existing. `assignmentData` may only
+     * contain per-channel data properties, and is validated before anything is written.
      */
     async assignToChannels<T extends ChannelAware & VendureEntity>(
         ctx: RequestContext,
@@ -187,6 +189,11 @@ export class ChannelService {
         channelIds: ID[],
         assignmentData?: Record<string, unknown>,
     ): Promise<T> {
+        const hasAssignmentData = !!assignmentData && Object.keys(assignmentData).length > 0;
+        if (hasAssignmentData) {
+            // Validated before any write, so invalid data never leaves a partial assignment
+            this.channelAssignmentService.assertWritable(entityType, assignmentData);
+        }
         const relations = [];
         // This is a work-around for https://github.com/vendurehq/vendure/issues/1391
         // A better API would be to allow the consumer of this method to supply an entity instance
@@ -210,7 +217,15 @@ export class ChannelService {
         );
 
         if (!newChannelIds.length) {
-            await this.applyAssignmentData(ctx, entityType, entityId, channelIds, assignmentData);
+            if (hasAssignmentData) {
+                await this.channelAssignmentService.update(
+                    ctx,
+                    entityType,
+                    [entityId],
+                    channelIds,
+                    assignmentData,
+                );
+            }
             return entity;
         }
 
@@ -220,14 +235,31 @@ export class ChannelService {
             .relation('channels')
             .of(entity.id)
             .add(newChannelIds);
-        await this.channelAssignmentService.copyAssignment(
+        // New assignments start with the per-channel data of an existing assignment: the active
+        // Channel's if the entity is already assigned to it, otherwise the default Channel's,
+        // otherwise any.
+        const sourceChannelId = await this.getAssignmentSourceChannelId(
             ctx,
-            entityType,
-            entityId,
-            ctx.channelId,
-            newChannelIds,
+            assignedChannels.map(ec => ec.channelId),
         );
-        await this.applyAssignmentData(ctx, entityType, entityId, channelIds, assignmentData);
+        if (sourceChannelId != null) {
+            await this.channelAssignmentService.copyAssignment(
+                ctx,
+                entityType,
+                entityId,
+                sourceChannelId,
+                newChannelIds,
+            );
+        }
+        if (hasAssignmentData) {
+            await this.channelAssignmentService.update(
+                ctx,
+                entityType,
+                [entityId],
+                channelIds,
+                assignmentData,
+            );
+        }
 
         await this.eventBus.publish(
             new ChangeChannelEvent(ctx, entity, newChannelIds, 'assigned', entityType),
@@ -235,16 +267,18 @@ export class ChannelService {
         return entity;
     }
 
-    private async applyAssignmentData(
-        ctx: RequestContext,
-        entityType: Type<any>,
-        entityId: ID,
-        channelIds: ID[],
-        assignmentData?: Record<string, unknown>,
-    ) {
-        if (assignmentData && Object.keys(assignmentData).length) {
-            await this.channelAssignmentService.update(ctx, entityType, [entityId], channelIds, assignmentData);
+    private async getAssignmentSourceChannelId(ctx: RequestContext, assignedChannelIds: ID[]) {
+        if (!assignedChannelIds.length) {
+            return;
         }
+        if (assignedChannelIds.some(id => idsAreEqual(id, ctx.channelId))) {
+            return ctx.channelId;
+        }
+        const defaultChannel = await this.getDefaultChannel(ctx);
+        if (assignedChannelIds.some(id => idsAreEqual(id, defaultChannel.id))) {
+            return defaultChannel.id;
+        }
+        return assignedChannelIds[0];
     }
 
     /**

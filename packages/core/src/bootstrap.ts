@@ -20,7 +20,6 @@ import { getConfig, setConfig } from './config/config-helpers';
 import { DefaultLogger } from './config/logger/default-logger';
 import { Logger } from './config/logger/vendure-logger';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
-import { getDatabaseType } from './connection/database-type';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
 import {
@@ -358,7 +357,7 @@ export async function preBootstrapConfig(
     }
     registerCustomEntityFields(config);
     registerTranslationEntityUniqueConstraints(entities);
-    setEntityIdStrategy(entityIdStrategy, entities, getDatabaseType(config.dbConnectionOptions));
+    setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
     setMoneyStrategy(moneyStrategy, entities);
     await runEntityMetadataModifiers(config);

@@ -1,70 +1,28 @@
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     Channel,
-    ChannelAssignment,
-    ChannelAssignmentEntity,
     ChannelAssignmentService,
-    ChannelAware,
     ChannelService,
-    DeepPartial,
     ID,
     ListQueryBuilder,
     mergeConfig,
-    PluginCommonModule,
     RequestContext,
     RequestContextService,
     TransactionalConnection,
-    VendureEntity,
-    VendurePlugin,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-/**
- * A ChannelAware entity of a plugin, with a channel assignment entity holding two per-channel
- * columns: `note`, and `flag` which clashes with the entity's own `flag` column.
- */
-@Entity()
-class TestChannelThing extends VendureEntity implements ChannelAware {
-    constructor(input?: DeepPartial<TestChannelThing>) {
-        super(input);
-    }
-
-    @Column() name: string;
-
-    @Column({ default: false }) flag: boolean;
-
-    @ManyToMany(() => Channel)
-    @JoinTable({ synchronize: false })
-    channels: Channel[];
-}
-
-@ChannelAssignmentEntity({
-    entity: () => TestChannelThing,
-    entityProperty: 'testChannelThing',
-    tableName: 'test_channel_thing_channels_channel',
-    channelOnUpdate: 'CASCADE',
-})
-class TestChannelThingChannel extends ChannelAssignment {
-    testChannelThingId: ID;
-    testChannelThing: TestChannelThing;
-
-    @Column({ type: String, nullable: true, default: null }) note: string | null;
-
-    @Column({ type: Boolean, nullable: true, default: null }) flag: boolean | null;
-}
-
-@VendurePlugin({
-    imports: [PluginCommonModule],
-    entities: [TestChannelThing, TestChannelThingChannel],
-})
-class TestChannelThingPlugin {}
+import {
+    TestChannelThing,
+    TestChannelThingChannel,
+    TestChannelThingPlugin,
+} from './fixtures/test-plugins/channel-assignment-test-plugin';
 
 const CREATE_CHANNEL = gql`
     mutation CreateChannel($input: CreateChannelInput!) {
@@ -224,9 +182,23 @@ describe('Channel assignment entities', () => {
 
     describe('assigning to Channels', () => {
         it('copies the per-channel data from the active Channel to a new assignment', async () => {
+            // Read in the same RequestContext before and after assigning: reads are not cached
+            expect(
+                await service.getAssignment(ctx, TestChannelThing, things[0].id, channelBId),
+            ).toBeUndefined();
             await server.app
                 .get(ChannelService)
                 .assignToChannels(ctx, TestChannelThing, things[0].id, [channelBId]);
+            expect(
+                (
+                    await service.getAssignment<TestChannelThingChannel>(
+                        ctx,
+                        TestChannelThing,
+                        things[0].id,
+                        channelBId,
+                    )
+                )?.note,
+            ).toBe('first');
             expect((await rows([things[0].id], channelBId)).get(String(things[0].id))).toMatchObject({
                 note: 'first',
                 flag: true,
@@ -250,12 +222,33 @@ describe('Channel assignment entities', () => {
             );
         });
 
-        it('rejects assignment data which is not a per-channel property', async () => {
+        it('rejects assignment data which is not a per-channel property, before assigning', async () => {
             await expect(
                 server.app
                     .get(ChannelService)
                     .assignToChannels(ctx, TestChannelThing, things[2].id, [channelBId], { channelId: 99 }),
             ).rejects.toThrow('Cannot write "channelId"');
+            expect(
+                await service.getAssignment(ctx, TestChannelThing, things[2].id, channelBId),
+            ).toBeUndefined();
+        });
+
+        it('copies from an existing assignment when assigning to the active Channel itself', async () => {
+            // Only in channel B, with a value there
+            const [onlyInB] = await dataSource()
+                .getRepository(TestChannelThing)
+                .save([new TestChannelThing({ name: 'd', channels: [{ id: channelBId }] })]);
+            await service.update<TestChannelThingChannel>(ctx, TestChannelThing, [onlyInB.id], [channelBId], {
+                note: 'from b',
+            });
+            await server.app
+                .get(ChannelService)
+                .assignToChannels(ctx, TestChannelThing, onlyInB.id, [ctx.channelId]);
+            expect(
+                (await service.getAssignment<TestChannelThingChannel>(ctx, TestChannelThing, onlyInB.id))
+                    ?.note,
+            ).toBe('from b');
+            await dataSource().getRepository(TestChannelThing).delete(onlyInB.id);
         });
 
         it('getAssignmentsByChannel() returns the rows of every Channel', async () => {
@@ -308,6 +301,11 @@ describe('Channel assignment entities', () => {
     });
 
     describe('schema synchronization', () => {
+        it('finds no difference between the entities and the database', async () => {
+            const { upQueries } = await dataSource().driver.createSchemaBuilder().log();
+            expect(upQueries.map(q => q.query)).toEqual([]);
+        });
+
         it('keeps every junction row and per-channel value', async () => {
             const count = async () => {
                 const result: Record<string, number> = {};
