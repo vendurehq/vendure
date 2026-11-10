@@ -82,19 +82,23 @@ describe('@nonBlank input fields', () => {
         ),
     );
 
-    it('checks each aliased mutation against its own input type', async () => {
-        const result = await adminClient.query(gql`
-            mutation {
-                a: createTaxCategory(input: { name: "Non-blank" }) {
-                    name
-                }
-                b: createTag(input: { value: "non-blank" }) {
-                    value
-                }
-            }
-        `);
-        expect(result).toEqual({ a: { name: 'Non-blank' }, b: { value: 'non-blank' } });
-    });
+    it(
+        'checks each aliased mutation against its own input type',
+        assertThrowsWithMessage(
+            () =>
+                adminClient.query(gql`
+                    mutation {
+                        a: createTaxCategory(input: { name: "Non-blank" }) {
+                            name
+                        }
+                        b: createTag(input: { value: " " }) {
+                            value
+                        }
+                    }
+                `),
+            'The "value" field cannot be blank',
+        ),
+    );
 
     it('allows a partial update that omits the field', async () => {
         const { updateProduct } = await adminClient.query(gql`
@@ -121,4 +125,169 @@ describe('@nonBlank input fields', () => {
             'The "emailAddress" field cannot be blank',
         ),
     );
+
+    // #5080 - the examples from the issue report
+    describe('fields listed in #5080', () => {
+        it(
+            'rejects updateFacet with an empty code',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(gql`
+                        mutation {
+                            updateFacet(input: { id: "T_1", code: "" }) {
+                                id
+                            }
+                        }
+                    `),
+                'The "code" field cannot be blank',
+            ),
+        );
+
+        it(
+            'rejects updateProductVariants with a whitespace-only sku',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(gql`
+                        mutation {
+                            updateProductVariants(input: [{ id: "T_1", sku: "   " }]) {
+                                id
+                            }
+                        }
+                    `),
+                'The "sku" field cannot be blank',
+            ),
+        );
+
+        it('rejects updateChannel with an empty token', async () => {
+            const { createChannel } = await adminClient.query(gql`
+                mutation {
+                    createChannel(
+                        input: {
+                            code: "channel-5080"
+                            token: "token-5080"
+                            defaultLanguageCode: en
+                            defaultCurrencyCode: USD
+                            pricesIncludeTax: false
+                            defaultShippingZoneId: "T_1"
+                            defaultTaxZoneId: "T_1"
+                        }
+                    ) {
+                        ... on Channel {
+                            id
+                        }
+                    }
+                }
+            `);
+            await assertThrowsWithMessage(
+                () =>
+                    adminClient.query(
+                        gql`
+                            mutation ($id: ID!) {
+                                updateChannel(input: { id: $id, token: "" }) {
+                                    ... on Channel {
+                                        id
+                                    }
+                                }
+                            }
+                        `,
+                        { id: createChannel.id },
+                    ),
+                'The "token" field cannot be blank',
+            )();
+        });
+
+        it(
+            'rejects createAdministrator with an empty lastName',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(gql`
+                        mutation {
+                            createAdministrator(
+                                input: {
+                                    firstName: "Blank"
+                                    lastName: ""
+                                    emailAddress: "blank-5080@test.com"
+                                    password: "test"
+                                    roleIds: ["1"]
+                                }
+                            ) {
+                                id
+                            }
+                        }
+                    `),
+                'The "lastName" field cannot be blank',
+            ),
+        );
+
+        it('rejects setCustomerForOrder with an empty lastName on the Shop API', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(gql`
+                mutation {
+                    addItemToOrder(productVariantId: "T_1", quantity: 1) {
+                        ... on Order {
+                            id
+                        }
+                    }
+                }
+            `);
+            await assertThrowsWithMessage(
+                () =>
+                    shopClient.query(gql`
+                        mutation {
+                            setCustomerForOrder(
+                                input: {
+                                    firstName: "Blank"
+                                    lastName: ""
+                                    emailAddress: "shop-5080@test.com"
+                                }
+                            ) {
+                                ... on Order {
+                                    id
+                                }
+                            }
+                        }
+                    `),
+                'The "lastName" field cannot be blank',
+            )();
+        });
+
+        it('accepts an empty description, which is not marked with @nonBlank', async () => {
+            const { createCollection } = await adminClient.query(gql`
+                mutation {
+                    createCollection(
+                        input: {
+                            filters: []
+                            translations: [
+                                {
+                                    languageCode: en
+                                    name: "Empty description"
+                                    slug: "empty-desc-5080"
+                                    description: ""
+                                }
+                            ]
+                        }
+                    ) {
+                        name
+                        description
+                    }
+                }
+            `);
+            expect(createCollection).toEqual({ name: 'Empty description', description: '' });
+        });
+
+        it('leaves the stored values unchanged after the rejected mutations', async () => {
+            const { facet, productVariant } = await adminClient.query(gql`
+                query {
+                    facet(id: "T_1") {
+                        code
+                    }
+                    productVariant(id: "T_1") {
+                        sku
+                    }
+                }
+            `);
+            expect(facet.code.trim()).not.toBe('');
+            expect(productVariant.sku.trim()).not.toBe('');
+        });
+    });
 });
