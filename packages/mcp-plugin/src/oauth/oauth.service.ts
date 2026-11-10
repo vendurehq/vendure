@@ -491,15 +491,11 @@ export class McpOauthService {
         if (!grant) {
             return undefined;
         }
-        let sessionToken: string | null = null;
-        if (grant.vendureSessionId) {
-            const session = await this.connection.getRepository(ctx, Session).findOne({
-                where: { id: grant.vendureSessionId },
-                select: { id: true, token: true },
-            });
-            sessionToken = session?.token ?? null;
-        }
-        return { grant, sessionToken };
+        const session = await this.connection.getRepository(ctx, Session).findOne({
+            where: { id: grant.vendureSessionId },
+            select: { id: true, token: true },
+        });
+        return { grant, sessionToken: session?.token ?? null };
     }
 
     /** Checks the toolset matches, so a code requested for one API can't be used to spoof a token for the other. */
