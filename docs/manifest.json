@@ -2740,7 +2740,7 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-10T11:12:07Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
