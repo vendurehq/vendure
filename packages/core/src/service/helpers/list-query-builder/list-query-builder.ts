@@ -304,7 +304,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
         const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
         const channelAssignmentJoin = extendedOptions.channelId
-            ? this.getChannelAssignmentJoin(qb, options)
+            ? this.getChannelAssignmentJoin(qb, entity, options, providedCustomPropertyMap)
             : undefined;
         const customPropertyMap =
             channelAssignmentJoin && !providedCustomPropertyMap ? {} : providedCustomPropertyMap;
@@ -748,27 +748,36 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * itself has a column of that name (e.g. `ProductChannel.enabled` → `enabledInChannel`, since
      * `Product.enabled` is the global value).
      */
-    private getChannelAssignmentJoin(
+    private getChannelAssignmentJoin<T extends VendureEntity>(
         qb: SelectQueryBuilder<any>,
-        options: ListQueryOptions<any>,
+        entity: Type<T>,
+        options: ListQueryOptions<T>,
+        providedCustomPropertyMap?: { [name: string]: string },
     ): { target: Type<any>; ownerColumn: string; columns: Map<string, string> } | undefined {
-        const metadata = qb.expressionMap.mainAlias?.metadata;
-        const assignment = metadata && this.channelAssignmentService.getMetadata(metadata.target as Type<any>);
-        if (!metadata || !assignment) {
+        const assignment = this.channelAssignmentService.getMetadata(entity);
+        if (!assignment) {
             return;
         }
+        // Every name the filter and sort parsers resolve before the customPropertyMap: entity
+        // columns (including custom fields), translation columns and calculated columns, plus the
+        // properties the caller maps itself.
+        const { columns: entityColumns, translationColumns } = getColumnMetadata(qb.connection, entity);
+        const reserved = new Set<string>([
+            ...entityColumns.map(c => c.propertyName),
+            ...translationColumns.map(c => c.propertyName),
+            ...getCalculatedColumns(entity).map(c => String(c.name)),
+            ...Object.keys(providedCustomPropertyMap ?? {}),
+        ]);
         // Maps the filter/sort property to the column's property path on the assignment entity
         const columns = new Map<string, string>();
         for (const column of qb.connection.getMetadata(assignment.target).columns) {
             if (column.isPrimary || column.relationMetadata) {
                 continue;
             }
-            // Channel-scoped custom fields (in the `customFields` embedded) keep their own name, as
-            // they are not columns of the entity.
-            const property =
-                !column.embeddedMetadata && metadata.columns.find(c => c.propertyName === column.propertyName)
-                    ? `${column.propertyName}InChannel`
-                    : column.propertyName;
+            // A column which clashes with one of those names is exposed as `<name>InChannel`
+            const property = reserved.has(column.propertyName)
+                ? `${column.propertyName}InChannel`
+                : column.propertyName;
             if (this.customPropertyIsBeingUsed(property, options)) {
                 columns.set(property, column.propertyPath);
             }
