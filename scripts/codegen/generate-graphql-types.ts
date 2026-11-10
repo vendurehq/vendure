@@ -15,7 +15,14 @@ const SHOP_SCHEMA_OUTPUT_FILE = path.join(__dirname, '../../schema-shop.json');
 
 /* eslint-disable no-console */
 
-Promise.all([downloadIntrospectionSchema('admin'), downloadIntrospectionSchema('shop')])
+// --skip-schema-download：跳过内置（仅 core）schema 下载，直接用根目录已落盘的
+// schema-shop.json / schema-admin.json —— 用于把「运行态 introspection」（含 onebridge / cjk 扩展）灌进来。
+const skipDownload = process.argv.includes('--skip-schema-download');
+
+(skipDownload
+    ? Promise.resolve([true, true] as boolean[])
+    : Promise.all([downloadIntrospectionSchema('admin'), downloadIntrospectionSchema('shop')])
+)
     .then(([adminSchemaSuccess, shopSchemaSuccess]) => {
         if (!adminSchemaSuccess || !shopSchemaSuccess) {
             console.log('Attempting to generate types from existing schema json files...');
