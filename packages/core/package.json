@@ -33,6 +33,13 @@
         "i18n:apply": "node ./scripts/translate/i18n-tool.mjs apply",
         "ci": "npm run build"
     },
+    "nx": {
+        "targets": {
+            "e2e": {
+                "parallelism": false
+            }
+        }
+    },
     "publishConfig": {
         "access": "public"
     },
