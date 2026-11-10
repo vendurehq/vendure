@@ -216,6 +216,46 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         this.requestContextCache.set(ctx, this.cacheKey(entityType), undefined);
     }
 
+    /**
+     * @description
+     * Writes channel-scoped custom field values to the entity's assignment row in the given Channel.
+     * Relation fields take the related entity (or `{ id }`), or `null`.
+     */
+    async updateCustomFields(
+        ctx: RequestContext,
+        entityType: AnyEntity,
+        entityId: ID,
+        channelId: ID,
+        values: Record<string, unknown>,
+    ): Promise<void> {
+        if (!Object.keys(values).length) {
+            return;
+        }
+        const meta = this.getMetadataOrThrow(entityType);
+        const repo = this.connection.getRepository(ctx, meta.target);
+        const row: any = await repo.findOne({
+            where: { [meta.entityIdProperty]: entityId, channelId },
+            relations: findOptionsArrayToObject(meta.dataRelations),
+        });
+        if (!row) {
+            return;
+        }
+        row.customFields = { ...row.customFields, ...values };
+        await repo.save(row, { reload: false });
+        this.requestContextCache.set(ctx, this.cacheKey(entityType), undefined);
+    }
+
+    /**
+     * @description
+     * Like {@link getMetadata}, looked up by entity name, e.g. `'Product'`.
+     */
+    getMetadataByEntityName(entityName: string): ChannelAssignmentMetadata | undefined {
+        const dataSource = this.connection.rawConnection;
+        return dataSource.hasMetadata(entityName)
+            ? this.getMetadata(dataSource.getMetadata(entityName).target as AnyEntity)
+            : undefined;
+    }
+
     private getMetadataOrThrow(entityType: AnyEntity): ChannelAssignmentMetadata {
         const meta = this.getMetadata(entityType);
         if (!meta) {

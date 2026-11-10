@@ -213,9 +213,23 @@ function generateCustomFieldResolvers(
         // In order to resolve the relations in the CustomFields type, we need
         // access to the entity id. Therefore, we attach it to the resolved value
         // so that it is available to the `relationResolver` below.
-        const customFieldResolver: IFieldResolver<any, any> = (source: any) => {
+        // Channel-scoped custom fields are stored on the entity's channel assignment row, so their
+        // values for the active Channel are merged in. Relation fields resolve via relationResolver.
+        const channelScopedFieldNames = customFields
+            .filter(f => f.channelScoped && !isRelationalType(f))
+            .map(f => f.name);
+        const customFieldResolver: IFieldResolver<any, any> = async (source: any, args: any, context: any) => {
+            const channelScopedValues = channelScopedFieldNames.length
+                ? await customFieldRelationResolverService.getChannelScopedValues(
+                      internal_getRequestContext(context.req),
+                      entityName,
+                      source.id,
+                      channelScopedFieldNames,
+                  )
+                : {};
             return {
                 ...source.customFields,
+                ...channelScopedValues,
                 [ENTITY_ID_KEY]: source.id,
                 // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
                 // pass the real VendureEntity to strategies, rather than this customFields wrapper.

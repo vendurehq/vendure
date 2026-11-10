@@ -90,6 +90,20 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     index?: boolean;
     /**
      * @description
+     * If set to `true`, the field holds a separate value per Channel. It is only supported on
+     * {@link ChannelAware} entities: the value is stored on the entity's channel assignment row
+     * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value of the
+     * active Channel. When the entity is assigned to another Channel, the value is copied from
+     * the Channel it is assigned from.
+     *
+     * Not supported on `localeString`/`localeText` fields, or with `unique`.
+     *
+     * @since 4.0.0
+     * @default false
+     */
+    channelScoped?: boolean;
+    /**
+     * @description
      * If set to `true`, the value of this field is encrypted at rest using the configured
      * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
      * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`

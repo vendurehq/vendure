@@ -10,6 +10,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { VendureEntity } from '../../entity/base/base.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ProductPriceApplicator } from '../../service/helpers/product-price-applicator/product-price-applicator';
+import { ChannelAssignmentService } from '../../service/helpers/channel-assignment/channel-assignment.service';
 import { TranslatorService } from '../../service/helpers/translator/translator.service';
 
 import { RequestContext } from './request-context';
@@ -28,7 +29,36 @@ export class CustomFieldRelationResolverService {
         private requestCache: RequestContextCacheService,
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
+
+    /**
+     * @description
+     * Returns the values of the entity's channel-scoped custom fields in the active Channel, read
+     * from its channel assignment row. Fields are `null` if the entity is not assigned to the
+     * Channel. Relation fields are left to {@link resolveRelation}.
+     */
+    async getChannelScopedValues(
+        ctx: RequestContext,
+        entityName: string,
+        entityId: ID | undefined,
+        fieldNames: string[],
+    ): Promise<Record<string, unknown>> {
+        const dataSource = this.connection.rawConnection;
+        const row: any =
+            entityId != null && this.channelAssignmentService.getMetadataByEntityName(entityName)
+                ? await this.channelAssignmentService.getAssignment(
+                      ctx,
+                      dataSource.getMetadata(entityName).target as any,
+                      entityId,
+                  )
+                : undefined;
+        const result: Record<string, unknown> = {};
+        for (const name of fieldNames) {
+            result[name] = row?.customFields?.[name] ?? null;
+        }
+        return result;
+    }
 
     /**
      * @description
@@ -88,14 +118,27 @@ export class CustomFieldRelationResolverService {
         fieldDef: RelationCustomFieldConfig,
         ids: ID[],
     ): Promise<VendureEntity[][]> {
-        // Fetch the parent -> relation id mapping for all batched parent ids in a single query
-        const mappingQb = this.connection
-            .getRepository(ctx, entityName)
-            .createQueryBuilder('entity')
-            .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
-            .select('entity.id', 'entity_id')
-            .addSelect('relationEntity.id', 'relation_id')
-            .where('entity.id IN (:...ids)', { ids });
+        // Fetch the parent -> relation id mapping for all batched parent ids in a single query.
+        // Channel-scoped fields live on the entity's channel assignment row for the active Channel.
+        const assignment = fieldDef.channelScoped
+            ? this.channelAssignmentService.getMetadataByEntityName(entityName)
+            : undefined;
+        const mappingQb = assignment
+            ? this.connection
+                  .getRepository(ctx, assignment.target)
+                  .createQueryBuilder('entity')
+                  .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
+                  .select(`entity.${assignment.entityIdProperty}`, 'entity_id')
+                  .addSelect('relationEntity.id', 'relation_id')
+                  .where(`entity.${assignment.entityIdProperty} IN (:...ids)`, { ids })
+                  .andWhere('entity.channelId = :channelId', { channelId: ctx.channelId })
+            : this.connection
+                  .getRepository(ctx, entityName)
+                  .createQueryBuilder('entity')
+                  .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
+                  .select('entity.id', 'entity_id')
+                  .addSelect('relationEntity.id', 'relation_id')
+                  .where('entity.id IN (:...ids)', { ids });
 
         const rawMappings = await mappingQb.getRawMany();
 

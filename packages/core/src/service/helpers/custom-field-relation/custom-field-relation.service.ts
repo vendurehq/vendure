@@ -14,12 +14,14 @@ import {
 } from '../../../config/custom-field/custom-field-types';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
+import { ChannelAssignmentService } from '../channel-assignment/channel-assignment.service';
 
 @Injectable()
 export class CustomFieldRelationService {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     /**
@@ -35,9 +37,10 @@ export class CustomFieldRelationService {
         entity: T,
     ) {
         if (input.customFields) {
-            const relationCustomFields = this.configService.customFields[
-                entityType.name as keyof CustomFields
-            ].filter(this.isRelationalType);
+            await this.updateChannelScopedFields(ctx, entityType, input.customFields, entity);
+            const relationCustomFields = this.configService.customFields[entityType.name as keyof CustomFields]
+                .filter(this.isRelationalType)
+                .filter(field => !field.channelScoped);
 
             for (const field of relationCustomFields) {
                 const inputIdName = getGraphQlInputName(field);
@@ -82,6 +85,47 @@ export class CustomFieldRelationService {
             }
         }
         return entity;
+    }
+
+    /**
+     * Channel-scoped custom fields are stored on the entity's channel assignment row, so their
+     * input values are written to the row of the active Channel.
+     */
+    private async updateChannelScopedFields(
+        ctx: RequestContext,
+        entityType: Type<any>,
+        customFieldsInput: { [key: string]: any },
+        entity: VendureEntity,
+    ) {
+        const channelScoped = (this.configService.customFields[entityType.name as keyof CustomFields] ?? []).filter(
+            field => field.channelScoped,
+        );
+        if (!channelScoped.length) {
+            return;
+        }
+        const values: Record<string, unknown> = {};
+        for (const field of channelScoped) {
+            if (this.isRelationalType(field)) {
+                const idOrIds = customFieldsInput[getGraphQlInputName(field)];
+                if (idOrIds === undefined) {
+                    continue;
+                }
+                if (idOrIds === null) {
+                    values[field.name] = field.list ? [] : null;
+                } else if (field.list && Array.isArray(idOrIds)) {
+                    values[field.name] = await this.connection
+                        .getRepository(ctx, field.entity)
+                        .findBy({ id: In(idOrIds) });
+                } else if (this.isId(idOrIds)) {
+                    values[field.name] = await this.connection
+                        .getRepository(ctx, field.entity)
+                        .findOne({ where: { id: idOrIds } });
+                }
+            } else if (customFieldsInput[field.name] !== undefined) {
+                values[field.name] = customFieldsInput[field.name];
+            }
+        }
+        await this.channelAssignmentService.updateCustomFields(ctx, entityType, entity.id, ctx.channelId, values);
     }
 
     private isRelationalType(this: void, input: CustomFieldConfig): input is RelationCustomFieldConfig {

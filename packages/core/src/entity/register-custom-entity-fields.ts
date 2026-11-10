@@ -25,6 +25,7 @@ import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 import { getDatabaseType, VendureDatabaseType } from '../connection/database-type';
 
+import { getChannelAssignmentEntities } from './channel-assignment/channel-assignment';
 import { EntityId } from './entity-id.decorator';
 import { EncryptedFieldTransformer } from './value-transformers';
 
@@ -70,11 +71,17 @@ export function getEntityNamesWithCustomFields(entities: Array<Type<any>>): stri
     // otherwise seed phantom `config.customFields` keys.
     const registeredEntityNames = new Set(entities.map(entity => entity.name));
     const translationEntityNames = getTranslationEntityNames();
+    const channelAssignmentEntityNames = new Set(
+        Array.from(getChannelAssignmentEntities().keys()).map(e => e.name),
+    );
     const names = getMetadataArgsStorage()
         .embeddeds.filter(embedded => embedded.propertyName === 'customFields')
         .map(embedded => (typeof embedded.target === 'string' ? embedded.target : embedded.target.name))
         .filter(name => registeredEntityNames.has(name))
-        .filter(name => !translationEntityNames.has(name));
+        .filter(name => !translationEntityNames.has(name))
+        // Channel assignment entities carry a `customFields` embedded for channel-scoped fields of
+        // their owning entity; they are never a `config.customFields` key themselves.
+        .filter(name => !channelAssignmentEntityNames.has(name));
     return Array.from(new Set(names));
 }
 
@@ -128,10 +135,15 @@ export function registerCustomFieldsForEntity(
     // eslint-disable-next-line @typescript-eslint/prefer-function-type
     ctor: { new (): any },
     translation = false,
+    channelScoped = false,
 ) {
-    const customFields = config.customFields && config.customFields[entityName];
+    // Channel-scoped fields are registered on the entity's channel assignment entity instead
+    // (see registerChannelScopedCustomFields), so each call only handles one of the two sets.
+    const customFields = (config.customFields?.[entityName] ?? []).filter(
+        f => !!f.channelScoped === channelScoped,
+    );
     const dbEngine = getDatabaseType(config.dbConnectionOptions);
-    if (customFields) {
+    if (customFields.length) {
         for (const customField of customFields) {
             const { name, list, defaultValue, nullable } = customField;
             const indexed = customField.index === true;
@@ -459,6 +471,53 @@ function assertLocaleFieldsNotSpecified(config: VendureConfig, entityName: keyof
 }
 
 /**
+ * Registers the `channelScoped` custom fields of an entity on its channel assignment entity
+ * (e.g. `ProductChannel` for `Product`), in a `customFields` embedded which is only added when
+ * the entity has channel-scoped fields, so entities without any keep their schema unchanged.
+ */
+function registerChannelScopedCustomFields(config: VendureConfig, entityName: string) {
+    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.channelScoped);
+    if (!channelScoped.length) {
+        return;
+    }
+    const assignmentEntity = Array.from(getChannelAssignmentEntities().entries()).find(
+        ([, options]) => options.entity().name === entityName,
+    )?.[0];
+    if (!assignmentEntity) {
+        throw new Error(
+            `ERROR: The custom fields ${channelScoped.map(f => `"${f.name}"`).join(', ')} on "${entityName}" ` +
+                'have "channelScoped: true", which is only supported on ChannelAware entities.',
+        );
+    }
+    for (const field of channelScoped) {
+        if (isLocalizedCustomFieldType(field.type) || field.unique === true) {
+            throw new Error(
+                `ERROR: The custom field "${entityName}.${field.name}" cannot combine "channelScoped: true" ` +
+                    'with a localized type or "unique: true".',
+            );
+        }
+    }
+    const metadataArgsStorage = getMetadataArgsStorage();
+    let embedded = metadataArgsStorage.embeddeds.find(
+        e => e.target === assignmentEntity && e.propertyName === 'customFields',
+    );
+    if (!embedded) {
+        // Registration can run more than once in the same process (tests), so the embedded is
+        // only added once.
+        const className = `Custom${assignmentEntity.name}Fields`;
+        const embeddedClass = { [className]: class {} }[className];
+        Column(() => embeddedClass)(assignmentEntity.prototype, 'customFields');
+        embedded = metadataArgsStorage.embeddeds.find(
+            e => e.target === assignmentEntity && e.propertyName === 'customFields',
+        );
+    }
+    const customFieldsClass = embedded?.type();
+    if (customFieldsClass && typeof customFieldsClass !== 'string') {
+        registerCustomFieldsForEntity(config, entityName, customFieldsClass as any, false, true);
+    }
+}
+
+/**
  * Dynamically registers any custom fields with TypeORM. This function should be run at the bootstrap
  * stage of the app lifecycle, before the AppModule is initialized.
  */
@@ -501,6 +560,7 @@ export function registerCustomEntityFields(config: VendureConfig) {
             } else {
                 assertLocaleFieldsNotSpecified(config, entityName);
             }
+            registerChannelScopedCustomFields(config, entityName);
         }
     }
 
