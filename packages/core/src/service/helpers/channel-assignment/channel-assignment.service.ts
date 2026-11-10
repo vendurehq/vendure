@@ -53,28 +53,11 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
     ) {}
 
     /**
-     * Every `channels` junction table which TypeORM does not synchronize must be owned by a channel
-     * assignment entity with matching columns, otherwise the table would not be created or would
-     * be created differently. Fails fast on a mismatch, e.g. from a custom naming strategy.
+     * Fails fast if a channel assignment entity and its junction table don't match. See
+     * {@link validateChannelAssignmentMetadata}.
      */
     onApplicationBootstrap() {
-        for (const metadata of this.connection.rawConnection.entityMetadatas) {
-            const relation = metadata.findRelationWithPropertyPath('channels');
-            const junction = relation?.junctionEntityMetadata;
-            if (!relation?.isOwning || !junction || junction.synchronize !== false) {
-                continue;
-            }
-            const assignment = this.findAssignmentMetadata(junction.tableName);
-            const expected = junction.columns.map(c => c.databaseName).sort();
-            const actual = assignment?.primaryColumns.map(c => c.databaseName).sort();
-            if (!assignment || JSON.stringify(expected) !== JSON.stringify(actual)) {
-                throw new InternalServerError(
-                    `The "channels" junction table "${junction.tableName}" of ${metadata.name} must be owned ` +
-                        `by a channel assignment entity with the primary columns ${expected.join(', ')}` +
-                        (actual ? `, found ${actual.join(', ')}` : ''),
-                );
-            }
-        }
+        validateChannelAssignmentMetadata(this.connection.rawConnection.entityMetadatas);
     }
 
     /**
@@ -173,6 +156,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         values: Partial<Omit<T, 'channelId' | 'channel'>>,
     ): Promise<void> {
         const meta = this.getMetadataOrThrow(entityType);
+        this.assertDataProperties(meta, values);
         if (!entityIds.length || !channelIds.length || !Object.keys(values).length) {
             return;
         }
@@ -202,11 +186,17 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         const repo = this.connection.getRepository(ctx, meta.target);
         const where = (channelId: ID | ReturnType<typeof In>) =>
             ({ [meta.entityIdProperty]: entityId, channelId }) as any;
-        const source = await repo.findOne({ where: where(fromChannelId), relations: findOptionsArrayToObject(meta.dataRelations) });
+        const source = await repo.findOne({
+            where: where(fromChannelId),
+            relations: findOptionsArrayToObject(meta.dataRelations),
+        });
         if (!source) {
             return;
         }
-        const targets = await repo.find({ where: where(In(toChannelIds)), relations: findOptionsArrayToObject(meta.dataRelations) });
+        const targets = await repo.find({
+            where: where(In(toChannelIds)),
+            relations: findOptionsArrayToObject(meta.dataRelations),
+        });
         for (const target of targets) {
             for (const property of meta.dataProperties) {
                 (target as any)[property] = (source as any)[property];
@@ -214,6 +204,21 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         }
         await repo.save(targets, { reload: false });
         this.requestContextCache.set(ctx, this.cacheKey(entityType), undefined);
+    }
+
+    /**
+     * Only the per-channel data properties may be written. The key columns (entity id, Channel id)
+     * define the assignment itself and are changed via `ChannelService.assignToChannels()` /
+     * `removeFromChannels()`.
+     */
+    private assertDataProperties(meta: ChannelAssignmentMetadata, values: object) {
+        const invalid = Object.keys(values).filter(key => !meta.dataProperties.includes(key));
+        if (invalid.length) {
+            throw new InternalServerError(
+                `Cannot write ${invalid.map(k => `"${k}"`).join(', ')} on ${meta.target.name}. ` +
+                    `Writable per-channel properties: ${meta.dataProperties.map(k => `"${k}"`).join(', ') || 'none'}`,
+            );
+        }
     }
 
     private getMetadataOrThrow(entityType: AnyEntity): ChannelAssignmentMetadata {
@@ -256,9 +261,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
     }
 
     private findAssignmentMetadata(tableName: string): EntityMetadata | undefined {
-        return this.connection.rawConnection.entityMetadatas.find(
-            m => m.tableName === tableName && m.tableType !== 'junction',
-        );
+        return findAssignmentMetadata(this.connection.rawConnection.entityMetadatas, tableName);
     }
 
     private cacheKey(entityType: AnyEntity) {
@@ -266,10 +269,11 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
     }
 
     private getBatch(ctx: RequestContext, entityType: AnyEntity, channelId: ID): Batch {
-        const byChannel = this.requestContextCache.get(ctx, this.cacheKey(entityType), () => new Map()) as Map<
-            string,
-            Batch
-        >;
+        const byChannel = this.requestContextCache.get(
+            ctx,
+            this.cacheKey(entityType),
+            () => new Map(),
+        ) as Map<string, Batch>;
         let batch = byChannel.get(String(channelId));
         if (!batch) {
             batch = { pending: new Map(), queue: [], scheduled: false };
@@ -300,4 +304,55 @@ interface Batch {
     pending: Map<string, Promise<ChannelAssignment | undefined>>;
     queue: Array<{ id: string; resolve: (v: any) => void; reject: (e: any) => void }>;
     scheduled: boolean;
+}
+
+function findAssignmentMetadata(
+    entityMetadatas: EntityMetadata[],
+    tableName: string,
+): EntityMetadata | undefined {
+    return entityMetadatas.find(m => m.tableName === tableName && m.tableType !== 'junction');
+}
+
+/**
+ * @description
+ * Checks that every channel assignment entity matches the `channels` junction table it sits on,
+ * in both directions:
+ *
+ * - a junction table which TypeORM does not synchronize (`JoinTable({ synchronize: false })`) must
+ *   be owned by an assignment entity with the same key columns, otherwise the table would not be
+ *   created, or would be created differently (e.g. under a custom naming strategy);
+ * - an assignment entity on a junction table which TypeORM *does* synchronize is rejected, because
+ *   every schema sync would rebuild the table from the many-to-many relation and drop the
+ *   per-channel columns.
+ *
+ * Exported for testing.
+ */
+export function validateChannelAssignmentMetadata(entityMetadatas: EntityMetadata[]) {
+    for (const metadata of entityMetadatas) {
+        const relation = metadata.findRelationWithPropertyPath('channels');
+        const junction = relation?.junctionEntityMetadata;
+        if (!relation?.isOwning || !junction) {
+            continue;
+        }
+        const assignment = findAssignmentMetadata(entityMetadatas, junction.tableName);
+        if (junction.synchronize !== false) {
+            if (assignment) {
+                throw new InternalServerError(
+                    `${assignment.name} is a channel assignment entity on the "${junction.tableName}" table, ` +
+                        `so the "channels" relation of ${metadata.name} must use ` +
+                        '`@JoinTable({ synchronize: false })`. Otherwise schema sync drops its per-channel columns.',
+                );
+            }
+            continue;
+        }
+        const expected = junction.columns.map(c => c.databaseName).sort();
+        const actual = assignment?.primaryColumns.map(c => c.databaseName).sort();
+        if (!assignment || JSON.stringify(expected) !== JSON.stringify(actual)) {
+            throw new InternalServerError(
+                `The "channels" junction table "${junction.tableName}" of ${metadata.name} must be owned ` +
+                    `by a channel assignment entity with the primary columns ${expected.join(', ')}` +
+                    (actual ? `, found ${actual.join(', ')}` : ''),
+            );
+        }
+    }
 }
