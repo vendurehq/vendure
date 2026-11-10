@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { releaseVersion } from 'nx/release';
 import path from 'path';
 import { parseArgs } from 'util';
@@ -10,8 +10,8 @@ import { parseArgs } from 'util';
  * 1. `nx release version` writes the new version to each package.json. Internal dependencies
  *    get the exact new version. The release group is fixed (see `release` in nx.json).
  * 2. The release checks run against the new version (see `releaseSteps` below).
- * 3. The script commits the staged changes and adds an annotated tag `v<version>`.
- *    `--skip-git` stops after step 2.
+ * 3. The script stages the files that the checks changed (see `stageSteps` below), commits the
+ *    staged changes and adds an annotated tag `v<version>`. `--skip-git` stops after step 2.
  *
  * Usage:
  *   ts-node scripts/release-version.ts [specifier] [--preid <id>] [--message <msg>] [--skip-git] [--dry-run]
@@ -31,6 +31,12 @@ const releaseSteps = [
     'bun run build',
     'bun run check-core-type-defs',
     'bun run generate-changelog',
+];
+
+/**
+ * The `git add` steps of the old `version` lifecycle script. They run only when the script commits.
+ */
+const stageSteps = [
     'git add CHANGELOG*',
     'git add */version.ts',
     'git add bun.lock',
@@ -66,17 +72,26 @@ async function main() {
     }
 
     const message = values.message.replace(/\{version\}/g, workspaceVersion);
-    const gitSteps = skipGit
-        ? []
-        : [`git commit -m "${message}"`, `git tag -a v${workspaceVersion} -m v${workspaceVersion}`];
+    const tag = `v${workspaceVersion}`;
 
-    for (const step of [...releaseSteps, ...gitSteps]) {
-        if (dryRun) {
-            console.log(`[dry-run] ${step}`);
-            continue;
+    for (const step of [...releaseSteps, ...(skipGit ? [] : stageSteps)]) {
+        console.log(dryRun ? `[dry-run] ${step}` : `\n$ ${step}`);
+        if (!dryRun) {
+            execSync(step, { cwd: repoRoot, stdio: 'inherit' });
         }
-        console.log(`\n$ ${step}`);
-        execSync(step, { cwd: repoRoot, stdio: 'inherit' });
+    }
+    if (skipGit) {
+        return;
+    }
+    // The message is passed as one argument, so the shell does not parse it.
+    for (const args of [
+        ['commit', '-m', message],
+        ['tag', '-a', tag, '-m', tag],
+    ]) {
+        console.log(`${dryRun ? '[dry-run] ' : '\n$ '}git ${args.map(arg => JSON.stringify(arg)).join(' ')}`);
+        if (!dryRun) {
+            execFileSync('git', args, { cwd: repoRoot, stdio: 'inherit' });
+        }
     }
 }
 

@@ -9,7 +9,7 @@
     },
     "namedInputs": {
         "default": ["{projectRoot}/**/*", "sharedGlobals"],
-        "sharedGlobals": ["{workspaceRoot}/tsconfig.json"],
+        "sharedGlobals": ["{workspaceRoot}/tsconfig.json", "{workspaceRoot}/bunfig.toml"],
         "production": [
             "default",
             "!{projectRoot}/**/*.spec.ts",
