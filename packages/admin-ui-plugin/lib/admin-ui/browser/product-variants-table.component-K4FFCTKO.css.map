@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/product-variants-table/product-variants-table.component.scss"],
+  "sourcesContent": ["\n.placeholder {\n    color: var(--color-grey-300);\n}\n\n.stock, .price {\n    input {\n        max-width: 96px;\n    }\n}\n\ntd {\n    transition: background-color 0.2s;\n    &.disabled {\n        background-color: var(--color-component-bg-200);\n    }\n}\n"],
+  "mappings": "AACA,CAAA,YACI,MAAA,IAAA,kBAIA,CAAA,MAAA,MAAA,CAAA,MAAA,MACI,UAAA,KAIR,GACI,WAAA,iBAAA,IACA,EAAA,CAAA,SACI,iBAAA,IAAA",
+  "names": []
+}

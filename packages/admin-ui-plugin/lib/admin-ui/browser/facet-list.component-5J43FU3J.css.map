@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/facet-list/facet-list.component.scss"],
+  "sourcesContent": [".facet-values-list {\n    max-width: 500px;\n    display: flex;\n    flex-wrap: wrap;\n    align-items: center;\n    gap: 4px;\n}\n"],
+  "mappings": "AAAA,CAAA,kBACI,UAAA,MACA,QAAA,KACA,UAAA,KACA,YAAA,OACA,IAAA",
+  "names": []
+}

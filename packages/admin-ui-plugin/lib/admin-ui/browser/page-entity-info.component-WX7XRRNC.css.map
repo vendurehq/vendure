@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/page-entity-info/page-entity-info.component.scss"],
-  "sourcesContent": [":host {\r\n    gap: calc(var(--space-unit) * 2);\r\n}\r\n.property {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    column-gap: 2px;\r\n    line-height: 1em;\r\n    &:not(:last-of-type) { margin-bottom: calc(var(--space-unit) * 1);}\r\n}\r\n.prop-label {\r\n    font-size: var(--font-size-xs);\r\n    color: var(--color-weight-400);\r\n}\r\n.value {\r\n    font-size: var(--font-size-xs);\r\n    color: var(--color-weight-600);\r\n}\r\n"],
-  "mappings": "AAAA,MACI,IAAA,KAAA,IAAA,cAAA,EAAA,GAEJ,CAAA,SACI,QAAA,KACA,UAAA,KACA,WAAA,IACA,YAAA,IACA,CALJ,QAKI,KAAA,eAAuB,cAAA,KAAA,IAAA,cAAA,EAAA,GAE3B,CAAA,WACI,UAAA,IAAA,gBACA,MAAA,IAAA,oBAEJ,CAAA,MACI,UAAA,IAAA,gBACA,MAAA,IAAA",
-  "names": []
-}

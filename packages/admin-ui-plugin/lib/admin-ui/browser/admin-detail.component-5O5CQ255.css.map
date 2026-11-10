@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/admin-detail/admin-detail.component.scss"],
+  "sourcesContent": ["ul.nav {\n    overflow-x: auto;\n    overflow-y: hidden;\n}\n"],
+  "mappings": "AAAA,EAAA,CAAA,IACI,WAAA,KACA,WAAA",
+  "names": []
+}

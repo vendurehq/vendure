@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/extension-host/extension-host.component.scss"],
-  "sourcesContent": ["\r\niframe {\r\n    position: absolute;\r\n    left: 0;\r\n    top: 0;\r\n    bottom: 0;\r\n    right: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    border: none;\r\n}\r\n\r\n.launch-button {\r\n    position: absolute;\r\n    left: 0;\r\n    top: 0;\r\n    bottom: 0;\r\n    right: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    border: none;\r\n    padding: 24px;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: background-color 0.3s;\r\n    text-align: center;\r\n    &.launched {\r\n        background-color: var(--color-component-bg-300);\r\n    }\r\n}\r\n\r\n.window-hint {\r\n    visibility: hidden;\r\n    opacity: 0;\r\n    transition: visibility 0.3s 0, opacity 0.3s;\r\n    &.visible {\r\n        visibility: visible;\r\n        opacity: 1;\r\n        transition: visibility 0, opacity 0.3s;\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,OACI,SAAA,SACA,MACA,EAGA,MAAA,KACA,OAAA,KACA,OAAA,KAGJ,CAAA,cACI,SAAA,SACA,MACA,EAGA,MAAA,KACA,OAAA,KACA,OAAA,KAnBJ,QAoBI,KACA,QAAA,KACA,YAAA,OACA,gBAAA,OACA,WAAA,iBAAA,IACA,WAAA,OACA,CAfJ,aAeI,CAAA,SACI,iBAAA,IAAA,0BAIR,CAAA,YACI,WAAA,OACA,QAAA,EACA,WAAA,WAAA,IAAA,CAAA,CAAA,QAAA,IACA,CAJJ,WAII,CAAA,QACI,WAAA,QACA,QAAA,EACA,WAAA,WAAA,CAAA,CAAA,QAAA",
-  "names": []
-}

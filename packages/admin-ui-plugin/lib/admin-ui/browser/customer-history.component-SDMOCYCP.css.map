@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/customer/src/components/customer-history/customer-history.component.scss"],
-  "sourcesContent": ["\r\n.entry-list {\r\n    margin: 24px 12px 24px 24px;\r\n}\r\n\r\n.note-entry {\r\n    display: flex;\r\n    align-items: center;\r\n    .note {\r\n        flex: 1;\r\n    }\r\n\r\n    button {\r\n        margin: 0;\r\n    }\r\n}\r\ntextarea.note {\r\n    flex: 1;\r\n    height: 36px;\r\n    border-radius: 3px;\r\n    margin-inline-end: 6px;\r\n}\r\n.note-text {\r\n    color: var(--color-text-100);\r\n    white-space: pre-wrap;\r\n}\r\n\r\n.address-string {\r\n    font-size: smaller;\r\n    color: var(--color-text-200);\r\n}\r\n"],
-  "mappings": "AACA,CAAA,WAAA,OACI,KAAA,KAAA,KAAA,KAGJ,CAAA,WACI,QAAA,KACA,YAAA,OACA,CAHJ,WAGI,CAAA,KACI,KAAA,EAGJ,CAPJ,WAOI,OAXJ,OAYQ,EAGR,QAAA,CARI,KASA,KAAA,EACA,OAAA,KAjBJ,cAkBI,IACA,kBAAA,IAEJ,CAAA,UACI,MAAA,IAAA,kBACA,YAAA,SAGJ,CAAA,eACI,UAAA,QACA,MAAA,IAAA",
-  "names": []
-}

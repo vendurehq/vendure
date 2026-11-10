@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/administrator-list/administrator-list.component.scss"],
+  "sourcesContent": [".search-input {\n    min-width: 300px;\n}\n"],
+  "mappings": "AAAA,CAAA,aACI,UAAA",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;76b98d0a317729d786d5efb0ebab27d69ed179fe67670d62cccede7388777a36;D:/zhao/vendure-release-wt/packages/admin-ui/src/lib/core/src/shared/components/action-bar/action-bar.component.ts"],
+  "sourcesContent": ["\n            :host {\n                display: flex;\n                align-items: center;\n            }\n        "],
+  "mappings": "AACY,MACI,QAAS,KACT,YAAa,MACjB",
+  "names": []
+}

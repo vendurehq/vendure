@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/role-list/role-list.component.scss"],
+  "sourcesContent": ["\n.default-role-label {\n    color: var(--color-grey-400);\n}\n\n.permissions-list {\n    max-width: 500px;\n    display: flex;\n    flex-wrap: wrap;\n    align-items: center;\n    gap: 4px;\n}\n"],
+  "mappings": "AACA,CAAA,mBACI,MAAA,IAAA,kBAGJ,CAAA,iBACI,UAAA,MACA,QAAA,KACA,UAAA,KACA,YAAA,OACA,IAAA",
+  "names": []
+}

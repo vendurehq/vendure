@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/entity-info/entity-info.component.scss"],
-  "sourcesContent": ["\r\n.info-button {\r\n    color: var(--color-icon-button);\r\n}\r\n.entity-info {\r\n    margin: 0 12px;\r\n}\r\n"],
-  "mappings": "AACA,CAAA,YACI,MAAA,IAAA,qBAEJ,CAAA,YAHA,OAII,EAAA",
-  "names": []
-}

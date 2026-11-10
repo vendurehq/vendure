@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/form-item/form-item.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n\n.form-group {\n    label {\n        font-size: var(--font-size-sm);\n        color: var(--color-weight-800);\n    }\n}\n.tooltip-text {\n    font-size: var(--font-size-xs);\n    line-height: var(--font-size-sm);\n}\n\n//::ng-deep vdr-form-item + vdr-form-item {\n//    margin-top: calc(var(--space-unit) * 2);\n//}\n//\n//::ng-deep vdr-form-item + vdr-form-field {\n//    margin-top: calc(var(--space-unit) * 2);\n//}\n"],
+  "mappings": "AAAA,MACI,QAAA,MAIA,CAAA,WAAA,MACI,UAAA,IAAA,gBACA,MAAA,IAAA,oBAGR,CAAA,aACI,UAAA,IAAA,gBACA,YAAA,IAAA",
+  "names": []
+}

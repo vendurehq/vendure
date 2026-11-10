@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/asset-preview-dialog/asset-preview-dialog.component.scss"],
+  "sourcesContent": [":host {\n    height: 70vh;\n    overflow: auto;\n}\n\n.update-button {\n    &.hidden {\n        visibility: hidden;\n    }\n}\n"],
+  "mappings": "AAAA,MACI,OAAA,KACA,SAAA,KAIA,CAAA,aAAA,CAAA,OACI,WAAA",
+  "names": []
+}

@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/order/src/components/line-refunds/line-refunds.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    color: var(--color-error-500);\r\n}\r\n"],
-  "mappings": "AACA,MACI,MAAA,IAAA",
-  "names": []
-}

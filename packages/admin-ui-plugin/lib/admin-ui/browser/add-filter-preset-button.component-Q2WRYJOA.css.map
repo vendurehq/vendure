@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/data-table-filter-presets/add-filter-preset-button.component.scss"],
-  "sourcesContent": ["\r\n.add-preset-button {\r\n    display: flex;\r\n    flex-direction: row;\r\n    cursor: pointer;\r\n    gap: 6px;\r\n    align-items: center;\r\n    border: none;\r\n    padding: 0 var(--space-unit);\r\n    height: calc(var(--space-unit) * 3);\r\n    font-size: var(--font-size-xs);\r\n    border-radius: var(--border-radius-lg);\r\n    background-color: var(--color-button-small-bg);\r\n    color: var(--color-button-small-text);\r\n    opacity: 0;\r\n    transition: opacity 0.2s;\r\n    &.visible {\r\n        opacity: 1;\r\n    }\r\n}\r\n\r\n.preset-create-row {\r\n    display: flex;\r\n    justify-content: flex-end;\r\n}\r\n"],
-  "mappings": "AACA,CAAA,kBACI,QAAA,KACA,eAAA,IACA,OAAA,QACA,IAAA,IACA,YAAA,OACA,OAAA,KACA,QAAA,EAAA,IAAA,cACA,OAAA,KAAA,IAAA,cAAA,EAAA,GACA,UAAA,IAAA,gBACA,cAAA,IAAA,oBACA,iBAAA,IAAA,yBACA,MAAA,IAAA,2BACA,QAAA,EACA,WAAA,QAAA,IACA,CAfJ,iBAeI,CAAA,QACI,QAAA,EAIR,CAAA,kBACI,QAAA,KACA,gBAAA",
-  "names": []
-}

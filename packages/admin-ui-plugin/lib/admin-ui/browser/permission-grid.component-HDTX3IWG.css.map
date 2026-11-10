@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/permission-grid/permission-grid.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\ntd.permission-group {\n    max-width: 300px;\n    background-color: var(--color-component-bg-200);\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MAEJ,EAAA,CAAA,iBACI,UAAA,MACA,iBAAA,IAAA",
+  "names": []
+}

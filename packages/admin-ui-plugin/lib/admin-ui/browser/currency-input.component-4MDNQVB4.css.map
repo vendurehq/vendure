@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/currency-input/currency-input.component.scss"],
-  "sourcesContent": [":host {\r\n    padding: 0;\r\n    border: none;\r\n    &.ng-invalid input[type='number'] {\r\n        color: var(--color-error-700);\r\n        border-color: var(--color-error-300);\r\n    }\r\n}\r\n\r\ninput {\r\n    &[readonly] {\r\n        background-color: transparent;\r\n    }\r\n}\r\n"],
-  "mappings": "AAAA,cACI,EACA,OAAA,KACA,KAAA,CAAA,WAAA,KAAA,CAAA,aACI,MAAA,IAAA,mBACA,aAAA,IAAA,mBAKJ,KAAA,CAAA,UACI,iBAAA",
-  "names": []
-}

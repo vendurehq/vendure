@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/order-process-graph/order-process-graph.component.scss"],
+  "sourcesContent": ["\n:host {\n    display: block;\n    border: 1px hotpink;\n    margin: 20px;\n    padding: 12px;\n    position: relative;\n}\n\n.state-row {\n    display: flex;\n}\n"],
+  "mappings": "AACA,MACI,QAAA,MACA,OAAA,IAAA,QAFJ,OAGI,KAHJ,QAII,KACA,SAAA,SAGJ,CAAA,UACI,QAAA",
+  "names": []
+}

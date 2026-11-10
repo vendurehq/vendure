@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/order-payment-card/order-payment-card.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n.payment-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    line-break: anywhere;\n}\n\n.refund-icon {\n    margin-inline-end: 6px;\n    color: var(--color-grey-400);\n}\n\n.card-footer {\n    display: flex;\n    align-items: center;\n    justify-content: flex-end;\n}\n\n.refund-wrapper {\n    font-size: var(--font-size-xs);\n}"],
+  "mappings": "AAAA,MACI,QAAA,MAEJ,CAAA,eACI,QAAA,KACA,gBAAA,cACA,YAAA,OACA,WAAA,SAGJ,CAAA,YACI,kBAAA,IACA,MAAA,IAAA,kBAGJ,CAAA,YACI,QAAA,KACA,YAAA,OACA,gBAAA,SAGJ,CAAA,eACI,UAAA,IAAA",
+  "names": []
+}

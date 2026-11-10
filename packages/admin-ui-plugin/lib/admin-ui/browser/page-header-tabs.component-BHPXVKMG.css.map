@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/page-header-tabs/page-header-tabs.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n    margin-top: calc(var(--space-unit) * 2);\r\n}\r\n\r\n.tab-bar {\r\n    display: flex;\r\n\r\n    & a:hover {\r\n        color: var(--color-text-active);\r\n        border-bottom-color: var(--color-text-active);\r\n    }\r\n}\r\n\r\na.tab {\r\n    padding: calc(var(--space-unit) * 1) calc(var(--space-unit) * 2);\r\n    border-bottom: 1px solid var(--color-weight-300);\r\n    margin-bottom: -1px;\r\n    color: var(--color-weight-700);\r\n    cursor: pointer;\r\n    font-size: var(--font-size-sm);\r\n    line-height: 24px;\r\n\r\n    &.active {\r\n        color: var(--color-text-active);\r\n        border-bottom-color: var(--color-text-active);\r\n    }\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MACA,WAAA,KAAA,IAAA,cAAA,EAAA,GAGJ,CAAA,QACI,QAAA,KAEA,CAHJ,QAGI,CAAA,OACI,MAAA,IAAA,qBACA,oBAAA,IAAA,qBAIR,CAAA,CAAA,IACI,QAAA,KAAA,IAAA,cAAA,EAAA,GAAA,KAAA,IAAA,cAAA,EAAA,GACA,cAAA,IAAA,MAAA,IAAA,oBACA,cAAA,KACA,MAAA,IAAA,oBACA,OAAA,QACA,UAAA,IAAA,gBACA,YAAA,KAEA,CAAA,CATJ,GASI,CAAA,OACI,MAAA,IAAA,qBACA,oBAAA,IAAA",
-  "names": []
-}

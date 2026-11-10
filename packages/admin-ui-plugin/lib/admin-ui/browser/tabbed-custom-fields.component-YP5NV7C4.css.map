@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/tabbed-custom-fields/tabbed-custom-fields.component.scss"],
+  "sourcesContent": [":host {\n    display: contents;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA",
+  "names": []
+}

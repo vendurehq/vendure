@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/relation-form-input/relation-card/relation-card.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    min-width: 300px;\n}\n\n.placeholder {\n    color: var(--color-grey-300);\n}\n\n.not-set {\n    color: var(--color-grey-300);\n}\n\n.detail {\n    flex: 1;\n    overflow: hidden;\n}\n\n.name {\n    white-space: nowrap;\n    overflow: hidden;\n    text-overflow: ellipsis;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,UAAA,MAGJ,CAAA,YAIA,CAAA,QAHI,MAAA,IAAA,kBAOJ,CAAA,OACI,KAAA,EACA,SAAA,OAGJ,CAAA,KACI,YAAA,OACA,SAAA,OACA,cAAA",
+  "names": []
+}

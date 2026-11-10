@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/custom-field-control/custom-field-control.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    width: 100%;\n    .toggle-switch {\n        margin-top: 0;\n        margin-bottom: 0;\n    }\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,MAAA,KACA,MAAA,CAAA,cACI,WAAA,EACA,cAAA",
+  "names": []
+}

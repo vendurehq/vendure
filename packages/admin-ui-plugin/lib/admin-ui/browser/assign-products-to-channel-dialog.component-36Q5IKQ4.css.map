@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/catalog/src/components/assign-products-to-channel-dialog/assign-products-to-channel-dialog.component.scss"],
-  "sourcesContent": ["\r\nvdr-channel-assignment-control {\r\n    min-width: 200px;\r\n}\r\n\r\n.channel-price-preview {\r\n    margin-top: 24px;\r\n    table.table {\r\n        margin-top: 6px;\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,+BACI,UAAA,MAGJ,CAAA,sBACI,WAAA,KACA,CAFJ,sBAEI,KAAA,CAAA,MACI,WAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/product-variant-detail/product-variant-detail.component.scss"],
+  "sourcesContent": [".facets, .options {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 3px;\n}\n\nvdr-product-variant-quick-jump {\n    flex: 1;\n    margin-inline-end: calc(var(--space-unit) * 2);\n}\n.stock-levels, .prices {\n    margin-top: calc(var(--space-unit) * 2);\n    padding-top: calc(var(--space-unit) * 2);\n    border-top: 1px solid var(--color-weight-150);\n}\n.price-wrapper {\n    display: flex;\n    align-items: center;\n    gap: var(--space-unit);\n    width: 100%;\n\n    &.pending-deletion {\n        vdr-currency-input {\n            opacity: 0.7;\n        }\n        .delete-button {\n            background-color: var(--color-error-700);\n            color: var(--color-error-100);\n        }\n    }\n}\n\n.title-row {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n}\n.title {\n    font-size: var(--font-size-base);\n}\n"],
+  "mappings": "AAAA,CAAA,OAAA,CAAA,QACI,QAAA,KACA,UAAA,KACA,IAAA,IAGJ,+BACI,KAAA,EACA,kBAAA,KAAA,IAAA,cAAA,EAAA,GAEJ,CAAA,aAAA,CAAA,OACI,WAAA,KAAA,IAAA,cAAA,EAAA,GACA,YAAA,KAAA,IAAA,cAAA,EAAA,GACA,WAAA,IAAA,MAAA,IAAA,oBAEJ,CAAA,cACI,QAAA,KACA,YAAA,OACA,IAAA,IAAA,cACA,MAAA,KAGI,CAPR,aAOQ,CAAA,iBAAA,mBACI,QAAA,GAEJ,CAVR,aAUQ,CAHA,iBAGA,CAAA,cACI,iBAAA,IAAA,mBACA,MAAA,IAAA,mBAKZ,CAAA,UACI,QAAA,KACA,gBAAA,cACA,YAAA,OAEJ,CAAA,MACI,UAAA,IAAA",
+  "names": []
+}

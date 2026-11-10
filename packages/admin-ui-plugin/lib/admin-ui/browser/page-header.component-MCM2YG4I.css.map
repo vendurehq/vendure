@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/page-header/page-header.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    border-bottom: 1px solid var(--color-weight-150);\n    background-color: var(--color-page-header);\n}\n\n.page-header {\n    padding-inline-start: var(--surface-margin-left);\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,cAAA,IAAA,MAAA,IAAA,oBACA,iBAAA,IAAA,qBAGJ,CAAA,YACI,qBAAA,IAAA",
+  "names": []
+}

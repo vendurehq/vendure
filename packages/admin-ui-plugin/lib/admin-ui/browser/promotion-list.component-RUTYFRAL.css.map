@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/marketing/src/components/promotion-list/promotion-list.component.scss"],
-  "sourcesContent": [".search-form {\r\n    padding: 0;\r\n}\r\n\r\n.search-input {\r\n    margin: 6px 8px 0 0;\r\n    min-width: 200px;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,YAAA,QACI,EAGJ,CAAA,aAJA,OAKI,IAAA,IAAA,EAAA,EACA,UAAA",
-  "names": []
-}

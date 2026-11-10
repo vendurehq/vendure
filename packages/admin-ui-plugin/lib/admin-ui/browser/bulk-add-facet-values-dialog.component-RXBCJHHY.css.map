@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/bulk-add-facet-values-dialog/bulk-add-facet-values-dialog.component.scss"],
+  "sourcesContent": [".loading {\n    min-height: 25vh;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n}\n.sku {\n    color: var(--color-text-300);\n}\n"],
+  "mappings": "AAAA,CAAA,QACI,WAAA,KACA,QAAA,KACA,gBAAA,OACA,YAAA,OAEJ,CAAA,IACI,MAAA,IAAA",
+  "names": []
+}

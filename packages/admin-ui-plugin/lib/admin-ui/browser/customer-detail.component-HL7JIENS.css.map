@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/customer/src/components/customer-detail/customer-detail.component.scss"],
-  "sourcesContent": ["\r\n.last-login {\r\n    margin-inline-start: 6px;\r\n    color: var(--color-grey-500);\r\n}\r\n\r\n.to-delete {\r\n    opacity: 0.5;\r\n}\r\n"],
-  "mappings": "AACA,CAAA,WACI,oBAAA,IACA,MAAA,IAAA,kBAGJ,CAAA,UACI,QAAA",
-  "names": []
-}

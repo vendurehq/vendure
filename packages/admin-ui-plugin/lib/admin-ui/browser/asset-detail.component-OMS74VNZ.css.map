@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/catalog/src/components/asset-detail/asset-detail.component.scss"],
-  "sourcesContent": [":host {\r\n    display: flex;\r\n    flex-direction: column;\r\n    height: 100%;\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,KACA,eAAA,OACA,OAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/text-form-input/text-form-input.component.scss"],
+  "sourcesContent": ["input {\n    width: 100%;\n}\n"],
+  "mappings": "AAAA,MACI,MAAA",
+  "names": []
+}

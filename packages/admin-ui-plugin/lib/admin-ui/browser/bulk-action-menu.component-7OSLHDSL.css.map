@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/bulk-action-menu/bulk-action-menu.component.scss"],
+  "sourcesContent": [":host {\n    display: inline-flex;\n    align-items: center;\n}\nbutton.hidden {\n    display: none;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,YACA,YAAA,OAEJ,MAAA,CAAA,OACI,QAAA",
+  "names": []
+}

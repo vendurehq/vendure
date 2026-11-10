@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/product-options-editor/product-options-editor.component.scss"],
+  "sourcesContent": [".option-group-header {\n    display: flex;\n    align-items: baseline;\n}\n"],
+  "mappings": "AAAA,CAAA,oBACI,QAAA,KACA,YAAA",
+  "names": []
+}

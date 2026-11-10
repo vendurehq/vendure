@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../common/src/normalize-string.ts"],
+  "sourcesContent": ["/**\n * Normalizes a string to replace non-alphanumeric and diacritical marks with\n * plain equivalents.\n * Based on https://stackoverflow.com/a/37511463/772859\n */\nexport function normalizeString(input: string, spaceReplacer = ' '): string {\n    const multipleSequentialReplacerRegex = new RegExp(`([${spaceReplacer}]){2,}`, 'g');\n\n    return (input || '')\n        .normalize('NFD')\n        .replace(/[\\u00df]/g, 'ss')\n        .replace(/[\\u1e9e]/g, 'SS')\n        .replace(/[\\u0308]/g, 'e')\n        .replace(/[\\u0300-\\u036f]/g, '')\n        .toLowerCase()\n        .replace(/[!\"\u00A3$%^&*()+[\\]{};:@#~?\\\\/,|><`\u00AC'=\u2018\u2019\u00A9\u00AE\u2122]/g, '')\n        .replace(/\\s+/g, spaceReplacer)\n        .replace(multipleSequentialReplacerRegex, spaceReplacer);\n}\n"],
+  "mappings": "kHAKAA,EAAAC,gBAAAA,EAAA,SAAgBA,EAAgBC,EAAeC,EAAgB,IAAG,CAC9D,IAAMC,EAAkC,IAAIC,OAAO,KAAKF,CAAa,SAAU,GAAG,EAElF,OAAQD,GAAS,IACZI,UAAU,KAAK,EACfC,QAAQ,YAAa,IAAI,EACzBA,QAAQ,YAAa,IAAI,EACzBA,QAAQ,YAAa,GAAG,EACxBA,QAAQ,mBAAoB,EAAE,EAC9BC,YAAW,EACXD,QAAQ,4CAA6C,EAAE,EACvDA,QAAQ,OAAQJ,CAAa,EAC7BI,QAAQH,EAAiCD,CAAa,CAC/D",
+  "names": ["exports", "normalizeString", "input", "spaceReplacer", "multipleSequentialReplacerRegex", "RegExp", "normalize", "replace", "toLowerCase"]
+}

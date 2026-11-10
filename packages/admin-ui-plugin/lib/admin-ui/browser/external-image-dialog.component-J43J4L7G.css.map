@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/rich-text-editor/external-image-dialog/external-image-dialog.component.scss"],
+  "sourcesContent": ["\n.preview {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    max-width: 150px;\n    height: 150px;\n    img {\n        max-width: 100%;\n        display: none;\n        &.visible {\n            display: block;\n        }\n    }\n    .placeholder {\n        color: var(--color-grey-300);\n    }\n}\n"],
+  "mappings": "AACA,CAAA,QACI,QAAA,KACA,YAAA,OACA,gBAAA,OACA,UAAA,MACA,OAAA,MACA,CANJ,QAMI,IACI,UAAA,KACA,QAAA,KACA,CATR,QASQ,GAAA,CAAA,QACI,QAAA,MAGR,CAbJ,QAaI,CAAA,YACI,MAAA,IAAA",
+  "names": []
+}

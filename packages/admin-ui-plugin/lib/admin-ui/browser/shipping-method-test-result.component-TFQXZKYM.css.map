@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/shipping-method-test-result/shipping-method-test-result.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n.test-result {\n    &.success .card-block {\n        background-color: var(--color-success-100);\n    }\n    &.error .card-block {\n        background-color: var(--color-error-100);\n    }\n    &.unknown .card-block {\n        background-color: var(--color-component-bg-100);\n    }\n}\n.result-details {\n    transition: opacity 0.2s;\n    &.stale {\n        opacity: 0.5;\n    }\n}\n\n.eligible-icon {\n    display: inline-block;\n    .success {\n        color: var(--color-success-500);\n    }\n    .error {\n        color: var(--color-error-500);\n    }\n}\n.price-row {\n    display: flex;\n    & > *:not(:first-child) {\n        margin-inline-start: 24px;\n    }\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MAGA,CAAA,WAAA,CAAA,QAAA,CAAA,WACI,iBAAA,IAAA,qBAEJ,CAHA,WAGA,CAAA,MAAA,CAHA,WAII,iBAAA,IAAA,mBAEJ,CANA,WAMA,CAAA,QAAA,CANA,WAOI,iBAAA,IAAA,0BAGR,CAAA,eACI,WAAA,QAAA,IACA,CAFJ,cAEI,CAAA,MACI,QAAA,GAIR,CAAA,cACI,QAAA,aACA,CAFJ,cAEI,CAnBA,QAoBI,MAAA,IAAA,qBAEJ,CALJ,cAKI,CAnBA,MAoBI,MAAA,IAAA,mBAGR,CAAA,UACI,QAAA,KACA,CAFJ,SAEI,CAAA,CAAA,KAAA,cACI,oBAAA",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/select-customer-dialog/select-customer-dialog.component.scss"],
+  "sourcesContent": [".item-row {\n    display: flex;\n    align-items: center;\n}\n\nclr-tabs {\n    display: block;\n}"],
+  "mappings": "AAAA,CAAA,SACI,QAAA,KACA,YAAA,OAGJ,SACI,QAAA",
+  "names": []
+}

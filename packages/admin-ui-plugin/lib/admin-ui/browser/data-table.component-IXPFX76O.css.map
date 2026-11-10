@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/data-table/data-table.component.scss"],
+  "sourcesContent": ["\n:host {\n    display: block;\n    max-width: 100%;\n    overflow: auto;\n    position: relative;\n}\n\n.bulk-actions {\n    position: absolute;\n    left: 50px;\n    top: 30px;\n    z-index: 2;\n}\n\ntable.table {\n    max-width: 100vw;\n    overflow-x: auto;\n}\n\ntable.no-select {\n    user-select: none;\n}\n\nthead th {\n    &.expand {\n        width: 100%;\n    }\n}\n\nthead.items-selected tr th {\n    color: transparent;\n}\n\n.selection-col {\n    width: 24px;\n}\n\n.table-footer {\n    display: flex;\n    align-items: baseline;\n    justify-content: space-between;\n    margin-top: 6px;\n}\n"],
+  "mappings": "AACA,MACI,QAAA,MACA,UAAA,KACA,SAAA,KACA,SAAA,SAGJ,CAAA,aACI,SAAA,SACA,KAAA,KACA,IAAA,KACA,QAAA,EAGJ,KAAA,CAAA,MACI,UAAA,MACA,WAAA,KAGJ,KAAA,CAAA,UACI,oBAAA,KAAA,YAAA,KAIA,MAAA,EAAA,CAAA,OACI,MAAA,KAIR,KAAA,CAAA,eAAA,GAAA,GACI,MAAA,YAGJ,CAAA,cACI,MAAA,KAGJ,CAAA,aACI,QAAA,KACA,YAAA,SACA,gBAAA,cACA,WAAA",
+  "names": []
+}

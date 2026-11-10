@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/collection-list/collection-list-common.scss"],
+  "sourcesContent": [":host {\n    --indent-spacing: 18px;\n}\n.indent-1 {\n    padding-inline-start: var(--indent-spacing);\n}\n.indent-2 {\n    padding-inline-start: calc(var(--indent-spacing) * 2);\n}\n.indent-3 {\n    padding-inline-start: calc(var(--indent-spacing) * 3);\n}\n.indent-4, .indent-5, .indent-6, .indent-7, .indent-8, .indent-9 {\n    padding-inline-start: calc(var(--indent-spacing) * 4);\n}\n.child-arrow {\n    margin: 1px 6px;\n    &.transparent {\n        opacity: 0;\n    }\n}\n.breadcrumb {\n    display: flex;\n}\n.separator {\n    color: var(--color-weight-500);\n    margin: 0 3px;\n}\n"],
+  "mappings": "AAAA,MACI,kBAAA,KAEJ,CAAA,SACI,qBAAA,IAAA,kBAEJ,CAAA,SACI,qBAAA,KAAA,IAAA,kBAAA,EAAA,GAEJ,CAAA,SACI,qBAAA,KAAA,IAAA,kBAAA,EAAA,GAEJ,CAAA,SAAA,CAAA,SAAA,CAAA,SAAA,CAAA,SAAA,CAAA,SAAA,CAAA,SACI,qBAAA,KAAA,IAAA,kBAAA,EAAA,GAEJ,CAAA,YAfA,OAgBI,IAAA,IACA,CAFJ,WAEI,CAAA,YACI,QAAA,EAGR,CAAA,WACI,QAAA,KAEJ,CAAA,UACI,MAAA,IAAA,oBAzBJ,OA0BI,EAAA",
+  "names": []
+}

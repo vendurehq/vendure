@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/order/src/components/order-custom-fields-card/order-custom-fields-card.component.scss"],
-  "sourcesContent": ["\r\nvdr-custom-field-control {\r\n    margin-bottom: 6px;\r\n    display: block;\r\n}\r\n\r\n.custom-field-form {\r\n    ::ng-deep .clr-control-label {\r\n        color: var(--color-grey-400);\r\n    }\r\n\r\n    &.editable {\r\n        ::ng-deep .clr-control-label {\r\n            color: inherit;\r\n        }\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,yBACI,cAAA,IACA,QAAA,MAIA,CAAA,kBAAA,UAAA,CAAA,kBACI,MAAA,IAAA,kBAIA,CALJ,iBAKI,CAAA,SAAA,UAAA,CALJ,kBAMQ,MAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/line-fulfillment/line-fulfillment.component.scss"],
+  "sourcesContent": ["\n.item-fulfilled {\n    color: var(--color-success-700);\n}\n.item-partially-fulfilled {\n    color: var(--color-warning-700);\n}\n.item-not-fulfilled {\n    color: var(--color-error-700);\n}\n\n.fulfillment-detail {\n    margin: 6px 12px;\n    &:not(:last-of-type) {\n        border-bottom: 1px dashed var(--color-component-border-200);\n    }\n}\n"],
+  "mappings": "AACA,CAAA,eACI,MAAA,IAAA,qBAEJ,CAAA,yBACI,MAAA,IAAA,qBAEJ,CAAA,mBACI,MAAA,IAAA,mBAGJ,CAAA,mBAVA,OAWI,IAAA,KACA,CAFJ,kBAEI,KAAA,eACI,cAAA,IAAA,OAAA,IAAA",
+  "names": []
+}

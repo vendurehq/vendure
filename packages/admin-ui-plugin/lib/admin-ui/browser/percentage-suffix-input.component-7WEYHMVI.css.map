@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["angular:styles/component:css;8a828c8927ca52e812f256403afb7d06f4a47e70540fd408c3a8b6dfa12644dc;D:/zhao/vendure/packages/admin-ui/src/lib/core/src/shared/components/affixed-input/percentage-suffix-input.component.ts"],
-  "sourcesContent": ["\n            :host {\n                padding: 0;\n            }\n        "],
-  "mappings": "AACY,MADZ,QAEyB,CACb",
-  "names": []
-}

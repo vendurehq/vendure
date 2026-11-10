@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/radio-card/radio-card.component.scss"],
-  "sourcesContent": [":host {\r\n    display: inline-block;\r\n}\r\n.radio-card {\r\n    background: none;\r\n    position: relative;\r\n    display: block;\r\n    border: 1px solid var(--clr-btn-default-border-color, #0072a3);\r\n    border-radius: var(--clr-btn-border-radius, 0.15rem);\r\n    padding: 6px;\r\n    text-align: start;\r\n    margin: 6px;\r\n    &:hover {\r\n        cursor: pointer;\r\n        outline: 1px solid var(--color-primary-500);\r\n    }\r\n    &.selected {\r\n        outline: 1px solid var(--color-primary-500);\r\n        background-color: var(--color-primary-100);\r\n    }\r\n}\r\n\r\ninput.hidden {\r\n    visibility: hidden;\r\n    position: absolute;\r\n}\r\n\r\nvdr-select-toggle {\r\n    position: absolute;\r\n    top: 3px;\r\n    left: 3px;\r\n}\r\n\r\n.content {\r\n    margin-inline-start: 24px;\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,aAEJ,CAAA,WACI,WAAA,KACA,SAAA,SACA,QAAA,MACA,OAAA,IAAA,MAAA,IAAA,8BAAA,EAAA,SACA,cAAA,IAAA,uBAAA,EAAA,QARJ,QASI,IACA,WAAA,MAVJ,OAWI,IACA,CATJ,UASI,OACI,OAAA,QACA,QAAA,IAAA,MAAA,IAAA,qBAEJ,CAbJ,UAaI,CAAA,SACI,QAAA,IAAA,MAAA,IAAA,qBACA,iBAAA,IAAA,qBAIR,KAAA,CAAA,OACI,WAAA,OACA,SAAA,SAGJ,kBACI,SAAA,SACA,IAAA,IACA,KAAA,IAGJ,CAAA,QACI,oBAAA",
-  "names": []
-}

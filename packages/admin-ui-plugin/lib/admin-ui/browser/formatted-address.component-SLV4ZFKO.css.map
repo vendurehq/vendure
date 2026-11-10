@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/formatted-address/formatted-address.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n}\r\n.address-lines {\r\n    list-style-type: none;\r\n    line-height: 1.2em;\r\n}\r\n\r\n.custom-field {\r\n    margin-top: 6px;\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MAEJ,CAAA,cACI,gBAAA,KACA,YAAA,MAGJ,CAAA,aACI,WAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/app.component.scss"],
+  "sourcesContent": [".progress {\n    position: absolute;\n    overflow: hidden;\n    height: 4px;\n    background-color: var(--color-grey-500);\n    opacity: 0;\n    transition: opacity 0.1s;\n    &.visible {\n        opacity: 1;\n    }\n}\n"],
+  "mappings": "AAAA,CAAA,SACI,SAAA,SACA,SAAA,OACA,OAAA,IACA,iBAAA,IAAA,kBACA,QAAA,EACA,WAAA,QAAA,IACA,CAPJ,QAOI,CAAA,QACI,QAAA",
+  "names": []
+}

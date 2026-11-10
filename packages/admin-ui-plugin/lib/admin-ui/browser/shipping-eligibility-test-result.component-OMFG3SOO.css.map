@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/shipping-eligibility-test-result/shipping-eligibility-test-result.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n.result-details {\n    transition: opacity 0.2s;\n    &.stale {\n        opacity: 0.5;\n    }\n}\n\n.price-row {\n    display: flex;\n    & > *:not(:first-child) {\n        margin-inline-start: 24px;\n    }\n}\n\nclr-icon.error {\n    color: var(--color-error-500);\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MAEJ,CAAA,eACI,WAAA,QAAA,IACA,CAFJ,cAEI,CAAA,MACI,QAAA,GAIR,CAAA,UACI,QAAA,KACA,CAFJ,SAEI,CAAA,CAAA,KAAA,cACI,oBAAA,KAIR,QAAA,CAAA,MACI,MAAA,IAAA",
+  "names": []
+}

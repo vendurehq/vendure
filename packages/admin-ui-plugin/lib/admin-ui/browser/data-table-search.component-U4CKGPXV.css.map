@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/data-table-2/data-table-search.component.scss"],
+  "sourcesContent": [".search-wrapper {\n    position: relative;\n    .search-icon {\n        position: absolute;\n        top: 50%;\n        transform: translateY(-50%);\n        left: 8px;\n        color: var(--color-weight-600);\n    }\n    > input {\n        padding-inline-start: 32px !important;\n        width: 100%;\n    }\n}\n"],
+  "mappings": "AAAA,CAAA,eACI,SAAA,SACA,CAFJ,eAEI,CAAA,YACI,SAAA,SACA,IAAA,IACA,UAAA,WAAA,MACA,KAAA,IACA,MAAA,IAAA,oBAEJ,CATJ,cASI,CAAA,MACI,qBAAA,eACA,MAAA",
+  "names": []
+}

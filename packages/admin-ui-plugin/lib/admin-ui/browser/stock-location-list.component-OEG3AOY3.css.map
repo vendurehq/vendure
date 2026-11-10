@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/stock-location-list/stock-location-list.component.scss"],
+  "sourcesContent": ["::ng-deep .description > p {\n    margin-top: 0 !important;\n}\n"],
+  "mappings": "AAAA,UAAA,CAAA,WAAA,CAAA,EACI,WAAA",
+  "names": []
+}

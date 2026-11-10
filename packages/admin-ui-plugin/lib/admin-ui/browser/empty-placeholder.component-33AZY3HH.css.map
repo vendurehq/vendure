@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/empty-placeholder/empty-placeholder.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n.empty-state {\n    text-align: center;\n    padding: 60px;\n    color: var(--color-grey-400);\n    width: 100%;\n\n    .empty-label {\n        margin-top: 12px;\n        font-size: 22px;\n    }\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MAEJ,CAAA,YACI,WAAA,OAJJ,QAKI,KACA,MAAA,IAAA,kBACA,MAAA,KAEA,CANJ,YAMI,CAAA,YACI,WAAA,KACA,UAAA",
+  "names": []
+}

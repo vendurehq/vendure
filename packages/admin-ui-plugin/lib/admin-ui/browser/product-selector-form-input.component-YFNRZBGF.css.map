@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/product-selector-form-input/product-selector-form-input.component.scss"],
+  "sourcesContent": ["\n.variant {\n    margin-bottom: 6px;\n    display: flex;\n    align-items: center;\n    transition: background-color 0.2s;\n    &:hover {\n        background-color: var(--color-component-bg-200);\n    }\n}\n.thumb {\n    margin-inline-end: 6px;\n    img {\n        border-radius: var(--border-radius);\n    }\n}\n.sku {\n    color: var(--color-grey-400);\n    font-size: smaller;\n    line-height: 1em;\n}\n"],
+  "mappings": "AACA,CAAA,QACI,cAAA,IACA,QAAA,KACA,YAAA,OACA,WAAA,iBAAA,IACA,CALJ,OAKI,OACI,iBAAA,IAAA,0BAGR,CAAA,MACI,kBAAA,IACA,CAFJ,MAEI,IACI,cAAA,IAAA,iBAGR,CAAA,IACI,MAAA,IAAA,kBACA,UAAA,QACA,YAAA",
+  "names": []
+}

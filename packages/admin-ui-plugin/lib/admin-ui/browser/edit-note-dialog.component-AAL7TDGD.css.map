@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/edit-note-dialog/edit-note-dialog.component.scss"],
+  "sourcesContent": ["\n.visibility-select {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    .public {\n        color: var(--color-warning-500);\n    }\n    .private {\n        color: var(--color-success-500);\n    }\n}\ntextarea.note {\n    width: 100%;\n    height: 72px;\n    border-radius: 3px;\n    margin-inline-end: 6px;\n}\n"],
+  "mappings": "AACA,CAAA,kBACI,QAAA,KACA,gBAAA,cACA,YAAA,SACA,CAJJ,kBAII,CAAA,OACI,MAAA,IAAA,qBAEJ,CAPJ,kBAOI,CAAA,QACI,MAAA,IAAA,qBAGR,QAAA,CAAA,KACI,MAAA,KACA,OAAA,KAbJ,cAcI,IACA,kBAAA",
+  "names": []
+}

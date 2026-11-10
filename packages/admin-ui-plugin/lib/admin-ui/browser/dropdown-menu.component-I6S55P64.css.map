@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/dropdown/dropdown-menu.component.scss"],
-  "sourcesContent": [".clear-backdrop {\r\n    background-color: hotpink;\r\n}\r\n\r\n.dropdown-content-wrapper {\r\n}\r\n\r\n::ng-deep {\r\n    .dropdown-menu {\r\n        max-width: initial;\r\n    }\r\n    .dropdown-menu .dropdown-item {\r\n        display: flex;\r\n        align-items: center;\r\n        padding: 3px 24px;\r\n        clr-icon {\r\n            margin-inline-end: 3px;\r\n        }\r\n        &:focus {\r\n            outline: var(--color-dropdown-item-focus-outline) solid 1px;\r\n            outline-offset: 1px 0;\r\n        }\r\n    }\r\n}\r\n\r\n.dropdown.open > .dropdown-menu {\r\n    position: relative;\r\n    top: 0;\r\n    height: 100%;\r\n    overflow-y: auto;\r\n}\r\n\r\n:host {\r\n    opacity: 1;\r\n    transition: opacity 0.3s;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,eACI,iBAAA,QAOA,UAAA,CAAA,cACI,UAAA,QAEJ,UAAA,CAHA,cAGA,CAAA,cACI,QAAA,KACA,YAAA,OAbR,QAcQ,IAAA,KACA,UAAA,CAPJ,cAOI,CAJJ,cAII,SACI,kBAAA,IAEJ,UAAA,CAVJ,cAUI,CAPJ,aAOI,OACI,QAAA,IAAA,qCAAA,MAAA,IACA,eAAA,IAAA,EAKZ,CAAA,QAAA,CAAA,IAAA,CAAA,CAjBI,cAkBA,SAAA,SACA,IAAA,EACA,OAAA,KACA,WAAA,KAGJ,MACI,QAAA,EACA,WAAA,QAAA",
-  "names": []
-}

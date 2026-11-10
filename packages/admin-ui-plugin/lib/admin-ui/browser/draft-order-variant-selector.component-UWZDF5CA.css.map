@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/order/src/components/draft-order-variant-selector/draft-order-variant-selector.component.scss"],
-  "sourcesContent": [".variant-details {\r\n    display: flex;\r\n    align-items: center;\r\n\r\n    img {\r\n        border-radius: var(--border-radius-img);\r\n        width: 32px;\r\n        height: 32px;\r\n    }\r\n\r\n    .details {\r\n        font-size: 0.65rem;\r\n        line-height: 0.7rem;\r\n    }\r\n\r\n    input {\r\n        width: 48px;\r\n        margin: 0 6px;\r\n    }\r\n\r\n    .small {\r\n        font-size: 11px;\r\n        color: var(--color-text-300);\r\n    }\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,gBACI,QAAA,KACA,YAAA,OAEA,CAJJ,gBAII,IACI,cAAA,IAAA,qBACA,MAAA,KACA,OAAA,KAGJ,CAVJ,gBAUI,CAAA,QACI,UAAA,OACA,YAAA,MAGJ,CAfJ,gBAeI,MACI,MAAA,KAhBR,OAiBQ,EAAA,IAGJ,CApBJ,gBAoBI,CAAA,MACI,UAAA,KACA,MAAA,IAAA",
-  "names": []
-}

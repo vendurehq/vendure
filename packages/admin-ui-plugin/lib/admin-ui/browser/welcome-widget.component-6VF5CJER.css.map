@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/dashboard/src/widgets/welcome-widget/welcome-widget.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    display: flex;\r\n    justify-content: space-between;\r\n}\r\n.placeholder {\r\n    color: var(--color-grey-200);\r\n}\r\n"],
-  "mappings": "AACA,MACI,QAAA,KACA,gBAAA,cAEJ,CAAA,YACI,MAAA,IAAA",
-  "names": []
-}

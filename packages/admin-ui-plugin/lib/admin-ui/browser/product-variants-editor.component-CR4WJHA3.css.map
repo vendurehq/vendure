@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/catalog/src/components/product-variants-editor/product-variants-editor.component.scss"],
-  "sourcesContent": ["\r\n.option-groups {\r\n    display: flex;\r\n    width: 100%;\r\n    gap: var(--space-unit);\r\n}\r\n\r\n.values {\r\n    flex: 1;\r\n    margin: 0 6px;\r\n}\r\n\r\n.variants-preview {\r\n    tr.disabled {\r\n        td {\r\n            background-color: var(--color-component-bg-100);\r\n            color: var(--color-grey-400);\r\n        }\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,CAAA,cACI,QAAA,KACA,MAAA,KACA,IAAA,IAAA,cAGJ,CAAA,OACI,KAAA,EAPJ,OAQI,EAAA,IAKI,CAAA,iBAAA,EAAA,CAAA,SAAA,GACI,iBAAA,IAAA,0BACA,MAAA,IAAA",
-  "names": []
-}

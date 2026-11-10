@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/settle-refund-dialog/settle-refund-dialog.component.scss"],
+  "sourcesContent": [":host {\n    padding-bottom: 32px;\n}\n\n.instruction {\n    margin-top: 0;\n    margin-bottom: 24px;\n}\n"],
+  "mappings": "AAAA,MACI,eAAA,KAGJ,CAAA,YACI,WAAA,EACA,cAAA",
+  "names": []
+}

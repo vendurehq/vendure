@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/data-table-filter-label/data-table-filter-label.component.scss"],
+  "sourcesContent": [":host {\n    display: flex;\n    gap: calc(var(--space-unit) / 2);\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,KACA,IAAA,KAAA,IAAA,cAAA,EAAA",
+  "names": []
+}

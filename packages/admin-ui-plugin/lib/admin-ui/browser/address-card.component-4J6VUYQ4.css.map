@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/customer/src/components/address-card/address-card.component.scss"],
+  "sourcesContent": ["\n:host {\n    display: block;\n    max-width: 360px;\n}\n\nclr-input-container {\n    margin-bottom: 12px;\n}\n\n.defaul-controls {\n    display: flex;\n}\n\n.is-default {\n    margin: 0;\n    color: var(--color-success-500);\n}\n.address-actions {\n    display: flex;\n    align-items: center;\n    gap: var(--space-unit);\n    vdr-entity-info {\n        margin-top: 1px;\n    }\n}\n"],
+  "mappings": "AACA,MACI,QAAA,MACA,UAAA,MAGJ,oBACI,cAAA,KAGJ,CAAA,gBACI,QAAA,KAGJ,CAAA,WAbA,OAcI,EACA,MAAA,IAAA,qBAEJ,CAAA,gBACI,QAAA,KACA,YAAA,OACA,IAAA,IAAA,cACA,CAJJ,gBAII,gBACI,WAAA",
+  "names": []
+}

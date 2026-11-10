@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/fulfillment-state-label/fulfillment-state-label.component.scss"],
+  "sourcesContent": [":host {\n    font-size: 14px;\n}\n"],
+  "mappings": "AAAA,MACI,UAAA",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/order-state-label/order-state-label.component.scss"],
+  "sourcesContent": ["\nclr-icon {\n    margin-inline-end: 3px;\n}\n"],
+  "mappings": "AACA,SACI,kBAAA",
+  "names": []
+}

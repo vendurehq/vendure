@@ -98,6 +98,12 @@ if (!process.env.REDEMPTION_KEY) {
 // IS_PROD=true 环境变量：dashboard vite 构建时 config-loader 编译到临时目录，
 // __dirname 非 dist，需用环境变量显式标记生产，跳过 test-plugins
 const IS_PROD = path_1.default.basename(__dirname) === 'dist' || process.env.IS_PROD === 'true';
+/**
+ * GraphQL 查询深度上限（防深嵌套拖垮服务；复杂度上限由 HardenPlugin 负责）。
+ * 默认 12；本地联调可调高，让 C 端对活服务跑完整 introspection（`probe:local --strict`）。
+ * 例：`set GRAPHQL_MAX_DEPTH=25` 后重启 dev-server。
+ */
+const GRAPHQL_MAX_DEPTH = Number(process.env.GRAPHQL_MAX_DEPTH) || 12;
 const devOnlyPlugins = IS_PROD
     ? []
     : (() => {
@@ -215,7 +221,12 @@ RelaxArrangingPaymentGuardPlugin = __decorate([
  * 不是裸 500，前端/日志可直接读取原因。
  */
 const CSRF_ALLOWED_ORIGINS = new Set((process.env.CSRF_ALLOWED_ORIGINS ??
-    'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,http://localhost:5280,http://localhost:3000')
+    'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,' +
+        'http://localhost:5280,http://localhost:3000,' +
+        // 本地联调：C 端静态页与同源反代，127.0.0.1 与 localhost 不等价，需分别列出
+        'http://127.0.0.1:3100,http://localhost:3100,' +
+        // C 端 dev-server 预期端口 3001
+        'http://127.0.0.1:3001,http://localhost:3001,http://g.joho.cn')
     .split(',')
     .map(s => s.trim().toLowerCase())
     .filter(Boolean));
@@ -304,8 +315,8 @@ exports.devConfig = {
         // 位于 nginx 之后，信任第一层代理以获取真实客户端 IP（登录限速按 IP+账号）
         trustProxy: 1,
         // GraphQL 查询深度上限（防深嵌套拖垮服务；复杂度上限由 HardenPlugin 负责）
-        adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
-        shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
+        adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(GRAPHQL_MAX_DEPTH)],
+        shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(GRAPHQL_MAX_DEPTH)],
         middleware: [
             {
                 handler: (req, res, next) => {
@@ -758,7 +769,8 @@ exports.devConfig = {
         inventory_plugin_1.InventoryPlugin.init(),
         operations_plugin_1.OperationsPlugin.init(),
         // ONE BRIDGE 跨境频道：实体/迁移/customFields/权限，增量注册，不影响既有租户
-        onebridge_plugin_1.OnebridgePlugin.init({}),
+        // channelToken 由 env 注入（ONE_BRIDGE_CHANNEL_TOKEN）；未设置时按 ctx.channel.token 工作
+        onebridge_plugin_1.OnebridgePlugin.init({ channelToken: process.env.ONE_BRIDGE_CHANNEL_TOKEN }),
         message_plugin_1.MessagePlugin.init(),
         notification_plugin_1.NotificationPlugin.init(),
         // 预售/定金预售：两阶段支付（定金→尾款）+ 全款预售 + 分档定价 + 到货释放库存

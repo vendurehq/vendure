@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/dashboard/src/widgets/order-chart-widget/order-chart-widget.component.scss"],
+  "sourcesContent": [".button-small.active {\n    background-color: var(--color-primary-200);\n    color: var(--color-primary-900);\n}\n"],
+  "mappings": "AAAA,CAAA,YAAA,CAAA,OACI,iBAAA,IAAA,qBACA,MAAA,IAAA",
+  "names": []
+}

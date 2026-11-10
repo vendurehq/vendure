@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/configurable-input/configurable-input.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    margin-bottom: 12px;\n\n    > .card {\n        margin-top: 6px;\n    }\n}\n\n.operation-inputs {\n    padding-top: 0;\n\n    .arg-row:not(:last-child) {\n        margin-bottom: 12px;\n    }\n\n    .arg-row {\n        display: flex;\n        flex-wrap: wrap;\n        align-items: center;\n        label {\n            margin-inline-end: 6px;\n        }\n    }\n\n    .hidden {\n        display: none;\n    }\n    label {\n        min-width: 130px;\n        display: inline-block;\n    }\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,cAAA,KAEA,KAAA,CAAA,CAAA,KACI,WAAA,IAIR,CAAA,iBACI,YAAA,EAEA,CAHJ,iBAGI,CAAA,OAAA,KAAA,aACI,cAAA,KAGJ,CAPJ,iBAOI,CAJA,QAKI,QAAA,KACA,UAAA,KACA,YAAA,OACA,CAXR,iBAWQ,CARJ,QAQI,MACI,kBAAA,IAIR,CAhBJ,iBAgBI,CAAA,OACI,QAAA,KAEJ,CAnBJ,iBAmBI,MACI,UAAA,MACA,QAAA",
+  "names": []
+}

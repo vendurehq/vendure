@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/data-table/data-table.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    display: block;\r\n    max-width: 100%;\r\n    overflow: auto;\r\n    position: relative;\r\n}\r\n\r\n.bulk-actions {\r\n    position: absolute;\r\n    left: 50px;\r\n    top: 30px;\r\n    z-index: 2;\r\n}\r\n\r\ntable.table {\r\n    max-width: 100vw;\r\n    overflow-x: auto;\r\n}\r\n\r\ntable.no-select {\r\n    user-select: none;\r\n}\r\n\r\nthead th {\r\n    &.expand {\r\n        width: 100%;\r\n    }\r\n}\r\n\r\nthead.items-selected tr th {\r\n    color: transparent;\r\n}\r\n\r\n.selection-col {\r\n    width: 24px;\r\n}\r\n\r\n.table-footer {\r\n    display: flex;\r\n    align-items: baseline;\r\n    justify-content: space-between;\r\n    margin-top: 6px;\r\n}\r\n"],
-  "mappings": "AACA,MACI,QAAA,MACA,UAAA,KACA,SAAA,KACA,SAAA,SAGJ,CAAA,aACI,SAAA,SACA,KAAA,KACA,IAAA,KACA,QAAA,EAGJ,KAAA,CAAA,MACI,UAAA,MACA,WAAA,KAGJ,KAAA,CAAA,UACI,oBAAA,KAAA,YAAA,KAIA,MAAA,EAAA,CAAA,OACI,MAAA,KAIR,KAAA,CAAA,eAAA,GAAA,GACI,MAAA,YAGJ,CAAA,cACI,MAAA,KAGJ,CAAA,aACI,QAAA,KACA,YAAA,SACA,gBAAA,cACA,WAAA",
-  "names": []
-}

@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/dashboard/src/components/dashboard-widget/dashboard-widget.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    display: block;\r\n}\r\n\r\n.card {\r\n    margin-top: 0;\r\n    min-height: 200px;\r\n}\r\n\r\n.card-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n}\r\n"],
-  "mappings": "AACA,MACI,QAAA,MAGJ,CAAA,KACI,WAAA,EACA,WAAA,MAGJ,CAAA,YACI,QAAA,KACA,gBAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/manage-tags-dialog/manage-tags-dialog.component.scss"],
+  "sourcesContent": [".tag-list {\n    list-style-type: none;\n\n    li {\n        display: flex;\n        align-items: center;\n        input {\n            max-width: 170px;\n        }\n    }\n\n    li.to-delete {\n        opacity: 0.7;\n        background-color: var(--color-component-bg-300);\n        input {\n            background-color: transparent !important;\n        }\n    }\n}\n"],
+  "mappings": "AAAA,CAAA,SACI,gBAAA,KAEA,CAHJ,SAGI,GACI,QAAA,KACA,YAAA,OACA,CANR,SAMQ,GAAA,MACI,UAAA,MAIR,CAXJ,SAWI,EAAA,CAAA,UACI,QAAA,GACA,iBAAA,IAAA,0BACA,CAdR,SAcQ,EAAA,CAHJ,UAGI,MACI,iBAAA",
+  "names": []
+}

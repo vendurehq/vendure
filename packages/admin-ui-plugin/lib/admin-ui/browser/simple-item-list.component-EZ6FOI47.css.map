@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/simple-item-list/simple-item-list.component.scss"],
+  "sourcesContent": [".items-list {\n    font-size: 12px;\n\n    ul {\n        margin-top: 6px;\n        list-style-type: none;\n        margin-inline-start: 2px;\n        li {\n            line-height: 14px;\n            text-overflow: ellipsis;\n            overflow: hidden;\n        }\n    }\n    .quantity {\n        min-width: 16px;\n        display: inline-block;\n    }\n}\n"],
+  "mappings": "AAAA,CAAA,WACI,UAAA,KAEA,CAHJ,WAGI,GACI,WAAA,IACA,gBAAA,KACA,oBAAA,IACA,CAPR,WAOQ,GAAA,GACI,YAAA,KACA,cAAA,SACA,SAAA,OAGR,CAbJ,WAaI,CAAA,SACI,UAAA,KACA,QAAA",
+  "names": []
+}

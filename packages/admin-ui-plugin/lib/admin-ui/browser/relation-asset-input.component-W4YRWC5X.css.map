@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/relation-form-input/asset/relation-asset-input.component.scss"],
-  "sourcesContent": [".preview {\r\n    cursor: pointer;\r\n    border-radius: var(--border-radius);\r\n    max-width: 100px;\r\n    max-height: 100px;\r\n}\r\n\r\n.detail {\r\n    flex: 1;\r\n    overflow: hidden;\r\n}\r\n\r\n.name {\r\n    white-space: nowrap;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,QACI,OAAA,QACA,cAAA,IAAA,iBACA,UAAA,MACA,WAAA,MAGJ,CAAA,OACI,KAAA,EACA,SAAA,OAGJ,CAAA,KACI,YAAA,OACA,SAAA,OACA,cAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/customer/src/components/customer-status-label/customer-status-label.component.scss"],
+  "sourcesContent": ["\n.registered-user-icon {\n    color: var(--color-grey-300);\n}\n.verified-user-icon {\n    color: var(--color-success-500);\n}\n"],
+  "mappings": "AACA,CAAA,qBACI,MAAA,IAAA,kBAEJ,CAAA,mBACI,MAAA,IAAA",
+  "names": []
+}

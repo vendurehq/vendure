@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/marketing/src/components/promotion-detail/promotion-detail.component.scss"],
+  "sourcesContent": [".item-wrap {\n    white-space: normal;\n}\n"],
+  "mappings": "AAAA,CAAA,UACI,YAAA",
+  "names": []
+}

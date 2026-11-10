@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/struct-form-input/struct-form-input.component.scss"],
-  "sourcesContent": [".struct-container {\r\n    border-left: 2px solid var(--color-weight-100);\r\n}\r\n\r\n.struct-field-wrapper {\r\n    display: flex;\r\n    width: 100%;\r\n    align-items: baseline;\r\n    & > .struct-field-label {\r\n        flex: 1;\r\n    }\r\n    & > vdr-dynamic-form-input {\r\n        flex: 2;\r\n    }\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,iBACI,YAAA,IAAA,MAAA,IAAA,oBAGJ,CAAA,qBACI,QAAA,KACA,MAAA,KACA,YAAA,SACA,CAJJ,oBAII,CAAA,CAAA,mBACI,KAAA,EAEJ,CAPJ,oBAOI,CAAA,uBACI,KAAA",
-  "names": []
-}

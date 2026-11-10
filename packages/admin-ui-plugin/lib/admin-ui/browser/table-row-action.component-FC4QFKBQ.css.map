@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/table-row-action/table-row-action.component.scss"],
-  "sourcesContent": ["a.btn {\r\n    margin: 0;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,CAAA,IAAA,OACI",
-  "names": []
-}

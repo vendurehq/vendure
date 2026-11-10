@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/payment-state-label/payment-state-label.component.scss"],
+  "sourcesContent": [":host {\n    display: flex;\n    font-size: 14px;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,KACA,UAAA",
+  "names": []
+}

@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/settings/src/components/country-list/country-list.component.scss"],
-  "sourcesContent": ["\r\n.search-input {\r\n    margin-top: 6px;\r\n    min-width: 300px;\r\n}\r\n"],
-  "mappings": "AACA,CAAA,aACI,WAAA,IACA,UAAA",
-  "names": []
-}

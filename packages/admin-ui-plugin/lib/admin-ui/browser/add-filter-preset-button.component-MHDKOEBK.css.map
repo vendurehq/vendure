@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/data-table-filter-presets/add-filter-preset-button.component.scss"],
+  "sourcesContent": ["\n.add-preset-button {\n    display: flex;\n    flex-direction: row;\n    cursor: pointer;\n    gap: 6px;\n    align-items: center;\n    border: none;\n    padding: 0 var(--space-unit);\n    height: calc(var(--space-unit) * 3);\n    font-size: var(--font-size-xs);\n    border-radius: var(--border-radius-lg);\n    background-color: var(--color-button-small-bg);\n    color: var(--color-button-small-text);\n    opacity: 0;\n    transition: opacity 0.2s;\n    &.visible {\n        opacity: 1;\n    }\n}\n\n.preset-create-row {\n    display: flex;\n    justify-content: flex-end;\n}\n"],
+  "mappings": "AACA,CAAA,kBACI,QAAA,KACA,eAAA,IACA,OAAA,QACA,IAAA,IACA,YAAA,OACA,OAAA,KACA,QAAA,EAAA,IAAA,cACA,OAAA,KAAA,IAAA,cAAA,EAAA,GACA,UAAA,IAAA,gBACA,cAAA,IAAA,oBACA,iBAAA,IAAA,yBACA,MAAA,IAAA,2BACA,QAAA,EACA,WAAA,QAAA,IACA,CAfJ,iBAeI,CAAA,QACI,QAAA,EAIR,CAAA,kBACI,QAAA,KACA,gBAAA",
+  "names": []
+}

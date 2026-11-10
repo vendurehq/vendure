@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/status-badge/status-badge.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    position: absolute;\n}\n\n.status-badge {\n    width: 10px;\n    height: 10px;\n    border-radius: 50%;\n    border: 1px solid var(--color-component-border-100);\n\n    &.info {\n        background-color: var(--color-primary-600);\n    }\n    &.success {\n        background-color: var(--color-success-600);\n    }\n    &.warning {\n        background-color: var(--color-warning-600);\n    }\n    &.error {\n        background-color: var(--color-error-600);\n    }\n}\n\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,SAAA,SAGJ,CAAA,aACI,MAAA,KACA,OAAA,KAPJ,cAQI,IACA,OAAA,IAAA,MAAA,IAAA,8BAEA,CANJ,YAMI,CAAA,KACI,iBAAA,IAAA,qBAEJ,CATJ,YASI,CAAA,QACI,iBAAA,IAAA,qBAEJ,CAZJ,YAYI,CAAA,QACI,iBAAA,IAAA,qBAEJ,CAfJ,YAeI,CAAA,MACI,iBAAA,IAAA",
+  "names": []
+}

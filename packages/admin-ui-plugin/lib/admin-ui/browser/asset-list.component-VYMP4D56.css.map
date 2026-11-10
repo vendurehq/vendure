@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/asset-list/asset-list.component.scss"],
+  "sourcesContent": ["\n:host {\n    display: flex;\n    flex-direction: column;\n    height: 100%;\n}\n\nvdr-asset-gallery {\n    flex: 1;\n}\n\n.paging-controls {\n    padding-top: 6px;\n    border-top: 1px solid var(--color-component-border-100);\n    display: flex;\n    justify-content: space-between;\n}\n\n.search-input {\n    margin-top: 6px;\n    min-width: 300px;\n}\n"],
+  "mappings": "AACA,MACI,QAAA,KACA,eAAA,OACA,OAAA,KAGJ,kBACI,KAAA,EAGJ,CAAA,gBACI,YAAA,IACA,WAAA,IAAA,MAAA,IAAA,8BACA,QAAA,KACA,gBAAA,cAGJ,CAAA,aACI,WAAA,IACA,UAAA",
+  "names": []
+}

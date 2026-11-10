@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/order-edits-preview-dialog/order-edits-preview-dialog.component.scss"],
+  "sourcesContent": ["::ng-deep .order-edits-preview-table .table-wrapper {\n  max-width: initial !important;\n}\n\n.payments-wrapper {\n  display: flex;\n  gap: calc(var(--space-unit) * 2);\n}\n\n.modal-buttons {\n  display: flex;\n  justify-content: flex-end;\n  gap: 0.6rem;\n  gap: var(--clr-modal-footer-gap, 0.6rem);\n}"],
+  "mappings": "AAAA,UAAA,CAAA,0BAAA,CAAA,cACE,UAAA,kBAGF,CAAA,iBACE,QAAA,KACA,IAAA,KAAA,IAAA,cAAA,EAAA,GAGF,CAAA,cACE,QAAA,KACA,gBAAA,SACA,IAAA,MACA,IAAA,IAAA,sBAAA,EAAA",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/radio-card/radio-card-fieldset.component.scss"],
+  "sourcesContent": ["fieldset {\n    display: flex;\n    align-items: flex-start;\n    overflow-x: auto;\n}\n"],
+  "mappings": "AAAA,SACI,QAAA,KACA,YAAA,WACA,WAAA",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/seller-orders-card/seller-orders-card.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA",
+  "names": []
+}

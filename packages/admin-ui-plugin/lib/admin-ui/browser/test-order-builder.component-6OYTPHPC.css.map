@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/settings/src/components/test-order-builder/test-order-builder.component.scss"],
-  "sourcesContent": [".empty-placeholder {\r\n    color: var(--color-grey-400);\r\n    text-align: center;\r\n}\r\n.empty-text {\r\n    font-size: 22px;\r\n}\r\n.thumb {\r\n    max-width: 50px;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,kBACI,MAAA,IAAA,kBACA,WAAA,OAEJ,CAAA,WACI,UAAA,KAEJ,CAAA,MACI,UAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/data-table-2/data-table-custom-field-column.component.scss"],
+  "sourcesContent": [".empty {\n    color: var(--color-weight-300);\n}\n"],
+  "mappings": "AAAA,CAAA,MACI,MAAA,IAAA",
+  "names": []
+}

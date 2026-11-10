@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/configurable-input/configurable-input.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n    margin-bottom: 12px;\r\n\r\n    > .card {\r\n        margin-top: 6px;\r\n    }\r\n}\r\n\r\n.operation-inputs {\r\n    padding-top: 0;\r\n\r\n    .arg-row:not(:last-child) {\r\n        margin-bottom: 12px;\r\n    }\r\n\r\n    .arg-row {\r\n        display: flex;\r\n        flex-wrap: wrap;\r\n        align-items: center;\r\n        label {\r\n            margin-inline-end: 6px;\r\n        }\r\n    }\r\n\r\n    .hidden {\r\n        display: none;\r\n    }\r\n    label {\r\n        min-width: 130px;\r\n        display: inline-block;\r\n    }\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MACA,cAAA,KAEA,KAAA,CAAA,CAAA,KACI,WAAA,IAIR,CAAA,iBACI,YAAA,EAEA,CAHJ,iBAGI,CAAA,OAAA,KAAA,aACI,cAAA,KAGJ,CAPJ,iBAOI,CAJA,QAKI,QAAA,KACA,UAAA,KACA,YAAA,OACA,CAXR,iBAWQ,CARJ,QAQI,MACI,kBAAA,IAIR,CAhBJ,iBAgBI,CAAA,OACI,QAAA,KAEJ,CAnBJ,iBAmBI,MACI,UAAA,MACA,QAAA",
-  "names": []
-}

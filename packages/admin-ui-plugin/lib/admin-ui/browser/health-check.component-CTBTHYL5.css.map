@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/system/src/components/health-check/health-check.component.scss"],
-  "sourcesContent": ["\r\n.system-status-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: flex-start;\r\n\r\n    .status-detail {\r\n        font-weight: bold;\r\n        margin-inline-end: 6px;\r\n    }\r\n    .last-checked {\r\n        font-weight: normal;\r\n        color: var(--color-grey-500);\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,CAAA,qBACI,QAAA,KACA,gBAAA,cACA,YAAA,WAEA,CALJ,qBAKI,CAAA,cACI,YAAA,IACA,kBAAA,IAEJ,CATJ,qBASI,CAAA,aACI,YAAA,IACA,MAAA,IAAA",
-  "names": []
-}

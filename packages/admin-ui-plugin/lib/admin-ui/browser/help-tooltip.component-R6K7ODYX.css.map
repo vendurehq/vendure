@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/help-tooltip/help-tooltip.component.scss"],
-  "sourcesContent": ["clr-tooltip {\r\n    display: inline-flex;\r\n}\r\n"],
-  "mappings": "AAAA,YACI,QAAA",
-  "names": []
-}

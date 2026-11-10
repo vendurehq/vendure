@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/page-body/page-body.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n    padding-bottom: calc(var(--space-unit) * 8);\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MACA,eAAA,KAAA,IAAA,cAAA,EAAA",
-  "names": []
-}

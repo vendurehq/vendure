@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/customer/src/components/customer-history/customer-history.component.scss"],
+  "sourcesContent": ["\n.entry-list {\n    margin: 24px 12px 24px 24px;\n}\n\n.note-entry {\n    display: flex;\n    align-items: center;\n    .note {\n        flex: 1;\n    }\n\n    button {\n        margin: 0;\n    }\n}\ntextarea.note {\n    flex: 1;\n    height: 36px;\n    border-radius: 3px;\n    margin-inline-end: 6px;\n}\n.note-text {\n    color: var(--color-text-100);\n    white-space: pre-wrap;\n}\n\n.address-string {\n    font-size: smaller;\n    color: var(--color-text-200);\n}\n"],
+  "mappings": "AACA,CAAA,WAAA,OACI,KAAA,KAAA,KAAA,KAGJ,CAAA,WACI,QAAA,KACA,YAAA,OACA,CAHJ,WAGI,CAAA,KACI,KAAA,EAGJ,CAPJ,WAOI,OAXJ,OAYQ,EAGR,QAAA,CARI,KASA,KAAA,EACA,OAAA,KAjBJ,cAkBI,IACA,kBAAA,IAEJ,CAAA,UACI,MAAA,IAAA,kBACA,YAAA,SAGJ,CAAA,eACI,UAAA,QACA,MAAA,IAAA",
+  "names": []
+}

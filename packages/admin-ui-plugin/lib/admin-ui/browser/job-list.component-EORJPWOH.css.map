@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/system/src/components/job-list/job-list.component.scss"],
+  "sourcesContent": [".result-detail {\n    margin: 0 12px;\n}\n\n.retry-info {\n    margin-inline-start: 6px;\n    color: var(--color-grey-400);\n}\n"],
+  "mappings": "AAAA,CAAA,cAAA,OACI,EAAA,KAGJ,CAAA,WACI,oBAAA,IACA,MAAA,IAAA",
+  "names": []
+}

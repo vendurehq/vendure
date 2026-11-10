@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/data-table-column-picker/data-table-column-picker.component.scss"],
+  "sourcesContent": [".column-list {\n    display: flex;\n    align-items: center;\n}\n\n.drag-handle {\n    cursor: grab;\n    margin-top: -4px;\n}\n\n.cdk-drop-list-dragging .cdk-drag {\n  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);\n}\n\n.cdk-drag-preview {\n    opacity: 0;\n}\n\n.reset-button {\n    border-top: 1px solid var(--color-weight-125);\n}\n"],
+  "mappings": "AAAA,CAAA,YACI,QAAA,KACA,YAAA,OAGJ,CAAA,YACI,OAAA,KACA,WAAA,KAGJ,CAAA,uBAAA,CAAA,SACE,WAAA,UAAA,KAAA,aAAA,CAAA,CAAA,CAAA,CAAA,EAAA,CAAA,GAGF,CAAA,iBACI,QAAA,EAGJ,CAAA,aACI,WAAA,IAAA,MAAA,IAAA",
+  "names": []
+}

@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/system/src/components/job-state-label/job-state-label.component.scss"],
-  "sourcesContent": [".progress {\r\n    margin-inline-start: 3px;\r\n}\r\nclr-icon {\r\n    min-width: 12px;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,SACI,oBAAA,IAEJ,SACI,UAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/language-selector/language-selector.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n.language-option {\n    display: flex;\n    gap: 4px;\n    align-items: center;\n    justify-content: space-between;\n}\n.code {\n    color: var(--color-grey-400);\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MAEJ,CAAA,gBACI,QAAA,KACA,IAAA,IACA,YAAA,OACA,gBAAA,cAEJ,CAAA,KACI,MAAA,IAAA",
+  "names": []
+}

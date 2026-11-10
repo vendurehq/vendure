@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/dashboard/src/widgets/latest-orders-widget/latest-orders-widget.component.scss"],
-  "sourcesContent": ["\r\nvdr-data-table {\r\n    ::ng-deep {\r\n        table {\r\n            margin-top: 0;\r\n        }\r\n    }\r\n}\r\n\r\nvdr-order-state-label {\r\n    display: inline-block;\r\n    margin-top: 2px;\r\n}\r\n"],
-  "mappings": "AAGQ,eAAA,UAAA,MACI,WAAA,EAKZ,sBACI,QAAA,aACA,WAAA",
-  "names": []
-}

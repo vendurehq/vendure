@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/page-header-description/page-header-description.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    max-width: 544px;\n    margin: calc(var(--space-unit) * 2) 0;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,UAAA,MACA,OAAA,KAAA,IAAA,cAAA,EAAA,GAAA",
+  "names": []
+}

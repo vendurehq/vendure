@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/collection-contents/collection-contents.component.scss"],
+  "sourcesContent": [":host {\n    display: block;\n    ::ng-deep table {\n        margin-top: -1px;\n    }\n}\nvdr-data-table {\n    opacity: 1;\n    transition: opacity 0.3s;\n    &.loading {\n        opacity: 0.5;\n    }\n}\n.table-wrapper {\n    position: relative;\n}\n.progress {\n    position: absolute;\n    top: 0;\n    left: 0;\n    overflow: hidden;\n    height: 6px;\n    opacity: 0;\n    transition: opacity 0.1s;\n    &.visible {\n        opacity: 1;\n    }\n}\n.sku {\n    color: var(--color-text-200)\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,MACA,MAAA,UAAA,MACI,WAAA,KAGR,eACI,QAAA,EACA,WAAA,QAAA,IACA,cAAA,CAAA,QACI,QAAA,GAGR,CAAA,cACI,SAAA,SAEJ,CAAA,SACI,SAAA,SACA,IAAA,EACA,KAAA,EACA,SAAA,OACA,OAAA,IACA,QAAA,EACA,WAAA,QAAA,IACA,CARJ,QAQI,CAAA,QACI,QAAA,EAGR,CAAA,IACI,MAAA,IAAA",
+  "names": []
+}

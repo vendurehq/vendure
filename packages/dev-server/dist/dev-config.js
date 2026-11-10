@@ -92,6 +92,7 @@ if (!process.env.REDEMPTION_KEY) {
     process.env.REDEMPTION_KEY = 'd'.repeat(64);
 }
 const IS_PROD = path_1.default.basename(__dirname) === 'dist' || process.env.IS_PROD === 'true';
+const GRAPHQL_MAX_DEPTH = Number(process.env.GRAPHQL_MAX_DEPTH) || 12;
 const devOnlyPlugins = IS_PROD
     ? []
     : (() => {
@@ -167,7 +168,10 @@ RelaxArrangingPaymentGuardPlugin = __decorate([
         },
     })
 ], RelaxArrangingPaymentGuardPlugin);
-const CSRF_ALLOWED_ORIGINS = new Set(((_a = process.env.CSRF_ALLOWED_ORIGINS) !== null && _a !== void 0 ? _a : 'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,http://localhost:5280,http://localhost:3000')
+const CSRF_ALLOWED_ORIGINS = new Set(((_a = process.env.CSRF_ALLOWED_ORIGINS) !== null && _a !== void 0 ? _a : 'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,' +
+    'http://localhost:5280,http://localhost:3000,' +
+    'http://127.0.0.1:3100,http://localhost:3100,' +
+    'http://127.0.0.1:3001,http://localhost:3001,http://g.joho.cn')
     .split(',')
     .map(s => s.trim().toLowerCase())
     .filter(Boolean));
@@ -246,8 +250,8 @@ exports.devConfig = {
             },
         shopApiDebug: !IS_PROD,
         trustProxy: 1,
-        adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
-        shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(12)],
+        adminApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(GRAPHQL_MAX_DEPTH)],
+        shopApiValidationRules: [(0, graphql_depth_limit_1.createDepthLimitRule)(GRAPHQL_MAX_DEPTH)],
         middleware: [
             {
                 handler: (req, res, next) => {
@@ -617,7 +621,7 @@ exports.devConfig = {
         customer_service_plugin_1.CustomerServicePlugin.init(),
         inventory_plugin_1.InventoryPlugin.init(),
         operations_plugin_1.OperationsPlugin.init(),
-        onebridge_plugin_1.OnebridgePlugin.init({}),
+        onebridge_plugin_1.OnebridgePlugin.init({ channelToken: process.env.ONE_BRIDGE_CHANNEL_TOKEN }),
         message_plugin_1.MessagePlugin.init(),
         notification_plugin_1.NotificationPlugin.init(),
         pre_sale_plugin_1.PreSalePlugin.init({}),

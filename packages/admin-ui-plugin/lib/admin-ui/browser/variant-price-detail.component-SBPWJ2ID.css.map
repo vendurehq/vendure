@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/variant-price-detail/variant-price-detail.component.scss"],
+  "sourcesContent": [":host {\n    display: flex;\n    flex-direction: column;\n}\n\n.value {\n    margin-top: 3px;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,KACA,eAAA,OAGJ,CAAA,MACI,WAAA",
+  "names": []
+}

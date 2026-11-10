@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/variant-price-strategy-detail/variant-price-strategy-detail.component.scss"],
+  "sourcesContent": [":host {\n  display: block;\n}\n\n.price-strategy-detail {\n  margin-top: calc(var(--space-unit)* 2);\n  padding-top: calc(var(--space-unit)* 2);\n  border-top: 1px solid var(--color-weight-150);\n}"],
+  "mappings": "AAAA,MACE,QAAA,MAGF,CAAA,sBACE,WAAA,KAAA,IAAA,cAAA,EAAA,GACA,YAAA,KAAA,IAAA,cAAA,EAAA,GACA,WAAA,IAAA,MAAA,IAAA",
+  "names": []
+}

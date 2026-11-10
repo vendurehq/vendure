@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/product-variant-selector/product-variant-selector.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n}\r\n\r\n.sku {\r\n    margin-inline-start: 12px;\r\n    color: var(--color-grey-500);\r\n}\r\nimg {\r\n    border-radius: var(--border-radius-img);\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MAGJ,CAAA,IACI,oBAAA,KACA,MAAA,IAAA,kBAEJ,IACI,cAAA,IAAA",
-  "names": []
-}

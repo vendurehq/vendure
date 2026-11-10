@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/order/src/components/add-manual-payment-dialog/add-manual-payment-dialog.component.scss"],
+  "sourcesContent": [".ng-select {\n    min-width: 100%;\n}\n"],
+  "mappings": "AAAA,CAAA,UACI,UAAA",
+  "names": []
+}

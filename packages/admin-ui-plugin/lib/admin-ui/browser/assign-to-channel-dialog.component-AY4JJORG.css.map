@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/assign-to-channel-dialog/assign-to-channel-dialog.component.scss"],
+  "sourcesContent": ["\nvdr-channel-assignment-control {\n    min-width: 200px;\n}\n"],
+  "mappings": "AACA,+BACI,UAAA",
+  "names": []
+}

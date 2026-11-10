@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/relation-form-input/product-variant/relation-product-variant-input.component.scss"],
-  "sourcesContent": [".placeholder {\r\n    color: var(--color-grey-300);\r\n}\r\n.thumb {\r\n    min-width: 50px;\r\n    object-fit: contain;\r\n    border-radius: var(--border-radius);\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,YACI,MAAA,IAAA,kBAEJ,CAAA,MACI,UAAA,KACA,WAAA,QACA,cAAA,IAAA",
-  "names": []
-}

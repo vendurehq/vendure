@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/catalog/src/components/facet-detail/facet-detail.component.scss"],
-  "sourcesContent": ["\r\n.visible-toggle {\r\n    margin-top: -3px !important;\r\n}\r\n\r\ntr.facet-value td {\r\n    vertical-align: middle;\r\n}\r\n\r\n.pagination-wrapper {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    padding: var(--card-padding);\r\n}\r\n"],
-  "mappings": "AACA,CAAA,eACI,WAAA,eAGJ,EAAA,CAAA,YAAA,GACI,eAAA,OAGJ,CAAA,mBACI,QAAA,KACA,gBAAA,cACA,QAAA,IAAA",
-  "names": []
-}

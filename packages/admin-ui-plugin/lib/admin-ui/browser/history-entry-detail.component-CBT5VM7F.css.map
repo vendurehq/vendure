@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/history-entry-detail/history-entry-detail.component.scss"],
+  "sourcesContent": [":host {\n    display: inline-block;\n}\n\n.entry-dropdown {\n    margin: 0 12px;\n}\n.details-button {\n    margin: 0;\n}\n"],
+  "mappings": "AAAA,MACI,QAAA,aAGJ,CAAA,eAJA,OAKI,EAAA,KAEJ,CAAA,eAPA,OAQI",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/relation-form-input/generic/relation-generic-input.component.scss"],
+  "sourcesContent": [".id-select-wrapper {\n    display: flex;\n    align-items: flex-end;\n}\n"],
+  "mappings": "AAAA,CAAA,kBACI,QAAA,KACA,YAAA",
+  "names": []
+}

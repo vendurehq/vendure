@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/zone-member-list/zone-member-list.component.scss"],
+  "sourcesContent": ["\n.members-header {\n    background-color: var(--color-component-bg-100);\n    position: sticky;\n    top: 0;\n    padding: 6px;\n    z-index: 5;\n    border-bottom: 1px solid var(--color-component-border-200);\n\n    .header-title-row {\n        display: flex;\n        justify-content: space-between;\n        align-items: center;\n    }\n\n    .clr-input {\n        width: 100%;\n    }\n}\n"],
+  "mappings": "AACA,CAAA,eACI,iBAAA,IAAA,0BACA,SAAA,OACA,IAAA,EAHJ,QAII,IACA,QAAA,EACA,cAAA,IAAA,MAAA,IAAA,8BAEA,CARJ,eAQI,CAAA,iBACI,QAAA,KACA,gBAAA,cACA,YAAA,OAGJ,CAdJ,eAcI,CAAA,UACI,MAAA",
+  "names": []
+}

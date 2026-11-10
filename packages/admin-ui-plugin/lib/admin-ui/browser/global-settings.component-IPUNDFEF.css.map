@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/settings/src/components/global-settings/global-settings.component.scss"],
+  "sourcesContent": ["\n::ng-deep ng-select {\n    .ng-value > span {\n        margin: 0 !important;\n    }\n    .ng-arrow-wrapper .ng-arrow {\n        margin: 0 !important;\n    }\n    .ng-select-container > span {\n        margin: 0 !important;\n    }\n}\n"],
+  "mappings": "AAEI,UAAA,UAAA,CAAA,QAAA,CAAA,KAAA,OACI,YAEJ,UAAA,UAAA,CAAA,iBAAA,CAAA,SAHA,OAII,YAEJ,UAAA,UAAA,CAAA,mBAAA,CAAA,KANA,OAOI",
+  "names": []
+}

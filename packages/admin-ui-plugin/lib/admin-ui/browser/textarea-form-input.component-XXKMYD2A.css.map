@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/textarea-form-input/textarea-form-input.component.scss"],
+  "sourcesContent": [":host {\n    textarea {\n        resize: both;\n        width: 100%;\n    }\n}\n"],
+  "mappings": "AACI,MAAA,SACI,OAAA,KACA,MAAA",
+  "names": []
+}

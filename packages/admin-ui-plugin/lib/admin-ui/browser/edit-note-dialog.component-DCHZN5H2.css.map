@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/edit-note-dialog/edit-note-dialog.component.scss"],
-  "sourcesContent": ["\r\n.visibility-select {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: baseline;\r\n    .public {\r\n        color: var(--color-warning-500);\r\n    }\r\n    .private {\r\n        color: var(--color-success-500);\r\n    }\r\n}\r\ntextarea.note {\r\n    width: 100%;\r\n    height: 72px;\r\n    border-radius: 3px;\r\n    margin-inline-end: 6px;\r\n}\r\n"],
-  "mappings": "AACA,CAAA,kBACI,QAAA,KACA,gBAAA,cACA,YAAA,SACA,CAJJ,kBAII,CAAA,OACI,MAAA,IAAA,qBAEJ,CAPJ,kBAOI,CAAA,QACI,MAAA,IAAA,qBAGR,QAAA,CAAA,KACI,MAAA,KACA,OAAA,KAbJ,cAcI,IACA,kBAAA",
-  "names": []
-}

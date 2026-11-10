@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/components/ui-language-switcher-dialog/ui-language-switcher-dialog.component.scss"],
-  "sourcesContent": [":host {\r\n}\r\n\r\nselect.currency {\r\n    max-width: 200px;\r\n}\r\n\r\ninput.locale {\r\n    text-transform: uppercase;\r\n}\r\n"],
-  "mappings": "AAGA,MAAA,CAAA,SACI,UAAA,MAGJ,KAAA,CAAA,OACI,eAAA",
-  "names": []
-}

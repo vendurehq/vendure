@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/asset-preview-links/asset-preview-links.component.scss"],
-  "sourcesContent": [".asset-preview-link {\r\n    font-size: 12px;\r\n    display: flex;\r\n    align-items: center;\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,mBACI,UAAA,KACA,QAAA,KACA,YAAA",
-  "names": []
-}

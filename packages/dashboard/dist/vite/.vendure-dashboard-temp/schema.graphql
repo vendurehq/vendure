@@ -616,6 +616,7 @@ type Query {
   onebridgeCustomsRecord(orderCode: String!): CustomsRecord
   onebridgeCustomsRecords(options: CustomsListOptions): CustomsList!
   onebridgeOrderSummary(orderCode: String!): OnebridgeOrderSummary!
+  onebridgeSpecSheets(take: Int): [SpecSheet!]!
   messages(options: MessageListOptions = null): MessageList!
   message(id: ID!): Message
   messageDeliveryStats(id: ID!): MessageDeliveryStats!
@@ -17759,6 +17760,7 @@ type OnebridgeOrderItem {
   spec: String
   qty: Int!
   price: Int!
+  unitPrice: Int!
 }
 
 type OnebridgeOrderSummary {
@@ -17847,6 +17849,15 @@ type OnebridgeOrderTrack {
   signedAt: DateTime
   lastSyncedAt: DateTime
   channelId: ID
+}
+
+type SpecSheet {
+  slug: String!
+  krName: String!
+  spec: String!
+  moq: Int
+  leadTime: String!
+  price: Int
 }
 
 type OnebridgeContentEntry implements Node {

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/rich-text-form-input/rich-text-form-input.component.scss"],
+  "sourcesContent": [":host {\n    textarea {\n        resize: both;\n        height: 6rem;\n        width: 100%;\n    }\n}\n"],
+  "mappings": "AACI,MAAA,SACI,OAAA,KACA,OAAA,KACA,MAAA",
+  "names": []
+}

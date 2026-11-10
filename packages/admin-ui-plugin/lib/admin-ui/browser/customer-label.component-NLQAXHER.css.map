@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/customer-label/customer-label.component.scss"],
+  "sourcesContent": ["\n:host {\n    display: flex;\n    align-items: center;\n}\n\nclr-icon {\n    margin-inline-end: 6px;\n}\n"],
+  "mappings": "AACA,MACI,QAAA,KACA,YAAA,OAGJ,SACI,kBAAA",
+  "names": []
+}

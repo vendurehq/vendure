@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/select-form-input/select-form-input.component.scss"],
+  "sourcesContent": ["select {\n    width: 100%;\n}\n"],
+  "mappings": "AAAA,OACI,MAAA",
+  "names": []
+}

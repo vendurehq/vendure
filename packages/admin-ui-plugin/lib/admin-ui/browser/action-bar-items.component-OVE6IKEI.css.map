@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/action-bar-items/action-bar-items.component.scss"],
-  "sourcesContent": [":host {\r\n    display: inline-block;\r\n}\r\n\r\nbutton.hidden {\r\n    display: none;\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,aAGJ,MAAA,CAAA,OACI,QAAA",
-  "names": []
-}

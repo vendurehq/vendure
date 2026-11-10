@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/labeled-data/labeled-data.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    display: block;\r\n    margin-bottom: 6px;\r\n}\r\n.label-title {\r\n    font-size: 12px;\r\n    color: var(--color-text-300);\r\n    line-height: 12px;\r\n    margin-bottom: -4px;\r\n}\r\n.content {\r\n    display: inline-block;\r\n    line-height: var(--font-size-sm);\r\n    margin-top: 6px;\r\n}\r\n"],
-  "mappings": "AACA,MACI,QAAA,MACA,cAAA,IAEJ,CAAA,YACI,UAAA,KACA,MAAA,IAAA,kBACA,YAAA,KACA,cAAA,KAEJ,CAAA,QACI,QAAA,aACA,YAAA,IAAA,gBACA,WAAA",
-  "names": []
-}

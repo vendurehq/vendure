@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/focal-point-control/focal-point-control.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    position: relative;\r\n    display: block;\r\n}\r\n\r\n.frame {\r\n    position: absolute;\r\n    top: 0;\r\n}\r\n\r\n.dot {\r\n    width: 20px;\r\n    height: 20px;\r\n    border-radius: 50%;\r\n    border: 2px solid white;\r\n    position: absolute;\r\n    visibility: hidden;\r\n    transition: opacity 0.3s;\r\n    box-shadow: 0px 0px 4px 4px rgba(0, 0, 0, 0.42);\r\n    &.visible {\r\n        visibility: visible;\r\n        opacity: 0.7;\r\n    }\r\n    &.editable {\r\n        cursor: move;\r\n        visibility: visible;\r\n        opacity: 1;\r\n        animation: pulse;\r\n        animation-duration: 0.5s;\r\n        animation-iteration-count: 4;\r\n    }\r\n}\r\n\r\n@keyframes pulse {\r\n    0% {\r\n        border-color: white;\r\n    }\r\n    50% {\r\n        border-color: var(--color-warning-500);\r\n    }\r\n    100% {\r\n        border-color: white\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,MACI,SAAA,SACA,QAAA,MAGJ,CAAA,MACI,SAAA,SACA,IAAA,EAGJ,CAAA,IACI,MAAA,KACA,OAAA,KAZJ,cAaI,IACA,OAAA,IAAA,MAAA,MACA,SAAA,SACA,WAAA,OACA,WAAA,QAAA,IACA,WAAA,EAAA,EAAA,IAAA,IAAA,UACA,CATJ,GASI,CAAA,QACI,WAAA,QACA,QAAA,GAEJ,CAbJ,GAaI,CAAA,SACI,OAAA,KACA,WAAA,QACA,QAAA,EACA,UAAA,MACA,mBAAA,IACA,0BAAA,EAIR,WANQ,MAOJ,GACI,aAAA,KAEJ,IACI,aAAA,IAAA,qBAEJ,GACI,aAAA",
-  "names": []
-}

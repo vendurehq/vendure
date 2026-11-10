@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/components/facet-value-chip/facet-value-chip.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    display: inline-block;\r\n}\r\n\r\n.facet-name {\r\n    color: var(--color-grey-100);\r\n    text-transform: uppercase;\r\n    font-size: 10px;\r\n    margin-inline-end: 3px;\r\n}\r\n"],
-  "mappings": "AACA,MACI,QAAA,aAGJ,CAAA,WACI,MAAA,IAAA,kBACA,eAAA,UACA,UAAA,KACA,kBAAA",
-  "names": []
-}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/components/theme-switcher/theme-switcher.component.scss"],
+  "sourcesContent": [":host {\n    display: flex;\n    justify-content: flex-start;\n    align-items: center;\n}\n\nbutton.theme-toggle {\n    position: relative;\n    padding-inline-start: 20px;\n    border: none;\n    background: transparent;\n    color: var(--color-text-200);\n    cursor: pointer;\n}\n\n.theme-icon {\n    position: absolute;\n    top: 0px;\n    left: 4px;\n    z-index: 0;\n    opacity: 0.2;\n    color: var(--color-text-300);\n    transition: opacity 0.3s, left 0.3s;\n\n    &.active {\n        z-index: 1;\n        left: -2px;\n        opacity: 1;\n    }\n\n    &.default.active {\n        color: #d6ae3f;\n    }\n\n    &.dark.active {\n        color: #ffdf3a;\n    }\n}\n\n:host-context([dir='rtl']) {\n    .theme-icon {\n        left: auto;\n        right: 6px;\n\n        &.active {\n            left: auto;\n            right: 0px;\n        }\n    }\n}"],
+  "mappings": "AAAA,MACI,QAAA,KACA,gBAAA,WACA,YAAA,OAGJ,MAAA,CAAA,aACI,SAAA,SACA,qBAAA,KACA,OAAA,KACA,WAAA,YACA,MAAA,IAAA,kBACA,OAAA,QAGJ,CAAA,WACI,SAAA,SACA,IAAA,EACA,KAAA,IACA,QAAA,EACA,QAAA,GACA,MAAA,IAAA,kBACA,WAAA,QAAA,GAAA,CAAA,KAAA,IAEA,CATJ,UASI,CAAA,OACI,QAAA,EACA,KAAA,KACA,QAAA,EAGJ,CAfJ,UAeI,CAAA,OAAA,CANA,OAOI,MAAA,QAGJ,CAnBJ,UAmBI,CAAA,IAAA,CAVA,OAWI,MAAA,QAKJ,cAAA,CAAA,GAAA,CAAA,MAAA,CAzBJ,WA0BQ,KAAA,KACA,MAAA,IAEA,cAAA,CAAA,GAAA,CAAA,MAAA,CA7BR,UA6BQ,CApBJ,OAqBQ,KAAA,KACA,MAAA",
+  "names": []
+}

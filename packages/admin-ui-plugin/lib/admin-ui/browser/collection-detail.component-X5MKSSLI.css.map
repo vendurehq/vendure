@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/catalog/src/components/collection-detail/collection-detail.component.scss"],
+  "sourcesContent": [".visible-toggle {\n    margin-top: -3px !important;\n}\nclr-checkbox-wrapper {\n    transition: opacity 0.3s;\n    &.disabled {\n        opacity: 0.5;\n    }\n}\n.collection-breadcrumbs {\n    list-style-type: none;\n    background-color: var(--color-component-bg-200);\n    padding: 2px 6px;\n    margin-bottom: 6px;\n    border-radius: var(--clr-global-borderradius);\n    li {\n        font-size: 0.65rem;\n        display: inline-block;\n        margin-inline-end: 10px;\n        &:last-child {\n            font-weight: 600;\n        }\n    }\n    li:not(:last-child)::after {\n        content: '›';\n        top: 0;\n        color: var(--color-grey-400);\n        margin-inline-start: 10px;\n    }\n}\n"],
+  "mappings": "iBAAA,CAAA,eACI,WAAA,eAEJ,qBACI,WAAA,QAAA,IACA,oBAAA,CAAA,SACI,QAAA,GAGR,CAAA,uBACI,gBAAA,KACA,iBAAA,IAAA,kCACA,IAAA,IACA,cAAA,IACA,cAAA,IAAA,2BACA,CANJ,uBAMI,GACI,UAAA,OACA,QAAA,aACA,kBAAA,KACA,CAVR,uBAUQ,EAAA,YACI,YAAA,IAGR,CAdJ,uBAcI,EAAA,KAAA,YAAA,OACI,QAAA,QACA,IAAA,EACA,MAAA,IAAA,kBACA,oBAAA",
+  "names": []
+}

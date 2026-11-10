@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/core/src/shared/dynamic-form-inputs/relation-form-input/relation-form-input.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n    background-color: var(--color-component-bg-200);\r\n    padding: 3px;\r\n    border-radius: var(--border-radius);\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MACA,iBAAA,IAAA,0BAFJ,QAGI,IACA,cAAA,IAAA",
-  "names": []
-}

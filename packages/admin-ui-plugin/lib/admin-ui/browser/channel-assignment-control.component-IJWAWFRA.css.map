@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/channel-assignment-control/channel-assignment-control.component.scss"],
+  "sourcesContent": ["\n:host {\n    min-width: 200px;\n    &.clr-input {\n        border-bottom: none;\n        padding: 0;\n    }\n}\n\n::ng-deep .ng-value, ::ng-deep .ng-option {\n    > vdr-channel-badge {\n        margin-bottom: -1px;\n    }\n}\n::ng-deep .ng-value > vdr-channel-badge {\n    margin-inline-start: 6px;\n}\n\n.channel-label {\n    margin-inline-end: 6px;\n}\n"],
+  "mappings": "AACA,MACI,UAAA,MACA,KAAA,CAAA,UACI,cAAA,KAHR,QAIQ,EAKJ,UAAA,CAAA,QAAA,CAAA,kBAAA,UAAA,CAAA,SAAA,CAAA,kBACI,cAAA,KAGR,UAAA,CAJI,QAIJ,CAAA,kBACI,oBAAA,IAGJ,CAAA,cACI,kBAAA",
+  "names": []
+}

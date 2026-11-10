@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/catalog/src/components/generate-product-variants/generate-product-variants.component.scss"],
-  "sourcesContent": ["\r\n:host {\r\n    display: block;\r\n    margin-bottom: 120px;\r\n}\r\n\r\n.option-groups {\r\n    display: flex;\r\n}\r\n\r\n.values {\r\n    flex: 1;\r\n    margin: 0 6px;\r\n}\r\n\r\n.remove-group {\r\n    padding-top: 18px;\r\n}\r\n\r\n.variants-preview {\r\n    tr.disabled {\r\n        td {\r\n            background-color: var(--color-component-bg-100);\r\n            color: var(--color-grey-400);\r\n        }\r\n    }\r\n}\r\n"],
-  "mappings": "AACA,MACI,QAAA,MACA,cAAA,MAGJ,CAAA,cACI,QAAA,KAGJ,CAAA,OACI,KAAA,EAVJ,OAWI,EAAA,IAGJ,CAAA,aACI,YAAA,KAKI,CAAA,iBAAA,EAAA,CAAA,SAAA,GACI,iBAAA,IAAA,0BACA,MAAA,IAAA",
-  "names": []
-}

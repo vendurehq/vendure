@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/object-tree/object-tree.component.scss"],
+  "sourcesContent": ["\n:host {}\n\n.object-tree-node {\n    list-style-type: none;\n    line-height: 16px;\n    font-size: 12px;\n    overflow: hidden;\n    &.depth-0 {\n        margin-inline-start: 0;\n        margin-top: 8px;\n    }\n    &.depth-1 { margin-inline-start: 6px; }\n    &.depth-2 { margin-inline-start: 6px; }\n    &.depth-3 { margin-inline-start: 6px; }\n    &.depth-4 { margin-inline-start: 6px; }\n    &.depth-5 { margin-inline-start: 6px; }\n    &.depth-6 { margin-inline-start: 6px; }\n\n    max-height: 0;\n    &.expanded {\n        max-height: 5000px;\n    }\n\n    li {\n        // display: flex;\n    }\n    &.array-item {\n        margin-top: -16px;\n        margin-inline-start: 16px;\n    }\n    &.array-value.expanded > li + li {\n        margin-top: 6px;\n    }\n}\n\n.key {\n    color: var(--color-text-300);\n}\n\n"],
+  "mappings": "AAGA,CAAA,iBACI,gBAAA,KACA,YAAA,KACA,UAAA,KACA,SAAA,OAYA,WAAA,EAXA,CALJ,gBAKI,CAAA,QACI,oBAAA,EACA,WAAA,IAEJ,CATJ,gBASI,CAAA,QACA,CAVJ,gBAUI,CAAA,QACA,CAXJ,gBAWI,CAAA,QACA,CAZJ,gBAYI,CAAA,QACA,CAbJ,gBAaI,CAAA,QACA,CAdJ,gBAcI,CAAA,QALY,oBAAA,IAQZ,CAjBJ,gBAiBI,CAAA,SACI,WAAA,OAMJ,CAxBJ,gBAwBI,CAAA,WACI,WAAA,MACA,oBAAA,KAEJ,CA5BJ,gBA4BI,CAAA,WAAA,CAXA,QAWA,CAAA,EAAA,CAAA,GACI,WAAA,IAIR,CAAA,IACI,MAAA,IAAA",
+  "names": []
+}

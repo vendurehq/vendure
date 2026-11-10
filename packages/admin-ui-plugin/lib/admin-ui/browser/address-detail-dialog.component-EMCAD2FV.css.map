@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/customer/src/components/address-detail-dialog/address-detail-dialog.component.scss"],
+  "sourcesContent": ["\nclr-input-container {\n    margin-bottom: 12px;\n}\n"],
+  "mappings": "AACA,oBACI,cAAA",
+  "names": []
+}

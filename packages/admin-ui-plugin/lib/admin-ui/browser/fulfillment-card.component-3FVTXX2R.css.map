@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/order/src/components/fulfillment-card/fulfillment-card.component.scss"],
-  "sourcesContent": ["\r\n.fulfillment-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n}\r\n\r\n.card-footer {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: flex-end;\r\n}\r\n"],
-  "mappings": "AACA,CAAA,mBACI,QAAA,KACA,gBAAA,cACA,YAAA,OAGJ,CAAA,YACI,QAAA,KACA,YAAA,OACA,gBAAA",
-  "names": []
-}

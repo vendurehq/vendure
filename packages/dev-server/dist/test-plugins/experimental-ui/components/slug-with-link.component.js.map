@@ -1,1 +1,0 @@
-{"version":3,"file":"slug-with-link.component.js","sourceRoot":"","sources":["slug-with-link.component.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,wCAAiD;AAU1C,IAAM,qBAAqB,GAA3B,MAAM,qBAAqB;CAEjC,CAAA;AAFY,sDAAqB;AACrB;IAAR,IAAA,YAAK,GAAE;;sDAAc;gCADb,qBAAqB;IAPjC,IAAA,gBAAS,EAAC;QACP,QAAQ,EAAE,gBAAgB;QAC1B,QAAQ,EAAE;;KAET;QACD,UAAU,EAAE,IAAI;KACnB,CAAC;GACW,qBAAqB,CAEjC"}

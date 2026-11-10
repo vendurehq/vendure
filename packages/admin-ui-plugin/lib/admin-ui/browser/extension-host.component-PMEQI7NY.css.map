@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/lib/core/src/shared/components/extension-host/extension-host.component.scss"],
+  "sourcesContent": ["\niframe {\n    position: absolute;\n    left: 0;\n    top: 0;\n    bottom: 0;\n    right: 0;\n    width: 100%;\n    height: 100%;\n    border: none;\n}\n\n.launch-button {\n    position: absolute;\n    left: 0;\n    top: 0;\n    bottom: 0;\n    right: 0;\n    width: 100%;\n    height: 100%;\n    border: none;\n    padding: 24px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: background-color 0.3s;\n    text-align: center;\n    &.launched {\n        background-color: var(--color-component-bg-300);\n    }\n}\n\n.window-hint {\n    visibility: hidden;\n    opacity: 0;\n    transition: visibility 0.3s 0, opacity 0.3s;\n    &.visible {\n        visibility: visible;\n        opacity: 1;\n        transition: visibility 0, opacity 0.3s;\n    }\n}\n"],
+  "mappings": "AACA,OACI,SAAA,SACA,MACA,EAGA,MAAA,KACA,OAAA,KACA,OAAA,KAGJ,CAAA,cACI,SAAA,SACA,MACA,EAGA,MAAA,KACA,OAAA,KACA,OAAA,KAnBJ,QAoBI,KACA,QAAA,KACA,YAAA,OACA,gBAAA,OACA,WAAA,iBAAA,IACA,WAAA,OACA,CAfJ,aAeI,CAAA,SACI,iBAAA,IAAA,0BAIR,CAAA,YACI,WAAA,OACA,QAAA,EACA,WAAA,WAAA,IAAA,CAAA,CAAA,QAAA,IACA,CAJJ,WAII,CAAA,QACI,WAAA,QACA,QAAA,EACA,WAAA,WAAA,CAAA,CAAA,QAAA",
+  "names": []
+}

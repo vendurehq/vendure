@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/settings/src/components/test-address-form/test-address-form.component.scss"],
-  "sourcesContent": [":host {\r\n    display: block;\r\n}\r\nclr-input-container {\r\n    margin-bottom: 12px;\r\n}\r\n"],
-  "mappings": "AAAA,MACI,QAAA,MAEJ,oBACI,cAAA",
-  "names": []
-}

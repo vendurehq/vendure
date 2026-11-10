@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/lib/catalog/src/components/product-variant-detail/product-variant-detail.component.scss"],
-  "sourcesContent": [".facets, .options {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 3px;\r\n}\r\n\r\nvdr-product-variant-quick-jump {\r\n    flex: 1;\r\n    margin-inline-end: calc(var(--space-unit) * 2);\r\n}\r\n.stock-levels, .prices {\r\n    margin-top: calc(var(--space-unit) * 2);\r\n    padding-top: calc(var(--space-unit) * 2);\r\n    border-top: 1px solid var(--color-weight-150);\r\n}\r\n.price-wrapper {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: var(--space-unit);\r\n    width: 100%;\r\n\r\n    &.pending-deletion {\r\n        vdr-currency-input {\r\n            opacity: 0.7;\r\n        }\r\n        .delete-button {\r\n            background-color: var(--color-error-700);\r\n            color: var(--color-error-100);\r\n        }\r\n    }\r\n}\r\n\r\n.title-row {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n}\r\n.title {\r\n    font-size: var(--font-size-base);\r\n}\r\n"],
-  "mappings": "AAAA,CAAA,OAAA,CAAA,QACI,QAAA,KACA,UAAA,KACA,IAAA,IAGJ,+BACI,KAAA,EACA,kBAAA,KAAA,IAAA,cAAA,EAAA,GAEJ,CAAA,aAAA,CAAA,OACI,WAAA,KAAA,IAAA,cAAA,EAAA,GACA,YAAA,KAAA,IAAA,cAAA,EAAA,GACA,WAAA,IAAA,MAAA,IAAA,oBAEJ,CAAA,cACI,QAAA,KACA,YAAA,OACA,IAAA,IAAA,cACA,MAAA,KAGI,CAPR,aAOQ,CAAA,iBAAA,mBACI,QAAA,GAEJ,CAVR,aAUQ,CAHA,iBAGA,CAAA,cACI,iBAAA,IAAA,mBACA,MAAA,IAAA,mBAKZ,CAAA,UACI,QAAA,KACA,gBAAA,cACA,YAAA,OAEJ,CAAA,MACI,UAAA,IAAA",
-  "names": []
-}

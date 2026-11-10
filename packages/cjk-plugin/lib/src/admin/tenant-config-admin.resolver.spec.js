@@ -24,7 +24,8 @@ function makeCtx(opts = {}) {
     const user = { id: 1, identifier: 'admin@test', channelPermissions };
     return {
         session: { user },
-        userHasPermissions: (perms) => opts.isSuperAdmin === true,
+        userHasPermissions: (perms) => opts.isSuperAdmin === true ||
+            (opts.tenantSettingsManage === true && perms.includes('TenantSettingsManage')),
         activeUserId: 1,
     };
 }
@@ -40,20 +41,20 @@ function makeCtx(opts = {}) {
         (0, vitest_1.expect)(result.channelId).toBe('99');
     });
     (0, vitest_1.it)('allows tenant admin to read associated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1', '2'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1', '2'], tenantSettingsManage: true });
         const result = await resolver.tenantConfig(ctx, { channelId: '2' });
         (0, vitest_1.expect)(result.canEdit).toBe(true);
     });
     (0, vitest_1.it)('rejects tenant admin reading unassociated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'], tenantSettingsManage: true });
         await (0, vitest_1.expect)(resolver.tenantConfig(ctx, { channelId: '99' })).rejects.toThrow(/TENANT_CONFIG_FORBIDDEN/);
     });
     (0, vitest_1.it)('updateTenantConfig rejects unassociated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'], tenantSettingsManage: true });
         await (0, vitest_1.expect)(resolver.updateTenantConfig(ctx, { input: { channelId: '99', payPatch: {} } })).rejects.toThrow(/TENANT_CONFIG_FORBIDDEN/);
     });
     (0, vitest_1.it)('tenantSettings rejects unassociated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'], tenantSettingsManage: true });
         await (0, vitest_1.expect)(resolver.tenantSettings(ctx, '99')).rejects.toThrow(/TENANT_CONFIG_FORBIDDEN/);
     });
     (0, vitest_1.it)('updateTenantBasic writes audit and returns settings', async () => {
