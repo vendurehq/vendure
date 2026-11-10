@@ -7,6 +7,23 @@ import { Asset } from './asset/asset.entity';
 import { AuthenticationMethod } from './authentication-method/authentication-method.entity';
 import { ExternalAuthenticationMethod } from './authentication-method/external-authentication-method.entity';
 import { NativeAuthenticationMethod } from './authentication-method/native-authentication-method.entity';
+import {
+    ApiKeyChannel,
+    AssetChannel,
+    CollectionChannel,
+    CustomerChannel,
+    FacetChannel,
+    FacetValueChannel,
+    OrderChannel,
+    PaymentMethodChannel,
+    ProductChannel,
+    ProductOptionChannel,
+    ProductOptionGroupChannel,
+    ProductVariantChannel,
+    PromotionChannel,
+    ShippingMethodChannel,
+    StockLocationChannel,
+} from './channel-assignment/channel-assignment.entities';
 import { Channel } from './channel/channel.entity';
 import { CollectionAsset } from './collection/collection-asset.entity';
 import { CollectionTranslation } from './collection/collection-translation.entity';
@@ -128,6 +145,21 @@ export const coreEntitiesMap = {
     ProductVariant,
     ProductVariantAsset,
     ProductVariantPrice,
+    AssetChannel,
+    ApiKeyChannel,
+    CollectionChannel,
+    CustomerChannel,
+    FacetChannel,
+    FacetValueChannel,
+    OrderChannel,
+    PaymentMethodChannel,
+    ProductChannel,
+    ProductOptionChannel,
+    ProductOptionGroupChannel,
+    ProductVariantChannel,
+    PromotionChannel,
+    ShippingMethodChannel,
+    StockLocationChannel,
     ProductVariantTranslation,
     Promotion,
     PromotionTranslation,

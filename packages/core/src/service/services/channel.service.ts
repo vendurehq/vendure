@@ -42,6 +42,7 @@ import { Zone } from '../../entity/zone/zone.entity';
 import { EventBus } from '../../event-bus';
 import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event';
 import { ChannelEvent } from '../../event-bus/events/channel-event';
+import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { isChannelAwareMetadata } from '../helpers/utils/is-channel-aware-metadata';
@@ -91,6 +92,7 @@ export class ChannelService {
         private listQueryBuilder: ListQueryBuilder,
         private roleAssignmentService: RoleAssignmentService,
         private roleService: RoleService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {
         // The caches are also cleared synchronously in create, update and delete, but that happens
         // before the transaction commits. Events are published after the commit, so clearing again
@@ -172,12 +174,18 @@ export class ChannelService {
     /**
      * @description
      * Assigns the entity to the given Channels and saves all changes to the database.
+     *
+     * If the entity has a channel assignment entity with per-channel data (see
+     * {@link ChannelAssignment}), each new assignment starts with a copy of the entity's data in the
+     * active Channel (the Channel it is assigned from). If `assignmentData` is given, it is then
+     * applied to the entity's assignments in all the given Channels, new or existing.
      */
     async assignToChannels<T extends ChannelAware & VendureEntity>(
         ctx: RequestContext,
         entityType: Type<T>,
         entityId: ID,
         channelIds: ID[],
+        assignmentData?: Record<string, unknown>,
     ): Promise<T> {
         const relations = [];
         // This is a work-around for https://github.com/vendurehq/vendure/issues/1391
@@ -202,6 +210,7 @@ export class ChannelService {
         );
 
         if (!newChannelIds.length) {
+            await this.applyAssignmentData(ctx, entityType, entityId, channelIds, assignmentData);
             return entity;
         }
 
@@ -211,11 +220,31 @@ export class ChannelService {
             .relation('channels')
             .of(entity.id)
             .add(newChannelIds);
+        await this.channelAssignmentService.copyAssignment(
+            ctx,
+            entityType,
+            entityId,
+            ctx.channelId,
+            newChannelIds,
+        );
+        await this.applyAssignmentData(ctx, entityType, entityId, channelIds, assignmentData);
 
         await this.eventBus.publish(
             new ChangeChannelEvent(ctx, entity, newChannelIds, 'assigned', entityType),
         );
         return entity;
+    }
+
+    private async applyAssignmentData(
+        ctx: RequestContext,
+        entityType: Type<any>,
+        entityId: ID,
+        channelIds: ID[],
+        assignmentData?: Record<string, unknown>,
+    ) {
+        if (assignmentData && Object.keys(assignmentData).length) {
+            await this.channelAssignmentService.update(ctx, entityType, [entityId], channelIds, assignmentData);
+        }
     }
 
     /**

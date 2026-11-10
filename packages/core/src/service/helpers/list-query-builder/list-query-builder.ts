@@ -300,13 +300,25 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         // join the tables required by calculated columns
         this.joinCalculatedColumnRelations(qb, entity, options);
 
-        const { customPropertyMap } = extendedOptions;
+        const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
+        const channelAssignmentProperties = extendedOptions.channelId
+            ? this.getChannelAssignmentProperties(qb, options)
+            : undefined;
+        const customPropertyMap =
+            channelAssignmentProperties?.size && !providedCustomPropertyMap ? {} : providedCustomPropertyMap;
         // Store the original customPropertyMap before normalization for EXISTS subquery generation.
         // This is needed because normalizeCustomPropertyMap mutates customPropertyMap, but
         // parseFilterParams needs the original paths to detect *-to-Many relations.
         const originalCustomPropertyMap = customPropertyMap ? { ...customPropertyMap } : undefined;
         if (customPropertyMap) {
             this.normalizeCustomPropertyMap(customPropertyMap, options, qb);
+        }
+        if (customPropertyMap && channelAssignmentProperties?.size) {
+            // Columns of the channel assignment row (e.g. `Product.enabled` -> `ProductChannel.enabled`)
+            // resolve against the row of the active Channel, joined below.
+            for (const [property, { column }] of channelAssignmentProperties) {
+                customPropertyMap[property] = `lqb__channelAssignment.${column}`;
+            }
         }
 
         const customFieldsForType = this.configService.customFields[entity.name as keyof CustomFields];
@@ -350,6 +362,17 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
                 channelId: extendedOptions.channelId,
             });
+            if (channelAssignmentProperties?.size) {
+                const [{ target, ownerColumn }] = Array.from(channelAssignmentProperties.values());
+                // Selected, so that sorting on its columns works with pagination (TypeORM orders the
+                // distinct-id subquery by selected columns only), as for the other custom properties.
+                qb.innerJoinAndSelect(
+                    target,
+                    'lqb__channelAssignment',
+                    `lqb__channelAssignment.${ownerColumn} = ${qb.alias}.id AND lqb__channelAssignment.channelId = :channelId`,
+                    { channelId: extendedOptions.channelId },
+                );
+            }
         }
 
         qb.orderBy(sort);
@@ -713,6 +736,52 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 filter._and?.some(nestedFilter => this.isPropertyUsedInFilter(property, nestedFilter)) ||
                 filter._or?.some(nestedFilter => this.isPropertyUsedInFilter(property, nestedFilter)))
         );
+    }
+
+    /**
+     * ChannelAware entities have their `channels` junction table owned by a channel assignment entity
+     * (see `ChannelAssignment`), which can hold per-channel data columns. When the list is scoped to a
+     * Channel and a filter or sort uses such a column, it is resolved against the assignment row of
+     * that Channel. A column is exposed under its own name, or as `<name>InChannel` if the entity
+     * itself has a column of that name (e.g. `ProductChannel.enabled` → `enabledInChannel`, since
+     * `Product.enabled` is the global value).
+     */
+    private getChannelAssignmentProperties(
+        qb: SelectQueryBuilder<any>,
+        options: ListQueryOptions<any>,
+    ): Map<string, { target: any; ownerColumn: string; column: string }> {
+        const result = new Map<string, { target: any; ownerColumn: string; column: string }>();
+        const metadata = qb.expressionMap.mainAlias?.metadata;
+        const junction = metadata?.findRelationWithPropertyPath('channels')?.junctionEntityMetadata;
+        if (!metadata || !junction) {
+            return result;
+        }
+        const assignmentMetadata = qb.connection.entityMetadatas.find(
+            m => m.tableName === junction.tableName && m.tableType !== 'junction',
+        );
+        if (!assignmentMetadata) {
+            return result;
+        }
+        const ownerColumn = junction.ownerColumns[0].propertyName;
+        for (const column of assignmentMetadata.columns) {
+            if (column.isPrimary || column.relationMetadata) {
+                continue;
+            }
+            // Channel-scoped custom fields (in the `customFields` embedded) keep their own name, as
+            // they are not columns of the entity.
+            const property =
+                !column.embeddedMetadata && metadata.columns.find(c => c.propertyName === column.propertyName)
+                    ? `${column.propertyName}InChannel`
+                    : column.propertyName;
+            if (this.customPropertyIsBeingUsed(property, options)) {
+                result.set(property, {
+                    target: assignmentMetadata.target,
+                    ownerColumn,
+                    column: column.propertyPath,
+                });
+            }
+        }
+        return result;
     }
 
     /**
