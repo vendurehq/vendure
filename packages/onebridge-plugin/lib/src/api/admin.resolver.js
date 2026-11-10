@@ -229,7 +229,7 @@ __decorate([
 ], OnebridgeAdminResolver.prototype, "onebridgeOrderSummary", null);
 __decorate([
     (0, graphql_1.Query)(),
-    (0, core_1.Allow)(core_1.Permission.ReadProduct),
+    (0, core_1.Allow)(core_1.Permission.ReadCatalog, core_1.Permission.ReadProduct),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)('take')),
     __metadata("design:type", Function),

@@ -134,7 +134,7 @@ export class OnebridgeAdminResolver {
     // ===== 规格表（只读投影，数据源为 Product customFields）=====
 
     @Query()
-    @Allow(Permission.ReadProduct)
+    @Allow(Permission.ReadCatalog, Permission.ReadProduct)
     onebridgeSpecSheets(@Ctx() ctx: any, @Args('take') take?: number) {
         return this.specSheetService.list(ctx, { take });
     }

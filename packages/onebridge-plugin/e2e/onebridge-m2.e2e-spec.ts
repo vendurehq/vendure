@@ -657,5 +657,11 @@ describe('OnebridgePlugin · M2 接口', () => {
         } catch (e: any) {
             expect(e.message).toMatch(/not currently authorized|not authorized|Forbidden/i);
         }
+
+        // 规格表沿用原生目录权限口径：ReadCatalog 即可只读，且不会因此获得 RFQ 权限
+        const specSheets = (await restricted.query(gql`
+            query { onebridgeSpecSheets { slug } }
+        `)) as any;
+        expect(Array.isArray(specSheets.onebridgeSpecSheets)).toBe(true);
     });
 });
