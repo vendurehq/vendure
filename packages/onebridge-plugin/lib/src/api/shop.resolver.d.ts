@@ -1,4 +1,4 @@
-import { OnebridgeContentService, OnebridgeCustomsService, OnebridgeInspectionService, OnebridgeOrderSummaryService, OnebridgeRfqService } from '../services';
+import { OnebridgeContentService, OnebridgeCustomsService, OnebridgeInspectionService, OnebridgeOrderSummaryService, OnebridgeRfqService, OnebridgeSpecSheetService } from '../services';
 export declare class RfqFieldResolver {
     private rfqService;
     constructor(rfqService: OnebridgeRfqService);
@@ -57,7 +57,8 @@ export declare class OnebridgeShopResolver {
     private inspectionService;
     private customsService;
     private orderSummaryService;
-    constructor(rfqService: OnebridgeRfqService, contentService: OnebridgeContentService, inspectionService: OnebridgeInspectionService, customsService: OnebridgeCustomsService, orderSummaryService: OnebridgeOrderSummaryService);
+    private specSheetService;
+    constructor(rfqService: OnebridgeRfqService, contentService: OnebridgeContentService, inspectionService: OnebridgeInspectionService, customsService: OnebridgeCustomsService, orderSummaryService: OnebridgeOrderSummaryService, specSheetService: OnebridgeSpecSheetService);
     submitRfq(ctx: any, input: any): Promise<import("..").Rfq>;
     myRfqs(ctx: any, options: any): Promise<{
         items: import("..").Rfq[];
@@ -72,6 +73,7 @@ export declare class OnebridgeShopResolver {
     logisticsChannel(ctx: any, slug: string): Promise<import("..").ContentEntry | null>;
     siteContent(ctx: any, options: any): Promise<import("..").ContentEntry[]>;
     serviceChannels(ctx: any): any[];
+    specSheets(ctx: any, take?: number): Promise<import("../services/spec-sheet.service").SpecSheetPayload[]>;
     inspectionReports(ctx: any, args: any): Promise<import("..").InspectionReport[]>;
     orderCustoms(ctx: any, orderCode: string): Promise<import("..").CustomsRecord | null>;
     orderTimeline(ctx: any, orderCode: string): Promise<any>;

@@ -361,12 +361,13 @@ exports.CustomsRecordFieldResolver = CustomsRecordFieldResolver = __decorate([
     __metadata("design:paramtypes", [services_1.OnebridgeOrderSummaryService])
 ], CustomsRecordFieldResolver);
 let OnebridgeShopResolver = class OnebridgeShopResolver {
-    constructor(rfqService, contentService, inspectionService, customsService, orderSummaryService) {
+    constructor(rfqService, contentService, inspectionService, customsService, orderSummaryService, specSheetService) {
         this.rfqService = rfqService;
         this.contentService = contentService;
         this.inspectionService = inspectionService;
         this.customsService = customsService;
         this.orderSummaryService = orderSummaryService;
+        this.specSheetService = specSheetService;
     }
     submitRfq(ctx, input) {
         return this.rfqService.submitRfq(ctx, input);
@@ -400,6 +401,9 @@ let OnebridgeShopResolver = class OnebridgeShopResolver {
     }
     serviceChannels(ctx) {
         return this.contentService.serviceChannels(ctx);
+    }
+    specSheets(ctx, take) {
+        return this.specSheetService.list(ctx, { take });
     }
     inspectionReports(ctx, args) {
         return this.inspectionService.shopList(ctx, args);
@@ -519,6 +523,15 @@ __decorate([
 ], OnebridgeShopResolver.prototype, "serviceChannels", null);
 __decorate([
     (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.Public),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('take')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Number]),
+    __metadata("design:returntype", void 0)
+], OnebridgeShopResolver.prototype, "specSheets", null);
+__decorate([
+    (0, graphql_1.Query)(),
     (0, core_1.Allow)(core_1.Permission.Authenticated),
     __param(0, (0, core_1.Ctx)()),
     __param(1, (0, graphql_1.Args)()),
@@ -568,6 +581,7 @@ exports.OnebridgeShopResolver = OnebridgeShopResolver = __decorate([
         services_1.OnebridgeContentService,
         services_1.OnebridgeInspectionService,
         services_1.OnebridgeCustomsService,
-        services_1.OnebridgeOrderSummaryService])
+        services_1.OnebridgeOrderSummaryService,
+        services_1.OnebridgeSpecSheetService])
 ], OnebridgeShopResolver);
 //# sourceMappingURL=shop.resolver.js.map

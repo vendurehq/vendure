@@ -1,11 +1,12 @@
-import { OnebridgeContentService, OnebridgeCustomsService, OnebridgeInspectionService, OnebridgeOrderSummaryService, OnebridgeRfqService } from '../services';
+import { OnebridgeContentService, OnebridgeCustomsService, OnebridgeInspectionService, OnebridgeOrderSummaryService, OnebridgeRfqService, OnebridgeSpecSheetService } from '../services';
 export declare class OnebridgeAdminResolver {
     private rfqService;
     private contentService;
     private inspectionService;
     private customsService;
     private orderSummaryService;
-    constructor(rfqService: OnebridgeRfqService, contentService: OnebridgeContentService, inspectionService: OnebridgeInspectionService, customsService: OnebridgeCustomsService, orderSummaryService: OnebridgeOrderSummaryService);
+    private specSheetService;
+    constructor(rfqService: OnebridgeRfqService, contentService: OnebridgeContentService, inspectionService: OnebridgeInspectionService, customsService: OnebridgeCustomsService, orderSummaryService: OnebridgeOrderSummaryService, specSheetService: OnebridgeSpecSheetService);
     onebridgeRfqs(ctx: any, options: any): Promise<{
         items: import("..").Rfq[];
         totalItems: number;
@@ -33,4 +34,5 @@ export declare class OnebridgeAdminResolver {
     }>;
     upsertOnebridgeCustomsRecord(ctx: any, input: any): Promise<import("..").CustomsRecord>;
     onebridgeOrderSummary(ctx: any, orderCode: string): Promise<any>;
+    onebridgeSpecSheets(ctx: any, take?: number): Promise<import("../services/spec-sheet.service").SpecSheetPayload[]>;
 }

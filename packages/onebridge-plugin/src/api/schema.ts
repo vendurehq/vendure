@@ -284,10 +284,23 @@ const contentShopType = /* GraphQL */ `
     }
 `;
 
+/** CT-09 specSheets：字段为 Product customFields + 首个变体 priceWithTax 的投影（零 DDL）。 */
+const specSheetType = /* GraphQL */ `
+    type SpecSheet {
+        slug: String!
+        krName: String!
+        spec: String!
+        moq: Int
+        leadTime: String!
+        price: Int
+    }
+`;
+
 export const onebridgeShopTypeDefs = /* GraphQL */ `
     ${onebridgeEnums}
     ${rfqTypes}
     ${contentShopType}
+    ${specSheetType}
 
     extend type Query {
         myRfqs(options: RfqListOptions): RfqList!
@@ -301,6 +314,7 @@ export const onebridgeShopTypeDefs = /* GraphQL */ `
         logisticsChannel(slug: String!): OnebridgeContent
         siteContent(locale: Locale, options: ContentQueryOptions): [OnebridgeContent!]!
         serviceChannels(locale: Locale): [ServiceChannel!]!
+        specSheets(take: Int): [SpecSheet!]!
         inspectionReports(orderCode: String, rfqCode: String): [InspectionReport!]!
         orderCustoms(orderCode: String!): CustomsRecord
         orderTimeline(orderCode: String!): [StageEvent!]!
@@ -316,6 +330,7 @@ export const onebridgeShopTypeDefs = /* GraphQL */ `
 export const onebridgeAdminTypeDefs = /* GraphQL */ `
     ${onebridgeEnums}
     ${rfqTypes}
+    ${specSheetType}
 
     type OnebridgeContentEntry implements Node {
         id: ID!
@@ -462,6 +477,7 @@ export const onebridgeAdminTypeDefs = /* GraphQL */ `
         onebridgeCustomsRecord(orderCode: String!): CustomsRecord
         onebridgeCustomsRecords(options: CustomsListOptions): CustomsList!
         onebridgeOrderSummary(orderCode: String!): OnebridgeOrderSummary!
+        onebridgeSpecSheets(take: Int): [SpecSheet!]!
     }
 
     extend type Mutation {

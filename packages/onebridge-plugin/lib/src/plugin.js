@@ -56,6 +56,7 @@ exports.OnebridgePlugin = OnebridgePlugin = OnebridgePlugin_1 = __decorate([
             services_1.OnebridgeInspectionService,
             services_1.OnebridgeCustomsService,
             services_1.OnebridgeOrderSummaryService,
+            services_1.OnebridgeSpecSheetService,
             payments_1.OnebridgePaymentCallbackService,
             order_lifecycle_subscriber_1.OnebridgeOrderLifecycleSubscriber,
         ],

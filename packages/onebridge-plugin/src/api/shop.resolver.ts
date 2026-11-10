@@ -7,6 +7,7 @@ import {
     OnebridgeInspectionService,
     OnebridgeOrderSummaryService,
     OnebridgeRfqService,
+    OnebridgeSpecSheetService,
 } from '../services';
 
 @Resolver('Rfq')
@@ -183,6 +184,7 @@ export class OnebridgeShopResolver {
         private inspectionService: OnebridgeInspectionService,
         private customsService: OnebridgeCustomsService,
         private orderSummaryService: OnebridgeOrderSummaryService,
+        private specSheetService: OnebridgeSpecSheetService,
     ) {}
 
     @Mutation()
@@ -249,6 +251,12 @@ export class OnebridgeShopResolver {
     @Allow(Permission.Public)
     serviceChannels(@Ctx() ctx: any) {
         return this.contentService.serviceChannels(ctx);
+    }
+
+    @Query()
+    @Allow(Permission.Public)
+    specSheets(@Ctx() ctx: any, @Args('take') take?: number) {
+        return this.specSheetService.list(ctx, { take });
     }
 
     @Query()

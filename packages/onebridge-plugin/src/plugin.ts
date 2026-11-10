@@ -24,6 +24,7 @@ import {
     OnebridgeInspectionService,
     OnebridgeOrderSummaryService,
     OnebridgeRfqService,
+    OnebridgeSpecSheetService,
     setOnebridgeChannelToken,
 } from './services';
 import { OnebridgeOrderLifecycleSubscriber } from './subscribers/order-lifecycle.subscriber';
@@ -55,6 +56,7 @@ function mergePermissions(
         OnebridgeInspectionService,
         OnebridgeCustomsService,
         OnebridgeOrderSummaryService,
+        OnebridgeSpecSheetService,
         OnebridgePaymentCallbackService,
         OnebridgeOrderLifecycleSubscriber,
     ],

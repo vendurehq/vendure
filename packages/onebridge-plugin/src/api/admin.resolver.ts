@@ -8,6 +8,7 @@ import {
     OnebridgeInspectionService,
     OnebridgeOrderSummaryService,
     OnebridgeRfqService,
+    OnebridgeSpecSheetService,
 } from '../services';
 
 const RfqManage = OnebridgePermissions.RfqManage as Permission;
@@ -23,6 +24,7 @@ export class OnebridgeAdminResolver {
         private inspectionService: OnebridgeInspectionService,
         private customsService: OnebridgeCustomsService,
         private orderSummaryService: OnebridgeOrderSummaryService,
+        private specSheetService: OnebridgeSpecSheetService,
     ) {}
 
     // ===== RFQ =====
@@ -127,5 +129,13 @@ export class OnebridgeAdminResolver {
     @Allow(Permission.ReadOrder)
     onebridgeOrderSummary(@Ctx() ctx: any, @Args('orderCode') orderCode: string) {
         return this.orderSummaryService.summary(ctx, orderCode, false);
+    }
+
+    // ===== 规格表（只读投影，数据源为 Product customFields）=====
+
+    @Query()
+    @Allow(Permission.ReadProduct)
+    onebridgeSpecSheets(@Ctx() ctx: any, @Args('take') take?: number) {
+        return this.specSheetService.list(ctx, { take });
     }
 }

@@ -22,12 +22,13 @@ const ContentManage = permissions_1.OnebridgePermissions.ContentManage;
 const InspectionManage = permissions_1.OnebridgePermissions.InspectionManage;
 const CustomsManage = permissions_1.OnebridgePermissions.CustomsManage;
 let OnebridgeAdminResolver = class OnebridgeAdminResolver {
-    constructor(rfqService, contentService, inspectionService, customsService, orderSummaryService) {
+    constructor(rfqService, contentService, inspectionService, customsService, orderSummaryService, specSheetService) {
         this.rfqService = rfqService;
         this.contentService = contentService;
         this.inspectionService = inspectionService;
         this.customsService = customsService;
         this.orderSummaryService = orderSummaryService;
+        this.specSheetService = specSheetService;
     }
     // ===== RFQ =====
     onebridgeRfqs(ctx, options) {
@@ -82,6 +83,10 @@ let OnebridgeAdminResolver = class OnebridgeAdminResolver {
     // ===== 订单聚合 =====
     onebridgeOrderSummary(ctx, orderCode) {
         return this.orderSummaryService.summary(ctx, orderCode, false);
+    }
+    // ===== 规格表（只读投影，数据源为 Product customFields）=====
+    onebridgeSpecSheets(ctx, take) {
+        return this.specSheetService.list(ctx, { take });
     }
 };
 exports.OnebridgeAdminResolver = OnebridgeAdminResolver;
@@ -222,12 +227,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], OnebridgeAdminResolver.prototype, "onebridgeOrderSummary", null);
+__decorate([
+    (0, graphql_1.Query)(),
+    (0, core_1.Allow)(core_1.Permission.ReadProduct),
+    __param(0, (0, core_1.Ctx)()),
+    __param(1, (0, graphql_1.Args)('take')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Number]),
+    __metadata("design:returntype", void 0)
+], OnebridgeAdminResolver.prototype, "onebridgeSpecSheets", null);
 exports.OnebridgeAdminResolver = OnebridgeAdminResolver = __decorate([
     (0, graphql_1.Resolver)(),
     __metadata("design:paramtypes", [services_1.OnebridgeRfqService,
         services_1.OnebridgeContentService,
         services_1.OnebridgeInspectionService,
         services_1.OnebridgeCustomsService,
-        services_1.OnebridgeOrderSummaryService])
+        services_1.OnebridgeOrderSummaryService,
+        services_1.OnebridgeSpecSheetService])
 ], OnebridgeAdminResolver);
 //# sourceMappingURL=admin.resolver.js.map
