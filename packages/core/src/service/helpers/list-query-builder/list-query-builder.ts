@@ -27,6 +27,7 @@ import { TransactionalConnection } from '../../../connection';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
+import { ChannelAssignmentService } from '../channel-assignment/channel-assignment.service';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
 import { resolveCalculatedColumnJoin } from './calculated-column-join';
@@ -214,6 +215,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     /** @internal */
@@ -301,11 +303,11 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         this.joinCalculatedColumnRelations(qb, entity, options);
 
         const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
-        const channelAssignmentProperties = extendedOptions.channelId
-            ? this.getChannelAssignmentProperties(qb, options)
+        const channelAssignmentJoin = extendedOptions.channelId
+            ? this.getChannelAssignmentJoin(qb, options)
             : undefined;
         const customPropertyMap =
-            channelAssignmentProperties?.size && !providedCustomPropertyMap ? {} : providedCustomPropertyMap;
+            channelAssignmentJoin && !providedCustomPropertyMap ? {} : providedCustomPropertyMap;
         // Store the original customPropertyMap before normalization for EXISTS subquery generation.
         // This is needed because normalizeCustomPropertyMap mutates customPropertyMap, but
         // parseFilterParams needs the original paths to detect *-to-Many relations.
@@ -313,11 +315,11 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         if (customPropertyMap) {
             this.normalizeCustomPropertyMap(customPropertyMap, options, qb);
         }
-        if (customPropertyMap && channelAssignmentProperties?.size) {
-            // Columns of the channel assignment row (e.g. `Product.enabled` -> `ProductChannel.enabled`)
-            // resolve against the row of the active Channel, joined below.
-            for (const [property, { column }] of channelAssignmentProperties) {
-                customPropertyMap[property] = `lqb__channelAssignment.${column}`;
+        if (customPropertyMap && channelAssignmentJoin) {
+            // Columns of the channel assignment row (e.g. `ProductChannel.enabled`) resolve against
+            // the row of the active Channel, joined below.
+            for (const [property, columnPath] of channelAssignmentJoin.columns) {
+                customPropertyMap[property] = `lqb__channelAssignment.${columnPath}`;
             }
         }
 
@@ -362,8 +364,8 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
                 channelId: extendedOptions.channelId,
             });
-            if (channelAssignmentProperties?.size) {
-                const [{ target, ownerColumn }] = Array.from(channelAssignmentProperties.values());
+            if (channelAssignmentJoin) {
+                const { target, ownerColumn } = channelAssignmentJoin;
                 // Selected, so that sorting on its columns works with pagination (TypeORM orders the
                 // distinct-id subquery by selected columns only), as for the other custom properties.
                 qb.innerJoinAndSelect(
@@ -746,24 +748,18 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * itself has a column of that name (e.g. `ProductChannel.enabled` → `enabledInChannel`, since
      * `Product.enabled` is the global value).
      */
-    private getChannelAssignmentProperties(
+    private getChannelAssignmentJoin(
         qb: SelectQueryBuilder<any>,
         options: ListQueryOptions<any>,
-    ): Map<string, { target: any; ownerColumn: string; column: string }> {
-        const result = new Map<string, { target: any; ownerColumn: string; column: string }>();
+    ): { target: Type<any>; ownerColumn: string; columns: Map<string, string> } | undefined {
         const metadata = qb.expressionMap.mainAlias?.metadata;
-        const junction = metadata?.findRelationWithPropertyPath('channels')?.junctionEntityMetadata;
-        if (!metadata || !junction) {
-            return result;
+        const assignment = metadata && this.channelAssignmentService.getMetadata(metadata.target as Type<any>);
+        if (!metadata || !assignment) {
+            return;
         }
-        const assignmentMetadata = qb.connection.entityMetadatas.find(
-            m => m.tableName === junction.tableName && m.tableType !== 'junction',
-        );
-        if (!assignmentMetadata) {
-            return result;
-        }
-        const ownerColumn = junction.ownerColumns[0].propertyName;
-        for (const column of assignmentMetadata.columns) {
+        // Maps the filter/sort property to the column's property path on the assignment entity
+        const columns = new Map<string, string>();
+        for (const column of qb.connection.getMetadata(assignment.target).columns) {
             if (column.isPrimary || column.relationMetadata) {
                 continue;
             }
@@ -774,14 +770,12 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                     ? `${column.propertyName}InChannel`
                     : column.propertyName;
             if (this.customPropertyIsBeingUsed(property, options)) {
-                result.set(property, {
-                    target: assignmentMetadata.target,
-                    ownerColumn,
-                    column: column.propertyPath,
-                });
+                columns.set(property, column.propertyPath);
             }
         }
-        return result;
+        return columns.size
+            ? { target: assignment.target, ownerColumn: assignment.entityIdProperty, columns }
+            : undefined;
     }
 
     /**

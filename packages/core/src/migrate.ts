@@ -11,6 +11,7 @@ import { preBootstrapConfig } from './bootstrap';
 import { resetConfig } from './config/config-helpers';
 import { VendureConfig } from './config/vendure-config';
 import { getDatabaseType } from './connection/database-type';
+import { initializeDataSource } from './connection/initialize-data-source';
 import { Product } from './entity/product/product.entity';
 import {
     DEFAULT_TRANSLATION_TABLE_COLUMN_NAMES,
@@ -356,7 +357,7 @@ function createDataSourceOptions(userConfig: Partial<VendureConfig>): DataSource
 }
 
 function createDataSource(options: DataSourceOptions): Promise<DataSource> {
-    return new DataSource(options).initialize();
+    return initializeDataSource(options);
 }
 
 interface EmptyDatabaseConnection {
