@@ -22,6 +22,13 @@ import { ChannelAssignmentEntityOptions, getChannelAssignmentEntities } from './
  * entity's relation must be declared with `@JoinTable({ synchronize: false })`, since the
  * assignment entity manages the table's schema.
  *
+ * Per-channel columns should be nullable or have a default. `ChannelService.assignToChannels()`
+ * copies them from an existing assignment of the entity, but assignments created in other ways
+ * (`ChannelService.assignToCurrentChannel()`, saving `entity.channels`, the FastImporterService)
+ * start with the column defaults.
+ *
+ * Relations are only supported inside the `customFields` of an assignment entity.
+ *
  * @docsCategory entities
  * @since 4.0.0
  */
