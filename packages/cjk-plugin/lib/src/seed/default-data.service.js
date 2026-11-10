@@ -410,6 +410,9 @@ let DefaultDataService = class DefaultDataService {
                 token,
                 defaultLanguageCode: core_1.LanguageCode.zh_Hans,
                 defaultCurrencyCode: 'CNY',
+                // 必须显式给 availableCurrencyCodes：直接 new Channel 时不会走 ChannelService.create 的默认值推导，
+                // 列为 null 会让 Admin API 的 channels 查询报 "Cannot return null for non-nullable field Channel.availableCurrencyCodes"
+                availableCurrencyCodes: ['CNY'],
                 pricesIncludeTax: true,
                 customFields: {
                     enabled: true,
