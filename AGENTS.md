@@ -1,6 +1,6 @@
 # Vendure
 
-Headless e-commerce framework. Lerna monorepo with fixed versioning.
+Headless e-commerce framework. Nx monorepo with fixed versioning.
 
 ## Development Workflow
 
