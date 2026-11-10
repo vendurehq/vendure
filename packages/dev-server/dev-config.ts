@@ -231,7 +231,10 @@ class RelaxArrangingPaymentGuardPlugin {}
 const CSRF_ALLOWED_ORIGINS = new Set<string>(
     (
         process.env.CSRF_ALLOWED_ORIGINS ??
-        'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,http://localhost:5280,http://localhost:3000'
+        'https://e.joho.cn,https://www.youshop.cn,https://www.yourbao.cn,' +
+        'http://localhost:5280,http://localhost:3000,' +
+        // 本地联调：C 端静态页与同源反代，127.0.0.1 与 localhost 不等价，需分别列出
+        'http://127.0.0.1:3100,http://localhost:3100,http://g.joho.cn'
     )
         .split(',')
         .map(s => s.trim().toLowerCase())
@@ -788,7 +791,8 @@ export const devConfig: VendureConfig = {
         InventoryPlugin.init(),
         OperationsPlugin.init(),
         // ONE BRIDGE 跨境频道：实体/迁移/customFields/权限，增量注册，不影响既有租户
-        OnebridgePlugin.init({}),
+        // channelToken 由 env 注入（ONE_BRIDGE_CHANNEL_TOKEN）；未设置时按 ctx.channel.token 工作
+        OnebridgePlugin.init({ channelToken: process.env.ONE_BRIDGE_CHANNEL_TOKEN }),
         MessagePlugin.init(),
         NotificationPlugin.init(),
         // 预售/定金预售：两阶段支付（定金→尾款）+ 全款预售 + 分档定价 + 到货释放库存
