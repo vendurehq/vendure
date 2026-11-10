@@ -16,11 +16,8 @@ import { IdCodecPlugin } from '../middleware/id-codec-plugin';
 import { TranslateErrorsPlugin } from '../middleware/translate-errors-plugin';
 
 import { generateResolvers } from './generate-resolvers';
-import {
-    getFinalVendureSchema,
-    isUsingDefaultEntityIdStrategy,
-    printSchemaWithDirectives,
-} from './get-final-vendure-schema';
+import { getFinalVendureSchema, isUsingDefaultEntityIdStrategy } from './get-final-vendure-schema';
+import { printSchemaWithDirectives } from './print-schema-with-directives';
 
 export interface GraphQLApiOptions {
     apiType: 'shop' | 'admin';
