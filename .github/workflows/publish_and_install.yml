@@ -23,7 +23,7 @@ on:
             - 'bunfig.toml'
 
 env:
-    # CI never fetches the Platform catalog from api.vendure.io. The Dashboard build and the `version` lifecycle of `lerna publish` use the committed snapshot.
+    # CI never fetches the Platform catalog from api.vendure.io. The Dashboard build and the release checks of `bun run release:version` use the committed snapshot.
     VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH: 'true'
 
 defaults:
@@ -72,7 +72,15 @@ jobs:
               run: |
                   nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
                   wait-on http://localhost:4873
-                  bunx lerna publish prepatch --preid ci --no-push --no-git-tag-version --no-commit-hooks --force-publish "*" --yes --dist-tag ci --registry http://localhost:4873
+                  bun run release:version prepatch --preid ci --skip-git
+                  for dir in $(node .github/workflows/scripts/public-package-dirs.js); do
+                    (
+                      cd "$dir"
+                      publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'")
+                      cd "$publish_dir"
+                      npm publish --tag ci --registry http://localhost:4873
+                    )
+                  done
             - name: Package Verdaccio storage
               run: |
                   cd $HOME/.config/verdaccio
