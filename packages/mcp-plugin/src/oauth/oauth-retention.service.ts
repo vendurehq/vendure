@@ -54,7 +54,7 @@ export class McpOauthRetentionService {
                     .createQueryBuilder('grant')
                     .select('session.id', 'id')
                     .addSelect('session.token', 'token')
-                    .innerJoin(Session, 'session', 'session.id = grant.vendureSessionId')
+                    .innerJoin(Session, 'session', this.sessionIdMatchesGrantCondition())
                     .where('grant.expiresAt <= :now', { now: new Date() })
                     .orWhere('grant.revokedAt IS NOT NULL')
                     .limit(RETENTION_DELETE_BATCH_SIZE)
@@ -65,6 +65,16 @@ export class McpOauthRetentionService {
                 }
             },
         );
+    }
+
+    /** With UuidIdStrategy on Postgres, `Session.id` is a native uuid column while `vendureSessionId` is varchar, and Postgres has no operator comparing the two. */
+    private sessionIdMatchesGrantCondition(): string {
+        const sessionIdIsUuid =
+            this.connection.rawConnection.options.type === 'postgres' &&
+            this.connection.rawConnection.getMetadata(Session).primaryColumns[0]?.type === 'uuid';
+        return sessionIdIsUuid
+            ? 'session.id = CAST(grant.vendureSessionId AS uuid)'
+            : 'session.id = grant.vendureSessionId';
     }
 
     /** Only ever catches abandoned flows, since a used request or code is deleted immediately when it's consumed. */
