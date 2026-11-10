@@ -171,7 +171,10 @@ const rfqTypes = /* GraphQL */ `
         name: String!
         spec: String
         qty: Int!
+        # 行小计（含税）= 下单时 linePriceWithTax，语义保持不变
         price: Int!
+        # 新增：单价（含税）= 下单时 unitPriceWithTax；与 price 同为最小货币单位（precision=2）
+        unitPrice: Int!
     }
 
     type OnebridgeOrderSummary {

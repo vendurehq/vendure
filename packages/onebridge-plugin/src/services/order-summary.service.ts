@@ -49,7 +49,9 @@ export class OnebridgeOrderSummaryService {
                     name: this.resolveItemName(ctx, variant),
                     spec: this.resolveItemSpec(variant),
                     qty: line.quantity,
+                    // price 保持「行小计含税」语义；unitPrice 为新增的单价含税字段
                     price: line.linePriceWithTax,
+                    unitPrice: line.unitPriceWithTax,
                 };
             }),
             timeline: await this.timeline(ctx, order.code),
