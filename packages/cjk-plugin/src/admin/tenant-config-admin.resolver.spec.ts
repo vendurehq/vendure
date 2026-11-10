@@ -19,12 +19,14 @@ const mockConnection: any = {
 };
 
 // Mock ctx — 模拟 ctx.session.user.channelPermissions 结构
-function makeCtx(opts: { isSuperAdmin?: boolean; channelIds?: string[] } = {}) {
+function makeCtx(opts: { isSuperAdmin?: boolean; channelIds?: string[]; tenantSettingsManage?: boolean } = {}) {
     const channelPermissions = (opts.channelIds || []).map(id => ({ id, token: `t-${id}`, code: `c-${id}`, permissions: [] }));
     const user: any = { id: 1, identifier: 'admin@test', channelPermissions };
     return {
         session: { user },
-        userHasPermissions: (perms: any[]) => opts.isSuperAdmin === true,
+        userHasPermissions: (perms: any[]) =>
+            opts.isSuperAdmin === true ||
+            (opts.tenantSettingsManage === true && perms.includes('TenantSettingsManage')),
         activeUserId: 1,
     } as any;
 }
@@ -53,25 +55,25 @@ describe('TenantConfigAdminResolver', () => {
     });
 
     it('allows tenant admin to read associated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1', '2'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1', '2'], tenantSettingsManage: true });
         const result = await resolver.tenantConfig(ctx, { channelId: '2' });
         expect(result.canEdit).toBe(true);
     });
 
     it('rejects tenant admin reading unassociated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'], tenantSettingsManage: true });
         await expect(resolver.tenantConfig(ctx, { channelId: '99' })).rejects.toThrow(/TENANT_CONFIG_FORBIDDEN/);
     });
 
     it('updateTenantConfig rejects unassociated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'], tenantSettingsManage: true });
         await expect(
             resolver.updateTenantConfig(ctx, { input: { channelId: '99', payPatch: {} } }),
         ).rejects.toThrow(/TENANT_CONFIG_FORBIDDEN/);
     });
 
     it('tenantSettings rejects unassociated channel', async () => {
-        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'] });
+        const ctx = makeCtx({ isSuperAdmin: false, channelIds: ['1'], tenantSettingsManage: true });
         await expect(resolver.tenantSettings(ctx, '99')).rejects.toThrow(/TENANT_CONFIG_FORBIDDEN/);
     });
 
