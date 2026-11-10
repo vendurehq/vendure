@@ -78,14 +78,16 @@ function runPushClassifier(changedPath) {
     );
 }
 
-test('workflow and composite-action changes enable package and dashboard jobs', () => {
+test('workflow and composite-action changes enable package and dashboard jobs for all projects', () => {
     assert.deepEqual(runClassifier('.github/workflows/build_and_test.yml'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'run-many',
     });
     assert.deepEqual(runClassifier('.github/actions/setup/action.yml'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'run-many',
     });
 });
 
@@ -93,6 +95,7 @@ test('dashboard changes enable both classifiers', () => {
     assert.deepEqual(runClassifier('packages/dashboard/src/index.ts'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'affected',
     });
 });
 
@@ -100,13 +103,15 @@ test('unrelated documentation changes do not enable package jobs', () => {
     assert.deepEqual(runClassifier('docs/README.md'), {
         packages: 'false',
         dashboard: 'false',
+        nx: 'affected',
     });
 });
 
-test('workflow dispatch enables both classifiers without a diff', () => {
+test('workflow dispatch enables both classifiers for all projects without a diff', () => {
     assert.deepEqual(runClassifier('docs/README.md', 'workflow_dispatch'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'run-many',
     });
 });
 
@@ -114,9 +119,11 @@ test('push events use event.before across multiple commits', () => {
     assert.deepEqual(runPushClassifier('packages/core/src/index.ts'), {
         packages: 'true',
         dashboard: 'false',
+        nx: 'affected',
     });
     assert.deepEqual(runPushClassifier('packages/dashboard/src/index.ts'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'affected',
     });
 });

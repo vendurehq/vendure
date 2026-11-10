@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
+# `nx` selects the Nx command of the build and test jobs. `affected` runs only the
+# projects that the change touches. `run-many` runs all projects. Nx cannot see a
+# change to a workflow or composite action, so such a change runs all projects.
 if [[ "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" ]]; then
     packages=true
     dashboard=true
+    nx=run-many
 else
     base="${GITHUB_BASE_SHA:-}"
     if [[ -z "$base" ]]; then
@@ -26,13 +30,20 @@ else
     else
         dashboard=false
     fi
+
+    if grep -qE '^\.github/(workflows|actions)/' <<< "$changed"; then
+        nx=run-many
+    else
+        nx=affected
+    fi
 fi
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
         echo "packages=$packages"
         echo "dashboard=$dashboard"
+        echo "nx=$nx"
     } >> "$GITHUB_OUTPUT"
 else
-    printf 'packages=%s\ndashboard=%s\n' "$packages" "$dashboard"
+    printf 'packages=%s\ndashboard=%s\nnx=%s\n' "$packages" "$dashboard" "$nx"
 fi
