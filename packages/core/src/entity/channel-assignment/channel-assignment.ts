@@ -4,6 +4,8 @@ import { Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { Channel } from '../channel/channel.entity';
 import { EntityId } from '../entity-id.decorator';
 
+import { ChannelAssignmentEntityOptions, getChannelAssignmentEntities } from './channel-assignment-registry';
+
 /**
  * @description
  * The base class of a channel assignment entity: one row per (entity, Channel), recording that the
@@ -20,6 +22,13 @@ import { EntityId } from '../entity-id.decorator';
  * entity's relation must be declared with `@JoinTable({ synchronize: false })`, since the
  * assignment entity manages the table's schema.
  *
+ * Per-channel columns should be nullable or have a default. `ChannelService.assignToChannels()`
+ * copies them from an existing assignment of the entity, but assignments created in other ways
+ * (`ChannelService.assignToCurrentChannel()`, saving `entity.channels`, the FastImporterService)
+ * start with the column defaults.
+ *
+ * Relations are only supported inside the `customFields` of an assignment entity.
+ *
  * @docsCategory entities
  * @since 4.0.0
  */
@@ -34,32 +43,6 @@ export abstract class ChannelAssignment {
 
     channel: Channel;
 }
-
-export interface ChannelAssignmentEntityOptions {
-    /**
-     * The ChannelAware entity which is assigned to Channels.
-     */
-    entity: () => Type<any>;
-    /**
-     * The property name of the relation to the entity. The id column is this name + `Id`,
-     * e.g. `product` → `productId`, matching the junction table's column under the default
-     * naming strategy.
-     */
-    entityProperty: string;
-    /**
-     * The junction table of the entity's `channels` relation.
-     */
-    tableName: string;
-    /**
-     * The `ON UPDATE` action of the junction table's foreign key to `channel`. TypeORM derives it
-     * from the inverse relation's options, so it differs between entities.
-     *
-     * @default 'NO ACTION'
-     */
-    channelOnUpdate?: 'CASCADE' | 'NO ACTION';
-}
-
-const registry = new Map<Type<any>, ChannelAssignmentEntityOptions>();
 
 /**
  * @description
@@ -107,14 +90,8 @@ export function ChannelAssignmentEntity(options: ChannelAssignmentEntityOptions)
         Index()(proto, 'channel');
 
         Entity(options.tableName)(target);
-        registry.set(target, options);
+        getChannelAssignmentEntities().set(target, options);
     };
 }
 
-/**
- * @description
- * Returns the options of every class declared with {@link ChannelAssignmentEntity}.
- */
-export function getChannelAssignmentEntities(): Map<Type<any>, ChannelAssignmentEntityOptions> {
-    return registry;
-}
+export { ChannelAssignmentEntityOptions, getChannelAssignmentEntities } from './channel-assignment-registry';
