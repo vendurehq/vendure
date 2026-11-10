@@ -78,7 +78,7 @@ jobs:
                       cd "$dir"
                       publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'")
                       cd "$publish_dir"
-                      npm publish --tag ci --registry http://localhost:4873
+                      npm publish --ignore-scripts --tag ci --registry http://localhost:4873
                     )
                   done
             - name: Package Verdaccio storage

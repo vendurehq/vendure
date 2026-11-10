@@ -84,7 +84,7 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t build
+              run: bun run nx "$NX_COMMAND" -t build
     unit-tests:
         name: unit tests
         needs: detect-changes
@@ -118,11 +118,11 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t ci
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: Unit tests
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t test --output-style=stream
+              run: bun run nx "$NX_COMMAND" -t test --output-style=stream
     dashboard-i18n:
         name: dashboard i18n sync
         needs: detect-changes
@@ -171,7 +171,7 @@ jobs:
                   restore-keys: |
                       nx-${{ runner.os }}-ci-
             - name: Build
-              run: bunx nx run @vendure/testing:ci
+              run: bun run nx run @vendure/testing:ci
             - name: Cache Playwright browsers
               id: playwright-cache
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -258,13 +258,13 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t ci
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: sqljs
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t e2e --output-style=stream
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     e2e-mariadb:
         name: e2e (mariadb)
         needs: detect-changes
@@ -312,14 +312,14 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t ci
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mariadb
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t e2e --output-style=stream
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     e2e-mysql:
         name: e2e (mysql)
         needs: detect-changes
@@ -377,14 +377,14 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t ci
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mysql
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t e2e --output-style=stream
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     e2e-postgres:
         name: e2e (postgres)
         needs: detect-changes
@@ -431,14 +431,14 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t ci
+              run: bun run nx "$NX_COMMAND" -t ci
             - name: e2e tests
               env:
                   E2E_POSTGRES_PORT: ${{ job.services.postgres.ports['5432'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: postgres
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bunx nx "$NX_COMMAND" -t e2e --output-style=stream
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
     all-passed:
         name: all-passed
         runs-on: ubuntu-latest
