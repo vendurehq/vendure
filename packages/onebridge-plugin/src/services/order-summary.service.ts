@@ -20,7 +20,10 @@ export class OnebridgeOrderSummaryService {
             'customer',
             'lines',
             'lines.productVariant',
+            // A1：name 取变体/商品译名，必须显式加载 translations；否则 fallback 到 sku（L2201308）
+            'lines.productVariant.translations',
             'lines.productVariant.product',
+            'lines.productVariant.product.translations',
         ]);
         if (!order) throw Errors.orderNotFound(orderCode);
         if (enforceOwnership) await this.assertOwnership(ctx, order);
@@ -40,12 +43,11 @@ export class OnebridgeOrderSummaryService {
             updatedAt: order.updatedAt,
             items: (order.lines ?? []).map((line: any) => {
                 const variant = line.productVariant;
-                const translated = variant?.translations?.find((t: any) => t.languageCode === ctx.languageCode);
                 return {
                     id: line.id,
                     productVariantId: variant?.id ?? null,
-                    name: translated?.name ?? variant?.sku ?? '',
-                    spec: ((variant as any)?.product?.customFields as any)?.spec ?? null,
+                    name: this.resolveItemName(ctx, variant),
+                    spec: this.resolveItemSpec(variant),
                     qty: line.quantity,
                     price: line.linePriceWithTax,
                 };
@@ -112,6 +114,50 @@ export class OnebridgeOrderSummaryService {
         } finally {
             await runner.release();
         }
+    }
+
+    /**
+     * A1：行项名称优先取「变体译名 → 商品译名 → 商品 customFields.krName/cnName → SKU」。
+     * 之前只读 variant.translations 且未 join，取不到就回落 sku（L2201308）。
+     */
+    private resolveItemName(ctx: RequestContext, variant: any): string {
+        const product = variant?.product;
+        const candidates: string[] = [
+            this.pickTranslationName(variant?.translations, ctx.languageCode),
+            this.pickTranslationName(product?.translations, ctx.languageCode),
+            product?.customFields?.krName,
+            product?.customFields?.cnName,
+            this.pickTranslationName(variant?.translations),
+            this.pickTranslationName(product?.translations),
+            variant?.sku,
+        ];
+        return candidates.find(value => typeof value === 'string' && value.trim() !== '')?.trim() ?? '';
+    }
+
+    /** 指定语言优先；未指定时按 ko → en → 第一条，避免 channel 默认语言缺译时回落 sku */
+    private pickTranslationName(translations: any[] | undefined, languageCode?: string): string | undefined {
+        if (!Array.isArray(translations) || translations.length === 0) return undefined;
+        if (languageCode) {
+            const exact = translations.find(t => t.languageCode === languageCode);
+            if (exact?.name) return exact.name;
+        }
+        const ko = translations.find(t => t.languageCode === 'ko');
+        if (ko?.name) return ko.name;
+        const en = translations.find(t => t.languageCode === 'en');
+        if (en?.name) return en.name;
+        return translations.find(t => t?.name)?.name;
+    }
+
+    /** A2：规格取商品 customFields.spec（种子缺值时回落变体的 accuracy/material 组合） */
+    private resolveItemSpec(variant: any): string | null {
+        const productCustomFields = (variant?.product?.customFields ?? {}) as Record<string, unknown>;
+        const spec = typeof productCustomFields.spec === 'string' ? productCustomFields.spec.trim() : '';
+        if (spec) return spec;
+        const variantCustomFields = (variant?.customFields ?? {}) as Record<string, unknown>;
+        const composed = [variantCustomFields.accuracy, variantCustomFields.material]
+            .filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+            .join(' / ');
+        return composed || null;
     }
 
     private async assertOwnership(ctx: RequestContext, order: any): Promise<void> {
