@@ -204,8 +204,8 @@ input RegisterCustomerInput {
 
 input UpdateCustomerInput {
     title: String
-    firstName: String @nonBlank
-    lastName: String @nonBlank
+    firstName: String
+    lastName: String
     phoneNumber: String
 }
 

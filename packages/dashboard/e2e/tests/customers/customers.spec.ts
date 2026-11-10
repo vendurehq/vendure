@@ -1,5 +1,6 @@
 import { type Page, expect, test } from '@playwright/test';
 
+import { VENDURE_PORT } from '../../constants.js';
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -40,6 +41,46 @@ test('should block creating a customer with a blank first name', async ({ page }
     expect(await firstName.evaluate((el: HTMLInputElement) => el.validity.valid)).toBe(false);
     await expect(page).toHaveURL(/\/customers\/new$/);
     expect(createSent).toBe(false);
+});
+
+// #5080 - a customer who registered without a name stores blank names, and must stay editable
+test('should save a phone-only edit of a customer registered without a name', async ({ page }) => {
+    const emailAddress = `registered-no-name-${Date.now()}@example.com`;
+    const registration = await page.request.post(`http://localhost:${VENDURE_PORT}/shop-api`, {
+        data: {
+            query: `mutation ($input: RegisterCustomerInput!) {
+                registerCustomerAccount(input: $input) {
+                    __typename
+                    ... on ErrorResult { message }
+                }
+            }`,
+            variables: { input: { emailAddress, password: 'test-password' } },
+        },
+    });
+    expect((await registration.json()).data.registerCustomerAccount.__typename).toBe('Success');
+
+    const client = new VendureAdminClient(page);
+    await client.login();
+    const { customers } = await client.gql(
+        `query ($email: String!) {
+            customers(options: { filter: { emailAddress: { eq: $email } } }) {
+                items { id firstName lastName }
+            }
+        }`,
+        { email: emailAddress },
+    );
+    const customer = customers.items[0];
+    expect(customer).toMatchObject({ firstName: '', lastName: '' });
+
+    await page.goto(`/customers/${String(customer.id)}`);
+    await page.getByLabel('Phone number').fill('+43 123 456');
+    await page.getByRole('button', { name: 'Update' }).click();
+    await expect(page.getByText('Successfully updated customer')).toBeVisible();
+
+    const { customer: updated } = await client.gql(`query ($id: ID!) { customer(id: $id) { phoneNumber } }`, {
+        id: customer.id,
+    });
+    expect(updated.phoneNumber).toBe('+43 123 456');
 });
 
 // #4997 — the history timeline must refresh after updating the customer,

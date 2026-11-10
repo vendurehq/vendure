@@ -275,6 +275,63 @@ describe('@nonBlank input fields', () => {
             expect(createCollection).toEqual({ name: 'Empty description', description: '' });
         });
 
+        it('keeps a customer who registered without a name editable', async () => {
+            const emailAddress = 'registered-no-name-5080@test.com';
+            await shopClient.asAnonymousUser();
+            const { registerCustomerAccount } = await shopClient.query(
+                gql`
+                    mutation ($input: RegisterCustomerInput!) {
+                        registerCustomerAccount(input: $input) {
+                            __typename
+                        }
+                    }
+                `,
+                { input: { emailAddress, password: 'test' } },
+            );
+            expect(registerCustomerAccount.__typename).toBe('Success');
+            const { customers } = await adminClient.query(
+                gql`
+                    query ($email: String!) {
+                        customers(options: { filter: { emailAddress: { eq: $email } } }) {
+                            items {
+                                id
+                                firstName
+                                lastName
+                            }
+                        }
+                    }
+                `,
+                { email: emailAddress },
+            );
+            const customer = customers.items[0];
+            expect(customer).toMatchObject({ firstName: '', lastName: '' });
+
+            const updateCustomer = gql`
+                mutation ($input: UpdateCustomerInput!) {
+                    updateCustomer(input: $input) {
+                        ... on Customer {
+                            phoneNumber
+                        }
+                    }
+                }
+            `;
+            // Only the phone number, as an API client would send it
+            const phoneOnly = await adminClient.query(updateCustomer, {
+                input: { id: customer.id, phoneNumber: '+43 1' },
+            });
+            expect(phoneOnly.updateCustomer.phoneNumber).toBe('+43 1');
+            // Every field, as the Dashboard customer form sends it
+            const fullForm = await adminClient.query(updateCustomer, {
+                input: { id: customer.id, firstName: '', lastName: '', phoneNumber: '+43 2', emailAddress },
+            });
+            expect(fullForm.updateCustomer.phoneNumber).toBe('+43 2');
+
+            await assertThrowsWithMessage(
+                () => adminClient.query(updateCustomer, { input: { id: customer.id, emailAddress: ' ' } }),
+                'The "emailAddress" field cannot be blank',
+            )();
+        });
+
         it('leaves the stored values unchanged after the rejected mutations', async () => {
             const { facet, productVariant } = await adminClient.query(gql`
                 query {
