@@ -38,6 +38,7 @@ import {
     TaxCategory,
 } from '../../entity';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
+import { ProductVariantChannel } from '../../entity/channel-assignment/channel-assignment.entities';
 import { ProductOption } from '../../entity/product-option/product-option.entity';
 import { ProductVariantTranslation } from '../../entity/product-variant/product-variant-translation.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
@@ -47,6 +48,8 @@ import { ProductVariantChannelEvent } from '../../event-bus/events/product-varia
 import { ProductVariantEvent } from '../../event-bus/events/product-variant-event';
 import { ProductVariantPriceEvent } from '../../event-bus/events/product-variant-price-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
+import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
+import { whereEnabledInChannel } from '../helpers/channel-enabled/channel-enabled';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
@@ -90,6 +93,7 @@ export class ProductVariantService {
         private requestCache: RequestContextCacheService,
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     async findAll(
@@ -196,7 +200,7 @@ export class ProductVariantService {
             });
 
         if (ctx.apiType === 'shop') {
-            qb.andWhere('productvariant.enabled = :enabled', { enabled: true });
+            whereEnabledInChannel(qb, ctx, 'productVariant', 'productvariant');
         }
 
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
@@ -231,7 +235,9 @@ export class ProductVariantService {
             .andWhere('collection.id = :collectionId', { collectionId });
 
         if (options && options.filter && options.filter.enabled && options.filter.enabled.eq === true) {
-            qb.andWhere('product.enabled = :enabled', { enabled: true });
+            // Both the Product and the variant must be enabled globally and in the active Channel
+            whereEnabledInChannel(qb, ctx, 'product', 'product');
+            whereEnabledInChannel(qb, ctx, 'productVariant', 'productvariant');
         }
 
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
@@ -481,6 +487,11 @@ export class ProductVariantService {
         });
         await this.customFieldRelationService.updateRelations(ctx, ProductVariant, input, createdVariant);
         await this.assetService.updateEntityAssets(ctx, createdVariant, input);
+        if (input.enabledInChannel !== undefined) {
+            await this.channelAssignmentService.update<ProductVariantChannel>(ctx, ProductVariant, [createdVariant.id], [ctx.channelId], {
+                enabled: input.enabledInChannel,
+            });
+        }
         if (input.stockOnHand != null || input.stockLevels) {
             await this.stockMovementService.adjustProductVariantStock(
                 ctx,
@@ -598,6 +609,11 @@ export class ProductVariantService {
             },
         });
         await this.customFieldRelationService.updateRelations(ctx, ProductVariant, input, updatedVariant);
+        if (input.enabledInChannel !== undefined) {
+            await this.channelAssignmentService.update<ProductVariantChannel>(ctx, ProductVariant, [updatedVariant.id], [ctx.channelId], {
+                enabled: input.enabledInChannel,
+            });
+        }
         if (input.price != null) {
             await this.createOrUpdateProductVariantPrice(ctx, input.id, input.price, ctx.channelId);
         }
@@ -926,7 +942,13 @@ export class ProductVariantService {
             }
             await this.applyChannelPriceAndTax(variant, ctx);
             await this.channelService.assignToChannels(ctx, Product, variant.productId, [input.channelId]);
-            await this.channelService.assignToChannels(ctx, ProductVariant, variant.id, [input.channelId]);
+            await this.channelService.assignToChannels(
+                ctx,
+                ProductVariant,
+                variant.id,
+                [input.channelId],
+                input.enabledInChannel !== undefined ? { enabled: input.enabledInChannel } : undefined,
+            );
             const price = targetChannel.pricesIncludeTax ? variant.priceWithTax : variant.price;
             await this.createOrUpdateProductVariantPrice(
                 ctx,

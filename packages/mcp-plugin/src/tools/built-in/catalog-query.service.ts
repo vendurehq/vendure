@@ -14,6 +14,7 @@ import {
     TransactionalConnection,
     Translated,
     TranslatorService,
+    whereEnabledInChannel,
 } from '@vendure/core';
 import { FindOptionsWhere, In, IsNull, Raw } from 'typeorm';
 
@@ -42,7 +43,8 @@ export class McpCatalogQueryService {
             .leftJoinAndSelect('variant.taxCategory', 'taxCategory')
             .andWhere('variant.productId IN (:...productIds)', { productIds });
         if (!options.includeDisabled) {
-            query.andWhere('variant.enabled = :enabled', { enabled: true });
+            // Enabled globally and in the active Channel
+            whereEnabledInChannel(query, ctx, 'productVariant', 'variant');
         }
         const variants = await this.withChannelPrice(ctx, await query.getMany());
         for (const variant of variants) {
@@ -118,8 +120,8 @@ export class McpCatalogQueryService {
             .innerJoin('mcpVariant.channels', 'mcpChannel', 'mcpChannel.id = :mcpChannelId', {
                 mcpChannelId: ctx.channelId,
             })
-            .where('mcpVariant.deletedAt IS NULL')
-            .andWhere('mcpVariant.enabled = :mcpEnabled', { mcpEnabled: true });
+            .where('mcpVariant.deletedAt IS NULL');
+        whereEnabledInChannel(subQuery, ctx, 'productVariant', 'mcpVariant');
         return Raw(alias => `${alias} IN (${subQuery.getQuery()})`, subQuery.getParameters());
     }
 

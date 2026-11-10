@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, ProductService, ProductVariantService, RequestContext } from '@vendure/core';
+import {
+    ChannelAssignmentService,
+    isEnabledInChannel,
+    Permission,
+    Product,
+    ProductChannel,
+    ProductService,
+    ProductVariantService,
+    RequestContext,
+} from '@vendure/core';
 import { idSchema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -39,11 +48,20 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
         private readonly productService: ProductService,
         private readonly productVariantService: ProductVariantService,
         private readonly serializer: McpToolSerializerService,
+        private readonly channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {
         const product = await this.findProduct(ctx, input);
-        if (product?.enabled !== true) {
+        if (!product) {
+            return { product: null };
+        }
+        const assignment = await this.channelAssignmentService.getAssignment<ProductChannel>(
+            ctx,
+            Product,
+            product.id,
+        );
+        if (!isEnabledInChannel(product.enabled, assignment?.enabled)) {
             return { product: null };
         }
         // Loading variants through ProductService instead would silently return them with no price,

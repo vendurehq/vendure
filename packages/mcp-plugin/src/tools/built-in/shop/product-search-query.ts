@@ -1,4 +1,4 @@
-import { ListQueryOptions, Product } from '@vendure/core';
+import { enabledInChannelFilter, ListQueryOptions, Product } from '@vendure/core';
 import { type ListInput, listOptions } from '@vendure/mcp-sdk';
 
 // Words under four characters are left alone so short words like "gas" or "bus" aren't mangled.
@@ -31,9 +31,9 @@ export function publicProductListOptions(input: ListInput, words: string[] = [])
     }));
     return {
         ...options,
+        // Enabled globally and in the active Channel
         filter: {
-            enabled: { eq: true },
-            ...(wordFilters.length ? { _and: wordFilters } : {}),
+            _and: [enabledInChannelFilter(), ...wordFilters],
         },
     };
 }

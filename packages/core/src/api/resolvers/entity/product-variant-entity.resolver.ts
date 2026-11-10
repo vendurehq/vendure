@@ -12,8 +12,10 @@ import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { Asset, Channel, FacetValue, Product, ProductOption, StockLevel, TaxRate } from '../../../entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import { ProductVariantChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
 import { StockMovement } from '../../../entity/stock-movement/stock-movement.entity';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { AssetService } from '../../../service/services/asset.service';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { StockLevelService } from '../../../service/services/stock-level.service';
@@ -159,7 +161,24 @@ export class ProductVariantAdminEntityResolver {
         private productVariantService: ProductVariantService,
         private stockMovementService: StockMovementService,
         private stockLevelService: StockLevelService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
+
+    /**
+     * The per-channel `enabled` value in the active Channel, from the ProductVariantChannel row.
+     */
+    @ResolveField()
+    async enabledInChannel(
+        @Ctx() ctx: RequestContext,
+        @Parent() productVariant: ProductVariant,
+    ): Promise<boolean | null> {
+        const assignment = await this.channelAssignmentService.getAssignment<ProductVariantChannel>(
+            ctx,
+            ProductVariant,
+            productVariant.id,
+        );
+        return assignment?.enabled ?? null;
+    }
 
     @ResolveField()
     async stockMovements(

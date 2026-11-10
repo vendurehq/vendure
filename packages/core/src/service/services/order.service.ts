@@ -88,6 +88,7 @@ import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
+import { ProductChannel, ProductVariantChannel } from '../../entity/channel-assignment/channel-assignment.entities';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
@@ -96,6 +97,7 @@ import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Payment } from '../../entity/payment/payment.entity';
+import { Product } from '../../entity/product/product.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
 import { Refund } from '../../entity/refund/refund.entity';
@@ -112,6 +114,8 @@ import { OrderLineEvent } from '../../event-bus/events/order-line-event';
 import { OrderStateTransitionEvent } from '../../event-bus/events/order-state-transition-event';
 import { RefundEvent } from '../../event-bus/events/refund-event';
 import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-transition-event';
+import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
+import { isEnabledInChannel } from '../helpers/channel-enabled/channel-enabled';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { FulfillmentState } from '../helpers/fulfillment-state-machine/fulfillment-state';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
@@ -179,6 +183,7 @@ export class OrderService implements OnApplicationBootstrap {
         private requestCache: RequestContextCacheService,
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     /** @internal */
@@ -726,7 +731,17 @@ export class OrderService implements OnApplicationBootstrap {
                 },
                 loadEagerRelations: false,
             });
-            if (variant.product.enabled === false) {
+            // Enabled globally (checked above for the variant) and in the Order's Channel
+            const [variantAssignment, productAssignment] = await Promise.all([
+                this.channelAssignmentService.getAssignment<ProductVariantChannel>(ctx, ProductVariant, variant.id),
+                this.channelAssignmentService.getAssignment<ProductChannel>(ctx, Product, variant.productId),
+            ]);
+            if (
+                !variantAssignment ||
+                !productAssignment ||
+                !isEnabledInChannel(variant.enabled, variantAssignment.enabled) ||
+                !isEnabledInChannel(variant.product.enabled, productAssignment.enabled)
+            ) {
                 throw new EntityNotFoundError('ProductVariant', productVariantId);
             }
             const existingQuantityInOtherLines = summate(

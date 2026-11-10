@@ -6,6 +6,7 @@ import { PaginatedList } from '@vendure/common/lib/shared-types';
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { Asset } from '../../../entity/asset/asset.entity';
+import { ProductChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
@@ -13,6 +14,7 @@ import { Product } from '../../../entity/product/product.entity';
 import { ProductOptionGroup } from '../../../entity/product-option-group/product-option-group.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { AssetService } from '../../../service/services/asset.service';
 import { CollectionService } from '../../../service/services/collection.service';
 import { FacetValueService } from '../../../service/services/facet-value.service';
@@ -138,7 +140,23 @@ export class ProductEntityResolver {
 
 @Resolver('Product')
 export class ProductAdminEntityResolver {
-    constructor(private productService: ProductService) {}
+    constructor(
+        private productService: ProductService,
+        private channelAssignmentService: ChannelAssignmentService,
+    ) {}
+
+    /**
+     * The per-channel `enabled` value in the active Channel, from the ProductChannel row.
+     */
+    @ResolveField()
+    async enabledInChannel(@Ctx() ctx: RequestContext, @Parent() product: Product): Promise<boolean | null> {
+        const assignment = await this.channelAssignmentService.getAssignment<ProductChannel>(
+            ctx,
+            Product,
+            product.id,
+        );
+        return assignment?.enabled ?? null;
+    }
 
     @ResolveField()
     async channels(@Ctx() ctx: RequestContext, @Parent() product: Product): Promise<Channel[]> {
