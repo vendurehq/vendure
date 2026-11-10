@@ -15,6 +15,7 @@
     "watch:core-common": "nx run-many -t watch -p @vendure/common,@vendure/core --parallel=2 --output-style=stream",
     "build:core-common": "nx run-many -t build -p @vendure/common,@vendure/core",
     "lint": "eslint --fix",
+    "lint:boundaries": "nx show projects > /dev/null && eslint --no-eslintrc -c .eslintrc.boundaries.js --ext .ts,.tsx --quiet packages",
     "format": "prettier --write --html-whitespace-sensitivity ignore",
     "docs:generate-typescript-docs": "ts-node scripts/docs/generate-typescript-docs.ts",
     "docs:compile-manifest": "bun run docs/scripts/compile-manifest.ts",
