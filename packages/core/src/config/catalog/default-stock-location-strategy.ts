@@ -1,4 +1,5 @@
 import { ID } from '@vendure/common/lib/shared-types';
+import { unique } from '@vendure/common/lib/unique';
 import type { GlobalSettingsService, StockLevelService } from '../../service/index';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -11,6 +12,10 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
 import { Allocation } from '../../entity/stock-movement/allocation.entity';
+import { Cancellation } from '../../entity/stock-movement/cancellation.entity';
+import { Release } from '../../entity/stock-movement/release.entity';
+import { Sale } from '../../entity/stock-movement/sale.entity';
+import { StockMovement } from '../../entity/stock-movement/stock-movement.entity';
 
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
 import { resolveTrackInventory } from './track-inventory';
@@ -48,7 +53,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsFromLedger(ctx, stockLocations, orderLine, quantity, 'sold');
     }
 
     async forRelease(
@@ -57,7 +62,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsFromLedger(ctx, stockLocations, orderLine, quantity, 'allocated');
     }
 
     async forSale(
@@ -66,7 +71,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsFromLedger(ctx, stockLocations, orderLine, quantity, 'allocated');
     }
 
     /**
@@ -222,37 +227,67 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         };
     }
 
-    private async getLocationsBasedOnAllocations(
+    /**
+     * Picks the locations to release, sell or cancel from, using what is still outstanding at each
+     * location for this OrderLine:
+     * - `allocated` (release, sale): Allocations minus Releases minus Sales
+     * - `sold` (cancellation): Sales minus Cancellations
+     *
+     * Before v4.0 this looked at the Allocations only, so after a partial fulfilment of a line
+     * split across locations, the remaining units could be released from a location which had
+     * already sold them, leaving the other location's stockAllocated behind.
+     *
+     * @since 4.0.0
+     */
+    protected async getLocationsFromLedger(
         ctx: RequestContext,
         stockLocations: StockLocation[],
         orderLine: OrderLine,
         quantity: number,
-    ) {
-        const allocations = await this.connection.getRepository(ctx, Allocation).find({
-            where: {
-                orderLine: { id: orderLine.id },
-            },
-        });
-        let unallocated = quantity;
-        const quantityByLocationId = new Map<ID, number>();
-        for (const allocation of allocations) {
-            if (unallocated <= 0) {
+        mode: 'allocated' | 'sold',
+    ): Promise<LocationWithQuantity[]> {
+        const where = { orderLine: { id: orderLine.id } } as any;
+        const order = { id: 'ASC' } as const;
+        // Sequential rather than Promise.all: one connection per transaction.
+        const allocations = await this.connection.getRepository(ctx, Allocation).find({ where, order });
+        const releases = await this.connection.getRepository(ctx, Release).find({ where });
+        const sales = await this.connection.getRepository(ctx, Sale).find({ where, order });
+        const cancellations = await this.connection.getRepository(ctx, Cancellation).find({ where });
+
+        const outstanding = new Map<string, number>();
+        const add = (rows: StockMovement[], sign: 1 | -1) => {
+            for (const row of rows) {
+                const key = String(row.stockLocationId);
+                outstanding.set(key, (outstanding.get(key) ?? 0) + sign * Math.abs(row.quantity));
+            }
+        };
+        if (mode === 'allocated') {
+            add(allocations, 1);
+            add(releases, -1);
+            add(sales, -1);
+        } else {
+            add(sales, 1);
+            add(cancellations, -1);
+        }
+        // Locations in the order the line first used them.
+        const locationOrder = unique(
+            (mode === 'allocated' ? allocations : sales).map(row => String(row.stockLocationId)),
+        );
+        const result: LocationWithQuantity[] = [];
+        let remaining = quantity;
+        for (const locationId of locationOrder) {
+            if (remaining <= 0) {
                 break;
             }
-            const qtyAtLocation = quantityByLocationId.get(allocation.stockLocationId);
-            const qtyToAdd = Math.min(allocation.quantity, unallocated);
-            if (qtyAtLocation != null) {
-                quantityByLocationId.set(allocation.stockLocationId, qtyAtLocation + qtyToAdd);
-            } else {
-                quantityByLocationId.set(allocation.stockLocationId, qtyToAdd);
+            const available = Math.max(0, outstanding.get(locationId) ?? 0);
+            const take = Math.min(available, remaining);
+            const location = stockLocations.find(l => idsAreEqual(l.id, locationId));
+            if (take > 0 && location) {
+                result.push({ location, quantity: take });
+                remaining -= take;
             }
-            unallocated -= qtyToAdd;
         }
-        return [...quantityByLocationId.entries()].map(([locationId, qty]) => ({
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            location: stockLocations.find(l => idsAreEqual(l.id, locationId))!,
-            quantity: qty,
-        }));
+        return result;
     }
 }
 

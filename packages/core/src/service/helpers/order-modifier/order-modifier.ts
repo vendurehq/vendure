@@ -65,6 +65,7 @@ import { StockLevelReadOptions, StockLevelService } from '../../services/stock-l
 import { StockMovementService } from '../../services/stock-movement.service';
 import { CustomFieldRelationService } from '../custom-field-relation/custom-field-relation.service';
 import { OrderCalculator } from '../order-calculator/order-calculator';
+import { getOrderChannelContext } from '../utils/order-channel-context';
 import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../translator/translator.service';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
@@ -440,6 +441,8 @@ export class OrderModifier {
         }));
 
         await this.lockStockLevelsForModification(ctx, order, input);
+        // Saleable stock is judged in the Order's Channel, not the Administrator's (v4.0).
+        const stockCtx = await getOrderChannelContext(ctx, this.connection, order.id);
 
         for (const row of input.addItems ?? []) {
             const { productVariantId, quantity } = row;
@@ -452,7 +455,7 @@ export class OrderModifier {
             // The allocation in updateOrderLineQuantity runs in this transaction, so the check
             // re-reads the rows locked by lockStockLevelsForModification() above.
             const correctedQuantity = await this.constrainQuantityToSaleable(
-                ctx,
+                stockCtx,
                 orderLine.productVariant,
                 quantity,
                 0,
@@ -491,7 +494,7 @@ export class OrderModifier {
             if (initialLineQuantity < quantity) {
                 // See the comment on the addItems loop above.
                 const additionalQuantity = await this.constrainQuantityToSaleable(
-                    ctx,
+                    stockCtx,
                     orderLine.productVariant,
                     quantity - initialLineQuantity,
                     0,

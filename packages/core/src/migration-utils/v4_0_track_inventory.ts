@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import { QueryRunner } from 'typeorm';
 
+import { qualifiedTableName } from './v4_0_role_assignments';
+
 export interface TrackInventoryMigrationResult {
     /** The value read from `global_settings.trackInventory`, or undefined if already migrated. */
     globalTrackInventory: boolean | undefined;
@@ -24,6 +26,10 @@ export interface TrackInventoryMigrationResult {
  * `stock_movement.tracked` column need no data: `INHERIT` keeps the variant setting in force,
  * and movements with `tracked = NULL` fall back to the current setting, as before v4.
  *
+ * Table names honour the `entityPrefix` of the connection options and, on Postgres, the
+ * `schema` option. The helper throws if the `global_settings` table cannot be found, rather than
+ * treating that as "already migrated".
+ *
  * **Call this at the start of your migration's `up()`, before the generated statement that drops
  * `global_settings.trackInventory`.** It is a no-op once that column has gone.
  *
@@ -33,16 +39,25 @@ export async function migrateTrackInventoryToChannels(
     queryRunner: QueryRunner,
 ): Promise<TrackInventoryMigrationResult> {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    const escTable = (qualified: string) => qualified.split('.').map(esc).join('.');
+    const globalSettingsTable = qualifiedTableName(queryRunner, 'global_settings');
+    const channelTable = qualifiedTableName(queryRunner, 'channel');
+    if (!(await queryRunner.hasTable(globalSettingsTable))) {
+        throw new Error(
+            `[v4 trackInventory] Table "${globalSettingsTable}" not found. Check the entityPrefix and ` +
+                'schema of your dbConnectionOptions.',
+        );
+    }
     const result: TrackInventoryMigrationResult = {
         globalTrackInventory: undefined,
         overwrittenChannels: [],
     };
-    if (!(await queryRunner.hasColumn('global_settings', 'trackInventory'))) {
+    if (!(await queryRunner.hasColumn(globalSettingsTable, 'trackInventory'))) {
         console.log('[v4 trackInventory] global_settings.trackInventory not found; nothing to migrate.');
         return result;
     }
     const settings: Array<{ value: unknown }> = await queryRunner.query(
-        `SELECT ${esc('trackInventory')} AS ${esc('value')} FROM ${esc('global_settings')}`,
+        `SELECT ${esc('trackInventory')} AS ${esc('value')} FROM ${escTable(globalSettingsTable)}`,
     );
     if (!settings.length) {
         return result;
@@ -52,13 +67,13 @@ export async function migrateTrackInventoryToChannels(
     const literal = globalValue ? 'TRUE' : 'FALSE';
 
     const channels: Array<{ code: string; value: unknown }> = await queryRunner.query(
-        `SELECT ${esc('code')} AS ${esc('code')}, ${esc('trackInventory')} AS ${esc('value')} FROM ${esc('channel')}`,
+        `SELECT ${esc('code')} AS ${esc('code')}, ${esc('trackInventory')} AS ${esc('value')} FROM ${escTable(channelTable)}`,
     );
     result.overwrittenChannels = channels
         .filter(c => toBoolean(c.value) !== globalValue)
         .map(c => ({ code: c.code, previous: toBoolean(c.value) }));
 
-    await queryRunner.query(`UPDATE ${esc('channel')} SET ${esc('trackInventory')} = ${literal}`);
+    await queryRunner.query(`UPDATE ${escTable(channelTable)} SET ${esc('trackInventory')} = ${literal}`);
 
     console.log(
         `[v4 trackInventory] Copied GlobalSettings.trackInventory (${String(globalValue)}) to ` +

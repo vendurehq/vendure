@@ -6,7 +6,7 @@
  * The "generated" schema migration is produced the same way `generateMigration()` does it
  * (`createSchemaBuilder().log()`), so this works on every driver the e2e suite runs on.
  */
-import { TransactionalConnection } from '@vendure/core';
+import { mergeConfig, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { DataSource, QueryRunner, TableColumn } from 'typeorm';
@@ -17,7 +17,12 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { migrateTrackInventoryToChannels } from '../src/migration-utils/v4_0_track_inventory';
 
 describe('migrateTrackInventoryToChannels() (OSS-1002)', () => {
-    const { server } = createTestEnvironment(testConfig());
+    // Runs with a table prefix to cover review finding H2 (the helper ignored entityPrefix).
+    const PREFIX = 'vdr_';
+    const { server } = createTestEnvironment(
+        mergeConfig(testConfig(), { dbConnectionOptions: { entityPrefix: PREFIX } as any }),
+    );
+    const table = (name: string) => PREFIX + name;
     let rawConnection: DataSource;
     let queryRunner: QueryRunner;
     let esc: (name: string) => string;
@@ -38,15 +43,15 @@ describe('migrateTrackInventoryToChannels() (OSS-1002)', () => {
 
         // Roll the schema back to v3.x for the three columns this change touches.
         await queryRunner.addColumn(
-            'global_settings',
+            table('global_settings'),
             new TableColumn({ name: 'trackInventory', type: 'boolean', default: true }),
         );
-        await queryRunner.dropColumn('stock_level', 'trackInventory');
-        await queryRunner.dropColumn('stock_movement', 'tracked');
+        await queryRunner.dropColumn(table('stock_level'), 'trackInventory');
+        await queryRunner.dropColumn(table('stock_movement'), 'tracked');
 
         // Pre-v4 data: inventory not tracked by default. Channel.trackInventory was ignored, so
         // its values are whatever was stored: the default (true) or a value set via the API.
-        await queryRunner.query(`UPDATE ${esc('global_settings')} SET ${esc('trackInventory')} = FALSE`);
+        await queryRunner.query(`UPDATE ${esc(table('global_settings'))} SET ${esc('trackInventory')} = FALSE`);
         const cols = [
             'code',
             'token',
@@ -59,16 +64,16 @@ describe('migrateTrackInventoryToChannels() (OSS-1002)', () => {
             .map(esc)
             .join(', ');
         await queryRunner.query(
-            `INSERT INTO ${esc('channel')} (${cols}) VALUES
+            `INSERT INTO ${esc(table('channel'))} (${cols}) VALUES
              ('vendor-a', 'vendor-a-token', 'en', 'USD', FALSE, TRUE, 0),
              ('vendor-b', 'vendor-b-token', 'en', 'EUR', FALSE, FALSE, 0)`,
         );
 
         stockLevelCount = Number(
-            (await queryRunner.query(`SELECT COUNT(*) AS ${esc('c')} FROM ${esc('stock_level')}`))[0].c,
+            (await queryRunner.query(`SELECT COUNT(*) AS ${esc('c')} FROM ${esc(table('stock_level'))}`))[0].c,
         );
         stockMovementCount = Number(
-            (await queryRunner.query(`SELECT COUNT(*) AS ${esc('c')} FROM ${esc('stock_movement')}`))[0].c,
+            (await queryRunner.query(`SELECT COUNT(*) AS ${esc('c')} FROM ${esc(table('stock_movement'))}`))[0].c,
         );
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -94,7 +99,7 @@ describe('migrateTrackInventoryToChannels() (OSS-1002)', () => {
             'vendor-a',
         ]);
         const channels: Array<{ code: string; value: unknown }> = await queryRunner.query(
-            `SELECT ${esc('code')} AS ${esc('code')}, ${esc('trackInventory')} AS ${esc('value')} FROM ${esc('channel')}`,
+            `SELECT ${esc('code')} AS ${esc('code')}, ${esc('trackInventory')} AS ${esc('value')} FROM ${esc(table('channel'))}`,
         );
         expect(channels.length).toBe(3);
         expect(channels.every(c => asBool(c.value) === false)).toBe(true);
@@ -107,21 +112,33 @@ describe('migrateTrackInventoryToChannels() (OSS-1002)', () => {
         }
         const after = await rawConnection.driver.createSchemaBuilder().log();
         expect(after.upQueries.map(q => q.query)).toEqual([]);
-        expect(await queryRunner.hasColumn('global_settings', 'trackInventory')).toBe(false);
+        expect(await queryRunner.hasColumn(table('global_settings'), 'trackInventory')).toBe(false);
     });
 
     it('keeps every StockLevel and StockMovement, defaulting the new columns', async () => {
         const levels: Array<{ v: string }> = await queryRunner.query(
-            `SELECT ${esc('trackInventory')} AS ${esc('v')} FROM ${esc('stock_level')}`,
+            `SELECT ${esc('trackInventory')} AS ${esc('v')} FROM ${esc(table('stock_level'))}`,
         );
         expect(levels.length).toBe(stockLevelCount);
         expect(levels.every(l => l.v === 'INHERIT')).toBe(true);
 
         const movements: Array<{ v: unknown }> = await queryRunner.query(
-            `SELECT ${esc('tracked')} AS ${esc('v')} FROM ${esc('stock_movement')}`,
+            `SELECT ${esc('tracked')} AS ${esc('v')} FROM ${esc(table('stock_movement'))}`,
         );
         expect(movements.length).toBe(stockMovementCount);
         expect(movements.every(m => m.v === null)).toBe(true);
+    });
+
+    it('throws rather than no-op when the global_settings table cannot be found', async () => {
+        const options = rawConnection.options as any;
+        options.entityPrefix = 'wrong_';
+        try {
+            await expect(migrateTrackInventoryToChannels(queryRunner)).rejects.toThrow(
+                'wrong_global_settings',
+            );
+        } finally {
+            options.entityPrefix = PREFIX;
+        }
     });
 
     it('is a no-op when run again', async () => {

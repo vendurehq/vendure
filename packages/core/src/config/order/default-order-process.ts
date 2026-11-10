@@ -5,6 +5,7 @@ import { unique } from '@vendure/common/lib/unique';
 import { RequestContext } from '../../api/common/request-context';
 import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import { getOrderChannelContext } from '../../service/helpers/utils/order-channel-context';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Order } from '../../entity/order/order.entity';
@@ -376,9 +377,11 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
                         );
                     }
                     const variantsWithInsufficientSaleableStock: ProductVariant[] = [];
+                    // Judged in the Order's Channel, not the Channel of whoever transitions it.
+                    const stockCtx = await getOrderChannelContext(ctx, connection, order.id);
                     for (const line of order.lines) {
                         const availableStock = await productVariantService.getSaleableStockLevel(
-                            ctx,
+                            stockCtx,
                             line.productVariant,
                             { lockStockLevels },
                         );

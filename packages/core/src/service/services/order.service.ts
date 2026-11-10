@@ -115,6 +115,7 @@ import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { FulfillmentState } from '../helpers/fulfillment-state-machine/fulfillment-state';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { getOrderChannelContext } from '../helpers/utils/order-channel-context';
 import { ApplyPriceAdjustmentsOptions, OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { OrderMerger } from '../helpers/order-merger/order-merger';
 import { OrderModifier } from '../helpers/order-modifier/order-modifier';
@@ -1869,20 +1870,22 @@ export class OrderService implements OnApplicationBootstrap {
             where: {
                 id: In(input.lines.map(l => l.orderLineId)),
             },
-            relations: { productVariant: true },
+            relations: { productVariant: true, order: true },
         });
 
         for (const line of lines) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const lineInput = input.lines.find(l => idsAreEqual(l.orderLineId, line.id))!;
 
+            // Judged in the Order's Channel, not the Channel of the Administrator fulfilling it.
+            const orderCtx = await getOrderChannelContext(ctx, this.connection, line.order.id);
             const fulfillableStockLevel = await this.productVariantService.getFulfillableStockLevel(
-                ctx,
+                orderCtx,
                 line.productVariant,
             );
             if (fulfillableStockLevel < lineInput.quantity) {
                 const { stockOnHand } = await this.stockLevelService.getAvailableStock(
-                    ctx,
+                    orderCtx,
                     line.productVariant.id,
                 );
                 const productVariant = this.translator.translate(line.productVariant, ctx);
