@@ -157,6 +157,13 @@ describe('Channel-scoped custom fields (OSS-1001 PoC, #490)', () => {
         expect(columns('FacetChannel').some(c => c.startsWith('customFields'))).toBe(false);
     });
 
+    it('schema sync finds no difference between the entities and the database', async () => {
+        // On MySQL/MariaDB a varchar column on an assignment row used to be rebuilt on every sync
+        const dataSource = server.app.get(TransactionalConnection).rawConnection;
+        const { upQueries } = await dataSource.driver.createSchemaBuilder().log();
+        expect(upQueries.map(q => q.query)).toEqual([]);
+    });
+
     it('values are null by default in every channel', async () => {
         for (const token of [E2E_DEFAULT_CHANNEL_TOKEN, CHANNEL_B_TOKEN]) {
             asChannel(token);
