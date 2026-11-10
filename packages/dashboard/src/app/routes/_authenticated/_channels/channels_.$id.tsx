@@ -130,7 +130,7 @@ function ChannelDetailPage() {
         extendSchema: schema =>
             schema
                 .extend({
-                    code: z.string().min(1, { message: t`This field is required` }),
+                    code: z.string().regex(/\S/, { message: t`This field is required` }),
                     token: z.string().regex(/\S/, { message: t`This field is required` }),
                     ...(creatingNewEntity
                         ? {
@@ -225,8 +225,10 @@ function ChannelDetailPage() {
                             control={form.control}
                             name="code"
                             label={<Trans>Code</Trans>}
+                            // Like `token`, `extendSchema` shows an inline error for a blank code, which
+                            // the browser's own validation would block from showing.
                             render={({ field }) => (
-                                <Input placeholder="" {...field} disabled={codeIsDefault} />
+                                <Input placeholder="" {...field} disabled={codeIsDefault} required={false} />
                             )}
                         />
                         <div></div>
