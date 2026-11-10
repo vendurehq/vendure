@@ -12,7 +12,7 @@ import { parseContext } from '../common/parse-context';
  * empty or whitespace-only string. Nested input objects and lists are checked too. A field
  * which is omitted or `null` is not checked, so `@nonBlank` works on partial update inputs.
  *
- * @since 3.9.0
+ * @since 4.0.0
  */
 @Injectable()
 export class InputValidationInterceptor implements NestInterceptor {
