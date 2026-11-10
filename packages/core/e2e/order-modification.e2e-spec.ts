@@ -1399,6 +1399,7 @@ describe('Order modification', () => {
             );
         });
 
+        // https://github.com/vendurehq/vendure/issues/5671
         it('cannot transition from ArrangingAdditionalPayment to Cancelled unless all items are cancelled', async () => {
             const transitionOrderToState = await adminTransitionOrderToState(orderId2, 'Cancelled');
             orderGuard.assertErrorResult(transitionOrderToState);
@@ -3155,7 +3156,7 @@ describe('Order modification', () => {
         });
     });
 
-    // #5671 — the ArrangingAdditionalPayment -> Cancelled transition must not skip checkAllItemsBeforeCancel
+    // https://github.com/vendurehq/vendure/issues/5671
     describe('cancelling from ArrangingAdditionalPayment', () => {
         let aapOrderId: string;
         let aapLineId: string;
