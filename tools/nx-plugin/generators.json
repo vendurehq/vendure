@@ -1,0 +1,14 @@
+{
+    "generators": {
+        "package": {
+            "factory": "./src/generators/package/generator",
+            "schema": "./src/generators/package/schema.json",
+            "description": "Creates a Vendure plugin package that follows the package schema"
+        },
+        "sync-tsconfig": {
+            "factory": "./src/generators/sync-tsconfig/generator",
+            "schema": "./src/generators/sync-tsconfig/schema.json",
+            "description": "Writes the tsconfig files of Vendure plugin packages"
+        }
+    }
+}

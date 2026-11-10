@@ -7,6 +7,15 @@
             "analyzeSourceFiles": false
         }
     },
+    "plugins": [
+        {
+            "plugin": "./tools/nx-plugin",
+            "include": ["packages/*/src/**"]
+        }
+    ],
+    "sync": {
+        "globalGenerators": ["./tools/nx-plugin:sync-tsconfig"]
+    },
     "namedInputs": {
         "default": ["{projectRoot}/**/*", "sharedGlobals"],
         "sharedGlobals": ["{workspaceRoot}/tsconfig.json", "{workspaceRoot}/bunfig.toml"],
@@ -54,7 +63,12 @@
                     "target": "ci"
                 }
             ],
-            "inputs": ["default", "^production", "{workspaceRoot}/vitest.shared.mts"]
+            "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/vitest.shared.mts",
+                "{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts"
+            ]
         },
         "e2e": {
             "dependsOn": [
