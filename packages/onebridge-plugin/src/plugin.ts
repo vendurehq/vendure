@@ -26,6 +26,7 @@ import {
     OnebridgeRfqService,
     setOnebridgeChannelToken,
 } from './services';
+import { OnebridgeOrderLifecycleSubscriber } from './subscribers/order-lifecycle.subscriber';
 import { OnebridgePluginOptions } from './types';
 
 function mergePermissions(
@@ -55,6 +56,7 @@ function mergePermissions(
         OnebridgeCustomsService,
         OnebridgeOrderSummaryService,
         OnebridgePaymentCallbackService,
+        OnebridgeOrderLifecycleSubscriber,
     ],
     controllers: [OnebridgePaymentController],
     shopApiExtensions: {

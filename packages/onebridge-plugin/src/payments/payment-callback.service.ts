@@ -108,7 +108,7 @@ export class OnebridgePaymentCallbackService {
             }),
         );
 
-        await this.advanceStage(ctx, orderCode);
+        await this.finalizeAfterPayment(ctx, orderCode);
         Logger.info(
             `korea-pg callback paid: order=${orderCode} transaction=${payload.transactionId} channel=${ctx.channel.token}`,
             loggerCtx,
@@ -126,14 +126,23 @@ export class OnebridgePaymentCallbackService {
         }
     }
 
-    /** net 线付款完成后 wait_pay → shipping（demo/data.js 阶段流转）；其他业务线不动阶段 */
-    private async advanceStage(ctx: RequestContext, orderCode: string): Promise<void> {
+    /**
+     * 支付成功收尾（A4）：
+     * 1) net 线付款完成后 wait_pay → shipping（demo/data.js 阶段流转）；其他业务线不动阶段；
+     * 2) 无论阶段是否变化都显式刷新 updatedAt —— 之前阶段非 wait_pay 时直接 return，
+     *    支付成功后 updatedAt 仍是下单时间，C 端据此判断「无新动态」。
+     */
+    private async finalizeAfterPayment(ctx: RequestContext, orderCode: string): Promise<void> {
         const order = await this.orderService.findOneByCode(ctx, orderCode);
         if (!order) return;
-        const customFields = order.customFields as Record<string, unknown>;
-        if (customFields.crossBorderStage !== 'wait_pay') return;
-        customFields.crossBorderStage = 'shipping';
-        await this.connection.getRepository(ctx, Order).save(order);
+        const customFields = { ...((order.customFields ?? {}) as Record<string, unknown>) };
+        if (!customFields.crossBorderStage || customFields.crossBorderStage === 'wait_pay') {
+            customFields.crossBorderStage = 'shipping';
+        }
+        await this.connection.getRepository(ctx, Order).update(order.id, {
+            customFields,
+            updatedAt: new Date(),
+        } as any);
     }
 
     private auditDuplicate(
