@@ -11,6 +11,9 @@ on:
             - 'package.json'
             - 'bun.lock'
             - 'bunfig.toml'
+            - 'nx.json'
+            - 'tools/**'
+            - '.eslintrc*.js'
     pull_request:
         branches:
             - master
@@ -85,6 +88,25 @@ jobs:
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t build
+    package-schema:
+        name: package schema
+        needs: detect-changes
+        if: needs.detect-changes.outputs.packages == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - uses: ./.github/actions/setup
+            # Fails when a tsconfig file that the package schema generates is out of date.
+            - name: Check generated tsconfig files
+              run: bun run nx sync:check
+            - name: Check module boundaries
+              run: bun run lint:boundaries
+            - name: Type-check the Nx plugin
+              run: bun run nx run nx-plugin:typecheck
     unit-tests:
         name: unit tests
         needs: detect-changes
@@ -448,6 +470,7 @@ jobs:
             - detect-changes
             - codegen
             - build
+            - package-schema
             - unit-tests
             - dashboard-i18n
             - dashboard-lint

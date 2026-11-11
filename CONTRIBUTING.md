@@ -121,6 +121,29 @@ Packages must be built (i.e. TypeScript compiled, Dashboard built, certain asset
 
 Note that this can take a few minutes.
 
+#### Plugin packages
+
+Most packages are Vendure plugins with the same folder structure. A local Nx plugin in [`tools/nx-plugin`](./tools/nx-plugin) finds these packages and creates their targets, so a plugin package has almost no build configuration:
+
+```
+packages/<name>/
+  package.json              name, version, main, nx.tags
+  tsconfig*.json            written by `bunx nx sync`, do not edit
+  index.ts or src/index.ts  public entry point
+  src/*.plugin.ts           marks the package as a Vendure plugin (also src/plugin.ts or src/*/plugin.ts)
+  src/**/*.spec.ts          unit tests, run by the `test` target
+  src/**/*.spec-d.ts        type-level tests, run by the `test` target with `--typecheck`
+  e2e/*.e2e-spec.ts         e2e tests, run by the `e2e` target
+```
+
+The targets are `build`, `watch`, `lint`, `test` (when there are unit tests) and `e2e` (when there are e2e tests). The build writes to the first folder of `main` in `package.json`, for example `lib`. Run `bunx nx show project <package>` to see the targets. A script in `package.json` with the same name replaces the inferred target. Use this only when a package needs a different command, for example an extra build step.
+
+To create a new plugin package, run `bunx nx g ./tools/nx-plugin:package <name>-plugin`.
+
+When you add or remove an entry point, a `*.spec-d.ts` file or a `.tsx` file, run `bunx nx sync` to update the `tsconfig*.json` files. CI runs `bunx nx sync:check` and fails when they are out of date.
+
+Each package has a scope tag in `nx.tags`. ESLint uses the tags to stop `core` and `common` from importing any package other than each other. See [`.eslintrc.boundaries.js`](./.eslintrc.boundaries.js). Every project must have a tag.
+
 ### 3. Start the docker containers
 
 All the necessary infrastructure is defined in the root [docker-compose.yml](./docker-compose.yml) file. At a minimum,
@@ -205,8 +228,7 @@ This same workflow can be used for other packages as well.
 **Terminal 1** - Watch changes to the package:
 
 ```bash
-cd packages/email-plugin
-bun run watch
+bunx nx run @vendure/email-plugin:watch
 ```
 
 **Terminal 2** - Run the development server:
@@ -230,7 +252,7 @@ bun run watch:core-common
 
 #### Development Workflow Summary
 
-1. Start your package watcher (bun run watch)
+1. Start your package watcher (bunx nx run <package>:watch)
 2. Start the dev-server (bun run dev)
 3. Make code changes
 4. Wait for compilation to complete
@@ -405,7 +427,7 @@ Running `bun run codegen` will generate the following files:
 
 #### Server Unit Tests
 
-The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually by running it from the package directory.
+The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually with `bunx nx test <package>`, for example `bunx nx test @vendure/email-plugin`.
 
 Unit tests are co-located with the files which they test, and have the suffix `.spec.ts`.
 
@@ -413,7 +435,7 @@ If you're getting `Error: Bindings not found.`, please run `bun install --force`
 
 #### End-to-end Tests
 
-Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually by running it from the package directory.
+Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually with `bunx nx e2e <package>`.
 
 e2e tests use the `@vendure/testing` package. For details of how the setup works, see the [Testing docs](https://docs.vendure.io/guides/developer-guide/testing/).
 

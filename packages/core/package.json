@@ -34,6 +34,9 @@
         "ci": "npm run build"
     },
     "nx": {
+        "tags": [
+            "scope:core"
+        ],
         "targets": {
             "e2e": {
                 "parallelism": false

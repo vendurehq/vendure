@@ -19,7 +19,7 @@ else
     fi
     changed=$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)
 
-    if grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml|\.github/(workflows|actions)/)' <<< "$changed"; then
+    if grep -qE '^(packages/|tools/|package\.json|bun\.lock|bunfig\.toml|nx\.json|\.eslintrc[^/]*\.js|\.github/(workflows|actions)/)' <<< "$changed"; then
         packages=true
     else
         packages=false
