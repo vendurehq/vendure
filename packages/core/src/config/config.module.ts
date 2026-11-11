@@ -198,6 +198,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             guestCheckoutStrategy,
             orderInterceptors,
             orderRecalculationStrategy,
+            orderPlacedStrategy,
         } = this.configService.orderOptions;
         const {
             customFulfillmentProcess,
@@ -210,7 +211,11 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             refundDestinations,
         } = this.configService.paymentOptions;
         const { entityIdStrategy: entityIdStrategyDeprecated } = this.configService;
-        const { entityIdStrategy: entityIdStrategyCurrent } = this.configService.entityOptions;
+        const {
+            entityIdStrategy: entityIdStrategyCurrent,
+            moneyStrategy,
+            slugStrategy,
+        } = this.configService.entityOptions;
         const { healthChecks, errorHandlers } = this.configService.systemOptions;
         const { assetImportStrategy } = this.configService.importExportOptions;
         const { refundProcess: refundProcess } = this.configService.paymentOptions;
@@ -271,6 +276,9 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             shopApiKeyStrategy,
             entityAccessControlStrategy,
             customerChannelAssignmentStrategy,
+            orderPlacedStrategy,
+            moneyStrategy,
+            slugStrategy,
         ];
     }
 
