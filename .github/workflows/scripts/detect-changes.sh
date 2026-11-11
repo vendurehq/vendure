@@ -17,16 +17,9 @@ else
     if [[ -z "$base" || "$base" == "0000000000000000000000000000000000000000" ]]; then
         base="HEAD~1"
     fi
-    merge_base=$(git merge-base "$base" HEAD)
-    changed=$(git diff --name-only "$merge_base" HEAD)
+    changed=$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)
 
-    # Nx decides which projects the change touches, including changes to shared
-    # inputs such as the root tsconfig.json. A path list would miss those.
-    affected=$(bun run nx show projects --affected --base="$merge_base" --head=HEAD)
-
-    # Nx tracks none of these files as an input, but the package jobs read them:
-    # the root scripts and the ESLint config of the boundary check.
-    if [[ -n "$affected" ]] || grep -qE '^(package\.json|\.eslintrc[^/]*\.js|\.github/(workflows|actions)/)' <<< "$changed"; then
+    if grep -qE '^(packages/|tools/|package\.json|bun\.lock|bunfig\.toml|nx\.json|\.eslintrc[^/]*\.js|\.github/(workflows|actions)/)' <<< "$changed"; then
         packages=true
     else
         packages=false

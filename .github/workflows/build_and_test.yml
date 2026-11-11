@@ -6,6 +6,14 @@ on:
             - master
             - minor
             - major
+        paths:
+            - 'packages/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+            - 'nx.json'
+            - 'tools/**'
+            - '.eslintrc*.js'
     pull_request:
         branches:
             - master
@@ -39,8 +47,6 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-            # Nx needs the installed workspace to compute the project graph.
-            - uses: ./.github/actions/setup
             - name: Detect changed paths
               id: check
               env:
