@@ -25,7 +25,7 @@ export class CodegenConfigRef {
         } else {
             this.sourceFile = createFile(
                 this.project,
-                path.join(__dirname, 'templates/codegen.template.ts'),
+                path.join(import.meta.dirname, 'templates/codegen.template.ts'),
                 path.join(rootDir.getPath(), 'codegen.ts'),
             );
         }

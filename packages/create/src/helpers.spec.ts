@@ -595,7 +595,7 @@ describe('toComposeProjectName', () => {
 // The Dockerfile template is rendered with helpers registered by registerTemplateHelpers.
 // A misspelled helper name renders an empty string silently, so assert real output.
 describe('registerTemplateHelpers + Dockerfile template', () => {
-    const dockerfileTemplate = fs.readFileSync(path.join(__dirname, '../templates/Dockerfile.hbs'), 'utf-8');
+    const dockerfileTemplate = fs.readFileSync(path.join(import.meta.dirname, '../templates/Dockerfile.hbs'), 'utf-8');
 
     function renderDockerfile(pm: PackageManager): string {
         registerTemplateHelpers(getPackageManagerInfo(pm));
@@ -641,7 +641,7 @@ describe('registerTemplateHelpers + Dockerfile template', () => {
 // dev-only settings, so it must not be committed or copied into the Docker image.
 describe('ignore templates', () => {
     function readTemplateLines(fileName: string): string[] {
-        return fs.readFileSync(path.join(__dirname, '../templates', fileName), 'utf-8').split('\n');
+        return fs.readFileSync(path.join(import.meta.dirname, '../templates', fileName), 'utf-8').split('\n');
     }
 
     it('keeps .env out of git', () => {
@@ -664,7 +664,7 @@ describe('docker-compose template', () => {
     function renderComposeTemplate(projectName: string): string {
         // Registered by generateSources() in production; needed for the labels/env sections.
         registerEscapeSingleHelper();
-        const template = fs.readFileSync(path.join(__dirname, '../templates/docker-compose.hbs'), 'utf-8');
+        const template = fs.readFileSync(path.join(import.meta.dirname, '../templates/docker-compose.hbs'), 'utf-8');
         return Handlebars.compile(template)({
             composeProjectName: toComposeProjectName(projectName),
             dbName: 'vendure',
@@ -803,7 +803,7 @@ describe('getDependencies', () => {
     // pnpm dedupes to a single TypeORM instance. This fails if core bumps typeorm without the
     // scaffold's TYPEORM_VERSION being updated to match.
     it('pins typeorm to the same range as @vendure/core', () => {
-        const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
+        const corePkg = fs.readJsonSync(path.resolve(import.meta.dirname, '../../core/package.json'));
         expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
     });
 });

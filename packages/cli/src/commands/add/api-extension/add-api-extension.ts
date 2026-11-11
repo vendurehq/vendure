@@ -292,7 +292,7 @@ function createSimpleResolver(
     const { resolverFileName, suffix } = getResolverFileName(project, serviceRef);
     const resolverSourceFile = createFile(
         project,
-        path.join(__dirname, 'templates/simple-resolver.template.ts'),
+        path.join(import.meta.dirname, 'templates/simple-resolver.template.ts'),
         path.join(plugin.getPluginDir().getPath(), 'api', resolverFileName),
     );
 
@@ -351,7 +351,7 @@ function createCrudResolver(
 ) {
     const resolverSourceFile = createFile(
         project,
-        path.join(__dirname, 'templates/crud-resolver.template.ts'),
+        path.join(import.meta.dirname, 'templates/crud-resolver.template.ts'),
         path.join(
             plugin.getPluginDir().getPath(),
             'api',
@@ -757,7 +757,7 @@ function getOrCreateApiExtensionsFile(project: Project, plugin: VendurePluginRef
     }
     return createFile(
         project,
-        path.join(__dirname, 'templates/api-extensions.template.ts'),
+        path.join(import.meta.dirname, 'templates/api-extensions.template.ts'),
         path.join(plugin.getPluginDir().getPath(), 'api', 'api-extensions.ts'),
     );
 }

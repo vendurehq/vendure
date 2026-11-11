@@ -168,7 +168,7 @@ export async function addService(
         await pauseForPromptDisplay();
         serviceSourceFile = createFile(
             project,
-            path.join(__dirname, 'templates/basic-service.template.ts'),
+            path.join(import.meta.dirname, 'templates/basic-service.template.ts'),
             serviceSourceFilePath,
         );
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -181,7 +181,7 @@ export async function addService(
         const serviceSourceFilePath = getServiceFilePath(vendurePlugin, options.serviceName);
         serviceSourceFile = createFile(
             project,
-            path.join(__dirname, 'templates/entity-service.template.ts'),
+            path.join(import.meta.dirname, 'templates/entity-service.template.ts'),
             serviceSourceFilePath,
         );
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

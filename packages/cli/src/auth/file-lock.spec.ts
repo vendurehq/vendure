@@ -126,7 +126,7 @@ describe('withFileLock across processes', () => {
         options: { leftBehind?: (lockContent: string) => string[]; slowUnlinkMs?: number } = {},
     ): Promise<string[][]> {
         const lockModule = path.join(directory, 'file-lock.js');
-        const source = fs.readFileSync(path.join(__dirname, 'file-lock.ts'), 'utf-8');
+        const source = fs.readFileSync(path.join(import.meta.dirname, 'file-lock.ts'), 'utf-8');
         fs.writeFileSync(
             lockModule,
             ts.transpileModule(source, {

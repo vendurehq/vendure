@@ -15,21 +15,21 @@ describe('addEntityToPlugin', () => {
         const project = new Project({
             manipulationSettings: defaultManipulationSettings,
         });
-        project.addSourceFileAtPath(path.join(__dirname, 'fixtures', options.fixtureFileName));
+        project.addSourceFileAtPath(path.join(import.meta.dirname, 'fixtures', options.fixtureFileName));
         const pluginClasses = getPluginClasses(project);
         expect(pluginClasses.length).toBe(1);
-        const entityTemplatePath = path.join(__dirname, '../../templates/entity.template.ts');
+        const entityTemplatePath = path.join(import.meta.dirname, '../../templates/entity.template.ts');
         const entityFile = createFile(
             project,
             entityTemplatePath,
-            path.join(__dirname, 'fixtures', 'entity.ts'),
+            path.join(import.meta.dirname, 'fixtures', 'entity.ts'),
         );
         const entityClass = entityFile.getClass('ScaffoldEntity');
         addEntityToPlugin(new VendurePluginRef(pluginClasses[0]), entityClass!);
 
         expectSourceFileContentToMatch(
             pluginClasses[0].getSourceFile(),
-            path.join(__dirname, 'fixtures', options.expectedFileName),
+            path.join(import.meta.dirname, 'fixtures', options.expectedFileName),
         );
     }
 
@@ -51,7 +51,7 @@ describe('addEntityToPlugin', () => {
         const project = new Project({
             manipulationSettings: defaultManipulationSettings,
         });
-        project.addSourceFileAtPath(path.join(__dirname, 'fixtures', 'no-entity-prop.fixture.ts'));
+        project.addSourceFileAtPath(path.join(import.meta.dirname, 'fixtures', 'no-entity-prop.fixture.ts'));
         const pluginClasses = getPluginClasses(project);
         const vendurePlugin = new VendurePluginRef(pluginClasses[0]);
 
@@ -62,7 +62,7 @@ describe('addEntityToPlugin', () => {
         const project = new Project({
             manipulationSettings: defaultManipulationSettings,
         });
-        project.addSourceFileAtPath(path.join(__dirname, 'fixtures', 'no-entity-prop.fixture.ts'));
+        project.addSourceFileAtPath(path.join(import.meta.dirname, 'fixtures', 'no-entity-prop.fixture.ts'));
         const pluginClasses = getPluginClasses(project);
         const vendurePlugin = new VendurePluginRef(pluginClasses[0]);
 
@@ -75,13 +75,13 @@ describe('addEntityToPlugin', () => {
         const project = new Project({
             manipulationSettings: defaultManipulationSettings,
         });
-        project.addSourceFileAtPath(path.join(__dirname, 'fixtures', 'no-entity-prop.fixture.ts'));
+        project.addSourceFileAtPath(path.join(import.meta.dirname, 'fixtures', 'no-entity-prop.fixture.ts'));
         const pluginClasses = getPluginClasses(project);
-        const entityTemplatePath = path.join(__dirname, '../../templates/entity.template.ts');
+        const entityTemplatePath = path.join(import.meta.dirname, '../../templates/entity.template.ts');
         const entityFile = createFile(
             project,
             entityTemplatePath,
-            path.join(__dirname, 'fixtures', 'entity.ts'),
+            path.join(import.meta.dirname, 'fixtures', 'entity.ts'),
         );
         const entityClass = entityFile.getClass('ScaffoldEntity');
         const vendurePlugin = new VendurePluginRef(pluginClasses[0]);

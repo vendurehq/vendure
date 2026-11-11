@@ -183,7 +183,7 @@ export async function generatePlugin(
 
     const pluginFile = createFile(
         project,
-        path.join(__dirname, 'templates/plugin.template.ts'),
+        path.join(import.meta.dirname, 'templates/plugin.template.ts'),
         path.join(options.pluginDir, kebabCase(nameWithoutPlugin) + '.plugin.ts'),
     );
     const pluginClass = pluginFile.getClass('TemplatePlugin');
@@ -196,13 +196,13 @@ export async function generatePlugin(
 
     const typesFile = createFile(
         project,
-        path.join(__dirname, 'templates/types.template.ts'),
+        path.join(import.meta.dirname, 'templates/types.template.ts'),
         path.join(options.pluginDir, 'types.ts'),
     );
 
     const constantsFile = createFile(
         project,
-        path.join(__dirname, 'templates/constants.template.ts'),
+        path.join(import.meta.dirname, 'templates/constants.template.ts'),
         path.join(options.pluginDir, 'constants.ts'),
     );
     constantsFile

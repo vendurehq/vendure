@@ -64,7 +64,7 @@ export async function addDashboard(options?: AddDashboardOptions): Promise<CliCo
     const pluginDir = vendurePlugin.getPluginDir().getPath();
     const dashboardEntrypointFile = path.join(pluginDir, 'dashboard', 'index.tsx');
     if (!fs.existsSync(dashboardEntrypointFile)) {
-        createFile(project, path.join(__dirname, 'templates/index.template.tsx'), dashboardEntrypointFile);
+        createFile(project, path.join(import.meta.dirname, 'templates/index.template.tsx'), dashboardEntrypointFile);
     }
     log.success('Created Dashboard extension scaffold');
 

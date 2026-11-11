@@ -317,7 +317,7 @@ describe('findCliInstallLocation()', () => {
 
     /**
      * A CLI package installed at `<root>/node_modules/@vendure/cli`, returning
-     * the directory inside it that `__dirname` would be at runtime.
+     * the directory inside it that `import.meta.dirname` would be at runtime.
      */
     function installCli(root: string, projectPackageJson?: Record<string, unknown>): string {
         const dir = path.join(root, 'node_modules', '@vendure', 'cli');

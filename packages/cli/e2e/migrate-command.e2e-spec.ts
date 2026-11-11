@@ -14,7 +14,7 @@ import {
     runMigrationsOperation,
 } from '../src/commands/migrate/migration-operations.js';
 
-const TEST_PROJECT_DIR = path.join(__dirname, 'fixtures', 'test-project');
+const TEST_PROJECT_DIR = path.join(import.meta.dirname, 'fixtures', 'test-project');
 const MIGRATIONS_DIR = path.join(TEST_PROJECT_DIR, 'migrations');
 
 describe('Migrate Command E2E', { timeout: 60_000 }, () => {
@@ -49,7 +49,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
     describe('generateMigrationOperation', () => {
         it('should fail when not in a Vendure project directory', async () => {
             // Run from a non-Vendure directory
-            process.chdir(__dirname);
+            process.chdir(import.meta.dirname);
 
             const result = await generateMigrationOperation({ name: 'test-migration' });
 
@@ -185,7 +185,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
 
     describe('runMigrationsOperation', () => {
         it('should fail when not in a Vendure project directory', async () => {
-            process.chdir(__dirname);
+            process.chdir(import.meta.dirname);
 
             const result = await runMigrationsOperation();
 
@@ -323,7 +323,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
 
     describe('revertMigrationOperation', () => {
         it('should fail when not in a Vendure project directory', async () => {
-            process.chdir(__dirname);
+            process.chdir(import.meta.dirname);
 
             const result = await revertMigrationOperation();
 

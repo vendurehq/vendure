@@ -163,12 +163,12 @@ function createEntity(plugin: VendurePluginRef, options: AddEntityOptions) {
     const entitiesDir = path.join(plugin.getPluginDir().getPath(), 'entities');
     const entityFile = createFile(
         plugin.getSourceFile().getProject(),
-        path.join(__dirname, 'templates/entity.template.ts'),
+        path.join(import.meta.dirname, 'templates/entity.template.ts'),
         path.join(entitiesDir, `${options.fileName}.ts`),
     );
     const translationFile = createFile(
         plugin.getSourceFile().getProject(),
-        path.join(__dirname, 'templates/entity-translation.template.ts'),
+        path.join(import.meta.dirname, 'templates/entity-translation.template.ts'),
         path.join(entitiesDir, `${options.translationFileName}.ts`),
     );
 
