@@ -531,7 +531,8 @@ function usePreviewEditorPort(
             }
         };
         const onMessage = (event: MessageEvent) => {
-            if (!isConnectMessage(event, iframeRef.current?.contentWindow)) {
+            const frame = iframeRef.current?.contentWindow;
+            if (event.origin !== 'null' || !frame || event.source !== frame || !isConnectMessage(event)) {
                 return;
             }
             portRef.current?.close();
@@ -548,16 +549,10 @@ function usePreviewEditorPort(
     return portRef;
 }
 
-function isConnectMessage(event: MessageEvent, frame: Window | null | undefined): boolean {
+/** The editor script's connect message. The listener checks the origin and the sender first. */
+function isConnectMessage(event: MessageEvent): boolean {
     const data = event.data as { source?: string; type?: string } | undefined;
-    return (
-        event.origin === 'null' &&
-        !!frame &&
-        event.source === frame &&
-        data?.source === INLINE_EDITOR_SOURCE &&
-        data.type === 'connect' &&
-        !!event.ports[0]
-    );
+    return data?.source === INLINE_EDITOR_SOURCE && data.type === 'connect' && !!event.ports[0];
 }
 
 /** The preview shows multi-line text with the line breaks of the email; trailing ones are noise. */
