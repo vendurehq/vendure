@@ -142,7 +142,7 @@ jobs:
             - name: Type-check the Nx plugin
               run: bun run nx run nx-plugin:typecheck
     unit-tests:
-        name: unit tests
+        name: unit tests (${{ matrix.node }}, ${{ matrix.part.id }})
         needs: [detect-changes, build]
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
@@ -154,6 +154,12 @@ jobs:
             fail-fast: false
             matrix:
                 node: [22.x, 24.x]
+                # Core and the dashboard have the longest unit tests. Each runs alone in a job with
+                # more Vitest workers. `exclude` takes Nx project patterns.
+                part:
+                    - { id: core, exclude: '*,!@vendure/core', workers: 3 }
+                    - { id: dashboard, exclude: '*,!@vendure/dashboard', workers: 3 }
+                    - { id: other, exclude: '@vendure/core,@vendure/dashboard', workers: 1 }
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -173,9 +179,9 @@ jobs:
                   path: |
                       .nx/cache
                       .nx/workspace-data/*.db
-                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-
                       nx-${{ runner.os }}-build-${{ github.sha }}-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
@@ -189,7 +195,9 @@ jobs:
             - name: Unit tests
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t test --output-style=stream
+                  EXCLUDE: ${{ matrix.part.exclude }}
+                  VITEST_MAX_WORKERS: ${{ matrix.part.workers }}
+              run: bun run nx "$NX_COMMAND" -t test --exclude="$EXCLUDE" --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -234,7 +242,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                shard: [1, 2, 3, 4]
+                shard: [1, 2, 3, 4, 5, 6]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             - uses: ./.github/actions/setup
@@ -280,7 +288,7 @@ jobs:
               run: bunx playwright install-deps chromium
               working-directory: packages/dashboard
             - name: Dashboard e2e tests
-              run: bun run e2e:pw -- --shard=${{ matrix.shard }}/4
+              run: bun run e2e:pw -- --shard=${{ matrix.shard }}/6
               working-directory: packages/dashboard
     sonarqube:
         name: SonarQube
