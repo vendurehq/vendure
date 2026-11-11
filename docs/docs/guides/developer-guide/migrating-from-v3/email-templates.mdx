@@ -1,74 +1,116 @@
 ---
 title: "Email Templates"
-metaTitle: "Vendure v4 Email Templates - Migrating from Handlebars and MJML to React Email"
-metaDescription: "Vendure v4 renders emails with React Email. How to keep existing Handlebars/MJML templates working, migrate them one at a time, and update custom generators and template loaders."
+metaTitle: "Vendure v4 Emails - Migrating from @vendure/email-plugin to @vendure/email"
+metaDescription: "Vendure v4 adds @vendure/email, with emails defined in code and React templates. How to keep @vendure/email-plugin on v4, or move EmailEventListener handlers and Handlebars/MJML templates to @vendure/email."
 order: 7
 ---
 
 import { Callout } from '@vendure-io/docs-provider/components';
 
-In v4 the [EmailPlugin](/reference/core-plugins/email-plugin) renders emails with [React Email](https://react.email/). The default emails are React components that ship with `@vendure/email-plugin`, so new projects no longer copy Handlebars/MJML templates into the project.
+Vendure v4 adds a new package, `@vendure/email`, which is the default for new projects. Each email is defined with `defineEmail()` and has a React template, rendered with [React Email](https://react.email/). See [Email & Notifications](/core-concepts/email/).
 
-Handlebars/MJML templates still work, but they are deprecated and will be removed in a later v4 release. `handlebars` and `mjml` are now optional peer dependencies. With React Email only, the plugin installs 110 packages instead of 302.
+The v3 package, `@vendure/email-plugin`, is unchanged on v4. It is deprecated, only receives security fixes, and will be removed in v5.
 
 ## What to do
 
 | Your project | What to do |
 |---|---|
-| Uses the default templates in `static/email/templates` without changes | [Switch to the React defaults](#switching-to-the-react-defaults). |
-| Has customized `.hbs` templates | [Keep them working](#keeping-handlebars-templates-working), then [migrate them one at a time](#migrating-a-template). |
-| Implements `EmailGenerator` or `TemplateLoader`, or calls `setMockEvent()` | [Update your custom code](#updating-custom-code). |
+| You want to upgrade to v4 first and move emails later | [Keep `@vendure/email-plugin`](#option-a-keep-vendureemail-plugin). |
+| You are ready to move your emails | [Switch to `@vendure/email`](#option-b-switch-to-vendureemail). |
 
-**Done when:** `npx vendure email check` passes for every language you send emails in. See [Checking your templates](#checking-your-templates).
+You have to switch before you upgrade to v5.
 
-## Switching to the React defaults
+## Option A: Keep @vendure/email-plugin
 
-Remove the `templateLoader` (or `templatePath`) option, and set your shop's branding as a global template variable:
+Update `@vendure/email-plugin` to the same v4 version as your other `@vendure/*` packages. No code changes are needed. Your `EmailEventListener` handlers, Handlebars/MJML templates, `templateLoader` or `templatePath`, custom `EmailGenerator` and dev mailbox keep working as in v3.
+
+There is one bug fix: a subject function set with `setSubject()`, and a language code set with `setLanguageCode()`, are now kept when `loadData()` is called after them. Before, `loadData()` dropped them.
+
+**Done when:** your project runs on v4 and sends the same emails as before.
+
+## Option B: Switch to @vendure/email
+
+<Callout type="warning">
+Don't configure both plugins. Every email would be sent twice, so `@vendure/email` refuses to start if the `EmailPlugin` of `@vendure/email-plugin` is also in your config. Remove the old plugin in the same change that adds the new one.
+</Callout>
+
+### 1. Install the package and replace the plugin
+
+```bash
+npm install @vendure/email
+```
 
 ```diff title="src/vendure-config.ts"
+-import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
++import { defaultEmails, EmailPlugin } from '@vendure/email';
+
  EmailPlugin.init({
-     handlers: defaultEmailHandlers,
+-    handlers: defaultEmailHandlers,
 -    templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
++    emails: defaultEmails,
++    defaultFrom: '"My Shop" <noreply@myshop.com>',
      globalTemplateVars: {
-         fromAddress: '"My Shop" <noreply@myshop.com>',
+-        fromAddress: '"My Shop" <noreply@myshop.com>',
+         verifyEmailAddressUrl: 'https://myshop.com/verify',
+         passwordResetUrl: 'https://myshop.com/password-reset',
+         changeEmailAddressUrl: 'https://myshop.com/verify-email-address-change',
 +        branding: {
 +            name: 'My Shop',
 +            logoUrl: 'https://myshop.com/logo.png',
 +            primaryColor: '#0b7285',
 +            footerText: 'My Shop Ltd, 1 High Street, London',
 +        },
-         // ...
      },
+     transport: { /* unchanged */ },
  }),
 ```
 
-Then delete `static/email/templates`. The `[company header]` and `[footer text]` placeholders of the old templates are replaced by `branding`. If `branding` is not set, the emails have no header or footer.
-
-## Keeping Handlebars templates working
-
-Install the optional peer dependencies:
-
-```bash
-npm install handlebars mjml
-```
-
-Your `FileBasedTemplateLoader` keeps working, and the deprecated [HandlebarsMjmlGenerator](/reference/core-plugins/email-plugin/email-generator#handlebarsmjmlgenerator) renders the templates it loads. The plugin logs a deprecation warning the first time it renders one. If the packages are not installed, sending an email that uses a Handlebars template fails with an error that names them.
-
-Templates you load take precedence over the React templates of the default handlers. For each email, the EmailPlugin uses the first of:
-
-1. The template returned by a configured `TemplateLoader`.
-2. The React template set on the handler with `setTemplate()`.
-
-The `FileBasedTemplateLoader` returns nothing for an email type that has no `.hbs` file. So you can migrate one email at a time: delete its `.hbs` file, and the handler's React template takes over.
-
-## Migrating a template
-
-1. Write the template as a React component with `defineEmailTemplate()`. Build it from the components exported by `@vendure/email-plugin`. See [Email templates](/core-concepts/email/#email-templates).
-2. Set it on the handler with `setTemplate()`. For a default email you customized, set it on the default handler, e.g. `orderConfirmationHandler.setTemplate(MyOrderConfirmationEmail)`.
-3. Delete the `.hbs` file for that email type.
-4. Run `npx vendure email render <type>` and compare the output with the old email.
+The `transport`, `devMode`, `outputPath`, `route` and `emailSender` options work as before. The `[company header]` and `[footer text]` placeholders of the old default templates are replaced by `branding`. See [Branding](/core-concepts/email/#branding).
 
 Your project's `tsconfig.json` needs `"jsx": "react-jsx"`, and its `include` must cover `.tsx` files.
+
+### 2. Move your customized emails
+
+If you used the default templates without changes, delete `static/email/templates` and skip this step.
+
+For each email you customized:
+
+1. If it is a default email, copy it into the project with `npx vendure email eject <type>`, and use the ejected definition in place of the package default in your `emails` list. See [Customizing an email](/core-concepts/email/#customizing-an-email).
+2. Move your changes to `template.tsx`, and to `definition.ts` if you changed the handler.
+3. Delete the `.hbs` files of that email.
+4. Run `npx vendure email render <type> --preview` and compare the output with the old email.
+
+For each handler of your own, write a definition with `defineEmail()` and a template with `defineEmailTemplate()`, using the tables below.
+
+### Mapping handler methods to definition fields
+
+| `EmailEventListener` / `EmailEventHandler` | `defineEmail()` |
+|---|---|
+| `new EmailEventListener('type')` | `type: 'type'`. Add a `label` for the Dashboard and CLI. |
+| `.on(Event)` | `event: Event` |
+| `.filter(fn)` | `filter: fn` |
+| `.loadData(fn)` and `.setTemplateVars(fn)` | `data: ({ event, ctx, injector }) => data`. One function returns the template's data. There is no `event.data`. |
+| `.setRecipient(fn)` | `recipient: ({ event, data }) => address` |
+| `.setOptionalAddressFields(fn)` | `recipient` returns `{ to, cc, bcc, replyTo }` |
+| `.setSubject(subject)` | `subject` of the template |
+| `.setFrom(from)` | `from`, or the plugin's `defaultFrom` |
+| `.setLanguageCode(fn)` | `languageCode: ({ event, data }) => code` |
+| `.setAttachments(fn)` | `attachments: ({ event, data }) => attachments` |
+| `.setMetadata(fn)` | `metadata: ({ event, data }) => metadata` |
+| `.setMockEvent(event)` | `sample: ({ ctx, injector, args }) => event`. Builds the event from your database. |
+| `.setPlainTextBody(fn)` | `text` of the template |
+| `.addTemplate()` per language or channel | `useEmailContext().languageCode` in the template, or an `EmailTemplateLoader` |
+| `.hbs` template file | `template: defineEmailTemplate({ subject, body, text? })` |
+
+`recipient`, `languageCode`, `attachments` and `metadata` receive `{ event, data, ctx, injector }`, where `data` is the result of `data()`.
+
+| Plugin option | `@vendure/email` |
+|---|---|
+| `handlers` | `emails` |
+| `globalTemplateVars.fromAddress` | `defaultFrom` |
+| `templateLoader`, `templatePath` | Not needed. Templates are part of the definitions. Use `templateLoader` with an `EmailTemplateLoader` only for overrides, e.g. stored in the database. |
+| `emailGenerator` | Removed. Templates are React components. |
+| `EmailSendEvent` from `@vendure/email-plugin` | `EmailSendEvent` from `@vendure/email` |
 
 ### Translating Handlebars to React
 
@@ -82,82 +124,117 @@ Your project's `tsconfig.json` needs `"jsx": "react-jsx"`, and its `include` mus
 | `{{ formatDate order.orderPlacedAt }}` | `<FormattedDate value={order.orderPlacedAt} />` |
 | `<mj-section>`, `<mj-text>`, `<mj-button href="...">` | `<EmailSection>`, `<EmailText>`, `<EmailButton href="...">` |
 | `<mj-raw><style>...</style></mj-raw>` | `style` props |
-| `addTemplate()` per language | `useEmailContext().languageCode` in the component, or a custom `TemplateLoader` |
 
 `Money` and `FormattedDate` format in the language of the email. The Handlebars templates used `'en'` throughout.
 
-The template receives the same data as the Handlebars template did: the global template variables and the result of `setTemplateVars()`, as props. The data has passed through the job queue, so dates are ISO strings and entity getters (such as `order.totalWithTax`) are plain properties.
+The template receives the same kind of data as before: the global template variables and the email's data, as props. The data has passed through the job queue, so dates are ISO strings, and entity getters and methods are gone.
 
-Subject lines and "from" addresses keep their `{{ path.to.value }}` placeholders. Handlebars helpers and block expressions are not supported there for React templates; use `setSubject()` with a function instead.
+A subject string keeps its `{{ path.to.value }}` placeholders. Placeholders have no Handlebars helpers or block expressions. For anything more, make `subject` a function of the props.
 
 ### Example
 
-The `email-verification` template, before and after:
+A v3 handler that sends a "back in stock" email, with its Handlebars template:
 
-```hbs title="static/email/templates/email-verification/body.hbs"
-{{> header title="Verify Your Email Address" }}
+```ts title="src/plugins/stock/back-in-stock-handler.ts"
+import { ProductVariantService } from '@vendure/core';
+import { EmailEventListener } from '@vendure/email-plugin';
+
+import { BackInStockEvent } from './back-in-stock-event';
+
+export const backInStockHandler = new EmailEventListener('back-in-stock')
+    .on(BackInStockEvent)
+    .filter(event => !!event.subscription.emailAddress)
+    .loadData(async ({ event, injector }) => {
+        const variant = await injector.get(ProductVariantService).findOne(event.ctx, event.variantId);
+        return { variant };
+    })
+    .setRecipient(event => event.subscription.emailAddress)
+    .setFrom('{{ fromAddress }}')
+    .setSubject('{{ productName }} is back in stock')
+    .setTemplateVars(event => ({
+        productName: event.data.variant.name,
+        productUrl: `https://myshop.com/products/${event.data.variant.product.slug}`,
+    }))
+    .setMockEvent({ subscription: { emailAddress: 'jo@example.com' }, variantId: 1 });
+```
+
+```hbs title="static/email/templates/back-in-stock/body.hbs"
+{{> header title="Back in stock" }}
 <mj-section>
     <mj-column>
-        <mj-text>Click the button below to verify this email address:</mj-text>
-        <mj-button href="{{ verifyEmailAddressUrl }}?token={{ verificationToken }}">Verify Me!</mj-button>
+        <mj-text>{{ productName }} is available again.</mj-text>
+        <mj-button href="{{ productUrl }}">Buy now</mj-button>
     </mj-column>
 </mj-section>
 {{> footer }}
 ```
 
-```tsx title="src/email/email-verification.tsx"
-import {
-    defineEmailTemplate,
-    EmailBranding,
-    EmailButton,
-    EmailLayout,
-    EmailSection,
-    EmailText,
-    urlWithToken,
-} from '@vendure/email-plugin';
+The same email with `@vendure/email`:
 
-export const MyEmailVerificationEmail = defineEmailTemplate<{
-    verifyEmailAddressUrl: string;
-    verificationToken: string;
+```ts title="src/email/back-in-stock/definition.ts"
+import { ProductVariantService } from '@vendure/core';
+import { defineEmail } from '@vendure/email';
+
+import { BackInStockEvent } from '../../plugins/stock/back-in-stock-event';
+
+import { BackInStockTemplate } from './template';
+
+export const backInStockEmail = defineEmail({
+    type: 'back-in-stock',
+    label: 'Back in stock',
+    event: BackInStockEvent,
+    filter: event => !!event.subscription.emailAddress,
+    data: async ({ event, ctx, injector }) => {
+        const variant = await injector.get(ProductVariantService).findOne(ctx, event.variantId);
+        return {
+            productName: variant?.name ?? '',
+            productUrl: `https://myshop.com/products/${variant?.product.slug ?? ''}`,
+        };
+    },
+    recipient: ({ event }) => event.subscription.emailAddress,
+    template: BackInStockTemplate,
+    sample: async ({ ctx, args }) =>
+        new BackInStockEvent(ctx, { emailAddress: args.email ?? 'jo@example.com' }, args.variant ?? 1),
+});
+```
+
+```tsx title="src/email/back-in-stock/template.tsx"
+import { defineEmailTemplate, EmailBranding, EmailButton, EmailLayout, EmailSection, EmailText } from '@vendure/email';
+
+export interface BackInStockProps {
+    productName: string;
+    productUrl: string;
     branding?: EmailBranding;
-}>(({ verifyEmailAddressUrl, verificationToken, branding }) => (
-    <EmailLayout title="Verify Your Email Address" branding={branding}>
-        <EmailSection>
-            <EmailText>Click the button below to verify this email address:</EmailText>
-            <EmailButton href={urlWithToken(verifyEmailAddressUrl, verificationToken)}>Verify Me!</EmailButton>
-        </EmailSection>
-    </EmailLayout>
-));
+}
+
+export const BackInStockTemplate = defineEmailTemplate<BackInStockProps>({
+    subject: '{{ productName }} is back in stock',
+    body: ({ productName, productUrl, branding }) => (
+        <EmailLayout title="Back in stock" branding={branding}>
+            <EmailSection>
+                <EmailText>{productName} is available again.</EmailText>
+                <EmailButton href={productUrl}>Buy now</EmailButton>
+            </EmailSection>
+        </EmailLayout>
+    ),
+});
 ```
 
-```ts title="src/vendure-config.ts"
-import { emailVerificationHandler } from '@vendure/email-plugin';
-import { MyEmailVerificationEmail } from './email/email-verification';
+Then add `backInStockEmail` to the `emails` list. The `from` is not set, so the email uses `defaultFrom`.
 
-// ...
-handlers: [
-    ...defaultEmailHandlers.filter(h => h !== emailVerificationHandler),
-    emailVerificationHandler.setTemplate(MyEmailVerificationEmail),
-],
+### 3. Check your emails
+
+Enable the `vendure email` commands by adding `@vendure/email` to the CLI plugins in your `package.json`:
+
+```json title="package.json"
+{
+    "vendure": {
+        "cli": {
+            "plugins": ["@vendure/email"]
+        }
+    }
+}
 ```
-
-## Updating custom code
-
-Search your project:
-
-```bash
-rg -n "implements EmailGenerator|implements TemplateLoader|HandlebarsMjmlGenerator|setMockEvent|templatePath"
-```
-
-| Match | What to do |
-|---|---|
-| `implements EmailGenerator` | `generate()` now takes one object: `{ ctx, type, languageCode, channelCode, template, from, subject, templateVars }`. The template is an `EmailTemplateSource`: `{ kind: 'react', component }` or `{ kind: 'string', body }`. Add `canGenerate(template)`, returning `true` for the kinds your generator renders. Custom generators are tried before the defaults, and `emailGenerator` accepts an array. |
-| `implements TemplateLoader` | `loadTemplate()` may return a string (a Handlebars template, as before), an `EmailTemplateSource`, or `undefined` to fall back to the next loader and then to the handler's template. Its input now includes `languageCode` and `channelCode`. `templateLoader` accepts an array. |
-| `HandlebarsMjmlGenerator` | Deprecated. Install `handlebars` and `mjml` while you still use it. |
-| `setMockEvent` | Still works, but prefer `setSampleEvent()`, which builds the event from your database for the dev tooling. See [Developing and testing emails](/core-concepts/email/#developing-and-testing-emails). |
-| `templatePath` | Deprecated since v2. Use `templateLoader: new FileBasedTemplateLoader(path)` while you migrate. Neither is required any more. |
-
-## Checking your templates
 
 With the server and worker running in dev mode, render every email from sample data:
 
@@ -165,20 +242,12 @@ With the server and worker running in dev mode, render every email from sample d
 npx vendure email check --language en,de
 ```
 
-It fails if any template throws. Enable the command by adding `@vendure/email-plugin` to the CLI plugins in your `package.json`:
+It fails if any template throws. See [Developing and testing emails](/core-concepts/email/#developing-and-testing-emails).
 
-```json title="package.json"
-{
-    "vendure": {
-        "cli": {
-            "plugins": ["@vendure/email-plugin"]
-        }
-    }
-}
+When nothing imports `@vendure/email-plugin` any more, uninstall it:
+
+```bash
+npm uninstall @vendure/email-plugin
 ```
 
-<Callout type="info">
-New projects created with `@vendure/create` already enable it.
-</Callout>
-
-**Done when:** `npx vendure email check` passes for every language you send emails in, and `rg "FileBasedTemplateLoader|HandlebarsMjmlGenerator"` finds nothing, or only the templates you plan to migrate later.
+**Done when:** `npx vendure email check` passes for every language you send emails in, and `rg "@vendure/email-plugin"` finds nothing.

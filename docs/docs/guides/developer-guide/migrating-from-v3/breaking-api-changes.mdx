@@ -26,7 +26,6 @@ rg -n "RoleChangeEvent|getCustomerRole|getChannelsForRole|assignRoleToChannel|as
 rg -n "CUSTOMER_ROLE_CODE|CUSTOMER_ROLE_DESCRIPTION|user_roles_role|role_channels_channel"
 rg -n "createApiKeyUser\(|createAdministratorAndUser\(|implements SessionCacheStrategy"
 rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
-rg -n "implements EmailGenerator|implements TemplateLoader|HandlebarsMjmlGenerator|FileBasedTemplateLoader"
 ```
 
 | Match | What to do |
@@ -36,7 +35,6 @@ rg -n "implements EmailGenerator|implements TemplateLoader|HandlebarsMjmlGenerat
 | `getChannelsForRole`, `assignRoleToChannel`, `assertActiveUserCanGrantRoles`, `createApiKeyUser(`, `createAdministratorAndUser(` | See [Services](/developer-guide/migrating-from-v3/role-assignments#services). |
 | `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
 | `implements SessionCacheStrategy` | Check that it stores `globalPermissions`. See [Sessions and permission checks](/developer-guide/migrating-from-v3/role-assignments#sessions-and-permission-checks). |
-| `implements EmailGenerator`, `implements TemplateLoader`, `HandlebarsMjmlGenerator`, `FileBasedTemplateLoader` | See [Email templates](/developer-guide/migrating-from-v3/email-templates#what-to-do). |
 | `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
 
 **Done when:** every match is updated, and `npx tsc --noEmit` passes.
