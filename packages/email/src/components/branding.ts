@@ -2,6 +2,8 @@ import { createContext, useContext } from 'react';
 
 import { EmailRenderReactContext } from '../template/email-context';
 
+import { useEmailDesign } from './design';
+
 /**
  * @description
  * Brand settings used by the default email templates and the email components. All fields are
@@ -70,13 +72,25 @@ export const EmailBrandingContext = createContext<EmailBranding>({});
 /**
  * @description
  * Returns the {@link EmailBranding} given to the enclosing {@link EmailLayout}, merged with defaults.
+ * The design set in the Dashboard ({@link EmailDesign}) takes precedence over both.
  *
  * @docsCategory core plugins/Email
  * @docsPage Email components
  * @since 4.0.0
  */
 export function useEmailBranding(): EmailBranding & typeof defaultBranding {
-    return { ...defaultBranding, ...stripUndefined(useContext(EmailBrandingContext)) };
+    const design = useEmailDesign();
+    return {
+        ...defaultBranding,
+        ...stripUndefined(useContext(EmailBrandingContext)),
+        ...stripUndefined({
+            name: design.name,
+            logoUrl: design.logoUrl,
+            primaryColor: design.primaryColor,
+            primaryTextColor: design.primaryTextColor,
+            footerText: design.footerText,
+        }),
+    };
 }
 
 /**
@@ -90,5 +104,7 @@ export function useOptionalEmailContext() {
 }
 
 function stripUndefined<T extends object>(value: T): Partial<T> {
-    return Object.fromEntries(Object.entries(value ?? {}).filter(([, v]) => v != null)) as Partial<T>;
+    return Object.fromEntries(
+        Object.entries(value ?? {}).filter(([, v]) => v != null && v !== ''),
+    ) as Partial<T>;
 }

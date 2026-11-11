@@ -1,4 +1,10 @@
-import { Inject, MiddlewareConsumer, NestModule, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import {
+    Inject,
+    MiddlewareConsumer,
+    NestModule,
+    OnApplicationBootstrap,
+    OnApplicationShutdown,
+} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import {
     EventBus,
@@ -12,7 +18,7 @@ import {
 } from '@vendure/core';
 import { gql } from 'graphql-tag';
 
-import { EmailAdminResolver, emailAdminApiExtensions } from './api/email-admin.resolver';
+import { emailAdminApiExtensions, EmailAdminResolver } from './api/email-admin.resolver';
 import { adminApiExtensions, OrderEmailResolver } from './api/order-email.resolver';
 import { OrderEmailService } from './api/order-email.service';
 import { getDevModeProductionWarning, isDevModeOptions, resolveTransportSettings } from './common';
@@ -21,12 +27,19 @@ import { EmailDefinition } from './define-email';
 import { DevEmailApi } from './dev/dev-email-api';
 import { DevOutbox, getDevOutboxDir } from './dev/dev-outbox';
 import { EmailContentService } from './email-content.service';
+import { EmailDesignService } from './email-design.service';
 import { EmailPreviewService } from './email-preview.service';
 import { EmailProcessor } from './email-processor';
 import { EmailRenderService } from './email-render.service';
 import { EmailService } from './email.service';
 import { EmailContentOverride } from './entities/email-content-override.entity';
-import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, InitializedEmailPluginOptions } from './types';
+import { EmailDesignOverride } from './entities/email-design-override.entity';
+import {
+    EmailPluginDevModeOptions,
+    EmailPluginOptions,
+    EventWithContext,
+    InitializedEmailPluginOptions,
+} from './types';
 
 /**
  * @description
@@ -71,10 +84,18 @@ import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, Initia
         EmailService,
         EmailPreviewService,
         EmailContentService,
+        EmailDesignService,
         OrderEmailService,
     ],
-    entities: [EmailContentOverride],
-    exports: [EmailRenderService, EmailService, EmailPreviewService, EmailContentService, OrderEmailService],
+    entities: [EmailContentOverride, EmailDesignOverride],
+    exports: [
+        EmailRenderService,
+        EmailService,
+        EmailPreviewService,
+        EmailContentService,
+        EmailDesignService,
+        OrderEmailService,
+    ],
     adminApiExtensions: {
         schema: gql`
             ${adminApiExtensions}
@@ -84,7 +105,9 @@ import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, Initia
     },
     dashboard: '../src/dashboard/index.tsx',
     configuration: config => {
-        const hasLegacyPlugin = config.plugins.some(p => p !== EmailPlugin && (p as any).name === 'EmailPlugin');
+        const hasLegacyPlugin = config.plugins.some(
+            p => p !== EmailPlugin && (p as any).name === 'EmailPlugin',
+        );
         if (hasLegacyPlugin) {
             throw new Error(
                 'Both @vendure/email and @vendure/email-plugin are configured, so every email would be sent twice. ' +
@@ -137,7 +160,9 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             await this.emailService.useJobQueue(this.emailProcessor);
         }
         for (const email of this.options.emails) {
-            this.eventBus.ofType(email.event).subscribe(event => this.handleEvent(email, event as EventWithContext));
+            this.eventBus
+                .ofType(email.event)
+                .subscribe(event => this.handleEvent(email, event as EventWithContext));
         }
     }
 

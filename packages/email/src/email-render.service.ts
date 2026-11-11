@@ -5,9 +5,11 @@ import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { Injector, RequestContext } from '@vendure/core';
 import { createElement } from 'react';
 
+import { EmailDesign, EmailDesignContext } from './components/design';
 import { EMAIL_DATA_TABLE_CLASS } from './components/order-blocks';
 import { EMAIL_OPTIONS } from './constants';
 import { EmailContentService } from './email-content.service';
+import { EmailDesignOrigin, EmailDesignService } from './email-design.service';
 import { editableSlotToken, markEditableContent } from './template/editable-content';
 import { EmailContentOrigin, EmailContentReactContext, resolveEmailContent } from './template/email-content';
 import { EmailRenderReactContext } from './template/email-context';
@@ -45,6 +47,8 @@ export interface RenderEmailInput {
     template?: EmailTemplate;
     /** Unsaved text for content slots, e.g. from the Dashboard editor. Beats stored overrides. */
     contentDraft?: Record<string, string>;
+    /** Unsaved design settings, e.g. from the Dashboard's design editor. Beat the stored design. */
+    designDraft?: EmailDesign;
     /**
      * Marks the content slots in the HTML and shows their text with `{{ variables }}`, so the
      * Dashboard can edit the text inside the preview. Not for sending.
@@ -65,6 +69,8 @@ export interface RenderedEmail {
     templateOrigin: EmailTemplateOrigin;
     /** Where the text of each content slot came from. */
     contentOrigins: Record<string, EmailContentOrigin>;
+    /** Where each design setting set in the Dashboard came from. Settings from code are left out. */
+    designOrigins: Partial<Record<keyof EmailDesign, EmailDesignOrigin>>;
 }
 
 /**
@@ -81,6 +87,7 @@ export class EmailRenderService {
         @Inject(EMAIL_OPTIONS) private readonly options: InitializedEmailPluginOptions,
         private readonly moduleRef: ModuleRef,
         @Optional() private readonly contentService?: EmailContentService,
+        @Optional() private readonly designService?: EmailDesignService,
     ) {}
 
     async render(ctx: RequestContext, input: RenderEmailInput): Promise<RenderedEmail> {
@@ -100,13 +107,20 @@ export class EmailRenderService {
             overrides,
             input.contentDraft,
         );
+        const design = this.designService
+            ? await this.designService.resolve(ctx, input.designDraft)
+            : { design: input.designDraft ?? {}, origins: {} };
         const element = createElement(
             EmailRenderReactContext.Provider,
             { value: { type: input.type, languageCode, channelCode } },
             createElement(
-                EmailContentReactContext.Provider,
-                { value: input.editable ? editableTokens(content.raw) : content.values },
-                createElement(template.body, vars),
+                EmailDesignContext.Provider,
+                { value: design.design },
+                createElement(
+                    EmailContentReactContext.Provider,
+                    { value: input.editable ? editableTokens(content.raw) : content.values },
+                    createElement(template.body, vars),
+                ),
             ),
         );
         const rendered = await render(element);
@@ -135,10 +149,15 @@ export class EmailRenderService {
             text,
             templateOrigin: origin,
             contentOrigins: content.origins,
+            designOrigins: design.origins,
         };
     }
 
-    private resolveSubject(template: EmailTemplate, vars: Record<string, any>, content: Record<string, string>) {
+    private resolveSubject(
+        template: EmailTemplate,
+        vars: Record<string, any>,
+        content: Record<string, string>,
+    ) {
         if (template.content?.subject) {
             return content.subject;
         }
