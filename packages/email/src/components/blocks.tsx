@@ -228,7 +228,17 @@ export function EmailTitle({ children }: Readonly<{ children?: ReactNode }>) {
  */
 export function EmailText({ children, style }: Readonly<{ children?: ReactNode; style?: CSSProperties }>) {
     return (
-        <Text style={{ margin: '0 0 16px', fontSize: '15px', lineHeight: '24px', color: emailTheme.text, ...style }}>
+        <Text
+            style={{
+                margin: '0 0 16px',
+                fontSize: '15px',
+                lineHeight: '24px',
+                color: emailTheme.text,
+                // Keeps the line breaks of multi-line content slots.
+                whiteSpace: 'pre-line',
+                ...style,
+            }}
+        >
             {children}
         </Text>
     );

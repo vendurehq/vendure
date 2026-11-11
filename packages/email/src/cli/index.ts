@@ -129,6 +129,7 @@ export const emailCliCommands: Command[] = [
                         `From:     ${email.from}`,
                         `To:       ${email.recipient}`,
                         `Template: ${email.templateOrigin}`,
+                        ...storedContentLine(email.contentOrigins),
                         `HTML:     ${htmlPath}`,
                         `Text:     ${textPath}`,
                         ...(previewUrl ? [`Preview:  ${previewUrl}`] : []),
@@ -334,6 +335,15 @@ function toEmailRequest(type: string, options: Options) {
         args[key] = rest.join('=');
     }
     return { type, languageCode: options.language, channelCode: options.channel, args };
+}
+
+function storedContentLine(origins: Record<string, string> | undefined): string[] {
+    const stored = Object.entries(origins ?? {}).filter(([, origin]) => origin === 'channel' || origin === 'all-channels');
+    if (!stored.length) {
+        return [];
+    }
+    // Text stored in the Dashboard beats the template's default text, so editing the .tsx default has no effect on these.
+    return [`Text:     stored in the Dashboard for ${stored.map(([name, origin]) => `${name} (${origin})`).join(', ')}`];
 }
 
 function mailboxUrl(options: Options) {

@@ -79,6 +79,7 @@ export interface EmailPreviewResult {
         html: string;
         text: string;
         templateOrigin: string;
+        contentOrigins: Record<string, string>;
     };
 }
 
@@ -124,6 +125,7 @@ export const previewEmailQuery = graphql(`
             html
             text
             templateOrigin
+            contentOrigins
         }
     }
 `);
@@ -141,6 +143,57 @@ export const emailOutboxQuery = graphql(`
             templateOrigin
             error
             html
+        }
+    }
+`);
+
+export type EmailContentScope = 'CHANNEL' | 'ALL_CHANNELS';
+
+export interface EmailContentData {
+    type: string;
+    languageCode: string;
+    scope: EmailContentScope;
+    fields: Array<{
+        name: string;
+        label: string;
+        multiline: boolean;
+        defaultValue: string;
+        value?: string | null;
+        fallbackValue: string;
+    }>;
+    variables: Array<{ name: string; label: string }>;
+}
+
+const emailContentFields = `
+    type
+    languageCode
+    scope
+    fields {
+        name
+        label
+        multiline
+        defaultValue
+        value
+        fallbackValue
+    }
+    variables {
+        name
+        label
+    }
+`;
+
+export const emailContentQuery = graphql(`
+    query EmailContent($type: String!, $languageCode: LanguageCode!, $scope: EmailContentScope!) {
+        emailContent(type: $type, languageCode: $languageCode, scope: $scope) {
+            ${emailContentFields}
+        }
+    }
+`);
+
+export const updateEmailContentMutation = graphql(`
+    mutation UpdateEmailContent($input: UpdateEmailContentInput!) {
+        updateEmailContent(input: $input) {
+            ${emailContentFields}
         }
     }
 `);

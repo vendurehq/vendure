@@ -1,6 +1,9 @@
-import { EmailHeading, EmailLayout, EmailSection, EmailText, EmailTitle, Money } from '../../components/blocks';
+import { EmailHeading, EmailLayout, EmailSection, EmailText, EmailTitle } from '../../components/blocks';
 import { EmailBranding } from '../../components/branding';
+import { formatMoney } from '../../components/formatting';
 import { EmailOrder, OrderSummary } from '../../components/order-blocks';
+import { orderVariables } from '../../components/order-variables';
+import { useEmailContent } from '../../template/email-content';
 import { defineEmailTemplate } from '../../template/email-template';
 
 export interface EmailPayment {
@@ -16,27 +19,41 @@ export interface PaymentFailedProps {
 }
 
 export const PaymentFailedTemplate = defineEmailTemplate<PaymentFailedProps>({
-    subject: ({ order }) => `Payment for your order #${order.code} failed`,
-    body: ({ order, payment, branding }) => (
-        <EmailLayout title="Payment failed" preview={`We could not take payment for order ${order.code}`} branding={branding}>
-            <EmailSection>
-                <EmailTitle>Your payment did not go through</EmailTitle>
-                <EmailText>
-                    We could not take your payment of{' '}
-                    <strong>
-                        <Money value={payment.amount} currencyCode={order.currencyCode} />
-                    </strong>{' '}
-                    for order <strong>{order.code}</strong>, so the order has not been placed yet.
-                </EmailText>
-                <EmailText>
-                    Please try again with another payment method. If the problem continues, contact us and we will
-                    help.
-                </EmailText>
-            </EmailSection>
-            <EmailSection>
-                <EmailHeading>Your order</EmailHeading>
-                <OrderSummary order={order} />
-            </EmailSection>
-        </EmailLayout>
-    ),
+    content: {
+        subject: { label: 'Subject', default: 'Payment for your order #{{ orderCode }} failed' },
+        preview: { label: 'Inbox preview text', default: 'We could not take payment for order {{ orderCode }}' },
+        title: { label: 'Title', default: 'Your payment did not go through' },
+        intro: {
+            label: 'Introduction',
+            default:
+                'We could not take your payment of {{ paymentAmount }} for order {{ orderCode }}, so the order has not been placed yet.\n\n' +
+                'Please try again with another payment method. If the problem continues, contact us and we will help.',
+            multiline: true,
+        },
+        summaryHeading: { label: 'Order summary heading', default: 'Your order' },
+    },
+    variables: {
+        ...orderVariables<PaymentFailedProps>(),
+        paymentAmount: {
+            label: 'Payment amount',
+            value: ({ order, payment }, { languageCode }) =>
+                formatMoney(payment.amount, order.currencyCode, languageCode),
+        },
+        paymentMethod: { label: 'Payment method', value: ({ payment }) => payment.method },
+    },
+    body: ({ order, branding }) => {
+        const content = useEmailContent();
+        return (
+            <EmailLayout title={content.title} preview={content.preview} branding={branding}>
+                <EmailSection>
+                    <EmailTitle>{content.title}</EmailTitle>
+                    <EmailText>{content.intro}</EmailText>
+                </EmailSection>
+                <EmailSection>
+                    <EmailHeading>{content.summaryHeading}</EmailHeading>
+                    <OrderSummary order={order} />
+                </EmailSection>
+            </EmailLayout>
+        );
+    },
 });

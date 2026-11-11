@@ -5,5 +5,5 @@
         "outDir": "./lib",
         "rootDir": "./src"
     },
-    "files": ["./src/index.ts", "./src/cli/index.ts", "./src/emails/index.ts"]
+    "files": ["./src/index.ts", "./src/cli/index.ts", "./src/emails/index.ts", "./src/entities/index.ts"]
 }

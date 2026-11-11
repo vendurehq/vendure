@@ -8,8 +8,6 @@ import {
     ButtonGroup,
     Input,
     Label,
-    NativeSelect,
-    NativeSelectOption,
     useChannel,
     useQuery,
 } from '@vendure/dashboard';
@@ -25,11 +23,20 @@ const WIDTHS = { desktop: 600, mobile: 375 } as const;
 /**
  * Renders the selected email from database data, as the recipient would see it.
  */
-export function EmailPreviewBlock({ email, initialOrderCode }: Readonly<{ email: EmailInfo; initialOrderCode?: string }>) {
+export function EmailPreviewBlock({
+    email,
+    languageCode,
+    contentDraft,
+    initialOrderCode,
+}: Readonly<{
+    email: EmailInfo;
+    languageCode: string;
+    /** Unsaved text from the content editor. */
+    contentDraft?: Record<string, string>;
+    initialOrderCode?: string;
+}>) {
     const { t } = useLingui();
     const { activeChannel } = useChannel();
-    const languages: string[] = activeChannel?.availableLanguageCodes ?? [];
-    const [languageCode, setLanguageCode] = useState<string>(activeChannel?.defaultLanguageCode ?? 'en');
     const [orderCode, setOrderCode] = useState(initialOrderCode ?? '');
     const [appliedOrderCode, setAppliedOrderCode] = useState(initialOrderCode ?? '');
     const [width, setWidth] = useState<keyof typeof WIDTHS>('desktop');
@@ -39,11 +46,14 @@ export function EmailPreviewBlock({ email, initialOrderCode }: Readonly<{ email:
         languageCode,
         channelCode: activeChannel?.code,
         sampleArgs: email.canSendFromOrder && appliedOrderCode ? { order: appliedOrderCode } : undefined,
+        content: contentDraft && Object.keys(contentDraft).length ? contentDraft : undefined,
     };
     const { data, error, isFetching, refetch } = useQuery<EmailPreviewResult>({
         queryKey: ['previewEmail', input],
         queryFn: () => api.query(previewEmailQuery, { input }),
         retry: false,
+        // Keeps the last preview on screen while the next one renders, so typing doesn't flicker.
+        placeholderData: previous => previous,
     });
     const preview = data?.previewEmail;
 
@@ -64,22 +74,6 @@ export function EmailPreviewBlock({ email, initialOrderCode }: Readonly<{ email:
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="email-preview-language">
-                        <Trans>Language</Trans>
-                    </Label>
-                    <NativeSelect
-                        id="email-preview-language"
-                        value={languageCode}
-                        onChange={e => setLanguageCode(e.target.value)}
-                    >
-                        {(languages.length ? languages : [languageCode]).map(code => (
-                            <NativeSelectOption key={code} value={code}>
-                                {code}
-                            </NativeSelectOption>
-                        ))}
-                    </NativeSelect>
-                </div>
                 {email.canSendFromOrder ? (
                     <form
                         className="flex flex-col gap-1.5"

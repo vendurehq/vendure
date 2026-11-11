@@ -20,10 +20,12 @@ import { EMAIL_OPTIONS, loggerCtx } from './constants';
 import { EmailDefinition } from './define-email';
 import { DevEmailApi } from './dev/dev-email-api';
 import { DevOutbox, getDevOutboxDir } from './dev/dev-outbox';
+import { EmailContentService } from './email-content.service';
 import { EmailPreviewService } from './email-preview.service';
 import { EmailProcessor } from './email-processor';
 import { EmailRenderService } from './email-render.service';
 import { EmailService } from './email.service';
+import { EmailContentOverride } from './entities/email-content-override.entity';
 import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, InitializedEmailPluginOptions } from './types';
 
 /**
@@ -68,9 +70,11 @@ import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, Initia
         EmailRenderService,
         EmailService,
         EmailPreviewService,
+        EmailContentService,
         OrderEmailService,
     ],
-    exports: [EmailRenderService, EmailService, EmailPreviewService, OrderEmailService],
+    entities: [EmailContentOverride],
+    exports: [EmailRenderService, EmailService, EmailPreviewService, EmailContentService, OrderEmailService],
     adminApiExtensions: {
         schema: gql`
             ${adminApiExtensions}

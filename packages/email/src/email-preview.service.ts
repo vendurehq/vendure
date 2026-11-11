@@ -56,6 +56,8 @@ export interface EmailPreviewInput {
     channelCode?: string;
     /** Passed to the definition's `sample()` function, e.g. `{ order: 'ABC123' }`. */
     args?: Record<string, string>;
+    /** Unsaved text for content slots, shown instead of the stored text. */
+    contentDraft?: Record<string, string>;
 }
 
 /**
@@ -126,6 +128,7 @@ export class EmailPreviewService {
                 templateVars: job.templateVars,
                 languageCode: job.languageCode,
                 channelCode: job.channelCode,
+                contentDraft: input.contentDraft,
             }),
         );
         return {
@@ -146,6 +149,7 @@ export class EmailPreviewService {
                 text: rendered.text,
                 attachments: job.attachments.map(a => ({ filename: a.filename ?? undefined })),
                 templateOrigin: rendered.templateOrigin,
+                contentOrigins: rendered.contentOrigins,
             },
             templateVars: job.templateVars,
         };

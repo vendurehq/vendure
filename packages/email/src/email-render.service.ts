@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { render, toPlainText } from '@react-email/render';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
@@ -7,6 +7,8 @@ import { createElement } from 'react';
 
 import { EMAIL_DATA_TABLE_CLASS } from './components/order-blocks';
 import { EMAIL_OPTIONS } from './constants';
+import { EmailContentService } from './email-content.service';
+import { EmailContentOrigin, EmailContentReactContext, resolveEmailContent } from './template/email-content';
 import { EmailRenderReactContext } from './template/email-context';
 import { EmailTemplate, isPackageDefault } from './template/email-template';
 import { interpolateTemplateString } from './template/interpolate';
@@ -40,6 +42,8 @@ export interface RenderEmailInput {
     channelCode?: string;
     /** Render this template instead of resolving one. */
     template?: EmailTemplate;
+    /** Unsaved text for content slots, e.g. from the Dashboard editor. Beats stored overrides. */
+    contentDraft?: Record<string, string>;
 }
 
 /**
@@ -53,6 +57,8 @@ export interface RenderedEmail {
     html: string;
     text: string;
     templateOrigin: EmailTemplateOrigin;
+    /** Where the text of each content slot came from. */
+    contentOrigins: Record<string, EmailContentOrigin>;
 }
 
 /**
@@ -68,6 +74,7 @@ export class EmailRenderService {
     constructor(
         @Inject(EMAIL_OPTIONS) private readonly options: InitializedEmailPluginOptions,
         private readonly moduleRef: ModuleRef,
+        @Optional() private readonly contentService?: EmailContentService,
     ) {}
 
     async render(ctx: RequestContext, input: RenderEmailInput): Promise<RenderedEmail> {
@@ -77,16 +84,27 @@ export class EmailRenderService {
             ? { template: input.template, origin: 'override' as const }
             : await this.resolveTemplate(ctx, { type: input.type, languageCode, channelCode });
         const vars = input.templateVars;
+        const overrides = template.content
+            ? await this.contentService?.getOverrides(ctx, input.type, languageCode)
+            : undefined;
+        const content = resolveEmailContent(
+            template,
+            vars,
+            { languageCode, channelCode },
+            overrides,
+            input.contentDraft,
+        );
         const element = createElement(
             EmailRenderReactContext.Provider,
             { value: { type: input.type, languageCode, channelCode } },
-            createElement(template.body, vars),
+            createElement(
+                EmailContentReactContext.Provider,
+                { value: content.values },
+                createElement(template.body, vars),
+            ),
         );
         const html = await render(element);
-        const subject =
-            typeof template.subject === 'function'
-                ? template.subject(vars)
-                : interpolateTemplateString(template.subject, vars);
+        const subject = this.resolveSubject(template, vars, content.values);
         const text = template.text
             ? template.text(vars)
             : toPlainText(html, {
@@ -104,7 +122,18 @@ export class EmailRenderService {
             html,
             text,
             templateOrigin: origin,
+            contentOrigins: content.origins,
         };
+    }
+
+    private resolveSubject(template: EmailTemplate, vars: Record<string, any>, content: Record<string, string>) {
+        if (template.content?.subject) {
+            return content.subject;
+        }
+        if (typeof template.subject === 'function') {
+            return template.subject(vars);
+        }
+        return interpolateTemplateString(template.subject ?? '', vars);
     }
 
     async resolveTemplate(

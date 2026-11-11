@@ -206,7 +206,8 @@ To stop sending an email, leave it out of the `emails` list.
 
 ### Writing a template
 
-A template is created with `defineEmailTemplate()`. It has a subject, an HTML body and, optionally, a plain text body:
+A template is created with `defineEmailTemplate()`. Its text goes in `content`, so admins can change it in the
+Dashboard. The values the text can include go in `variables`. The layout stays in `body`:
 
 ```tsx title="src/email/order-shipped/template.tsx"
 import {
@@ -219,7 +220,10 @@ import {
     EmailOrder,
     EmailSection,
     EmailText,
+    EmailTitle,
     FulfillmentSummary,
+    orderVariables,
+    useEmailContent,
 } from '@vendure/email';
 
 export interface OrderShippedProps {
@@ -229,29 +233,49 @@ export interface OrderShippedProps {
 }
 
 export const OrderShippedTemplate = defineEmailTemplate<OrderShippedProps>({
-    subject: ({ order }) => `Your order #${order.code} is on its way`,
-    body: ({ order, fulfillment, branding }) => (
-        <EmailLayout title="Your order is on its way" preview={`Order ${order.code} has shipped`} branding={branding}>
-            <EmailSection variant="muted">
-                <EmailText>Good news: items from your order {order.code} have shipped.</EmailText>
-            </EmailSection>
-            <EmailSection>
-                <EmailHeading>In this shipment</EmailHeading>
-                <FulfillmentSummary fulfillment={fulfillment} />
-            </EmailSection>
-            {order.shippingAddress ? (
-                <EmailSection variant="muted">
-                    <AddressBlock heading="Shipping To" address={order.shippingAddress} />
+    content: {
+        subject: { label: 'Subject', default: 'Your order #{{ orderCode }} is on its way' },
+        title: { label: 'Title', default: 'Your order is on its way' },
+        intro: {
+            label: 'Introduction',
+            default: 'Good news: items from order {{ orderCode }} have shipped.',
+            multiline: true,
+        },
+    },
+    variables: {
+        ...orderVariables<OrderShippedProps>(),
+        trackingCode: { label: 'Tracking number', value: ({ fulfillment }) => fulfillment.trackingCode },
+    },
+    body: ({ order, fulfillment, branding }) => {
+        const content = useEmailContent();
+        return (
+            <EmailLayout title={content.title} branding={branding}>
+                <EmailSection>
+                    <EmailTitle>{content.title}</EmailTitle>
+                    <EmailText>{content.intro}</EmailText>
                 </EmailSection>
-            ) : null}
-        </EmailLayout>
-    ),
+                <EmailSection>
+                    <EmailHeading>In this shipment</EmailHeading>
+                    <FulfillmentSummary fulfillment={fulfillment} />
+                </EmailSection>
+            </EmailLayout>
+        );
+    },
 });
 ```
 
+- **`content`** has one entry per piece of text: a label for the Dashboard, the default text, and `multiline` for
+  longer text. A `subject` entry is used as the subject line. Templates without content can set `subject` directly,
+  as a function of the props or a string with `{{ path.to.value }}` placeholders.
+- **`variables`** are the values the text can include as `{{ name }}`. Each one turns the props into display text,
+  so amounts and dates are formatted in the email's language. `orderVariables()` adds `orderCode`,
+  `customerFirstName`, `customerName`, `orderTotal` and `orderDate`. Every email can also use `shopName`.
+- **`useEmailContent()`** returns the text with stored changes applied and variables filled in.
+
 Build templates from the components exported by `@vendure/email`: `EmailLayout` (always the root), `EmailSection`,
-`EmailHeading`, `EmailText`, `EmailButton`, `Money`, `FormattedDate`, `OrderHighlights`, `OrderSummary`,
-`AddressBlock` and `FulfillmentSummary`. You can also use any [React Email component](https://react.email/docs/components/html).
+`EmailTitle`, `EmailHeading`, `EmailText`, `EmailMutedText`, `EmailButton`, `Money`, `FormattedDate`,
+`OrderHighlights`, `OrderSummary`, `AddressBlock` and `FulfillmentSummary`. You can also use any
+[React Email component](https://react.email/docs/components/html).
 
 Things to know when writing templates:
 
@@ -262,12 +286,31 @@ Things to know when writing templates:
 - **Use inline styles.** Email clients ignore `<style>` blocks, external CSS and class names. Use `style` props.
 - **Image URLs must be absolute.** The default emails already make order line images absolute.
 - **Formatting follows the email's language.** `Money` and `FormattedDate` format amounts and dates in the language of the email.
-- **Translating text.** Use the `useEmailContext()` hook to read the `languageCode` (and `channelCode`) of the email being rendered.
-- **Subject.** A function of the props, or a string with `{{ path.to.value }}` placeholders. Placeholders have no
-  logic or helpers.
 - **Plain text.** When `text` is not set, a plain text version is derived from the HTML.
 
 Use `EmailData<typeof myEmail>` to type a template's props from the definition it belongs to.
+
+### Editing the text in the Dashboard
+
+In **System > Emails**, select an email to edit its text. Each piece of text from the template's `content` has its
+own field, and the chips above the fields insert the email's variables. The preview shows the changes as you type,
+before they are saved. The design stays as it is in code.
+
+- **Language.** Text is stored per language. A language without stored text uses the template's default.
+- **Channel.** "Applies to" stores text for all channels, or for the active channel only. Text for a channel takes
+  precedence over text for all channels, which takes precedence over the default.
+- **Use default.** Clearing a field removes the stored text, so the field falls back again.
+- **Validation.** Saving fails when the text uses a variable the email doesn't have. The field also shows a
+  warning while you type.
+
+Editing the text needs the `UpdateSettings` permission, and viewing it needs `ReadSettings`.
+
+The text is stored in the `email_content_override` table. Generate a migration for it when you add `@vendure/email`
+to an existing project.
+
+Stored text takes precedence over the default text in a template file, so a change to the default in `template.tsx`
+has no effect on text that was edited in the Dashboard. `vendure email render` lists the text that comes from the
+Dashboard.
 
 ### Writing a new email
 

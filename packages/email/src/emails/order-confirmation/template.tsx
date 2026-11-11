@@ -7,6 +7,8 @@ import {
     OrderHighlights,
     OrderSummary,
 } from '../../components/order-blocks';
+import { orderVariables } from '../../components/order-variables';
+import { useEmailContent } from '../../template/email-content';
 import { defineEmailTemplate } from '../../template/email-template';
 
 export interface OrderConfirmationProps {
@@ -16,25 +18,35 @@ export interface OrderConfirmationProps {
 }
 
 export const OrderConfirmationTemplate = defineEmailTemplate<OrderConfirmationProps>({
-    subject: ({ order }) => `Order confirmation for #${order.code}`,
+    content: {
+        subject: { label: 'Subject', default: 'Order confirmation for #{{ orderCode }}' },
+        preview: { label: 'Inbox preview text', default: 'Thanks for your order {{ orderCode }}' },
+        title: { label: 'Title', default: 'Thanks for your order' },
+        intro: {
+            label: 'Introduction',
+            default: 'We have received your order and are getting it ready. We will email you again when it ships.',
+            multiline: true,
+        },
+        summaryHeading: { label: 'Order summary heading', default: 'Order summary' },
+        addressHeading: { label: 'Address heading', default: 'Shipping to' },
+    },
+    variables: orderVariables(),
     body: ({ order, shippingLines, branding }) => {
-        const firstName = order.customer?.firstName;
+        const content = useEmailContent();
         return (
-            <EmailLayout title="Order confirmation" preview={`Thanks for your order ${order.code}`} branding={branding}>
+            <EmailLayout title={content.title} preview={content.preview} branding={branding}>
                 <EmailSection>
-                    <EmailTitle>{firstName ? `Thanks for your order, ${firstName}` : 'Thanks for your order'}</EmailTitle>
-                    <EmailText>
-                        We have received your order and are getting it ready. We will email you again when it ships.
-                    </EmailText>
+                    <EmailTitle>{content.title}</EmailTitle>
+                    <EmailText>{content.intro}</EmailText>
                 </EmailSection>
                 <OrderHighlights order={order} />
                 <EmailSection>
-                    <EmailHeading>Order summary</EmailHeading>
+                    <EmailHeading>{content.summaryHeading}</EmailHeading>
                     <OrderSummary order={order} shippingLines={shippingLines} />
                 </EmailSection>
                 {order.shippingAddress ? (
                     <EmailSection>
-                        <EmailHeading>Shipping to</EmailHeading>
+                        <EmailHeading>{content.addressHeading}</EmailHeading>
                         <AddressBlock address={order.shippingAddress} />
                     </EmailSection>
                 ) : null}
