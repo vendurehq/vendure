@@ -222,13 +222,23 @@ export const emailCliCommands: Command[] = [
                 if (!result.ok) {
                     return printFailure(options, result);
                 }
+                // When waiting for an email, not finding one is a failure the caller should notice.
+                if (options.wait && !result.entries.length) {
+                    return printFailure(options, {
+                        ok: false,
+                        stage: 'queue',
+                        error:
+                            `No matching email arrived within ${options.wait}s. ` +
+                            'Is a Vendure worker running, and did the action send an email?',
+                        entries: [],
+                    });
+                }
                 print(options, result, () =>
                     result.entries.length
                         ? result.entries.map((e: any) => formatEntry(e, false)).join('\n')
                         : 'No matching emails',
                 );
-                // When waiting for an email, not finding one is a failure the caller should notice.
-                return options.wait && !result.entries.length ? EXIT_EMAIL_FAILED : 0;
+                return 0;
             });
         },
     },
@@ -550,7 +560,16 @@ async function run(options: Options, fn: (client: Client) => Promise<number>): P
                     'Is the EmailPlugin running in devMode, and is --url the dev mailbox route?',
             );
         }
-        return response.json();
+        const body = await response.json();
+        // Every dev API response has a boolean `ok`. Anything else, such as the server's own 404 for a
+        // wrong route, means --url doesn't point at the dev mailbox.
+        if (typeof body?.ok !== 'boolean') {
+            throw new UnreachableError(
+                `No EmailPlugin dev API at ${baseUrl} (HTTP ${response.status}). ` +
+                    'Is the EmailPlugin running in devMode, and is --url the dev mailbox route?',
+            );
+        }
+        return body;
     };
     const client: Client = {
         get: pathname => request(pathname),
