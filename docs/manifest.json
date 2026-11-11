@@ -266,7 +266,7 @@
           "title": "Plugins",
           "slug": "plugins",
           "file": "docs/guides/developer-guide/plugins/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-11-11T11:15:22+01:00"
         },
         {
           "title": "Security",
@@ -284,7 +284,7 @@
           "title": "Strategies & Configurable Operations",
           "slug": "strategies-configurable-operations",
           "file": "docs/guides/developer-guide/strategies-configurable-operations/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-11-11T11:15:22+01:00"
         },
         {
           "title": "Testing",
