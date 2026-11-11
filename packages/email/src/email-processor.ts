@@ -52,11 +52,13 @@ export class EmailProcessor {
                 templateVars: data.templateVars,
                 languageCode: data.languageCode,
                 channelCode: data.channelCode,
+                contentDraft: data.test?.contentDraft,
+                designDraft: data.test?.designDraft,
             });
             templateOrigin = rendered.templateOrigin;
             email = {
                 from: rendered.from,
-                subject: rendered.subject,
+                subject: data.test ? `[Test] ${rendered.subject}` : rendered.subject,
                 body: rendered.html,
                 text: rendered.text,
                 recipient: data.recipient,
@@ -91,7 +93,8 @@ export class EmailProcessor {
 
     private async addOrderHistoryEntry(ctx: RequestContext, data: EmailJobData, email: EmailDetails) {
         const orderId = data.metadata?.orderId;
-        if (this.options.orderHistory === false || orderId == null) {
+        // A test email isn't about the order it borrowed its data from.
+        if (this.options.orderHistory === false || orderId == null || data.test) {
             return;
         }
         const label = this.options.emails.find(e => e.type === data.type)?.label ?? data.type;

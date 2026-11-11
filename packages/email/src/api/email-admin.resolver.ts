@@ -6,9 +6,13 @@ import { Request } from 'express';
 import { gql } from 'graphql-tag';
 
 import { isDevModeOptions } from '../common';
+import { emailTheme } from '../components/blocks';
+import { defaultBranding } from '../components/branding';
+import { EmailDesign, emailDesignFields, emailFontStacks, validateEmailDesign } from '../components/design';
 import { EMAIL_OPTIONS } from '../constants';
 import { DevOutbox, getDevOutboxDir } from '../dev/dev-outbox';
 import { EmailContentScope, EmailContentService } from '../email-content.service';
+import { EmailDesignService } from '../email-design.service';
 import { EmailPreviewError, EmailPreviewService } from '../email-preview.service';
 import { EmailRenderService } from '../email-render.service';
 import { listEmailVariables } from '../template/email-content';
@@ -39,6 +43,8 @@ export const emailAdminApiExtensions = gql`
         content: JSON
         "Marks the editable text in the HTML and shows it with its {{ variables }}, for editing in the preview"
         editable: Boolean
+        "Unsaved design settings. Shown instead of the stored design"
+        design: JSON
     }
 
     type EmailPreview {
@@ -53,6 +59,58 @@ export const emailAdminApiExtensions = gql`
         templateOrigin: String!
         "Where the text of each content slot came from: draft, channel, all-channels or default"
         contentOrigins: JSON!
+        "Where each design setting set in the Dashboard came from: draft, channel or all-channels"
+        designOrigins: JSON!
+    }
+
+    type EmailDesignField {
+        name: String!
+        label: String!
+        "text, multiline, url, color, number, font or align"
+        kind: String!
+        "brand or layout"
+        group: String!
+        min: Int
+        max: Int
+    }
+
+    type EmailFontOption {
+        label: String!
+        value: String!
+    }
+
+    type EmailDesignData {
+        scope: EmailContentScope!
+        "The settings stored for this scope"
+        design: JSON!
+        "The settings used when this scope has none: the all-channels design for a channel, or empty"
+        fallback: JSON!
+        "The values the email components use when nothing is set in the Dashboard"
+        defaults: JSON!
+        fields: [EmailDesignField!]!
+        fonts: [EmailFontOption!]!
+    }
+
+    input UpdateEmailDesignInput {
+        scope: EmailContentScope!
+        "Settings by name. Null or an empty string removes a setting, so it falls back"
+        design: JSON!
+    }
+
+    input SendTestEmailInput {
+        type: String!
+        languageCode: LanguageCode
+        channelCode: String
+        sampleArgs: JSON
+        "Unsaved text for content slots"
+        content: JSON
+        "Unsaved design settings"
+        design: JSON
+        to: String!
+    }
+
+    type SendTestEmailResult {
+        recipient: String!
     }
 
     enum EmailContentScope {
@@ -117,10 +175,15 @@ export const emailAdminApiExtensions = gql`
         emailOutbox(type: String, limit: Int): [EmailOutboxEntry!]!
         "The editable text of an email in one language, for the active channel or all channels"
         emailContent(type: String!, languageCode: LanguageCode!, scope: EmailContentScope!): EmailContent!
+        "The design of all emails, for the active channel or all channels"
+        emailDesign(scope: EmailContentScope!): EmailDesignData!
     }
 
     extend type Mutation {
         updateEmailContent(input: UpdateEmailContentInput!): EmailContent!
+        updateEmailDesign(input: UpdateEmailDesignInput!): EmailDesignData!
+        "Sends an email built from sample data to an address, with unsaved text and design, through the configured transport"
+        sendTestEmail(input: SendTestEmailInput!): SendTestEmailResult!
     }
 `;
 
@@ -133,6 +196,7 @@ export class EmailAdminResolver {
         private readonly previewService: EmailPreviewService,
         private readonly contentService: EmailContentService,
         private readonly renderService: EmailRenderService,
+        private readonly designService: EmailDesignService,
     ) {
         if (isDevModeOptions(options)) {
             this.outbox = new DevOutbox(getDevOutboxDir(options.outputPath));
@@ -158,13 +222,22 @@ export class EmailAdminResolver {
                 sampleArgs?: Record<string, any>;
                 content?: Record<string, any>;
                 editable?: boolean;
+                design?: Record<string, any>;
             };
         },
     ) {
         const { type, languageCode, channelCode, sampleArgs, content, editable } = args.input;
         try {
             const result = await this.previewService.render(
-                { type, languageCode, channelCode, args: toStringRecord(sampleArgs), contentDraft: toStringRecord(content), editable: !!editable },
+                {
+                    type,
+                    languageCode,
+                    channelCode,
+                    args: toStringRecord(sampleArgs),
+                    contentDraft: toStringRecord(content),
+                    designDraft: toDesignDraft(args.input.design) as EmailDesign | undefined,
+                    editable: !!editable,
+                },
                 req,
             );
             return {
@@ -227,7 +300,105 @@ export class EmailAdminResolver {
         return this.getContent(ctx, type, languageCode, scope);
     }
 
-    private async getContent(ctx: RequestContext, type: string, languageCode: LanguageCode, scope: EmailContentScope) {
+    @Query()
+    @Allow(Permission.ReadSettings)
+    emailDesign(@Ctx() ctx: RequestContext, @Args() args: { scope: 'CHANNEL' | 'ALL_CHANNELS' }) {
+        return this.getDesign(ctx, toScope(args.scope));
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.UpdateSettings)
+    async updateEmailDesign(
+        @Ctx() ctx: RequestContext,
+        @Args() args: { input: { scope: 'CHANNEL' | 'ALL_CHANNELS'; design: Record<string, unknown> } },
+    ) {
+        const scope = toScope(args.input.scope);
+        await this.designService.update(ctx, scope, args.input.design ?? {});
+        return this.getDesign(ctx, scope);
+    }
+
+    @Mutation()
+    @Allow(Permission.UpdateSettings)
+    async sendTestEmail(
+        @Context('req') req: Request,
+        @Args()
+        args: {
+            input: {
+                type: string;
+                languageCode?: string;
+                channelCode?: string;
+                sampleArgs?: Record<string, any>;
+                content?: Record<string, any>;
+                design?: Record<string, any>;
+                to: string;
+            };
+        },
+    ) {
+        const { type, languageCode, channelCode, sampleArgs, content, to } = args.input;
+        if (!/^[^\s@]+@[^\s@]+$/.test(to?.trim() ?? '')) {
+            throw new UserInputError(`"${to}" is not an email address`);
+        }
+        try {
+            return await this.previewService.sendTest(
+                {
+                    type,
+                    languageCode,
+                    channelCode,
+                    args: toStringRecord(sampleArgs),
+                    contentDraft: toStringRecord(content),
+                    designDraft: toDesignDraft(args.input.design) as EmailDesign | undefined,
+                    to: to.trim(),
+                },
+                req,
+            );
+        } catch (e: any) {
+            if (e instanceof EmailPreviewError) {
+                throw new UserInputError(`[${e.stage}] ${e.message}`);
+            }
+            throw e;
+        }
+    }
+
+    private async getDesign(ctx: RequestContext, scope: EmailContentScope) {
+        const design = await this.designService.getStored(ctx, scope);
+        const fallback = scope === 'channel' ? await this.designService.getStored(ctx, 'all-channels') : {};
+        return {
+            scope: scope === 'channel' ? 'CHANNEL' : 'ALL_CHANNELS',
+            design,
+            fallback,
+            defaults: await this.designDefaults(ctx),
+            fields: emailDesignFields,
+            fonts: emailFontStacks,
+        };
+    }
+
+    /** What the email components use without a Dashboard design: the `branding` variable, then the theme. */
+    private async designDefaults(ctx: RequestContext) {
+        const globals = await this.previewService.globalTemplateVars(ctx);
+        const branding = (globals.branding ?? {}) as Record<string, unknown>;
+        return {
+            name: branding.name ?? '',
+            logoUrl: branding.logoUrl ?? '',
+            logoHeight: emailTheme.logoHeight,
+            headerAlign: emailTheme.headerAlign,
+            primaryColor: branding.primaryColor ?? defaultBranding.primaryColor,
+            primaryTextColor: branding.primaryTextColor ?? defaultBranding.primaryTextColor,
+            footerText: branding.footerText ?? '',
+            fontFamily: emailTheme.fontFamily,
+            pageBackground: emailTheme.pageBackground,
+            cardBackground: emailTheme.cardBackground,
+            cardRadius: Number.parseInt(emailTheme.radius, 10),
+            buttonRadius: Number.parseInt(emailTheme.buttonRadius, 10),
+        };
+    }
+
+    private async getContent(
+        ctx: RequestContext,
+        type: string,
+        languageCode: LanguageCode,
+        scope: EmailContentScope,
+    ) {
         const template = await this.getTemplate(ctx, type, languageCode);
         const stored = await this.contentService.getStored(ctx, type, languageCode, scope);
         const allChannels =
@@ -262,6 +433,17 @@ export class EmailAdminResolver {
             throw new UserInputError(String(e?.message ?? e));
         }
     }
+}
+
+function toDesignDraft(value: Record<string, any> | undefined) {
+    if (!value) {
+        return undefined;
+    }
+    const problems = validateEmailDesign(value);
+    if (problems.length) {
+        throw new UserInputError(problems.join('\n'));
+    }
+    return value;
 }
 
 function toScope(scope: 'CHANNEL' | 'ALL_CHANNELS'): EmailContentScope {

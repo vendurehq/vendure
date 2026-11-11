@@ -13,6 +13,7 @@ import { Text } from '@react-email/text';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { EmailBranding, EmailBrandingContext, useEmailBranding, useOptionalEmailContext } from './branding';
+import { useEmailDesign } from './design';
 import { formatDate, formatMoney } from './formatting';
 
 /*
@@ -21,8 +22,7 @@ import { formatDate, formatMoney } from './formatting';
  * buttons and links only, so any brand colour works.
  */
 export const emailTheme = {
-    fontFamily:
-        "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     pageBackground: '#f4f4f5',
     cardBackground: '#ffffff',
     subtleBackground: '#fafafa',
@@ -31,8 +31,35 @@ export const emailTheme = {
     heading: '#09090b',
     muted: '#71717a',
     radius: '12px',
+    buttonRadius: '8px',
     gutter: '32px',
-} as const;
+    logoHeight: 32,
+    headerAlign: 'left' as 'left' | 'center',
+};
+
+/**
+ * @description
+ * The design tokens for the email being rendered: {@link emailTheme} with the design set in the
+ * Dashboard applied. Use it in custom components so they follow that design.
+ *
+ * @docsCategory core plugins/Email
+ * @docsPage Email components
+ * @since 4.0.0
+ */
+export function useEmailTheme(): typeof emailTheme {
+    const design = useEmailDesign();
+    const px = (value: number | undefined, fallback: string) => (value == null ? fallback : `${value}px`);
+    return {
+        ...emailTheme,
+        fontFamily: design.fontFamily || emailTheme.fontFamily,
+        pageBackground: design.pageBackground || emailTheme.pageBackground,
+        cardBackground: design.cardBackground || emailTheme.cardBackground,
+        radius: px(design.cardRadius, emailTheme.radius),
+        buttonRadius: px(design.buttonRadius, emailTheme.buttonRadius),
+        logoHeight: design.logoHeight ?? emailTheme.logoHeight,
+        headerAlign: design.headerAlign ?? emailTheme.headerAlign,
+    };
+}
 
 /**
  * @description
@@ -62,6 +89,7 @@ export interface EmailLayoutProps {
  */
 export function EmailLayout({ title, preview, branding = {}, children }: Readonly<EmailLayoutProps>) {
     const languageCode = useOptionalEmailContext()?.languageCode;
+    const theme = useEmailTheme();
     return (
         <EmailBrandingContext.Provider value={branding}>
             <Html lang={languageCode?.replace(/_/g, '-')}>
@@ -73,10 +101,10 @@ export function EmailLayout({ title, preview, branding = {}, children }: Readonl
                 {preview ? <Preview>{preview}</Preview> : null}
                 <Body
                     style={{
-                        backgroundColor: emailTheme.pageBackground,
+                        backgroundColor: theme.pageBackground,
                         margin: 0,
                         padding: '32px 12px',
-                        fontFamily: emailTheme.fontFamily,
+                        fontFamily: theme.fontFamily,
                         WebkitFontSmoothing: 'antialiased',
                     }}
                 >
@@ -84,10 +112,10 @@ export function EmailLayout({ title, preview, branding = {}, children }: Readonl
                         <EmailHeader />
                         <Section
                             style={{
-                                backgroundColor: emailTheme.cardBackground,
-                                border: `1px solid ${emailTheme.border}`,
-                                borderRadius: emailTheme.radius,
-                                padding: `8px 0 ${emailTheme.gutter}`,
+                                backgroundColor: theme.cardBackground,
+                                border: `1px solid ${theme.border}`,
+                                borderRadius: theme.radius,
+                                padding: `8px 0 ${theme.gutter}`,
                             }}
                         >
                             {children}
@@ -110,13 +138,23 @@ export function EmailLayout({ title, preview, branding = {}, children }: Readonl
  */
 export function EmailHeader() {
     const { logoUrl, name } = useEmailBranding();
+    const theme = useEmailTheme();
     if (!logoUrl && !name) {
         return <Section style={{ height: '8px' }} />;
     }
     return (
-        <Section style={{ padding: '0 8px 20px' }}>
+        <Section style={{ padding: '0 8px 20px', textAlign: theme.headerAlign }}>
             {logoUrl ? (
-                <Img src={logoUrl} alt={name ?? ''} height="32" style={{ height: '32px', width: 'auto' }} />
+                <Img
+                    src={logoUrl}
+                    alt={name ?? ''}
+                    height={String(theme.logoHeight)}
+                    style={{
+                        height: `${theme.logoHeight}px`,
+                        width: 'auto',
+                        display: 'inline-block',
+                    }}
+                />
             ) : (
                 <Text
                     style={{
@@ -318,6 +356,7 @@ export function EmailButton({
     fallbackLink?: boolean;
 }>) {
     const { primaryColor, primaryTextColor } = useEmailBranding();
+    const theme = useEmailTheme();
     return (
         <Section style={{ padding: '8px 0 16px' }}>
             <Button
@@ -326,7 +365,7 @@ export function EmailButton({
                     backgroundColor: primaryColor,
                     color: primaryTextColor,
                     padding: '12px 20px',
-                    borderRadius: '8px',
+                    borderRadius: theme.buttonRadius,
                     fontSize: '15px',
                     lineHeight: '20px',
                     fontWeight: 600,
@@ -337,7 +376,14 @@ export function EmailButton({
                 {children}
             </Button>
             {fallbackLink ? (
-                <Text style={{ margin: '16px 0 0', fontSize: '13px', lineHeight: '20px', color: emailTheme.muted }}>
+                <Text
+                    style={{
+                        margin: '16px 0 0',
+                        fontSize: '13px',
+                        lineHeight: '20px',
+                        color: emailTheme.muted,
+                    }}
+                >
                     Or open this link:{' '}
                     <Link href={href} style={{ color: primaryColor, wordBreak: 'break-all' }}>
                         {href}

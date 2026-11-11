@@ -1,12 +1,12 @@
-import type { EmailDefinition } from './define-email';
-import type { EmailSender } from './sender/email-sender';
-import type { EmailTemplateLoader } from './template/template-loader';
 import { Injector, RequestContext, SerializedRequestContext, VendureEvent } from '@vendure/core';
 import { Attachment } from 'nodemailer/lib/mailer';
 import SESTransport from 'nodemailer/lib/ses-transport';
 import SMTPPool from 'nodemailer/lib/smtp-pool';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-
+import type { EmailDesign } from './components/design';
+import type { EmailDefinition } from './define-email';
+import type { EmailSender } from './sender/email-sender';
+import type { EmailTemplateLoader } from './template/template-loader';
 
 export type EventWithContext = VendureEvent & { ctx: RequestContext };
 
@@ -176,4 +176,9 @@ export interface EmailJobData {
     metadata?: EmailMetadata;
     /** Set by the dev API so the caller can find the outbox entry of this send. */
     devCorrelationId?: string;
+    /**
+     * Set for test emails sent from the Dashboard: the unsaved text and design to render with. Test
+     * emails get "[Test]" in the subject and no order history entry.
+     */
+    test?: { contentDraft?: Record<string, string>; designDraft?: EmailDesign };
 }

@@ -11,6 +11,7 @@ import {
 } from '@vendure/core';
 import { Request } from 'express';
 
+import { EmailDesign } from './components/design';
 import { EmailDefinition } from './define-email';
 import { EmailRenderService } from './email-render.service';
 import { EmailService } from './email.service';
@@ -27,7 +28,15 @@ import { EventWithContext } from './types';
  * @docsPage EmailPreviewService
  * @since 4.0.0
  */
-export type EmailPreviewStage = 'lookup' | 'context' | 'sample' | 'filter' | 'data' | 'recipient' | 'render' | 'queue';
+export type EmailPreviewStage =
+    | 'lookup'
+    | 'context'
+    | 'sample'
+    | 'filter'
+    | 'data'
+    | 'recipient'
+    | 'render'
+    | 'queue';
 
 /**
  * @docsCategory core plugins/Email
@@ -58,6 +67,8 @@ export interface EmailPreviewInput {
     args?: Record<string, string>;
     /** Unsaved text for content slots, shown instead of the stored text. */
     contentDraft?: Record<string, string>;
+    /** Unsaved design settings, shown instead of the stored design. */
+    designDraft?: EmailDesign;
     /** Renders the email for editing in the Dashboard preview. See `RenderEmailInput.editable`. */
     editable?: boolean;
 }
@@ -79,6 +90,11 @@ export class EmailPreviewService {
         private readonly renderService: EmailRenderService,
     ) {}
 
+    /** The global template variables for a context, e.g. the `branding` set in code. */
+    globalTemplateVars(ctx: RequestContext) {
+        return this.emailService.resolveGlobalTemplateVars(ctx);
+    }
+
     listEmails() {
         return this.emailService.emails.map(e => ({
             type: e.type,
@@ -98,7 +114,11 @@ export class EmailPreviewService {
         const definition = this.emailService.getDefinition(input.type);
         if (!definition) {
             const types = this.emailService.emails.map(e => e.type).join(', ');
-            throw new EmailPreviewError('lookup', `No email type "${input.type}". Available types: ${types}`, 404);
+            throw new EmailPreviewError(
+                'lookup',
+                `No email type "${input.type}". Available types: ${types}`,
+                404,
+            );
         }
         const args = input.args ?? {};
         const ctx = await this.runStage('context', () => this.createContext(input, req));
@@ -131,6 +151,7 @@ export class EmailPreviewService {
                 languageCode: job.languageCode,
                 channelCode: job.channelCode,
                 contentDraft: input.contentDraft,
+                designDraft: input.designDraft,
                 editable: input.editable,
             }),
         );
@@ -153,9 +174,29 @@ export class EmailPreviewService {
                 attachments: job.attachments.map(a => ({ filename: a.filename ?? undefined })),
                 templateOrigin: rendered.templateOrigin,
                 contentOrigins: rendered.contentOrigins,
+                designOrigins: rendered.designOrigins,
             },
             templateVars: job.templateVars,
         };
+    }
+
+    /**
+     * @description
+     * Sends the email built from sample data to `to`, through the job queue and the configured
+     * transport, so it can be checked in real email clients. It renders with the unsaved text and
+     * design in the input, has "[Test]" in the subject, and goes to `to` only (no cc or bcc).
+     */
+    async sendTest(input: EmailPreviewInput & { to: string }, req?: Request) {
+        const { job } = await this.prepare(input, req);
+        const testJob = {
+            ...job,
+            recipient: input.to,
+            cc: undefined,
+            bcc: undefined,
+            test: { contentDraft: input.contentDraft, designDraft: input.designDraft },
+        };
+        await this.runStage('queue', () => this.emailService.enqueue(testJob));
+        return { recipient: input.to };
     }
 
     /**
@@ -191,7 +232,13 @@ export class EmailPreviewService {
                         !e.cause &&
                         (error.stage === 'filter' || error.stage === 'sample');
                     const { ok: _ok, ...errorFields } = error;
-                    results.push({ type: definition.type, languageCode, ok: skipped, skipped, ...errorFields });
+                    results.push({
+                        type: definition.type,
+                        languageCode,
+                        ok: skipped,
+                        skipped,
+                        ...errorFields,
+                    });
                 }
             }
         }
