@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 
 import { ConfigService } from '../../config/config.service';
+import { getBaseStrategy } from '../../config/strategy-layer/compose-strategy';
 import { InMemoryJobQueueStrategy } from '../../job-queue/in-memory-job-queue-strategy';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { ProcessContext } from '../../process-context/process-context';
@@ -109,7 +110,7 @@ export class DeploymentCollector {
 
         // Check JobQueueStrategy type - InMemoryJobQueueStrategy CANNOT work with separate workers
         const strategy = this.configService.jobQueueOptions.jobQueueStrategy;
-        if (strategy instanceof InMemoryJobQueueStrategy) {
+        if (getBaseStrategy(strategy) instanceof InMemoryJobQueueStrategy) {
             return 'integrated';
         }
 
