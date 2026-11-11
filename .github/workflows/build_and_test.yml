@@ -77,17 +77,41 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            # The test jobs restore the cache that this job saves, so the packages are built one time.
+            # The database in .nx/workspace-data lists the entries in .nx/cache. Nx ignores the
+            # entries that the database does not list, so the cache keeps both.
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-build-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-build-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
                       nx-${{ runner.os }}-build-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t build
+            - name: Save Nx cache
+              if: ${{ !cancelled() }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     package-schema:
         name: package schema
         needs: detect-changes
@@ -109,7 +133,7 @@ jobs:
               run: bun run nx run nx-plugin:typecheck
     unit-tests:
         name: unit tests
-        needs: detect-changes
+        needs: [detect-changes, build]
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -130,21 +154,40 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            # A re-run restores the results of the earlier attempt. The first attempt restores the
+            # packages that the build job built.
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-ci-
-            - name: Build
-              env:
-                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t ci
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: Unit tests
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t test --output-style=stream
+            - name: Save Nx cache
+              if: ${{ !cancelled() }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     dashboard-i18n:
         name: dashboard i18n sync
         needs: detect-changes
@@ -173,7 +216,7 @@ jobs:
               run: bun run lint
     dashboard-e2e:
         name: dashboard e2e (${{ matrix.shard }})
-        needs: detect-changes
+        needs: [detect-changes, build]
         if: needs.detect-changes.outputs.dashboard == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -185,15 +228,27 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             - uses: ./.github/actions/setup
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-build-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-ci-
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: Build
-              run: bun run nx run @vendure/testing:ci
+              run: bun run nx run @vendure/testing:build
             - name: Cache Playwright browsers
               id: playwright-cache
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -244,7 +299,7 @@ jobs:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     e2e-sqljs:
         name: e2e (sqljs)
-        needs: detect-changes
+        needs: [detect-changes, build]
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -270,26 +325,45 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            # A re-run restores the results of the earlier attempt. The first attempt restores the
+            # packages that the build job built.
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-ci-
-            - name: Build
-              env:
-                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t ci
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: e2e tests
               env:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: sqljs
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+            - name: Save Nx cache
+              if: ${{ !cancelled() }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     e2e-mariadb:
         name: e2e (mariadb)
-        needs: detect-changes
+        needs: [detect-changes, build]
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -324,17 +398,28 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            # A re-run restores the results of the earlier attempt. The first attempt restores the
+            # packages that the build job built.
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-ci-
-            - name: Build
-              env:
-                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t ci
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: e2e tests
               env:
                   E2E_MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
@@ -342,9 +427,17 @@ jobs:
                   DB: mariadb
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+            - name: Save Nx cache
+              if: ${{ !cancelled() }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     e2e-mysql:
         name: e2e (mysql)
-        needs: detect-changes
+        needs: [detect-changes, build]
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -389,17 +482,28 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            # A re-run restores the results of the earlier attempt. The first attempt restores the
+            # packages that the build job built.
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-ci-
-            - name: Build
-              env:
-                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t ci
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: e2e tests
               env:
                   E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
@@ -407,9 +511,17 @@ jobs:
                   DB: mysql
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+            - name: Save Nx cache
+              if: ${{ !cancelled() }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     e2e-postgres:
         name: e2e (postgres)
-        needs: detect-changes
+        needs: [detect-changes, build]
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -443,17 +555,28 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            - name: Cache Nx
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+            # A re-run restores the results of the earlier attempt. The first attempt restores the
+            # packages that the build job built.
+            - name: Restore Nx cache
+              id: nx-cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
-                  path: .nx/cache
-                  key: nx-${{ runner.os }}-ci-${{ github.sha }}
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-ci-
-            - name: Build
-              env:
-                  NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t ci
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-${{ github.sha }}-
+            # Nx names the database after the machine ID. Give the restored database the name
+            # that Nx uses on this runner.
+            - name: Use the restored Nx cache database
+              run: |
+                  shopt -s nullglob
+                  db=".nx/workspace-data/$(cat /var/lib/dbus/machine-id 2>/dev/null || cat /etc/machine-id).db"
+                  for file in .nx/workspace-data/*.db; do
+                      [[ "$file" == "$db" ]] || mv "$file" "$db"
+                  done
             - name: e2e tests
               env:
                   E2E_POSTGRES_PORT: ${{ job.services.postgres.ports['5432'] }}
@@ -461,6 +584,14 @@ jobs:
                   DB: postgres
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
               run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+            - name: Save Nx cache
+              if: ${{ !cancelled() }}
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: |
+                      .nx/cache
+                      .nx/workspace-data/*.db
+                  key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     all-passed:
         name: all-passed
         runs-on: ubuntu-latest
