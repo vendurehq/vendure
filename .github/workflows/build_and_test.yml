@@ -39,7 +39,6 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             # Nx needs the installed workspace to compute the project graph.
             - uses: ./.github/actions/setup
             - name: Test the workflow scripts
@@ -47,8 +46,8 @@ jobs:
             - name: Detect changed paths
               id: check
               env:
-                  GITHUB_BASE_SHA: ''
-                  GITHUB_EVENT_BEFORE: ''
+                  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  GITHUB_EVENT_BEFORE: ${{ github.event.before }}
               run: |
                   bash .github/workflows/scripts/detect-changes.sh
     codegen:
@@ -75,9 +74,10 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - uses: ./.github/actions/setup
-            - run: echo "NX_BASE=$(git rev-parse HEAD~1)" >> "$GITHUB_ENV" && echo NX_HEAD=HEAD >> "$GITHUB_ENV"
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
             # Selects the e2e jobs of each database: the core shards and one job for the other packages.
             - name: Plan the e2e jobs
               id: plan-e2e
@@ -158,11 +158,12 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - run: echo "NX_BASE=$(git rev-parse HEAD~1)" >> "$GITHUB_ENV" && echo NX_HEAD=HEAD >> "$GITHUB_ENV"
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt restores the
             # packages that the build job built.
             - name: Restore Nx cache
@@ -302,7 +303,6 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - name: SonarQube Scan
               uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
               env:
@@ -331,11 +331,12 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - run: echo "NX_BASE=$(git rev-parse HEAD~1)" >> "$GITHUB_ENV" && echo NX_HEAD=HEAD >> "$GITHUB_ENV"
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt restores the
             # packages that the build job built.
             - name: Restore Nx cache
@@ -411,11 +412,12 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - run: echo "NX_BASE=$(git rev-parse HEAD~1)" >> "$GITHUB_ENV" && echo NX_HEAD=HEAD >> "$GITHUB_ENV"
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt restores the
             # packages that the build job built.
             - name: Restore Nx cache
@@ -502,11 +504,12 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - run: echo "NX_BASE=$(git rev-parse HEAD~1)" >> "$GITHUB_ENV" && echo NX_HEAD=HEAD >> "$GITHUB_ENV"
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt restores the
             # packages that the build job built.
             - name: Restore Nx cache
@@ -582,11 +585,12 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
-                  ref: ${{ github.event.pull_request.head.sha }}
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - run: echo "NX_BASE=$(git rev-parse HEAD~1)" >> "$GITHUB_ENV" && echo NX_HEAD=HEAD >> "$GITHUB_ENV"
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt restores the
             # packages that the build job built.
             - name: Restore Nx cache
