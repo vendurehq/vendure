@@ -23,7 +23,7 @@ Headless e-commerce framework. Nx monorepo with fixed versioning.
 
 ## Testing
 
-- **E2E cache**: Seed data gets cached in `packages/<name>/e2e/__data__/`. To reset after a schema change, delete only the cached DBs — `rm -f e2e/__data__/*.sqlite`. Do **not** `rm -rf __data__`: the directory is kept in git via a `.gitkeep` so e2e port assignment (`3260 + the spec file's index in the dir listing`) stays stable. Deleting the whole directory lets it be recreated mid-run, which shifts those indices and reintroduces intermittent `EADDRINUSE` failures on the next parallel run.
+- **E2E cache**: Seed data gets cached in `packages/<name>/e2e/__data__/`. To reset after a schema change, delete only the cached DBs — `rm -f e2e/__data__/*.sqlite`. Do **not** `rm -rf __data__`: the directory is kept in git via a `.gitkeep` so e2e port assignment (the package's base port + the spec file's index in the dir listing) stays stable. Deleting the whole directory lets it be recreated mid-run, which shifts those indices and reintroduces intermittent `EADDRINUSE` failures on the next parallel run.
 
 ### Dashboard E2E Tests
 

@@ -36,9 +36,15 @@ registerInitializer('mariadb', new MysqlInitializer());
 
 export const testConfig = () => {
     const index = getIndexOfTestFileInParentDir();
+    const { basePort, size } = getPortRange();
+    if (index >= size) {
+        throw new Error(
+            `${packageDir} has more than ${size} entries. Increase PORTS_PER_PACKAGE in e2e-common/test-config.ts.`,
+        );
+    }
     return mergeConfig(defaultTestConfig, {
         apiOptions: {
-            port: getBasePort() + index,
+            port: basePort + index,
         },
         importExportOptions: {
             importAssetsDir: path.join(packageDir, 'fixtures/assets'),
@@ -47,22 +53,24 @@ export const testConfig = () => {
     });
 };
 
+const PORTS_PER_PACKAGE = 50;
+
 /**
- * Returns a base port unique to the current package, so that e2e tests
- * from different packages (which Lerna may run in parallel) never collide.
- * Core gets 3010–3199, other packages get 3200+.
+ * Returns a port range unique to the current package, so that e2e tests
+ * from different packages (which Nx may run in parallel) never collide.
+ * Core gets 3010–3199. Each other package gets PORTS_PER_PACKAGE ports from 4100,
+ * in the order of the folder names in `packages`.
  */
-function getBasePort(): number {
-    const packageName = process.env.PACKAGE || 'core';
-    const offsets: Record<string, number> = {
-        core: 3010,
-        'asset-server-plugin': 3220,
-        'graphiql-plugin': 3230,
-        cli: 3240,
-        'harden-plugin': 3260,
-        'mcp-plugin': 3270,
-    };
-    return offsets[packageName] ?? 3250;
+function getPortRange(): { basePort: number; size: number } {
+    const packageName = path.basename(path.dirname(packageDir));
+    if (packageName === 'core') {
+        return { basePort: 3010, size: 190 };
+    }
+    const packages = fs
+        .readdirSync(path.dirname(path.dirname(packageDir)))
+        .filter(name => name !== 'core')
+        .sort((a, b) => a.localeCompare(b));
+    return { basePort: 4100 + packages.indexOf(packageName) * PORTS_PER_PACKAGE, size: PORTS_PER_PACKAGE };
 }
 
 /**
