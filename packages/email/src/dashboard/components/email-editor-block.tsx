@@ -39,6 +39,7 @@ import {
 } from '../email.graphql';
 
 import { INLINE_EDITOR_SOURCE, withInlineEditor } from './inline-editor-script';
+import { SendTestEmailButton } from './send-test-email-dialog';
 
 type EmailInfo = EmailOverviewResult['emailOverview']['emails'][number];
 
@@ -229,6 +230,17 @@ export function EmailEditorBlock({
                 />
                 {canEdit ? <ModeToggle mode={mode} onChange={switchMode} /> : null}
                 <div className="ml-auto flex gap-2">
+                    <SendTestEmailButton
+                        disabled={!canEdit}
+                        input={{
+                            type: email.type,
+                            label: email.label,
+                            languageCode,
+                            channelCode: activeChannel?.code,
+                            sampleArgs: previewBase.sampleArgs,
+                            content: draft,
+                        }}
+                    />
                     <Button
                         type="button"
                         variant="outline"

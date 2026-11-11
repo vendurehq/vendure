@@ -1,10 +1,11 @@
 import { defineDashboardExtension } from '@vendure/dashboard';
 
+import { emailDesignRoute } from './email-design-route';
 import { emailsRoute } from './emails-route';
 import { OrderEmailsBlock } from './order-emails-block';
 
 defineDashboardExtension({
-    routes: [emailsRoute],
+    routes: [emailsRoute, emailDesignRoute],
     pageBlocks: [
         {
             id: 'order-emails',

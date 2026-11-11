@@ -19,7 +19,13 @@ export interface OrderEmailList {
 }
 
 export interface OrderEmailPreviewResult {
-    previewOrderEmail: { recipient: string; from: string; subject: string; html: string; templateOrigin: string };
+    previewOrderEmail: {
+        recipient: string;
+        from: string;
+        subject: string;
+        html: string;
+        templateOrigin: string;
+    };
 }
 
 export const orderEmailsQuery = graphql(`
@@ -64,7 +70,13 @@ export const sendOrderEmailMutation = graphql(`
 export interface EmailOverviewResult {
     emailOverview: {
         devMode: boolean;
-        emails: Array<{ type: string; label: string; event: string; hasSample: boolean; canSendFromOrder: boolean }>;
+        emails: Array<{
+            type: string;
+            label: string;
+            event: string;
+            hasSample: boolean;
+            canSendFromOrder: boolean;
+        }>;
     };
 }
 
@@ -194,6 +206,70 @@ export const updateEmailContentMutation = graphql(`
     mutation UpdateEmailContent($input: UpdateEmailContentInput!) {
         updateEmailContent(input: $input) {
             ${emailContentFields}
+        }
+    }
+`);
+
+export type EmailDesignValue = string | number;
+export type EmailDesignValues = Record<string, EmailDesignValue | null | undefined>;
+
+export interface EmailDesignField {
+    name: string;
+    label: string;
+    kind: 'text' | 'multiline' | 'url' | 'color' | 'number' | 'font' | 'align';
+    group: 'brand' | 'layout';
+    min?: number | null;
+    max?: number | null;
+}
+
+export interface EmailDesignData {
+    scope: EmailContentScope;
+    design: EmailDesignValues;
+    fallback: EmailDesignValues;
+    defaults: EmailDesignValues;
+    fields: EmailDesignField[];
+    fonts: Array<{ label: string; value: string }>;
+}
+
+const emailDesignFields = `
+    scope
+    design
+    fallback
+    defaults
+    fields {
+        name
+        label
+        kind
+        group
+        min
+        max
+    }
+    fonts {
+        label
+        value
+    }
+`;
+
+export const emailDesignQuery = graphql(`
+    query EmailDesign($scope: EmailContentScope!) {
+        emailDesign(scope: $scope) {
+            ${emailDesignFields}
+        }
+    }
+`);
+
+export const updateEmailDesignMutation = graphql(`
+    mutation UpdateEmailDesign($input: UpdateEmailDesignInput!) {
+        updateEmailDesign(input: $input) {
+            ${emailDesignFields}
+        }
+    }
+`);
+
+export const sendTestEmailMutation = graphql(`
+    mutation SendTestEmail($input: SendTestEmailInput!) {
+        sendTestEmail(input: $input) {
+            recipient
         }
     }
 `);

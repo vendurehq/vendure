@@ -125,6 +125,7 @@ export const emailCliCommands: Command[] = [
                         `To:       ${email.recipient}`,
                         `Template: ${email.templateOrigin}`,
                         ...storedContentLine(email.contentOrigins),
+                        ...storedDesignLine(email.designOrigins),
                         `HTML:     ${htmlPath}`,
                         `Text:     ${textPath}`,
                         ...(previewUrl ? [`Preview:  ${previewUrl}`] : []),
@@ -376,6 +377,12 @@ function storedContentLine(origins: Record<string, string> | undefined): string[
     // Text stored in the Dashboard beats the template's default text, so editing the .tsx default has no effect on these.
     const slots = stored.map(([name, origin]) => `${name} (${origin})`).join(', ');
     return [`Edited:   in the Dashboard: ${slots}`];
+}
+
+function storedDesignLine(origins: Record<string, string> | undefined): string[] {
+    const names = Object.keys(origins ?? {});
+    // The design set in the Dashboard beats `branding` in code, so editing that has no effect on these.
+    return names.length ? [`Design:   in the Dashboard: ${names.join(', ')}`] : [];
 }
 
 function mailboxUrl(options: Options) {

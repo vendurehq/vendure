@@ -1,14 +1,19 @@
 import { Trans } from '@lingui/react/macro';
 import {
+    ActionBarItem,
     api,
+    Button,
     DashboardRouteDefinition,
+    Link,
     Page,
+    PageActionBar,
     PageBlock,
     PageLayout,
     PageTitle,
     PermissionGuard,
     useQuery,
 } from '@vendure/dashboard';
+import { PaletteIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { defaultEmailEditorView, EmailEditorBlock, EmailEditorView } from './components/email-editor-block';
@@ -43,6 +48,14 @@ function EmailsPage() {
             <PageTitle>
                 <Trans>Emails</Trans>
             </PageTitle>
+            <PageActionBar>
+                <ActionBarItem itemId="email-design-button" requiresPermission={['ReadSettings']}>
+                    <Button variant="outline" render={<Link to="/emails/design" />}>
+                        <PaletteIcon />
+                        <Trans>Edit design</Trans>
+                    </Button>
+                </ActionBarItem>
+            </PageActionBar>
             <PermissionGuard requires={['ReadSettings']}>
                 <PageLayout>
                     <PageBlock column="side" blockId="email-list" title={<Trans>Emails</Trans>}>
@@ -53,7 +66,9 @@ function EmailsPage() {
                         blockId="email-editor"
                         title={selected ? selected.label : <Trans>Email</Trans>}
                         description={
-                            <Trans>Change the wording of this email. The design stays the same.</Trans>
+                            <Trans>
+                                Change the wording of this email. Edit design changes how every email looks.
+                            </Trans>
                         }
                     >
                         {selected ? (
