@@ -20,6 +20,10 @@ const reader = () => ({
 beforeEach(() => {
     tree = createTreeWithEmptyWorkspace();
     tree.write('package.json', JSON.stringify({ name: 'workspace', workspaces: ['packages/*'] }));
+    tree.write(
+        'tsconfig.json',
+        JSON.stringify({ compilerOptions: { lib: ['es2019', 'esnext.asynciterable'] } }),
+    );
     tree.write('packages/core/package.json', JSON.stringify({ name: '@vendure/core', version: '3.8.1' }));
 });
 

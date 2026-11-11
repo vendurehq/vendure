@@ -3,7 +3,7 @@ const { formatFiles, generateFiles, names, readJson } = require('@nx/devkit');
 const { join, posix } = require('node:path');
 
 const { readPluginPackage } = require('../../package-schema');
-const { getTsconfigFiles } = require('../sync-tsconfig/generator');
+const { getTsconfigFiles, readRootLib } = require('../sync-tsconfig/generator');
 
 /**
  * Creates a Vendure plugin package in `packages/<name>` that follows the package schema.
@@ -37,7 +37,7 @@ async function packageGenerator(tree, options) {
         read: path => tree.read(path, 'utf-8') ?? '',
         children: path => tree.children(path),
     });
-    for (const [fileName, content] of Object.entries(await getTsconfigFiles(pkg))) {
+    for (const [fileName, content] of Object.entries(await getTsconfigFiles(pkg, readRootLib(tree)))) {
         if (content !== undefined) {
             tree.write(posix.join(root, fileName), content);
         }

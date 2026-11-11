@@ -23,6 +23,10 @@ function readJsonc(path: string) {
 beforeEach(() => {
     tree = createTreeWithEmptyWorkspace();
     tree.write('package.json', JSON.stringify({ name: 'workspace', workspaces: ['packages/*'] }));
+    tree.write(
+        'tsconfig.json',
+        JSON.stringify({ compilerOptions: { lib: ['es2019', 'esnext.asynciterable'] } }),
+    );
 });
 
 describe('syncTsconfigGenerator', () => {
@@ -87,6 +91,22 @@ describe('syncTsconfigGenerator', () => {
             jsx: 'react-jsx',
             lib: ['es2019', 'esnext.asynciterable', 'dom'],
         });
+    });
+
+    it('follows a change to the lib of the root tsconfig', async () => {
+        addPackage('packages/foo-plugin', {
+            'package.json': JSON.stringify({ name: '@vendure/foo-plugin' }),
+            'src/index.ts': '',
+            'src/plugin.ts': '',
+            'src/ui/app.tsx': '',
+        });
+        await syncTsconfigGenerator(tree);
+
+        tree.write('tsconfig.json', JSON.stringify({ compilerOptions: { lib: ['es2022'] } }));
+        const result = await syncTsconfigGenerator(tree);
+
+        expect(result.outOfSyncMessage).toContain('packages/foo-plugin/tsconfig.json');
+        expect(readJsonc('packages/foo-plugin/tsconfig.json').compilerOptions.lib).toEqual(['es2022', 'dom']);
     });
 
     it('does not add JSX for a dashboard extension', async () => {
