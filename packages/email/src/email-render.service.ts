@@ -66,8 +66,8 @@ export interface RenderedEmail {
 @Injectable()
 export class EmailRenderService {
     constructor(
-        @Inject(EMAIL_OPTIONS) private options: InitializedEmailPluginOptions,
-        private moduleRef: ModuleRef,
+        @Inject(EMAIL_OPTIONS) private readonly options: InitializedEmailPluginOptions,
+        private readonly moduleRef: ModuleRef,
     ) {}
 
     async render(ctx: RequestContext, input: RenderEmailInput): Promise<RenderedEmail> {

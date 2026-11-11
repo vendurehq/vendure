@@ -80,8 +80,8 @@ import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, Initia
     },
     dashboard: '../src/dashboard/index.tsx',
     configuration: config => {
-        const legacy = config.plugins.find(p => p !== EmailPlugin && (p as any).name === 'EmailPlugin');
-        if (legacy) {
+        const hasLegacyPlugin = config.plugins.some(p => p !== EmailPlugin && (p as any).name === 'EmailPlugin');
+        if (hasLegacyPlugin) {
             throw new Error(
                 'Both @vendure/email and @vendure/email-plugin are configured, so every email would be sent twice. ' +
                     'Remove EmailPlugin from @vendure/email-plugin.',
@@ -92,17 +92,16 @@ import { EmailPluginDevModeOptions, EmailPluginOptions, EventWithContext, Initia
     compatibility: '^3.0.0',
 })
 export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdown, NestModule {
-    /** @internal */
-    static options: InitializedEmailPluginOptions;
+    private static options: InitializedEmailPluginOptions;
 
     constructor(
-        private eventBus: EventBus,
-        private moduleRef: ModuleRef,
-        private emailProcessor: EmailProcessor,
-        private emailService: EmailService,
-        private previewService: EmailPreviewService,
-        private processContext: ProcessContext,
-        @Inject(EMAIL_OPTIONS) private options: InitializedEmailPluginOptions,
+        private readonly eventBus: EventBus,
+        private readonly moduleRef: ModuleRef,
+        private readonly emailProcessor: EmailProcessor,
+        private readonly emailService: EmailService,
+        private readonly previewService: EmailPreviewService,
+        private readonly processContext: ProcessContext,
+        @Inject(EMAIL_OPTIONS) private readonly options: InitializedEmailPluginOptions,
     ) {}
 
     static init(options: EmailPluginOptions | EmailPluginDevModeOptions): Type<EmailPlugin> {
@@ -115,11 +114,7 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
         }
         this.options = {
             ...options,
-            templateLoaders: options.templateLoader
-                ? Array.isArray(options.templateLoader)
-                    ? options.templateLoader
-                    : [options.templateLoader]
-                : [],
+            templateLoaders: toArray(options.templateLoader),
         };
         return EmailPlugin;
     }
@@ -132,7 +127,11 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             ? undefined
             : await resolveTransportSettings(this.options, injector);
         // The testing transport sends directly, without the job queue, so tests see emails at once.
-        await this.emailService.init(this.emailProcessor, transport?.type !== 'testing');
+        if (transport?.type === 'testing') {
+            this.emailService.sendDirectly(this.emailProcessor);
+        } else {
+            await this.emailService.useJobQueue(this.emailProcessor);
+        }
         for (const email of this.options.emails) {
             this.eventBus.ofType(email.event).subscribe(event => this.handleEvent(email, event as EventWithContext));
         }
@@ -175,4 +174,11 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             Logger.error(e.message, loggerCtx, e.stack);
         }
     }
+}
+
+function toArray<T>(value: T | T[] | undefined): T[] {
+    if (value === undefined) {
+        return [];
+    }
+    return Array.isArray(value) ? value : [value];
 }

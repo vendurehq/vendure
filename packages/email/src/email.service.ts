@@ -21,21 +21,22 @@ export class EmailService {
     private directProcessor: EmailProcessor | undefined;
 
     constructor(
-        @Inject(EMAIL_OPTIONS) private options: InitializedEmailPluginOptions,
-        private moduleRef: ModuleRef,
-        private jobQueueService: JobQueueService,
+        @Inject(EMAIL_OPTIONS) private readonly options: InitializedEmailPluginOptions,
+        private readonly moduleRef: ModuleRef,
+        private readonly jobQueueService: JobQueueService,
     ) {}
 
-    /** @internal */
-    async init(processor: EmailProcessor, useQueue: boolean) {
-        if (useQueue) {
-            this.jobQueue = await this.jobQueueService.createQueue({
-                name: SEND_EMAIL_QUEUE,
-                process: job => processor.process(job.data),
-            });
-        } else {
-            this.directProcessor = processor;
-        }
+    /** @internal Sends queued emails through the job queue and the worker. */
+    async useJobQueue(processor: EmailProcessor) {
+        this.jobQueue = await this.jobQueueService.createQueue({
+            name: SEND_EMAIL_QUEUE,
+            process: job => processor.process(job.data),
+        });
+    }
+
+    /** @internal Sends emails at once, without the job queue. Used by the `testing` transport. */
+    sendDirectly(processor: EmailProcessor) {
+        this.directProcessor = processor;
     }
 
     get emails(): Array<EmailDefinition<any, any>> {
@@ -46,12 +47,12 @@ export class EmailService {
         return this.options.emails.find(e => e.type === type);
     }
 
-    async resolveGlobalTemplateVars(ctx: RequestContext): Promise<GlobalTemplateVars> {
+    resolveGlobalTemplateVars(ctx: RequestContext): Promise<GlobalTemplateVars> {
         const globals = this.options.globalTemplateVars;
         if (typeof globals === 'function') {
-            return globals(ctx, new Injector(this.moduleRef));
+            return Promise.resolve(globals(ctx, new Injector(this.moduleRef)));
         }
-        return globals ?? {};
+        return Promise.resolve(globals ?? {});
     }
 
     /**

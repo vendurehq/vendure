@@ -30,13 +30,13 @@ export function formatMoney(amount: number, currencyCode?: string | null, locale
 export function formatDate(
     value: Date | string,
     locale?: string,
-    options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' },
+    options?: Intl.DateTimeFormatOptions,
 ): string {
     const date = typeof value === 'string' ? new Date(value) : value;
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
         return String(value);
     }
-    return new Intl.DateTimeFormat(toIntlLocale(locale), options).format(date);
+    return new Intl.DateTimeFormat(toIntlLocale(locale), options ?? { dateStyle: 'medium' }).format(date);
 }
 
 /**

@@ -17,7 +17,10 @@ const PLACEHOLDER = /\{\{\{?\s*([\w$.[\]-]+)\s*\}?\}\}/g;
 export function interpolateTemplateString(template: string, vars: Record<string, any>): string {
     return template.replace(PLACEHOLDER, (_match, path: string) => {
         const value = resolvePath(vars, path);
-        return value == null ? '' : String(value);
+        if (value == null) {
+            return '';
+        }
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
     });
 }
 

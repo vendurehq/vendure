@@ -36,10 +36,10 @@ export type EmailPreviewStage = 'lookup' | 'context' | 'sample' | 'filter' | 'da
  */
 export class EmailPreviewError extends Error {
     constructor(
-        public stage: EmailPreviewStage,
+        public readonly stage: EmailPreviewStage,
         message: string,
-        public statusCode = 422,
-        public cause?: unknown,
+        public readonly statusCode = 422,
+        public readonly cause?: unknown,
     ) {
         super(message);
     }
@@ -204,9 +204,10 @@ export class EmailPreviewService {
         }
         const event = await definition.sample({ ctx, injector: new Injector(this.moduleRef), args });
         if (!event) {
+            const withArgs = Object.keys(args).length ? ' with args ' + JSON.stringify(args) : '';
             throw new EmailPreviewError(
                 'sample',
-                `No sample data found for "${definition.type}"${Object.keys(args).length ? ` with args ${JSON.stringify(args)}` : ''}. ` +
+                `No sample data found for "${definition.type}"${withArgs}. ` +
                     'Create matching data (e.g. place, ship or refund an order) or try other sample arguments.',
             );
         }

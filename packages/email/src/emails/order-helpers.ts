@@ -9,7 +9,6 @@ import {
     ShippingLine,
     TransactionalConnection,
 } from '@vendure/core';
-import { Request } from 'express';
 
 import { OrderEmailTarget } from '../define-email';
 

@@ -23,11 +23,11 @@ export class EmailProcessor {
     private devOutbox: DevOutbox | undefined;
 
     constructor(
-        @Inject(EMAIL_OPTIONS) protected options: InitializedEmailPluginOptions,
-        private moduleRef: ModuleRef,
-        private eventBus: EventBus,
-        private renderService: EmailRenderService,
-        private historyService: HistoryService,
+        @Inject(EMAIL_OPTIONS) protected readonly options: InitializedEmailPluginOptions,
+        private readonly moduleRef: ModuleRef,
+        private readonly eventBus: EventBus,
+        private readonly renderService: EmailRenderService,
+        private readonly historyService: HistoryService,
     ) {}
 
     async init() {
@@ -141,14 +141,20 @@ export class EmailProcessor {
                 channelCode: data.channelCode,
                 correlationId: data.devCorrelationId,
                 templateOrigin,
-                error: error
-                    ? error instanceof Error
-                        ? { message: error.message, stack: error.stack }
-                        : { message: String(error) }
-                    : undefined,
+                error: toOutboxError(error),
             });
         } catch (e: any) {
             Logger.warn(`Could not write to the dev outbox: ${String(e?.message ?? e)}`, loggerCtx);
         }
     }
+}
+
+function toOutboxError(error: unknown): { message: string; stack?: string } | undefined {
+    if (error === undefined) {
+        return undefined;
+    }
+    if (error instanceof Error) {
+        return { message: error.message, stack: error.stack };
+    }
+    return { message: typeof error === 'string' ? error : JSON.stringify(error) };
 }

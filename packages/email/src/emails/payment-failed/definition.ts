@@ -6,27 +6,33 @@ import { findSampleOrderWithTarget, loadOrderForEmail } from '../order-helpers';
 
 import { PaymentFailedTemplate } from './template';
 
-const FAILED_STATES = ['Declined', 'Error'];
-const SUCCESSFUL_STATES = ['Authorized', 'Settled'];
+const FAILED_STATES = new Set(['Declined', 'Error']);
+const SUCCESSFUL_STATES = new Set(['Authorized', 'Settled']);
 
 function targets(order: Order): OrderEmailTarget[] {
     const payments = order.payments ?? [];
-    const paid = payments.some(p => SUCCESSFUL_STATES.includes(p.state));
+    const paid = payments.some(p => SUCCESSFUL_STATES.has(p.state));
     return payments
         .filter(p => p.state !== 'Cancelled')
         .map(payment => {
-            const failed = FAILED_STATES.includes(payment.state);
+            const failed = FAILED_STATES.has(payment.state);
             return {
                 id: String(payment.id),
                 label: `Payment #${String(payment.id)} of ${(payment.amount / 100).toFixed(2)} ${order.currencyCode} (${payment.method}): ${payment.state}`,
                 eligible: failed && !paid,
-                reason: !failed
-                    ? `The payment is "${payment.state}", not Declined or Error.`
-                    : paid
-                      ? 'The order has a successful payment, so this failure no longer applies.'
-                      : undefined,
+                reason: ineligibleReason(payment.state, failed, paid),
             };
         });
+}
+
+function ineligibleReason(state: string, failed: boolean, paid: boolean): string | undefined {
+    if (!failed) {
+        return `The payment is "${state}", not Declined or Error.`;
+    }
+    if (paid) {
+        return 'The order has a successful payment, so this failure no longer applies.';
+    }
+    return undefined;
 }
 
 function createEvent(ctx: RequestContext, order: Order, targetId: string) {
@@ -49,7 +55,7 @@ export const paymentFailedEmail = defineEmail({
     type: 'payment-failed',
     label: 'Payment failed',
     event: PaymentStateTransitionEvent,
-    filter: event => FAILED_STATES.includes(event.toState) && !!event.order.customer,
+    filter: event => FAILED_STATES.has(event.toState) && !!event.order.customer,
     data: async ({ event, ctx, injector }) => {
         const order = await loadOrderForEmail(ctx, injector, event.order.id);
         const { payment } = event;

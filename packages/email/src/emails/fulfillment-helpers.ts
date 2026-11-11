@@ -38,6 +38,7 @@ export function toEmailFulfillment(order: Order, fulfillment: Fulfillment): Emai
         return orderLine
             ? [
                   {
+                      id: orderLine.id,
                       quantity: fulfillmentLine.quantity,
                       productVariant: { name: orderLine.productVariant.name },
                       featuredAsset: orderLine.featuredAsset ? { preview: orderLine.featuredAsset.preview } : null,

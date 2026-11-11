@@ -33,6 +33,7 @@ export interface EmailOrderAddress {
  * @since 4.0.0
  */
 export interface EmailOrderLine {
+    id?: string | number | null;
     quantity: number;
     discountedLinePriceWithTax: number;
     productVariant: { name: string };
@@ -80,7 +81,7 @@ const value: CSSProperties = {
     color: emailTheme.heading,
 };
 
-function Box({ children }: { children?: ReactNode }) {
+function Box({ children }: Readonly<{ children?: ReactNode }>) {
     return (
         <Section style={{ padding: `8px ${emailTheme.gutter}` }}>
             <Section
@@ -104,7 +105,7 @@ function Box({ children }: { children?: ReactNode }) {
  * @docsPage Email components
  * @since 4.0.0
  */
-export function OrderHighlights({ order }: { order: EmailOrder }) {
+export function OrderHighlights({ order }: Readonly<{ order: EmailOrder }>) {
     return (
         <Box>
             <Row>
@@ -137,7 +138,7 @@ export function OrderHighlights({ order }: { order: EmailOrder }) {
  * @docsPage Email components
  * @since 4.0.0
  */
-export function AddressBlock({ heading, address }: { heading?: string; address?: EmailOrderAddress | null }) {
+export function AddressBlock({ heading, address }: Readonly<{ heading?: string; address?: EmailOrderAddress | null }>) {
     if (!address) {
         return null;
     }
@@ -161,8 +162,8 @@ export function AddressBlock({ heading, address }: { heading?: string; address?:
                         <br />
                     </>
                 ) : null}
-                {lines.map((line, i) => (
-                    <span key={i}>
+                {lines.map(line => (
+                    <span key={line}>
                         {line}
                         <br />
                     </span>
@@ -184,7 +185,7 @@ const amountCell: CSSProperties = { ...cell, textAlign: 'right', whiteSpace: 'no
 const totalsCell: CSSProperties = { padding: '4px 0', fontSize: '14px', lineHeight: '22px', color: emailTheme.text };
 const totalsAmount: CSSProperties = { ...totalsCell, textAlign: 'right', whiteSpace: 'nowrap' };
 
-function LineImage({ src, alt }: { src?: string | null; alt: string }) {
+function LineImage({ src, alt }: Readonly<{ src?: string | null; alt: string }>) {
     if (!src) {
         return (
             <div
@@ -214,7 +215,7 @@ function LineImage({ src, alt }: { src?: string | null; alt: string }) {
     );
 }
 
-function LineName({ name, quantity }: { name: string; quantity: number }) {
+function LineName({ name, quantity }: Readonly<{ name: string; quantity: number }>) {
     return (
         <>
             <span style={{ fontWeight: 600, color: emailTheme.heading }}>{name}</span>
@@ -235,10 +236,10 @@ function LineName({ name, quantity }: { name: string; quantity: number }) {
 export function OrderSummary({
     order,
     shippingLines = [],
-}: {
+}: Readonly<{
     order: EmailOrder;
     shippingLines?: EmailShippingLine[];
-}) {
+}>) {
     const currencyCode = order.currencyCode;
     return (
         <>
@@ -251,8 +252,8 @@ export function OrderSummary({
                 style={{ borderCollapse: 'collapse', borderTop: `1px solid ${emailTheme.border}` }}
             >
                 <tbody>
-                    {order.lines.map((line, i) => (
-                        <tr key={`line-${i}`}>
+                    {order.lines.map(line => (
+                        <tr key={String(line.id ?? line.productVariant.name)}>
                             <td style={{ ...cell, width: '72px' }}>
                                 <LineImage src={line.featuredAsset?.preview} alt={line.productVariant.name} />
                             </td>
@@ -281,16 +282,16 @@ export function OrderSummary({
                             <Money value={order.subTotalWithTax} currencyCode={currencyCode} />
                         </td>
                     </tr>
-                    {(order.discounts ?? []).map((discount, i) => (
-                        <tr key={`discount-${i}`}>
+                    {(order.discounts ?? []).map(discount => (
+                        <tr key={discount.description}>
                             <td style={totalsCell}>{discount.description}</td>
                             <td style={totalsAmount}>
                                 <Money value={discount.amountWithTax} currencyCode={currencyCode} />
                             </td>
                         </tr>
                     ))}
-                    {shippingLines.map((shippingLine, i) => (
-                        <tr key={`shipping-${i}`}>
+                    {shippingLines.map(shippingLine => (
+                        <tr key={shippingLine.shippingMethod?.name ?? 'shipping'}>
                             <td style={totalsCell}>
                                 {shippingLine.shippingMethod ? `Shipping (${shippingLine.shippingMethod.name})` : 'Shipping'}
                             </td>
@@ -334,7 +335,12 @@ export function OrderSummary({
 export interface EmailFulfillment {
     method: string;
     trackingCode?: string | null;
-    lines: Array<{ quantity: number; productVariant: { name: string }; featuredAsset?: { preview: string } | null }>;
+    lines: Array<{
+        id?: string | number | null;
+        quantity: number;
+        productVariant: { name: string };
+        featuredAsset?: { preview: string } | null;
+    }>;
 }
 
 /**
@@ -345,7 +351,7 @@ export interface EmailFulfillment {
  * @docsPage Email components
  * @since 4.0.0
  */
-export function FulfillmentSummary({ fulfillment }: { fulfillment: EmailFulfillment }) {
+export function FulfillmentSummary({ fulfillment }: Readonly<{ fulfillment: EmailFulfillment }>) {
     return (
         <>
             <Row style={{ marginBottom: '16px' }}>
@@ -371,8 +377,8 @@ export function FulfillmentSummary({ fulfillment }: { fulfillment: EmailFulfillm
                 style={{ borderCollapse: 'collapse', borderTop: `1px solid ${emailTheme.border}` }}
             >
                 <tbody>
-                    {fulfillment.lines.map((line, i) => (
-                        <tr key={i}>
+                    {fulfillment.lines.map(line => (
+                        <tr key={String(line.id ?? line.productVariant.name)}>
                             <td style={{ ...cell, width: '72px' }}>
                                 <LineImage src={line.featuredAsset?.preview} alt={line.productVariant.name} />
                             </td>

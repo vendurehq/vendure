@@ -7,7 +7,7 @@ import { findSampleOrder, loadOrderForEmail, shippingLinesWithMethod } from '../
 import { OrderConfirmationTemplate } from './template';
 
 /** Order states in which the order confirmation has been (or should have been) sent. */
-const CONFIRMED_STATES = ['PaymentSettled', 'PartiallyShipped', 'Shipped', 'PartiallyDelivered', 'Delivered'];
+const CONFIRMED_STATES = new Set(['PaymentSettled', 'PartiallyShipped', 'Shipped', 'PartiallyDelivered', 'Delivered']);
 
 /**
  * @description
@@ -39,8 +39,8 @@ export const orderConfirmationEmail = defineEmail({
             {
                 id: String(order.id),
                 label: `Order ${order.code}`,
-                eligible: CONFIRMED_STATES.includes(order.state),
-                reason: CONFIRMED_STATES.includes(order.state)
+                eligible: CONFIRMED_STATES.has(order.state),
+                reason: CONFIRMED_STATES.has(order.state)
                     ? undefined
                     : `The order is "${order.state}". The confirmation is sent once payment is settled.`,
             },

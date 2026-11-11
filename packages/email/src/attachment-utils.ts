@@ -1,6 +1,6 @@
 import { Logger } from '@vendure/core';
-import { Readable, Stream } from 'stream';
-import { format, Url } from 'url';
+import { Readable, Stream } from 'node:stream';
+import { format, Url } from 'node:url';
 
 import { loggerCtx } from './constants';
 import { EmailAttachment, SerializedAttachment } from './types';

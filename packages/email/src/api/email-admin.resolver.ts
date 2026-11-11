@@ -71,11 +71,11 @@ export const emailAdminApiExtensions = gql`
 
 @Resolver()
 export class EmailAdminResolver {
-    private outbox: DevOutbox | undefined;
+    private readonly outbox: DevOutbox | undefined;
 
     constructor(
-        @Inject(EMAIL_OPTIONS) private options: InitializedEmailPluginOptions,
-        private previewService: EmailPreviewService,
+        @Inject(EMAIL_OPTIONS) private readonly options: InitializedEmailPluginOptions,
+        private readonly previewService: EmailPreviewService,
     ) {
         if (isDevModeOptions(options)) {
             this.outbox = new DevOutbox(getDevOutboxDir(options.outputPath));

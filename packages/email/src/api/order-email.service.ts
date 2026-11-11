@@ -43,26 +43,24 @@ export interface OrderEmailInput {
 @Injectable()
 export class OrderEmailService {
     constructor(
-        private moduleRef: ModuleRef,
-        private emailService: EmailService,
-        private renderService: EmailRenderService,
-        private requestContextService: RequestContextService,
-        private connection: TransactionalConnection,
+        private readonly moduleRef: ModuleRef,
+        private readonly emailService: EmailService,
+        private readonly renderService: EmailRenderService,
+        private readonly requestContextService: RequestContextService,
+        private readonly connection: TransactionalConnection,
     ) {}
 
     async listForOrder(ctx: RequestContext, orderId: ID): Promise<{ recipient?: string; emails: OrderEmailOption[] }> {
         const order = await loadOrderForEmail(ctx, this.injector, orderId);
-        const emails: OrderEmailOption[] = [];
-        for (const definition of this.emailService.emails) {
-            if (!definition.orderSend) {
-                continue;
-            }
-            emails.push({
-                type: definition.type,
-                label: definition.label ?? definition.type,
-                targets: await definition.orderSend.targets({ ctx, injector: this.injector, order }),
-            });
-        }
+        const emails: OrderEmailOption[] = await Promise.all(
+            this.emailService.emails
+                .filter(definition => !!definition.orderSend)
+                .map(async definition => ({
+                    type: definition.type,
+                    label: definition.label ?? definition.type,
+                    targets: await this.orderSend(definition).targets({ ctx, injector: this.injector, order }),
+                })),
+        );
         return { recipient: order.customer?.emailAddress, emails };
     }
 

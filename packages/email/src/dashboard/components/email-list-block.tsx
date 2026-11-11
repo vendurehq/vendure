@@ -12,11 +12,11 @@ export function EmailListBlock({
     emails,
     selectedType,
     onSelect,
-}: {
+}: Readonly<{
     emails: EmailInfo[];
     selectedType?: string;
     onSelect: (type: string) => void;
-}) {
+}>) {
     return (
         <nav className="flex flex-col gap-0.5" aria-label="Emails">
             {emails.map(email => {

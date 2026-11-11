@@ -25,7 +25,7 @@ const WIDTHS = { desktop: 600, mobile: 375 } as const;
 /**
  * Renders the selected email from database data, as the recipient would see it.
  */
-export function EmailPreviewBlock({ email, initialOrderCode }: { email: EmailInfo; initialOrderCode?: string }) {
+export function EmailPreviewBlock({ email, initialOrderCode }: Readonly<{ email: EmailInfo; initialOrderCode?: string }>) {
     const { t } = useLingui();
     const { activeChannel } = useChannel();
     const languages: string[] = activeChannel?.availableLanguageCodes ?? [];

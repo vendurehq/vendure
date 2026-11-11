@@ -1,7 +1,7 @@
-import { existsSync } from 'fs';
-import fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
+import { existsSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 /*
  * The `vendure email` CLI commands. They are a thin client of the EmailPlugin's dev mode API, which the
@@ -253,7 +253,12 @@ export const emailCliCommands: Command[] = [
                 print(options, result, () =>
                     result.results
                         .map((r: any) => {
-                            const status = r.skipped ? 'SKIP' : r.ok ? 'OK  ' : 'FAIL';
+                            let status = 'FAIL';
+                            if (r.skipped) {
+                                status = 'SKIP';
+                            } else if (r.ok) {
+                                status = 'OK  ';
+                            }
                             const detail = r.ok && !r.skipped ? r.subject : `[${r.stage}] ${r.error}`;
                             return `${status} ${r.type} (${r.languageCode ?? 'default'}): ${detail}`;
                         })
@@ -324,7 +329,7 @@ function readOptions(args: unknown[]): Options {
 
 function toEmailRequest(type: string, options: Options) {
     const args: Record<string, string> = {};
-    for (const pair of [].concat(options.arg ?? [])) {
+    for (const pair of [options.arg ?? []].flat()) {
         const [key, ...rest] = String(pair).split('=');
         args[key] = rest.join('=');
     }
@@ -332,7 +337,7 @@ function toEmailRequest(type: string, options: Options) {
 }
 
 function mailboxUrl(options: Options) {
-    return String(options.url ?? process.env.VENDURE_MAILBOX_URL ?? 'http://localhost:3000/mailbox').replace(/\/+$/, '');
+    return String(options.url ?? process.env.VENDURE_MAILBOX_URL ?? 'http://localhost:3000/mailbox').replace(/\/$/, '');
 }
 
 function previewUrlFor(options: Options, type: string, languageCode: string, args: Record<string, string>) {
@@ -390,7 +395,7 @@ export async function ejectTemplate(type: string, dir: string, force: boolean, c
     });
     const header =
         `// Ejected from @vendure/email. Edit freely: this file is now owned by the project.\n` +
-        `import { ${[...names].sort().join(', ')} } from '@vendure/email';\n`;
+        `import { ${[...names].sort((a, b) => a.localeCompare(b)).join(', ')} } from '@vendure/email';\n`;
     const ejectedTemplate = header + body.replace(/^\n+/, '\n');
     const ejectedDefinition = [
         `import { defineEmail, ${definitionExport} as packageDefault } from '@vendure/email';`,
@@ -454,9 +459,11 @@ function printFailure(options: Options, result: any): number {
 }
 
 function formatEntry(entry: any, full: boolean) {
-    const head = `${String(entry.sentAt)} ${entry.status === 'sent' ? 'SENT  ' : 'FAILED'} ${String(entry.type)} to ${String(
-        entry.recipient,
-    )}: ${String(entry.subject ?? '')}${entry.error ? ` (${String(entry.error.message)})` : ''} [${String(entry.id)}]`;
+    const status = entry.status === 'sent' ? 'SENT  ' : 'FAILED';
+    const error = entry.error ? ' (' + String(entry.error.message) + ')' : '';
+    const head = `${String(entry.sentAt)} ${status} ${String(entry.type)} to ${String(entry.recipient)}: ${String(
+        entry.subject ?? '',
+    )}${error} [${String(entry.id)}]`;
     return full ? `${head}\n\n${String(entry.text ?? '')}` : head;
 }
 

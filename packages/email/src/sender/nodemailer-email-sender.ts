@@ -2,12 +2,12 @@ import { normalizeString } from '@vendure/common/lib/normalize-string';
 import { assertNever } from '@vendure/common/lib/shared-utils';
 import { Logger } from '@vendure/core';
 import fs from 'fs-extra';
-import { createTransport } from 'nodemailer';
+import path from 'node:path';
+import { Stream } from 'node:stream';
+import { format } from 'node:util';
+import nodemailer from 'nodemailer';
 import { default as Mail } from 'nodemailer/lib/mailer';
 import { LoggerLevel } from 'nodemailer/lib/shared';
-import path from 'path';
-import { Stream } from 'stream';
-import { format } from 'util';
 
 import { loggerCtx } from '../constants';
 import {
@@ -61,8 +61,7 @@ export class NodemailerEmailSender implements EmailSender {
         switch (options.type) {
             case 'none':
                 return;
-                break;
-            case 'file':
+            case 'file': {
                 const fileName = normalizeString(
                     `${new Date().toISOString()} ${email.recipient} ${email.subject}`,
                     '_',
@@ -74,6 +73,7 @@ export class NodemailerEmailSender implements EmailSender {
                     await this.sendFileJson(email, filePath);
                 }
                 break;
+            }
             case 'sendmail':
                 await this.sendMail(email, this.getSendMailTransport(options));
                 break;
@@ -94,14 +94,14 @@ export class NodemailerEmailSender implements EmailSender {
     private getSmtpTransport(options: SMTPTransportOptions) {
         if (!this._smtpTransport || this.isNew(this._smtpTransport, options)) {
             (options as any).logger = options.logging ? this.createLogger() : false;
-            this._smtpTransport = createTransport(options);
+            this._smtpTransport = nodemailer.createTransport(options);
         }
         return this._smtpTransport;
     }
 
     private getSesTransport(options: SESTransportOptions) {
         if (!this._sesTransport || this.isNew(this._sesTransport, options)) {
-            this._sesTransport = createTransport(options);
+            this._sesTransport = nodemailer.createTransport(options);
         }
         return this._sesTransport;
     }
@@ -111,12 +111,12 @@ export class NodemailerEmailSender implements EmailSender {
             !this._sendMailTransport ||
             this.isNew(this._sendMailTransport, { sendmail: true, ...options } as any)
         ) {
-            this._sendMailTransport = createTransport({ sendmail: true, ...options });
+            this._sendMailTransport = nodemailer.createTransport({ sendmail: true, ...options });
         }
         return this._sendMailTransport;
     }
 
-    private async sendMail(email: EmailDetails, transporter: Mail): Promise<any> {
+    private sendMail(email: EmailDetails, transporter: Mail): Promise<any> {
         return transporter.sendMail({
             from: email.from,
             to: email.recipient,
@@ -146,7 +146,7 @@ export class NodemailerEmailSender implements EmailSender {
     }
 
     private async sendFileRaw(email: EmailDetails, pathWithoutExt: string) {
-        const transporter = createTransport({
+        const transporter = nodemailer.createTransport({
             streamTransport: true,
             buffer: true,
         });
@@ -160,10 +160,6 @@ export class NodemailerEmailSender implements EmailSender {
      * used by Nodemailer.
      */
     private createLogger() {
-        function formatError(args: [object, string, ...string[]]) {
-            const [ctx, message, ...params] = args;
-            return format(message, ...params);
-        }
         return {
             level(level: LoggerLevel) {
                 /* noop */
@@ -188,4 +184,9 @@ export class NodemailerEmailSender implements EmailSender {
             },
         };
     }
+}
+
+function formatError(args: [object, string, ...string[]]) {
+    const [, message, ...params] = args;
+    return format(message, ...params);
 }

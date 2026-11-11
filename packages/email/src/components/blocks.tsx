@@ -60,7 +60,7 @@ export interface EmailLayoutProps {
  * @docsPage Email components
  * @since 4.0.0
  */
-export function EmailLayout({ title, preview, branding = {}, children }: EmailLayoutProps) {
+export function EmailLayout({ title, preview, branding = {}, children }: Readonly<EmailLayoutProps>) {
     const languageCode = useOptionalEmailContext()?.languageCode;
     return (
         <EmailBrandingContext.Provider value={branding}>
@@ -169,10 +169,10 @@ export function EmailFooter() {
 export function EmailSection({
     variant = 'default',
     children,
-}: {
+}: Readonly<{
     variant?: 'default' | 'muted' | 'highlight';
     children?: ReactNode;
-}) {
+}>) {
     if (variant === 'default') {
         return <Section style={{ padding: `0 ${emailTheme.gutter}` }}>{children}</Section>;
     }
@@ -200,7 +200,7 @@ export function EmailSection({
  * @docsPage Email components
  * @since 4.0.0
  */
-export function EmailTitle({ children }: { children?: ReactNode }) {
+export function EmailTitle({ children }: Readonly<{ children?: ReactNode }>) {
     return (
         <Heading
             as="h1"
@@ -226,7 +226,7 @@ export function EmailTitle({ children }: { children?: ReactNode }) {
  * @docsPage Email components
  * @since 4.0.0
  */
-export function EmailText({ children, style }: { children?: ReactNode; style?: CSSProperties }) {
+export function EmailText({ children, style }: Readonly<{ children?: ReactNode; style?: CSSProperties }>) {
     return (
         <Text style={{ margin: '0 0 16px', fontSize: '15px', lineHeight: '24px', color: emailTheme.text, ...style }}>
             {children}
@@ -242,7 +242,7 @@ export function EmailText({ children, style }: { children?: ReactNode; style?: C
  * @docsPage Email components
  * @since 4.0.0
  */
-export function EmailMutedText({ children }: { children?: ReactNode }) {
+export function EmailMutedText({ children }: Readonly<{ children?: ReactNode }>) {
     return (
         <Text style={{ margin: '0 0 12px', fontSize: '13px', lineHeight: '20px', color: emailTheme.muted }}>
             {children}
@@ -258,7 +258,7 @@ export function EmailMutedText({ children }: { children?: ReactNode }) {
  * @docsPage Email components
  * @since 4.0.0
  */
-export function EmailHeading({ children }: { children?: ReactNode }) {
+export function EmailHeading({ children }: Readonly<{ children?: ReactNode }>) {
     return (
         <Heading
             as="h2"
@@ -302,11 +302,11 @@ export function EmailButton({
     href,
     children,
     fallbackLink,
-}: {
+}: Readonly<{
     href: string;
     children?: ReactNode;
     fallbackLink?: boolean;
-}) {
+}>) {
     const { primaryColor, primaryTextColor } = useEmailBranding();
     return (
         <Section style={{ padding: '8px 0 16px' }}>
@@ -346,7 +346,7 @@ export function EmailButton({
  * @docsPage Email components
  * @since 4.0.0
  */
-export function Money({ value, currencyCode }: { value: number; currencyCode?: string | null }) {
+export function Money({ value, currencyCode }: Readonly<{ value: number; currencyCode?: string | null }>) {
     const languageCode = useOptionalEmailContext()?.languageCode;
     return <>{formatMoney(value, currencyCode, languageCode)}</>;
 }
@@ -362,10 +362,10 @@ export function Money({ value, currencyCode }: { value: number; currencyCode?: s
 export function FormattedDate({
     value,
     options,
-}: {
+}: Readonly<{
     value: Date | string | null | undefined;
     options?: Intl.DateTimeFormatOptions;
-}) {
+}>) {
     const languageCode = useOptionalEmailContext()?.languageCode;
     if (value == null) {
         return null;

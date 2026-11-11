@@ -13,7 +13,7 @@ import { DevOutbox, DevOutboxEntry } from './dev-outbox';
  */
 export class DevEmailApi {
     constructor(
-        private deps: {
+        private readonly deps: {
             emailService: EmailService;
             previewService: EmailPreviewService;
             outbox: DevOutbox;
@@ -140,7 +140,7 @@ export class DevEmailApi {
         return { ok: true, entries: entries.map(e => (includeBody ? e : summarizeOutboxEntry(e))) };
     }
 
-    private json(fn: (req: Request) => Promise<unknown> | unknown) {
+    private json(fn: (req: Request) => unknown) {
         return async (req: Request, res: Response) => {
             try {
                 res.json(await fn(req));
@@ -157,13 +157,13 @@ export function summarizeOutboxEntry(entry: DevOutboxEntry) {
 }
 
 export function parseSince(value: string): Date {
-    const match = /^(\d+)\s*(s|m|h|d)$/.exec(value.trim());
+    const match = /^(\d+)\s*([smhd])$/.exec(value.trim());
     if (match) {
         const ms = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2] as 's' | 'm' | 'h' | 'd'];
         return new Date(Date.now() - Number(match[1]) * ms);
     }
     const date = new Date(value);
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
         throw new EmailPreviewError('lookup', `Invalid "since" value "${value}". Use an ISO date or e.g. 5m`, 400);
     }
     return date;

@@ -1165,11 +1165,13 @@ export async function scaffoldEmails(serverRoot: string): Promise<{ ejected: boo
             'lib/cli/index.js',
         );
         const { ejectTemplate, defaultEmailTypes } = requireFromServer(cliPath);
-        const exports: Array<{ name: string; importPath: string }> = [];
-        for (const type of await defaultEmailTypes()) {
-            const result = await ejectTemplate(type, 'src/email', true, serverRoot);
-            exports.push({ name: result.definitionExport, importPath: `./${type}/definition` });
-        }
+        const types: string[] = await defaultEmailTypes();
+        const exports: Array<{ name: string; importPath: string }> = await Promise.all(
+            types.map(async type => {
+                const result = await ejectTemplate(type, 'src/email', true, serverRoot);
+                return { name: result.definitionExport, importPath: `./${type}/definition` };
+            }),
+        );
         const index = [
             "import type { EmailDefinition } from '@vendure/email';",
             '',

@@ -41,7 +41,7 @@ interface Selected {
  * The Emails block of the order detail page: every order email, what it can be about (the order, a
  * fulfillment, a payment or a refund) and whether the current state allows sending it.
  */
-export function OrderEmailsBlock({ context }: { context: { entity?: any } }) {
+export function OrderEmailsBlock({ context }: Readonly<{ context: { entity?: any } }>) {
     const order = context.entity;
     const orderId: string | undefined = order?.id;
     const [selected, setSelected] = useState<Selected | undefined>();
@@ -94,10 +94,10 @@ export function OrderEmailsBlock({ context }: { context: { entity?: any } }) {
 function EmailRow({
     email,
     onSend,
-}: {
+}: Readonly<{
     email: OrderEmailList['orderEmails']['emails'][number];
     onSend: (target: OrderEmailTarget) => void;
-}) {
+}>) {
     const { t } = useLingui();
     const notSendable = (label: string) => t`(not sendable) ${label}`;
     const { hasPermissions } = usePermissions();
@@ -105,6 +105,9 @@ function EmailRow({
     const firstEligible = email.targets.find(candidate => candidate.eligible) ?? email.targets[0];
     const [targetId, setTargetId] = useState<string | undefined>(firstEligible?.id);
     const target = email.targets.find(candidate => candidate.id === targetId) ?? firstEligible;
+    // The order itself is the only target of these emails, so its label adds nothing.
+    const showSingleTargetLabel =
+        email.targets.length === 1 && email.type !== 'order-confirmation' && email.type !== 'order-cancelled';
     return (
         <div className="flex flex-col gap-1 border-b pb-3 last:border-b-0 last:pb-0" data-testid={`order-email-${email.type}`}>
             <div className="flex items-center justify-between gap-2">
@@ -133,14 +136,16 @@ function EmailRow({
                         </NativeSelectOption>
                     ))}
                 </NativeSelect>
-            ) : email.targets.length === 1 && email.type !== 'order-confirmation' && email.type !== 'order-cancelled' ? (
+            ) : null}
+            {showSingleTargetLabel ? (
                 <span className="text-xs text-muted-foreground">{email.targets[0].label}</span>
             ) : null}
-            {!email.targets.length ? (
+            {email.targets.length ? null : (
                 <span className="text-xs text-muted-foreground">
                     <Trans>Nothing in this order to send this email about yet.</Trans>
                 </span>
-            ) : target && !target.eligible && target.reason ? (
+            )}
+            {target && !target.eligible && target.reason ? (
                 <span className="text-xs text-muted-foreground">{target.reason}</span>
             ) : null}
         </div>
@@ -152,12 +157,12 @@ function SendEmailDialog({
     selected,
     defaultRecipient,
     onClose,
-}: {
+}: Readonly<{
     orderId: string;
     selected: Selected;
     defaultRecipient: string;
     onClose: () => void;
-}) {
+}>) {
     const { t } = useLingui();
     const queryClient = useQueryClient();
     const [recipient, setRecipient] = useState(defaultRecipient);
@@ -194,28 +199,12 @@ function SendEmailDialog({
                         <Trans>To</Trans>
                         <Input value={recipient} onChange={e => setRecipient(e.target.value)} />
                     </label>
-                    {preview.isLoading ? (
-                        <div className="text-sm text-muted-foreground">
-                            <Trans>Rendering preview…</Trans>
-                        </div>
-                    ) : preview.error ? (
-                        <div className="text-sm text-destructive">{String((preview.error as any)?.message)}</div>
-                    ) : email ? (
-                        <>
-                            <div className="text-sm">
-                                <span className="text-muted-foreground">
-                                    <Trans>Subject:</Trans>{' '}
-                                </span>
-                                {email.subject}
-                            </div>
-                            <iframe
-                                title={t`Email preview`}
-                                srcDoc={email.html}
-                                sandbox=""
-                                className="w-full h-[50vh] border rounded bg-white"
-                            />
-                        </>
-                    ) : null}
+                    <PreviewContent
+                        isLoading={preview.isLoading}
+                        error={preview.error}
+                        subject={email?.subject}
+                        html={email?.html}
+                    />
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>
@@ -227,5 +216,43 @@ function SendEmailDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function PreviewContent({
+    isLoading,
+    error,
+    subject,
+    html,
+}: Readonly<{ isLoading: boolean; error: unknown; subject?: string; html?: string }>) {
+    const { t } = useLingui();
+    if (isLoading) {
+        return (
+            <div className="text-sm text-muted-foreground">
+                <Trans>Rendering preview…</Trans>
+            </div>
+        );
+    }
+    if (error) {
+        return <div className="text-sm text-destructive">{String((error as any)?.message)}</div>;
+    }
+    if (html == null) {
+        return null;
+    }
+    return (
+        <>
+            <div className="text-sm">
+                <span className="text-muted-foreground">
+                    <Trans>Subject:</Trans>{' '}
+                </span>
+                {subject}
+            </div>
+            <iframe
+                title={t`Email preview`}
+                srcDoc={html}
+                sandbox=""
+                className="w-full h-[50vh] border rounded bg-white"
+            />
+        </>
     );
 }

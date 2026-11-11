@@ -67,7 +67,7 @@ export const adminApiExtensions = gql`
 
 @Resolver()
 export class OrderEmailResolver {
-    constructor(private orderEmailService: OrderEmailService) {}
+    constructor(private readonly orderEmailService: OrderEmailService) {}
 
     @Query()
     @Allow(Permission.ReadOrder)
