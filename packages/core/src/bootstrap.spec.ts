@@ -7,6 +7,7 @@ import { runPluginConfigurations } from './bootstrap';
 import { CustomFieldConfig } from './config/custom-field/custom-field-types';
 import { Logger } from './config/logger/vendure-logger';
 import { mergeConfig } from './config/merge-config';
+import { ActiveOrderStrategy } from './config/order/active-order-strategy';
 import {
     OrderItemPriceCalculationStrategy,
     PriceCalculationResult,
@@ -18,6 +19,7 @@ import {
     setLayerPriority,
 } from './config/strategy-layer/compose-strategy';
 import { StrategyLayer } from './config/strategy-layer/strategy-layer';
+import { addStrategyToList, removeStrategyFromList } from './config/strategy-layer/strategy-list';
 import { RuntimeVendureConfig } from './config/vendure-config';
 // Importing the core entities registers their `customFields` embedded columns in the
 // TypeORM metadata, and populates `coreEntitiesMap` (which `getAllEntities`, and therefore the
@@ -543,6 +545,136 @@ describe('runPluginConfigurations() with strategy layers', () => {
         const config = await runPluginConfigurations(projectConfig);
         expect(warn).not.toHaveBeenCalled();
         expect(await callOrder(config)).toEqual(['Layer200', 'TestBasePrice']);
+    });
+});
+
+describe('runPluginConfigurations() with a strategy list', () => {
+    function activeOrderStrategy(name: string) {
+        const strategy = class implements ActiveOrderStrategy {
+            readonly name = name;
+            determineActiveOrder() {
+                return Promise.resolve(undefined);
+            }
+        };
+        Object.defineProperty(strategy, 'name', { value: name });
+        return strategy;
+    }
+
+    const DefaultEntry = activeOrderStrategy('default');
+    const EarlyEntry = activeOrderStrategy('early');
+    const LateEntry = activeOrderStrategy('late');
+
+    function entryPlugin(entry: () => ActiveOrderStrategy, priority: number) {
+        @VendurePlugin({
+            configuration: cfg => {
+                cfg.orderOptions.activeOrderStrategy = addStrategyToList(
+                    cfg.orderOptions.activeOrderStrategy,
+                    entry(),
+                    { priority },
+                );
+                return cfg;
+            },
+        })
+        class EntryPlugin {}
+        return EntryPlugin;
+    }
+
+    const EarlyPlugin = entryPlugin(() => new EarlyEntry(), -100);
+    const LatePlugin = entryPlugin(() => new LateEntry(), 100);
+
+    function makeListConfig(
+        plugins: RuntimeVendureConfig['plugins'],
+        list: ActiveOrderStrategy | ActiveOrderStrategy[] = new DefaultEntry(),
+    ): RuntimeVendureConfig {
+        return {
+            ...makeConfig({ plugins }),
+            orderOptions: { activeOrderStrategy: list },
+        } as unknown as RuntimeVendureConfig;
+    }
+
+    const names = (config: RuntimeVendureConfig) =>
+        (config.orderOptions.activeOrderStrategy as ActiveOrderStrategy[])
+            .map(e => e.name)
+            .filter(n => !n.startsWith('removed:'));
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('orders the entries of two plugins by priority with each plugin order', async () => {
+        for (const plugins of [
+            [EarlyPlugin, LatePlugin],
+            [LatePlugin, EarlyPlugin],
+        ]) {
+            const config = await runPluginConfigurations(makeListConfig(plugins));
+            expect(names(config)).toEqual(['early', 'default', 'late']);
+        }
+    });
+
+    it('removes the default entry with removeStrategyFromList() in the project config', async () => {
+        const config = await runPluginConfigurations(
+            makeListConfig(
+                [LatePlugin, EarlyPlugin],
+                removeStrategyFromList(new DefaultEntry(), DefaultEntry),
+            ),
+        );
+        expect(names(config)).toEqual(['early', 'late']);
+    });
+
+    it('removes a plugin entry with removeStrategyFromList() in the project config', async () => {
+        const config = await runPluginConfigurations(
+            makeListConfig([LatePlugin, EarlyPlugin], removeStrategyFromList(new DefaultEntry(), LateEntry)),
+        );
+        expect(names(config)).toEqual(['early', 'default']);
+    });
+
+    it('does not change the list when the configuration functions run again', async () => {
+        const config = await runPluginConfigurations(
+            makeListConfig([LatePlugin, EarlyPlugin], removeStrategyFromList(new DefaultEntry(), LateEntry)),
+        );
+        await runPluginConfigurations(config);
+        expect(names(config)).toEqual(['early', 'default']);
+    });
+
+    it('does not change or log a list without entries from addStrategyToList()', async () => {
+        const info = vi.spyOn(Logger, 'info');
+        const list = [new DefaultEntry(), new LateEntry()];
+        const config = await runPluginConfigurations(makeListConfig([], list));
+        expect(config.orderOptions.activeOrderStrategy).toBe(list);
+        expect(info).not.toHaveBeenCalled();
+    });
+
+    it('warns when a plugin replaces the list', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        @VendurePlugin({
+            configuration: cfg => {
+                cfg.orderOptions.activeOrderStrategy = [new LateEntry()];
+                return cfg;
+            },
+        })
+        class ReplacingPlugin {}
+
+        await runPluginConfigurations(
+            makeListConfig(
+                [EarlyPlugin, ReplacingPlugin],
+                removeStrategyFromList(new DefaultEntry(), LateEntry),
+            ),
+        );
+        expect(warn).toHaveBeenCalledWith(
+            'The plugin "ReplacingPlugin" replaced "orderOptions.activeOrderStrategy" and dropped the entries ' +
+                'default, early and the removal of late. To add an entry, use addStrategyToList(). ' +
+                'To remove an entry, use removeStrategyFromList().',
+        );
+    });
+
+    it('warns about an added entry with the same priority as another entry', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        const config = await runPluginConfigurations(makeListConfig([entryPlugin(() => new LateEntry(), 0)]));
+        expect(names(config)).toEqual(['default', 'late']);
+        expect(warn).toHaveBeenCalledWith(
+            'The entries "default" and "late" of "orderOptions.activeOrderStrategy" have the same priority (0), ' +
+                'so they run in plugin order. Give one of them a different priority to remove this warning.',
+        );
     });
 });
 

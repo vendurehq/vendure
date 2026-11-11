@@ -21,8 +21,11 @@ import { DefaultLogger } from './config/logger/default-logger';
 import { Logger } from './config/logger/vendure-logger';
 import {
     findStrategyChains,
+    findStrategyLists,
     logStrategyChains,
+    sortStrategyLists,
     warnOnDroppedLayers,
+    warnOnDroppedListEntries,
 } from './config/strategy-layer/strategy-chain-checks';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
 import { Administrator } from './entity/administrator/administrator.entity';
@@ -437,13 +440,16 @@ export async function runPluginConfigurations(config: RuntimeVendureConfig): Pro
         const configFn = getConfigurationFunction(plugin);
         if (typeof configFn === 'function') {
             const chainsBefore = findStrategyChains(config);
+            const listsBefore = findStrategyLists(config);
             const result = await configFn(config);
             Object.assign(config, result);
             const pluginName = typeof plugin === 'function' ? plugin.name : plugin.module.name;
             warnOnDroppedLayers(chainsBefore, findStrategyChains(config), pluginName);
+            warnOnDroppedListEntries(listsBefore, findStrategyLists(config), pluginName);
         }
     }
     logStrategyChains(findStrategyChains(config));
+    sortStrategyLists(config);
     return config;
 }
 

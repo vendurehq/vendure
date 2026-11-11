@@ -4,6 +4,13 @@ import { Logger } from '../logger/vendure-logger';
 import { RuntimeVendureConfig } from '../vendure-config';
 
 import { getStrategyChain, StrategyChain } from './strategy-chain';
+import {
+    getListEntryPriority,
+    hasListEntryPriority,
+    RemovedStrategyListEntry,
+    sortStrategyList,
+    toArray,
+} from './strategy-list-entries';
 
 /**
  * Returns each composed strategy in the config, by its path, e.g.
@@ -82,6 +89,109 @@ export function logStrategyChains(chains: Map<string, StrategyChain>) {
                     `The strategy layers "${previous.layer.name}" and "${current.layer.name}" of "${path}" ` +
                         `have the same priority (${current.priority}), so they run in plugin order. ` +
                         'Set the priority of one of them in the project config to remove this warning.',
+                );
+            }
+        }
+    }
+}
+
+/**
+ * The strategy options that are ordered lists. Core sorts them by priority.
+ */
+const strategyListOptions = [['orderOptions', 'activeOrderStrategy']] as const;
+
+/**
+ * Returns the entries of each strategy list option, by its path.
+ */
+export function findStrategyLists(config: RuntimeVendureConfig): Map<string, object[]> {
+    const result = new Map<string, object[]>();
+    for (const [optionsKey, key] of strategyListOptions) {
+        const value = (config[optionsKey] as Record<string, unknown> | undefined)?.[key];
+        if (value) {
+            result.set(`${optionsKey}.${key}`, toArray(value));
+        }
+    }
+    return result;
+}
+
+function getEntryName(entry: object): string {
+    const name = (entry as { name?: unknown }).name;
+    return typeof name === 'string' ? name : entry.constructor.name;
+}
+
+function getRemovedClasses(list: object[]) {
+    return list
+        .filter((e): e is RemovedStrategyListEntry => e instanceof RemovedStrategyListEntry)
+        .map(e => e.removed);
+}
+
+/**
+ * Compares the strategy lists before and after the `configuration` function of a plugin. Logs a
+ * warning for each entry and each removal record that the plugin dropped, for example by assigning
+ * a new array.
+ */
+export function warnOnDroppedListEntries(
+    before: Map<string, object[]>,
+    after: Map<string, object[]>,
+    pluginName: string,
+) {
+    for (const [path, oldList] of before) {
+        const newList = after.get(path) ?? [];
+        const newClasses = newList.map(e => e.constructor);
+        const newRemoved = getRemovedClasses(newList);
+        const droppedEntries = oldList
+            .filter(e => !(e instanceof RemovedStrategyListEntry))
+            .filter(e => !newClasses.includes(e.constructor) && !newRemoved.includes(e.constructor as any))
+            .map(getEntryName);
+        const droppedRemovals = getRemovedClasses(oldList)
+            .filter(c => !newRemoved.includes(c))
+            .map(c => c.name);
+        const parts = [
+            droppedEntries.length ? `the entries ${droppedEntries.join(', ')}` : '',
+            droppedRemovals.length ? `the removal of ${droppedRemovals.join(', ')}` : '',
+        ].filter(Boolean);
+        if (parts.length) {
+            Logger.warn(
+                `The plugin "${pluginName}" replaced "${path}" and dropped ${parts.join(' and ')}. ` +
+                    'To add an entry, use addStrategyToList(). To remove an entry, use removeStrategyFromList().',
+            );
+        }
+    }
+}
+
+/**
+ * Sorts each strategy list option that has an entry from `addStrategyToList()` or a removal
+ * record, and writes the result to the config. Logs each sorted list in call order, and a warning
+ * for two entries with the same priority if one of them came from `addStrategyToList()`.
+ */
+export function sortStrategyLists(config: RuntimeVendureConfig) {
+    for (const [optionsKey, key] of strategyListOptions) {
+        const options = config[optionsKey] as Record<string, unknown> | undefined;
+        const value = options?.[key];
+        if (!options || !Array.isArray(value)) {
+            continue;
+        }
+        const list = value as object[];
+        if (!list.some(e => e instanceof RemovedStrategyListEntry || hasListEntryPriority(e))) {
+            continue;
+        }
+        const sorted = sortStrategyList(list);
+        options[key] = sorted;
+        const path = `${optionsKey}.${key}`;
+        const entries = sorted.filter(e => !(e instanceof RemovedStrategyListEntry));
+        Logger.info(`Strategy list "${path}": ${entries.map(getEntryName).join(', ')}`);
+        for (let i = 1; i < entries.length; i++) {
+            const previous = entries[i - 1];
+            const current = entries[i];
+            const priority = getListEntryPriority(current);
+            if (
+                getListEntryPriority(previous) === priority &&
+                (hasListEntryPriority(previous) || hasListEntryPriority(current))
+            ) {
+                Logger.warn(
+                    `The entries "${getEntryName(previous)}" and "${getEntryName(current)}" of "${path}" ` +
+                        `have the same priority (${priority}), so they run in plugin order. ` +
+                        'Give one of them a different priority to remove this warning.',
                 );
             }
         }
