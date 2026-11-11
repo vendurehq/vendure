@@ -2,7 +2,6 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import {
     api,
     Badge,
-    Link,
     Button,
     Dialog,
     DialogContent,
@@ -11,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
     Input,
+    Link,
     NativeSelect,
     NativeSelectOption,
     toast,
@@ -70,8 +70,25 @@ export function OrderEmailsBlock({ context }: Readonly<{ context: { entity?: any
     return (
         <div className="flex flex-col gap-3">
             {data.orderEmails.emails.map(email => (
-                <EmailRow key={email.type} email={email} onSend={target => setSelected({ type: email.type, label: email.label, target })} />
+                <EmailRow
+                    key={email.type}
+                    email={email}
+                    onSend={target => setSelected({ type: email.type, label: email.label, target })}
+                />
             ))}
+            <div className="flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground">
+                <MailIcon className="h-3.5 w-3.5 shrink-0" />
+                {data.orderEmails.recipient ? (
+                    <span className="min-w-0 truncate">
+                        <Trans>Sent to</Trans>{' '}
+                        <span className="text-foreground" title={data.orderEmails.recipient}>
+                            {data.orderEmails.recipient}
+                        </span>
+                    </span>
+                ) : (
+                    <Trans>This order has no customer email address.</Trans>
+                )}
+            </div>
             <Link
                 to="/emails"
                 search={{ order: order.code }}
@@ -109,7 +126,10 @@ function EmailRow({
     const showSingleTargetLabel =
         email.targets.length === 1 && email.type !== 'order-confirmation' && email.type !== 'order-cancelled';
     return (
-        <div className="flex flex-col gap-1 border-b pb-3 last:border-b-0 last:pb-0" data-testid={`order-email-${email.type}`}>
+        <div
+            className="flex flex-col gap-1 border-b pb-3 last:border-b-0 last:pb-0"
+            data-testid={`order-email-${email.type}`}
+        >
             <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">{email.label}</span>
                 {target ? (
@@ -129,7 +149,11 @@ function EmailRow({
                 )}
             </div>
             {email.targets.length > 1 ? (
-                <NativeSelect value={targetId} onChange={e => setTargetId(e.target.value)} className="text-xs">
+                <NativeSelect
+                    value={targetId}
+                    onChange={e => setTargetId(e.target.value)}
+                    className="text-xs"
+                >
                     {email.targets.map(option => (
                         <NativeSelectOption key={option.id} value={option.id}>
                             {option.eligible ? option.label : notSendable(option.label)}
