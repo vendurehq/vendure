@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { LINK_ID, OTHER_LINK_ID, manifest } from './console.fixtures';
+import { LINK_ID, OTHER_LINK_ID, manifest } from './console.fixtures.js';
 import {
     ProjectLinkManifest,
     consoleOriginsForManifest,
@@ -13,7 +13,7 @@ import {
     readProjectLinkManifest,
     resolveProjectRoot,
     writeProjectLinkManifestAtomic,
-} from './project-link-manifest';
+} from './project-link-manifest.js';
 
 const UUID_V7_LINK_ID = '55555555-5555-7555-8555-555555555555';
 

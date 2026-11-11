@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { camelCase, constantCase, kebabCase, pascalCase } from './case-utils';
+import { camelCase, constantCase, kebabCase, pascalCase } from './case-utils.js';
 
 // Test cases lifted from the upstream camel-case, pascal-case, param-case,
 // and constant-case packages (change-case v4 sub-packages, MIT-licensed).

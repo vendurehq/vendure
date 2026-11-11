@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { log } from './logger';
-import { offerPlatformTrial, PLATFORM_TRIAL_QUESTION, PlatformTrialDependencies } from './platform-trial';
+import { log } from './logger.js';
+import { offerPlatformTrial, PLATFORM_TRIAL_QUESTION, PlatformTrialDependencies } from './platform-trial.js';
 
-vi.mock('./logger', () => ({ log: vi.fn() }));
+vi.mock('./logger.js', () => ({ log: vi.fn() }));
 
 function dependencies(overrides: Partial<PlatformTrialDependencies> = {}) {
     return {

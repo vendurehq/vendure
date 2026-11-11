@@ -3,14 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CLI_PLUGINS_ENV_VAR } from './cli-global-plugin-config';
+import { CLI_PLUGINS_ENV_VAR } from './cli-global-plugin-config.js';
 import {
     CliInstallLocation,
     discoverCliPlugins,
     findCliInstallLocation,
     PackageJsonLike,
     resolveCliPlugins,
-} from './resolve-cli-plugins';
+} from './resolve-cli-plugins.js';
 
 describe('CLI plugin scopes', () => {
     const tempDirs: string[] = [];
@@ -317,7 +317,7 @@ describe('findCliInstallLocation()', () => {
 
     /**
      * A CLI package installed at `<root>/node_modules/@vendure/cli`, returning
-     * the directory inside it that `__dirname` would be at runtime.
+     * the directory inside it that `import.meta.dirname` would be at runtime.
      */
     function installCli(root: string, projectPackageJson?: Record<string, unknown>): string {
         const dir = path.join(root, 'node_modules', '@vendure', 'cli');

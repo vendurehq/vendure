@@ -1,4 +1,4 @@
-import { DoctorReport } from '../types';
+import { DoctorReport } from '../types.js';
 
 /**
  * Outputs the doctor report as structured JSON to stdout.

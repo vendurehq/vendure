@@ -1,4 +1,4 @@
-import type { StorefrontId } from './storefront-starters';
+import type { StorefrontId } from './storefront-starters.js';
 
 export type DbType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite';
 

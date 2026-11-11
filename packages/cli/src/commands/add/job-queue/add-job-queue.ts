@@ -1,15 +1,16 @@
 import { cancel, isCancel, log, text } from '@clack/prompts';
 import { Node, Scope } from 'ts-morph';
-import { camelCase, pascalCase } from '../../../utilities/case-utils';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { exitCliCommand } from '../../../shared/cli-command-exit';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
-import { ServiceRef } from '../../../shared/service-ref';
-import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { addImportsToFile } from '../../../utilities/ast-utils';
-import { withInteractiveTimeout } from '../../../utilities/utils';
+
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
+import { ServiceRef } from '../../../shared/service-ref.js';
+import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { addImportsToFile } from '../../../utilities/ast-utils.js';
+import { camelCase, pascalCase } from '../../../utilities/case-utils.js';
+import { withInteractiveTimeout } from '../../../utilities/utils.js';
 
 const cancelledMessage = 'Add API extension cancelled';
 

@@ -20,21 +20,21 @@ describe('doctor command internals', () => {
 
     describe('resolveChecks', () => {
         it('warns about unknown check names via doctorCommand', { timeout: 30_000 }, async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'fail',
                     message: 'No package.json',
                 }),
             }));
-            vi.doMock('./formatters/console-formatter', () => ({
+            vi.doMock('./formatters/console-formatter.js', () => ({
                 formatConsoleReport: vi.fn(),
             }));
-            vi.doMock('./formatters/json-formatter', () => ({
+            vi.doMock('./formatters/json-formatter.js', () => ({
                 formatJsonReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
             await doctorCommand({ check: ['invalid-check'] });
 
@@ -46,18 +46,18 @@ describe('doctor command internals', () => {
 
     describe('buildReport', () => {
         it('marks report as failed when any check fails', async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'fail',
                     message: 'No package.json',
                 }),
             }));
-            vi.doMock('./formatters/json-formatter', () => ({
+            vi.doMock('./formatters/json-formatter.js', () => ({
                 formatJsonReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
             const exitCode = await doctorCommand({ check: ['project'], format: 'json' });
 
@@ -67,18 +67,18 @@ describe('doctor command internals', () => {
 
     describe('--strict mode', () => {
         it('treats warnings as failures with --strict', async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'warn',
                     message: 'Some warning',
                 }),
             }));
-            vi.doMock('./formatters/json-formatter', () => ({
+            vi.doMock('./formatters/json-formatter.js', () => ({
                 formatJsonReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
             const exitCode = await doctorCommand({
                 check: ['project'],
@@ -92,18 +92,18 @@ describe('doctor command internals', () => {
 
     describe('--profile validation', () => {
         it('warns about unknown profile', async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'fail',
                     message: 'No package.json',
                 }),
             }));
-            vi.doMock('./formatters/console-formatter', () => ({
+            vi.doMock('./formatters/console-formatter.js', () => ({
                 formatConsoleReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
             await doctorCommand({ check: ['project'], profile: 'staging' });
 

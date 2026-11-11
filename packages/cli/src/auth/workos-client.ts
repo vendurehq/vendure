@@ -4,9 +4,9 @@ import {
     ReauthenticationRequiredError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
-} from './auth-errors';
-import { AuthOptions } from './auth-options';
-import { AuthUser } from './auth-store';
+} from './auth-errors.js';
+import { AuthOptions } from './auth-options.js';
+import { AuthUser } from './auth-store.js';
 
 export const WORKOS_REQUEST_TIMEOUT_MS = 30_000;
 

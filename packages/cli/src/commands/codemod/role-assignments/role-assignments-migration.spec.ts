@@ -2,10 +2,10 @@ import { log } from '@clack/prompts';
 import { ModuleResolutionKind, Project, QuoteKind, ScriptKind, ScriptTarget } from 'ts-morph';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Messages } from './core-entities';
-import { FLAG_PREFIX } from './flags';
-import { transformSourceFile } from './role-assignments-migration';
-import { stripRoleChannelsFromGraphql } from './transforms/graphql-documents';
+import { Messages } from './core-entities.js';
+import { FLAG_PREFIX } from './flags.js';
+import { transformSourceFile } from './role-assignments-migration.js';
+import { stripRoleChannelsFromGraphql } from './transforms/graphql-documents.js';
 
 vi.mock('@clack/prompts', () => ({
     log: {

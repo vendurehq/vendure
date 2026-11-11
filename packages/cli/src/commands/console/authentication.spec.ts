@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from '../../index';
+import { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from '../../index.js';
 
 const token = { access_token: 'access', refresh_token: 'rotated', token_type: 'Bearer', expires_in: 60 };
 const now = () => 1_000;

@@ -1,7 +1,7 @@
 import { log } from '@clack/prompts';
 import { SourceFile, SyntaxKind } from 'ts-morph';
 
-import { addImportsToFile } from '../../../../utilities/ast-utils';
+import { addImportsToFile } from '../../../../utilities/ast-utils.js';
 
 /**
  * Radix namespace → flat component name mapping.

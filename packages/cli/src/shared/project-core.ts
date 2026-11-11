@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import { findVendureProjectRoot } from './project-validation';
+import { findVendureProjectRoot } from './project-validation.js';
 
 /**
  * Loads a package from the project the CLI is being run against, rather than

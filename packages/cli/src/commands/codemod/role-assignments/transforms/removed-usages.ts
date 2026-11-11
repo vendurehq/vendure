@@ -7,8 +7,8 @@ import {
     messageForRemovedRelation,
     Messages,
     REMOVED_METHODS,
-} from '../core-entities';
-import { FlagCollector } from '../flags';
+} from '../core-entities.js';
+import { FlagCollector } from '../flags.js';
 
 const JOIN_METHOD = /^(left|inner)Join(AndSelect|AndMapOne|AndMapMany)?$/;
 const REMOVED_TABLE = /user_roles_role|role_channels_channel/;

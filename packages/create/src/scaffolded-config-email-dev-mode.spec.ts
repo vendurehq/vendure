@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { getCiConfiguration } from './gather-user-responses';
+import { getCiConfiguration } from './gather-user-responses.js';
 
 const PROJECT_ROOT = 'my-vendure-app';
 const SRC_DIR = '/app/src';
@@ -48,7 +48,7 @@ describe('scaffolded vendure-config EmailPlugin devMode', () => {
     let configSource: string;
 
     beforeAll(async () => {
-        const { getPackageManagerInfo, registerTemplateHelpers } = await import('./helpers');
+        const { getPackageManagerInfo, registerTemplateHelpers } = await import('./helpers.js');
         registerTemplateHelpers(getPackageManagerInfo('npm'));
         ({ configSource } = await getCiConfiguration(PROJECT_ROOT, 'npm', 3000, undefined));
     });

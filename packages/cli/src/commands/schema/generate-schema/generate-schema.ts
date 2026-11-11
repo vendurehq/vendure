@@ -1,14 +1,14 @@
 import { log } from '@clack/prompts';
 import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
-import { writeFileSync } from 'fs-extra';
+import fs from 'fs-extra';
 import path from 'node:path';
 
-import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { requireFromProject, requireProjectCore } from '../../../shared/project-core';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { type SchemaOptions } from '../schema';
+import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { requireFromProject, requireProjectCore } from '../../../shared/project-core.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { type SchemaOptions } from '../schema.js';
 
 const cancelledMessage = 'Generate schema cancelled';
 
@@ -54,13 +54,13 @@ export async function generateSchema(options: SchemaOptions) {
         const fileName = options.fileName ?? `schema${apiType === 'shop' ? '-shop' : ''}.${ext}`;
         const outFile = path.join(options.outputDir ?? process.cwd(), fileName);
         if (format === 'sdl') {
-            writeFileSync(outFile, printSchema(schema));
+            fs.writeFileSync(outFile, printSchema(schema));
         } else {
             const jsonSchema = graphqlSync({
                 schema,
                 source: getIntrospectionQuery(),
             }).data;
-            writeFileSync(outFile, JSON.stringify(jsonSchema));
+            fs.writeFileSync(outFile, JSON.stringify(jsonSchema));
         }
         log.info(`Generated schema: ${outFile}`);
     } catch (e: unknown) {

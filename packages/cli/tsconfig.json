@@ -1,8 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "CommonJS",
     "declaration": true,
     "removeComments": true,
     "strictPropertyInitialization": false,

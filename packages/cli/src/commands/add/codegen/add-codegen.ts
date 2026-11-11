@@ -2,16 +2,16 @@ import { cancel, log, note, spinner } from '@clack/prompts';
 import path from 'path';
 import { StructureKind } from 'ts-morph';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { exitCliCommand } from '../../../shared/cli-command-exit';
-import { PackageJson } from '../../../shared/package-json-ref';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
-import { analyzeProject, selectMultiplePluginClasses } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { getRelativeImportPath } from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay } from '../../../utilities/utils';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { PackageJson } from '../../../shared/package-json-ref.js';
+import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
+import { analyzeProject, selectMultiplePluginClasses } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { getRelativeImportPath } from '../../../utilities/ast-utils.js';
+import { pauseForPromptDisplay } from '../../../utilities/utils.js';
 
-import { CodegenConfigRef } from './codegen-config-ref';
+import { CodegenConfigRef } from './codegen-config-ref.js';
 
 export interface AddCodegenOptions {
     plugin?: VendurePluginRef;

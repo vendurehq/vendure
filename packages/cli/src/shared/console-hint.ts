@@ -1,7 +1,7 @@
 import { log } from '@clack/prompts';
 import { supportsHyperlinks } from '@vendure/common/lib/supports-hyperlinks';
 
-import { readProjectLinkManifest } from '../commands/console/project-link-manifest';
+import { readProjectLinkManifest } from '../commands/console/project-link-manifest.js';
 
 // The pricing URL shown in the hint, and the tag that names the surface that printed it.
 const PRICING_URL = 'https://vendure.io/pricing';

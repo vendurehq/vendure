@@ -7,7 +7,7 @@ import {
     renderStorefrontEnvironment,
     resolveCiStorefront,
     STOREFRONT_STARTERS,
-} from './storefront-starters';
+} from './storefront-starters.js';
 
 const setupContext = {
     projectName: 'my-shop',

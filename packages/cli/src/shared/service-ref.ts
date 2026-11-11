@@ -1,6 +1,6 @@
 import { ClassDeclaration, Node, Scope, Type } from 'ts-morph';
 
-import { EntityRef } from './entity-ref';
+import { EntityRef } from './entity-ref.js';
 
 export interface ServiceFeatures {
     findOne: boolean;

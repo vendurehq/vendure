@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CliTestProject, createTestProject } from './cli-test-utils';
+import { CliTestProject, createTestProject } from './cli-test-utils.js';
 
 describe('CLI Console Command E2E', () => {
     let testProject: CliTestProject;

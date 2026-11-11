@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { CliLogLevel } from './types';
+import { CliLogLevel } from './types.js';
 
 let logLevel: CliLogLevel = 'info';
 

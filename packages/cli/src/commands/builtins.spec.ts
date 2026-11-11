@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { runCli } from '../shared/__tests__/run-cli';
-import { assertCliPlugin } from '../shared/cli-plugin';
+import { runCli } from '../shared/__tests__/run-cli.js';
+import { assertCliPlugin } from '../shared/cli-plugin.js';
 
-import { builtinCommandDefs } from './builtins';
-import { migrateCommandDef } from './migrate/command';
+import { builtinCommandDefs } from './builtins.js';
+import { migrateCommandDef } from './migrate/command.js';
 
 describe('builtinCommandDefs', () => {
     /**

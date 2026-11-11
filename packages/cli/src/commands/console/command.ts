@@ -1,7 +1,7 @@
-import { CliCommandContext, CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandContext, CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
-import { ConsoleLinkHookRegistration } from './console-link-hook';
+import { ConsoleLinkHookRegistration } from './console-link-hook.js';
 
 export const consoleCommandDef: CliCommandDefinition = {
     name: 'console',
@@ -57,7 +57,7 @@ export const consoleCommandDef: CliCommandDefinition = {
     ],
     action: async (action, options, _command, context: CliCommandContext) => {
         return runCliCommand(async () => {
-            const { consoleCommand } = await import('./console');
+            const { consoleCommand } = await import('./console.js');
             const hooks = context
                 .getPluginExtensions<ConsoleLinkHookRegistration>('afterConsoleLink')
                 .map(({ pluginId, extension }) =>

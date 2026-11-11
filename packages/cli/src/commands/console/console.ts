@@ -4,8 +4,8 @@ import {
     NotLoggedInError,
     ReauthenticationRequiredError,
     SessionRejectedError,
-} from '../../auth/auth-errors';
-import { AuthOptions } from '../../auth/auth-options';
+} from '../../auth/auth-errors.js';
+import { AuthOptions } from '../../auth/auth-options.js';
 import {
     getAccessToken,
     listOrganizations,
@@ -13,30 +13,30 @@ import {
     readAuthStatus,
     refreshAccessToken,
     scopeStoredLogin,
-} from '../../auth/auth-session';
-import { StoredOrganization } from '../../auth/auth-store';
-import { AuthOrganization, OrganizationNotFoundError, describeOrganizations } from '../../auth/console-api';
-import { CliCommandExit } from '../../shared/cli-command-exit';
-import { isNonInteractiveEnvironment } from '../../utilities/utils';
+} from '../../auth/auth-session.js';
+import { StoredOrganization } from '../../auth/auth-store.js';
+import { AuthOrganization, OrganizationNotFoundError, describeOrganizations } from '../../auth/console-api.js';
+import { CliCommandExit } from '../../shared/cli-command-exit.js';
+import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
-import { openConsoleBrowser } from './authentication';
-import { ConsoleSession } from './cli-auth';
+import { openConsoleBrowser } from './authentication.js';
+import { ConsoleSession } from './cli-auth.js';
 import {
     ConsoleLinkContext,
     ConsoleLinkOutcome,
     ConsoleSessionUnavailableReason,
     RegisteredConsoleLinkHook,
-} from './console-link-hook';
+} from './console-link-hook.js';
 import {
     ConsoleOrigins,
     DEFAULT_CONSOLE_API_URL,
     DEFAULT_CONSOLE_URL,
     officialConsoleEnvironment,
     trustedConsoleOrigins,
-} from './console-origins';
-import { ConsoleReporter } from './console-reporter';
-import { ConsoleCommandResult, ConsoleLinkResultContribution, ConsoleMissingInput } from './console-result';
-import { ensureProjectLinkGitignore } from './project-link-gitignore';
+} from './console-origins.js';
+import { ConsoleReporter } from './console-reporter.js';
+import { ConsoleCommandResult, ConsoleLinkResultContribution, ConsoleMissingInput } from './console-result.js';
+import { ensureProjectLinkGitignore } from './project-link-gitignore.js';
 import {
     ManifestReadResult,
     PROJECT_LINK_MANIFEST_RELATIVE_PATH,
@@ -47,8 +47,8 @@ import {
     resolveProjectRoot,
     withConsoleOrigins,
     writeProjectLinkManifestAtomic,
-} from './project-link-manifest';
-import { nonEmptyString, objectValue, uuid } from './project-link-validation';
+} from './project-link-manifest.js';
+import { nonEmptyString, objectValue, uuid } from './project-link-validation.js';
 import {
     TelemetryAttribution,
     ensureTelemetryInstallationId,
@@ -56,7 +56,7 @@ import {
     readTelemetryAttribution,
     removeTelemetryAttribution,
     writeTelemetryAttribution,
-} from './telemetry-attribution';
+} from './telemetry-attribution.js';
 
 const PROJECTS_PATH = '/v1/projects';
 const REQUEST_TIMEOUT_MS = 10_000;

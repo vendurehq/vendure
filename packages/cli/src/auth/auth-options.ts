@@ -1,7 +1,7 @@
 import path from 'node:path';
 
-import { DEFAULT_CONSOLE_API_URL, classifyConsoleApiOrigin } from '../commands/console/console-origins';
-import { getVendureCliConfigDir } from '../shared/cli-config-dir';
+import { DEFAULT_CONSOLE_API_URL, classifyConsoleApiOrigin } from '../commands/console/console-origins.js';
+import { getVendureCliConfigDir } from '../shared/cli-config-dir.js';
 
 /**
  * Seams for the CLI login. Every field is optional and defaults to the real
