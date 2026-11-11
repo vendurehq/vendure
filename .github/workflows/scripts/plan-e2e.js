@@ -47,13 +47,14 @@ function planE2e(projects) {
  * @returns {string[]}
  */
 function listE2eProjects(nxCommand) {
-    const args = ['nx', 'show', 'projects', '--withTarget', 'e2e', '--json'];
+    // Runs the Nx CLI with the current Node binary, so that the command does not depend on PATH.
+    const args = [require.resolve('nx/bin/nx.js'), 'show', 'projects', '--withTarget', 'e2e', '--json'];
     if (nxCommand === 'affected') {
         args.push('--affected');
     } else if (nxCommand !== 'run-many') {
         throw new Error(`Unknown Nx command "${nxCommand}". Use "affected" or "run-many".`);
     }
-    return JSON.parse(execFileSync('bun', ['run', ...args], { encoding: 'utf8' }));
+    return JSON.parse(execFileSync(process.execPath, args, { encoding: 'utf8' }));
 }
 
 if (require.main === module) {

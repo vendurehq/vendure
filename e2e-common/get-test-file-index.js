@@ -43,7 +43,7 @@ function listTestFiles(packageRoot) {
         }
     };
     walk('');
-    return files.sort();
+    return files.sort((a, b) => a.localeCompare(b));
 }
 
 module.exports = { getTestFileIndex, listTestFiles };
