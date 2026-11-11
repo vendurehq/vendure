@@ -448,6 +448,25 @@ describe('runPluginConfigurations() with strategy layers', () => {
         expect(await callOrder(config)).toEqual(['Layer300', 'Replaced']);
     });
 
+    it('warns about a lost removal and a lost priority when a plugin replaces a chain', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        @VendurePlugin({
+            configuration: cfg => {
+                cfg.orderOptions.orderItemPriceCalculationStrategy = new TestBasePrice('Replaced');
+                return cfg;
+            },
+        })
+        class ReplacingPlugin {}
+
+        const projectStrategy = removeLayer(setLayerPriority(new TestBasePrice(), Layer300, 50), Layer200);
+        await runPluginConfigurations(makeLayerConfig([Plugin100, ReplacingPlugin], projectStrategy));
+        expect(warn).toHaveBeenCalledWith(
+            'The plugin "ReplacingPlugin" replaced "orderOptions.orderItemPriceCalculationStrategy" and ' +
+                'dropped the layers Layer100 and the removal of Layer200 and the priority of Layer300. ' +
+                'To change only the base strategy, use replaceBase(). To add a layer, use composeStrategy().',
+        );
+    });
+
     it('keeps the layers when a plugin uses replaceBase()', async () => {
         const warn = vi.spyOn(Logger, 'warn');
         @VendurePlugin({

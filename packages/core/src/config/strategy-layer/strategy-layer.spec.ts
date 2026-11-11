@@ -153,6 +153,42 @@ describe('pass-through', () => {
     });
 });
 
+describe('members of the composed strategy', () => {
+    class MemberStrategy implements GreetingStrategy {
+        readonly code = 'member-code';
+        private readonly prefix = 'hello';
+        get description() {
+            return `${this.prefix} from ${this.code}`;
+        }
+        greet(name: string) {
+            return [`${this.prefix} ${name}`];
+        }
+        farewell() {
+            return this === base ? 'this is the base' : 'this is not the base';
+        }
+    }
+    const base = new MemberStrategy();
+    const composed = composeStrategy(Layer100, Layer200, base) as GreetingStrategy & MemberStrategy;
+
+    it('gives the value of a plain property of the base', () => {
+        expect(composed.code).toBe(base.code);
+    });
+
+    it('gives the value of a getter of the base', () => {
+        expect(composed.description).toBe('hello from member-code');
+    });
+
+    it('does not have an optional method that the base does not define', () => {
+        expect(typeof composed.shout).toBe('undefined');
+        expect('shout' in composed).toBe(false);
+    });
+
+    it('calls a method of the base with the base as `this`', () => {
+        expect(composed.farewell()).toBe('this is the base');
+        expect(composed.greet('a')).toEqual(['100', '200', 'hello a']);
+    });
+});
+
 describe('removeLayer()', () => {
     it('removes a layer that is added later', () => {
         const removed = removeLayer(new BaseGreeting(), Layer200);
@@ -202,6 +238,12 @@ describe('replaceBase()', () => {
         const removed = removeLayer(new BaseGreeting(), Layer100);
         const replaced = replaceBase(removed, new BaseGreeting('other'));
         expect(composeStrategy(Layer100, replaced).greet('a')).toEqual(['other:a']);
+    });
+
+    it('keeps the recorded priorities', () => {
+        const prioritised = setLayerPriority(new BaseGreeting(), Layer100, 250);
+        const replaced = replaceBase(prioritised, new BaseGreeting('other'));
+        expect(composeStrategy(Layer100, Layer200, replaced).greet('a')).toEqual(['200', '100', 'other:a']);
     });
 
     it('returns the new base if the strategy is not composed', () => {
