@@ -103,7 +103,10 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t build
+              # Each unit and e2e test depends on @vendure/testing, which a change to a plugin does not affect.
+              run: |
+                  bun run nx "$NX_COMMAND" -t build
+                  bun run nx run @vendure/testing:build
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
