@@ -2,6 +2,7 @@
     "$schema": "./node_modules/nx/schemas/nx-schema.json",
     "defaultBase": "master",
     "neverConnectToCloud": true,
+    "maxCacheSize": "1GB",
     "pluginsConfig": {
         "@nx/js": {
             "analyzeSourceFiles": false
@@ -57,28 +58,38 @@
         },
         "test": {
             "dependsOn": [
-                "^ci",
+                "^build",
                 {
                     "projects": ["@vendure/testing"],
-                    "target": "ci"
+                    "target": "build"
                 }
             ],
             "inputs": [
                 "default",
                 "^production",
                 "{workspaceRoot}/vitest.shared.mts",
-                "{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts"
-            ]
+                "{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts",
+                { "runtime": "node --version" }
+            ],
+            "cache": true
         },
         "e2e": {
             "dependsOn": [
-                "^ci",
+                "^build",
                 {
                     "projects": ["@vendure/testing"],
-                    "target": "ci"
+                    "target": "build"
                 }
             ],
-            "inputs": ["default", "^production", "{workspaceRoot}/e2e-common/**/*"]
+            "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/e2e-common/**/*",
+                "{workspaceRoot}/.github/workflows/build_and_test.yml",
+                { "env": "DB" },
+                { "runtime": "node --version" }
+            ],
+            "cache": true
         },
         "watch": {
             "continuous": true
