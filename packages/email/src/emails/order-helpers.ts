@@ -117,9 +117,8 @@ export async function findSampleOrderWithTarget(
 ): Promise<{ order: Order; targetId: string } | undefined> {
     const pick = (order: Order, anyState: boolean) => {
         const all = targets(order);
-        const wanted = args.target
-            ? all.find(t => t.id === args.target)
-            : (all.find(t => t.eligible) ?? (anyState ? all[0] : undefined));
+        const fallback = anyState ? all[0] : undefined;
+        const wanted = args.target ? all.find(t => t.id === args.target) : (all.find(t => t.eligible) ?? fallback);
         return wanted ? { order, targetId: wanted.id } : undefined;
     };
     if (args.order) {

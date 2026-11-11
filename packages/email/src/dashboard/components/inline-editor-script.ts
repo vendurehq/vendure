@@ -42,8 +42,10 @@ function editorScript(source: string, dashboardOrigin: string) {
     const channel = new MessageChannel();
     const port = channel.port1;
     const post = (message: Record<string, unknown>) => port.postMessage({ source, ...message });
-    const slotOf = (node: Node | null): HTMLElement | null =>
-        node ? ((node instanceof HTMLElement ? node : node.parentElement)?.closest('[data-email-slot]') ?? null) : null;
+    const slotOf = (node: Node | null): HTMLElement | null => {
+        const element = node instanceof HTMLElement ? node : node?.parentElement;
+        return element?.closest<HTMLElement>('[data-email-slot]') ?? null;
+    };
     const pill = (name: string) => {
         const span = document.createElement('span');
         span.dataset.emailVariable = name;
@@ -84,7 +86,8 @@ function editorScript(source: string, dashboardOrigin: string) {
         element.addEventListener('keydown', event => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                // A plain line break, which the email keeps with white-space: pre-line.
+                // A plain line break, which the email keeps with white-space: pre-line. execCommand is
+                // deprecated, but it is the only way to insert text that keeps the browser's undo history.
                 if (element.dataset.emailMultiline === 'true') {
                     document.execCommand('insertText', false, '\n');
                 }

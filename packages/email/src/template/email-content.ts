@@ -113,7 +113,7 @@ export function computeEmailVariables(
     context: { languageCode: string; channelCode: string },
 ): Record<string, string> {
     const result: Record<string, string> = {};
-    const all = { ...builtInEmailVariables, ...(template.variables ?? {}) };
+    const all = { ...builtInEmailVariables, ...template.variables };
     for (const [name, variable] of Object.entries(all)) {
         let value: unknown;
         try {
@@ -135,11 +135,11 @@ export function computeEmailVariables(
  * @since 4.0.0
  */
 export function listEmailVariables(template: EmailTemplate): Array<{ name: string; label: string }> {
-    const all = { ...builtInEmailVariables, ...(template.variables ?? {}) };
+    const all = { ...builtInEmailVariables, ...template.variables };
     return Object.entries(all).map(([name, variable]) => ({ name, label: variable.label }));
 }
 
-const PLACEHOLDER_NAMES = /\{\{\{?\s*([^}\s]+)\s*\}?\}\}/g;
+const PLACEHOLDER_NAMES = /\{\{\{?\s*([^{}\s]+)\s*\}?\}\}/g;
 
 /**
  * @description

@@ -343,7 +343,8 @@ function storedContentLine(origins: Record<string, string> | undefined): string[
         return [];
     }
     // Text stored in the Dashboard beats the template's default text, so editing the .tsx default has no effect on these.
-    return [`Text:     stored in the Dashboard for ${stored.map(([name, origin]) => `${name} (${origin})`).join(', ')}`];
+    const slots = stored.map(([name, origin]) => `${name} (${origin})`).join(', ');
+    return [`Text:     stored in the Dashboard for ${slots}`];
 }
 
 function mailboxUrl(options: Options) {

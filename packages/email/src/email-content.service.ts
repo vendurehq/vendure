@@ -79,7 +79,7 @@ export class EmailContentService {
         const channelId = this.channelIdFor(ctx, input.scope);
         const repository = this.connection.getRepository(ctx, EmailContentOverride);
         const existing = await this.findRow(ctx, input.type, input.languageCode, channelId);
-        const merged: Record<string, string> = { ...(existing?.content ?? {}) };
+        const merged: Record<string, string> = { ...existing?.content };
         for (const [name, text] of Object.entries(input.content)) {
             if (typeof text === 'string' && text.trim() !== '') {
                 merged[name] = text;

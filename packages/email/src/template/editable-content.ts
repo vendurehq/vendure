@@ -18,7 +18,7 @@ export function markEditableContent(
     raw: Record<string, string>,
     multiline: ReadonlySet<string> = new Set(),
 ): string {
-    const segments = html.split(/(<[^>]*>)/);
+    const segments = html.split(/(<[^<>]*>)/);
     let inTitle = false;
     return segments
         .map(segment => {
@@ -45,13 +45,13 @@ function slotSpan(name: string, text: string, multiline: boolean): string {
 
 /** Escapes the text and wraps each `{{ variable }}` in a pill the editor treats as one unit. */
 export function withVariablePills(text: string): string {
-    const parts = text.split(/(\{\{\{?\s*[^}\s]+\s*\}?\}\})/);
+    const parts = text.split(/(\{\{\{?\s*[^{}\s]+\s*\}?\}\})/);
     return parts
         .map((part, i) => {
             if (i % 2 === 0) {
                 return escapeHtml(part);
             }
-            const name = /\{\{\{?\s*([^}\s]+)\s*\}?\}\}/.exec(part)?.[1] ?? '';
+            const name = /\{\{\{?\s*([^{}\s]+)\s*\}?\}\}/.exec(part)?.[1] ?? '';
             return `<span data-email-variable="${escapeHtml(name)}" contenteditable="false">{{ ${escapeHtml(name)} }}</span>`;
         })
         .join('');
