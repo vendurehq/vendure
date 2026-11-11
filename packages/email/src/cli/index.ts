@@ -62,16 +62,7 @@ export const emailCliCommands: Command[] = [
             const options = readOptions(args);
             return run(options, async client => {
                 const result = await client.get('/emails');
-                print(options, result, () =>
-                    result.emails
-                        .map(
-                            (e: any) =>
-                                `${e.type.padEnd(24)} ${String(e.label).padEnd(30)} ${String(e.event).padEnd(34)}${
-                                    e.orderSend ? ' order page' : ''
-                                }${e.sample ? '' : ' (no sample)'}`,
-                        )
-                        .join('\n'),
-                );
+                print(options, result, () => formatEmailList(result.emails));
                 return 0;
             });
         },
@@ -112,7 +103,9 @@ export const emailCliCommands: Command[] = [
                 await fs.writeFile(htmlPath, result.email.html);
                 await fs.writeFile(textPath, result.email.text ?? '');
                 const { html, ...email } = result.email;
-                const previewUrl = options.preview ? previewUrlFor(options, type, result.languageCode, toEmailRequest(type, options).args) : undefined;
+                const previewUrl = options.preview
+                    ? previewUrlFor(options, type, result.languageCode, toEmailRequest(type, options).args)
+                    : undefined;
                 const output = {
                     ...(previewUrl ? { previewUrl } : {}),
                     ok: true,
@@ -323,9 +316,29 @@ type Options = Record<string, any>;
  * Commander passes the parsed options third from the end of the action's arguments, followed by the
  * Command and the CLI's context object.
  */
+/** One line per email for `vendure email list`, from the dev API's `/emails` response. */
+export function formatEmailList(
+    emails: Array<{
+        type: string;
+        label: string;
+        event: string;
+        hasSample: boolean;
+        canSendFromOrder: boolean;
+    }>,
+): string {
+    return emails
+        .map(e => {
+            const flags = [e.canSendFromOrder ? 'order page' : '', e.hasSample ? '' : '(no sample)'].filter(
+                Boolean,
+            );
+            return `${e.type.padEnd(24)} ${e.label.padEnd(30)} ${e.event.padEnd(34)} ${flags.join(' ')}`.trimEnd();
+        })
+        .join('\n');
+}
+
 function readOptions(args: unknown[]): Options {
     const options = args[args.length - 3];
-    return options && typeof options === 'object' && !Array.isArray(options) ? (options) : {};
+    return options && typeof options === 'object' && !Array.isArray(options) ? options : {};
 }
 
 function toEmailRequest(type: string, options: Options) {
@@ -338,7 +351,9 @@ function toEmailRequest(type: string, options: Options) {
 }
 
 function storedContentLine(origins: Record<string, string> | undefined): string[] {
-    const stored = Object.entries(origins ?? {}).filter(([, origin]) => origin === 'channel' || origin === 'all-channels');
+    const stored = Object.entries(origins ?? {}).filter(
+        ([, origin]) => origin === 'channel' || origin === 'all-channels',
+    );
     if (!stored.length) {
         return [];
     }
@@ -348,7 +363,10 @@ function storedContentLine(origins: Record<string, string> | undefined): string[
 }
 
 function mailboxUrl(options: Options) {
-    return String(options.url ?? process.env.VENDURE_MAILBOX_URL ?? 'http://localhost:3000/mailbox').replace(/\/$/, '');
+    return String(options.url ?? process.env.VENDURE_MAILBOX_URL ?? 'http://localhost:3000/mailbox').replace(
+        /\/$/,
+        '',
+    );
 }
 
 function previewUrlFor(options: Options, type: string, languageCode: string, args: Record<string, string>) {
@@ -363,7 +381,9 @@ function previewUrlFor(options: Options, type: string, languageCode: string, arg
 export async function defaultEmailTypes(): Promise<string[]> {
     const emailsDir = path.join(packageRoot(), 'src/emails');
     const entries = await fs.readdir(emailsDir, { withFileTypes: true });
-    return entries.filter(e => e.isDirectory() && existsSync(path.join(emailsDir, e.name, 'template.tsx'))).map(e => e.name);
+    return entries
+        .filter(e => e.isDirectory() && existsSync(path.join(emailsDir, e.name, 'template.tsx')))
+        .map(e => e.name);
 }
 
 function packageRoot() {
@@ -397,13 +417,16 @@ export async function ejectTemplate(type: string, dir: string, force: boolean, c
     }
     // Imports of the package internals ('../../components/...') become one import of '@vendure/email'.
     const names = new Set<string>();
-    const body = template.replace(/import\s*\{([^}]*)\}\s*from\s*'\.\.\/\.\.\/[^']+';\n?/g, (_m, list: string) => {
-        list.split(',')
-            .map(n => n.trim())
-            .filter(Boolean)
-            .forEach(n => names.add(n));
-        return '';
-    });
+    const body = template.replace(
+        /import\s*\{([^}]*)\}\s*from\s*'\.\.\/\.\.\/[^']+';\n?/g,
+        (_m, list: string) => {
+            list.split(',')
+                .map(n => n.trim())
+                .filter(Boolean)
+                .forEach(n => names.add(n));
+            return '';
+        },
+    );
     const header =
         `// Ejected from @vendure/email. Edit freely: this file is now owned by the project.\n` +
         `import { ${[...names].sort((a, b) => a.localeCompare(b)).join(', ')} } from '@vendure/email';\n`;
