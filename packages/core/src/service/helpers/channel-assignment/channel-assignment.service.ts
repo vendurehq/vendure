@@ -1,7 +1,7 @@
-import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { EntityMetadata, In } from 'typeorm';
+import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
@@ -22,6 +22,8 @@ export interface ChannelAssignmentMetadata {
     target: Type<ChannelAssignment>;
     /** The property holding the owning entity's id, e.g. `productId` */
     entityIdProperty: string;
+    /** The ChannelAware entity, e.g. `Product` */
+    entityType: Type<any>;
     /**
      * The top-level properties holding per-channel data, e.g. `['enabled']`. Columns in an
      * embedded (such as `customFields`) are grouped under the embedded's property.
@@ -256,10 +258,36 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             relations: findOptionsArrayToObject(meta.dataRelations),
         });
         if (!row) {
+            Logger.warn(
+                `Channel-scoped custom fields of ${entityType.name} ${String(entityId)} were not saved, ` +
+                    `because it is not assigned to Channel ${String(channelId)}`,
+            );
             return;
         }
         row.customFields = { ...row.customFields, ...values };
         await repo.save(row, { reload: false });
+    }
+
+    /**
+     * @description
+     * Returns the values of the entity's channel-scoped custom fields in the active Channel. A field
+     * is `null` if the entity is not assigned to the Channel or the value is not set. Relation fields
+     * are resolved separately, by the GraphQL relation resolver.
+     */
+    async getCustomFieldValues(
+        ctx: RequestContext,
+        entityName: string,
+        entityId: ID | undefined,
+        fieldNames: string[],
+    ): Promise<Record<string, unknown>> {
+        const meta = this.getMetadataByEntityName(entityName);
+        const row: any =
+            meta && entityId != null ? await this.getAssignment(ctx, meta.entityType, entityId) : undefined;
+        const result: Record<string, unknown> = {};
+        for (const name of fieldNames) {
+            result[name] = row?.customFields?.[name] ?? null;
+        }
+        return result;
     }
 
     /**
@@ -300,6 +328,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         }
         return {
             target: assignment.target as Type<ChannelAssignment>,
+            entityType,
             entityIdProperty: `${options.entityProperty}Id`,
             dataProperties: Array.from(dataProperties),
             dataRelations: assignment.relations.filter(r => r.embeddedMetadata).map(r => r.propertyPath),

@@ -484,18 +484,8 @@ function registerChannelScopedCustomFields(config: VendureConfig, entityName: st
         ([, options]) => options.entity().name === entityName,
     )?.[0];
     if (!assignmentEntity) {
-        throw new Error(
-            `ERROR: The custom fields ${channelScoped.map(f => `"${f.name}"`).join(', ')} on "${entityName}" ` +
-                'have "channelScoped: true", which is only supported on ChannelAware entities.',
-        );
-    }
-    for (const field of channelScoped) {
-        if (isLocalizedCustomFieldType(field.type) || field.unique === true) {
-            throw new Error(
-                `ERROR: The custom field "${entityName}.${field.name}" cannot combine "channelScoped: true" ` +
-                    'with a localized type or "unique: true".',
-            );
-        }
+        // Reported by validateCustomFieldsConfig()
+        return;
     }
     const metadataArgsStorage = getMetadataArgsStorage();
     let embedded = metadataArgsStorage.embeddeds.find(

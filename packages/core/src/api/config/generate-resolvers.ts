@@ -20,6 +20,7 @@ import {
 import { Logger } from '../../config/logger/vendure-logger';
 import { Region } from '../../entity/region/region.entity';
 import { getPluginAPIExtensions } from '../../plugin/plugin-metadata';
+import { ChannelAssignmentService } from '../../service/helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationResolverService } from '../common/custom-field-relation-resolver.service';
 import { ApiType } from '../common/get-api-type';
 import { internal_getRequestContext } from '../common/request-context';
@@ -36,6 +37,7 @@ import { GraphQLMoney } from './money-scalar';
 export async function generateResolvers(
     configService: ConfigService,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    channelAssignmentService: ChannelAssignmentService,
     apiType: ApiType,
     schema: GraphQLSchema,
 ) {
@@ -155,6 +157,7 @@ export async function generateResolvers(
     const customFieldResolvers = generateCustomFieldResolvers(
         configService,
         customFieldRelationResolverService,
+        channelAssignmentService,
         schema,
     );
 
@@ -192,6 +195,7 @@ export async function generateResolvers(
 function generateCustomFieldResolvers(
     configService: ConfigService,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    channelAssignmentService: ChannelAssignmentService,
     schema: GraphQLSchema,
 ) {
     const ENTITY_ID_KEY = '__entityId__';
@@ -218,9 +222,13 @@ function generateCustomFieldResolvers(
         const channelScopedFieldNames = customFields
             .filter(f => f.channelScoped && !isRelationalType(f))
             .map(f => f.name);
-        const customFieldResolver: IFieldResolver<any, any> = async (source: any, args: any, context: any) => {
+        const customFieldResolver: IFieldResolver<any, any> = async (
+            source: any,
+            args: any,
+            context: any,
+        ) => {
             const channelScopedValues = channelScopedFieldNames.length
-                ? await customFieldRelationResolverService.getChannelScopedValues(
+                ? await channelAssignmentService.getCustomFieldValues(
                       internal_getRequestContext(context.req),
                       entityName,
                       source.id,

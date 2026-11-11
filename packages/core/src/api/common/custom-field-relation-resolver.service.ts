@@ -9,8 +9,8 @@ import { RelationCustomFieldConfig } from '../../config/custom-field/custom-fiel
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { VendureEntity } from '../../entity/base/base.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
-import { ProductPriceApplicator } from '../../service/helpers/product-price-applicator/product-price-applicator';
 import { ChannelAssignmentService } from '../../service/helpers/channel-assignment/channel-assignment.service';
+import { ProductPriceApplicator } from '../../service/helpers/product-price-applicator/product-price-applicator';
 import { TranslatorService } from '../../service/helpers/translator/translator.service';
 
 import { RequestContext } from './request-context';
@@ -31,34 +31,6 @@ export class CustomFieldRelationResolverService {
         private translator: TranslatorService,
         private channelAssignmentService: ChannelAssignmentService,
     ) {}
-
-    /**
-     * @description
-     * Returns the values of the entity's channel-scoped custom fields in the active Channel, read
-     * from its channel assignment row. Fields are `null` if the entity is not assigned to the
-     * Channel. Relation fields are left to {@link resolveRelation}.
-     */
-    async getChannelScopedValues(
-        ctx: RequestContext,
-        entityName: string,
-        entityId: ID | undefined,
-        fieldNames: string[],
-    ): Promise<Record<string, unknown>> {
-        const dataSource = this.connection.rawConnection;
-        const row: any =
-            entityId != null && this.channelAssignmentService.getMetadataByEntityName(entityName)
-                ? await this.channelAssignmentService.getAssignment(
-                      ctx,
-                      dataSource.getMetadata(entityName).target as any,
-                      entityId,
-                  )
-                : undefined;
-        const result: Record<string, unknown> = {};
-        for (const name of fieldNames) {
-            result[name] = row?.customFields?.[name] ?? null;
-        }
-        return result;
-    }
 
     /**
      * @description
@@ -107,8 +79,13 @@ export class CustomFieldRelationResolverService {
         fieldDef: RelationCustomFieldConfig,
     ): DataLoader<ID, VendureEntity[]> {
         const cacheKey = `CustomFieldRelationLoader:${entityName}:${fieldDef.name}`;
-        return this.requestCache.get(ctx, cacheKey, () =>
-            new DataLoader<ID, VendureEntity[]>(ids => this.batchLoad(ctx, entityName, fieldDef, ids as ID[])),
+        return this.requestCache.get(
+            ctx,
+            cacheKey,
+            () =>
+                new DataLoader<ID, VendureEntity[]>(ids =>
+                    this.batchLoad(ctx, entityName, fieldDef, ids as ID[]),
+                ),
         );
     }
 
@@ -123,22 +100,18 @@ export class CustomFieldRelationResolverService {
         const assignment = fieldDef.channelScoped
             ? this.channelAssignmentService.getMetadataByEntityName(entityName)
             : undefined;
-        const mappingQb = assignment
-            ? this.connection
-                  .getRepository(ctx, assignment.target)
-                  .createQueryBuilder('entity')
-                  .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
-                  .select(`entity.${assignment.entityIdProperty}`, 'entity_id')
-                  .addSelect('relationEntity.id', 'relation_id')
-                  .where(`entity.${assignment.entityIdProperty} IN (:...ids)`, { ids })
-                  .andWhere('entity.channelId = :channelId', { channelId: ctx.channelId })
-            : this.connection
-                  .getRepository(ctx, entityName)
-                  .createQueryBuilder('entity')
-                  .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
-                  .select('entity.id', 'entity_id')
-                  .addSelect('relationEntity.id', 'relation_id')
-                  .where('entity.id IN (:...ids)', { ids });
+        // Only the queried table, its id column and the Channel condition differ
+        const idColumn = assignment ? `entity.${assignment.entityIdProperty}` : 'entity.id';
+        const mappingQb = this.connection
+            .getRepository(ctx, assignment ? assignment.target : entityName)
+            .createQueryBuilder('entity')
+            .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
+            .select(idColumn, 'entity_id')
+            .addSelect('relationEntity.id', 'relation_id')
+            .where(`${idColumn} IN (:...ids)`, { ids });
+        if (assignment) {
+            mappingQb.andWhere('entity.channelId = :channelId', { channelId: ctx.channelId });
+        }
 
         const rawMappings = await mappingQb.getRawMany();
 

@@ -91,12 +91,19 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     /**
      * @description
      * If set to `true`, the field holds a separate value per Channel. It is only supported on
-     * {@link ChannelAware} entities: the value is stored on the entity's channel assignment row
-     * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value of the
-     * active Channel. When the entity is assigned to another Channel, the value is copied from
-     * the Channel it is assigned from.
+     * {@link ChannelAware} entities which have a channel assignment entity (see
+     * `ChannelAssignment`), e.g. `Product`: the value is stored on the entity's row for each Channel
+     * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value in the active
+     * Channel.
      *
-     * Not supported on `localeString`/`localeText` fields, or with `unique`.
+     * - A value which is not set in a Channel reads `null`. There is no fallback to another
+     *   Channel's value or to `defaultValue`.
+     * - When the entity is assigned to another Channel with `ChannelService.assignToChannels()`,
+     *   the new Channel starts with the values of an existing assignment: the active Channel's if
+     *   the entity is assigned to it, otherwise the default Channel's, otherwise any.
+     * - Removing the entity from a Channel deletes its values in that Channel.
+     *
+     * Not supported with localized types, `struct`, `list: true` relations, `unique` or `secret`.
      *
      * @since 4.0.0
      * @default false

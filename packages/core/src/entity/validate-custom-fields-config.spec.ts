@@ -280,4 +280,60 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.valid).toBe(true);
         expect(result.errors).toEqual([]);
     });
+
+    describe('channelScoped', () => {
+        it('accepts channel-scoped fields on an entity with a channel assignment entity', () => {
+            const config: CustomFields = {
+                Product: [
+                    { name: 'note', type: 'string', channelScoped: true, nullable: true },
+                    {
+                        name: 'featured',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        channelScoped: true,
+                    },
+                ],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities)).toEqual({ valid: true, errors: [] });
+        });
+
+        it('rejects channel-scoped fields on an entity without a channel assignment entity', () => {
+            const config: CustomFields = {
+                User: [{ name: 'note', type: 'string', channelScoped: true }],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
+                'User entity custom field(s) "note" have "channelScoped: true", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
+            ]);
+        });
+
+        it('rejects the field types and options which are not supported', () => {
+            const config: CustomFields = {
+                Product: [
+                    { name: 'localized', type: 'localeString', channelScoped: true },
+                    {
+                        name: 'structured',
+                        type: 'struct',
+                        fields: [{ name: 'a', type: 'string' }],
+                        channelScoped: true,
+                    },
+                    {
+                        name: 'many',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        list: true,
+                        channelScoped: true,
+                    },
+                    { name: 'uniqueValue', type: 'string', unique: true, channelScoped: true },
+                    { name: 'hidden', type: 'string', secret: true, channelScoped: true },
+                ],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
+                'Product entity custom field "localized" has "channelScoped: true", which does not support type "localeString"',
+                'Product entity custom field "structured" has "channelScoped: true", which does not support type "struct"',
+                'Product entity custom field "many" has "channelScoped: true", which does not support "list: true" relations',
+                'Product entity custom field "uniqueValue" has "channelScoped: true", which does not support "unique: true"',
+                'Product entity custom field "hidden" has "channelScoped: true", which does not support "secret: true"',
+            ]);
+        });
+    });
 });
