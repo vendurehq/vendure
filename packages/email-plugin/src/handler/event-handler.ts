@@ -390,6 +390,8 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         asyncHandler.defaultSubject = this.defaultSubject;
         asyncHandler.from = this.from;
         asyncHandler._mockEvent = this._mockEvent as any;
+        asyncHandler.setSubjectFn = this.setSubjectFn;
+        asyncHandler.setLanguageCodeFn = this.setLanguageCodeFn;
         return asyncHandler;
     }
 

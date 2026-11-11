@@ -1,7 +1,7 @@
 ---
 title: "Email & Notifications"
 metaTitle: "Email and Notification System in Vendure"
-metaDescription: "Set up transactional emails with Vendure's EmailPlugin using event-driven handlers, Nodemailer transports, and template variables. Also covers SMS and push."
+metaDescription: "Send transactional emails with @vendure/email: email definitions, React templates, branding, sending order emails from the Dashboard, and CLI tooling for rendering and testing emails. Also covers SMS and push."
 ---
 
 A typical ecommerce application needs to notify customers of certain events, such as when they place an order or
@@ -9,114 +9,564 @@ when their order has been shipped. This is usually done via email, but can also 
 
 ## Email
 
-Email is the most common way to notify customers of events, so a default Vendure installation includes our [EmailPlugin](/reference/core-plugins/email-plugin).
+Email is the most common way to notify customers of events, so a default Vendure installation includes the
+`EmailPlugin` from the `@vendure/email` package.
 
-The EmailPlugin by default uses [Nodemailer](https://nodemailer.com/about/) to send emails via a variety of
-different transports, including SMTP, SendGrid, Mailgun, and more.
-The plugin is configured with a list of [EmailEventHandlers](/reference/core-plugins/email-plugin/email-event-handler) which are responsible for
-sending emails in response to specific events.
+Each email is defined in code: which [event](/developer-guide/events/) sends it, who receives it, what data it needs,
+and a [React](https://react.dev/) template. Templates are rendered with [React Email](https://react.email/), and
+emails are sent with [Nodemailer](https://nodemailer.com/about/) over SMTP, SES, sendmail and other transports.
+
+The flow of an email is:
+
+1. Vendure publishes an event, for example an `OrderStateTransitionEvent` when a customer checks out.
+2. Each email that listens to that event runs its `filter`. If the filter passes, the email's `data` and `recipient`
+   functions run in the server process.
+3. The email is added to the job queue.
+4. The worker renders the template and sends the email.
 
 :::note
-This guide will cover some of the main concepts of the EmailPlugin, but for a more in-depth look at how to configure
-and use it, see the [EmailPlugin API docs](/reference/core-plugins/email-plugin).
+Vendure v3 projects used `@vendure/email-plugin`, with `EmailEventListener` handlers and Handlebars/MJML templates.
+That package still works on v4, but it is deprecated, only receives security fixes, and will be removed in v5.
+See [Email templates](/developer-guide/migrating-from-v3/email-templates) in the v4 migration guide.
 :::
 
-Here's an illustration of the flow of an email being sent:
+### Setup
 
-![Email plugin flow](./email-plugin-flow.webp)
-
-All emails are triggered by a particular [Event](/developer-guide/events/) - in this case when the state of an
-Order changes. The EmailPlugin ships with a set of [default email handlers](https://github.com/vendurehq/vendure/blob/master/packages/email-plugin/src/handler/default-email-handlers.ts),
-one of which is responsible for sending "order confirmation" emails.
-
-### EmailEventHandlers
-
-Let's take a closer look at a simplified version of the `orderConfirmationHandler`:
-
-```ts
-import { OrderStateTransitionEvent } from '@vendure/core';
-import { EmailEventListener, transformOrderLineAssetUrls, hydrateShippingLines } from '@vendure/email-plugin';
-
-// The 'order-confirmation' string is used by the EmailPlugin to identify
-// which template to use when rendering the email.
-export const orderConfirmationHandler = new EmailEventListener('order-confirmation')
-    .on(OrderStateTransitionEvent)
-    // Only send the email when the Order is transitioning to the
-    // "PaymentSettled" state and the Order has a customer associated with it.
-    .filter(
-        event =>
-            event.toState === 'PaymentSettled'
-            && !!event.order.customer,
-    )
-    // We commonly need to load some additional data to be able to render the email
-    // template. This is done via the `loadData()` method. In this method we are
-    // mutating the Order object to ensure that product images are correctly
-    // displayed in the email, as well as fetching shipping line data from the database.
-    .loadData(async ({ event, injector }) => {
-        transformOrderLineAssetUrls(event.ctx, event.order, injector);
-        const shippingLines = await hydrateShippingLines(event.ctx, event.order, injector);
-        return { shippingLines };
-    })
-    // Here we are setting the recipient of the email to be the
-    // customer's email address.
-    .setRecipient(event => event.order.customer!.emailAddress)
-    // We can interpolate variables from the EmailPlugin's configured
-    // `globalTemplateVars` object.
-    .setFrom('{{ fromAddress }}')
-    // We can also interpolate variables made available by the
-    // `setTemplateVars()` method below
-    .setSubject('Order confirmation for #{{ order.code }}')
-    // The object returned here defines the variables which are
-    // available to the email template.
-    .setTemplateVars(event => ({ order: event.order, shippingLines: event.data.shippingLines }))
-```
-
-To recap:
-
-- The handler listens for a specific event
-- It optionally filters those events to determine whether an email should be sent
-- It specifies the details of the email to be sent, including the recipient, subject, template variables, etc.
-
-The full range of methods available when setting up an EmailEventHandler can be found in the [EmailEventHandler API docs](/reference/core-plugins/email-plugin/email-event-handler).
-
-### Email variables
-
-In the example above, we used the `setTemplateVars()` method to define the variables which are available to the email template.
-Additionally, there are global variables which are made available to _all_ email templates & EmailEventHandlers. These are
-defined in the `globalTemplateVars` property of the EmailPlugin config:
+Projects created with `@vendure/create` are already set up. To add the plugin to an existing project, install
+`@vendure/email` and add the `EmailPlugin` to your config:
 
 ```ts title="src/vendure-config.ts"
 import { VendureConfig } from '@vendure/core';
-import { EmailPlugin } from '@vendure/email-plugin';
+import { defaultEmails, EmailPlugin } from '@vendure/email';
 
 export const config: VendureConfig = {
     // ...
     plugins: [
         EmailPlugin.init({
-            // ...
-            globalTemplateVars: { // [!code highlight]
-                fromAddress: '"MyShop" <noreply@myshop.com>', // [!code highlight]
-                verifyEmailAddressUrl: 'https://www.myshop.com/verify', // [!code highlight]
-                passwordResetUrl: 'https://www.myshop.com/password-reset', // [!code highlight]
-                changeEmailAddressUrl: 'https://www.myshop.com/verify-email-address-change', // [!code highlight]
-                adminPasswordResetUrl: 'https://my-server.com/dashboard/reset-password' // [!code highlight]
-            }, // [!code highlight]
+            emails: defaultEmails,
+            defaultFrom: '"MyShop" <noreply@myshop.com>',
+            globalTemplateVars: {
+                verifyEmailAddressUrl: 'https://www.myshop.com/verify',
+                passwordResetUrl: 'https://www.myshop.com/password-reset',
+                changeEmailAddressUrl: 'https://www.myshop.com/verify-email-address-change',
+                adminPasswordResetUrl: 'https://my-server.com/dashboard/reset-password',
+                branding: {
+                    name: 'MyShop',
+                    logoUrl: 'https://www.myshop.com/logo.png',
+                    primaryColor: '#0b7285',
+                    footerText: 'MyShop Ltd, 1 High Street, London',
+                },
+            },
+            transport: {
+                type: 'smtp',
+                host: 'smtp.example.com',
+                port: 587,
+                auth: { user: 'username', pass: 'password' },
+            },
         }),
     ],
 };
 ```
 
-:::note
-The `adminPasswordResetUrl` variable is used by the `adminPasswordResetHandler` (one of the default email handlers since v3.8.0)
-and should point to the password reset page of your Dashboard. If it is not set, the reset link in the
-"admin-password-reset" email will not work.
+The options are:
+
+- `emails`: the emails to send. `defaultEmails` is the built-in set.
+- `defaultFrom`: the "from" address of every email that does not set its own. It may contain `{{ path }}`
+  placeholders, filled from the template variables.
+- `globalTemplateVars`: variables available to every template, as an object or as a function of
+  `(ctx, injector)`. The default emails use the storefront URLs above and `branding`.
+- `transport`: how emails are sent. In development, use [dev mode](#developing-and-testing-emails) instead.
+- `templateLoader`: optional. See [Template loaders](#template-loaders).
+- `emailSender`: optional. Replaces the Nodemailer sender.
+- `orderHistory`: whether to add a private note to the order history for every email sent about an order. Defaults to `true`.
+
+Your `tsconfig.json` needs `"jsx": "react-jsx"`, and its `include` must cover `.tsx` files. Projects created with
+`@vendure/create` already have both.
+
+:::warning
+Don't configure the `EmailPlugin` of `@vendure/email-plugin` as well. Every email would be sent twice, so the server
+refuses to start.
 :::
+
+### Branding
+
+The default templates read the `branding` template variable:
+
+- `name`: the shop name. Shown in the header when there is no logo, and used as the logo's alt text.
+- `logoUrl`: the logo shown in the header.
+- `primaryColor`: the color of buttons and highlighted sections. Defaults to `#375a67`.
+- `primaryTextColor`: the text color on top of the primary color. Defaults to `#ffffff`.
+- `footerText`: shown in the footer of every email, for example the company address.
+
+For many shops, setting `branding` is all the customization needed.
+
+### The default emails
+
+| Type | Event | Sent when |
+|---|---|---|
+| `order-confirmation` | `OrderStateTransitionEvent` | An order transitions to PaymentSettled |
+| `order-shipped` | `FulfillmentStateTransitionEvent` | A fulfillment is shipped |
+| `order-delivered` | `FulfillmentStateTransitionEvent` | A fulfillment is delivered |
+| `order-cancelled` | `OrderStateTransitionEvent` | An order is cancelled |
+| `order-refunded` | `RefundStateTransitionEvent` | A refund is settled |
+| `payment-failed` | `PaymentStateTransitionEvent` | A payment is declined or fails with an error |
+| `email-verification` | `AccountRegistrationEvent` | A customer registers with an email address and password |
+| `password-reset` | `PasswordResetEvent` | A customer requests a password reset |
+| `admin-password-reset` | `AdministratorPasswordResetEvent` | An administrator requests a password reset |
+| `email-address-change` | `IdentifierChangeRequestEvent` | A customer requests to change their email address |
+
+The account emails link to the storefront pages set in `verifyEmailAddressUrl`, `passwordResetUrl` and
+`changeEmailAddressUrl`. The `admin-password-reset` email links to `adminPasswordResetUrl`, which should point to
+the password reset page of your Dashboard.
+
+Each default email is exported on its own, for example `orderConfirmationEmail`, together with its template, for
+example `OrderConfirmationTemplate`.
+
+### Customizing an email
+
+An email is a plain object created with `defineEmail()`. To change part of a default email, spread it and override
+the fields you want to change. Everything you don't override, such as the event, filter and data logic, still comes
+from the package, so fixes to it reach your project when you update.
+
+#### Editing the scaffolded files
+
+`@vendure/create` copies every default email into your project:
+
+```
+src/email/
+├── index.ts                   # exports `emails`, the list passed to EmailPlugin.init()
+├── order-confirmation/
+│   ├── definition.ts          # when it is sent, to whom, with which data
+│   └── template.tsx           # what it looks like
+├── order-shipped/
+│   ├── definition.ts
+│   └── template.tsx
+└── ...
+```
+
+Each `definition.ts` spreads the package default and sets the project's template:
+
+```ts title="src/email/order-shipped/definition.ts"
+import { defineEmail, orderShippedEmail as packageDefault } from '@vendure/email';
+
+import { OrderShippedTemplate } from './template';
+
+export const orderShippedEmail = defineEmail({
+    ...packageDefault,
+    template: OrderShippedTemplate,
+});
+```
+
+Edit `template.tsx` to change how the email looks. Override a field in `definition.ts` to change when it is sent or
+what data it gets. For example, to add data for the template:
+
+```ts title="src/email/order-shipped/definition.ts"
+export const orderShippedEmail = defineEmail({
+    ...packageDefault,
+    data: async input => ({
+        ...(await packageDefault.data!(input)),
+        loyaltyPoints: await input.injector.get(LoyaltyService).getPoints(input.ctx, input.event.fulfillment),
+    }),
+    template: OrderShippedTemplate,
+});
+```
+
+Then add `loyaltyPoints` to the template's props.
+
+#### Ejecting a default email
+
+If your project does not have a copy of an email yet, for example because you use `defaultEmails`, copy it with the
+CLI:
+
+```bash
+npx vendure email eject order-shipped
+```
+
+This writes `src/email/order-shipped/definition.ts` and `template.tsx`, in the same form as above. Then use the
+ejected definition in place of the package default in your `emails` list.
+
+#### Spreading a default in your config
+
+You can also customize a default email without copying any files:
+
+```ts title="src/vendure-config.ts"
+import { defaultEmails, defineEmail, EmailPlugin, orderShippedEmail } from '@vendure/email';
+
+import { MyOrderShippedTemplate } from './email/order-shipped-template';
+
+const myOrderShippedEmail = defineEmail({ ...orderShippedEmail, template: MyOrderShippedTemplate });
+
+EmailPlugin.init({
+    emails: defaultEmails.map(e => (e.type === 'order-shipped' ? myOrderShippedEmail : e)),
+    // ...
+}),
+```
+
+To stop sending an email, leave it out of the `emails` list.
+
+### Writing a template
+
+A template is created with `defineEmailTemplate()`. Its text goes in `content`, so admins can change it in the
+Dashboard. The values the text can include go in `variables`. The layout stays in `body`:
+
+```tsx title="src/email/order-shipped/template.tsx"
+import {
+    AddressBlock,
+    defineEmailTemplate,
+    EmailBranding,
+    EmailFulfillment,
+    EmailHeading,
+    EmailLayout,
+    EmailOrder,
+    EmailSection,
+    EmailText,
+    EmailTitle,
+    FulfillmentSummary,
+    orderVariables,
+    useEmailContent,
+} from '@vendure/email';
+
+export interface OrderShippedProps {
+    order: EmailOrder;
+    fulfillment: EmailFulfillment;
+    branding?: EmailBranding;
+}
+
+export const OrderShippedTemplate = defineEmailTemplate<OrderShippedProps>({
+    content: {
+        subject: { label: 'Subject', default: 'Your order #{{ orderCode }} is on its way' },
+        title: { label: 'Title', default: 'Your order is on its way' },
+        intro: {
+            label: 'Introduction',
+            default: 'Good news: items from order {{ orderCode }} have shipped.',
+            multiline: true,
+        },
+    },
+    variables: {
+        ...orderVariables<OrderShippedProps>(),
+        trackingCode: { label: 'Tracking number', value: ({ fulfillment }) => fulfillment.trackingCode },
+    },
+    body: ({ order, fulfillment, branding }) => {
+        const content = useEmailContent();
+        return (
+            <EmailLayout title={content.title} branding={branding}>
+                <EmailSection>
+                    <EmailTitle>{content.title}</EmailTitle>
+                    <EmailText>{content.intro}</EmailText>
+                </EmailSection>
+                <EmailSection>
+                    <EmailHeading>In this shipment</EmailHeading>
+                    <FulfillmentSummary fulfillment={fulfillment} />
+                </EmailSection>
+            </EmailLayout>
+        );
+    },
+});
+```
+
+- **`content`** has one entry per piece of text: a label for the Dashboard, the default text, and `multiline` for
+  longer text. A `subject` entry is used as the subject line. Templates without content can set `subject` directly,
+  as a function of the props or a string with `{{ path.to.value }}` placeholders.
+- **`variables`** are the values the text can include as `{{ name }}`. Each one turns the props into display text,
+  so amounts and dates are formatted in the email's language. `orderVariables()` adds `orderCode`,
+  `customerFirstName`, `customerFullName`, `orderTotal` and `orderDate`. Every email can also use `shopName`.
+- **`useEmailContent()`** returns the text with stored changes applied and variables filled in.
+
+Build templates from the components exported by `@vendure/email`: `EmailLayout` (always the root), `EmailSection`,
+`EmailTitle`, `EmailHeading`, `EmailText`, `EmailMutedText`, `EmailButton`, `Money`, `FormattedDate`,
+`OrderHighlights`, `OrderSummary`, `AddressBlock` and `FulfillmentSummary`. You can also use any
+[React Email component](https://react.email/docs/components/html).
+
+Things to know when writing templates:
+
+- **The props are plain data.** The props are the result of the definition's `data()` merged with the global template
+  variables. They pass through the job queue before the email is rendered, so dates arrive as ISO strings, and
+  entity getters and methods are gone. The order types (`EmailOrder`, `EmailOrderLine`, ...) describe the data the
+  order components need.
+- **Use inline styles.** Email clients ignore `<style>` blocks, external CSS and class names. Use `style` props.
+- **Image URLs must be absolute.** The default emails already make order line images absolute.
+- **Formatting follows the email's language.** `Money` and `FormattedDate` format amounts and dates in the language of the email.
+- **Plain text.** When `text` is not set, a plain text version is derived from the HTML.
+
+Use `EmailData<typeof myEmail>` to type a template's props from the definition it belongs to.
+
+### Editing the text in the Dashboard
+
+In **System > Emails**, select an email. The page has two modes:
+
+- **Edit text.** Click any text in the email to change it. The editable text shows its variables in curly brackets,
+  such as `{{ orderCode }}`, and the chips above the email insert a variable where the cursor is. The subject and the
+  inbox preview text are not part of the email body, so they have fields above it.
+- **Preview.** The email as it would be sent, with unsaved changes and the variables filled in. Order emails use the
+  latest order the email fits; enter an order code to preview another order. Nothing is sent.
+
+The design stays as it is in code.
+
+- **Language.** Text is stored per language. A language without stored text uses the template's default.
+- **Channel.** "Applies to" stores text for all channels, or for the active channel only. Text for a channel takes
+  precedence over text for all channels, which takes precedence over the default.
+- **Use default.** The list of changed text below the preview has a "Use default" button for each piece of text,
+  which removes the stored text so it falls back again.
+- **Validation.** Saving fails when the text uses a variable the email doesn't have.
+
+Editing the text needs the `UpdateSettings` permission, and viewing it needs `ReadSettings`.
+
+The text is stored in the `email_content_override` table. Generate a migration for it when you add `@vendure/email`
+to an existing project.
+
+Stored text takes precedence over the default text in a template file, so a change to the default in `template.tsx`
+has no effect on text that was edited in the Dashboard. `vendure email render` lists the text that comes from the
+Dashboard.
+
+### Writing a new email
+
+Create a definition and a template, then add the definition to your `emails` list:
+
+```ts title="src/email/welcome/definition.ts"
+import { AccountVerifiedEvent, Customer, TransactionalConnection } from '@vendure/core';
+import { defineEmail } from '@vendure/email';
+
+import { WelcomeTemplate } from './template';
+
+export const welcomeEmail = defineEmail({
+    type: 'welcome',
+    label: 'Welcome',
+    event: AccountVerifiedEvent,
+    data: ({ event }) => ({ firstName: event.customer.firstName }),
+    recipient: ({ event }) => event.customer.emailAddress,
+    template: WelcomeTemplate,
+    // Builds an event from database data, for previews and the CLI.
+    sample: async ({ ctx, injector, args }) => {
+        const customer = await injector
+            .get(TransactionalConnection)
+            .getRepository(ctx, Customer)
+            .findOne({ where: args.email ? { emailAddress: args.email } : {}, order: { createdAt: 'DESC' } });
+        return customer ? new AccountVerifiedEvent(ctx, customer) : undefined;
+    },
+});
+```
+
+The fields of `defineEmail()` are:
+
+| Field | Purpose |
+|---|---|
+| `type` | Unique name of the email, e.g. `'welcome'`. |
+| `label` | Name shown in the Dashboard and CLI. |
+| `event` | The event class that sends the email. |
+| `filter` | `event => boolean`. Return `false` to not send the email. |
+| `data` | `({ event, ctx, injector }) => data`. The template's data. Runs in the server process before the email is queued. |
+| `recipient` | Returns an address, or `{ to, cc?, bcc?, replyTo? }`. |
+| `languageCode` | The language of the email. Defaults to the language of the event's `RequestContext`. |
+| `from` | Overrides `defaultFrom`. May contain `{{ path }}` placeholders. |
+| `attachments` | Returns the attachments of the email. |
+| `metadata` | Returns metadata, passed on to the `EmailSendEvent`. An `orderId` in the metadata links the email to the order history. |
+| `template` | The template, created with `defineEmailTemplate()`. |
+| `sample` | Builds an event from database data for previews and the CLI. `args` come from `--arg key=value`. |
+| `orderSend` | Lets admins send the email from the order detail page. See below. |
+
+`recipient`, `languageCode`, `attachments` and `metadata` receive `{ event, data, ctx, injector }`, where `data` is
+the result of `data()`.
+
+The `sample` event is only used to render the email, so it is safe to set placeholder values on it, such as a sample
+token, as long as you don't save them.
+
+### Sending order emails from the Dashboard
+
+The plugin adds an "Emails" block to the order detail page of the Dashboard. It lists each order email and what it
+can be about: the order itself, a fulfillment, a payment or a refund. For each one it shows whether the current state
+allows sending it, and why not. For example, `order-shipped` can be sent for a fulfillment that is Shipped or
+Delivered, and `payment-failed` cannot be sent when the order has an Authorized or Settled payment.
+
+An admin can preview the email and send it, optionally to another address. The send goes through the same pipeline
+as an automatic send, including the `filter`, and adds a private note to the order history.
+
+All default order emails support this. To add it to your own email, set `orderSend`:
+
+```ts
+orderSend: {
+    // What the email can be about, and whether the current state allows it
+    targets: ({ order }) => [
+        {
+            id: String(order.id),
+            label: `Order ${order.code}`,
+            eligible: order.state === 'PaymentSettled',
+            reason: order.state === 'PaymentSettled' ? undefined : `The order is "${order.state}".`,
+        },
+    ],
+    // The event the email would have received
+    createEvent: ({ ctx, order }) =>
+        new OrderStateTransitionEvent('ArrangingPayment', 'PaymentSettled', ctx, order),
+},
+```
+
+The order passed to `targets()` and `createEvent()` has `customer`, `payments`, `payments.refunds` and
+`fulfillments` loaded.
+
+The block uses these Admin API operations, which you can also call directly:
+
+- `orderEmails(orderId)`: the order emails and their targets. Requires `ReadOrder`.
+- `previewOrderEmail(input)`: renders an email without sending it. Requires `ReadOrder`.
+- `sendOrderEmail(input)`: sends an email. Fails if the current state does not allow it. Requires `UpdateOrder`.
+
+### Template loaders
+
+A template loader supplies a template in place of the one on the email definition, for example a template stored in
+the database per channel and language. For each email, the plugin uses the first of:
+
+1. The template returned by a configured `templateLoader`. Loaders are tried in order, and a loader returns
+   `undefined` to pass to the next one.
+2. The template of the email definition.
+
+```ts
+import { EmailTemplateLoader } from '@vendure/email';
+
+class MyTemplateLoader implements EmailTemplateLoader {
+    readonly name = 'my-loader';
+
+    async load(injector, ctx, { type, languageCode, channelCode }) {
+        if (type === 'order-confirmation' && channelCode === 'wholesale') {
+            return WholesaleOrderConfirmationTemplate;
+        }
+        return undefined;
+    }
+}
+
+EmailPlugin.init({
+    templateLoader: [new MyTemplateLoader()],
+    // ...
+}),
+```
+
+Your source code stays the base. A loader only holds overrides.
+
+The dev tooling reports where the template of a rendered email came from:
+
+- `loader:<name>`: a configured template loader
+- `project`: the template set on your email definition
+- `package-default`: the default template of `@vendure/email`
+- `override`: a template passed to `EmailRenderService.render()` directly
+
+### Developing and testing emails
+
+In development, run the plugin in dev mode instead of setting a `transport`. Emails are written to `outputPath`
+instead of being sent, and every email is recorded in an outbox. The `route` serves the endpoints used by the `vendure email`
+CLI:
+
+```ts title="src/vendure-config.ts"
+EmailPlugin.init({
+    devMode: true,
+    route: 'mailbox',
+    outputPath: path.join(__dirname, '../static/email/test-emails'),
+    emails,
+    // ...
+}),
+```
+
+The endpoints at `route` have no authentication. Don't use dev mode in production.
+
+#### The Emails page
+
+In the Dashboard, open **System > Emails**. It lists every configured email and previews the selected one, rendered
+from the data in your database. You can switch the language, pick the order an order email is about by its code, and
+switch between desktop (600px) and mobile (375px) widths. The page shows the subject, sender, recipient, the plain
+text version, and where the template came from. In dev mode it also lists the emails in the outbox.
+
+The Emails block on the order detail page links to this page, with that order selected.
+
+The page needs the `ReadSettings` permission.
+
+#### Rendered HTML for screenshots
+
+For tools that take screenshots, such as an agent's browser, the server also serves the rendered HTML of an email in
+dev mode, without a login:
+
+```
+http://localhost:3000/mailbox/preview/order-confirmation/html?language=de&order=XN4P3TQ8
+```
+
+- `language`: the language code of the email.
+- `channel`: the channel code. Defaults to the default channel.
+- Any other parameter is passed to the email's `sample` function, for example `order=CODE`.
+
+Set the browser width to 600px and 375px to check both layouts. `vendure email render <type> --preview` prints this
+URL, and opens it in the browser when run in a terminal.
+
+The preview re-renders when you reload the page, so you can edit a template and reload to see the change.
+
+#### The `vendure email` CLI
+
+With the server and worker running, the `vendure email` commands render and send emails, and show what was sent.
+They use your real config and database, so you don't need to trigger the real event to see an email:
+
+```bash
+# The email types and where their sample data comes from
+npx vendure email list
+
+# Render an email without sending it. Writes the HTML and text to files,
+# and with --preview prints the URL of the preview page and opens it in the browser.
+npx vendure email render order-confirmation --preview
+npx vendure email render order-confirmation --language de --arg order=XN4P3TQ8
+
+# Send an email through the real pipeline (filter, data, job queue,
+# worker, transport) and wait until it arrives in the outbox
+npx vendure email send password-reset --to me@example.com
+
+# Render every email in each language, and fail if any template errors
+npx vendure email check --language en,de
+
+# Copy a default email into src/email/<type>/
+npx vendure email eject order-shipped
+```
+
+Sample data arguments: `--arg order=CODE` for order emails, `--arg target=<id>` for an email about one fulfillment,
+payment or refund, and `--arg email=<address>` for account emails.
+
+To check that an action sends an email, perform the action (for example a GraphQL mutation), then wait for the email:
+
+```bash
+npx vendure email outbox --to customer@example.com --since 5m --wait 15
+```
+
+The command exits with code 1 if no email arrives in time.
+
+The commands talk to the dev mode endpoints of the running server. By default they use `http://localhost:3000/mailbox`.
+Set `--url` or the `VENDURE_MAILBOX_URL` environment variable if your server runs elsewhere.
+
+Enable the commands by adding `@vendure/email` to the CLI plugins in your `package.json`. Projects created with
+`@vendure/create` already have this:
+
+```json title="package.json"
+{
+    "vendure": {
+        "cli": {
+            "plugins": ["@vendure/email"]
+        }
+    }
+}
+```
+
+#### Working with coding agents
+
+The commands are designed to be used by coding agents as well as people. When their output is not a terminal, they
+print JSON. A failure names the stage it happened at, for example `sample` if there is no matching data, `filter` if
+the definition's filter rejected the event, `render` if the template threw, or `queue` if no worker processed the
+email. Exit codes are `0` for success, `1` if the email failed or nothing arrived in time, and `2` if the server is
+not reachable.
+
+A typical loop for an agent is:
+
+1. Edit `template.tsx` or `definition.ts`.
+2. Run `npx vendure email render <type> --preview`, then open or screenshot the preview URL at desktop and mobile widths.
+3. Repeat until the email looks right.
+4. Run `npx vendure email check` for the shop's languages before finishing.
+
+Projects created with `@vendure/create` describe this loop in their `AGENTS.md`. The full guide for agents ships with
+the package, in `node_modules/@vendure/email/AGENTS.md`.
 
 ### Email integrations
 
-The EmailPlugin is designed to be flexible enough to work with many different email services. The default
-configuration uses Nodemailer to send emails via SMTP, but you can easily configure it to use a different
-transport. For instance:
+The plugin sends emails with Nodemailer, which supports SMTP, SES, sendmail and other transports. To use a
+different email service, implement an `EmailSender` and pass it as the `emailSender` option. For instance:
 
 - [AWS SES](https://www.vendure.io/marketplace/aws-ses)
 - [SendGrid](https://www.vendure.io/marketplace/sendgrid)

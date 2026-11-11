@@ -12,13 +12,13 @@ This project was generated with `@vendure/create`.
 - Start only the storefront: `npm run dev:storefront`
 - Backend custom code belongs in `apps/server/src/plugins`
 - Backend runtime configuration is in `apps/server/src/vendure-config.ts`
-- Backend static assets and email templates live in `apps/server/static`
+- Backend static assets live in `apps/server/static`
 {{else}}
 ## Project Layout
 
 - Custom backend code belongs in `src/plugins`
 - Runtime configuration is in `src/vendure-config.ts`
-- Static assets and email templates live in `static`
+- Static assets live in `static`
 {{/if}}
 
 ## Vendure Development
@@ -30,6 +30,19 @@ This project was generated with `@vendure/create`.
 - Pass `RequestContext` to Vendure services and `TransactionalConnection` methods when it is available.
 - Do not commit `.env` values or generated runtime data.
 - Do not use `dbConnectionOptions.synchronize: true` for production data.
+
+## Emails
+
+- Emails are sent by the `EmailPlugin` from `@vendure/email`. Each email lives in `src/email/<type>/`: `definition.ts` says when it is sent, to whom and with which data; `template.tsx` is the React template (subject and body). `src/email/index.ts` lists the emails the server sends.
+- The definitions spread the package default (`...packageDefault`), so they keep its event, filter, data and recipient logic. Override a field to change it. To add an email, create a new directory with `defineEmail()` and `defineEmailTemplate()` and add it to `src/email/index.ts`.
+- Build templates from the components exported by `@vendure/email` (`EmailLayout`, `EmailSection`, `EmailText`, `EmailButton`, `OrderSummary`, `FulfillmentSummary`, `Money`, ...). Email clients ignore external CSS: use inline `style` props only. Colours, logo and footer come from the `branding` template variable in `vendure-config.ts`.
+- The full guide for agents is in `node_modules/@vendure/email/AGENTS.md`. Read it before changing emails.
+- In development no email is sent: every email is recorded in an outbox. Use the `vendure email` commands while the server{{#if isMonorepo}} (run them from `apps/server`){{/if}} and worker are running:
+  - `npx vendure email render <type> --preview [--language de] [--arg order=CODE]`: render an email from real database data and print a preview URL that serves its HTML. Screenshot it at 600px and 375px wide. Do this after every design change.
+  - `npx vendure email check --language en,de`: render every email and fail if any template errors. Run it before you finish.
+  - `npx vendure email send <type> [--to address]`: send through the real pipeline (job queue, worker, transport) and wait for it to arrive.
+  - `npx vendure email outbox --since 5m --to <address> --wait 15`: check that an action (e.g. a GraphQL mutation) sent an email. Exits with code 1 if none arrives.
+  - `npx vendure email eject <type>`: copy a default email into `src/email/` if it is not there yet.
 
 ## Commands
 

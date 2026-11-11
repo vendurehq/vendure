@@ -12,7 +12,7 @@ Useful links:
 ## Directory structure
 
 * `/src` contains the source code of your Vendure server. All your custom code and plugins should reside here.
-* `/static` contains static (non-code) files such as assets (e.g. uploaded images) and email templates.
+* `/static` contains static (non-code) files such as assets (e.g. uploaded images) and the emails written in development.
 
 ## Development
 
@@ -45,7 +45,7 @@ dev mode no emails are sent. Do not deploy with `APP_ENV=dev`. In production, le
 `.env` is listed in `.gitignore` and `.dockerignore`, so it is not committed and not copied into the Docker image.
 
 Outside dev mode the EmailPlugin writes emails to `static/email/test-emails` and does not send them. Configure an
-[email transport](https://docs.vendure.io/reference/core-plugins/email-plugin/) in `src/vendure-config.ts` before
+[email transport](https://docs.vendure.io/reference/core-plugins/email/) in `src/vendure-config.ts` before
 you go live.
 
 When `NODE_ENV` is `production`, Vendure refuses to start if `SUPERADMIN_PASSWORD` is the default `superadmin`.

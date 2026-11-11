@@ -303,6 +303,9 @@ import {
  * };
  * ```
  *
+ * @deprecated Use `EmailPlugin` from `@vendure/email` instead. This package is frozen at its v3
+ * behaviour, receives security fixes only, and will be removed in v5.
+ *
  * @docsCategory core plugins/EmailPlugin
  */
 @VendurePlugin({

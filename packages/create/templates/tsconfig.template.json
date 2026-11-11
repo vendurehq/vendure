@@ -12,10 +12,11 @@
     "strict": true,
     "sourceMap": false,
     "skipLibCheck": true,
+    "jsx": "react-jsx",
     "outDir": "./dist",
     "baseUrl": "./"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": [
     "node_modules",
     "migration.ts",

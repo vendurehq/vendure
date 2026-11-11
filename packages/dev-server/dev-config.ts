@@ -17,7 +17,7 @@ import {
     VendurePlugin,
 } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
-import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
+import { defaultEmails, EmailPlugin } from '@vendure/email';
 import 'dotenv/config';
 import { createRequire } from 'node:module';
 import path from 'path';
@@ -135,10 +135,11 @@ export const devConfig: VendureConfig = {
         EmailPlugin.init({
             devMode: true,
             route: 'mailbox',
-            handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../email-plugin/templates')),
+            emails: defaultEmails,
             outputPath: path.join(__dirname, 'test-emails'),
+            defaultFrom: '"Vendure Dev Store" <noreply@vendure.io>',
             globalTemplateVars: {
+                branding: { name: 'Vendure Dev Store', footerText: 'Vendure Dev Store, 1 Example Street' },
                 verifyEmailAddressUrl: `${dashboardUrl}/verify`,
                 passwordResetUrl: `${dashboardUrl}/reset-password`,
                 changeEmailAddressUrl: `${dashboardUrl}/change-email-address`,

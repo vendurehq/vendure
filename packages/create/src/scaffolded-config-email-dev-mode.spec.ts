@@ -73,8 +73,17 @@ describe('scaffolded vendure-config EmailPlugin devMode', () => {
                 type: 'file',
                 outputPath: path.join(SRC_DIR, '../static/email/test-emails'),
             });
-            expect(options.handlers).toBeDefined();
-            expect(options.templateLoader).toBeDefined();
+            expect(options.emails).toBeDefined();
+            expect(options.defaultFrom).toBe('"example" <noreply@example.com>');
         },
     );
+
+    // The emails come from src/email (scaffolded from the @vendure/email defaults), branded with
+    // the project name.
+    it('uses the scaffolded emails, branded with the project name', () => {
+        const options = getEmailPluginOptions(configSource, 'dev');
+
+        expect(options.templateLoader).toBeUndefined();
+        expect(options.globalTemplateVars.branding).toEqual({ name: PROJECT_ROOT });
+    });
 });

@@ -624,6 +624,57 @@ describe('EmailPlugin', () => {
 
             expect(callCount).toBe(1);
         });
+
+        it('keeps a subject function set before loadData()', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject(async () => 'Subject from a function')
+                .loadData(async () => ({ loaded: true }));
+
+            await initPluginWithHandlers([handler]);
+            await eventBus.publish(
+                new MockEvent(
+                    RequestContext.deserialize({
+                        _channel: { code: DEFAULT_CHANNEL_CODE },
+                        _languageCode: LanguageCode.en,
+                    } as any),
+                    true,
+                ),
+            );
+            await pause();
+            expect(onSend.mock.calls[0][0].subject).toBe('Subject from a function');
+        });
+
+        it('keeps a language set before loadData()', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setLanguageCode(() => LanguageCode.de)
+                .addTemplate({
+                    channelCode: 'default',
+                    languageCode: LanguageCode.de,
+                    templateFile: 'body.de.hbs',
+                    subject: 'Servus',
+                })
+                .loadData(async () => ({ loaded: true }));
+
+            await initPluginWithHandlers([handler]);
+            await eventBus.publish(
+                new MockEvent(
+                    RequestContext.deserialize({
+                        _channel: { code: DEFAULT_CHANNEL_CODE },
+                        _languageCode: LanguageCode.en,
+                    } as any),
+                    true,
+                ),
+            );
+            await pause();
+            expect(onSend.mock.calls[0][0].subject).toBe('Servus');
+        });
     });
 
     describe('attachments', () => {

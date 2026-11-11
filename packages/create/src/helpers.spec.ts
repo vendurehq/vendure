@@ -7,7 +7,7 @@ import path from 'node:path';
 import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
+import { REACT_TYPES_VERSION, REACT_VERSION, REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
@@ -464,6 +464,11 @@ describe('getSingleProjectPackageJson', () => {
         expect((pkg.scripts as Record<string, string>).dev).toBe('vendure dev all');
     });
 
+    it('enables the EmailPlugin CLI plugin, so that `vendure email` works', () => {
+        const pkg = getSingleProjectPackageJson('my-shop', getPackageManagerInfo('npm'), 'postgres');
+        expect(pkg.vendure).toEqual({ cli: { plugins: ['@vendure/email'] } });
+    });
+
     // #4932 — pnpm settings live in pnpm-workspace.yaml; yarn build scripts need allowlisting.
     it('writes manager-specific build-script config fields', () => {
         expect(
@@ -805,5 +810,19 @@ describe('getDependencies', () => {
     it('pins typeorm to the same range as @vendure/core', () => {
         const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
         expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
+    });
+
+    // The scaffolded .tsx email templates import react, which pnpm does not expose as a transitive
+    // dependency of @vendure/email. The ranges must match @vendure/email's so that a single copy is
+    // installed.
+    it('adds react for the email templates, with the same ranges as @vendure/email', () => {
+        for (const pm of ['npm', 'yarn', 'pnpm', 'bun'] as const) {
+            const { dependencies, devDependencies } = getDependencies('postgres', '@3.7.0', pm);
+            expect(dependencies).toContain(`react@${REACT_VERSION}`);
+            expect(devDependencies).toContain(`@types/react@${REACT_TYPES_VERSION}`);
+        }
+        const emailPkg = fs.readJsonSync(path.resolve(__dirname, '../../email/package.json'));
+        expect(REACT_VERSION).toBe(emailPkg.dependencies.react);
+        expect(REACT_TYPES_VERSION).toBe(emailPkg.dependencies['@types/react']);
     });
 });
