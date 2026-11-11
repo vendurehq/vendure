@@ -26,7 +26,7 @@ import {
     RotateCcwIcon,
     SmartphoneIcon,
 } from 'lucide-react';
-import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { Dispatch, RefObject, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
     EmailContentData,
@@ -51,24 +51,48 @@ const FIELD_SLOTS = new Set(['subject', 'preview']);
  * Edits the text of an email inside its preview. Click text in the email to change it. Variables
  * show as `{{ name }}`. The subject and the inbox preview text, which aren't in the body, have fields.
  */
+/**
+ * How the editor shows an email. The Emails page keeps it, so it stays the same when another email
+ * is selected.
+ */
+export interface EmailEditorView {
+    // Edit shows the text with {{ variables }} and lets you click it to change it. Preview shows the
+    // email as sent, with the variables filled in from an order, and is where you pick that order.
+    mode: 'edit' | 'preview';
+    width: keyof typeof WIDTHS;
+    languageCode?: string;
+    scope: EmailContentScope;
+}
+
+export const defaultEmailEditorView: EmailEditorView = {
+    mode: 'edit',
+    width: 'desktop',
+    scope: 'ALL_CHANNELS',
+};
+
 export function EmailEditorBlock({
     email,
     initialOrderCode,
-}: Readonly<{ email: EmailInfo; initialOrderCode?: string }>) {
+    view,
+    onViewChange,
+}: Readonly<{
+    email: EmailInfo;
+    initialOrderCode?: string;
+    view: EmailEditorView;
+    onViewChange: Dispatch<SetStateAction<EmailEditorView>>;
+}>) {
     const { t } = useLingui();
     const queryClient = useQueryClient();
     const { activeChannel } = useChannel();
     const { hasPermissions } = usePermissions();
     const canEdit = hasPermissions(['UpdateSettings']);
     const languages: string[] = activeChannel?.availableLanguageCodes ?? [];
-    const [languageCode, setLanguageCode] = useState<string>(activeChannel?.defaultLanguageCode ?? 'en');
-    const [scope, setScope] = useState<EmailContentScope>('ALL_CHANNELS');
+    const { mode, width, scope } = view;
+    const languageCode = view.languageCode ?? activeChannel?.defaultLanguageCode ?? 'en';
+    const updateView = (change: Partial<EmailEditorView>) =>
+        onViewChange(current => ({ ...current, ...change }));
     const [orderCode, setOrderCode] = useState(initialOrderCode ?? '');
     const [appliedOrderCode, setAppliedOrderCode] = useState(initialOrderCode ?? '');
-    const [width, setWidth] = useState<keyof typeof WIDTHS>('desktop');
-    // Edit shows the text with {{ variables }} and lets you click it to change it. Preview shows the
-    // email as sent, with the variables filled in from an order, and is where you pick that order.
-    const [mode, setMode] = useState<'edit' | 'preview'>('edit');
     const editing = canEdit && mode === 'edit';
     const [values, setValues] = useState<Record<string, string>>({});
     // Bumped when the preview must re-render the body: after saving, discarding or resetting text.
@@ -185,7 +209,7 @@ export function EmailEditorBlock({
     };
 
     const switchMode = (next: 'edit' | 'preview') => {
-        setMode(next);
+        updateView({ mode: next });
         // Re-render with the current draft: a cached render from before would drop what was typed.
         setPreviewVersion(v => v + 1);
     };
@@ -203,7 +227,7 @@ export function EmailEditorBlock({
                     <NativeSelect
                         id="email-language"
                         value={languageCode}
-                        onChange={e => setLanguageCode(e.target.value)}
+                        onChange={e => updateView({ languageCode: e.target.value })}
                     >
                         {(languages.length ? languages : [languageCode]).map(code => (
                             <NativeSelectOption key={code} value={code}>
@@ -219,7 +243,7 @@ export function EmailEditorBlock({
                     <NativeSelect
                         id="email-scope"
                         value={scope}
-                        onChange={e => setScope(e.target.value as EmailContentScope)}
+                        onChange={e => updateView({ scope: e.target.value as EmailContentScope })}
                     >
                         <NativeSelectOption value="ALL_CHANNELS">{t`All channels`}</NativeSelectOption>
                         <NativeSelectOption value="CHANNEL">
@@ -388,7 +412,7 @@ export function EmailEditorBlock({
                         type="button"
                         size="sm"
                         variant={width === 'desktop' ? 'default' : 'outline'}
-                        onClick={() => setWidth('desktop')}
+                        onClick={() => updateView({ width: 'desktop' })}
                         aria-pressed={width === 'desktop'}
                     >
                         <MonitorIcon />
@@ -398,7 +422,7 @@ export function EmailEditorBlock({
                         type="button"
                         size="sm"
                         variant={width === 'mobile' ? 'default' : 'outline'}
-                        onClick={() => setWidth('mobile')}
+                        onClick={() => updateView({ width: 'mobile' })}
                         aria-pressed={width === 'mobile'}
                     >
                         <SmartphoneIcon />

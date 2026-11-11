@@ -11,10 +11,10 @@ import {
 } from '@vendure/dashboard';
 import { useState } from 'react';
 
-import { EmailEditorBlock } from './components/email-editor-block';
+import { defaultEmailEditorView, EmailEditorBlock, EmailEditorView } from './components/email-editor-block';
 import { EmailListBlock } from './components/email-list-block';
 import { EmailOutboxBlock } from './components/email-outbox-block';
-import { EmailOverviewResult, emailOverviewQuery } from './email.graphql';
+import { emailOverviewQuery, EmailOverviewResult } from './email.graphql';
 
 function initialParam(name: string) {
     return new URLSearchParams(window.location.search).get(name) ?? undefined;
@@ -22,6 +22,8 @@ function initialParam(name: string) {
 
 function EmailsPage() {
     const [selectedType, setSelectedType] = useState<string | undefined>(() => initialParam('type'));
+    // Kept here, not in the editor, which remounts for each email.
+    const [editorView, setEditorView] = useState<EmailEditorView>(defaultEmailEditorView);
     const { data } = useQuery<EmailOverviewResult>({
         queryKey: ['emailOverview'],
         queryFn: () => api.query(emailOverviewQuery),
@@ -50,10 +52,18 @@ function EmailsPage() {
                         column="main"
                         blockId="email-editor"
                         title={selected ? selected.label : <Trans>Email</Trans>}
-                        description={<Trans>Change the wording of this email. The design stays the same.</Trans>}
+                        description={
+                            <Trans>Change the wording of this email. The design stays the same.</Trans>
+                        }
                     >
                         {selected ? (
-                            <EmailEditorBlock key={selected.type} email={selected} initialOrderCode={initialParam('order')} />
+                            <EmailEditorBlock
+                                key={selected.type}
+                                email={selected}
+                                initialOrderCode={initialParam('order')}
+                                view={editorView}
+                                onViewChange={setEditorView}
+                            />
                         ) : null}
                     </PageBlock>
                     {data?.emailOverview.devMode ? (
