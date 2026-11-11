@@ -5,8 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ConsoleCommandDependencies, consoleCommand } from './console';
-import { ConsoleReporter } from './console-reporter';
+import { ConsoleReporter } from './console-reporter.js';
 import {
     NOW,
     PROJECT_ID,
@@ -16,8 +15,9 @@ import {
     projectList,
     singleAccountBody,
     storeLogin,
-} from './console.fixtures';
-import { getProjectLinkManifestPath } from './project-link-manifest';
+} from './console.fixtures.js';
+import { ConsoleCommandDependencies, consoleCommand } from './console.js';
+import { getProjectLinkManifestPath } from './project-link-manifest.js';
 
 let server: Server | undefined;
 let projectRoot: string | undefined;

@@ -2,14 +2,14 @@ import { log, spinner } from '@clack/prompts';
 import path from 'node:path';
 import { Project } from 'ts-morph';
 
-import { defaultManipulationSettings } from '../../../constants';
-import { findTsConfig } from '../shared/find-ts-config';
+import { defaultManipulationSettings } from '../../../constants.js';
+import { findTsConfig } from '../shared/find-ts-config.js';
 
-import { transformAccordionProps } from './transforms/accordion-props';
-import { transformAsChildToRender } from './transforms/as-child-to-render';
-import { transformFormComponents } from './transforms/form-components';
-import { transformImportConsolidation } from './transforms/import-consolidation';
-import { transformSelectItemsProp } from './transforms/select-items-prop';
+import { transformAccordionProps } from './transforms/accordion-props.js';
+import { transformAsChildToRender } from './transforms/as-child-to-render.js';
+import { transformFormComponents } from './transforms/form-components.js';
+import { transformImportConsolidation } from './transforms/import-consolidation.js';
+import { transformSelectItemsProp } from './transforms/select-items-prop.js';
 
 /**
  * Runs all dashboard UI migration transforms on every .tsx file in the project.

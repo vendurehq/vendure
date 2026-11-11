@@ -23,7 +23,7 @@ import {
     installCliPluginFixture,
     readEnabledCliPlugins,
     readMarker,
-} from './cli-test-utils';
+} from './cli-test-utils.js';
 
 /**
  * The markers each layer prints, in the order they appear in the output.

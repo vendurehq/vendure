@@ -3,13 +3,13 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import { Project, SourceFile } from 'ts-morph';
 
-import { defaultManipulationSettings } from '../../../constants';
-import { findTsConfig } from '../shared/find-ts-config';
+import { defaultManipulationSettings } from '../../../constants.js';
+import { findTsConfig } from '../shared/find-ts-config.js';
 
-import { FlagCollector } from './flags';
-import { transformFindOptions } from './transforms/find-options';
-import { transformGraphqlFile, transformGraphqlTemplates } from './transforms/graphql-documents';
-import { flagRemovedUsages } from './transforms/removed-usages';
+import { FlagCollector } from './flags.js';
+import { transformFindOptions } from './transforms/find-options.js';
+import { transformGraphqlFile, transformGraphqlTemplates } from './transforms/graphql-documents.js';
+import { flagRemovedUsages } from './transforms/removed-usages.js';
 
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', '.git']);
 

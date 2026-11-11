@@ -1,6 +1,6 @@
 import { log } from '@clack/prompts';
 
-import { CliCommandExit, exitCliCommand } from '../shared/cli-command-exit';
+import { CliCommandExit, exitCliCommand } from '../shared/cli-command-exit.js';
 
 interface TtyLike {
     isTTY?: boolean;

@@ -1,5 +1,5 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 // No `requiresProject`: the path argument names the files to rewrite, so
 // transforming a project from outside it is a valid way to run this.
@@ -20,7 +20,7 @@ export const codemodCommandDef: CliCommandDefinition = {
     ],
     action: async (transform, path, _options) => {
         return runCliCommand(async () => {
-            const { codemodCommand } = await import('./codemod');
+            const { codemodCommand } = await import('./codemod.js');
             await codemodCommand(transform, path);
         });
     },

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { builtinCommands } from '../commands/builtins';
+import { builtinCommands } from '../commands/builtins.js';
 
 import {
     CliCommandDefinition,
@@ -11,9 +11,9 @@ import {
     hasCliSubcommands,
     isCliCommandGroup,
     isRunnableCliCommand,
-} from './cli-command-definition';
-import { defineCliPlugin } from './cli-plugin';
-import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
+} from './cli-command-definition.js';
+import { defineCliPlugin } from './cli-plugin.js';
+import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store.js';
 import {
     PackageJsonLike,
     cliPluginCommandNames,
@@ -22,7 +22,7 @@ import {
     listDirectDependencyNames,
     listInactiveCliPluginPackages,
     resolveCliPlugins,
-} from './resolve-cli-plugins';
+} from './resolve-cli-plugins.js';
 
 describe('defineCliPlugin()', () => {
     it('returns a valid plugin definition', () => {

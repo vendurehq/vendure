@@ -1,5 +1,5 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 export const pluginsCommandDef: CliCommandDefinition = {
     name: 'plugins',
@@ -31,7 +31,7 @@ export const pluginsCommandDef: CliCommandDefinition = {
     ],
     action: async (action, packageName, options) => {
         return runCliCommand(async () => {
-            const { pluginsCommand } = await import('./plugins');
+            const { pluginsCommand } = await import('./plugins.js');
             await pluginsCommand(action, packageName, options);
         });
     },

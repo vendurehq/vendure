@@ -1,12 +1,12 @@
 import { log, spinner } from '@clack/prompts';
 import type { MigrationDiagnostic } from '@vendure/core';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { requireProjectCore } from '../../../shared/project-core';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { buildMigrationReport } from '../migration-report';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { requireProjectCore } from '../../../shared/project-core.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { buildMigrationReport } from '../migration-report.js';
 
 const cancelledMessage = 'Run migrations cancelled';
 

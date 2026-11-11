@@ -11,22 +11,23 @@ import {
     VariableDeclaration,
     VariableDeclarationKind,
 } from 'ts-morph';
-import { kebabCase } from '../../../utilities/case-utils';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { exitCliCommand } from '../../../shared/cli-command-exit';
-import { EntityRef } from '../../../shared/entity-ref';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
-import { ServiceRef } from '../../../shared/service-ref';
-import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
+
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { EntityRef } from '../../../shared/entity-ref.js';
+import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
+import { ServiceRef } from '../../../shared/service-ref.js';
+import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
 import {
     addImportsToFile,
     createFile,
     customizeCreateUpdateInputInterfaces,
-} from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay } from '../../../utilities/utils';
-import { addServiceCommand } from '../service/add-service';
+} from '../../../utilities/ast-utils.js';
+import { kebabCase } from '../../../utilities/case-utils.js';
+import { pauseForPromptDisplay } from '../../../utilities/utils.js';
+import { addServiceCommand } from '../service/add-service.js';
 
 const cancelledMessage = 'Add API extension cancelled';
 

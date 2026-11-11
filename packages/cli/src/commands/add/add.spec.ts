@@ -4,16 +4,16 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { addCommand } from './add';
-import * as apiExtensionModule from './api-extension/add-api-extension';
-import * as codegenModule from './codegen/add-codegen';
-import { addCommandDef } from './command';
-import * as dashboardModule from './dashboard/add-dashboard';
-import * as entityModule from './entity/add-entity';
-import * as jobQueueModule from './job-queue/add-job-queue';
-import * as platformModule from './platform/add-platform';
-import * as pluginModule from './plugin/create-new-plugin';
-import * as serviceModule from './service/add-service';
+import { addCommand } from './add.js';
+import * as apiExtensionModule from './api-extension/add-api-extension.js';
+import * as codegenModule from './codegen/add-codegen.js';
+import { addCommandDef } from './command.js';
+import * as dashboardModule from './dashboard/add-dashboard.js';
+import * as entityModule from './entity/add-entity.js';
+import * as jobQueueModule from './job-queue/add-job-queue.js';
+import * as platformModule from './platform/add-platform.js';
+import * as pluginModule from './plugin/create-new-plugin.js';
+import * as serviceModule from './service/add-service.js';
 
 const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -46,28 +46,28 @@ function restoreTTYDescriptors() {
 }
 
 // Mock all the core functions
-vi.mock('./plugin/create-new-plugin', () => ({
+vi.mock('./plugin/create-new-plugin.js', () => ({
     createNewPlugin: vi.fn(),
 }));
-vi.mock('./entity/add-entity', () => ({
+vi.mock('./entity/add-entity.js', () => ({
     addEntity: vi.fn(),
 }));
-vi.mock('./service/add-service', () => ({
+vi.mock('./service/add-service.js', () => ({
     addService: vi.fn(),
 }));
-vi.mock('./job-queue/add-job-queue', () => ({
+vi.mock('./job-queue/add-job-queue.js', () => ({
     addJobQueue: vi.fn(),
 }));
-vi.mock('./codegen/add-codegen', () => ({
+vi.mock('./codegen/add-codegen.js', () => ({
     addCodegen: vi.fn(),
 }));
-vi.mock('./api-extension/add-api-extension', () => ({
+vi.mock('./api-extension/add-api-extension.js', () => ({
     addApiExtension: vi.fn(),
 }));
-vi.mock('./dashboard/add-dashboard', () => ({
+vi.mock('./dashboard/add-dashboard.js', () => ({
     addDashboard: vi.fn(),
 }));
-vi.mock('./platform/add-platform', () => ({
+vi.mock('./platform/add-platform.js', () => ({
     addPlatform: vi.fn(),
 }));
 

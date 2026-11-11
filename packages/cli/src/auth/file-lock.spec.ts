@@ -6,7 +6,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { claimPath, withFileLock } from './file-lock';
+import { claimPath, withFileLock } from './file-lock.js';
 
 let directory: string;
 let lockFile: string;

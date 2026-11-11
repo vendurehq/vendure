@@ -2,9 +2,9 @@ import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
 
-import { StoredAuth, writeStoredAuth } from '../../auth/auth-store';
+import { StoredAuth, writeStoredAuth } from '../../auth/auth-store.js';
 
-import { ProjectLinkManifest } from './project-link-manifest';
+import { ProjectLinkManifest } from './project-link-manifest.js';
 
 export const NOW = Date.parse('2026-08-19T10:00:00.000Z');
 export const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';

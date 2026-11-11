@@ -1,8 +1,8 @@
-import { ConsoleSession } from './cli-auth';
-import { ConsoleOriginEnvironment } from './console-origins';
-import { ConsoleReporter } from './console-reporter';
-import { ConsoleLinkResultContribution } from './console-result';
-import { ProjectLinkManifest } from './project-link-manifest';
+import { ConsoleSession } from './cli-auth.js';
+import { ConsoleOriginEnvironment } from './console-origins.js';
+import { ConsoleReporter } from './console-reporter.js';
+import { ConsoleLinkResultContribution } from './console-result.js';
+import { ProjectLinkManifest } from './project-link-manifest.js';
 
 /** The Console origins resolved for this run. @since 3.8.0 */
 export interface ConsoleLinkEndpoints {

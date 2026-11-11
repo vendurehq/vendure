@@ -3,12 +3,12 @@ import path from 'path';
 import { Project } from 'ts-morph';
 import { describe, expect, it } from 'vitest';
 
-import { defaultManipulationSettings } from '../../../../../constants';
-import { VendurePluginRef } from '../../../../../shared/vendure-plugin-ref';
-import { createFile, getPluginClasses } from '../../../../../utilities/ast-utils';
-import { expectSourceFileContentToMatch } from '../../../../../utilities/testing-utils';
+import { defaultManipulationSettings } from '../../../../../constants.js';
+import { VendurePluginRef } from '../../../../../shared/vendure-plugin-ref.js';
+import { createFile, getPluginClasses } from '../../../../../utilities/ast-utils.js';
+import { expectSourceFileContentToMatch } from '../../../../../utilities/testing-utils.js';
 
-import { addEntityToPlugin } from './add-entity-to-plugin';
+import { addEntityToPlugin } from './add-entity-to-plugin.js';
 
 describe('addEntityToPlugin', () => {
     function testAddEntityToPlugin(options: { fixtureFileName: string; expectedFileName: string }) {

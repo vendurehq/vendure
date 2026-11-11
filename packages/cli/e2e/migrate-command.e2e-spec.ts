@@ -12,7 +12,7 @@ import {
     generateMigrationOperation,
     revertMigrationOperation,
     runMigrationsOperation,
-} from '../src/commands/migrate/migration-operations';
+} from '../src/commands/migrate/migration-operations.js';
 
 const TEST_PROJECT_DIR = path.join(__dirname, 'fixtures', 'test-project');
 const MIGRATIONS_DIR = path.join(TEST_PROJECT_DIR, 'migrations');
@@ -288,7 +288,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
             vi.resetModules();
 
             // Mock the loadVendureConfigFile helper to return a config with an invalid database path
-            vi.doMock('../src/shared/load-vendure-config-file', async () => {
+            vi.doMock('../src/shared/load-vendure-config-file.js', async () => {
                 const { config: realConfig }: { config: any } = await vi.importActual(
                     path.join(TEST_PROJECT_DIR, 'src', 'vendure-config.ts'),
                 );
@@ -308,7 +308,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
 
             // Re-import the operation after the mock so that it picks up the mocked helper
             const { runMigrationsOperation: runMigrationsWithInvalidDb } =
-                await import('../src/commands/migrate/migration-operations');
+                await import('../src/commands/migrate/migration-operations.js');
 
             const result = await runMigrationsWithInvalidDb();
 

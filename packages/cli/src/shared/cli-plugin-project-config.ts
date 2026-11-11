@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import { PackageJsonLike, resolveCliProjectRoot } from './resolve-cli-plugins';
+import { PackageJsonLike, resolveCliProjectRoot } from './resolve-cli-plugins.js';
 
 export interface CliPluginProjectConfigWriteResult {
     packageJsonPath: string;

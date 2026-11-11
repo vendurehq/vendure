@@ -2,12 +2,11 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { readStoredAuth } from '../../auth/auth-store';
+import { readStoredAuth } from '../../auth/auth-store.js';
 
-import { ConsoleSession } from './cli-auth';
-import { ConsoleCommandDependencies, ConsoleCommandOptions, consoleCommand } from './console';
-import { RegisteredConsoleLinkHook } from './console-link-hook';
-import { ConsoleReporter } from './console-reporter';
+import { ConsoleSession } from './cli-auth.js';
+import { RegisteredConsoleLinkHook } from './console-link-hook.js';
+import { ConsoleReporter } from './console-reporter.js';
 import {
     ACCOUNT_ID,
     FakeConsoleOptions,
@@ -30,8 +29,9 @@ import {
     manifest,
     projectList,
     storeLogin,
-} from './console.fixtures';
-import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
+} from './console.fixtures.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions, consoleCommand } from './console.js';
+import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /**
  * The official production pair. Nothing reaches the network: every request

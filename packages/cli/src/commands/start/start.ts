@@ -4,8 +4,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
 
-import { pipePrefixedOutput, waitForChildProcesses } from '../../shared/cli-process-utils';
-import { resolveVendureProjectDirectory } from '../dev/dev';
+import { pipePrefixedOutput, waitForChildProcesses } from '../../shared/cli-process-utils.js';
+import { resolveVendureProjectDirectory } from '../dev/dev.js';
 
 export type StartTarget = 'all' | 'server' | 'worker';
 

@@ -1,5 +1,5 @@
-import { CliCommandGroupDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandGroupDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 export const authCommandDef: CliCommandGroupDefinition = {
     name: 'auth',
@@ -18,7 +18,7 @@ export const authCommandDef: CliCommandGroupDefinition = {
             ],
             action: async options => {
                 return runCliCommand(async () => {
-                    const { authLoginCommand } = await import('./auth');
+                    const { authLoginCommand } = await import('./auth.js');
                     return authLoginCommand(options);
                 });
             },
@@ -35,7 +35,7 @@ export const authCommandDef: CliCommandGroupDefinition = {
             ],
             action: async options => {
                 return runCliCommand(async () => {
-                    const { authStatusCommand } = await import('./auth');
+                    const { authStatusCommand } = await import('./auth.js');
                     return authStatusCommand(options);
                 });
             },
@@ -45,7 +45,7 @@ export const authCommandDef: CliCommandGroupDefinition = {
             description: 'Remove the login from this machine',
             action: async () => {
                 return runCliCommand(async () => {
-                    const { authLogoutCommand } = await import('./auth');
+                    const { authLogoutCommand } = await import('./auth.js');
                     return authLogoutCommand();
                 });
             },

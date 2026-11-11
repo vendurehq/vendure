@@ -5,8 +5,8 @@ export {
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
-} from './auth-errors';
-export type { AuthOptions } from './auth-options';
+} from './auth-errors.js';
+export type { AuthOptions } from './auth-options.js';
 export {
     getAccessToken,
     listOrganizations,
@@ -14,8 +14,8 @@ export {
     logout,
     readAuthStatus,
     refreshAccessToken,
-} from './auth-session';
-export type { AuthStatus, DeviceLoginOptions, LogoutResult } from './auth-session';
-export type { AuthUser, StoredOrganization } from './auth-store';
-export type { AuthOrganization } from './console-api';
-export type { DeviceAuthorization } from './workos-client';
+} from './auth-session.js';
+export type { AuthStatus, DeviceLoginOptions, LogoutResult } from './auth-session.js';
+export type { AuthUser, StoredOrganization } from './auth-store.js';
+export type { AuthOrganization } from './console-api.js';
+export type { DeviceAuthorization } from './workos-client.js';

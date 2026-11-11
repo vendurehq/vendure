@@ -9,7 +9,7 @@ import {
     mergeEnabledPluginSelection,
     readCliProjectPackageJson,
     removeCliPluginFromProjectConfig,
-} from './cli-plugin-project-config';
+} from './cli-plugin-project-config.js';
 
 describe('cli-plugin-project-config', () => {
     const tempDirs: string[] = [];

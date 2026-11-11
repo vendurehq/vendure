@@ -10,7 +10,7 @@ import {
     applyProjectLinkGitignoreRules,
     ensureProjectLinkGitignore,
     getProjectLinkGitignorePath,
-} from './project-link-gitignore';
+} from './project-link-gitignore.js';
 
 const temporaryDirectories: string[] = [];
 const projectLinkRules = `${PROJECT_LINK_IGNORE_CONTENTS}\n${PROJECT_LINK_KEEP_MANIFEST}\n`;

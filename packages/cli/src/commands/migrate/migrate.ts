@@ -1,15 +1,15 @@
 import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
-import type { MigrationResult } from './migration-operations';
+import type { MigrationResult } from './migration-operations.js';
 
-import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
-import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
 import {
     generateMigrationOperation,
     revertMigrationOperation,
     runMigrationsOperation,
-} from './migration-operations';
+} from './migration-operations.js';
 
 const cancelledMessage = 'Migrate cancelled.';
 const migrateExamples = ['vendure migrate -g my-migration', 'vendure migrate -r', 'vendure migrate --revert'];
@@ -134,15 +134,15 @@ async function handleInteractiveMode(configFile?: string) {
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
         if (action === 'generate') {
-            const { generateMigrationCommand } = await import('./generate-migration/generate-migration');
+            const { generateMigrationCommand } = await import('./generate-migration/generate-migration.js');
             await generateMigrationCommand.run({ configFile });
         }
         if (action === 'run') {
-            const { runMigrationCommand } = await import('./run-migration/run-migration');
+            const { runMigrationCommand } = await import('./run-migration/run-migration.js');
             await runMigrationCommand.run({ configFile });
         }
         if (action === 'revert') {
-            const { revertMigrationCommand } = await import('./revert-migration/revert-migration');
+            const { revertMigrationCommand } = await import('./revert-migration/revert-migration.js');
             await revertMigrationCommand.run({ configFile });
         }
         outro('✅ Done!');

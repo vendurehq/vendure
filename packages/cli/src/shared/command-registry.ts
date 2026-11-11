@@ -9,12 +9,12 @@ import {
     effectiveRequiresProject,
     hasCliSubcommands,
     isRunnableCliCommand,
-} from './cli-command-definition';
-import { CliCommandExit } from './cli-command-exit';
-import { buildOptionFlags, parseOptionFlags } from './cli-command-options';
-import { CliPluginExtensionAccessor } from './cli-plugin-extension';
-import { CommandTreeEntry, RootOptionEntry } from './command-registry-store';
-import { findVendureProjectRoot, vendureProjectRequiredMessage } from './project-validation';
+} from './cli-command-definition.js';
+import { CliCommandExit } from './cli-command-exit.js';
+import { buildOptionFlags, parseOptionFlags } from './cli-command-options.js';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
+import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
+import { findVendureProjectRoot, vendureProjectRequiredMessage } from './project-validation.js';
 
 /**
  * An option declared on an ancestor of a command. Commander stores the parsed

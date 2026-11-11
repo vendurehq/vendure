@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, write
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { stripAnsi } from '../src/shared/strip-ansi';
+import { stripAnsi } from '../src/shared/strip-ansi.js';
 
 export interface CliTestProject {
     projectDir: string;

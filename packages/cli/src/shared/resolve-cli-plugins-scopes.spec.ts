@@ -3,14 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CLI_PLUGINS_ENV_VAR } from './cli-global-plugin-config';
+import { CLI_PLUGINS_ENV_VAR } from './cli-global-plugin-config.js';
 import {
     CliInstallLocation,
     discoverCliPlugins,
     findCliInstallLocation,
     PackageJsonLike,
     resolveCliPlugins,
-} from './resolve-cli-plugins';
+} from './resolve-cli-plugins.js';
 
 describe('CLI plugin scopes', () => {
     const tempDirs: string[] = [];

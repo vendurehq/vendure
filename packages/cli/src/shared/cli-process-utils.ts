@@ -140,7 +140,7 @@ function resolvePackageJsonPath(packageName: string, projectDir: string, install
     const requireFromProject = createRequire(path.join(projectDir, 'package.json'));
     const lookupPaths = [
         ...(requireFromProject.resolve.paths(packageJsonRequest) ?? []),
-        ...(require.resolve.paths(packageJsonRequest) ?? []),
+        ...(createRequire(import.meta.url).resolve.paths(packageJsonRequest) ?? []),
     ];
 
     for (const lookupPath of Array.from(new Set(lookupPaths))) {

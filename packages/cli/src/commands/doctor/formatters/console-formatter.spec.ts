@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DoctorReport } from '../types';
+import { DoctorReport } from '../types.js';
 
 // Mock @clack/prompts
 vi.mock('@clack/prompts', () => ({
@@ -24,7 +24,7 @@ vi.mock('picocolors', () => ({
 
 import { log } from '@clack/prompts';
 
-import { formatConsoleReport } from './console-formatter';
+import { formatConsoleReport } from './console-formatter.js';
 
 describe('console-formatter', () => {
     beforeEach(() => {

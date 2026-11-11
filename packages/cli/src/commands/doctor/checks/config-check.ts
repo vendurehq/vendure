@@ -1,11 +1,11 @@
 import type { RuntimeVendureConfig } from '@vendure/core';
 import { satisfies } from 'semver';
 
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { requireProjectCore } from '../../../shared/project-core';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { CheckResult } from '../types';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { requireProjectCore } from '../../../shared/project-core.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { CheckResult } from '../types.js';
 
 export interface ConfigCheckResult {
     check: CheckResult;

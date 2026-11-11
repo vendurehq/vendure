@@ -2,13 +2,13 @@ import { log } from '@clack/prompts';
 import type { MigrationDiagnostic, VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
-import { loadVendureConfigFile } from '../../shared/load-vendure-config-file';
-import { requireProjectCore } from '../../shared/project-core';
-import { validateVendureProjectDirectory } from '../../shared/project-validation';
-import { analyzeProject } from '../../shared/shared-prompts';
-import { VendureConfigRef } from '../../shared/vendure-config-ref';
+import { loadVendureConfigFile } from '../../shared/load-vendure-config-file.js';
+import { requireProjectCore } from '../../shared/project-core.js';
+import { validateVendureProjectDirectory } from '../../shared/project-validation.js';
+import { analyzeProject } from '../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../shared/vendure-config-ref.js';
 
-import { buildMigrationReport } from './migration-report';
+import { buildMigrationReport } from './migration-report.js';
 
 export interface MigrationOptions {
     name?: string;

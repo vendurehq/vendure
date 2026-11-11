@@ -6,12 +6,12 @@ import {
     AmbiguousVendureProjectError,
     findPackageJsonWithDependency,
     resolveCoreProjectDirectory,
-} from '../utilities/monorepo-utils';
+} from '../utilities/monorepo-utils.js';
 
-import { ProjectCliPluginConfig } from './cli-command-definition';
-import { mergeEnvPluginNames, readGlobalCliConfig } from './cli-global-plugin-config';
-import { assertCliPlugin, CliPlugin } from './cli-plugin';
-import { walkUp } from './project-validation';
+import { ProjectCliPluginConfig } from './cli-command-definition.js';
+import { mergeEnvPluginNames, readGlobalCliConfig } from './cli-global-plugin-config.js';
+import { assertCliPlugin, CliPlugin } from './cli-plugin.js';
+import { walkUp } from './project-validation.js';
 
 export interface PackageJsonLike {
     name?: string;
@@ -571,7 +571,7 @@ export interface CliInstallLocation {
 export function findCliInstallLocation(fromDir?: string): CliInstallLocation | undefined {
     let current: string;
     try {
-        current = fs.realpathSync(fromDir ?? __dirname);
+        current = fs.realpathSync(fromDir ?? import.meta.dirname);
     } catch {
         return undefined;
     }
@@ -956,8 +956,7 @@ function defaultResolvePackage(
 
 function loadCliPluginModule(entryPath: string, packageName: string): CliPlugin {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const mod = require(entryPath) as { default?: unknown } | CliPlugin;
+        const mod = createRequire(import.meta.url)(entryPath) as { default?: unknown } | CliPlugin;
         const exported = (mod as { default?: unknown }).default ?? mod;
         assertCliPlugin(exported);
         return exported;

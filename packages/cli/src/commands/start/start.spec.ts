@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getStartProcessDefinitions, getStartProcessesForTarget, normalizeStartTarget } from './start';
+import { getStartProcessDefinitions, getStartProcessesForTarget, normalizeStartTarget } from './start.js';
 
 describe('start command', () => {
     describe('getStartProcessDefinitions()', () => {

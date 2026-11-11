@@ -4,8 +4,8 @@ import type * as GraphQL from 'graphql';
 import type { DocumentNode, FieldNode, OperationDefinitionNode, SelectionSetNode } from 'graphql';
 import { Node, SourceFile, SyntaxKind, TemplateLiteral } from 'ts-morph';
 
-import { requireFromProject } from '../../../../shared/project-core';
-import { Messages } from '../core-entities';
+import { requireFromProject } from '../../../../shared/project-core.js';
+import { Messages } from '../core-entities.js';
 
 let graphqlModule: typeof GraphQL | undefined;
 

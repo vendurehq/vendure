@@ -18,11 +18,11 @@
     "funding": "https://github.com/sponsors/michaelbromley",
     "private": false,
     "license": "GPL-3.0-or-later",
-    "type": "commonjs",
+    "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "rimraf dist && tsc -p ./tsconfig.cli.json && ts-node ./build.ts",
+        "build": "rimraf dist && tsc -p ./tsconfig.cli.json && ts-node ./build.cts",
         "watch": "tsc -p ./tsconfig.cli.json --watch",
         "ci": "npm run build",
         "test": "vitest --config vitest.config.mts --run",

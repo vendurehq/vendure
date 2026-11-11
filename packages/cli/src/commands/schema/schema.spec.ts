@@ -1,9 +1,9 @@
 import { log, select, text } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { schemaCommandDef } from './command';
-import { generateSchema } from './generate-schema/generate-schema';
-import { schemaCommand } from './schema';
+import { schemaCommandDef } from './command.js';
+import { generateSchema } from './generate-schema/generate-schema.js';
+import { schemaCommand } from './schema.js';
 
 vi.mock('@clack/prompts', () => ({
     cancel: vi.fn(),
@@ -17,12 +17,12 @@ vi.mock('@clack/prompts', () => ({
     text: vi.fn(),
 }));
 
-vi.mock('../../utilities/utils', () => ({
+vi.mock('../../utilities/utils.js', () => ({
     abortIfNonInteractive: vi.fn(() => false),
     withInteractiveTimeout: vi.fn((fn: () => Promise<any>) => fn()),
 }));
 
-vi.mock('./generate-schema/generate-schema', () => ({
+vi.mock('./generate-schema/generate-schema.js', () => ({
     generateSchema: vi.fn(),
 }));
 

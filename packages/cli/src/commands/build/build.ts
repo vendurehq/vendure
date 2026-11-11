@@ -10,8 +10,8 @@ import {
     pipePrefixedOutput,
     resolvePackageBin,
     signalToExitCode,
-} from '../../shared/cli-process-utils';
-import { resolveVendureProjectDirectory } from '../dev/dev';
+} from '../../shared/cli-process-utils.js';
+import { resolveVendureProjectDirectory } from '../dev/dev.js';
 
 export type BuildTarget = 'all' | 'server' | 'worker' | 'dashboard';
 

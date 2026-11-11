@@ -2,8 +2,8 @@ import fs from 'fs-extra';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import { hasWorkspaceMarker } from '../../../utilities/monorepo-utils';
-import { CheckResult } from '../types';
+import { hasWorkspaceMarker } from '../../../utilities/monorepo-utils.js';
+import { CheckResult } from '../types.js';
 
 /**
  * Known @vendure/* packages that use fixed versioning.

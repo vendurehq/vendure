@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { Project } from 'ts-morph';
 
-import { findPackageJsonWithDependency } from '../utilities/monorepo-utils';
+import { findPackageJsonWithDependency } from '../utilities/monorepo-utils.js';
 
 export interface PackageToInstall {
     pkg: string;

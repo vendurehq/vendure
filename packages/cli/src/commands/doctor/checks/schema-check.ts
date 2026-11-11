@@ -1,8 +1,8 @@
 import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
 import type { RuntimeVendureConfig } from '@vendure/core';
 
-import { requireFromProject, requireProjectCore } from '../../../shared/project-core';
-import { CheckResult } from '../types';
+import { requireFromProject, requireProjectCore } from '../../../shared/project-core.js';
+import { CheckResult } from '../types.js';
 
 /**
  * Attempts to build the Admin API and Shop API GraphQL schemas.

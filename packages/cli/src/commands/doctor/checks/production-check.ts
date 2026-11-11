@@ -4,7 +4,7 @@ import {
 } from '@vendure/common/lib/shared-constants';
 import type { RuntimeVendureConfig } from '@vendure/core';
 
-import { CheckResult } from '../types';
+import { CheckResult } from '../types.js';
 
 /**
  * Production profile checks. Inspects the loaded RuntimeVendureConfig for settings

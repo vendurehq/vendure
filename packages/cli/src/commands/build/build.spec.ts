@@ -16,7 +16,7 @@ import {
     shouldUseMultiBuildSpinner,
     shouldUseProgress,
     validateTsConfig,
-} from './build';
+} from './build.js';
 
 const originalCwd = process.cwd();
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');

@@ -2,10 +2,10 @@ import { log } from '@clack/prompts';
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { createFile, getPluginClasses } from '../../../utilities/ast-utils';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
 
 export interface AddDashboardOptions {
     plugin?: VendurePluginRef;
