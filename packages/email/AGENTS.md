@@ -40,9 +40,10 @@ To check that a real action sends an email: run the action (e.g. a GraphQL mutat
 ## Writing templates
 
 - Put every piece of text a shop might want to change in the template's `content` (label + English default) and read it with `useEmailContent()`. Values the text can include go in `variables` and are written `{{ name }}`; use `orderVariables()` for order emails. Admins edit this text in the Dashboard (System > Emails), per language and channel.
+- The design set in the Dashboard (System > Email design) beats `branding` in code and the component defaults. If `render` prints a `Design:` line (JSON: `email.designOrigins`), changing those settings in code will not show. Say so instead of editing `vendure-config.ts`.
 - Text edited in the Dashboard beats the default in `template.tsx`. If `render` prints an `Edited:` line (JSON: `email.contentOrigins` with `channel` or `all-channels`), changing that slot's default in code will not show. Say so instead of editing the file.
 - Use the components exported by `@vendure/email`: `EmailLayout` (always the root), `EmailSection` (`variant="muted"` for a grey box), `EmailTitle` (one per email, at the top), `EmailHeading` (small section label), `EmailText`, `EmailMutedText`, `EmailDivider`, `EmailButton` (`fallbackLink` also prints the URL), `Money`, `FormattedDate`, `OrderHighlights`, `OrderSummary`, `AddressBlock`, `FulfillmentSummary`. Pass `branding` from the props to `EmailLayout`.
-- Reuse the colours, font and spacing in the exported `emailTheme` so a custom email matches the defaults. The brand colour (`branding.primaryColor`) is for buttons and links only.
+- In custom components, read colours, font and spacing with `useEmailTheme()` (not the static `emailTheme`), so they follow the design set in the Dashboard. The brand colour (`branding.primaryColor`) is for buttons and links only.
 - Use inline `style` props only. Email clients ignore `<style>` blocks, external CSS, class names, flexbox and grid. Lay out columns with `Row` and `Column` (exported by `@vendure/email`), or tables.
 - Image URLs must be absolute. Order line images already are.
 - Props have been through JSON: dates are ISO strings, money values are integers in minor units (use `<Money value={...} currencyCode={order.currencyCode} />`), and entity getters and methods are gone.

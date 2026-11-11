@@ -94,11 +94,12 @@ The default templates read the `branding` template variable:
 
 - `name`: the shop name. Shown in the header when there is no logo, and used as the logo's alt text.
 - `logoUrl`: the logo shown in the header.
-- `primaryColor`: the color of buttons and highlighted sections. Defaults to `#375a67`.
+- `primaryColor`: the color of buttons and links. Defaults to `#18181b`.
 - `primaryTextColor`: the text color on top of the primary color. Defaults to `#ffffff`.
 - `footerText`: shown in the footer of every email, for example the company address.
 
-For many shops, setting `branding` is all the customization needed.
+For many shops, setting `branding` is all the customization needed. Admins can also change these settings, and more of
+the design, in the Dashboard. See [Changing the design in the Dashboard](#changing-the-design-in-the-dashboard).
 
 ### The default emails
 
@@ -317,6 +318,41 @@ to an existing project.
 Stored text takes precedence over the default text in a template file, so a change to the default in `template.tsx`
 has no effect on text that was edited in the Dashboard. `vendure email render` lists the text that comes from the
 Dashboard.
+
+### Changing the design in the Dashboard
+
+**System > Email design** changes how every email looks, with a live preview of any email, on desktop and mobile
+widths:
+
+- **Brand:** shop name, logo URL and height, header alignment (left or center), brand color (buttons and links), button
+  text color and footer text.
+- **Layout:** font, page background, card background, and the corner radius of the card and of buttons.
+
+The font list only offers fonts that email clients have installed, since most clients don't load web fonts. Colors must
+be `#rrggbb` and the logo an absolute `http(s)` URL; the server rejects anything else, because the values end up in the
+CSS of every email.
+
+Like the text, the design is stored for all channels or for the active channel only ("Applies to"), and a channel's
+settings take precedence. Empty fields use the code: the `branding` template variable, then the defaults of the email
+components. The layout of each email stays in its template.
+
+The email components apply the design, so it also applies to custom templates built from them. A custom component can
+read the same values with `useEmailTheme()` and `useEmailBranding()`.
+
+The design is stored in the `email_design_override` table. Generate a migration for it when you add `@vendure/email` to
+an existing project. `vendure email render` lists the design settings that come from the Dashboard.
+
+### Sending a test email
+
+The preview is rendered by a browser, which isn't how Outlook, Gmail or Apple Mail render email. To check an email in a
+real client, click **Send test** on System > Emails or System > Email design and enter an address. The email:
+
+- uses the same sample data as the preview, and your unsaved text and design
+- goes through the job queue and the configured transport, so it arrives like a real email (in dev mode it goes to the
+  outbox instead)
+- has "[Test]" in the subject, goes to that address only (no cc or bcc), and adds nothing to the order history
+
+The `sendTestEmail` mutation does the same from the Admin API.
 
 ### Writing a new email
 
