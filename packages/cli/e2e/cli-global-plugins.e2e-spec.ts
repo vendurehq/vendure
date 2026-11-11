@@ -8,7 +8,7 @@ import {
     createTestProject,
     installCliPluginFixture,
     SimulatedGlobalInstall,
-} from './cli-test-utils';
+} from './cli-test-utils.js';
 
 /**
  * Exercises the CLI as it behaves when installed globally: its own package

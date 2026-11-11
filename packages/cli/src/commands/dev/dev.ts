@@ -12,10 +12,10 @@ import {
     pipePrefixedOutput,
     resolvePackageBin,
     signalToExitCode,
-} from '../../shared/cli-process-utils';
-import { showConsoleHintIfUnlinked } from '../../shared/console-hint';
-import { showStarPromptOnce } from '../../shared/star-prompt';
-import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils';
+} from '../../shared/cli-process-utils.js';
+import { showConsoleHintIfUnlinked } from '../../shared/console-hint.js';
+import { showStarPromptOnce } from '../../shared/star-prompt.js';
+import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 

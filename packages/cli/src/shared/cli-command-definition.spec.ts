@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CliCommandContext, readCommandContext, readCommandOptions } from './cli-command-definition';
+import { CliCommandContext, readCommandContext, readCommandOptions } from './cli-command-definition.js';
 
 /**
  * The argument list a command action receives: positionals, then Commander's

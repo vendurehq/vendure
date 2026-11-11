@@ -4,11 +4,11 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CliCommandExit } from '../../../shared/cli-command-exit';
-import { manifest, PROJECT_ID } from '../../console/console.fixtures';
-import { getProjectLinkManifestPath } from '../../console/project-link-manifest';
+import { CliCommandExit } from '../../../shared/cli-command-exit.js';
+import { manifest, PROJECT_ID } from '../../console/console.fixtures.js';
+import { getProjectLinkManifestPath } from '../../console/project-link-manifest.js';
 
-import { addPlatform, PlatformTrialDependencies } from './add-platform';
+import { addPlatform, PlatformTrialDependencies } from './add-platform.js';
 
 vi.mock('@clack/prompts', () => ({
     cancel: vi.fn(),

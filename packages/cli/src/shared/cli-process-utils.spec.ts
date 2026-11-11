@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 
-import { waitForChildProcesses } from './cli-process-utils';
+import { waitForChildProcesses } from './cli-process-utils.js';
 
 class FakeChildProcess extends EventEmitter {
     exitCode: number | null = null;

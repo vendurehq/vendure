@@ -10,8 +10,8 @@ import {
     SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
-} from './auth-errors';
-import { AuthOptions } from './auth-options';
+} from './auth-errors.js';
+import { AuthOptions } from './auth-options.js';
 import {
     getAccessToken,
     listOrganizations,
@@ -20,8 +20,8 @@ import {
     readAuthStatus,
     refreshAccessToken,
     SESSION_LOCK_OPTIONS,
-} from './auth-session';
-import { readStoredAuth, StoredAuth, writeStoredAuth } from './auth-store';
+} from './auth-session.js';
+import { readStoredAuth, StoredAuth, writeStoredAuth } from './auth-store.js';
 
 const NOW = Date.UTC(2026, 9, 5, 12, 0, 0);
 const USER = { id: 'user_01', email: 'dev@example.com', first_name: 'Ada', last_name: 'Lovelace' };

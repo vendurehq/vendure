@@ -8,8 +8,11 @@ import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from 'v
 
 import { ConfigService } from '../config/config.service';
 import { Logger } from '../config/logger/vendure-logger';
+import { composeStrategy } from '../config/strategy-layer/compose-strategy';
+import { StrategyLayer } from '../config/strategy-layer/strategy-layer';
 import { ProcessContext } from '../process-context/process-context';
 
+import { NoopSchedulerStrategy } from './noop-scheduler-strategy';
 import { ScheduledTask } from './scheduled-task';
 import { SchedulerStrategy, TaskReport } from './scheduler-strategy';
 import { SchedulerService } from './scheduler.service';
@@ -260,5 +263,29 @@ describe('SchedulerService', () => {
 
         expect(errorSpy).toHaveBeenCalledWith('Error executing scheduled task slow-task: boom');
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('Waiting for'));
+    });
+});
+
+describe('SchedulerService with a composed scheduler strategy', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('treats a composed NoopSchedulerStrategy like the NoopSchedulerStrategy alone', () => {
+        class SchedulerLayer extends StrategyLayer.passThrough<SchedulerStrategy>() {
+            static priority = 1;
+        }
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        const configService = {
+            schedulerOptions: {
+                schedulerStrategy: composeStrategy(SchedulerLayer, new NoopSchedulerStrategy()),
+                tasks: [],
+            },
+        } as unknown as ConfigServiceArg;
+        const service = new SchedulerService(configService, { isWorker: true } as ProcessContextArg);
+        service.onApplicationBootstrap();
+        expect(warn).toHaveBeenCalledWith(
+            'No scheduler strategy is configured! Scheduled tasks will not be executed.',
+        );
     });
 });

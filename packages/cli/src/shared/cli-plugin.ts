@@ -1,4 +1,4 @@
-import type { ConsoleLinkHookRegistration } from '../commands/console/console-link-hook';
+import type { ConsoleLinkHookRegistration } from '../commands/console/console-link-hook.js';
 
 import {
     CliCommandDefinition,
@@ -6,8 +6,8 @@ import {
     CliCommandNode,
     CliCommandOption,
     hasCliSubcommands,
-} from './cli-command-definition';
-import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options';
+} from './cli-command-definition.js';
+import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options.js';
 
 /**
  * A CLI plugin that can add new commands or replace existing ones.

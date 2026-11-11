@@ -79,8 +79,8 @@ vi.mock('commander', async importOriginal => {
 });
 
 // No port probing or Docker calls. 'not-running' makes Quick Start ask how to proceed.
-vi.mock('./helpers', async importOriginal => {
-    const actual = await importOriginal<typeof import('./helpers')>();
+vi.mock('./helpers.js', async importOriginal => {
+    const actual = await importOriginal<typeof import('./helpers.js')>();
     return {
         ...actual,
         findAvailablePort: () => Promise.resolve(3000),
@@ -91,7 +91,7 @@ vi.mock('./helpers', async importOriginal => {
 // The CLI's last-resort handler logs an escaped error and then calls process.exit(1). When the
 // error is the stand-in for an exit that already happened, that second exit is swallowed.
 // Any other error is recorded, so it shows up in the event list.
-vi.mock('./logger', () => ({
+vi.mock('./logger.js', () => ({
     setLogLevel: vi.fn(),
     log: (message: unknown) => {
         if (message === state.EXITED) {
@@ -111,7 +111,7 @@ const STOREFRONT_PROMPT = 'Would you like to include a storefront?';
  */
 async function runCli(answers: Record<string, unknown>) {
     state.answers = new Map(Object.entries(answers));
-    await import('./create-vendure-app');
+    await import('./create-vendure-app.js');
     await vi.waitFor(() => expect(state.exited).toBe(true));
     return state;
 }

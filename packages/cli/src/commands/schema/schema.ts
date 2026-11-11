@@ -1,8 +1,8 @@
 import { cancel, intro, isCancel, log, outro, select, text } from '@clack/prompts';
 import pc from 'picocolors';
 
-import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
-import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
 const cancelledMessage = 'Schema generation cancelled.';
 const schemaExamples = ['vendure schema --api admin', 'vendure schema --api shop --format json'];
@@ -39,7 +39,7 @@ export async function schemaCommand(options?: SchemaOptions) {
 async function handleNonInteractiveMode(options: SchemaOptions) {
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
-        const { generateSchema } = await import('./generate-schema/generate-schema');
+        const { generateSchema } = await import('./generate-schema/generate-schema.js');
         await generateSchema(options);
     } catch (e: unknown) {
         rethrowCliCommandExit(e);
@@ -113,7 +113,7 @@ async function handleInteractiveMode(configFile?: string) {
     }
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
-        const { generateSchema } = await import('./generate-schema/generate-schema');
+        const { generateSchema } = await import('./generate-schema/generate-schema.js');
         await generateSchema({
             api: apiType,
             format,

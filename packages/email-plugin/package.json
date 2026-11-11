@@ -14,12 +14,6 @@
         "url": "git+https://github.com/vendurehq/vendure.git",
         "directory": "packages/email-plugin"
     },
-    "scripts": {
-        "watch": "tsc -p ./tsconfig.build.json --watch",
-        "build": "rimraf lib && tsc -p ./tsconfig.build.json",
-        "lint": "eslint --fix .",
-        "test": "vitest --config vitest.config.mts --run --typecheck"
-    },
     "homepage": "https://www.vendure.io/",
     "funding": "https://github.com/sponsors/michaelbromley",
     "publishConfig": {
@@ -43,5 +37,10 @@
         "@vendure/core": "3.8.1",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
+    },
+    "nx": {
+        "tags": [
+            "scope:plugin"
+        ]
     }
 }

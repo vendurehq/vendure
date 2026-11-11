@@ -6,13 +6,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runCli } from '../../shared/__tests__/run-cli';
+import { runCli } from '../../shared/__tests__/run-cli.js';
 
-import { devCommandDef } from './command';
+import { devCommandDef } from './command.js';
 
 vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
-vi.mock('../../shared/cli-process-utils', async importOriginal => ({
-    ...(await importOriginal<typeof import('../../shared/cli-process-utils')>()),
+vi.mock('../../shared/cli-process-utils.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../shared/cli-process-utils.js')>()),
     resolvePackageBin: () => '/fake/bin.js',
 }));
 

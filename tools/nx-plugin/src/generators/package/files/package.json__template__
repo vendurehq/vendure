@@ -1,0 +1,24 @@
+{
+    "name": "<%= packageName %>",
+    "version": "<%= version %>",
+    "license": "GPL-3.0-or-later",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": ["lib/**/*"],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vendurehq/vendure.git",
+        "directory": "packages/<%= dirName %>"
+    },
+    "homepage": "https://www.vendure.io/",
+    "publishConfig": {
+        "access": "public"
+    },
+    "devDependencies": {
+        "@vendure/common": "<%= version %>",
+        "@vendure/core": "<%= version %>"
+    },
+    "nx": {
+        "tags": ["scope:plugin"]
+    }
+}

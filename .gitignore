@@ -9,7 +9,8 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .env
-lerna-debug.log
+.nx/cache
+.nx/workspace-data
 dist
 e2e/__data__/*
 docs/resources/_gen/*

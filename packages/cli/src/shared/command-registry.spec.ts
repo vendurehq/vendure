@@ -1,21 +1,21 @@
+import { createColors } from 'picocolors';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createColors } from 'picocolors';
 
-import { sectionAfter } from './__tests__/help-sections';
-import { runCli } from './__tests__/run-cli';
+import { sectionAfter } from './__tests__/help-sections.js';
+import { runCli } from './__tests__/run-cli.js';
 import {
     CliCommandDefinition,
     CliCommandNode,
     CliCommandOption,
     readCommandContext,
     readCommandOptions,
-} from './cli-command-definition';
-import { exitCliCommand } from './cli-command-exit';
-import { parseOptionFlags } from './cli-command-options';
-import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry';
-import { CommandTreeEntry, RootOptionEntry } from './command-registry-store';
-import { ANSI } from './strip-ansi';
+} from './cli-command-definition.js';
+import { exitCliCommand } from './cli-command-exit.js';
+import { parseOptionFlags } from './cli-command-options.js';
+import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
+import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry.js';
+import { ANSI } from './strip-ansi.js';
 
 interface RecordedCall {
     commandPath: string[];

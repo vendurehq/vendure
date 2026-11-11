@@ -3,8 +3,8 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import pc from 'picocolors';
 
-import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
-import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
 /**
  * Registry of available codemods. To add a new codemod, just add an entry here.
@@ -15,7 +15,7 @@ const CODEMODS: Record<string, { description: string; run: (targetPath?: string)
     'dashboard-base-ui': {
         description: 'Migrate dashboard extensions from Radix UI to Base UI patterns',
         run: async (targetPath?: string) => {
-            const { dashboardUiMigration } = await import('./dashboard-ui/dashboard-ui-migration');
+            const { dashboardUiMigration } = await import('./dashboard-ui/dashboard-ui-migration.js');
             await dashboardUiMigration(targetPath);
         },
     },
@@ -23,7 +23,7 @@ const CODEMODS: Record<string, { description: string; run: (targetPath?: string)
         description: 'Migrate User.roles and Role.channels to v4 role assignments',
         run: async (targetPath?: string) => {
             const { roleAssignmentsMigration } =
-                await import('./role-assignments/role-assignments-migration');
+                await import('./role-assignments/role-assignments-migration.js');
             await roleAssignmentsMigration(targetPath);
         },
     },

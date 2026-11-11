@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { readStoredAuth, writeStoredAuth } from '../../auth/auth-store';
+import { readStoredAuth, writeStoredAuth } from '../../auth/auth-store.js';
 
-import { AuthCommandDependencies, authLoginCommand, authLogoutCommand, authStatusCommand } from './auth';
+import { AuthCommandDependencies, authLoginCommand, authLogoutCommand, authStatusCommand } from './auth.js';
 
 let configDir: string;
 let messages: string[];

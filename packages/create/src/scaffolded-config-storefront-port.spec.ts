@@ -1,16 +1,16 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
-import { getCiConfiguration } from './gather-user-responses';
-import { getStorefrontStarter, renderStorefrontEnvironment } from './storefront-starters';
+import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants.js';
+import { getCiConfiguration } from './gather-user-responses.js';
+import { getStorefrontStarter, renderStorefrontEnvironment } from './storefront-starters.js';
 
 const { findAvailablePortMock } = vi.hoisted(() => ({ findAvailablePortMock: vi.fn() }));
 
 // The scaffolder picks the storefront's dev port by probing with findAvailablePort. Pinning
 // the probe makes the port the scaffold settles on deterministic, so these tests can assert
 // that both halves of the generated project quote that same port.
-vi.mock('./helpers', async importOriginal => {
-    const actual = await importOriginal<typeof import('./helpers')>();
+vi.mock('./helpers.js', async importOriginal => {
+    const actual = await importOriginal<typeof import('./helpers.js')>();
     return { ...actual, findAvailablePort: findAvailablePortMock };
 });
 
@@ -21,7 +21,7 @@ const PROJECT_ROOT = 'my-vendure-app';
 
 describe('scaffolded vendure-config storefront port (#5245)', () => {
     beforeAll(async () => {
-        const { getPackageManagerInfo, registerTemplateHelpers } = await import('./helpers');
+        const { getPackageManagerInfo, registerTemplateHelpers } = await import('./helpers.js');
         // create-vendure-app.ts registers these once before generating any source.
         registerTemplateHelpers(getPackageManagerInfo('npm'));
     });

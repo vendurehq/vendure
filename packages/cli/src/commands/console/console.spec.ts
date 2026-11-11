@@ -3,16 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CliCommandExit } from '../../shared/cli-command-exit';
+import { CliCommandExit } from '../../shared/cli-command-exit.js';
 
-import {
-    ConsoleCommandDependencies,
-    ConsoleCommandOptions,
-    consoleCommand,
-    resolveConsoleEndpoints,
-} from './console';
-import { ConsoleReporter } from './console-reporter';
-import { ConsoleCommandResult } from './console-result';
+import { ConsoleReporter } from './console-reporter.js';
+import { ConsoleCommandResult } from './console-result.js';
 import {
     ACCOUNT_ID,
     NOW,
@@ -28,9 +22,15 @@ import {
     projectList,
     storeLogin,
     withSingleAccount,
-} from './console.fixtures';
-import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore';
-import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
+} from './console.fixtures.js';
+import {
+    ConsoleCommandDependencies,
+    ConsoleCommandOptions,
+    consoleCommand,
+    resolveConsoleEndpoints,
+} from './console.js';
+import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore.js';
+import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest.js';
 
 const UUID_V7_LINK_ID = '33333333-3333-7333-8333-333333333333';
 const INSTALLATION_ID = '77777777-7777-4777-8777-777777777777';

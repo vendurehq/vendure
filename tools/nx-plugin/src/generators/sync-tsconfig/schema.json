@@ -1,0 +1,7 @@
+{
+    "$schema": "https://json-schema.org/schema",
+    "$id": "SyncTsconfig",
+    "title": "Writes the tsconfig files of Vendure plugin packages",
+    "type": "object",
+    "properties": {}
+}

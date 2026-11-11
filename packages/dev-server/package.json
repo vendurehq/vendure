@@ -53,5 +53,10 @@
         "progress": "^2.0.3",
         "tsconfig-paths": "^4.2.0",
         "typescript": "5.8.2"
+    },
+    "nx": {
+        "tags": [
+            "scope:app"
+        ]
     }
 }

@@ -75,7 +75,7 @@ function generateChangelogForPackage() {
             outputUnreleased: true,
         },
         {
-            version: require('../../lerna.json').version,
+            version: require('../../packages/core/package.json').version,
         },
         null,
         { headerPattern: HEADER_PATTERN },

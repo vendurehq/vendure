@@ -3,8 +3,8 @@ import {
     ReauthenticationRequiredError,
     SessionLockUnavailableError,
     SessionRejectedError,
-} from './auth-errors';
-import { AuthOptions, getAuthFilePath, getAuthLockPath, resolveConsoleApiUrl } from './auth-options';
+} from './auth-errors.js';
+import { AuthOptions, getAuthFilePath, getAuthLockPath, resolveConsoleApiUrl } from './auth-options.js';
 import {
     AuthUser,
     StoredAuth,
@@ -14,7 +14,7 @@ import {
     readStoredAuth,
     readStoredAuthFile,
     writeStoredAuth,
-} from './auth-store';
+} from './auth-store.js';
 import {
     AuthOrganization,
     ConsoleTokenRefusedError,
@@ -22,8 +22,8 @@ import {
     fetchWorkosClient,
     resolveOrganization,
     signOut,
-} from './console-api';
-import { FileLockOptions, withFileLock } from './file-lock';
+} from './console-api.js';
+import { FileLockOptions, withFileLock } from './file-lock.js';
 import {
     DeviceAuthorization,
     WORKOS_REQUEST_TIMEOUT_MS,
@@ -32,7 +32,7 @@ import {
     exchangeRefreshToken,
     pollDeviceAuthorization,
     startDeviceAuthorization,
-} from './workos-client';
+} from './workos-client.js';
 
 /**
  * The CLI login without its tokens: safe to print, log or return as JSON.

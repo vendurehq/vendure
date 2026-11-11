@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { revertMigrationCommand } from './revert-migration';
+import { revertMigrationCommand } from './revert-migration.js';
 
 describe('revertMigrationCommand', () => {
     it('uses revert-specific metadata', () => {

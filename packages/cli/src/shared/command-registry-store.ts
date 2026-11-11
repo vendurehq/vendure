@@ -10,10 +10,10 @@ import {
     hasCliSubcommands,
     isCliCommandGroup,
     isRunnableCliCommand,
-} from './cli-command-definition';
-import { describeOption, ParsedCliOption, parseOptionFlags, withSubOptions } from './cli-command-options';
-import { CliPlugin, getCliPluginExtensionEntries, normalizeCommandPath } from './cli-plugin';
-import { RegisteredCliPluginExtension } from './cli-plugin-extension';
+} from './cli-command-definition.js';
+import { describeOption, ParsedCliOption, parseOptionFlags, withSubOptions } from './cli-command-options.js';
+import { RegisteredCliPluginExtension } from './cli-plugin-extension.js';
+import { CliPlugin, getCliPluginExtensionEntries, normalizeCommandPath } from './cli-plugin.js';
 
 /**
  * Why a flag cannot be shared by a command that has subcommands and by

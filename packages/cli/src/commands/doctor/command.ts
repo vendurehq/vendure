@@ -1,5 +1,5 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 // No `requiresProject`: reporting that a directory is not a Vendure project is
 // one of doctor's own checks, so refusing to run would remove that answer.
@@ -35,7 +35,7 @@ export const doctorCommandDef: CliCommandDefinition = {
     ],
     action: async options => {
         return runCliCommand(async () => {
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
             return doctorCommand(options);
         });
     },

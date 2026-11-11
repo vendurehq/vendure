@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import { PROJECT_LINK_MANIFEST_RELATIVE_PATH } from './project-link-manifest';
+import { PROJECT_LINK_MANIFEST_RELATIVE_PATH } from './project-link-manifest.js';
 
 export const PROJECT_LINK_GITIGNORE_RELATIVE_PATH = '.gitignore';
 const PROJECT_LINK_MANIFEST_PATH = PROJECT_LINK_MANIFEST_RELATIVE_PATH.split(path.sep).join('/');

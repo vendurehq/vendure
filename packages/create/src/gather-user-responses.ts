@@ -5,10 +5,10 @@ import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import path from 'path';
 
-import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
-import { checkCancel, findAvailablePort, isDockerAvailable, toComposeProjectName } from './helpers';
-import { getStorefrontStarter, STOREFRONT_STARTERS, StorefrontId } from './storefront-starters';
-import { DbType, FileSources, PackageManager, UserResponses } from './types';
+import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants.js';
+import { checkCancel, findAvailablePort, isDockerAvailable, toComposeProjectName } from './helpers.js';
+import { getStorefrontStarter, STOREFRONT_STARTERS, StorefrontId } from './storefront-starters.js';
+import { DbType, FileSources, PackageManager, UserResponses } from './types.js';
 
 interface PromptAnswers {
     dbType: DbType;
@@ -280,7 +280,7 @@ async function generateSources(
     packageManager: PackageManager,
     port: number,
 ): Promise<FileSources & { storefrontPort: number }> {
-    const assetPath = (fileName: string) => path.join(__dirname, '../assets', fileName);
+    const assetPath = (fileName: string) => path.join(import.meta.dirname, '../assets', fileName);
 
     registerEscapeSingleHelper();
 
