@@ -1,8 +1,12 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/slug-input.js';
-import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
+import {
+    useEnabledInChannelOption,
+    usePriceFactor,
+} from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
+import { EnabledInChannelSelect } from '@/vdb/components/shared/enabled-in-channel.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -134,6 +138,7 @@ function ProductDetailPage() {
     const refreshRef = useRef<() => void>(() => {});
     const { channels } = useChannel();
     const { priceFactor, priceFactorField } = usePriceFactor();
+    const { enabledInChannel, enabledInChannelField } = useEnabledInChannelOption();
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
@@ -149,6 +154,7 @@ function ProductDetailPage() {
             return {
                 id: entity.id,
                 enabled: entity.enabled,
+                enabledInChannel: entity.enabledInChannel ?? null,
                 featuredAssetId: entity.featuredAsset?.id,
                 assetIds: entity.assets.map(asset => asset.id),
                 facetValueIds: entity.facetValues.map(facetValue => facetValue.id),
@@ -223,7 +229,11 @@ function ProductDetailPage() {
                             render={({ field }) => (
                                 <div
                                     className="flex items-center gap-2"
-                                    title={t`When enabled, a product is available in the shop`}
+                                    title={
+                                        channels.length > 1
+                                            ? t`When enabled, a product is available in the shop of every channel where it is not disabled`
+                                            : t`When enabled, a product is available in the shop`
+                                    }
                                     data-testid="product-enabled-switch"
                                 >
                                     <label
@@ -238,6 +248,17 @@ function ProductDetailPage() {
                                         onCheckedChange={field.onChange}
                                     />
                                 </div>
+                            )}
+                        />
+                        <Controller
+                            control={form.control}
+                            name="enabledInChannel"
+                            render={({ field }) => (
+                                <EnabledInChannelSelect
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    testId="product-enabled-in-channel-select"
+                                />
                             )}
                         />
                         <Button
@@ -386,8 +407,14 @@ function ProductDetailPage() {
                                 productIds: [eid],
                                 channelId,
                                 priceFactor,
+                                enabledInChannel,
                             })}
-                            additionalAssignFields={priceFactorField}
+                            additionalAssignFields={
+                                <>
+                                    {priceFactorField}
+                                    {enabledInChannelField}
+                                </>
+                            }
                             queryKeyScope={['DetailPage', 'product']}
                         />
                     </PageBlock>

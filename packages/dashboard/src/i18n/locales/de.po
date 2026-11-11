@@ -838,8 +838,8 @@ msgid "List view"
 msgstr "Listenansicht"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant is available in the shop"
-msgstr ""
+#~ msgid "When enabled, this variant is available in the shop"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -2193,6 +2193,9 @@ msgstr "Kundengruppen"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Disabled"
 msgstr "Deaktiviert"
 
@@ -3413,6 +3416,11 @@ msgstr "Fehler beim Aktualisieren des Produkts"
 msgid "Add collection filter"
 msgstr "Sammlungsfilter hinzufügen"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
+#: src/app/routes/_authenticated/_products/products.tsx
+msgid "Enabled in this channel"
+msgstr ""
+
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Adjusting {0} lines"
@@ -4447,6 +4455,10 @@ msgstr "Passwörter stimmen nicht überein"
 msgid "Pick a date and time"
 msgstr "Datum und Uhrzeit auswählen"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Enabled in the new channels"
+msgstr ""
+
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
 msgstr ""
@@ -4652,6 +4664,9 @@ msgstr "Kann nicht aus aktivem Kanal entfernt werden"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Not set"
 msgstr "Nicht gesetzt"
 
@@ -4748,6 +4763,10 @@ msgstr "In dieser Erfüllung enthaltene Artikel."
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "No widgets available"
 #~ msgstr "Keine Widgets verfügbar"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Same as this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -5700,6 +5719,10 @@ msgstr "Gutscheincode aus Bestellung entfernt"
 msgid "Never"
 msgstr "Niemals"
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not disabled"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "Fehler beim Aktualisieren des Facettenwerts"
@@ -6013,6 +6036,9 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Enabled"
 msgstr "Aktiviert"
 
@@ -6702,6 +6728,10 @@ msgstr "{0} auswählen"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "New facet values to add:"
 msgstr "Neue Facetten-Werte hinzufügen:"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not disabled"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -7472,6 +7502,10 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Aktiv"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Enables or disables it in this channel only. When not set, the global setting applies."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
 msgstr "Steuerbasis"
@@ -7703,6 +7737,10 @@ msgstr "Globale Einstellungen erfolgreich aktualisiert"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
 msgstr "API Key erfolgreich aktualisiert"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "In <0/>"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"

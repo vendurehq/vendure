@@ -1,10 +1,10 @@
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { useMutation } from '@tanstack/react-query';
 import { ReactNode, useEffect, useState } from 'react';
-import { toast } from '@/vdb/components/ui/sonner.js';
 
+import { assignToChannels } from '@/vdb/components/shared/assign-to-channels.js';
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
-import { assignToChannels } from '@/vdb/components/shared/assign-to-channels.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -15,6 +15,7 @@ import {
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -213,4 +214,53 @@ export function usePriceFactor() {
     );
 
     return { priceFactor, priceFactorField };
+}
+
+type EnabledInChannelOptionKey = 'copy' | 'unset' | 'enabled' | 'disabled';
+
+/**
+ * Hook for the per-channel enabled option in the assign-to-channel dialogs of Products and
+ * ProductVariants. `enabledInChannel` is `undefined` for the default "copy from this channel",
+ * which leaves it out of the mutation input so the server copies the value from the active
+ * channel.
+ */
+export function useEnabledInChannelOption() {
+    const { t } = useLingui();
+    const [option, setOption] = useState<EnabledInChannelOptionKey>('copy');
+    const items: Record<EnabledInChannelOptionKey, string> = {
+        copy: t`Same as this channel`,
+        unset: t`Not set`,
+        enabled: t`Enabled`,
+        disabled: t`Disabled`,
+    };
+    const enabledInChannel =
+        option === 'copy' ? undefined : option === 'enabled' ? true : option === 'disabled' ? false : null;
+
+    const enabledInChannelField = (
+        <div className="grid gap-2" data-testid="assign-enabled-in-channel">
+            <label className="text-sm font-medium">
+                <Trans>Enabled in the new channels</Trans>
+            </label>
+            <Select
+                items={items}
+                value={option}
+                onValueChange={key => {
+                    if (key != null) setOption(key as EnabledInChannelOptionKey);
+                }}
+            >
+                <SelectTrigger>
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {(Object.keys(items) as EnabledInChannelOptionKey[]).map(key => (
+                        <SelectItem key={key} value={key}>
+                            {items[key]}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+
+    return { enabledInChannel, enabledInChannelField };
 }

@@ -838,8 +838,8 @@ msgid "List view"
 msgstr "תצוגת רשימה"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant is available in the shop"
-msgstr ""
+#~ msgid "When enabled, this variant is available in the shop"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -2193,6 +2193,9 @@ msgstr "קבוצות לקוחות"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Disabled"
 msgstr "מושבת"
 
@@ -3413,6 +3416,11 @@ msgstr "עדכון המוצר נכשל"
 msgid "Add collection filter"
 msgstr "הוסף מסנן אוסף"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
+#: src/app/routes/_authenticated/_products/products.tsx
+msgid "Enabled in this channel"
+msgstr ""
+
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Adjusting {0} lines"
@@ -4447,6 +4455,10 @@ msgstr "הסיסמאות אינן תואמות"
 msgid "Pick a date and time"
 msgstr "בחר תאריך ושעה"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Enabled in the new channels"
+msgstr ""
+
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
 msgstr ""
@@ -4652,6 +4664,9 @@ msgstr "לא ניתן להסיר מערוץ פעיל"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Not set"
 msgstr "לא מוגדר"
 
@@ -4748,6 +4763,10 @@ msgstr "פריטים הכלולים במילוי זה."
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "No widgets available"
 #~ msgstr "אין ווידג'טים זמינים"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Same as this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -5700,6 +5719,10 @@ msgstr "קוד קופון הוסר מההזמנה"
 msgid "Never"
 msgstr "לעולם לא"
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not disabled"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "עדכון ערך המאפיין נכשל"
@@ -6013,6 +6036,9 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Enabled"
 msgstr "מופעל"
 
@@ -6702,6 +6728,10 @@ msgstr "בחר {0}"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "New facet values to add:"
 msgstr "ערכי מאפיינים חדשים להוספה:"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not disabled"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -7472,6 +7502,10 @@ msgctxt "active language"
 msgid "Active"
 msgstr "פעיל"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Enables or disables it in this channel only. When not set, the global setting applies."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
 msgstr "בסיס מס"
@@ -7703,6 +7737,10 @@ msgstr "ההגדרות הגלובליות עודכנו בהצלחה"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
 msgstr "מפתח ה-API עודכן בהצלחה"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "In <0/>"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"

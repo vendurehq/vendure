@@ -1,13 +1,15 @@
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { EnabledInChannelBadge } from '@/vdb/components/shared/enabled-in-channel.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { NoProductsIllustration } from '@/vdb/components/ui/illustrations.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -30,6 +32,7 @@ export const Route = createFileRoute('/_authenticated/_products/products')({
 
 function ProductListPage() {
     const { t } = useLingui();
+    const { channels } = useChannel();
     const reindexMutation = useMutation({
         mutationFn: () => api.mutate(reindexDocument, {}),
         onSuccess: () => {
@@ -70,6 +73,10 @@ function ProductListPage() {
                 description: {
                     cell: RichTextDescriptionCell,
                 },
+                enabledInChannel: {
+                    header: () => <Trans>Enabled in this channel</Trans>,
+                    cell: ({ row }) => <EnabledInChannelBadge value={row.original.enabledInChannel} />,
+                },
             }}
             searchPlaceholder={t`Search products...`}
             onSearchTermChange={searchTerm => {
@@ -104,6 +111,7 @@ function ProductListPage() {
                 featuredAsset: true,
                 slug: true,
                 enabled: true,
+                enabledInChannel: channels.length > 1,
             }}
             route={Route}
             emptyStateAction={

@@ -844,8 +844,8 @@ msgid "List view"
 msgstr "Изглед списък"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant is available in the shop"
-msgstr ""
+#~ msgid "When enabled, this variant is available in the shop"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -2205,6 +2205,9 @@ msgstr "Групи клиенти"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Disabled"
 msgstr "Забранено"
 
@@ -3430,6 +3433,11 @@ msgstr "Неуспешно актуализиране на продукта"
 msgid "Add collection filter"
 msgstr "Добави филтър за колекция"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
+#: src/app/routes/_authenticated/_products/products.tsx
+msgid "Enabled in this channel"
+msgstr ""
+
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Adjusting {0} lines"
@@ -4467,6 +4475,10 @@ msgstr "Паролите не съвпадат"
 msgid "Pick a date and time"
 msgstr "Изберете дата и час"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Enabled in the new channels"
+msgstr ""
+
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
 msgstr ""
@@ -4672,6 +4684,9 @@ msgstr "Не може да се премахне от активния кана�
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Not set"
 msgstr "Не е зададено"
 
@@ -4768,6 +4783,10 @@ msgstr "Елементи, включени в това изпълнение."
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "No widgets available"
 #~ msgstr "Няма налични приспособления"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Same as this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -5726,6 +5745,10 @@ msgstr "Кодът на купона е премахнат от поръчкат
 msgid "Never"
 msgstr "Никога"
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not disabled"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "Неуспешно актуализиране на стойността на аспекта"
@@ -6042,6 +6065,9 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Enabled"
 msgstr "Активирано"
 
@@ -6734,6 +6760,10 @@ msgstr "Изберете {0}s"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "New facet values to add:"
 msgstr "Нови стойности на аспекти за добавяне:"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not disabled"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -7509,6 +7539,10 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Активен"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Enables or disables it in this channel only. When not set, the global setting applies."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
 msgstr "Данъчна основа"
@@ -7740,6 +7774,10 @@ msgstr "Успешно актуализирани глобални настро�
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
 msgstr "API key е актуализиран успешно"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "In <0/>"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"

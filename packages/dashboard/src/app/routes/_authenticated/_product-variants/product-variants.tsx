@@ -1,8 +1,10 @@
 import { Money } from '@/vdb/components/data-display/money.js';
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { EnabledInChannelBadge } from '@/vdb/components/shared/enabled-in-channel.js';
 import { StockLevelLabel } from '@/vdb/components/shared/stock-level-label.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
@@ -22,6 +24,7 @@ export const Route = createFileRoute('/_authenticated/_product-variants/product-
 function ProductListPage() {
     const { formatCurrencyName } = useLocalFormat();
     const { t } = useLingui();
+    const { channels } = useChannel();
     return (
         <ListPage
             pageId="product-variant-list"
@@ -34,6 +37,7 @@ function ProductListPage() {
                 sku: true,
                 priceWithTax: true,
                 enabled: true,
+                enabledInChannel: channels.length > 1,
                 stockLevels: true,
             }}
             bulkActions={[
@@ -45,6 +49,10 @@ function ProductListPage() {
                 [{ component: DeleteProductVariantsBulkAction }],
             ]}
             customizeColumns={{
+                enabledInChannel: {
+                    header: () => <Trans>Enabled in this channel</Trans>,
+                    cell: ({ row }) => <EnabledInChannelBadge value={row.original.enabledInChannel} />,
+                },
                 name: {
                     cell: ({ row: { original } }) => (
                         <DetailPageButton id={original.id} label={original.name} />

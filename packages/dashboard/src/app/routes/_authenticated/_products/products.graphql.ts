@@ -15,6 +15,7 @@ export const productListDocument = graphql(`
                 name
                 slug
                 enabled
+                enabledInChannel
                 description
             }
             totalItems
@@ -29,6 +30,7 @@ export const productDetailFragment = graphql(
             createdAt
             updatedAt
             enabled
+            enabledInChannel
             name
             slug
             description

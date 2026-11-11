@@ -2,6 +2,7 @@ import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
+import { EnabledInChannelSelect } from '@/vdb/components/shared/enabled-in-channel.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -134,6 +135,7 @@ function ProductVariantDetailPage() {
             return {
                 id: entity.id,
                 enabled: entity.enabled,
+                enabledInChannel: entity.enabledInChannel ?? null,
                 sku: entity.sku,
                 optionIds: entity.options.map(option => option.id),
                 featuredAssetId: entity.featuredAsset?.id,
@@ -357,7 +359,10 @@ function ProductVariantDetailPage() {
         // the variant's options. A failed earlier save can leave other ids in the form, so
         // restore the held ones.
         if (!optionsDirty) {
-            form.setValue('optionIds', entity.options.map(option => option.id));
+            form.setValue(
+                'optionIds',
+                entity.options.map(option => option.id),
+            );
             submitHandler(event);
             return;
         }
@@ -498,7 +503,7 @@ function ProductVariantDetailPage() {
                             render={({ field }) => (
                                 <div
                                     className="flex items-center gap-2"
-                                    title={t`When enabled, this variant is available in the shop`}
+                                    title={t`When enabled, this variant is available in the shop of every channel where it is not disabled`}
                                     data-testid="variant-enabled-switch"
                                 >
                                     <label
@@ -513,6 +518,17 @@ function ProductVariantDetailPage() {
                                         onCheckedChange={field.onChange}
                                     />
                                 </div>
+                            )}
+                        />
+                        <Controller
+                            control={form.control}
+                            name="enabledInChannel"
+                            render={({ field }) => (
+                                <EnabledInChannelSelect
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    testId="variant-enabled-in-channel-select"
+                                />
                             )}
                         />
                         <Button

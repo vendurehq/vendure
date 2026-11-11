@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 test.describe('Product List', () => {
     const listPage = (page: import('@playwright/test').Page) =>
@@ -477,7 +478,7 @@ test.describe('Product List', () => {
             // Open the add filter menu and select "enabled" column
             await lp.openAddFilterMenu();
             const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
-            await dropdown.getByRole('menuitem', { name: /enabled/i }).click();
+            await dropdown.getByRole('menuitem', { name: 'Enabled', exact: true }).click();
 
             // The filter dialog should open with boolean filter controls
             const dialog = page.locator('[role="dialog"]');
@@ -497,5 +498,118 @@ test.describe('Product List', () => {
             await page.getByRole('button', { name: 'Clear all' }).click();
             await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
         });
+    });
+});
+
+// #3777 — per-channel enabled: list column, filter, and the option in the assign-to-channel dialog
+test.describe('per-channel enabled in the product list', () => {
+    test.describe.configure({ mode: 'serial' });
+    // The column and the dialog option are only shown when there is more than one channel
+    const channelCode = `e2e-enabled-list-${Date.now()}`;
+    let channelId = '';
+    let keyboardId = '';
+
+    const listPage = (page: import('@playwright/test').Page) =>
+        new BaseListPage(page, { path: '/products', title: 'Products', newButtonLabel: 'New Product' });
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        channelId = (await client.createChannel(channelCode)).id;
+        const { products } = await client.gql(
+            `query { products(options: { filter: { name: { eq: "Clacky Keyboard" } } }) { items { id } } }`,
+        );
+        keyboardId = products.items[0].id;
+        // Disabled in the default channel only
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: keyboardId, enabledInChannel: false },
+        });
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: keyboardId, enabledInChannel: null },
+        });
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('shows the per-channel value in its own column', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await expect(page.getByRole('columnheader', { name: 'Enabled in this channel' })).toBeVisible();
+        await lp.search('Clacky Keyboard');
+        const keyboardRow = lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first();
+        await expect(keyboardRow).toContainText('Disabled');
+    });
+
+    test('filters on the per-channel value', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.openAddFilterMenu();
+        await page.getByRole('menuitem', { name: /enabled ?in ?(this )?channel/i }).click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        // Second combobox is the value select (the first is the operator select)
+        await dialog.getByRole('combobox').nth(1).click();
+        await page.getByRole('option', { name: 'False', exact: true }).click();
+        const filteredRequest = page.waitForRequest(
+            req =>
+                req.url().includes('/admin-api') &&
+                (req.postData() ?? '').replace(/\s/g, '').includes('"enabledInChannel":{"eq":false}'),
+        );
+        await dialog.getByRole('button', { name: /Apply filter/i }).click();
+        await filteredRequest;
+        // Other suites running in parallel may disable further products in this channel, so
+        // check that the keyboard is listed and that every listed product is disabled here
+        await expect(lp.getRows().filter({ hasText: 'Clacky Keyboard' })).toHaveCount(1);
+        for (const row of await lp.getRows().all()) {
+            await expect(row).toContainText('Disabled');
+        }
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+    });
+
+    test('assigns products to a channel with an explicit per-channel value', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.search('Clacky Keyboard');
+        await lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first().getByRole('checkbox').click();
+        await page.getByRole('button', { name: /Actions/i }).click();
+        await page.locator('[role="menu"]').getByText('Assign to channel', { exact: true }).click();
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await dialog.getByRole('combobox').first().click();
+        await page.getByRole('option', { name: channelCode }).click();
+        await page.keyboard.press('Escape');
+        await expect(dialog.getByTestId('assign-enabled-in-channel').getByRole('combobox')).toHaveText(
+            /^Same as this channel/,
+        );
+        await dialog.getByTestId('assign-enabled-in-channel').getByRole('combobox').click();
+        await page.getByRole('option', { name: 'Disabled', exact: true }).click();
+        await dialog.getByRole('button', { name: 'Assign', exact: true }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasNotText: /error|fail/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { product } = await client.gql(
+            `query ($id: ID!) { product(id: $id) { enabledInChannel } }`,
+            { id: keyboardId },
+            channelCode,
+        );
+        expect(product.enabledInChannel).toBe(false);
     });
 });

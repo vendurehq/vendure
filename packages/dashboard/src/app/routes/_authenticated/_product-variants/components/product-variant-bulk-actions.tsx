@@ -3,12 +3,15 @@ import { useState } from 'react';
 
 import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js';
 import { AssignToChannelBulkAction } from '@/vdb/components/shared/assign-to-channel-bulk-action.js';
-import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
-import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js';
+import {
+    useEnabledInChannelOption,
+    usePriceFactor,
+} from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { RemoveFromChannelBulkAction } from '@/vdb/components/shared/remove-from-channel-bulk-action.js';
 import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-table.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js';
 import { Trans } from '@lingui/react/macro';
 import { DeleteBulkAction } from '../../../../common/delete-bulk-action.js';
 
@@ -36,6 +39,7 @@ export const DeleteProductVariantsBulkAction: BulkActionComponent<any> = ({ sele
 
 export const AssignProductVariantsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
     const { priceFactor, priceFactorField } = usePriceFactor();
+    const { enabledInChannel, enabledInChannelField } = useEnabledInChannelOption();
 
     return (
         <AssignToChannelBulkAction
@@ -48,8 +52,14 @@ export const AssignProductVariantsToChannelBulkAction: BulkActionComponent<any> 
                 productVariantIds: selection.map(s => s.id),
                 channelId,
                 priceFactor,
+                enabledInChannel,
             })}
-            additionalFields={priceFactorField}
+            additionalFields={
+                <>
+                    {priceFactorField}
+                    {enabledInChannelField}
+                </>
+            }
         />
     );
 };

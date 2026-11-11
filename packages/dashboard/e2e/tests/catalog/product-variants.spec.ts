@@ -904,18 +904,14 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await sizeInput.fill('ZZZ');
         await sizeInput.press('Enter');
         await expect(sizeInput).toHaveValue('ZZZ');
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
 
         // Picking a suggestion with Enter (popup open) still works — and still no submit.
         await sizeInput.fill('La');
         await sizeInput.press('ArrowDown');
         await sizeInput.press('Enter');
         await expect(sizeInput).toHaveValue('Large');
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
 
         // Definitive: a reload shows the original option — nothing was persisted.
         await page.reload();
@@ -958,9 +954,7 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await skuInput.press('Enter');
 
         // No success toast, and a reload shows the option unchanged.
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
         await page.reload();
         await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
             timeout: 10_000,
@@ -1462,5 +1456,67 @@ test.describe('two options in a group share a display name', () => {
         await client.login();
         await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
         await page.close();
+    });
+});
+
+// #3777 — per-channel enabled: the "In <channel>" control on the variant detail page
+test.describe('per-channel enabled on the variant detail page', () => {
+    test.describe.configure({ mode: 'serial' });
+    // The control is only shown when there is more than one channel
+    const channelCode = `e2e-enabled-variant-${Date.now()}`;
+    let channelId = '';
+    let variantId = '';
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        channelId = (await client.createChannel(channelCode)).id;
+        const { productVariants } = await client.gql(
+            `query { productVariants(options: { filter: { name: { contains: "USB Cable" } } }) { items { id } } }`,
+        );
+        variantId = productVariants.items[0].id;
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(
+            `mutation ($input: [UpdateProductVariantInput!]!) { updateProductVariants(input: $input) { id } }`,
+            { input: [{ id: variantId, enabledInChannel: null }] },
+        );
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('sets the value in the active channel, leaving the global value', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        const select = page.getByTestId('variant-enabled-in-channel-select').getByRole('combobox');
+        await expect(select).toHaveText(/^Not set/);
+        await select.click();
+        await page.getByRole('option', { name: 'Disabled', exact: true }).click();
+        await Promise.all([
+            page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.request().postData()?.includes('UpdateProductVariant') === true &&
+                    response.status() === 200,
+            ),
+            page.getByRole('button', { name: 'Update' }).click(),
+        ]);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { productVariant } = await client.gql(
+            `query ($id: ID!) { productVariant(id: $id) { enabled enabledInChannel } }`,
+            { id: variantId },
+        );
+        expect(productVariant).toEqual({ enabled: true, enabledInChannel: false });
+        await page.reload();
+        await expect(page.getByTestId('variant-enabled-in-channel-select').getByRole('combobox')).toHaveText(
+            /^Disabled/,
+        );
     });
 });
