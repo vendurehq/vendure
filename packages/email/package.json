@@ -1,0 +1,66 @@
+{
+    "name": "@vendure/email",
+    "version": "3.8.1",
+    "license": "GPL-3.0-or-later",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": [
+        "lib/**/*",
+        "src/emails/**/*",
+        "src/dashboard/**/*",
+        "AGENTS.md"
+    ],
+    "vendure": {
+        "cliPlugin": "./lib/cli/index.js",
+        "cliCommands": [
+            "email"
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vendurehq/vendure.git",
+        "directory": "packages/email"
+    },
+    "homepage": "https://www.vendure.io/",
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@react-email/body": "^0.3.0",
+        "@react-email/button": "^0.2.1",
+        "@react-email/column": "^0.0.14",
+        "@react-email/container": "^0.0.16",
+        "@react-email/head": "^0.0.13",
+        "@react-email/heading": "^0.0.16",
+        "@react-email/hr": "^0.0.12",
+        "@react-email/html": "^0.0.12",
+        "@react-email/img": "^0.0.12",
+        "@react-email/link": "^0.0.13",
+        "@react-email/preview": "^0.0.14",
+        "@react-email/render": "^2.0.6",
+        "@react-email/row": "^0.0.13",
+        "@react-email/section": "^0.0.17",
+        "@react-email/text": "^0.1.6",
+        "@types/nodemailer": "^8.0.1",
+        "@types/react": "^19.2.0",
+        "express": "^5.1.0",
+        "fs-extra": "^11.2.0",
+        "nodemailer": "^9.0.1",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.1",
+        "@types/fs-extra": "^11.0.4",
+        "@vendure/common": "3.8.1",
+        "@vendure/core": "3.8.1",
+        "rimraf": "^5.0.5",
+        "typescript": "5.8.2"
+    },
+    "nx": {
+        "tags": [
+            "scope:plugin"
+        ]
+    }
+}
