@@ -89,6 +89,7 @@ describe('createNodesV2', () => {
         const [file, result] = results[0];
         expect(file).toBe('packages/foo-plugin/src/bar/plugin.ts');
         expect(Object.keys(result.projects ?? {})).toEqual(['packages/foo-plugin']);
+        expect(result.projects?.['packages/foo-plugin'].implicitDependencies).toEqual(['nx-plugin']);
     });
 
     it('ignores a plugin file that is not in a package', async () => {
@@ -126,15 +127,10 @@ describe('createTargets', () => {
         expect(targets.build).toEqual({
             executor: 'nx:run-commands',
             options: { command: 'rimraf lib && tsc -p ./tsconfig.build.json', cwd: '{projectRoot}' },
-            dependsOn: ['^build'],
-            inputs: ['production', '^production'],
-            outputs: ['{projectRoot}/lib'],
-            cache: true,
         });
         expect(targets.watch).toEqual({
             executor: 'nx:run-commands',
             options: { command: 'tsc -p ./tsconfig.build.json --watch', cwd: '{projectRoot}' },
-            continuous: true,
         });
         expect(targets.lint.options).toEqual({ command: 'eslint --fix .', cwd: '{projectRoot}' });
     });
@@ -145,7 +141,7 @@ describe('createTargets', () => {
         });
 
         expect(targets.build.options.command).toBe('rimraf dist && tsc -p ./tsconfig.build.json');
-        expect(targets.build.outputs).toEqual(['{projectRoot}/dist']);
+        expect(nxJson.targetDefaults.build.outputs).toContain('{projectRoot}/dist');
     });
 
     it('creates test when there is a unit test', () => {
@@ -157,12 +153,6 @@ describe('createTargets', () => {
                 command: 'vitest --config ../../tools/nx-plugin/vitest.package.config.mts --run',
                 cwd: '{projectRoot}',
             },
-            inputs: [
-                'default',
-                '^production',
-                '{workspaceRoot}/vitest.shared.mts',
-                '{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts',
-            ],
         });
     });
 
@@ -187,7 +177,6 @@ describe('createTargets', () => {
                     'cross-env PACKAGE=foo-plugin vitest --config ../../e2e-common/vitest.config.mts --run',
                 cwd: '{projectRoot}',
             },
-            inputs: ['default', '^production', '{workspaceRoot}/e2e-common/**/*'],
         });
     });
 
@@ -198,13 +187,10 @@ describe('createTargets', () => {
         expect(targets.e2e).toBeUndefined();
     });
 
-    describe('cache inputs', () => {
+    // The inferred targets only set the command, so Nx uses the `targetDefaults` of nx.json.
+    describe('cache inputs in nx.json', () => {
         const root = 'packages/foo-plugin';
-        const targets = () =>
-            targetsFor({
-                'packages/foo-plugin/src/foo.spec.ts': '',
-                'packages/foo-plugin/e2e/foo.e2e-spec.ts': '',
-            });
+        const inputsOf = (target: string): string[] => nxJson.targetDefaults[target].inputs;
 
         it.each([
             ['schema-admin.graphql'],
@@ -212,25 +198,24 @@ describe('createTargets', () => {
             ['src/dashboard/index.tsx'],
             ['src/foo.plugin.ts'],
         ])('a change to %s invalidates build, test and e2e', file => {
-            const { build, test, e2e } = targets();
-            for (const target of [build, test, e2e]) {
-                expect(inputsInclude(target.inputs ?? [], root, `${root}/${file}`)).toBe(true);
+            for (const target of ['build', 'test', 'e2e']) {
+                expect(inputsInclude(inputsOf(target), root, `${root}/${file}`)).toBe(true);
             }
         });
 
         it('a change to a spec file does not invalidate build', () => {
-            const { build, test } = targets();
-
-            expect(inputsInclude(build.inputs ?? [], root, `${root}/src/foo.spec.ts`)).toBe(false);
-            expect(inputsInclude(test.inputs ?? [], root, `${root}/src/foo.spec.ts`)).toBe(true);
+            expect(inputsInclude(inputsOf('build'), root, `${root}/src/foo.spec.ts`)).toBe(false);
+            expect(inputsInclude(inputsOf('test'), root, `${root}/src/foo.spec.ts`)).toBe(true);
         });
 
         it('a change to the shared Vitest config invalidates test', () => {
-            const { test } = targets();
-
-            expect(inputsInclude(test.inputs ?? [], root, 'tools/nx-plugin/vitest.package.config.mts')).toBe(
+            expect(inputsInclude(inputsOf('test'), root, 'tools/nx-plugin/vitest.package.config.mts')).toBe(
                 true,
             );
+        });
+
+        it('a change to e2e-common invalidates e2e', () => {
+            expect(inputsInclude(inputsOf('e2e'), root, 'e2e-common/test-config.ts')).toBe(true);
         });
     });
 });

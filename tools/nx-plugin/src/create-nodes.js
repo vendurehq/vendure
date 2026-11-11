@@ -14,13 +14,19 @@ const { getPackageRootForPluginFile, PLUGIN_FILE_GLOB, readPluginPackage } = req
 const UNIT_TEST_CONFIG = 'tools/nx-plugin/vitest.package.config.mts';
 /** The Vitest config of the `e2e` target. The path is relative to the workspace root. */
 const E2E_TEST_CONFIG = 'e2e-common/vitest.config.mts';
+/** The name of the project of this plugin. */
+const NX_PLUGIN_PROJECT = 'nx-plugin';
 
 /**
  * Finds Vendure plugin packages by their folder structure and adds their targets.
  * A target is only added when the files it works on exist.
  *
- * The `targetDefaults` in nx.json take precedence over the values here. Keep the
- * `inputs`, `outputs` and `dependsOn` of a target the same in both places.
+ * The targets only set the command. The `targetDefaults` in nx.json set `dependsOn`,
+ * `inputs`, `outputs`, `cache` and `continuous`, because they take precedence over
+ * the values of an inferred target.
+ *
+ * Each project depends on this plugin, so that `nx affected` includes the plugin
+ * packages when the plugin or its shared Vitest config changes.
  *
  * @type {import('@nx/devkit').CreateNodesV2}
  */
@@ -39,7 +45,15 @@ const createNodesV2 = [
         }
         return [...fileByRoot].map(([root, file]) => [
             file,
-            { projects: { [root]: { root, targets: createTargets(readPluginPackage(root, reader)) } } },
+            {
+                projects: {
+                    [root]: {
+                        root,
+                        implicitDependencies: [NX_PLUGIN_PROJECT],
+                        targets: createTargets(readPluginPackage(root, reader)),
+                    },
+                },
+            },
         ]);
     },
 ];
@@ -58,38 +72,18 @@ function createTargets(pkg) {
 
     /** @type {Record<string, TargetConfiguration>} */
     const targets = {
-        build: {
-            ...runCommand(`rimraf ${pkg.outDir} && tsc -p ./tsconfig.build.json`),
-            dependsOn: ['^build'],
-            inputs: ['production', '^production'],
-            outputs: [`{projectRoot}/${pkg.outDir}`],
-            cache: true,
-        },
-        watch: {
-            ...runCommand('tsc -p ./tsconfig.build.json --watch'),
-            continuous: true,
-        },
+        build: runCommand(`rimraf ${pkg.outDir} && tsc -p ./tsconfig.build.json`),
+        watch: runCommand('tsc -p ./tsconfig.build.json --watch'),
         lint: runCommand('eslint --fix .'),
     };
     if (pkg.hasUnitTests) {
         const typecheck = pkg.hasTypeTests ? ' --typecheck' : '';
-        targets.test = {
-            ...runCommand(`vitest --config ${toWorkspaceRoot}/${UNIT_TEST_CONFIG} --run${typecheck}`),
-            inputs: [
-                'default',
-                '^production',
-                '{workspaceRoot}/vitest.shared.mts',
-                `{workspaceRoot}/${UNIT_TEST_CONFIG}`,
-            ],
-        };
+        targets.test = runCommand(`vitest --config ${toWorkspaceRoot}/${UNIT_TEST_CONFIG} --run${typecheck}`);
     }
     if (pkg.hasE2e) {
-        targets.e2e = {
-            ...runCommand(
-                `cross-env PACKAGE=${pkg.dirName} vitest --config ${toWorkspaceRoot}/${E2E_TEST_CONFIG} --run`,
-            ),
-            inputs: ['default', '^production', '{workspaceRoot}/e2e-common/**/*'],
-        };
+        targets.e2e = runCommand(
+            `cross-env PACKAGE=${pkg.dirName} vitest --config ${toWorkspaceRoot}/${E2E_TEST_CONFIG} --run`,
+        );
     }
     return targets;
 }
@@ -109,4 +103,4 @@ function createFsReader(workspaceRoot) {
     };
 }
 
-module.exports = { createNodesV2, createTargets, UNIT_TEST_CONFIG };
+module.exports = { createNodesV2, createTargets };
