@@ -27,6 +27,7 @@ import { TransactionalConnection } from '../../../connection';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
+import { ChannelAssignmentService } from '../channel-assignment/channel-assignment.service';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
 import { resolveCalculatedColumnJoin } from './calculated-column-join';
@@ -214,6 +215,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     /** @internal */
@@ -300,13 +302,25 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         // join the tables required by calculated columns
         this.joinCalculatedColumnRelations(qb, entity, options);
 
-        const { customPropertyMap } = extendedOptions;
+        const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
+        const channelAssignmentJoin = extendedOptions.channelId
+            ? this.getChannelAssignmentJoin(qb, entity, options, providedCustomPropertyMap)
+            : undefined;
+        const customPropertyMap =
+            channelAssignmentJoin && !providedCustomPropertyMap ? {} : providedCustomPropertyMap;
         // Store the original customPropertyMap before normalization for EXISTS subquery generation.
         // This is needed because normalizeCustomPropertyMap mutates customPropertyMap, but
         // parseFilterParams needs the original paths to detect *-to-Many relations.
         const originalCustomPropertyMap = customPropertyMap ? { ...customPropertyMap } : undefined;
         if (customPropertyMap) {
             this.normalizeCustomPropertyMap(customPropertyMap, options, qb);
+        }
+        if (customPropertyMap && channelAssignmentJoin) {
+            // Columns of the channel assignment row (e.g. `ProductChannel.enabled`) resolve against
+            // the row of the active Channel, joined below.
+            for (const [property, columnPath] of channelAssignmentJoin.columns) {
+                customPropertyMap[property] = `lqb__channelAssignment.${columnPath}`;
+            }
         }
 
         const customFieldsForType = this.configService.customFields[entity.name as keyof CustomFields];
@@ -350,6 +364,17 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
                 channelId: extendedOptions.channelId,
             });
+            if (channelAssignmentJoin) {
+                const { target, ownerColumn } = channelAssignmentJoin;
+                // Selected, so that sorting on its columns works with pagination (TypeORM orders the
+                // distinct-id subquery by selected columns only), as for the other custom properties.
+                qb.innerJoinAndSelect(
+                    target,
+                    'lqb__channelAssignment',
+                    `lqb__channelAssignment.${ownerColumn} = ${qb.alias}.id AND lqb__channelAssignment.channelId = :channelId`,
+                    { channelId: extendedOptions.channelId },
+                );
+            }
         }
 
         qb.orderBy(sort);
@@ -713,6 +738,53 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 filter._and?.some(nestedFilter => this.isPropertyUsedInFilter(property, nestedFilter)) ||
                 filter._or?.some(nestedFilter => this.isPropertyUsedInFilter(property, nestedFilter)))
         );
+    }
+
+    /**
+     * ChannelAware entities have their `channels` junction table owned by a channel assignment entity
+     * (see `ChannelAssignment`), which can hold per-channel data columns. When the list is scoped to a
+     * Channel and a filter or sort uses such a column, it is resolved against the assignment row of
+     * that Channel. A column is exposed under its own name, or as `<name>InChannel` if the entity
+     * itself has a column of that name (e.g. `ProductChannel.enabled` → `enabledInChannel`, since
+     * `Product.enabled` is the global value).
+     */
+    private getChannelAssignmentJoin<T extends VendureEntity>(
+        qb: SelectQueryBuilder<any>,
+        entity: Type<T>,
+        options: ListQueryOptions<T>,
+        providedCustomPropertyMap?: { [name: string]: string },
+    ): { target: Type<any>; ownerColumn: string; columns: Map<string, string> } | undefined {
+        const assignment = this.channelAssignmentService.getMetadata(entity);
+        if (!assignment) {
+            return;
+        }
+        // Every name the filter and sort parsers resolve before the customPropertyMap: entity
+        // columns (including custom fields), translation columns and calculated columns, plus the
+        // properties the caller maps itself.
+        const { columns: entityColumns, translationColumns } = getColumnMetadata(qb.connection, entity);
+        const reserved = new Set<string>([
+            ...entityColumns.map(c => c.propertyName),
+            ...translationColumns.map(c => c.propertyName),
+            ...getCalculatedColumns(entity).map(c => String(c.name)),
+            ...Object.keys(providedCustomPropertyMap ?? {}),
+        ]);
+        // Maps the filter/sort property to the column's property path on the assignment entity
+        const columns = new Map<string, string>();
+        for (const column of qb.connection.getMetadata(assignment.target).columns) {
+            if (column.isPrimary || column.relationMetadata) {
+                continue;
+            }
+            // A column which clashes with one of those names is exposed as `<name>InChannel`
+            const property = reserved.has(column.propertyName)
+                ? `${column.propertyName}InChannel`
+                : column.propertyName;
+            if (this.customPropertyIsBeingUsed(property, options)) {
+                columns.set(property, column.propertyPath);
+            }
+        }
+        return columns.size
+            ? { target: assignment.target, ownerColumn: assignment.entityIdProperty, columns }
+            : undefined;
     }
 
     /**

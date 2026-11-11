@@ -48,7 +48,8 @@ export class ProductOptionGroup
     products: Product[];
 
     @ManyToMany(type => Channel, channel => channel.productOptionGroups)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @Column(type => CustomProductOptionGroupFields)

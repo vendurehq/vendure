@@ -1,5 +1,5 @@
 import { Type } from '@vendure/common/lib/shared-types';
-import { Column, getMetadataArgsStorage, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, getMetadataArgsStorage, PrimaryGeneratedColumn } from 'typeorm';
 
 import { EntityIdStrategy } from '../config/entity/entity-id-strategy';
 
@@ -41,7 +41,12 @@ function setEntityIdColumnTypes(entityIdStrategy: EntityIdStrategy<any>, entitie
         const columnConfig = getIdColumnsFor(EntityCtor);
         for (const { name, options, entity } of columnConfig) {
             Column({
-                type: columnDataType,
+                // A column referencing a primary key gets its type (and, via
+                // alignChannelAssignmentMetadata(), its length) from that key, as junction columns do
+                type:
+                    options?.matchPrimaryKeyType && entityIdStrategy.primaryKeyType === 'uuid'
+                        ? 'uuid'
+                        : columnDataType,
                 nullable: (options && options.nullable) || false,
                 primary: (options && options.primary) || false,
             })(entity, name);

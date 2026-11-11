@@ -59,6 +59,7 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
     customFields: CustomCustomerFields;
 
     @ManyToMany(type => Channel, channel => channel.customers)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 }

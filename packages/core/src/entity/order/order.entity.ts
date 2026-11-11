@@ -170,7 +170,8 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
     taxZoneId?: ID;
 
     @ManyToMany(type => Channel)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @OneToMany(type => OrderModification, modification => modification.order)

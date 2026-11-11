@@ -85,7 +85,8 @@ export class ApiKey
     userId: ID;
 
     @ManyToMany(() => Channel)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @OneToMany(() => ApiKeyTranslation, t => t.base, { eager: true })
