@@ -1,0 +1,35 @@
+import { mergeConfig } from '@vendure/core';
+import { createTestEnvironment } from '@vendure/testing';
+import gql from 'graphql-tag';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { initialData } from '../../../e2e-common/e2e-initial-data';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+import { <%= className %>Plugin } from '../src/<%= fileName %>.plugin';
+
+describe('<%= className %>Plugin', () => {
+    const { server, shopClient } = createTestEnvironment(
+        mergeConfig(testConfig(), {
+            plugins: [<%= className %>Plugin],
+        }),
+    );
+
+    beforeAll(async () => {
+        await server.init({ initialData });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('starts the server with the plugin', async () => {
+        const result = await shopClient.query(gql`
+            query {
+                activeChannel {
+                    code
+                }
+            }
+        `);
+        expect(result.activeChannel.code).toBe('__default_channel__');
+    });
+});

@@ -4,7 +4,7 @@ import type { GlobalSetupContext } from 'vitest/node';
 
 /**
  * `generateSources()` reads its Handlebars templates from `assets/`, which is gitignored and
- * produced by the `copy-assets` build step. CI runs `lerna run ci` before `bun run test`, and
+ * produced by the `copy-assets` build step. CI runs `nx affected -t ci` before the unit tests, and
  * this package has no `ci` script, so without this the specs fail on a clean tree with
  * `ENOENT ... assets/index.hbs`.
  *

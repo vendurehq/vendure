@@ -12,11 +12,6 @@
     "private": false,
     "license": "GPL-3.0-or-later",
     "type": "commonjs",
-    "scripts": {
-        "build": "rimraf dist && tsc -p ./tsconfig.build.json",
-        "watch": "tsc -p ./tsconfig.build.json --watch",
-        "test": "vitest --config vitest.config.mts --run"
-    },
     "publishConfig": {
         "access": "public"
     },
@@ -59,5 +54,10 @@
         "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1",
         "typescript": "5.8.2"
+    },
+    "nx": {
+        "tags": [
+            "scope:plugin"
+        ]
     }
 }

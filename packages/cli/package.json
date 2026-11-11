@@ -68,5 +68,10 @@
         "vite": {
             "optional": true
         }
+    },
+    "nx": {
+        "tags": [
+            "scope:tool"
+        ]
     }
 }

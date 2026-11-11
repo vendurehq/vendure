@@ -17,7 +17,7 @@ on:
         paths:
             - 'docs/**'
             - '!docs/manifest.json'
-            - 'lerna.json'
+            - 'packages/core/package.json'
     pull_request:
         types: [opened, synchronize, reopened, ready_for_review]
         branches:
@@ -27,7 +27,7 @@ on:
         paths:
             - 'docs/**'
             - '!docs/manifest.json'
-            - 'lerna.json'
+            - 'packages/core/package.json'
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

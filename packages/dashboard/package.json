@@ -155,5 +155,10 @@
     "optionalDependencies": {
         "lightningcss-linux-arm64-musl": "^1.29.3",
         "lightningcss-linux-x64-musl": "^1.29.1"
+    },
+    "nx": {
+        "tags": [
+            "scope:dashboard"
+        ]
     }
 }

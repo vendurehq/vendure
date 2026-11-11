@@ -43,6 +43,34 @@ describe('convertRelationPaths()', () => {
             },
         });
     });
+
+    it('parent path before its child', () => {
+        const result = convertRelationPaths<any>(['a', 'a.b']);
+        expect(result).toEqual({
+            a: { b: true },
+        });
+    });
+
+    it('child path before its parent', () => {
+        const result = convertRelationPaths<any>(['a.b', 'a']);
+        expect(result).toEqual({
+            a: { b: true },
+        });
+    });
+
+    it('parent paths before deeper children', () => {
+        const result = convertRelationPaths<any>(['a', 'a.b', 'a.b.c']);
+        expect(result).toEqual({
+            a: { b: { c: true } },
+        });
+    });
+
+    it('deep child path before its parents', () => {
+        const result = convertRelationPaths<any>(['a.b.c', 'a']);
+        expect(result).toEqual({
+            a: { b: { c: true } },
+        });
+    });
 });
 
 describe('normalizeEmailAddress()', () => {

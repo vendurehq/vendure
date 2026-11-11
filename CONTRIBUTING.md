@@ -121,6 +121,29 @@ Packages must be built (i.e. TypeScript compiled, Dashboard built, certain asset
 
 Note that this can take a few minutes.
 
+#### Plugin packages
+
+Most packages are Vendure plugins with the same folder structure. A local Nx plugin in [`tools/nx-plugin`](./tools/nx-plugin) finds these packages and creates their targets, so a plugin package has almost no build configuration:
+
+```
+packages/<name>/
+  package.json              name, version, main, nx.tags
+  tsconfig*.json            written by `bunx nx sync`, do not edit
+  index.ts or src/index.ts  public entry point
+  src/*.plugin.ts           marks the package as a Vendure plugin (also src/plugin.ts or src/*/plugin.ts)
+  src/**/*.spec.ts          unit tests, run by the `test` target
+  src/**/*.spec-d.ts        type-level tests, run by the `test` target with `--typecheck`
+  e2e/*.e2e-spec.ts         e2e tests, run by the `e2e` target
+```
+
+The targets are `build`, `watch`, `lint`, `test` (when there are unit tests) and `e2e` (when there are e2e tests). The build writes to the first folder of `main` in `package.json`, for example `lib`. Run `bunx nx show project <package>` to see the targets. A script in `package.json` with the same name replaces the inferred target. Use this only when a package needs a different command, for example an extra build step.
+
+To create a new plugin package, run `bunx nx g ./tools/nx-plugin:package <name>-plugin`.
+
+When you add or remove an entry point, a `*.spec-d.ts` file or a `.tsx` file, run `bunx nx sync` to update the `tsconfig*.json` files. CI runs `bunx nx sync:check` and fails when they are out of date.
+
+Each package has a scope tag in `nx.tags`. ESLint uses the tags to stop `core` and `common` from importing any package other than each other. See [`.eslintrc.boundaries.js`](./.eslintrc.boundaries.js). Every project must have a tag.
+
 ### 3. Start the docker containers
 
 All the necessary infrastructure is defined in the root [docker-compose.yml](./docker-compose.yml) file. At a minimum,
@@ -205,8 +228,7 @@ This same workflow can be used for other packages as well.
 **Terminal 1** - Watch changes to the package:
 
 ```bash
-cd packages/email-plugin
-bun run watch
+bunx nx run @vendure/email-plugin:watch
 ```
 
 **Terminal 2** - Run the development server:
@@ -230,7 +252,7 @@ bun run watch:core-common
 
 #### Development Workflow Summary
 
-1. Start your package watcher (bun run watch)
+1. Start your package watcher (bunx nx run <package>:watch)
 2. Start the dev-server (bun run dev)
 3. Make code changes
 4. Wait for compilation to complete
@@ -405,7 +427,7 @@ Running `bun run codegen` will generate the following files:
 
 #### Server Unit Tests
 
-The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually by running it from the package directory.
+The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually with `bunx nx test <package>`, for example `bunx nx test @vendure/email-plugin`.
 
 Unit tests are co-located with the files which they test, and have the suffix `.spec.ts`.
 
@@ -413,7 +435,7 @@ If you're getting `Error: Bindings not found.`, please run `bun install --force`
 
 #### End-to-end Tests
 
-Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually by running it from the package directory.
+Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually with `bunx nx e2e <package>`.
 
 e2e tests use the `@vendure/testing` package. For details of how the setup works, see the [Testing docs](https://docs.vendure.io/guides/developer-guide/testing/).
 
@@ -421,13 +443,13 @@ When **debugging e2e tests**, set an environment variable `E2E_DEBUG=true` which
 
 ### Release Process
 
-All packages in this repo are released at every version change (using [Lerna's fixed mode](https://lerna.js.org/docs/features/version-and-publish#fixedlocked-mode-default)). This simplifies both the development (tracking multiple disparate versions is tough) and also the developer experience for users of the framework (it is simple to see that all packages are up-to-date and compatible).
+All packages in this repo are released at every version change (using a fixed release group of [Nx Release](https://nx.dev/docs/guides/nx-release), configured in `nx.json`). This simplifies both the development (tracking multiple disparate versions is tough) and also the developer experience for users of the framework (it is simple to see that all packages are up-to-date and compatible).
 
 To make a release:
 
 #### 1. `bun run publish-release`
 
-It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
+It will run `nx release version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
 Next it will refresh the Platform catalog snapshot (`packages/common/src/platform-promotion-snapshot.ts`) from `https://api.vendure.io/v1/catalog`. The Dashboard build and the Core startup banner use this snapshot. Then it will build all packages to ensure the distributed files are up to date. Do not set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH` for a release. Check the output for `Platform catalog snapshot updated`. If it says `Platform catalog snapshot not changed`, the release keeps the old snapshot. After the command, `git show --stat HEAD` lists the snapshot file if the catalog data changed.
 
@@ -435,13 +457,13 @@ Finally, the command will create changelog entries for this release and create a
 
 #### 2. `git push origin master --follow-tags`
 
-Push the version commit and the new tag to `master`. (Lerna is run with `--no-push` so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Dashboard.)
+Push the version commit and the new tag to `master`. (The release script does not push, so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Dashboard.)
 
 Publishing itself happens in CI, not locally: it is triggered by creating the GitHub release in the next step, using OIDC trusted publishing (no npm token or local OTP is involved).
 
 #### 3. Create a GitHub release
 
-Create a GitHub release based on the tag generated by Lerna. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
+Create a GitHub release based on the tag generated by the release script. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
 
 > [!IMPORTANT]
 > Staged packages are **not yet live** on npm. They sit in npm's [staging area](https://www.npmjs.com/settings/~/staged-packages) awaiting manual approval. This is a deliberate supply-chain safeguard: a release only goes public after a maintainer approves it with 2FA, so a compromised CI run cannot publish to the `latest` tag on its own. See [#4772](https://github.com/vendurehq/vendure/issues/4772) for the rationale.
