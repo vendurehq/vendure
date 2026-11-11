@@ -3,6 +3,9 @@
     "version": "3.8.1",
     "license": "GPL-3.0-or-later",
     "type": "module",
+    "engines": {
+        "node": ">=22.12.0"
+    },
     "bin": {
         "create": "./index.js"
     },
