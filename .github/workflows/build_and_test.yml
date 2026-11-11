@@ -103,10 +103,7 @@ jobs:
             - name: Build
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx affected --base=HEAD^2~1 --head=HEAD^2 -t build
-            - name: Measure Nx cache
-              if: ${{ !cancelled() }}
-              run: du -sh .nx/cache .nx/workspace-data/*.db
+              run: bun run nx "$NX_COMMAND" -t build
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -182,10 +179,7 @@ jobs:
             - name: Unit tests
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx affected --base=HEAD^2~1 --head=HEAD^2 -t test --output-style=stream
-            - name: Measure Nx cache
-              if: ${{ !cancelled() }}
-              run: du -sh .nx/cache .nx/workspace-data/*.db
+              run: bun run nx "$NX_COMMAND" -t test --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -358,10 +352,7 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: sqljs
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx affected --base=HEAD^2~1 --head=HEAD^2 -t e2e --output-style=stream
-            - name: Measure Nx cache
-              if: ${{ !cancelled() }}
-              run: du -sh .nx/cache .nx/workspace-data/*.db
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -435,10 +426,7 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mariadb
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx affected --base=HEAD^2~1 --head=HEAD^2 -t e2e --output-style=stream
-            - name: Measure Nx cache
-              if: ${{ !cancelled() }}
-              run: du -sh .nx/cache .nx/workspace-data/*.db
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -522,10 +510,7 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mysql
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx affected --base=HEAD^2~1 --head=HEAD^2 -t e2e --output-style=stream
-            - name: Measure Nx cache
-              if: ${{ !cancelled() }}
-              run: du -sh .nx/cache .nx/workspace-data/*.db
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -598,10 +583,7 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: postgres
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx affected --base=HEAD^2~1 --head=HEAD^2 -t e2e --output-style=stream
-            - name: Measure Nx cache
-              if: ${{ !cancelled() }}
-              run: du -sh .nx/cache .nx/workspace-data/*.db
+              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
