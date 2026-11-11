@@ -220,59 +220,14 @@ export function EmailEditorBlock({
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="email-language">
-                        <Trans>Language</Trans>
-                    </Label>
-                    <NativeSelect
-                        id="email-language"
-                        value={languageCode}
-                        onChange={e => updateView({ languageCode: e.target.value })}
-                    >
-                        {(languages.length ? languages : [languageCode]).map(code => (
-                            <NativeSelectOption key={code} value={code}>
-                                {code}
-                            </NativeSelectOption>
-                        ))}
-                    </NativeSelect>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="email-scope">
-                        <Trans>Applies to</Trans>
-                    </Label>
-                    <NativeSelect
-                        id="email-scope"
-                        value={scope}
-                        onChange={e => updateView({ scope: e.target.value as EmailContentScope })}
-                    >
-                        <NativeSelectOption value="ALL_CHANNELS">{t`All channels`}</NativeSelectOption>
-                        <NativeSelectOption value="CHANNEL">
-                            {t`This channel only (${activeChannel?.code ?? ''})`}
-                        </NativeSelectOption>
-                    </NativeSelect>
-                </div>
-                {canEdit ? (
-                    <ButtonGroup>
-                        <Button
-                            type="button"
-                            variant={mode === 'edit' ? 'default' : 'outline'}
-                            aria-pressed={mode === 'edit'}
-                            onClick={() => switchMode('edit')}
-                        >
-                            <PencilIcon />
-                            <Trans>Edit text</Trans>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant={mode === 'preview' ? 'default' : 'outline'}
-                            aria-pressed={mode === 'preview'}
-                            onClick={() => switchMode('preview')}
-                        >
-                            <EyeIcon />
-                            <Trans>Preview</Trans>
-                        </Button>
-                    </ButtonGroup>
-                ) : null}
+                <TextSettings
+                    languages={languages.length ? languages : [languageCode]}
+                    languageCode={languageCode}
+                    scope={scope}
+                    channelCode={activeChannel?.code ?? ''}
+                    onChange={updateView}
+                />
+                {canEdit ? <ModeToggle mode={mode} onChange={switchMode} /> : null}
                 <div className="ml-auto flex gap-2">
                     <Button
                         type="button"
@@ -292,20 +247,23 @@ export function EmailEditorBlock({
                 </div>
             </div>
             {editing ? (
-                <TextFields
-                    fields={fields.filter(f => FIELD_SLOTS.has(f.name))}
-                    values={values}
-                    disabled={!canEdit}
-                    knownVariables={knownVariables}
-                    onChange={(name, value) => setValues(v => ({ ...v, [name]: value }))}
-                    onFocus={(name, element) => {
-                        lastTarget.current = { kind: 'field', name, element };
-                    }}
-                />
-            ) : null}
-
-            {editing && content?.variables.length ? (
-                <VariableChips variables={content.variables} disabled={!canEdit} onInsert={insertVariable} />
+                <>
+                    <TextFields
+                        fields={fields.filter(f => FIELD_SLOTS.has(f.name))}
+                        values={values}
+                        disabled={!canEdit}
+                        knownVariables={knownVariables}
+                        onChange={(name, value) => setValues(v => ({ ...v, [name]: value }))}
+                        onFocus={(name, element) => {
+                            lastTarget.current = { kind: 'field', name, element };
+                        }}
+                    />
+                    <VariableChips
+                        variables={content?.variables ?? []}
+                        disabled={!canEdit}
+                        onInsert={insertVariable}
+                    />
+                </>
             ) : null}
 
             {preview.error ? (
@@ -336,28 +294,7 @@ export function EmailEditorBlock({
                         onApply={() => setAppliedOrderCode(orderCode.trim())}
                     />
                 ) : null}
-                <ButtonGroup className="ml-auto">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={width === 'desktop' ? 'default' : 'outline'}
-                        onClick={() => updateView({ width: 'desktop' })}
-                        aria-pressed={width === 'desktop'}
-                    >
-                        <MonitorIcon />
-                        <Trans>Desktop</Trans>
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={width === 'mobile' ? 'default' : 'outline'}
-                        onClick={() => updateView({ width: 'mobile' })}
-                        aria-pressed={width === 'mobile'}
-                    >
-                        <SmartphoneIcon />
-                        <Trans>Mobile</Trans>
-                    </Button>
-                </ButtonGroup>
+                <WidthToggle width={width} onChange={next => updateView({ width: next })} />
                 <Button
                     type="button"
                     size="sm"
@@ -369,22 +306,12 @@ export function EmailEditorBlock({
                 </Button>
             </div>
 
-            <div className="flex justify-center rounded-lg border bg-muted/40 p-4">
-                {rendered ? (
-                    <iframe
-                        ref={iframeRef}
-                        title={t`Email preview`}
-                        srcDoc={srcDoc}
-                        sandbox="allow-scripts"
-                        className="h-[75vh] rounded-md border bg-white shadow-sm transition-[width]"
-                        style={{ width: WIDTHS[width] }}
-                    />
-                ) : (
-                    <div className="flex h-[40vh] items-center text-sm text-muted-foreground">
-                        {preview.isFetching ? <Trans>Rendering…</Trans> : <Trans>No preview</Trans>}
-                    </div>
-                )}
-            </div>
+            <PreviewFrame
+                frameRef={iframeRef}
+                srcDoc={rendered ? srcDoc : undefined}
+                width={width}
+                fetching={preview.isFetching}
+            />
 
             {rendered ? (
                 <EmailHeaders subject={rendered.subject} from={rendered.from} to={rendered.recipient} />
@@ -398,6 +325,145 @@ export function EmailEditorBlock({
                     onUseDefault={resetToDefault}
                 />
             ) : null}
+        </div>
+    );
+}
+
+function TextSettings({
+    languages,
+    languageCode,
+    scope,
+    channelCode,
+    onChange,
+}: Readonly<{
+    languages: string[];
+    languageCode: string;
+    scope: EmailContentScope;
+    channelCode: string;
+    onChange: (change: Partial<EmailEditorView>) => void;
+}>) {
+    const { t } = useLingui();
+    return (
+        <>
+            <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email-language">
+                    <Trans>Language</Trans>
+                </Label>
+                <NativeSelect
+                    id="email-language"
+                    value={languageCode}
+                    onChange={e => onChange({ languageCode: e.target.value })}
+                >
+                    {languages.map(code => (
+                        <NativeSelectOption key={code} value={code}>
+                            {code}
+                        </NativeSelectOption>
+                    ))}
+                </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email-scope">
+                    <Trans>Applies to</Trans>
+                </Label>
+                <NativeSelect
+                    id="email-scope"
+                    value={scope}
+                    onChange={e => onChange({ scope: e.target.value as EmailContentScope })}
+                >
+                    <NativeSelectOption value="ALL_CHANNELS">{t`All channels`}</NativeSelectOption>
+                    <NativeSelectOption value="CHANNEL">{t`This channel only (${channelCode})`}</NativeSelectOption>
+                </NativeSelect>
+            </div>
+        </>
+    );
+}
+
+function ModeToggle({
+    mode,
+    onChange,
+}: Readonly<{ mode: EmailEditorView['mode']; onChange: (mode: EmailEditorView['mode']) => void }>) {
+    return (
+        <ButtonGroup>
+            <Button
+                type="button"
+                variant={mode === 'edit' ? 'default' : 'outline'}
+                aria-pressed={mode === 'edit'}
+                onClick={() => onChange('edit')}
+            >
+                <PencilIcon />
+                <Trans>Edit text</Trans>
+            </Button>
+            <Button
+                type="button"
+                variant={mode === 'preview' ? 'default' : 'outline'}
+                aria-pressed={mode === 'preview'}
+                onClick={() => onChange('preview')}
+            >
+                <EyeIcon />
+                <Trans>Preview</Trans>
+            </Button>
+        </ButtonGroup>
+    );
+}
+
+function WidthToggle({
+    width,
+    onChange,
+}: Readonly<{ width: EmailEditorView['width']; onChange: (width: EmailEditorView['width']) => void }>) {
+    return (
+        <ButtonGroup className="ml-auto">
+            <Button
+                type="button"
+                size="sm"
+                variant={width === 'desktop' ? 'default' : 'outline'}
+                onClick={() => onChange('desktop')}
+                aria-pressed={width === 'desktop'}
+            >
+                <MonitorIcon />
+                <Trans>Desktop</Trans>
+            </Button>
+            <Button
+                type="button"
+                size="sm"
+                variant={width === 'mobile' ? 'default' : 'outline'}
+                onClick={() => onChange('mobile')}
+                aria-pressed={width === 'mobile'}
+            >
+                <SmartphoneIcon />
+                <Trans>Mobile</Trans>
+            </Button>
+        </ButtonGroup>
+    );
+}
+
+function PreviewFrame({
+    frameRef,
+    srcDoc,
+    width,
+    fetching,
+}: Readonly<{
+    frameRef: RefObject<HTMLIFrameElement | null>;
+    srcDoc?: string;
+    width: EmailEditorView['width'];
+    fetching: boolean;
+}>) {
+    const { t } = useLingui();
+    return (
+        <div className="flex justify-center rounded-lg border bg-muted/40 p-4">
+            {srcDoc === undefined ? (
+                <div className="flex h-[40vh] items-center text-sm text-muted-foreground">
+                    {fetching ? <Trans>Rendering…</Trans> : <Trans>No preview</Trans>}
+                </div>
+            ) : (
+                <iframe
+                    ref={frameRef}
+                    title={t`Email preview`}
+                    srcDoc={srcDoc}
+                    sandbox="allow-scripts"
+                    className="h-[75vh] rounded-md border bg-white shadow-sm transition-[width]"
+                    style={{ width: WIDTHS[width] }}
+                />
+            )}
         </div>
     );
 }
@@ -455,6 +521,9 @@ function VariableChips({
     disabled: boolean;
     onInsert: (name: string) => void;
 }>) {
+    if (!variables.length) {
+        return null;
+    }
     return (
         <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-muted-foreground">
