@@ -39,7 +39,7 @@ export const testConfig = () => {
     const { basePort, size } = getPortRange();
     if (index >= size) {
         throw new Error(
-            `${packageDir} has more than ${size} entries. Increase PORTS_PER_PACKAGE in e2e-common/test-config.ts.`,
+            `${packageDir} has more than ${size} entries. Make its port range in e2e-common/test-config.ts larger.`,
         );
     }
     return mergeConfig(defaultTestConfig, {
@@ -53,24 +53,36 @@ export const testConfig = () => {
     });
 };
 
+const CORE_BASE_PORT = 3010;
+/** Core has the most e2e specs. Its range ends at 3199. */
+const CORE_PORTS = 190;
+/**
+ * The other packages get ports from here. The ports are far from the ports of the services in
+ * `docker-compose.yml`, and below the ephemeral port range of Linux and macOS.
+ */
+const PACKAGE_BASE_PORT = 20000;
 const PORTS_PER_PACKAGE = 50;
 
 /**
  * Returns a port range unique to the current package, so that e2e tests
  * from different packages (which Nx may run in parallel) never collide.
- * Core gets 3010–3199. Each other package gets PORTS_PER_PACKAGE ports from 4100,
- * in the order of the folder names in `packages`.
+ * Each package other than core gets PORTS_PER_PACKAGE ports, in the order of the folder
+ * names in `packages`. A new package moves the ranges after it. That is safe, because
+ * the ports only have to be unique in one checkout.
  */
 function getPortRange(): { basePort: number; size: number } {
     const packageName = path.basename(path.dirname(packageDir));
     if (packageName === 'core') {
-        return { basePort: 3010, size: 190 };
+        return { basePort: CORE_BASE_PORT, size: CORE_PORTS };
     }
     const packages = fs
         .readdirSync(path.dirname(path.dirname(packageDir)))
         .filter(name => name !== 'core')
         .sort((a, b) => a.localeCompare(b));
-    return { basePort: 4100 + packages.indexOf(packageName) * PORTS_PER_PACKAGE, size: PORTS_PER_PACKAGE };
+    return {
+        basePort: PACKAGE_BASE_PORT + packages.indexOf(packageName) * PORTS_PER_PACKAGE,
+        size: PORTS_PER_PACKAGE,
+    };
 }
 
 /**
