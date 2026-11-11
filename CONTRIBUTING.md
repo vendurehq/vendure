@@ -142,7 +142,7 @@ To create a new plugin package, run `bunx nx g ./tools/nx-plugin:package <name>-
 
 When you add or remove an entry point, a `*.spec-d.ts` file or a `.tsx` file, run `bunx nx sync` to update the `tsconfig*.json` files. CI runs `bunx nx sync:check` and fails when they are out of date.
 
-Each package has a scope tag in `nx.tags`. ESLint uses the tags to stop `core` and `common` from importing a plugin or an app. See [`.eslintrc.boundaries.js`](./.eslintrc.boundaries.js). Every project must have a tag.
+Each package has a scope tag in `nx.tags`. ESLint uses the tags to stop `core` and `common` from importing any package other than each other. See [`.eslintrc.boundaries.js`](./.eslintrc.boundaries.js). Every project must have a tag.
 
 ### 3. Start the docker containers
 

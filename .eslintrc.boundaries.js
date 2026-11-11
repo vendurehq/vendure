@@ -7,7 +7,7 @@
  * is none, so that script runs an Nx command first.
  *
  * The rules use the `nx.tags` of each project:
- * - `scope:core`      core and common. Cannot import a plugin or an app.
+ * - `scope:core`      core and common. Can only import each other.
  * - `scope:plugin`    Vendure plugin packages.
  * - `scope:util`      libraries for plugins and tests, for example testing and mcp-sdk.
  * - `scope:dashboard` the dashboard.
@@ -16,11 +16,13 @@
  *
  * A project without a matching tag cannot import any project, so a project with no tags fails.
  *
- * The rules apply to the published source of each package. Tests and e2e specs are not checked
- * yet: they import `@vendure/core` from inside core, and files of other packages by relative path.
+ * The boundary rule applies to the published source of each package. Tests and e2e specs are not
+ * checked yet: they import `@vendure/core` from inside core, and files of other packages by
+ * relative path. The rule against `dist` imports applies to all files of the plugin packages,
+ * tests included.
  */
 const depConstraints = [
-    { sourceTag: 'scope:core', notDependOnLibsWithTags: ['scope:plugin', 'scope:app'] },
+    { sourceTag: 'scope:core', onlyDependOnLibsWithTags: ['scope:core'] },
     {
         sourceTag: 'scope:plugin',
         onlyDependOnLibsWithTags: ['scope:core', 'scope:util', 'scope:dashboard', 'scope:plugin'],
