@@ -106,13 +106,15 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
         placeholderData: previous => previous,
     });
     const rendered = preview.data?.previewEmail;
-    const srcDoc = useMemo(() => (rendered ? withInlineEditor(rendered.html) : ''), [rendered?.html]);
+    const srcDoc = useMemo(
+        () => (rendered ? withInlineEditor(rendered.html, window.location.origin) : ''),
+        [rendered?.html],
+    );
+    // The private channel to the script in the preview. Replaced each time the preview reloads.
+    const portRef = useRef<MessagePort | undefined>(undefined);
 
     useEffect(() => {
-        const onMessage = (event: MessageEvent) => {
-            if (event.source !== iframeRef.current?.contentWindow) {
-                return;
-            }
+        const onPortMessage = (event: MessageEvent) => {
             const data = event.data as { source?: string; type?: string; slot?: string; text?: string };
             if (data?.source !== INLINE_EDITOR_SOURCE || !data.slot) {
                 return;
@@ -125,8 +127,28 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                 setValues(v => ({ ...v, [slot]: normalize(data.text ?? '') }));
             }
         };
+        // Only the connect message arrives on the window. It must come from the preview frame, whose
+        // sandbox (no allow-same-origin) gives it the opaque origin "null".
+        const onMessage = (event: MessageEvent) => {
+            const data = event.data as { source?: string; type?: string };
+            if (
+                event.origin !== 'null' ||
+                event.source !== iframeRef.current?.contentWindow ||
+                data?.source !== INLINE_EDITOR_SOURCE ||
+                data.type !== 'connect' ||
+                !event.ports[0]
+            ) {
+                return;
+            }
+            portRef.current?.close();
+            portRef.current = event.ports[0];
+            portRef.current.onmessage = onPortMessage;
+        };
         window.addEventListener('message', onMessage);
-        return () => window.removeEventListener('message', onMessage);
+        return () => {
+            window.removeEventListener('message', onMessage);
+            portRef.current?.close();
+        };
     }, []);
 
     const save = useMutation({
@@ -165,7 +187,7 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                 target.element.setSelectionRange(start + placeholder.length, start + placeholder.length);
             });
         } else {
-            iframeRef.current?.contentWindow?.postMessage({ source: INLINE_EDITOR_SOURCE, type: 'insert-variable', name }, '*');
+            portRef.current?.postMessage({ source: INLINE_EDITOR_SOURCE, type: 'insert-variable', name });
         }
     };
 

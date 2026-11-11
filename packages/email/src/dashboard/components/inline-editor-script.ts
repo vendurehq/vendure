@@ -1,6 +1,9 @@
 /*
  * Injected into the sandboxed preview iframe (allow-scripts only, so it cannot reach the Dashboard).
- * It makes the marked text of the email editable and talks to the Dashboard with postMessage:
+ * It makes the marked text of the email editable and talks to the Dashboard over a private
+ * MessageChannel: on load it sends one { type: 'connect' } message to the Dashboard's exact origin,
+ * with a port attached. Everything else goes over that port, so no message uses a wildcard target
+ * and the iframe never listens to window messages.
  *
  * - iframe -> Dashboard: { type: 'focus', slot } and { type: 'input', slot, text }
  * - Dashboard -> iframe: { type: 'insert-variable', name }
@@ -35,8 +38,10 @@ const style = `
 }
 `;
 
-function editorScript(source: string) {
-    const post = (message: Record<string, unknown>) => window.parent.postMessage({ source, ...message }, '*');
+function editorScript(source: string, dashboardOrigin: string) {
+    const channel = new MessageChannel();
+    const port = channel.port1;
+    const post = (message: Record<string, unknown>) => port.postMessage({ source, ...message });
     const slotOf = (node: Node | null): HTMLElement | null =>
         node ? ((node instanceof HTMLElement ? node : node.parentElement)?.closest('[data-email-slot]') ?? null) : null;
     const pill = (name: string) => {
@@ -92,7 +97,7 @@ function editorScript(source: string) {
         });
     });
 
-    window.addEventListener('message', event => {
+    port.onmessage = event => {
         const data = event.data as { source?: string; type?: string; name?: string };
         if (data?.source !== source || data.type !== 'insert-variable' || !lastSlot || !data.name) {
             return;
@@ -113,13 +118,16 @@ function editorScript(source: string) {
         selection?.removeAllRanges();
         selection?.addRange(range);
         post({ type: 'input', slot: lastSlot.dataset.emailSlot, text: lastSlot.textContent ?? '' });
-    });
+    };
+    window.parent.postMessage({ source, type: 'connect' }, dashboardOrigin, [channel.port2]);
 }
 
-/** Adds the editor's style and script to the email HTML. */
-export function withInlineEditor(html: string): string {
-    const injection =
-        `<style>${style}</style>` +
-        `<script>(${editorScript.toString()})(${JSON.stringify(INLINE_EDITOR_SOURCE)});</script>`;
+/**
+ * Adds the editor's style and script to the email HTML. `dashboardOrigin` is the origin the iframe may
+ * send its one connect message to, i.e. `window.location.origin` of the Dashboard.
+ */
+export function withInlineEditor(html: string, dashboardOrigin: string): string {
+    const args = `${JSON.stringify(INLINE_EDITOR_SOURCE)}, ${JSON.stringify(dashboardOrigin)}`;
+    const injection = `<style>${style}</style><script>(${editorScript.toString()})(${args});</script>`;
     return html.includes('</body>') ? html.replace('</body>', `${injection}</body>`) : html + injection;
 }
