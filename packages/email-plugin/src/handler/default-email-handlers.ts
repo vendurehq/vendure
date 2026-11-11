@@ -17,13 +17,6 @@ import {
 import { Request } from 'express';
 
 import { EMAIL_PLUGIN_OPTIONS, loggerCtx } from '../constants';
-import {
-    AdminPasswordResetEmail,
-    EmailAddressChangeEmail,
-    EmailVerificationEmail,
-    PasswordResetEmail,
-} from '../default-templates/account-emails';
-import { OrderConfirmationEmail } from '../default-templates/order-confirmation';
 import { EmailEventListener } from '../event-listener';
 import { EmailPluginOptions } from '../types';
 
@@ -35,13 +28,6 @@ import {
     mockOrderStateTransitionEvent,
     mockPasswordResetEvent,
 } from './mock-events';
-import {
-    sampleAccountRegistrationEvent,
-    sampleAdminPasswordResetEvent,
-    sampleEmailAddressChangeEvent,
-    sampleOrderPlacedEvent,
-    samplePasswordResetEvent,
-} from './sample-events';
 
 export const orderConfirmationHandler = new EmailEventListener('order-confirmation')
     .on(OrderStateTransitionEvent)
@@ -63,8 +49,6 @@ export const orderConfirmationHandler = new EmailEventListener('order-confirmati
     .setFrom('{{ fromAddress }}')
     .setSubject('Order confirmation for #{{ order.code }}')
     .setTemplateVars(event => ({ order: event.order, shippingLines: event.data.shippingLines }))
-    .setTemplate(OrderConfirmationEmail)
-    .setSampleEvent(sampleOrderPlacedEvent)
     .setMockEvent(mockOrderStateTransitionEvent);
 
 export const emailVerificationHandler = new EmailEventListener('email-verification')
@@ -82,8 +66,6 @@ export const emailVerificationHandler = new EmailEventListener('email-verificati
     .setTemplateVars(event => ({
         verificationToken: event.user.getNativeAuthenticationMethod().verificationToken,
     }))
-    .setTemplate(EmailVerificationEmail)
-    .setSampleEvent(sampleAccountRegistrationEvent)
     .setMockEvent(mockAccountRegistrationEvent);
 
 export const passwordResetHandler = new EmailEventListener('password-reset')
@@ -94,8 +76,6 @@ export const passwordResetHandler = new EmailEventListener('password-reset')
     .setTemplateVars(event => ({
         passwordResetToken: event.user.getNativeAuthenticationMethod().passwordResetToken,
     }))
-    .setTemplate(PasswordResetEmail)
-    .setSampleEvent(samplePasswordResetEvent)
     .setMockEvent(mockPasswordResetEvent);
 
 export const adminPasswordResetHandler = new EmailEventListener('admin-password-reset')
@@ -120,8 +100,6 @@ export const adminPasswordResetHandler = new EmailEventListener('admin-password-
     .setTemplateVars(event => ({
         passwordResetToken: event.user.getNativeAuthenticationMethod().passwordResetToken,
     }))
-    .setTemplate(AdminPasswordResetEmail)
-    .setSampleEvent(sampleAdminPasswordResetEvent)
     .setMockEvent(mockAdminPasswordResetEvent);
 
 export const emailAddressChangeHandler = new EmailEventListener('email-address-change')
@@ -132,8 +110,6 @@ export const emailAddressChangeHandler = new EmailEventListener('email-address-c
     .setTemplateVars(event => ({
         identifierChangeToken: event.user.getNativeAuthenticationMethod().identifierChangeToken,
     }))
-    .setTemplate(EmailAddressChangeEmail)
-    .setSampleEvent(sampleEmailAddressChangeEvent)
     .setMockEvent(mockEmailAddressChangeEvent);
 
 export const defaultEmailHandlers: Array<EmailEventHandler<any, any>> = [

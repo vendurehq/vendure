@@ -5,16 +5,13 @@ import { Injector, Logger } from '@vendure/core';
 import { serializeAttachments } from '../attachment-utils';
 import { loggerCtx } from '../constants';
 import { EmailEventListener } from '../event-listener';
-import { ReactEmailTemplate } from '../template/email-template';
 import {
     EmailAttachment,
-    EmailPrepareResult,
     EmailTemplateConfig,
     EventWithAsyncData,
     EventWithContext,
     IntermediateEmailDetails,
     LoadDataFn,
-    SampleEventFn,
     SetAttachmentsFn,
     SetMetadataFn,
     SetOptionalAddressFieldsFn,
@@ -170,8 +167,6 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         bcc?: string;
     };
     private _mockEvent: Omit<Event, 'ctx' | 'data'> | undefined;
-    private _template: ReactEmailTemplate | undefined;
-    private _sampleEventFn: SampleEventFn<Event> | undefined;
 
     constructor(
         public listener: EmailEventListener<T>,
@@ -181,14 +176,6 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
     /** @internal */
     get type(): T {
         return this.listener.type;
-    }
-
-    /**
-     * @description
-     * The template set with `setTemplate()`, if any.
-     */
-    get template(): ReactEmailTemplate | undefined {
-        return this._template;
     }
 
     /** @internal */
@@ -353,31 +340,6 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
 
     /**
      * @description
-     * Sets the React template used to render this email. Create one with {@link defineEmailTemplate}.
-     * The template variables defined with `setTemplateVars()` (and the global template variables) are
-     * passed to the component as props.
-     *
-     * Templates returned by a configured {@link TemplateLoader} take precedence over this one, so a loader
-     * can override it, e.g. for a particular channel or language. To vary the template by language in code,
-     * use the {@link useEmailContext} hook inside the component.
-     *
-     * @example
-     * ```ts
-     * const myHandler = new EmailEventListener('welcome')
-     *     .on(AccountVerifiedEvent)
-     *     // ...
-     *     .setTemplate(WelcomeEmail);
-     * ```
-     *
-     * @since 4.0.0
-     */
-    setTemplate(template: ReactEmailTemplate<any>): EmailEventHandler<T, Event> {
-        this._template = template;
-        return this;
-    }
-
-    /**
-     * @description
      * Add configuration for another template other than the default `"body.hbs"`. Use this method to define specific
      * templates for channels or languageCodes other than the default.
      *
@@ -428,8 +390,6 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         asyncHandler.defaultSubject = this.defaultSubject;
         asyncHandler.from = this.from;
         asyncHandler._mockEvent = this._mockEvent as any;
-        asyncHandler._template = this._template;
-        asyncHandler._sampleEventFn = this._sampleEventFn as any;
         asyncHandler.setSubjectFn = this.setSubjectFn;
         asyncHandler.setLanguageCodeFn = this.setLanguageCodeFn;
         return asyncHandler;
@@ -446,37 +406,9 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         globals: { [key: string]: any } = {},
         injector: Injector,
     ): Promise<IntermediateEmailDetails | undefined> {
-        const result = await this.prepare(event, globals, injector);
-        if (result.status === 'ready') {
-            return result.details;
-        }
-        if (result.status === 'load-data-failed') {
-            const err = result.error;
-            if (err instanceof Error) {
-                Logger.error(err.message, loggerCtx, err.stack);
-            } else {
-                Logger.error(String(err), loggerCtx);
-            }
-        }
-        return undefined;
-    }
-
-    /**
-     * @description
-     * Runs the filters, `loadData()` and the other setup functions for an event, and reports the outcome
-     * instead of logging it. Used by `handle()` and by the dev mode tooling, which needs to tell an agent
-     * or developer why an email was not produced.
-     *
-     * @internal
-     */
-    async prepare(
-        event: Event,
-        globals: { [key: string]: any } = {},
-        injector: Injector,
-    ): Promise<EmailPrepareResult> {
-        for (let i = 0; i < this.filterFns.length; i++) {
-            if (!this.filterFns[i](event)) {
-                return { status: 'filtered', filterIndex: i };
+        for (const filterFn of this.filterFns) {
+            if (!filterFn(event)) {
+                return;
             }
         }
         if (this instanceof EmailEventHandlerWithAsyncData) {
@@ -486,7 +418,12 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
                     injector,
                 });
             } catch (err: unknown) {
-                return { status: 'load-data-failed', error: err };
+                if (err instanceof Error) {
+                    Logger.error(err.message, loggerCtx, err.stack);
+                } else {
+                    Logger.error(String(err), loggerCtx);
+                }
+                return;
             }
         }
         if (!this.setRecipientFn) {
@@ -535,74 +472,24 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         const metadata = this.setMetadataFn ? await this.setMetadataFn(event) : {};
 
         return {
-            status: 'ready',
-            details: {
-                ctx: event.ctx.serialize(),
-                type: this.type,
-                recipient,
-                text,
-                from: this.from,
-                templateVars: allTemplateVars,
-                subject,
-                templateFile: configuration ? configuration.templateFile : 'body.hbs',
-                languageCode,
-                channelCode: ctx.channel.code,
-                attachments,
-                metadata,
-                ...optionalAddressFields,
-            },
+            ctx: event.ctx.serialize(),
+            type: this.type,
+            recipient,
+            text,
+            from: this.from,
+            templateVars: allTemplateVars,
+            subject,
+            templateFile: configuration ? configuration.templateFile : 'body.hbs',
+            attachments,
+            metadata,
+            ...optionalAddressFields,
         };
     }
 
     /**
      * @description
-     * Defines how to build a realistic sample of this handler's event from the data in the database.
-     * The dev mode tooling (the dev mailbox, `vendure email render` and `vendure email send`) uses it to
-     * render and send this email without having to trigger the real event, and an email template editor
-     * can use it for previews.
-     *
-     * The function receives a RequestContext for the requested channel and language, an Injector, and
-     * any `args` given by the caller (e.g. `vendure email render order-confirmation --arg order=ABC123`).
-     * Return `undefined` if there is no suitable data, in which case the mock event set with
-     * `setMockEvent()` is used, if any.
-     *
-     * The returned event is only used for rendering. Changes made to its entities, such as setting a
-     * sample token, must not be saved.
-     *
-     * @example
-     * ```ts
-     * const orderShippedHandler = new EmailEventListener('order-shipped')
-     *     .on(FulfillmentStateTransitionEvent)
-     *     // ...
-     *     .setSampleEvent(async ({ ctx, injector, args }) => {
-     *         const fulfillment = await injector.get(TransactionalConnection)
-     *             .getRepository(ctx, Fulfillment)
-     *             .findOne({ where: args.id ? { id: args.id } : {}, order: { createdAt: 'DESC' } });
-     *         return fulfillment
-     *             ? new FulfillmentStateTransitionEvent('Pending', 'Shipped', ctx, fulfillment)
-     *             : undefined;
-     *     });
-     * ```
-     *
-     * @since 4.0.0
-     */
-    setSampleEvent(sampleEventFn: SampleEventFn<Event>): EmailEventHandler<T, Event> {
-        this._sampleEventFn = sampleEventFn;
-        return this;
-    }
-
-    /** @internal */
-    get sampleEventFn(): SampleEventFn<Event> | undefined {
-        return this._sampleEventFn;
-    }
-
-    /**
-     * @description
-     * Optionally define a mock Event which is used by the dev mode tooling for generating mock emails
-     * from this handler, when `setSampleEvent()` is not set or finds no data.
-     *
-     * Prefer `setSampleEvent()`, which builds the event from real data: hand-built mock entities are
-     * easily incomplete, and a `loadData()` function run against them may fail or load unrelated data.
+     * Optionally define a mock Event which is used by the dev mode mailbox app for generating mock emails
+     * from this handler, which is useful when developing the email templates.
      */
     setMockEvent(event: Omit<Event, 'ctx' | 'data'>): EmailEventHandler<T, Event> {
         this._mockEvent = event;

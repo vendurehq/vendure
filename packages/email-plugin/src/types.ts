@@ -86,20 +86,12 @@ export interface EmailPluginOptions {
     templatePath?: string;
     /**
      * @description
-     * One or more {@link TemplateLoader}s which can be used to load templates from a custom location,
-     * a database or an async service.
-     *
-     * To find the template for an email, the loaders are tried in order, and the first one which returns
-     * a template wins. If none do, the template set on the {@link EmailEventHandler} with `setTemplate()`
-     * is used. This means loaders act as overrides of the templates defined in code: for example a
-     * {@link FileBasedTemplateLoader} pointing at existing Handlebars/MJML templates, or a loader which
-     * returns templates edited and stored at runtime.
-     *
-     * Since v4.0 this is optional. The default handlers come with React templates.
+     * An optional TemplateLoader which can be used to load templates from a custom location or async service.
+     * The default uses the FileBasedTemplateLoader which loads templates from `<project root>/vendure/email/templates`
      *
      * @since 2.0.0
      */
-    templateLoader?: TemplateLoader | TemplateLoader[];
+    templateLoader?: TemplateLoader;
     /**
      * @description
      * Configures how the emails are sent.
@@ -134,22 +126,19 @@ export interface EmailPluginOptions {
     emailSender?: EmailSender;
     /**
      * @description
-     * One or more custom {@link EmailGenerator}s. For each email, the first generator whose `canGenerate()`
-     * method accepts the template is used. Custom generators are tried before the defaults, which are the
-     * {@link ReactEmailGenerator} for React templates and the deprecated {@link HandlebarsMjmlGenerator}
-     * for string templates.
+     * An optional allowed EmailGenerator, used to allow custom email generation functionality to
+     * better match with custom email sending functionality.
      *
-     * @default [ReactEmailGenerator, HandlebarsMjmlGenerator]
+     * @default HandlebarsMjmlGenerator
      */
-    emailGenerator?: EmailGenerator | EmailGenerator[];
+    emailGenerator?: EmailGenerator;
 }
 
 /**
- * EmailPluginOptions after initialization, with the template loaders and generators normalized to arrays.
+ * EmailPLuginOptions type after initialization, where templateLoader and themeInjector are no longer optional
  */
 export type InitializedEmailPluginOptions = EmailPluginOptions & {
-    templateLoaders: TemplateLoader[];
-    emailGenerators: EmailGenerator[];
+    templateLoader: TemplateLoader;
 };
 
 /**
@@ -403,15 +392,6 @@ export type IntermediateEmailDetails = {
     subject: string;
     text?: string;
     templateFile: string;
-    /**
-     * Added in v4.0. Jobs queued by an earlier version don't have these, so readers fall back to the ctx.
-     */
-    languageCode?: string;
-    channelCode?: string;
-    /**
-     * Set by the dev mode tooling to find the outbox entry of an email it sent.
-     */
-    devCorrelationId?: string;
     attachments: SerializedAttachment[];
     cc?: string;
     bcc?: string;
@@ -471,21 +451,6 @@ export interface LoadTemplateInput {
      * the `addTemplate()` method, and will default to `body.hbs`
      */
     templateName: string;
-    /**
-     * @description
-     * The language of the email. This is the value set by the EmailEventHandler's `setLanguageCode()`
-     * method, or else the language of the RequestContext.
-     *
-     * @since 4.0.0
-     */
-    languageCode: LanguageCode;
-    /**
-     * @description
-     * The code of the Channel the email is being sent for.
-     *
-     * @since 4.0.0
-     */
-    channelCode: string;
     /**
      * @description
      * The variables defined by the globalTemplateVars as well as any variables defined in the
@@ -609,35 +574,3 @@ export type SetMetadataFn<Event> = (event: Event) => EmailMetadata | Promise<Ema
  * @docsPage Email Plugin Types
  */
 export type EmailMetadata = Record<string, any>;
-
-/**
- * @description
- * A function which builds a sample event for an {@link EmailEventHandler} from the data in the
- * database. See `EmailEventHandler.setSampleEvent()`.
- *
- * @docsCategory core plugins/EmailPlugin
- * @docsPage Email Plugin Types
- * @since 4.0.0
- */
-export type SampleEventFn<Event> = (input: {
-    ctx: RequestContext;
-    injector: Injector;
-    /**
-     * @description
-     * Arguments given by the caller, e.g. `{ order: 'ABC123' }` for
-     * `vendure email render order-confirmation --arg order=ABC123`.
-     */
-    args: Record<string, string>;
-}) => Promise<WithoutData<Event> | undefined> | WithoutData<Event> | undefined;
-
-type WithoutData<Event> = { [K in keyof Event as K extends 'data' ? never : K]: Event[K] };
-
-/**
- * The outcome of `EmailEventHandler.prepare()`.
- *
- * @internal
- */
-export type EmailPrepareResult =
-    | { status: 'ready'; details: IntermediateEmailDetails }
-    | { status: 'filtered'; filterIndex: number }
-    | { status: 'load-data-failed'; error: unknown };

@@ -15,7 +15,6 @@ import {
     PluginCommonModule,
     ProcessContext,
     registerPluginStartupMessage,
-    RequestContext,
     Type,
     VendurePlugin,
 } from '@vendure/core';
@@ -23,12 +22,7 @@ import {
 import { getDevModeProductionWarning, isDevModeOptions, resolveTransportSettings } from './common';
 import { EMAIL_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { DevMailbox } from './dev-mailbox';
-import { DevEmailApi } from './dev/dev-email-api';
-import { DevOutbox, getDevOutboxDir } from './dev/dev-outbox';
 import { EmailProcessor } from './email-processor';
-import { EmailRenderService } from './email-render.service';
-import { HandlebarsMjmlGenerator } from './generator/handlebars-mjml-generator';
-import { ReactEmailGenerator } from './generator/react-email-generator';
 import { EmailEventHandler, EmailEventHandlerWithAsyncData } from './handler/event-handler';
 import { FileBasedTemplateLoader } from './template-loader/file-based-template-loader';
 import {
@@ -41,8 +35,8 @@ import {
 
 /**
  * @description
- * The EmailPlugin creates and sends transactional emails based on Vendure events. It renders the emails from
- * React templates with [React Email](https://react.email/), and uses [Nodemailer](https://nodemailer.com/about/) to send them.
+ * The EmailPlugin creates and sends transactional emails based on Vendure events. By default, it uses an [MJML](https://mjml.io/)-based
+ * email generator to generate the email body and [Nodemailer](https://nodemailer.com/about/) to send the emails.
  *
  * ## High-level description
  * Vendure has an internal events system (see {@link EventBus}) that allows plugins to subscribe to events. The EmailPlugin is configured with {@link EmailEventHandler}s
@@ -66,18 +60,14 @@ import {
  *
  * @example
  * ```ts
- * import { defaultEmailHandlers, EmailPlugin } from '\@vendure/email-plugin';
+ * import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '\@vendure/email-plugin';
  *
  * const config: VendureConfig = {
  *   // Add an instance of the plugin to the plugins array
  *   plugins: [
  *     EmailPlugin.init({
- *       handlers: defaultEmailHandlers,
- *       globalTemplateVars: {
- *         fromAddress: '"My Shop" <noreply@myshop.com>',
- *         branding: { name: 'My Shop', logoUrl: 'https://myshop.com/logo.png' },
- *         // ...
- *       },
+ *       handler: defaultEmailHandlers,
+ *       templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
  *       transport: {
  *         type: 'smtp',
  *         host: 'smtp.example.com',
@@ -94,51 +84,45 @@ import {
  *
  * ## Email templates
  *
- * Each default handler comes with a React template, which you can style by setting the `branding` global
- * template variable (see {@link EmailBranding}).
+ * In the example above, the plugin has been configured to look in `<app-root>/static/email/templates`
+ * for the email template files. If you used `\@vendure/create` to create your application, the templates will have
+ * been copied to that location during setup.
  *
- * To change an email's content, write your own template with {@link defineEmailTemplate} and set it on the
- * handler with `.setTemplate()`. A template is a React component which receives the template variables as
- * its props. Build it from the email components exported by this package, such as {@link EmailLayout},
- * {@link EmailText}, {@link EmailButton} and {@link OrderSummary}, or from any React Email component:
+ * If you are installing the EmailPlugin separately, then you'll need to copy the templates manually from
+ * `node_modules/\@vendure/email-plugin/templates` to a location of your choice, and then point the `templatePath` config
+ * property at that directory.
  *
- * ```tsx
- * import { defineEmailTemplate, EmailLayout, EmailSection, EmailText, Money } from '\@vendure/email-plugin';
- *
- * export const MyOrderConfirmationEmail = defineEmailTemplate<{ order: EmailOrder; branding?: EmailBranding }>(
- *   ({ order, branding }) => (
- *     <EmailLayout title="Order Receipt" branding={branding}>
- *       <EmailSection>
- *         <EmailText>Thanks for your order {order.code}!</EmailText>
- *         <EmailText>Total: <Money value={order.totalWithTax} currencyCode={order.currencyCode} /></EmailText>
- *       </EmailSection>
- *     </EmailLayout>
- *   ),
- * );
- *
- * // In vendure-config.ts
- * EmailPlugin.init({
- *   handlers: [
- *     ...defaultEmailHandlers.filter(h => h !== orderConfirmationHandler),
- *     orderConfirmationHandler.setTemplate(MyOrderConfirmationEmail),
- *   ],
- *   // ...
- * })
+ * * ### Dynamic Email Templates
+ * Instead of passing a static value to `templatePath`, use `templateLoader` to define a template path.
+ * ```ts
+ *   EmailPlugin.init({
+ *    ...,
+ *    templateLoader: new FileBasedTemplateLoader(my/order-confirmation/templates)
+ *   })
  * ```
+ * ## Customizing templates
  *
- * The template variables pass through the job queue before the email is rendered, so the props are plain JSON
- * data: dates are ISO strings, and entity getters are plain properties.
+ * Emails are generated from templates which use [MJML](https://mjml.io/) syntax. MJML is an open-source HTML-like markup
+ * language which makes the task of creating responsive email markup simple. By default, the templates are installed to
+ * `<project root>/vendure/email/templates` and can be freely edited.
  *
- * ### Loading templates at runtime
+ * Dynamic data such as the recipient's name or order items are specified using [Handlebars syntax](https://handlebarsjs.com/):
  *
- * Configure one or more {@link TemplateLoader}s to load templates from elsewhere, e.g. a database. For each
- * email, the first template returned by a loader is used, and the template set on the handler only if no
- * loader returns one.
+ * ```html
+ * <p>Dear {{ order.customer.firstName }} {{ order.customer.lastName }},</p>
  *
- * ### Handlebars/MJML templates
+ * <p>Thank you for your order!</p>
  *
- * Before v4, templates were Handlebars/MJML files loaded with the {@link FileBasedTemplateLoader}. These still
- * work if you install `handlebars` and `mjml`, but are deprecated. See the v4 migration guide.
+ * <mj-table cellpadding="6px">
+ *   {{#each order.lines }}
+ *     <tr class="order-row">
+ *       <td>{{ quantity }} x {{ productVariant.name }}</td>
+ *       <td>{{ productVariant.quantity }}</td>
+ *       <td>{{ formatMoney totalPrice }}</td>
+ *     </tr>
+ *   {{/each}}
+ * </mj-table>
+ * ```
  *
  * ### Setting global variables using `globalTemplateVars`
  *
@@ -172,10 +156,12 @@ import {
  * })
  * ```
  *
- * ### Formatting money and dates
+ * ### Handlebars helpers
  *
- * Use the {@link Money} and {@link FormattedDate} components, or the {@link formatMoney} and {@link formatDate}
- * functions. The components format in the language of the email.
+ * The following helper functions are available for use in email templates:
+ *
+ * * `formatMoney`: Formats an amount of money (which are always stored as integers in Vendure) as a decimal, e.g. `123` => `1.23`
+ * * `formatDate`: Formats a Date value with the [dateformat](https://www.npmjs.com/package/dateformat) package.
  *
  * ## Extending the default email handler
  *
@@ -221,7 +207,7 @@ import {
  * // Then you pass the handler to the EmailPlugin init method
  * // individually
  * EmailPlugin.init({
- *   handlers: [
+ *   handler: [
  *     myOrderConfirmationHandler,
  *     myPasswordResetHandler,
  *     emailVerificationHandler,
@@ -240,12 +226,13 @@ import {
  *
  * @example
  * ```ts
- * import { defaultEmailHandlers, EmailPlugin } from '\@vendure/email-plugin';
+ * import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '\@vendure/email-plugin';
  * import { MyTransportService } from './transport.services.ts';
  * const config: VendureConfig = {
  *   plugins: [
  *     EmailPlugin.init({
- *       handlers: defaultEmailHandlers,
+ *       handler: defaultEmailHandlers,
+ *       templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
  *       transport: (injector, ctx) => {
  *         if (ctx) {
  *           return injector.get(MyTransportService).getSettings(ctx);
@@ -266,33 +253,17 @@ import {
  *
  * For development, the `transport` option can be replaced by `devMode: true`. Doing so configures Vendure to use the
  * file transport (See {@link FileTransportOptions}) and outputs emails as rendered HTML files in the directory specified by the
- * `outputPath` property. Every send attempt, including failures, is also recorded in a dev outbox.
+ * `outputPath` property.
  *
  * ```ts
  * EmailPlugin.init({
  *   devMode: true,
  *   route: 'mailbox',
- *   handlers: defaultEmailHandlers,
+ *   handler: defaultEmailHandlers,
+ *   templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
  *   outputPath: path.join(__dirname, 'test-emails'),
  * })
  * ```
- *
- * ### The `vendure email` commands
- *
- * In dev mode, the `vendure email` CLI commands render emails from the data in your database, send them through
- * the real pipeline, and show what was sent. They are built for coding agents as well as people: they print JSON
- * when not run in a terminal, and failures name the stage they happened at. Enable them by adding
- * `"\@vendure/email-plugin"` to `vendure.cli.plugins` in your package.json.
- *
- * ```
- * npx vendure email list
- * npx vendure email render order-confirmation --language de --arg order=XN4P3TQ8
- * npx vendure email send password-reset --to me@example.com
- * npx vendure email outbox --to customer@example.com --since 5m --wait 15
- * npx vendure email check --language en,de
- * ```
- *
- * Give your own handlers sample data for these commands with `EmailEventHandler.setSampleEvent()`.
  *
  * ### Dev mailbox
  *
@@ -332,16 +303,14 @@ import {
  * };
  * ```
  *
+ * @deprecated Use `EmailPlugin` from `@vendure/email` instead. This package is frozen at its v3
+ * behaviour, receives security fixes only, and will be removed in v5.
+ *
  * @docsCategory core plugins/EmailPlugin
  */
 @VendurePlugin({
     imports: [PluginCommonModule],
-    providers: [
-        { provide: EMAIL_PLUGIN_OPTIONS, useFactory: () => EmailPlugin.options },
-        EmailProcessor,
-        EmailRenderService,
-    ],
-    exports: [EmailRenderService],
+    providers: [{ provide: EMAIL_PLUGIN_OPTIONS, useFactory: () => EmailPlugin.options }, EmailProcessor],
     compatibility: '^3.0.0',
 })
 export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdown, NestModule {
@@ -355,7 +324,6 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
         private eventBus: EventBus,
         private moduleRef: ModuleRef,
         private emailProcessor: EmailProcessor,
-        private renderService: EmailRenderService,
         private jobQueueService: JobQueueService,
         private processContext: ProcessContext,
         @Inject(EMAIL_PLUGIN_OPTIONS) private options: InitializedEmailPluginOptions,
@@ -365,38 +333,29 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
      * Set the plugin options.
      */
     static init(options: EmailPluginOptions | EmailPluginDevModeOptions): Type<EmailPlugin> {
-        const templateLoaders = toArray(options.templateLoader);
-        if (options.templatePath) {
-            // TODO: remove when the deprecated templatePath option is removed
-            templateLoaders.push(new FileBasedTemplateLoader(options.templatePath));
+        if (options.templateLoader) {
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            Logger.info(`Using custom template loader '${options.templateLoader.constructor.name}'`);
+        } else if (!options.templateLoader && options.templatePath) {
+            // TODO: this else-if can be removed when deprecated templatePath is removed,
+            // because we will either have a custom template loader, or the default loader with a default path
+            options.templateLoader = new FileBasedTemplateLoader(options.templatePath);
+        } else {
+            throw new Error('You must either supply a templatePath or provide a custom templateLoader');
         }
-        this.options = {
-            ...options,
-            templateLoaders,
-            emailGenerators: [
-                ...toArray(options.emailGenerator),
-                new ReactEmailGenerator(),
-                new HandlebarsMjmlGenerator(),
-            ],
-        } as InitializedEmailPluginOptions;
+        this.options = options as InitializedEmailPluginOptions;
         return EmailPlugin;
     }
 
     /** @internal */
     async onApplicationBootstrap(): Promise<void> {
         await this.initInjectableStrategies();
-        await this.renderService.init();
         await this.setupEventSubscribers();
         const transport = await resolveTransportSettings(this.options, new Injector(this.moduleRef));
         if (!isDevModeOptions(this.options) && transport.type === 'testing') {
             // When running tests, we don't want to go through the JobQueue system,
             // so we just call the email sending logic directly.
-            this.testingProcessor = new EmailProcessor(
-                this.options,
-                this.moduleRef,
-                this.eventBus,
-                this.renderService,
-            );
+            this.testingProcessor = new EmailProcessor(this.options, this.moduleRef, this.eventBus);
             await this.testingProcessor.init();
         } else {
             await this.emailProcessor.init();
@@ -421,17 +380,7 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
             }
             Logger.info('Creating dev mailbox middleware', loggerCtx);
             this.devMailbox = new DevMailbox();
-            const devApi = new DevEmailApi({
-                options: this.options,
-                injector: new Injector(this.moduleRef),
-                renderService: this.renderService,
-                outbox: new DevOutbox(getDevOutboxDir(this.options.outputPath)),
-                resolveGlobalTemplateVars: ctx => this.resolveGlobalTemplateVars(ctx),
-                enqueue: details => this.enqueue(details),
-            });
-            consumer
-                .apply(this.devMailbox.serve(this.options, devApi.router()))
-                .forRoutes(this.options.route);
+            consumer.apply(this.devMailbox.serve(this.options)).forRoutes(this.options.route);
             this.devMailbox.handleMockEvent((handler, event) => this.handleEvent(handler, event));
             registerPluginStartupMessage('Dev mailbox', this.options.route);
         }
@@ -439,13 +388,18 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
 
     private async initInjectableStrategies() {
         const injector = new Injector(this.moduleRef);
+        if (typeof this.options.emailGenerator?.init === 'function') {
+            await this.options.emailGenerator.init(injector);
+        }
         if (typeof this.options.emailSender?.init === 'function') {
             await this.options.emailSender.init(injector);
         }
     }
 
     private async destroyInjectableStrategies() {
-        await this.renderService.destroy();
+        if (typeof this.options.emailGenerator?.destroy === 'function') {
+            await this.options.emailGenerator.destroy();
+        }
         if (typeof this.options.emailSender?.destroy === 'function') {
             await this.options.emailSender.destroy();
         }
@@ -466,41 +420,25 @@ export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdow
         Logger.debug(`Handling event "${handler.type}"`, loggerCtx);
         try {
             const injector = new Injector(this.moduleRef);
-            const globalTemplateVars = await this.resolveGlobalTemplateVars(event.ctx);
-            const result = await handler.handle(event as any, globalTemplateVars, injector);
+            let globalTemplateVars = this.options.globalTemplateVars;
+            if (typeof globalTemplateVars === 'function') {
+                globalTemplateVars = await globalTemplateVars(event.ctx, injector);
+            }
+            const result = await handler.handle(
+                event as any,
+                globalTemplateVars as { [key: string]: any },
+                injector,
+            );
             if (!result) {
                 return;
             }
-            await this.enqueue(result);
+            if (this.jobQueue) {
+                await this.jobQueue.add(result, { retries: 5 });
+            } else if (this.testingProcessor) {
+                await this.testingProcessor.process(result);
+            }
         } catch (e: any) {
             Logger.error(e.message, loggerCtx, e.stack);
         }
     }
-
-    private async resolveGlobalTemplateVars(ctx: RequestContext): Promise<{ [key: string]: any }> {
-        const globalTemplateVars = this.options.globalTemplateVars;
-        if (typeof globalTemplateVars === 'function') {
-            return globalTemplateVars(ctx, new Injector(this.moduleRef));
-        }
-        return globalTemplateVars ?? {};
-    }
-
-    private async enqueue(details: IntermediateEmailDetails) {
-        if (this.jobQueue) {
-            await this.jobQueue.add(details, { retries: 5 });
-        } else if (this.testingProcessor) {
-            await this.testingProcessor.process(details);
-        } else {
-            throw new Error(
-                'The EmailPlugin has not finished bootstrapping, so the email cannot be queued yet',
-            );
-        }
-    }
-}
-
-function toArray<T>(value: T | T[] | undefined): T[] {
-    if (value === undefined) {
-        return [];
-    }
-    return Array.isArray(value) ? [...value] : [value];
 }

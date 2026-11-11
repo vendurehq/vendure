@@ -1,16 +1,10 @@
-import { EmailTemplateSource } from '../template/email-template';
-
-import { EmailGenerator, EmailGeneratorInput } from './email-generator';
+import { EmailGenerator } from './email-generator';
 
 /**
- * Simply passes through the subject and string template content without modification.
+ * Simply passes through the subject and template content without modification.
  */
 export class NoopEmailGenerator implements EmailGenerator {
-    canGenerate(template: EmailTemplateSource) {
-        return template.kind === 'string';
-    }
-
-    generate({ from, subject, template }: EmailGeneratorInput) {
-        return { from, subject, body: template.kind === 'string' ? template.body : '' };
+    generate(from: string, subject: string, body: string, templateVars: any) {
+        return { from, subject, body };
     }
 }

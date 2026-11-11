@@ -14,9 +14,8 @@ export function isDevModeOptions(
  * Returns `undefined` otherwise.
  *
  * In dev mode the plugin mounts the dev mailbox, which has no authentication. It lists and serves
- * every generated email, its `/generate/:type/:languageCode` endpoint generates emails from mock
- * events, and its `/api` endpoints render and send emails built from database data. Dev mode also uses
- * the file transport, so no email is sent.
+ * every generated email, and its `/generate/:type/:languageCode` endpoint generates emails from mock
+ * events. Dev mode also uses the file transport, so no email is sent.
  */
 export function getDevModeProductionWarning(
     pluginOptions: EmailPluginOptions | EmailPluginDevModeOptions,
@@ -27,8 +26,7 @@ export function getDevModeProductionWarning(
     return (
         `devMode is enabled while NODE_ENV is "production". The dev mailbox at route "${pluginOptions.route}" ` +
         'has no authentication. It lists and serves every generated email, and its ' +
-        '`/generate/:type/:languageCode` endpoint generates emails from mock events. Its `/api` endpoints ' +
-        'render and send emails built from real database data, including customer names and addresses. ' +
+        '`/generate/:type/:languageCode` endpoint generates emails from mock events. ' +
         `Emails are written to "${pluginOptions.outputPath}" and are not sent. ` +
         'Remove `devMode` and configure a `transport` for production.'
     );
@@ -37,7 +35,7 @@ export function getDevModeProductionWarning(
 export async function resolveTransportSettings(
     options: EmailPluginOptions,
     injector: Injector,
-    ctx?: RequestContext,
+    ctx?: RequestContext
 ): Promise<EmailTransportOptions> {
     if (typeof options.transport === 'function') {
         return options.transport(injector, ctx);
