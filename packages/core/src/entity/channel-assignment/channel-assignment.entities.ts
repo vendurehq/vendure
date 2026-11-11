@@ -182,6 +182,8 @@ export class ProductChannel extends ChannelAssignment {
      * Whether the Product is enabled in this Channel. `null` means it is not set for this Channel.
      * How this combines with the global `Product.enabled` is decided in one place: see
      * `isEnabledInChannel()`.
+     *
+     * @since 4.0.0
      */
     @Column({ type: Boolean, nullable: true, default: null })
     enabled: boolean | null;
@@ -242,6 +244,8 @@ export class ProductVariantChannel extends ChannelAssignment {
      * Whether the ProductVariant is enabled in this Channel. `null` means it is not set for this Channel.
      * How this combines with the global `ProductVariant.enabled` is decided in one place: see
      * `isEnabledInChannel()`.
+     *
+     * @since 4.0.0
      */
     @Column({ type: Boolean, nullable: true, default: null })
     enabled: boolean | null;

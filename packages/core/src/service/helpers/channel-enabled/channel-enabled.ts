@@ -1,54 +1,77 @@
-import { ID } from '@vendure/common/lib/shared-types';
+import { ProductFilterParameter } from '@vendure/common/lib/generated-types';
+import { Type } from '@vendure/common/lib/shared-types';
 import { SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
-import { ProductChannel, ProductVariantChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
+import { InternalServerError } from '../../../common/error/errors';
+import type { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import type { Product } from '../../../entity/product/product.entity';
+import { findChannelAssignmentEntity } from '../channel-assignment/channel-assignment.service';
 
 /**
  * @description
- * The single place where a Product's or ProductVariant's global `enabled` value and its per-channel
- * value (`ProductChannel.enabled` / `ProductVariantChannel.enabled`, `null` when not set) combine.
+ * Decides whether a {@link Product} or {@link ProductVariant} is available in a Channel, from its
+ * global `enabled` value and its value in that Channel (`ProductChannel.enabled` /
+ * `ProductVariantChannel.enabled`, exposed as `enabledInChannel`, `null` when not set).
  *
- * The rule is a pending UX decision (OSS-1001). This prototype uses a **master switch**: the entity is
- * enabled in a Channel only if it is enabled globally and not disabled in that Channel. The
- * alternative is an **override** (`channelEnabled ?? globalEnabled`), which only changes this function
- * and the two below.
+ * The global value is a master switch: the entity is available in a Channel only if it is enabled
+ * globally and not disabled in that Channel. See https://github.com/vendurehq/vendure/issues/3777.
+ *
+ * This function, {@link whereEnabledInChannel} and {@link enabledInChannelFilter} are the only
+ * places that combine the two values. Use them rather than reading `enabled` directly.
+ *
+ * @docsCategory products & stock
+ * @since 4.0.0
  */
-export function isEnabledInChannel(globalEnabled: boolean, channelEnabled: boolean | null | undefined): boolean {
+export function isEnabledInChannel(
+    globalEnabled: boolean,
+    channelEnabled: boolean | null | undefined,
+): boolean {
     return globalEnabled && channelEnabled !== false;
 }
 
 /**
  * @description
- * The SQL form of {@link isEnabledInChannel}, joining the assignment row of the active Channel.
- * `entityAlias` is the alias of the Product or ProductVariant in the query.
+ * The SQL form of {@link isEnabledInChannel}: restricts the query to entities which are available
+ * in the active Channel, joining their channel assignment row. `alias` is the alias of the Product
+ * or ProductVariant in the query.
+ *
+ * @docsCategory products & stock
+ * @since 4.0.0
  */
 export function whereEnabledInChannel(
     qb: SelectQueryBuilder<any>,
     ctx: RequestContext,
-    entity: 'product' | 'productVariant',
-    entityAlias: string,
+    entityType: Type<Product> | Type<ProductVariant>,
+    alias: string,
 ): SelectQueryBuilder<any> {
-    const rowAlias = `${entityAlias}__channelAssignment`;
-    const target = entity === 'product' ? ProductChannel : ProductVariantChannel;
-    const idColumn = entity === 'product' ? 'productId' : 'productVariantId';
+    const assignment = findChannelAssignmentEntity(qb.connection.entityMetadatas, entityType);
+    if (!assignment) {
+        throw new InternalServerError(`${entityType.name} has no channel assignment entity`);
+    }
+    const rowAlias = `${alias}__channelAssignment`;
+    const idProperty = `${assignment.options.entityProperty}Id`;
     return qb
         .innerJoin(
-            target,
+            assignment.metadata.target,
             rowAlias,
-            `${rowAlias}.${idColumn} = ${entityAlias}.id AND ${rowAlias}.channelId = :${rowAlias}ChannelId`,
+            `${rowAlias}.${idProperty} = ${alias}.id AND ${rowAlias}.channelId = :${rowAlias}ChannelId`,
             { [`${rowAlias}ChannelId`]: ctx.channelId },
         )
-        .andWhere(`${entityAlias}.enabled = :${rowAlias}True`, { [`${rowAlias}True`]: true })
+        .andWhere(`${alias}.enabled = :${rowAlias}True`, { [`${rowAlias}True`]: true })
         .andWhere(`(${rowAlias}.enabled IS NULL OR ${rowAlias}.enabled = :${rowAlias}True)`);
 }
 
 /**
  * @description
- * The ListQueryBuilder filter form of {@link isEnabledInChannel}, for lists scoped to the active
- * Channel. `enabledInChannel` is the per-channel column, resolved by the ListQueryBuilder.
+ * The ListQueryBuilder filter form of {@link isEnabledInChannel}, for Product lists scoped to the
+ * active Channel. `enabledInChannel` is resolved by the ListQueryBuilder against the active
+ * Channel's `ProductChannel` row.
+ *
+ * @docsCategory products & stock
+ * @since 4.0.0
  */
-export function enabledInChannelFilter(): any {
+export function enabledInChannelFilter(): ProductFilterParameter {
     return {
         _and: [
             { enabled: { eq: true } },

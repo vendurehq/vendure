@@ -44,7 +44,7 @@ export class McpCatalogQueryService {
             .andWhere('variant.productId IN (:...productIds)', { productIds });
         if (!options.includeDisabled) {
             // Enabled globally and in the active Channel
-            whereEnabledInChannel(query, ctx, 'productVariant', 'variant');
+            whereEnabledInChannel(query, ctx, ProductVariant, 'variant');
         }
         const variants = await this.withChannelPrice(ctx, await query.getMany());
         for (const variant of variants) {
@@ -121,7 +121,7 @@ export class McpCatalogQueryService {
                 mcpChannelId: ctx.channelId,
             })
             .where('mcpVariant.deletedAt IS NULL');
-        whereEnabledInChannel(subQuery, ctx, 'productVariant', 'mcpVariant');
+        whereEnabledInChannel(subQuery, ctx, ProductVariant, 'mcpVariant');
         return Raw(alias => `${alias} IN (${subQuery.getQuery()})`, subQuery.getParameters());
     }
 

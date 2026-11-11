@@ -87,18 +87,21 @@ import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import {
+    ProductChannel,
+    ProductVariantChannel,
+} from '../../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../../entity/channel/channel.entity';
-import { ProductChannel, ProductVariantChannel } from '../../entity/channel-assignment/channel-assignment.entities';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
-import { Product } from '../../entity/product/product.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Product } from '../../entity/product/product.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
 import { Refund } from '../../entity/refund/refund.entity';
 import { Session } from '../../entity/session/session.entity';
@@ -726,14 +729,18 @@ export class OrderService implements OnApplicationBootstrap {
             const variant = await this.connection.getEntityOrThrow(ctx, ProductVariant, productVariantId, {
                 relations: ['product'],
                 where: {
-                    enabled: true,
                     deletedAt: IsNull(),
                 },
                 loadEagerRelations: false,
             });
-            // Enabled globally (checked above for the variant) and in the Order's Channel
+            // The variant and its Product must be assigned to, and available in, the active Channel
+            // (see isEnabledInChannel). Variants from other Channels are rejected too.
             const [variantAssignment, productAssignment] = await Promise.all([
-                this.channelAssignmentService.getAssignment<ProductVariantChannel>(ctx, ProductVariant, variant.id),
+                this.channelAssignmentService.getAssignment<ProductVariantChannel>(
+                    ctx,
+                    ProductVariant,
+                    variant.id,
+                ),
                 this.channelAssignmentService.getAssignment<ProductChannel>(ctx, Product, variant.productId),
             ]);
             if (

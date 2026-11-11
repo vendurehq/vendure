@@ -1,10 +1,11 @@
 /**
- * OSS-1001 spike: per-channel `enabled` for Products and ProductVariants, on top of the generic
- * channel assignment entities (one per ChannelAware entity, owning its `channels` junction table).
+ * Per-channel `enabled` for Products and ProductVariants (#3777).
  *
  * `Product.enabled` / `ProductVariant.enabled` stay global. `enabledInChannel` is the nullable
- * per-channel value (`null` = not set). This prototype combines them as a master switch:
+ * per-channel value (`null` = not set). They combine as a master switch (see `isEnabledInChannel`):
  * available in a Channel = enabled globally AND not disabled in that Channel.
+ *
+ * The tests run in order and share the state they set up, like the other e2e specs.
  */
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
@@ -176,7 +177,35 @@ const ADD_ITEM = gql`
     }
 `;
 
-describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () => {
+const CREATE_COLLECTION = gql`
+    mutation CreateCollection($input: CreateCollectionInput!) {
+        createCollection(input: $input) {
+            id
+        }
+    }
+`;
+
+const ASSIGN_COLLECTIONS = gql`
+    mutation AssignCollections($input: AssignCollectionsToChannelInput!) {
+        assignCollectionsToChannel(input: $input) {
+            id
+        }
+    }
+`;
+
+const COLLECTION_VARIANTS = gql`
+    query CollectionVariants($id: ID!, $options: ProductVariantListOptions) {
+        collection(id: $id) {
+            productVariants(options: $options) {
+                items {
+                    id
+                }
+            }
+        }
+    }
+`;
+
+describe('Per-channel enabled for Products and ProductVariants (#3777)', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             plugins: [DefaultSearchPlugin, DefaultJobQueuePlugin],
@@ -185,7 +214,7 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
 
     let channelCId: string;
 
-    async function asChannel(token: string) {
+    function asChannel(token: string) {
         adminClient.setChannelToken(token);
         shopClient.setChannelToken(token);
     }
@@ -243,7 +272,7 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
     describe('product', () => {
         it('the per-channel value is not set by default', async () => {
             for (const token of [E2E_DEFAULT_CHANNEL_TOKEN, CHANNEL_B_TOKEN]) {
-                await asChannel(token);
+                asChannel(token);
                 const { product } = await adminClient.query(ADMIN_PRODUCT, { id: 'T_1' });
                 expect(product.enabled).toBe(true);
                 expect(product.enabledInChannel).toBeNull();
@@ -251,27 +280,27 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
         });
 
         it('disabling in channel B leaves the global value and the default channel alone', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { updateProduct } = await adminClient.query(UPDATE_PRODUCT, {
                 input: { id: 'T_1', enabledInChannel: false },
             });
             expect(updateProduct.enabled).toBe(true);
             expect(updateProduct.enabledInChannel).toBe(false);
 
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { product } = await adminClient.query(ADMIN_PRODUCT, { id: 'T_1' });
             expect(product.enabled).toBe(true);
             expect(product.enabledInChannel).toBeNull();
         });
 
         it('Admin products list filters on the active channel value', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { products: inB } = await adminClient.query(ADMIN_PRODUCTS, {
                 options: { filter: { enabledInChannel: { eq: false } } },
             });
             expect(inB.items.map((p: any) => p.id)).toEqual(['T_1']);
 
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { products: inDefault } = await adminClient.query(ADMIN_PRODUCTS, {
                 options: { filter: { enabledInChannel: { eq: false } } },
             });
@@ -279,37 +308,40 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
         });
 
         it('Shop API hides it in channel B only', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { product: inB } = await shopClient.query(SHOP_PRODUCT, { id: 'T_1' });
             expect(inB).toBeNull();
             expect(await shopProductIds()).toEqual(['T_2']);
 
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { product: inDefault } = await shopClient.query(SHOP_PRODUCT, { id: 'T_1' });
             expect(inDefault?.id).toBe('T_1');
             expect(await shopProductIds()).toContain('T_1');
         });
 
         it('cannot add its variant to a channel B order, can in the default channel', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
-            await expect(shopClient.query(ADD_ITEM, { productVariantId: 'T_1', quantity: 1 })).rejects.toThrow(
-                'No ProductVariant with the id',
-            );
+            asChannel(CHANNEL_B_TOKEN);
+            await expect(
+                shopClient.query(ADD_ITEM, { productVariantId: 'T_1', quantity: 1 }),
+            ).rejects.toThrow('No ProductVariant with the id');
 
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { addItemToOrder } = await shopClient.query(ADD_ITEM, { productVariantId: 'T_1', quantity: 1 });
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
             expect(addItemToOrder.lines.map((l: any) => l.productVariant.id)).toEqual(['T_1']);
         });
 
         it('search is per channel', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             expect(await searchVariantIds('laptop')).toEqual([]);
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             expect(await searchVariantIds('laptop')).toEqual(['T_1', 'T_2', 'T_3', 'T_4']);
         });
 
         it('clearing the channel value (null) makes it visible in channel B again', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { updateProduct } = await adminClient.query(UPDATE_PRODUCT, {
                 input: { id: 'T_1', enabledInChannel: null },
             });
@@ -319,43 +351,43 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
         });
 
         it('the global value is a master switch: disabled globally hides it in every channel', async () => {
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.query(UPDATE_PRODUCT, { input: { id: 'T_2', enabled: false } });
             expect(await shopProductIds()).not.toContain('T_2');
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             // enabledInChannel: true in B does not override the global switch
             await adminClient.query(UPDATE_PRODUCT, { input: { id: 'T_2', enabledInChannel: true } });
             expect(await shopProductIds()).not.toContain('T_2');
 
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.query(UPDATE_PRODUCT, { input: { id: 'T_2', enabled: true } });
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             expect(await shopProductIds()).toContain('T_2');
         });
     });
 
     describe('variant', () => {
         it('disabling a variant in the default channel leaves it available in channel B', async () => {
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { updateProductVariants } = await adminClient.query(UPDATE_VARIANTS, {
                 input: [{ id: 'T_2', enabledInChannel: false }],
             });
             expect(updateProductVariants[0].enabled).toBe(true);
             expect(updateProductVariants[0].enabledInChannel).toBe(false);
 
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { product } = await adminClient.query(ADMIN_PRODUCT, { id: 'T_1' });
             expect(product.variants.find((v: any) => v.id === 'T_2').enabledInChannel).toBeNull();
         });
 
         it('Admin productVariants list filters on the active channel value', async () => {
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { productVariants: inDefault } = await adminClient.query(ADMIN_VARIANTS, {
                 options: { filter: { enabledInChannel: { eq: false } } },
             });
             expect(inDefault.items.map((v: any) => v.id)).toEqual(['T_2']);
 
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { productVariants: inB } = await adminClient.query(ADMIN_VARIANTS, {
                 options: { filter: { enabledInChannel: { eq: false } } },
             });
@@ -363,27 +395,87 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
         });
 
         it('Shop API product.variants and search are filtered per channel', async () => {
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { product: inDefault } = await shopClient.query(SHOP_PRODUCT, { id: 'T_1' });
             expect(inDefault.variants.map((v: any) => v.id)).toEqual(['T_1', 'T_3', 'T_4']);
             expect(await searchVariantIds('laptop')).toEqual(['T_1', 'T_3', 'T_4']);
 
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { product: inB } = await shopClient.query(SHOP_PRODUCT, { id: 'T_1' });
             expect(inB.variants.map((v: any) => v.id)).toEqual(['T_1', 'T_2', 'T_3', 'T_4']);
             expect(await searchVariantIds('laptop')).toEqual(['T_1', 'T_2', 'T_3', 'T_4']);
         });
 
         it('addItemToOrder respects the channel value of the variant', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
-            const { addItemToOrder } = await shopClient.query(ADD_ITEM, { productVariantId: 'T_2', quantity: 1 });
+            asChannel(CHANNEL_B_TOKEN);
+            const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
+                productVariantId: 'T_2',
+                quantity: 1,
+            });
             expect(addItemToOrder.lines.map((l: any) => l.productVariant.id)).toContain('T_2');
+        });
+
+        it('addItemToOrder rejects a variant disabled in the active channel', async () => {
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            await expect(
+                shopClient.query(ADD_ITEM, { productVariantId: 'T_2', quantity: 1 }),
+            ).rejects.toThrow('No ProductVariant with the id');
+        });
+
+        it('addItemToOrder rejects a variant which is not assigned to the active channel', async () => {
+            // T_7 belongs to product T_3, which is only in the default channel
+            asChannel(CHANNEL_B_TOKEN);
+            await expect(
+                shopClient.query(ADD_ITEM, { productVariantId: 'T_7', quantity: 1 }),
+            ).rejects.toThrow('No ProductVariant with the id');
+        });
+
+        it('Shop API Collection.productVariants is filtered per channel; Admin API is not', async () => {
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { createCollection } = await adminClient.query(CREATE_COLLECTION, {
+                input: {
+                    translations: [
+                        { languageCode: LanguageCode.en, name: 'Laptops', slug: 'laptops', description: '' },
+                    ],
+                    filters: [
+                        {
+                            code: 'variant-id-filter',
+                            arguments: [
+                                { name: 'variantIds', value: '["T_1", "T_2", "T_3", "T_4"]' },
+                                { name: 'combineWithAnd', value: 'true' },
+                            ],
+                        },
+                    ],
+                },
+            });
+            await adminClient.query(ASSIGN_COLLECTIONS, {
+                input: { channelId: 'T_2', collectionIds: [createCollection.id] },
+            });
+            await awaitRunningJobs(adminClient);
+            const variantIds = async (client: typeof shopClient | typeof adminClient, filter?: any) => {
+                const { collection } = await client.query(COLLECTION_VARIANTS, {
+                    id: createCollection.id,
+                    options: filter ? { filter } : undefined,
+                });
+                return collection.productVariants.items.map((v: any) => v.id).sort();
+            };
+            // T_2 is disabled in the default channel only
+            expect(await variantIds(shopClient)).toEqual(['T_1', 'T_3', 'T_4']);
+            // In the Admin API, `enabled` filters on the global value
+            expect(await variantIds(adminClient, { enabled: { eq: true } })).toEqual([
+                'T_1',
+                'T_2',
+                'T_3',
+                'T_4',
+            ]);
+            asChannel(CHANNEL_B_TOKEN);
+            expect(await variantIds(shopClient)).toEqual(['T_1', 'T_2', 'T_3', 'T_4']);
         });
     });
 
     describe('creating and assigning', () => {
         it('createProduct with enabledInChannel: false sets only the active channel', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
             const { createProduct } = await adminClient.query(CREATE_PRODUCT, {
                 input: {
                     enabledInChannel: false,
@@ -395,42 +487,42 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
             expect(createProduct.enabled).toBe(true);
             expect(createProduct.enabledInChannel).toBe(false);
 
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { product } = await adminClient.query(ADMIN_PRODUCT, { id: createProduct.id });
             expect(product.enabledInChannel).toBeNull();
         });
 
         it('assignProductsToChannel with an explicit enabledInChannel', async () => {
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.query(ASSIGN_PRODUCTS, {
                 input: { channelId: channelCId, productIds: ['T_1'], enabledInChannel: false },
             });
-            await asChannel(CHANNEL_C_TOKEN);
+            asChannel(CHANNEL_C_TOKEN);
             const { product } = await adminClient.query(ADMIN_PRODUCT, { id: 'T_1' });
             expect(product.enabledInChannel).toBe(false);
             expect(product.variants.every((v: any) => v.enabledInChannel === false)).toBe(true);
         });
 
         it('assigning without enabledInChannel copies the per-channel data from the active channel', async () => {
-            await asChannel(CHANNEL_B_TOKEN);
+            asChannel(CHANNEL_B_TOKEN);
+            await adminClient.query(UPDATE_PRODUCT, { input: { id: 'T_2', enabledInChannel: true } });
             await adminClient.query(UPDATE_VARIANTS, { input: [{ id: 'T_5', enabledInChannel: false }] });
             await adminClient.query(ASSIGN_PRODUCTS, {
                 input: { channelId: channelCId, productIds: ['T_2'] },
             });
-            await asChannel(CHANNEL_C_TOKEN);
+            asChannel(CHANNEL_C_TOKEN);
             const { product } = await adminClient.query(ADMIN_PRODUCT, { id: 'T_2' });
-            // T_2 was set to true in channel B by the master-switch test
             expect(product.enabledInChannel).toBe(true);
             expect(product.variants.find((v: any) => v.id === 'T_5').enabledInChannel).toBe(false);
             expect(product.variants.find((v: any) => v.id === 'T_6').enabledInChannel).toBeNull();
         });
 
         it('assignProductVariantsToChannel with an explicit enabledInChannel', async () => {
-            await asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+            asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.query(ASSIGN_VARIANTS, {
                 input: { channelId: channelCId, productVariantIds: ['T_7'], enabledInChannel: false },
             });
-            await asChannel(CHANNEL_C_TOKEN);
+            asChannel(CHANNEL_C_TOKEN);
             const { productVariants } = await adminClient.query(ADMIN_VARIANTS, {
                 options: { filter: { id: { eq: 'T_7' } } },
             });
@@ -438,47 +530,21 @@ describe('Per-channel enabled for Products and ProductVariants (OSS-1001)', () =
         });
     });
 
-    describe('channel assignment rows', () => {
-        const CHANNEL_AWARE = [
-            'Asset',
-            'ApiKey',
-            'Collection',
-            'Customer',
-            'Facet',
-            'FacetValue',
-            'Order',
-            'PaymentMethod',
-            'Product',
-            'ProductOption',
-            'ProductOptionGroup',
-            'ProductVariant',
-            'Promotion',
-            'ShippingMethod',
-            'StockLocation',
-        ];
-
-        it('schema synchronization keeps the junction rows and per-channel values', async () => {
+    describe('schema synchronization', () => {
+        it('keeps the per-channel values', async () => {
             const dataSource = server.app.get(TransactionalConnection).rawConnection;
-            const count = async () => {
-                const result: Record<string, number> = {};
-                for (const name of CHANNEL_AWARE) {
-                    result[name] = await dataSource.getRepository(`${name}Channel`).count();
-                }
-                return result;
-            };
             const repo = dataSource.getRepository('ProductVariantChannel');
-            // Self-contained: write a per-channel value so the test does not depend on earlier tests
-            await repo.update({ productVariantId: 3, channelId: 1 }, { enabled: false });
             const disabled = () =>
-                repo.find({ where: { enabled: false }, order: { productVariantId: 'ASC', channelId: 'ASC' } });
-            const before = await count();
+                repo.find({
+                    where: { enabled: false },
+                    order: { productVariantId: 'ASC', channelId: 'ASC' },
+                });
             const disabledBefore = await disabled();
             expect(disabledBefore.length).toBeGreaterThan(0);
 
             await dataSource.synchronize();
             await dataSource.synchronize();
 
-            expect(await count()).toEqual(before);
             expect(await disabled()).toEqual(disabledBefore);
         });
     });

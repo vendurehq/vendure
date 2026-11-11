@@ -15,8 +15,11 @@ import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
+import {
+    ProductChannel,
+    ProductVariantChannel,
+} from '../../../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../../../entity/channel/channel.entity';
-import { ProductChannel, ProductVariantChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { Product } from '../../../entity/product/product.entity';
@@ -281,9 +284,6 @@ export class IndexerController {
                 product.translations = clone.translations;
                 await this.saveSyntheticVariant(ctx, product);
             } else {
-                if (product.enabled === false) {
-                    updatedVariants.forEach(v => (v.enabled = false));
-                }
                 const variantsInCurrentChannel = updatedVariants.filter(
                     v => !!v.channels.find(c => idsAreEqual(c.id, ctx.channelId)),
                 );
@@ -484,11 +484,13 @@ export class IndexerController {
                             enabled:
                                 isEnabledInChannel(
                                     product.enabled,
-                                    productAssignments.get(String(product.id))?.get(String(channel.id))?.enabled,
+                                    productAssignments.get(String(product.id))?.get(String(channel.id))
+                                        ?.enabled,
                                 ) &&
                                 isEnabledInChannel(
                                     variant.enabled,
-                                    variantAssignments.get(String(variant.id))?.get(String(channel.id))?.enabled,
+                                    variantAssignments.get(String(variant.id))?.get(String(channel.id))
+                                        ?.enabled,
                                 ),
                             slug: productTranslation?.slug ?? '',
                             productId: product.id,
