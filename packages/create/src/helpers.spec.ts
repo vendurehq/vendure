@@ -7,8 +7,8 @@ import path from 'node:path';
 import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
-import { registerEscapeSingleHelper } from './gather-user-responses';
+import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants.js';
+import { registerEscapeSingleHelper } from './gather-user-responses.js';
 import {
     checkNodeVersion,
     detectPackageManager,
@@ -27,13 +27,13 @@ import {
     isServerPortInUse,
     registerTemplateHelpers,
     toComposeProjectName,
-} from './helpers';
-import { log } from './logger';
-import { PackageManager } from './types';
+} from './helpers.js';
+import { log } from './logger.js';
+import { PackageManager } from './types.js';
 
 // Replace the project's logger with a spy so we can assert on warning calls
 // without coupling to its console-printing behaviour.
-vi.mock('./logger', () => ({
+vi.mock('./logger.js', () => ({
     log: vi.fn(),
 }));
 

@@ -1,8 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
-import { getCiConfiguration, getQuickStartConfiguration } from './gather-user-responses';
-import { getPackageManagerInfo, registerTemplateHelpers } from './helpers';
+import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants.js';
+import { getCiConfiguration, getQuickStartConfiguration } from './gather-user-responses.js';
+import { getPackageManagerInfo, registerTemplateHelpers } from './helpers.js';
 
 const DOCKER_FALLBACK_PROMPT = 'We could not automatically start Docker. How should we proceed?';
 
@@ -28,9 +28,9 @@ vi.mock('@clack/prompts', async importOriginal => ({
 }));
 
 // vi.mock calls are hoisted above these imports, so gather-user-responses.ts
-// (which imports findAvailablePort from './helpers') sees the mock below.
-vi.mock('./helpers', async importOriginal => {
-    const actual = await importOriginal<typeof import('./helpers')>();
+// (which imports findAvailablePort from './helpers.js') sees the mock below.
+vi.mock('./helpers.js', async importOriginal => {
+    const actual = await importOriginal<typeof import('./helpers.js')>();
     return {
         ...actual,
         findAvailablePort: findAvailablePortMock,

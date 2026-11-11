@@ -5,12 +5,13 @@ import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import { ChildProcess, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import pc from 'picocolors';
 
-import { showConsoleHint } from './console-hint';
+import { showConsoleHint } from './console-hint.js';
 import {
     AUTO_RUN_DELAY_MS,
     CI_PAUSE_AFTER_CLOSE_MS,
@@ -24,12 +25,12 @@ import {
     STOREFRONT_PORT,
     TIP_INTERVAL_MS,
     TIPS_WHILE_WAITING,
-} from './constants';
+} from './constants.js';
 import {
     getCiConfiguration,
     getManualConfiguration,
     getQuickStartConfiguration,
-} from './gather-user-responses';
+} from './gather-user-responses.js';
 import {
     checkCancel,
     checkDbConnection,
@@ -53,9 +54,9 @@ import {
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
-} from './helpers';
-import { log, setLogLevel } from './logger';
-import { offerPlatformTrial } from './platform-trial';
+} from './helpers.js';
+import { log, setLogLevel } from './logger.js';
+import { offerPlatformTrial } from './platform-trial.js';
 import {
     configureStorefrontPackageJson,
     getStorefrontStarter,
@@ -65,11 +66,10 @@ import {
     STOREFRONT_STARTERS,
     StorefrontId,
     StorefrontStarter,
-} from './storefront-starters';
-import { CliLogLevel, PackageManager, UserResponses } from './types';
+} from './storefront-starters.js';
+import { CliLogLevel, PackageManager, UserResponses } from './types.js';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJson = require('../package.json');
+const packageJson = createRequire(import.meta.url)('../package.json');
 checkNodeVersion(REQUIRED_NODE_VERSION);
 
 let projectName: string | undefined;
@@ -250,8 +250,8 @@ export async function createVendureApp(
         `Setting up your new Vendure ${projectType} in ${pc.green(root)}\nThis may take a few minutes...`,
     );
 
-    const assetPath = (fileName: string) => path.join(__dirname, '../assets', fileName);
-    const templatePath = (fileName: string) => path.join(__dirname, '../assets/monorepo', fileName);
+    const assetPath = (fileName: string) => path.join(import.meta.dirname, '../assets', fileName);
+    const templatePath = (fileName: string) => path.join(import.meta.dirname, '../assets/monorepo', fileName);
 
     if (includeStorefront) {
         // Create monorepo structure
@@ -533,7 +533,7 @@ export async function createVendureApp(
         const { bootstrap, generateMigration, runMigrations, DefaultLogger, LogLevel, JobQueueService } =
             projectRequire(path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index'));
         const { config } = projectRequire(configFile);
-        const assetsDir = path.join(__dirname, '../assets');
+        const assetsDir = path.join(import.meta.dirname, '../assets');
         superAdminCredentials = config.authOptions.superadminCredentials;
         const initialDataPath = path.join(assetsDir, 'initial-data.json');
         const vendureLogLevel =
