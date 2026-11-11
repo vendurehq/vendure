@@ -15,7 +15,6 @@
     "scripts": {
         "build": "rimraf dist && vite build && tsc -p ./tsconfig.build.json",
         "build:app": "vite build",
-        "ci": "npm run build",
         "dev": "vite"
     },
     "homepage": "https://www.vendure.io/",
@@ -44,6 +43,9 @@
     "nx": {
         "tags": [
             "scope:plugin"
-        ]
+        ],
+        "targets": {
+            "ci": {}
+        }
     }
 }
