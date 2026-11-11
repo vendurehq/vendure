@@ -70,9 +70,9 @@ export interface EmailPreviewInput {
 @Injectable()
 export class EmailPreviewService {
     constructor(
-        private moduleRef: ModuleRef,
-        private emailService: EmailService,
-        private renderService: EmailRenderService,
+        private readonly moduleRef: ModuleRef,
+        private readonly emailService: EmailService,
+        private readonly renderService: EmailRenderService,
     ) {}
 
     listEmails() {
