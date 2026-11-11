@@ -291,88 +291,32 @@ export function EmailEditorBlock({
                     </Button>
                 </div>
             </div>
-            {editing
-                ? fields
-                      .filter(f => FIELD_SLOTS.has(f.name))
-                      .map(field => {
-                          const value = values[field.name] ?? '';
-                          return (
-                              <div key={field.name} className="flex flex-col gap-1.5">
-                                  <Label htmlFor={`email-field-${field.name}`}>{field.label}</Label>
-                                  <Input
-                                      id={`email-field-${field.name}`}
-                                      value={value}
-                                      placeholder={field.fallbackValue}
-                                      disabled={!canEdit}
-                                      onChange={e => setValues(v => ({ ...v, [field.name]: e.target.value }))}
-                                      onFocus={e => {
-                                          lastTarget.current = {
-                                              kind: 'field',
-                                              name: field.name,
-                                              element: e.target,
-                                          };
-                                      }}
-                                  />
-                                  {unknownVariables(value, knownVariables).map(name => (
-                                      <span key={name} className="text-xs text-destructive">
-                                          <Trans>{`{{ ${name} }}`} is not a variable of this email.</Trans>
-                                      </span>
-                                  ))}
-                              </div>
-                          );
-                      })
-                : null}
+            {editing ? (
+                <TextFields
+                    fields={fields.filter(f => FIELD_SLOTS.has(f.name))}
+                    values={values}
+                    disabled={!canEdit}
+                    knownVariables={knownVariables}
+                    onChange={(name, value) => setValues(v => ({ ...v, [name]: value }))}
+                    onFocus={(name, element) => {
+                        lastTarget.current = { kind: 'field', name, element };
+                    }}
+                />
+            ) : null}
 
             {editing && content?.variables.length ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">
-                        <Trans>Insert variable:</Trans>
-                    </span>
-                    {content.variables.map(variable => (
-                        <button
-                            key={variable.name}
-                            type="button"
-                            title={variable.label}
-                            disabled={!canEdit}
-                            onMouseDown={e => e.preventDefault()}
-                            onClick={() => insertVariable(variable.name)}
-                            className="rounded-md border px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                            {`{{ ${variable.name} }}`}
-                        </button>
-                    ))}
-                </div>
+                <VariableChips variables={content.variables} disabled={!canEdit} onInsert={insertVariable} />
             ) : null}
 
-            {preview.error && appliedOrderCode && isSampleError(preview.error) ? (
-                <Alert>
-                    <AlertDescription className="flex flex-wrap items-center gap-3">
-                        <span>
-                            <Trans>
-                                Order {appliedOrderCode} has nothing this email can be about, for example no
-                                refund or no shipment.
-                            </Trans>
-                        </span>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                                setOrderCode('');
-                                setAppliedOrderCode('');
-                            }}
-                        >
-                            <Trans>Use the latest matching order</Trans>
-                        </Button>
-                    </AlertDescription>
-                </Alert>
-            ) : null}
-            {preview.error && !(appliedOrderCode && isSampleError(preview.error)) ? (
-                <Alert variant="destructive">
-                    <AlertDescription className="whitespace-pre-wrap">
-                        {String((preview.error as any)?.message ?? preview.error)}
-                    </AlertDescription>
-                </Alert>
+            {preview.error ? (
+                <PreviewErrorAlert
+                    error={preview.error}
+                    orderCode={appliedOrderCode}
+                    onUseLatestOrder={() => {
+                        setOrderCode('');
+                        setAppliedOrderCode('');
+                    }}
+                />
             ) : null}
 
             <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -386,26 +330,11 @@ export function EmailEditorBlock({
                     </span>
                 ) : null}
                 {!editing && email.canSendFromOrder ? (
-                    <form
-                        className="flex items-center gap-2"
-                        onSubmit={e => {
-                            e.preventDefault();
-                            setAppliedOrderCode(orderCode.trim());
-                        }}
-                    >
-                        <Label htmlFor="email-order" className="text-muted-foreground">
-                            <Trans>Order</Trans>
-                        </Label>
-                        <Input
-                            id="email-order"
-                            className="h-8 w-56"
-                            placeholder={t`Latest matching order`}
-                            title={t`The order whose data fills in the preview. Nothing is sent.`}
-                            value={orderCode}
-                            onChange={e => setOrderCode(e.target.value)}
-                            onBlur={() => setAppliedOrderCode(orderCode.trim())}
-                        />
-                    </form>
+                    <OrderPicker
+                        value={orderCode}
+                        onChange={setOrderCode}
+                        onApply={() => setAppliedOrderCode(orderCode.trim())}
+                    />
                 ) : null}
                 <ButtonGroup className="ml-auto">
                     <Button
@@ -458,48 +387,216 @@ export function EmailEditorBlock({
             </div>
 
             {rendered ? (
-                <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-sm">
-                    <dt className="text-muted-foreground">
-                        <Trans>Subject</Trans>
-                    </dt>
-                    <dd data-testid="email-preview-subject">{rendered.subject}</dd>
-                    <dt className="text-muted-foreground">
-                        <Trans>From</Trans>
-                    </dt>
-                    <dd>{rendered.from}</dd>
-                    <dt className="text-muted-foreground">
-                        <Trans>To</Trans>
-                    </dt>
-                    <dd>{rendered.recipient}</dd>
-                </dl>
+                <EmailHeaders subject={rendered.subject} from={rendered.from} to={rendered.recipient} />
             ) : null}
 
             {changed.length ? (
-                <div className="flex flex-col gap-1.5 text-sm">
-                    <span className="text-muted-foreground">
-                        <Trans>Changed text</Trans>
-                    </span>
-                    {changed.map(field => (
-                        <div key={field.name} className="flex items-center gap-2">
-                            <span>{field.label}</span>
-                            {dirtyNames.includes(field.name) ? (
-                                <Badge variant="outline">
-                                    <Trans>Unsaved</Trans>
-                                </Badge>
-                            ) : null}
-                            <button
-                                type="button"
-                                disabled={!canEdit}
-                                className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => resetToDefault(field.name)}
-                            >
-                                <RotateCcwIcon className="h-3 w-3" />
-                                <Trans>Use default</Trans>
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                <ChangedTextList
+                    fields={changed}
+                    unsaved={dirtyNames}
+                    disabled={!canEdit}
+                    onUseDefault={resetToDefault}
+                />
             ) : null}
+        </div>
+    );
+}
+
+type ContentField = EmailContentData['fields'][number];
+
+function TextFields({
+    fields,
+    values,
+    disabled,
+    knownVariables,
+    onChange,
+    onFocus,
+}: Readonly<{
+    fields: ContentField[];
+    values: Record<string, string>;
+    disabled: boolean;
+    knownVariables: Set<string>;
+    onChange: (name: string, value: string) => void;
+    onFocus: (name: string, element: HTMLInputElement) => void;
+}>) {
+    return (
+        <>
+            {fields.map(field => {
+                const value = values[field.name] ?? '';
+                return (
+                    <div key={field.name} className="flex flex-col gap-1.5">
+                        <Label htmlFor={`email-field-${field.name}`}>{field.label}</Label>
+                        <Input
+                            id={`email-field-${field.name}`}
+                            value={value}
+                            placeholder={field.fallbackValue}
+                            disabled={disabled}
+                            onChange={e => onChange(field.name, e.target.value)}
+                            onFocus={e => onFocus(field.name, e.target)}
+                        />
+                        {unknownVariables(value, knownVariables).map(name => (
+                            <span key={name} className="text-xs text-destructive">
+                                <Trans>{`{{ ${name} }}`} is not a variable of this email.</Trans>
+                            </span>
+                        ))}
+                    </div>
+                );
+            })}
+        </>
+    );
+}
+
+function VariableChips({
+    variables,
+    disabled,
+    onInsert,
+}: Readonly<{
+    variables: EmailContentData['variables'];
+    disabled: boolean;
+    onInsert: (name: string) => void;
+}>) {
+    return (
+        <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">
+                <Trans>Insert variable:</Trans>
+            </span>
+            {variables.map(variable => (
+                <button
+                    key={variable.name}
+                    type="button"
+                    title={variable.label}
+                    disabled={disabled}
+                    // Keeps the focus, and so the cursor, in the field or the preview.
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => onInsert(variable.name)}
+                    className="rounded-md border px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                    {`{{ ${variable.name} }}`}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function PreviewErrorAlert({
+    error,
+    orderCode,
+    onUseLatestOrder,
+}: Readonly<{ error: unknown; orderCode: string; onUseLatestOrder: () => void }>) {
+    if (orderCode && isSampleError(error)) {
+        return (
+            <Alert>
+                <AlertDescription className="flex flex-wrap items-center gap-3">
+                    <span>
+                        <Trans>
+                            Order {orderCode} has nothing this email can be about, for example no refund or no
+                            shipment.
+                        </Trans>
+                    </span>
+                    <Button type="button" size="sm" variant="outline" onClick={onUseLatestOrder}>
+                        <Trans>Use the latest matching order</Trans>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+    return (
+        <Alert variant="destructive">
+            <AlertDescription className="whitespace-pre-wrap">
+                {String((error as any)?.message ?? error)}
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+function OrderPicker({
+    value,
+    onChange,
+    onApply,
+}: Readonly<{ value: string; onChange: (value: string) => void; onApply: () => void }>) {
+    const { t } = useLingui();
+    return (
+        <form
+            className="flex items-center gap-2"
+            onSubmit={e => {
+                e.preventDefault();
+                onApply();
+            }}
+        >
+            <Label htmlFor="email-order" className="text-muted-foreground">
+                <Trans>Order</Trans>
+            </Label>
+            <Input
+                id="email-order"
+                className="h-8 w-56"
+                placeholder={t`Latest matching order`}
+                title={t`The order whose data fills in the preview. Nothing is sent.`}
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                onBlur={onApply}
+            />
+        </form>
+    );
+}
+
+function EmailHeaders({
+    subject,
+    from,
+    to,
+}: Readonly<{ subject: string; from: string; to?: string | null }>) {
+    return (
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-sm">
+            <dt className="text-muted-foreground">
+                <Trans>Subject</Trans>
+            </dt>
+            <dd data-testid="email-preview-subject">{subject}</dd>
+            <dt className="text-muted-foreground">
+                <Trans>From</Trans>
+            </dt>
+            <dd>{from}</dd>
+            <dt className="text-muted-foreground">
+                <Trans>To</Trans>
+            </dt>
+            <dd>{to}</dd>
+        </dl>
+    );
+}
+
+function ChangedTextList({
+    fields,
+    unsaved,
+    disabled,
+    onUseDefault,
+}: Readonly<{
+    fields: ContentField[];
+    unsaved: string[];
+    disabled: boolean;
+    onUseDefault: (name: string) => void;
+}>) {
+    return (
+        <div className="flex flex-col gap-1.5 text-sm">
+            <span className="text-muted-foreground">
+                <Trans>Changed text</Trans>
+            </span>
+            {fields.map(field => (
+                <div key={field.name} className="flex items-center gap-2">
+                    <span>{field.label}</span>
+                    {unsaved.includes(field.name) ? (
+                        <Badge variant="outline">
+                            <Trans>Unsaved</Trans>
+                        </Badge>
+                    ) : null}
+                    <button
+                        type="button"
+                        disabled={disabled}
+                        className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => onUseDefault(field.name)}
+                    >
+                        <RotateCcwIcon className="h-3 w-3" />
+                        <Trans>Use default</Trans>
+                    </button>
+                </div>
+            ))}
         </div>
     );
 }
