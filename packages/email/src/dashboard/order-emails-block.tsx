@@ -69,14 +69,7 @@ export function OrderEmailsBlock({ context }: Readonly<{ context: { entity?: any
     }
     return (
         <div className="flex flex-col gap-3">
-            {data.orderEmails.emails.map(email => (
-                <EmailRow
-                    key={email.type}
-                    email={email}
-                    onSend={target => setSelected({ type: email.type, label: email.label, target })}
-                />
-            ))}
-            <div className="flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 border-b pb-3 text-xs text-muted-foreground">
                 <MailIcon className="h-3.5 w-3.5 shrink-0" />
                 {data.orderEmails.recipient ? (
                     <span className="min-w-0 truncate">
@@ -88,6 +81,15 @@ export function OrderEmailsBlock({ context }: Readonly<{ context: { entity?: any
                 ) : (
                     <Trans>This order has no customer email address.</Trans>
                 )}
+            </div>
+            <div className="flex flex-col gap-2">
+                {data.orderEmails.emails.map(email => (
+                    <EmailRow
+                        key={email.type}
+                        email={email}
+                        onSend={target => setSelected({ type: email.type, label: email.label, target })}
+                    />
+                ))}
             </div>
             <Link
                 to="/emails"
@@ -122,16 +124,19 @@ function EmailRow({
     const firstEligible = email.targets.find(candidate => candidate.eligible) ?? email.targets[0];
     const [targetId, setTargetId] = useState<string | undefined>(firstEligible?.id);
     const target = email.targets.find(candidate => candidate.id === targetId) ?? firstEligible;
-    // The order itself is the only target of these emails, so its label adds nothing.
-    const showSingleTargetLabel =
-        email.targets.length === 1 && email.type !== 'order-confirmation' && email.type !== 'order-cancelled';
+    // Why the email can't be sent, shown on hover so the list stays short.
+    let reason: string | undefined;
+    if (!target) {
+        reason = t`Nothing in this order to send this email about yet.`;
+    } else if (!target.eligible) {
+        reason = target.reason ?? undefined;
+    }
     return (
-        <div
-            className="flex flex-col gap-1 border-b pb-3 last:border-b-0 last:pb-0"
-            data-testid={`order-email-${email.type}`}
-        >
-            <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium">{email.label}</span>
+        <div className="flex flex-col gap-1" data-testid={`order-email-${email.type}`}>
+            <div className="flex items-center justify-between gap-2" title={reason}>
+                <span className={target?.eligible ? 'text-sm' : 'text-sm text-muted-foreground'}>
+                    {email.label}
+                </span>
                 {target ? (
                     <Button
                         size="sm"
@@ -160,17 +165,6 @@ function EmailRow({
                         </NativeSelectOption>
                     ))}
                 </NativeSelect>
-            ) : null}
-            {showSingleTargetLabel ? (
-                <span className="text-xs text-muted-foreground">{email.targets[0].label}</span>
-            ) : null}
-            {email.targets.length ? null : (
-                <span className="text-xs text-muted-foreground">
-                    <Trans>Nothing in this order to send this email about yet.</Trans>
-                </span>
-            )}
-            {target && !target.eligible && target.reason ? (
-                <span className="text-xs text-muted-foreground">{target.reason}</span>
             ) : null}
         </div>
     );
