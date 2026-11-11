@@ -23,6 +23,8 @@ import {
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
     SOCKET_TIMEOUT_MS,
+    REACT_TYPES_VERSION,
+    REACT_VERSION,
     TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
@@ -605,6 +607,8 @@ export function getDependencies(
         `@vendure/asset-server-plugin${vendurePkgVersion}`,
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
+        // The email templates in src/email are .tsx files, so the project imports react itself.
+        `react@${REACT_VERSION}`,
         'dotenv',
         // Generated migrations import from `typeorm`. Only pnpm's strict node_modules fails to
         // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
@@ -614,6 +618,7 @@ export function getDependencies(
     ];
     const devDependencies = [
         `@vendure/cli${vendurePkgVersion}`,
+        `@types/react@${REACT_TYPES_VERSION}`,
         'ts-node',
         `typescript@${TYPESCRIPT_VERSION}`,
         `vite@${VITE_VERSION}`,

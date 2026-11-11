@@ -21,6 +21,15 @@ export const TYPESCRIPT_VERSION = '5.8.2';
  */
 export const TYPEORM_VERSION = '^0.3.21 || ^1.1.2';
 /**
+ * The scaffolded email templates in `src/email` are `.tsx` files, which compile to imports of
+ * `react/jsx-runtime`. pnpm's strict `node_modules` does not expose `react` (a dependency of
+ * `@vendure/email`) to the project, so the project declares it directly, with the same ranges as
+ * `@vendure/email` so that every package manager installs a single copy. Enforced by a test in
+ * helpers.spec.ts.
+ */
+export const REACT_VERSION = '^19.2.4';
+export const REACT_TYPES_VERSION = '^19.2.0';
+/**
  * Vite must be a direct dependency of the scaffolded project because the
  * generated vite.config.mts imports `vite` directly, and strict
  * (non-hoisting) package managers like pnpm don't expose transitive deps.
