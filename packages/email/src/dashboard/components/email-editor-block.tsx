@@ -17,8 +17,16 @@ import {
     useQuery,
     useQueryClient,
 } from '@vendure/dashboard';
-import { MonitorIcon, MousePointerClickIcon, RefreshCwIcon, RotateCcwIcon, SmartphoneIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    EyeIcon,
+    MonitorIcon,
+    MousePointerClickIcon,
+    PencilIcon,
+    RefreshCwIcon,
+    RotateCcwIcon,
+    SmartphoneIcon,
+} from 'lucide-react';
+import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
     EmailContentData,
@@ -43,7 +51,10 @@ const FIELD_SLOTS = new Set(['subject', 'preview']);
  * Edits the text of an email inside its preview. Click text in the email to change it. Variables
  * show as `{{ name }}`. The subject and the inbox preview text, which aren't in the body, have fields.
  */
-export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: EmailInfo; initialOrderCode?: string }>) {
+export function EmailEditorBlock({
+    email,
+    initialOrderCode,
+}: Readonly<{ email: EmailInfo; initialOrderCode?: string }>) {
     const { t } = useLingui();
     const queryClient = useQueryClient();
     const { activeChannel } = useChannel();
@@ -55,12 +66,18 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
     const [orderCode, setOrderCode] = useState(initialOrderCode ?? '');
     const [appliedOrderCode, setAppliedOrderCode] = useState(initialOrderCode ?? '');
     const [width, setWidth] = useState<keyof typeof WIDTHS>('desktop');
+    // Edit shows the text with {{ variables }} and lets you click it to change it. Preview shows the
+    // email as sent, with the variables filled in from an order, and is where you pick that order.
+    const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+    const editing = canEdit && mode === 'edit';
     const [values, setValues] = useState<Record<string, string>>({});
     // Bumped when the preview must re-render the body: after saving, discarding or resetting text.
     // Typing in the preview itself doesn't re-render it, so the cursor stays where it is.
     const [previewVersion, setPreviewVersion] = useState(0);
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const lastTarget = useRef<{ kind: 'field'; name: string; element: HTMLInputElement } | { kind: 'preview' }>();
+    const lastTarget = useRef<
+        { kind: 'field'; name: string; element: HTMLInputElement } | { kind: 'preview' }
+    >();
 
     const contentVariables = { type: email.type, languageCode, scope };
     const contentQuery = useQuery<{ emailContent: EmailContentData }>({
@@ -94,62 +111,33 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
         languageCode,
         channelCode: activeChannel?.code,
         sampleArgs: email.canSendFromOrder && appliedOrderCode ? { order: appliedOrderCode } : undefined,
-        editable: canEdit,
+        editable: editing,
     };
     const preview = useQuery<EmailPreviewResult>({
         queryKey: ['previewEmail', previewBase, previewVersion, debouncedFieldKey],
         queryFn: () =>
             api.query(previewEmailQuery, {
-                input: { ...previewBase, content: Object.keys(draftRef.current).length ? draftRef.current : undefined },
+                input: {
+                    ...previewBase,
+                    content: Object.keys(draftRef.current).length ? draftRef.current : undefined,
+                },
             }),
         retry: false,
         placeholderData: previous => previous,
     });
     const rendered = preview.data?.previewEmail;
-    const srcDoc = useMemo(
-        () => (rendered ? withInlineEditor(rendered.html, window.location.origin) : ''),
-        [rendered?.html],
-    );
-    // The private channel to the script in the preview. Replaced each time the preview reloads.
-    const portRef = useRef<MessagePort | undefined>(undefined);
-
-    useEffect(() => {
-        const onPortMessage = (event: MessageEvent) => {
-            const data = event.data as { source?: string; type?: string; slot?: string; text?: string };
-            if (data?.source !== INLINE_EDITOR_SOURCE || !data.slot) {
-                return;
-            }
-            if (data.type === 'focus') {
-                lastTarget.current = { kind: 'preview' };
-            }
-            if (data.type === 'input') {
-                const slot = data.slot;
-                setValues(v => ({ ...v, [slot]: normalize(data.text ?? '') }));
-            }
-        };
-        // Only the connect message arrives on the window. It must come from the preview frame, whose
-        // sandbox (no allow-same-origin) gives it the opaque origin "null".
-        const onMessage = (event: MessageEvent) => {
-            const data = event.data as { source?: string; type?: string };
-            if (
-                event.origin !== 'null' ||
-                event.source !== iframeRef.current?.contentWindow ||
-                data?.source !== INLINE_EDITOR_SOURCE ||
-                data.type !== 'connect' ||
-                !event.ports[0]
-            ) {
-                return;
-            }
-            portRef.current?.close();
-            portRef.current = event.ports[0];
-            portRef.current.onmessage = onPortMessage;
-        };
-        window.addEventListener('message', onMessage);
-        return () => {
-            window.removeEventListener('message', onMessage);
-            portRef.current?.close();
-        };
-    }, []);
+    const srcDoc = useMemo(() => {
+        if (!rendered) {
+            return '';
+        }
+        return editing ? withInlineEditor(rendered.html, window.location.origin) : rendered.html;
+    }, [rendered?.html, editing]);
+    const portRef = usePreviewEditorPort(iframeRef, {
+        onFocus: () => {
+            lastTarget.current = { kind: 'preview' };
+        },
+        onInput: (slot, text) => setValues(v => ({ ...v, [slot]: normalize(text) })),
+    });
 
     const save = useMutation({
         mutationFn: () =>
@@ -157,7 +145,9 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                 input: { type: email.type, languageCode, scope, content: draftRef.current },
             }),
         onSuccess: (result: any) => {
-            queryClient.setQueryData(['emailContent', contentVariables], { emailContent: result.updateEmailContent });
+            queryClient.setQueryData(['emailContent', contentVariables], {
+                emailContent: result.updateEmailContent,
+            });
             toast.success(t`Email text saved`);
         },
         onError: (err: any) => toast.error(err?.message ?? t`Could not save the email text`),
@@ -181,7 +171,10 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
             const current = values[target.name] ?? '';
             const start = target.element.selectionStart ?? current.length;
             const end = target.element.selectionEnd ?? current.length;
-            setValues(v => ({ ...v, [target.name]: current.slice(0, start) + placeholder + current.slice(end) }));
+            setValues(v => ({
+                ...v,
+                [target.name]: current.slice(0, start) + placeholder + current.slice(end),
+            }));
             requestAnimationFrame(() => {
                 target.element.focus();
                 target.element.setSelectionRange(start + placeholder.length, start + placeholder.length);
@@ -189,6 +182,12 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
         } else {
             portRef.current?.postMessage({ source: INLINE_EDITOR_SOURCE, type: 'insert-variable', name });
         }
+    };
+
+    const switchMode = (next: 'edit' | 'preview') => {
+        setMode(next);
+        // Re-render with the current draft: a cached render from before would drop what was typed.
+        setPreviewVersion(v => v + 1);
     };
 
     const knownVariables = new Set(content?.variables.map(v => v.name) ?? []);
@@ -201,7 +200,11 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                     <Label htmlFor="email-language">
                         <Trans>Language</Trans>
                     </Label>
-                    <NativeSelect id="email-language" value={languageCode} onChange={e => setLanguageCode(e.target.value)}>
+                    <NativeSelect
+                        id="email-language"
+                        value={languageCode}
+                        onChange={e => setLanguageCode(e.target.value)}
+                    >
                         {(languages.length ? languages : [languageCode]).map(code => (
                             <NativeSelectOption key={code} value={code}>
                                 {code}
@@ -224,64 +227,79 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                         </NativeSelectOption>
                     </NativeSelect>
                 </div>
-                {email.canSendFromOrder ? (
-                    <form
-                        className="flex flex-col gap-1.5"
-                        onSubmit={e => {
-                            e.preventDefault();
-                            setAppliedOrderCode(orderCode.trim());
-                        }}
-                    >
-                        <Label htmlFor="email-order">
-                            <Trans>Preview with order</Trans>
-                        </Label>
-                        <Input
-                            id="email-order"
-                            className="w-48"
-                            placeholder={t`Most recent`}
-                            value={orderCode}
-                            onChange={e => setOrderCode(e.target.value)}
-                            onBlur={() => setAppliedOrderCode(orderCode.trim())}
-                        />
-                    </form>
+                {canEdit ? (
+                    <ButtonGroup>
+                        <Button
+                            type="button"
+                            variant={mode === 'edit' ? 'default' : 'outline'}
+                            aria-pressed={mode === 'edit'}
+                            onClick={() => switchMode('edit')}
+                        >
+                            <PencilIcon />
+                            <Trans>Edit text</Trans>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={mode === 'preview' ? 'default' : 'outline'}
+                            aria-pressed={mode === 'preview'}
+                            onClick={() => switchMode('preview')}
+                        >
+                            <EyeIcon />
+                            <Trans>Preview</Trans>
+                        </Button>
+                    </ButtonGroup>
                 ) : null}
                 <div className="ml-auto flex gap-2">
-                    <Button type="button" variant="outline" disabled={!dirtyNames.length || save.isPending} onClick={resetToStored}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!dirtyNames.length || save.isPending}
+                        onClick={resetToStored}
+                    >
                         <Trans>Discard</Trans>
                     </Button>
-                    <Button type="button" disabled={!canEdit || !dirtyNames.length || save.isPending} onClick={() => save.mutate()}>
+                    <Button
+                        type="button"
+                        disabled={!canEdit || !dirtyNames.length || save.isPending}
+                        onClick={() => save.mutate()}
+                    >
                         {save.isPending ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
                     </Button>
                 </div>
             </div>
+            {editing
+                ? fields
+                      .filter(f => FIELD_SLOTS.has(f.name))
+                      .map(field => {
+                          const value = values[field.name] ?? '';
+                          return (
+                              <div key={field.name} className="flex flex-col gap-1.5">
+                                  <Label htmlFor={`email-field-${field.name}`}>{field.label}</Label>
+                                  <Input
+                                      id={`email-field-${field.name}`}
+                                      value={value}
+                                      placeholder={field.fallbackValue}
+                                      disabled={!canEdit}
+                                      onChange={e => setValues(v => ({ ...v, [field.name]: e.target.value }))}
+                                      onFocus={e => {
+                                          lastTarget.current = {
+                                              kind: 'field',
+                                              name: field.name,
+                                              element: e.target,
+                                          };
+                                      }}
+                                  />
+                                  {unknownVariables(value, knownVariables).map(name => (
+                                      <span key={name} className="text-xs text-destructive">
+                                          <Trans>{`{{ ${name} }}`} is not a variable of this email.</Trans>
+                                      </span>
+                                  ))}
+                              </div>
+                          );
+                      })
+                : null}
 
-            {fields
-                .filter(f => FIELD_SLOTS.has(f.name))
-                .map(field => {
-                    const value = values[field.name] ?? '';
-                    return (
-                        <div key={field.name} className="flex flex-col gap-1.5">
-                            <Label htmlFor={`email-field-${field.name}`}>{field.label}</Label>
-                            <Input
-                                id={`email-field-${field.name}`}
-                                value={value}
-                                placeholder={field.fallbackValue}
-                                disabled={!canEdit}
-                                onChange={e => setValues(v => ({ ...v, [field.name]: e.target.value }))}
-                                onFocus={e => {
-                                    lastTarget.current = { kind: 'field', name: field.name, element: e.target };
-                                }}
-                            />
-                            {unknownVariables(value, knownVariables).map(name => (
-                                <span key={name} className="text-xs text-destructive">
-                                    <Trans>{`{{ ${name} }}`} is not a variable of this email.</Trans>
-                                </span>
-                            ))}
-                        </div>
-                    );
-                })}
-
-            {content?.variables.length ? (
+            {editing && content?.variables.length ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">
                         <Trans>Insert variable:</Trans>
@@ -320,7 +338,7 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                                 setAppliedOrderCode('');
                             }}
                         >
-                            <Trans>Use the most recent matching order</Trans>
+                            <Trans>Use the latest matching order</Trans>
                         </Button>
                     </AlertDescription>
                 </Alert>
@@ -334,11 +352,36 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
             ) : null}
 
             <div className="flex flex-wrap items-center gap-3 text-sm">
-                {canEdit ? (
+                {editing ? (
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                         <MousePointerClickIcon className="h-4 w-4" />
-                        <Trans>Click any text in the email to change it.</Trans>
+                        <Trans>
+                            Click any text in the email to change it. Use Preview to see the variables filled
+                            in.
+                        </Trans>
                     </span>
+                ) : null}
+                {!editing && email.canSendFromOrder ? (
+                    <form
+                        className="flex items-center gap-2"
+                        onSubmit={e => {
+                            e.preventDefault();
+                            setAppliedOrderCode(orderCode.trim());
+                        }}
+                    >
+                        <Label htmlFor="email-order" className="text-muted-foreground">
+                            <Trans>Order</Trans>
+                        </Label>
+                        <Input
+                            id="email-order"
+                            className="h-8 w-56"
+                            placeholder={t`Latest matching order`}
+                            title={t`The order whose data fills in the preview. Nothing is sent.`}
+                            value={orderCode}
+                            onChange={e => setOrderCode(e.target.value)}
+                            onBlur={() => setAppliedOrderCode(orderCode.trim())}
+                        />
+                    </form>
                 ) : null}
                 <ButtonGroup className="ml-auto">
                     <Button
@@ -437,13 +480,73 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
     );
 }
 
+/**
+ * The private channel to the editor script in the preview iframe. The script sends one connect
+ * message with a port. It must come from the preview frame, whose sandbox (no allow-same-origin)
+ * gives it the opaque origin "null". All other messages go over the port. Replaced each time the
+ * preview reloads.
+ */
+function usePreviewEditorPort(
+    iframeRef: RefObject<HTMLIFrameElement | null>,
+    handlers: { onFocus: () => void; onInput: (slot: string, text: string) => void },
+) {
+    const portRef = useRef<MessagePort | undefined>(undefined);
+    const handlersRef = useRef(handlers);
+    handlersRef.current = handlers;
+
+    useEffect(() => {
+        const onPortMessage = (event: MessageEvent) => {
+            const data = event.data as { source?: string; type?: string; slot?: string; text?: string };
+            if (data?.source !== INLINE_EDITOR_SOURCE || !data.slot) {
+                return;
+            }
+            if (data.type === 'focus') {
+                handlersRef.current.onFocus();
+            } else if (data.type === 'input') {
+                handlersRef.current.onInput(data.slot, data.text ?? '');
+            }
+        };
+        const onMessage = (event: MessageEvent) => {
+            if (!isConnectMessage(event, iframeRef.current?.contentWindow)) {
+                return;
+            }
+            portRef.current?.close();
+            portRef.current = event.ports[0];
+            portRef.current.onmessage = onPortMessage;
+        };
+        window.addEventListener('message', onMessage);
+        return () => {
+            window.removeEventListener('message', onMessage);
+            portRef.current?.close();
+        };
+    }, []);
+
+    return portRef;
+}
+
+function isConnectMessage(event: MessageEvent, frame: Window | null | undefined): boolean {
+    const data = event.data as { source?: string; type?: string } | undefined;
+    return (
+        event.origin === 'null' &&
+        !!frame &&
+        event.source === frame &&
+        data?.source === INLINE_EDITOR_SOURCE &&
+        data.type === 'connect' &&
+        !!event.ports[0]
+    );
+}
+
 /** The preview shows multi-line text with the line breaks of the email; trailing ones are noise. */
 function normalize(text: string): string {
-    return text.replace(/ /g, ' ').replace(/\n+$/, '');
+    let end = text.length;
+    while (end > 0 && text[end - 1] === '\n') {
+        end--;
+    }
+    return text.slice(0, end).split('\u00a0').join(' ');
 }
 
 function unknownVariables(text: string, known: Set<string>): string[] {
-    const names = [...text.matchAll(/\{\{\{?\s*([^}\s]+)\s*\}?\}\}/g)].map(match => match[1]);
+    const names = [...text.matchAll(/\{\{\{?\s*([^{}\s]+)\s*\}?\}\}/g)].map(match => match[1]);
     return [...new Set(names)].filter(name => !known.has(name));
 }
 
