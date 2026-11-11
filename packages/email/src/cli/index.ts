@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -84,7 +85,8 @@ export const emailCliCommands: Command[] = [
             {
                 long: '-p, --preview',
                 description:
-                    'Also print a URL that serves the rendered email from live data. Screenshot it at 600px and 375px wide to check the layout',
+                    'Print a URL that serves the rendered email from live data, and open it in the browser when run ' +
+                    'in a terminal. Screenshot it at 600px and 375px wide to check the layout',
             },
         ],
         action: async (...args) => {
@@ -128,6 +130,10 @@ export const emailCliCommands: Command[] = [
                         ...(previewUrl ? [`Preview:  ${previewUrl}`] : []),
                     ].join('\n'),
                 );
+                // Agents get JSON and use the URL themselves; a person in a terminal wants to see it.
+                if (previewUrl && !wantsJson(options)) {
+                    openInBrowser(previewUrl);
+                }
                 return 0;
             });
         },
@@ -359,7 +365,7 @@ function storedContentLine(origins: Record<string, string> | undefined): string[
     }
     // Text stored in the Dashboard beats the template's default text, so editing the .tsx default has no effect on these.
     const slots = stored.map(([name, origin]) => `${name} (${origin})`).join(', ');
-    return [`Text:     stored in the Dashboard for ${slots}`];
+    return [`Edited:   in the Dashboard: ${slots}`];
 }
 
 function mailboxUrl(options: Options) {
@@ -470,6 +476,25 @@ function splitList(value: string | undefined) {
               .map(v => v.trim())
               .filter(Boolean)
         : undefined;
+}
+
+function openInBrowser(url: string) {
+    let command = 'xdg-open';
+    let args = [url];
+    if (process.platform === 'darwin') {
+        command = 'open';
+    } else if (process.platform === 'win32') {
+        command = 'cmd';
+        args = ['/c', 'start', '""', url];
+    }
+    try {
+        const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+        // No browser to open, e.g. over SSH: the URL is printed above.
+        child.on('error', () => undefined);
+        child.unref();
+    } catch {
+        // Same as above.
+    }
 }
 
 function wantsJson(options: Options) {

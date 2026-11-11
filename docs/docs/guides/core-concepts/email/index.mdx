@@ -489,7 +489,7 @@ http://localhost:3000/mailbox/preview/order-confirmation/html?language=de&order=
 - Any other parameter is passed to the email's `sample` function, for example `order=CODE`.
 
 Set the browser width to 600px and 375px to check both layouts. `vendure email render <type> --preview` prints this
-URL.
+URL, and opens it in the browser when run in a terminal.
 
 The preview re-renders when you reload the page, so you can edit a template and reload to see the change.
 
@@ -503,7 +503,7 @@ They use your real config and database, so you don't need to trigger the real ev
 npx vendure email list
 
 # Render an email without sending it. Writes the HTML and text to files,
-# and with --preview prints the URL of the preview page.
+# and with --preview prints the URL of the preview page and opens it in the browser.
 npx vendure email render order-confirmation --preview
 npx vendure email render order-confirmation --language de --arg order=XN4P3TQ8
 
