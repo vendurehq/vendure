@@ -26,13 +26,28 @@ export function requireFromProject<T = unknown>(packageName: string, cwd?: strin
     try {
         return requireFromProjectRoot(packageName) as T;
     } catch (e) {
-        throw new Error(
-            `Could not load "${packageName}" from ${projectRoot}.\n` +
-                'This command uses the version installed in your project, not the one bundled with the CLI. ' +
-                `Check that "${packageName}" is installed there, and that dependencies have been installed.\n` +
-                `Cause: ${e instanceof Error ? e.message : String(e)}`,
-        );
+        throw projectLoadError(packageName, projectRoot, e);
     }
+}
+
+export function requireFromProjectCore<T = unknown>(packageName: string, cwd?: string): T {
+    const projectRoot = findVendureProjectRoot(cwd) ?? path.resolve(cwd ?? process.cwd());
+    const requireFromProjectRoot = createRequire(path.join(projectRoot, 'package.json'));
+    try {
+        const requireFromCore = createRequire(requireFromProjectRoot.resolve('@vendure/core/package.json'));
+        return requireFromCore(packageName) as T;
+    } catch (e) {
+        throw projectLoadError(packageName, projectRoot, e);
+    }
+}
+
+function projectLoadError(packageName: string, projectRoot: string, cause: unknown): Error {
+    return new Error(
+        `Could not load "${packageName}" from ${projectRoot}.\n` +
+            'This command uses the version installed in your project, not the one bundled with the CLI. ' +
+            `Check that "${packageName}" is installed there, and that dependencies have been installed.\n` +
+            `Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
 }
 
 /**
