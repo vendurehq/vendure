@@ -1038,10 +1038,10 @@ for (const productCount of [0, 1, 2]) {
     });
 }
 
-// #3777 — per-channel enabled: the "In <channel>" control next to the global Enabled switch
+// #3777 — per-channel enabled: the Availability block, next to the global Enabled switch
 test.describe('per-channel enabled on the product detail page', () => {
     test.describe.configure({ mode: 'serial' });
-    // The control is only shown when there is more than one channel
+    // The Availability block is only shown when there is more than one channel
     const channelCode = `e2e-enabled-product-${Date.now()}`;
     let channelId = '';
 
@@ -1061,10 +1061,11 @@ test.describe('per-channel enabled on the product detail page', () => {
         await page.close();
     });
 
-    test('sets and clears the value in the active channel, leaving the global value', async ({ page }) => {
+    test('hides and shows the product in the active channel, leaving the global value', async ({ page }) => {
         await navigateToLaptopProduct(page);
         const productId = page.url().split('/products/')[1].split(/[/?#]/)[0];
-        const select = page.getByTestId('product-enabled-in-channel-select').getByRole('combobox');
+        const availability = page.getByTestId('channel-availability');
+        const visibleSwitch = availability.getByRole('switch', { name: 'Visible in this channel' });
         const client = new VendureAdminClient(page);
         await client.login();
         const readValues = async () =>
@@ -1073,10 +1074,8 @@ test.describe('per-channel enabled on the product detail page', () => {
                     id: productId,
                 })
             ).product;
-        const choose = async (label: string) => {
-            await select.click();
-            await page.getByRole('option', { name: label, exact: true }).click();
-            await Promise.all([
+        const save = () =>
+            Promise.all([
                 page.waitForResponse(
                     response =>
                         response.url().includes('/admin-api') &&
@@ -1085,19 +1084,24 @@ test.describe('per-channel enabled on the product detail page', () => {
                 ),
                 page.getByRole('button', { name: 'Update' }).click(),
             ]);
-        };
 
-        await expect(select).toHaveText(/^Not set/);
+        await expect(visibleSwitch).toBeChecked();
         try {
-            await choose('Disabled');
+            await visibleSwitch.click();
+            await expect(visibleSwitch).not.toBeChecked();
+            await save();
             expect(await readValues()).toEqual({ enabled: true, enabledInChannel: false });
 
             await page.reload();
-            await expect(
-                page.getByTestId('product-enabled-in-channel-select').getByRole('combobox'),
-            ).toHaveText(/^Disabled/);
+            await expect(visibleSwitch).not.toBeChecked();
 
-            await choose('Not set');
+            // The global switch is the master switch: when it is off, the help text says so
+            await page.getByTestId('product-enabled-switch').getByRole('switch').click();
+            await expect(availability).toContainText('Disabled in every channel');
+            await page.getByTestId('product-enabled-switch').getByRole('switch').click();
+
+            await visibleSwitch.click();
+            await save();
             expect(await readValues()).toEqual({ enabled: true, enabledInChannel: null });
         } finally {
             await client.gql(

@@ -6,7 +6,7 @@ import {
 } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
-import { EnabledInChannelSelect } from '@/vdb/components/shared/enabled-in-channel.js';
+import { ChannelAvailabilityControl } from '@/vdb/components/shared/enabled-in-channel.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -34,7 +34,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
@@ -187,6 +187,8 @@ function ProductDetailPage() {
         },
     });
 
+    const enabled = useWatch({ control: form.control, name: 'enabled' });
+
     // The empty-string fallback only ever applies before `entity` has loaded;
     // `removeAllOptionGroups` is reachable exclusively from the onBack handler below,
     // which is rendered only once `entity` exists, so the real id is always used.
@@ -231,7 +233,7 @@ function ProductDetailPage() {
                                     className="flex items-center gap-2"
                                     title={
                                         channels.length > 1
-                                            ? t`When enabled, a product is available in the shop of every channel where it is not disabled`
+                                            ? t`When enabled, a product is available in the shop of every channel where it is not hidden`
                                             : t`When enabled, a product is available in the shop`
                                     }
                                     data-testid="product-enabled-switch"
@@ -250,17 +252,6 @@ function ProductDetailPage() {
                                 </div>
                             )}
                         />
-                        <Controller
-                            control={form.control}
-                            name="enabledInChannel"
-                            render={({ field }) => (
-                                <EnabledInChannelSelect
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    testId="product-enabled-in-channel-select"
-                                />
-                            )}
-                        />
                         <Button
                             type="submit"
                             disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
@@ -271,6 +262,25 @@ function ProductDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                {channels.length > 1 && (
+                    <PageBlock
+                        column="side"
+                        blockId="channel-availability"
+                        title={<Trans>Availability</Trans>}
+                    >
+                        <Controller
+                            control={form.control}
+                            name="enabledInChannel"
+                            render={({ field }) => (
+                                <ChannelAvailabilityControl
+                                    enabled={enabled}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                />
+                            )}
+                        />
+                    </PageBlock>
+                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper

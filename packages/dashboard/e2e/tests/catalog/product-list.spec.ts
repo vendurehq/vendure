@@ -501,10 +501,11 @@ test.describe('Product List', () => {
     });
 });
 
-// #3777 — per-channel enabled: list column, filter, and the option in the assign-to-channel dialog
+// #3777 — per-channel enabled: the Status column and filter, and the visibility option in the
+// assign-to-channel dialog
 test.describe('per-channel enabled in the product list', () => {
     test.describe.configure({ mode: 'serial' });
-    // The column and the dialog option are only shown when there is more than one channel
+    // The Status column, the filter and the dialog option are only shown with more than one channel
     const channelCode = `e2e-enabled-list-${Date.now()}`;
     let channelId = '';
     let keyboardId = '';
@@ -521,7 +522,7 @@ test.describe('per-channel enabled in the product list', () => {
             `query { products(options: { filter: { name: { eq: "Clacky Keyboard" } } }) { items { id } } }`,
         );
         keyboardId = products.items[0].id;
-        // Disabled in the default channel only
+        // Hidden in the default channel only
         await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
             input: { id: keyboardId, enabledInChannel: false },
         });
@@ -539,44 +540,50 @@ test.describe('per-channel enabled in the product list', () => {
         await page.close();
     });
 
-    test('shows the per-channel value in its own column', async ({ page }) => {
+    test('shows the status in this channel in the Status column', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
         await lp.expectLoaded();
-        await expect(page.getByRole('columnheader', { name: 'Enabled in this channel' })).toBeVisible();
+        // One column combines the global and the per-channel value
+        await expect(page.getByRole('columnheader', { name: 'Status', exact: true })).toBeVisible();
+        await expect(page.getByRole('columnheader', { name: /in this channel/i })).toHaveCount(0);
         await lp.search('Clacky Keyboard');
         const keyboardRow = lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first();
-        await expect(keyboardRow).toContainText('Disabled');
+        await expect(keyboardRow).toContainText('Hidden');
     });
 
-    test('filters on the per-channel value', async ({ page }) => {
+    test('filters on the status in this channel', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
         await lp.expectLoaded();
         await lp.openAddFilterMenu();
-        await page.getByRole('menuitem', { name: /enabled ?in ?(this )?channel/i }).click();
-        const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible();
-        // Second combobox is the value select (the first is the operator select)
-        await dialog.getByRole('combobox').nth(1).click();
-        await page.getByRole('option', { name: 'False', exact: true }).click();
-        const filteredRequest = page.waitForRequest(
-            req =>
+        await page.getByRole('menuitem', { name: 'Status', exact: true }).click();
+        const filteredRequest = page.waitForRequest(req => {
+            const body = (req.postData() ?? '').replace(/\s/g, '');
+            return (
                 req.url().includes('/admin-api') &&
-                (req.postData() ?? '').replace(/\s/g, '').includes('"enabledInChannel":{"eq":false}'),
-        );
-        await dialog.getByRole('button', { name: /Apply filter/i }).click();
+                body.includes('{"enabled":{"eq":true}},{"enabledInChannel":{"eq":false}}')
+            );
+        });
+        await page.getByRole('option', { name: 'Hidden in this channel' }).click();
         await filteredRequest;
-        // Other suites running in parallel may disable further products in this channel, so
-        // check that the keyboard is listed and that every listed product is disabled here
-        await expect(lp.getRows().filter({ hasText: 'Clacky Keyboard' })).toHaveCount(1);
-        for (const row of await lp.getRows().all()) {
-            await expect(row).toContainText('Disabled');
+        await page.keyboard.press('Escape');
+        try {
+            // Other suites running in parallel may hide further products in this channel, so
+            // check that the keyboard is listed and that every listed product is hidden here
+            await expect(lp.getRows().filter({ hasText: 'Clacky Keyboard' })).toHaveCount(1);
+            for (const row of await lp.getRows().all()) {
+                await expect(row).toContainText('Hidden');
+            }
+            await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+        } finally {
+            // Column filters are saved in the user settings, which other tests share
+            await page.getByText('Clear all', { exact: true }).click();
+            await expect(page.getByText('Clear all', { exact: true })).toHaveCount(0);
         }
-        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
     });
 
-    test('assigns products to a channel with an explicit per-channel value', async ({ page }) => {
+    test('assigns products to a channel, hidden there', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
         await lp.expectLoaded();
@@ -590,11 +597,10 @@ test.describe('per-channel enabled in the product list', () => {
         await dialog.getByRole('combobox').first().click();
         await page.getByRole('option', { name: channelCode }).click();
         await page.keyboard.press('Escape');
-        await expect(dialog.getByTestId('assign-enabled-in-channel').getByRole('combobox')).toHaveText(
-            /^Same as this channel/,
-        );
-        await dialog.getByTestId('assign-enabled-in-channel').getByRole('combobox').click();
-        await page.getByRole('option', { name: 'Disabled', exact: true }).click();
+        const visibility = dialog.getByTestId('assign-enabled-in-channel');
+        // By default the products keep the visibility they have in the active channel
+        await expect(visibility.getByRole('radio', { name: 'Same as in Default channel' })).toBeChecked();
+        await visibility.getByRole('radio', { name: 'Hidden', exact: true }).click();
         await dialog.getByRole('button', { name: 'Assign', exact: true }).click();
         await expect(
             page

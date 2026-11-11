@@ -2,7 +2,7 @@ import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
-import { EnabledInChannelSelect } from '@/vdb/components/shared/enabled-in-channel.js';
+import { ChannelAvailabilityControl } from '@/vdb/components/shared/enabled-in-channel.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -37,7 +37,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Settings2, Trash } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -94,7 +94,7 @@ function ProductVariantDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
-    const { activeChannel } = useChannel();
+    const { activeChannel, channels } = useChannel();
     const { hasPermissions } = usePermissions();
     // Inline option creation calls createProductOption, which requires create permissions
     // server-side — gate the create-new path so it fails with a clear message, not a toast.
@@ -194,6 +194,7 @@ function ProductVariantDetailPage() {
             );
         },
     });
+    const enabled = useWatch({ control: form.control, name: 'enabled' });
 
     useEffect(() => {
         originalStockLevelsRef.current = entity?.stockLevels.map(stockLevel => ({
@@ -503,7 +504,11 @@ function ProductVariantDetailPage() {
                             render={({ field }) => (
                                 <div
                                     className="flex items-center gap-2"
-                                    title={t`When enabled, this variant is available in the shop of every channel where it is not disabled`}
+                                    title={
+                                        channels.length > 1
+                                            ? t`When enabled, this variant is available in the shop of every channel where it is not hidden`
+                                            : t`When enabled, this variant is available in the shop`
+                                    }
                                     data-testid="variant-enabled-switch"
                                 >
                                     <label
@@ -518,17 +523,6 @@ function ProductVariantDetailPage() {
                                         onCheckedChange={field.onChange}
                                     />
                                 </div>
-                            )}
-                        />
-                        <Controller
-                            control={form.control}
-                            name="enabledInChannel"
-                            render={({ field }) => (
-                                <EnabledInChannelSelect
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    testId="variant-enabled-in-channel-select"
-                                />
                             )}
                         />
                         <Button
@@ -549,6 +543,25 @@ function ProductVariantDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                {channels.length > 1 && (
+                    <PageBlock
+                        column="side"
+                        blockId="channel-availability"
+                        title={<Trans>Availability</Trans>}
+                    >
+                        <Controller
+                            control={form.control}
+                            name="enabledInChannel"
+                            render={({ field }) => (
+                                <ChannelAvailabilityControl
+                                    enabled={enabled}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                />
+                            )}
+                        />
+                    </PageBlock>
+                )}
                 {entity && optionGroups.length > 0 && (
                     <PageBlock column="side" blockId="options" title={<Trans>Options</Trans>}>
                         <div className="space-y-3">

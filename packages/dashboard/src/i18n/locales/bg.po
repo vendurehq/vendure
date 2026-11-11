@@ -325,6 +325,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Добавяне на плащане"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Expand"
 msgstr "Разгъване"
@@ -844,8 +848,8 @@ msgid "List view"
 msgstr "Изглед списък"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-#~ msgid "When enabled, this variant is available in the shop"
-#~ msgstr ""
+msgid "When enabled, this variant is available in the shop"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -1109,6 +1113,10 @@ msgstr "Редът за поръчка е премахнат"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Same as in <0/>"
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Съдържание:"
@@ -1148,6 +1156,10 @@ msgstr "Клиент"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata returned by the payment handler."
 msgstr "Метаданни, върнати от обработчика на плащания."
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hide it in {channel} without affecting other channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1990,6 +2002,11 @@ msgstr "Създаден"
 #~ msgid "System"
 #~ msgstr "Система"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Адресите се зареждат..."
@@ -2147,6 +2164,10 @@ msgstr "Няма направени модификации"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Enabled, but hidden in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
 msgstr "Зона за доставка по подразбиране"
@@ -2205,7 +2226,6 @@ msgstr "Групи клиенти"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Disabled"
@@ -3210,6 +3230,7 @@ msgstr "Управлявайте глобалните изгледи"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "Канал по подразбиране"
 
@@ -3399,6 +3420,10 @@ msgstr "Изберете роля"
 msgid "Order cancelled"
 msgstr "Поръчката е отменена"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Available in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Discount"
 msgstr "Отстъпка"
@@ -3432,11 +3457,6 @@ msgstr "Неуспешно актуализиране на продукта"
 #: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx
 msgid "Add collection filter"
 msgstr "Добави филтър за колекция"
-
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-msgid "Enabled in this channel"
-msgstr ""
 
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3478,6 +3498,10 @@ msgstr "Телефонен номер"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "New customer"
 msgstr "Нов клиент"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Visible in this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -4429,6 +4453,10 @@ msgstr "Нов продукт"
 msgid "Failed for: {failedCodes}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Manage Tags"
 msgstr "Управление на етикети"
@@ -4475,10 +4503,6 @@ msgstr "Паролите не съвпадат"
 msgid "Pick a date and time"
 msgstr "Изберете дата и час"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-msgid "Enabled in the new channels"
-msgstr ""
-
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
 msgstr ""
@@ -4518,6 +4542,11 @@ msgstr "Не работи"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
 msgstr "Присвоен"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "Availability"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -4684,9 +4713,6 @@ msgstr "Не може да се премахне от активния кана�
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Not set"
 msgstr "Не е зададено"
 
@@ -4783,10 +4809,6 @@ msgstr "Елементи, включени в това изпълнение."
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "No widgets available"
 #~ msgstr "Няма налични приспособления"
-
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-msgid "Same as this channel"
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -4909,6 +4931,10 @@ msgstr "Неуспешно възстановяване на сумата"
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Stock level"
 msgstr "Ниво на склад"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Visibility in the new channels"
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Add item"
@@ -5085,6 +5111,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Password updated"
 msgstr "Паролата е актуализирана"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Visible"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "does not contain"
@@ -5745,10 +5775,6 @@ msgstr "Кодът на купона е премахнат от поръчкат
 msgid "Never"
 msgstr "Никога"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx
-msgid "When enabled, a product is available in the shop of every channel where it is not disabled"
-msgstr ""
-
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "Неуспешно актуализиране на стойността на аспекта"
@@ -6065,7 +6091,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Enabled"
@@ -6620,6 +6645,9 @@ msgstr "Език по подразбиране"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
+#: src/app/routes/_authenticated/_products/products.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Status"
 msgstr "Статус"
 
@@ -6760,10 +6788,6 @@ msgstr "Изберете {0}s"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "New facet values to add:"
 msgstr "Нови стойности на аспекти за добавяне:"
-
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant is available in the shop of every channel where it is not disabled"
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -7139,6 +7163,10 @@ msgstr "Не се изисква плащане или възстановява�
 msgid "All possible variant combinations already exist."
 msgstr "Всички възможни комбинации от варианти вече съществуват."
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hidden in this channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Сигурни ли сте, че искате да откажете {cancellableCount} задача? Това действие не може да бъде отменено.} other {Сигурни ли сте, че искате да откажете {cancellableCount} задачи? Това действие не може да бъде отменено.}}"
@@ -7244,6 +7272,10 @@ msgstr "Калкулатор"
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Неуспешно премахване на група опции от канал: {message}"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Disabled in every channel. This setting applies once it is enabled."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -7407,6 +7439,10 @@ msgstr "Редове на страница"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Disabled in every channel"
+msgstr ""
+
 #~ msgid "Yesterday"
 #~ msgstr "Вчера"
 
@@ -7538,10 +7574,6 @@ msgstr "Добавени кодове на купони"
 msgctxt "active language"
 msgid "Active"
 msgstr "Активен"
-
-#: src/lib/components/shared/enabled-in-channel.tsx
-msgid "Enables or disables it in this channel only. When not set, the global setting applies."
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
@@ -7774,10 +7806,6 @@ msgstr "Успешно актуализирани глобални настро�
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
 msgstr "API key е актуализиран успешно"
-
-#: src/lib/components/shared/enabled-in-channel.tsx
-msgid "In <0/>"
-msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"

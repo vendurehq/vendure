@@ -1,6 +1,10 @@
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { EnabledInChannelBadge } from '@/vdb/components/shared/enabled-in-channel.js';
+import {
+    CHANNEL_AVAILABILITY_FILTER_ID,
+    ChannelAvailabilityBadge,
+    useChannelAvailabilityFilter,
+} from '@/vdb/components/shared/enabled-in-channel.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -33,6 +37,7 @@ export const Route = createFileRoute('/_authenticated/_products/products')({
 function ProductListPage() {
     const { t } = useLingui();
     const { channels } = useChannel();
+    const channelAvailability = useChannelAvailabilityFilter();
     const reindexMutation = useMutation({
         mutationFn: () => api.mutate(reindexDocument, {}),
         onSuccess: () => {
@@ -73,10 +78,22 @@ function ProductListPage() {
                 description: {
                     cell: RichTextDescriptionCell,
                 },
-                enabledInChannel: {
-                    header: () => <Trans>Enabled in this channel</Trans>,
-                    cell: ({ row }) => <EnabledInChannelBadge value={row.original.enabledInChannel} />,
-                },
+                // With several channels, the Enabled column shows the status in the active channel,
+                // which takes the per-channel value into account
+                enabled:
+                    channels.length > 1
+                        ? {
+                              header: () => <Trans>Status</Trans>,
+                              meta: { dependencies: ['enabledInChannel'] },
+                              cell: ({ row }) => (
+                                  <ChannelAvailabilityBadge
+                                      enabled={row.original.enabled}
+                                      enabledInChannel={row.original.enabledInChannel}
+                                  />
+                              ),
+                          }
+                        : {},
+                enabledInChannel: { enableHiding: false, enableColumnFilter: false },
             }}
             searchPlaceholder={t`Search products...`}
             onSearchTermChange={searchTerm => {
@@ -98,8 +115,11 @@ function ProductListPage() {
                     enableHiding: false,
                     enableColumnFilter: false,
                 },
+                [CHANNEL_AVAILABILITY_FILTER_ID]: channelAvailability.filterColumn,
             }}
+            transformVariables={channelAvailability.transformVariables}
             facetedFilters={{
+                [CHANNEL_AVAILABILITY_FILTER_ID]: channelAvailability.facetedFilter,
                 facetValueId: {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,
@@ -111,7 +131,6 @@ function ProductListPage() {
                 featuredAsset: true,
                 slug: true,
                 enabled: true,
-                enabledInChannel: channels.length > 1,
             }}
             route={Route}
             emptyStateAction={

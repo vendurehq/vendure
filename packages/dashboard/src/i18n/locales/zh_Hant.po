@@ -325,6 +325,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "新增付款"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Expand"
 msgstr "展開"
@@ -838,8 +842,8 @@ msgid "List view"
 msgstr "清單檢視"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-#~ msgid "When enabled, this variant is available in the shop"
-#~ msgstr ""
+msgid "When enabled, this variant is available in the shop"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -1103,6 +1107,10 @@ msgstr "訂單行已移除"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Same as in <0/>"
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "內容:"
@@ -1142,6 +1150,10 @@ msgstr "客戶"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata returned by the payment handler."
 msgstr "付款處理程式傳回的中繼資料。"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hide it in {channel} without affecting other channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1978,6 +1990,11 @@ msgstr "地址已成功更新"
 msgid "Created"
 msgstr "已建立"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "正在載入地址..."
@@ -2135,6 +2152,10 @@ msgstr "未進行修改"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Enabled, but hidden in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
 msgstr "預設配送區域"
@@ -2193,7 +2214,6 @@ msgstr "客戶群組"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Disabled"
@@ -3192,6 +3212,7 @@ msgstr "管理全域檢視"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "預設通路"
 
@@ -3382,6 +3403,10 @@ msgstr "選取一個角色"
 msgid "Order cancelled"
 msgstr "訂單已取消"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Available in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Discount"
 msgstr "折扣"
@@ -3415,11 +3440,6 @@ msgstr "更新商品失敗"
 #: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx
 msgid "Add collection filter"
 msgstr "新增集合篩選器"
-
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-msgid "Enabled in this channel"
-msgstr ""
 
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3461,6 +3481,10 @@ msgstr "電話號碼"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "New customer"
 msgstr "新增客戶"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Visible in this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -4409,6 +4433,10 @@ msgstr "新增商品"
 msgid "Failed for: {failedCodes}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Manage Tags"
 msgstr "管理標籤"
@@ -4455,10 +4483,6 @@ msgstr "密碼不相符"
 msgid "Pick a date and time"
 msgstr "選擇日期與時間"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-msgid "Enabled in the new channels"
-msgstr ""
-
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
 msgstr ""
@@ -4498,6 +4522,11 @@ msgstr "未執行"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
 msgstr "已指派"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "Availability"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -4664,9 +4693,6 @@ msgstr "無法從活動頻道中移除"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Not set"
 msgstr "未設定"
 
@@ -4763,10 +4789,6 @@ msgstr "此履行中包含的項目。"
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "No widgets available"
 #~ msgstr "無可用小工具"
-
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-msgid "Same as this channel"
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -4889,6 +4911,10 @@ msgstr "完成退款失敗"
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Stock level"
 msgstr "庫存水準"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Visibility in the new channels"
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Add item"
@@ -5065,6 +5091,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Password updated"
 msgstr "密碼已更新"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Visible"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "does not contain"
@@ -5719,10 +5749,6 @@ msgstr "優惠券代碼已從訂單中移除"
 msgid "Never"
 msgstr "永不"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx
-msgid "When enabled, a product is available in the shop of every channel where it is not disabled"
-msgstr ""
-
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "更新屬性值失敗"
@@ -6036,7 +6062,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Enabled"
@@ -6591,6 +6616,9 @@ msgstr "預設語言"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
+#: src/app/routes/_authenticated/_products/products.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Status"
 msgstr "狀態"
 
@@ -6728,10 +6756,6 @@ msgstr "選取 {0}"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "New facet values to add:"
 msgstr "要新增的屬性值："
-
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant is available in the shop of every channel where it is not disabled"
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -7107,6 +7131,10 @@ msgstr "這些變更不需要付款或退款。"
 msgid "All possible variant combinations already exist."
 msgstr "所有可能的變體組合皆已存在。"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hidden in this channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {確定要取消 {cancellableCount} 個任務嗎？此操作無法復原。} other {確定要取消 {cancellableCount} 個任務嗎？此操作無法復原。}}"
@@ -7212,6 +7240,10 @@ msgstr "計算機"
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
 msgstr "從頻道中移除選項群組失敗: {message}"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Disabled in every channel. This setting applies once it is enabled."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -7375,6 +7407,10 @@ msgstr "每頁列數"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Disabled in every channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "正在載入集合..."
@@ -7501,10 +7537,6 @@ msgstr "已新增優惠券代碼"
 msgctxt "active language"
 msgid "Active"
 msgstr "活躍"
-
-#: src/lib/components/shared/enabled-in-channel.tsx
-msgid "Enables or disables it in this channel only. When not set, the global setting applies."
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
@@ -7737,10 +7769,6 @@ msgstr "已成功更新全域設定"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
 msgstr "API Key 更新成功"
-
-#: src/lib/components/shared/enabled-in-channel.tsx
-msgid "In <0/>"
-msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"

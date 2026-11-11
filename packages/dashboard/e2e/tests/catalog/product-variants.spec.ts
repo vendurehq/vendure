@@ -1459,10 +1459,10 @@ test.describe('two options in a group share a display name', () => {
     });
 });
 
-// #3777 — per-channel enabled: the "In <channel>" control on the variant detail page
+// #3777 — per-channel enabled: the Availability block on the variant detail page
 test.describe('per-channel enabled on the variant detail page', () => {
     test.describe.configure({ mode: 'serial' });
-    // The control is only shown when there is more than one channel
+    // The Availability block is only shown when there is more than one channel
     const channelCode = `e2e-enabled-variant-${Date.now()}`;
     let channelId = '';
     let variantId = '';
@@ -1491,12 +1491,13 @@ test.describe('per-channel enabled on the variant detail page', () => {
         await page.close();
     });
 
-    test('sets the value in the active channel, leaving the global value', async ({ page }) => {
+    test('hides the variant in the active channel, leaving the global value', async ({ page }) => {
         await page.goto(`/product-variants/${variantId}`);
-        const select = page.getByTestId('variant-enabled-in-channel-select').getByRole('combobox');
-        await expect(select).toHaveText(/^Not set/);
-        await select.click();
-        await page.getByRole('option', { name: 'Disabled', exact: true }).click();
+        const availability = page.getByTestId('channel-availability');
+        const visibleSwitch = availability.getByRole('switch', { name: 'Visible in this channel' });
+        await expect(visibleSwitch).toBeChecked();
+        await visibleSwitch.click();
+        await expect(visibleSwitch).not.toBeChecked();
         await Promise.all([
             page.waitForResponse(
                 response =>
@@ -1515,8 +1516,6 @@ test.describe('per-channel enabled on the variant detail page', () => {
         );
         expect(productVariant).toEqual({ enabled: true, enabledInChannel: false });
         await page.reload();
-        await expect(page.getByTestId('variant-enabled-in-channel-select').getByRole('combobox')).toHaveText(
-            /^Disabled/,
-        );
+        await expect(visibleSwitch).not.toBeChecked();
     });
 });

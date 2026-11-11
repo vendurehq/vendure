@@ -325,6 +325,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Betaling toevoegen"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Expand"
 msgstr "Uitklappen"
@@ -838,8 +842,8 @@ msgid "List view"
 msgstr "Lijstweergave"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-#~ msgid "When enabled, this variant is available in the shop"
-#~ msgstr ""
+msgid "When enabled, this variant is available in the shop"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -1103,6 +1107,10 @@ msgstr "Bestelregel verwijderd"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Same as in <0/>"
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Inhoud:"
@@ -1146,6 +1154,10 @@ msgstr "Klant"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata returned by the payment handler."
 msgstr "Metadata geretourneerd door de betalingshandler."
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hide it in {channel} without affecting other channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1982,6 +1994,11 @@ msgstr "Adres succesvol bijgewerkt"
 msgid "Created"
 msgstr "Aangemaakt"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Adressen laden..."
@@ -2139,6 +2156,10 @@ msgstr "Geen wijzigingen aangebracht"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Enabled, but hidden in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
 msgstr "Standaard verzendzone"
@@ -2197,7 +2218,6 @@ msgstr "Klantengroepen"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Disabled"
@@ -3190,6 +3210,7 @@ msgstr "Globale weergaven beheren"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-code-label.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "Standaardkanaal"
 
@@ -3376,6 +3397,10 @@ msgstr "Selecteer een rol"
 msgid "Order cancelled"
 msgstr "Bestelling geannuleerd"
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Available in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Discount"
 msgstr "Korting"
@@ -3409,11 +3434,6 @@ msgstr "Product bijwerken mislukt"
 #: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx
 msgid "Add collection filter"
 msgstr "Collectiefilter toevoegen"
-
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-msgid "Enabled in this channel"
-msgstr ""
 
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3455,6 +3475,10 @@ msgstr "Telefoonnummer"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "New customer"
 msgstr "Nieuwe klant"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Visible in this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -4403,6 +4427,10 @@ msgstr "Nieuw product"
 msgid "Failed for: {failedCodes}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Manage Tags"
 msgstr "Tags beheren"
@@ -4449,10 +4477,6 @@ msgstr "Wachtwoorden komen niet overeen"
 msgid "Pick a date and time"
 msgstr "Kies een datum en tijd"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-msgid "Enabled in the new channels"
-msgstr ""
-
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
 msgstr ""
@@ -4489,6 +4513,11 @@ msgstr "Niet actief"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
 msgstr "Toegewezen"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "Availability"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -4655,9 +4684,6 @@ msgstr "Kan niet uit actief kanaal verwijderen"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Not set"
 msgstr "Niet ingesteld"
 
@@ -4754,10 +4780,6 @@ msgstr "Artikelen die in deze afhandeling zijn opgenomen."
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "No widgets available"
 #~ msgstr "Geen widgets beschikbaar"
-
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-msgid "Same as this channel"
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -4880,6 +4902,10 @@ msgstr "Terugbetaling afhandelen mislukt"
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Stock level"
 msgstr "Voorraadniveau"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Visibility in the new channels"
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Add item"
@@ -5056,6 +5082,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Password updated"
 msgstr "Wachtwoord bijgewerkt"
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx
+msgid "Visible"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "does not contain"
@@ -5710,10 +5740,6 @@ msgstr "Couponcode verwijderd van bestelling"
 msgid "Never"
 msgstr "Nooit"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx
-msgid "When enabled, a product is available in the shop of every channel where it is not disabled"
-msgstr ""
-
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "Facetwaarde bijwerken mislukt"
@@ -6031,7 +6057,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 #: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Enabled"
@@ -6586,6 +6611,9 @@ msgstr "Standaardtaal"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
+#: src/app/routes/_authenticated/_products/products.tsx
+#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Status"
 msgstr "Status"
 
@@ -6723,10 +6751,6 @@ msgstr "Selecteer {0}"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "New facet values to add:"
 msgstr "Nieuwe facetwaarden om toe te voegen:"
-
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant is available in the shop of every channel where it is not disabled"
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
@@ -7102,6 +7126,10 @@ msgstr "Voor deze wijzigingen is geen betaling of terugbetaling vereist."
 msgid "All possible variant combinations already exist."
 msgstr "Alle mogelijke variantcombinaties bestaan al."
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Hidden in this channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Weet u zeker dat u {cancellableCount} taak wilt annuleren? Deze actie kan niet ongedaan worden gemaakt.} other {Weet u zeker dat u {cancellableCount} taken wilt annuleren? Deze actie kan niet ongedaan worden gemaakt.}}"
@@ -7207,6 +7235,10 @@ msgstr "Calculator"
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Verwijderen van optiegroep uit kanaal mislukt: {message}"
+
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Disabled in every channel. This setting applies once it is enabled."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -7370,6 +7402,10 @@ msgstr "Rijen per pagina"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
+#: src/lib/components/shared/enabled-in-channel.tsx
+msgid "Disabled in every channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "Collecties laden..."
@@ -7496,10 +7532,6 @@ msgstr "Couponcodes toegevoegd"
 msgctxt "active language"
 msgid "Active"
 msgstr "Actief"
-
-#: src/lib/components/shared/enabled-in-channel.tsx
-msgid "Enables or disables it in this channel only. When not set, the global setting applies."
-msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
@@ -7732,10 +7764,6 @@ msgstr "Globale instellingen succesvol bijgewerkt"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
 msgstr "API Key succesvol bijgewerkt"
-
-#: src/lib/components/shared/enabled-in-channel.tsx
-msgid "In <0/>"
-msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
