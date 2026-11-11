@@ -19,6 +19,11 @@ import { InternalServerError } from './common/error/errors';
 import { getConfig, setConfig } from './config/config-helpers';
 import { DefaultLogger } from './config/logger/default-logger';
 import { Logger } from './config/logger/vendure-logger';
+import {
+    findStrategyChains,
+    logStrategyChains,
+    warnOnDroppedLayers,
+} from './config/strategy-layer/strategy-chain-checks';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
@@ -431,10 +436,14 @@ export async function runPluginConfigurations(config: RuntimeVendureConfig): Pro
     for (const plugin of config.plugins) {
         const configFn = getConfigurationFunction(plugin);
         if (typeof configFn === 'function') {
+            const chainsBefore = findStrategyChains(config);
             const result = await configFn(config);
             Object.assign(config, result);
+            const pluginName = typeof plugin === 'function' ? plugin.name : plugin.module.name;
+            warnOnDroppedLayers(chainsBefore, findStrategyChains(config), pluginName);
         }
     }
+    logStrategyChains(findStrategyChains(config));
     return config;
 }
 

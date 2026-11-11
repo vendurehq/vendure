@@ -1,9 +1,23 @@
 import { Type } from '@vendure/common/lib/shared-types';
 import { getMetadataArgsStorage } from 'typeorm';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { RequestContext } from './api/common/request-context';
 import { runPluginConfigurations } from './bootstrap';
 import { CustomFieldConfig } from './config/custom-field/custom-field-types';
+import { Logger } from './config/logger/vendure-logger';
+import { mergeConfig } from './config/merge-config';
+import {
+    OrderItemPriceCalculationStrategy,
+    PriceCalculationResult,
+} from './config/order/order-item-price-calculation-strategy';
+import {
+    composeStrategy,
+    removeLayer,
+    replaceBase,
+    setLayerPriority,
+} from './config/strategy-layer/compose-strategy';
+import { StrategyLayer } from './config/strategy-layer/strategy-layer';
 import { RuntimeVendureConfig } from './config/vendure-config';
 // Importing the core entities registers their `customFields` embedded columns in the
 // TypeORM metadata, and populates `coreEntitiesMap` (which `getAllEntities`, and therefore the
@@ -304,6 +318,212 @@ describe('runPluginConfigurations()', () => {
         await runPluginConfigurations(flattenedConfig);
         expect(flattenedConfig.plugins).toEqual([ChildPlugin, ParentPlugin]);
         expect(childRuns).toBe(2);
+    });
+});
+
+describe('runPluginConfigurations() with strategy layers', () => {
+    type PriceArgs = Parameters<OrderItemPriceCalculationStrategy['calculateUnitPrice']>;
+    let calls: string[] = [];
+
+    class TestBasePrice implements OrderItemPriceCalculationStrategy {
+        constructor(private readonly label = 'TestBasePrice') {}
+        calculateUnitPrice(): PriceCalculationResult {
+            calls.push(this.label);
+            return { price: 0, priceIncludesTax: false };
+        }
+    }
+
+    function priceLayer(name: string, priority: number) {
+        const layer = class extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
+            static priority = priority;
+            async calculateUnitPrice(...args: PriceArgs) {
+                calls.push(name);
+                return this.inner.calculateUnitPrice(...args);
+            }
+        };
+        Object.defineProperty(layer, 'name', { value: name });
+        return layer;
+    }
+
+    function layerPlugin(layer: ReturnType<typeof priceLayer>) {
+        @VendurePlugin({
+            configuration: cfg => {
+                cfg.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
+                    layer,
+                    cfg.orderOptions.orderItemPriceCalculationStrategy,
+                );
+                return cfg;
+            },
+        })
+        class LayerPlugin {}
+        return LayerPlugin;
+    }
+
+    function makeLayerConfig(
+        plugins: RuntimeVendureConfig['plugins'],
+        strategy: OrderItemPriceCalculationStrategy = new TestBasePrice(),
+    ): RuntimeVendureConfig {
+        return {
+            ...makeConfig({ plugins }),
+            orderOptions: { orderItemPriceCalculationStrategy: strategy },
+        } as unknown as RuntimeVendureConfig;
+    }
+
+    async function callOrder(config: RuntimeVendureConfig) {
+        calls = [];
+        await config.orderOptions.orderItemPriceCalculationStrategy.calculateUnitPrice(
+            ...([{} as RequestContext, {}, {}, {}, 1] as unknown as PriceArgs),
+        );
+        return calls;
+    }
+
+    const Layer100 = priceLayer('Layer100', 100);
+    const Layer200 = priceLayer('Layer200', 200);
+    const Layer300 = priceLayer('Layer300', 300);
+    const Plugin100 = layerPlugin(Layer100);
+    const Plugin200 = layerPlugin(Layer200);
+    const Plugin300 = layerPlugin(Layer300);
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('orders the layers by priority with each order of the plugins array', async () => {
+        const orders = [
+            [Plugin100, Plugin200, Plugin300],
+            [Plugin100, Plugin300, Plugin200],
+            [Plugin200, Plugin100, Plugin300],
+            [Plugin200, Plugin300, Plugin100],
+            [Plugin300, Plugin100, Plugin200],
+            [Plugin300, Plugin200, Plugin100],
+        ];
+        for (const plugins of orders) {
+            const config = await runPluginConfigurations(makeLayerConfig(plugins));
+            expect(await callOrder(config)).toEqual(['Layer100', 'Layer200', 'Layer300', 'TestBasePrice']);
+        }
+    });
+
+    it('does not change the chain when the configuration functions run again', async () => {
+        const config = await runPluginConfigurations(makeLayerConfig([Plugin200, Plugin100, Plugin200]));
+        const chain = config.orderOptions.orderItemPriceCalculationStrategy;
+        await runPluginConfigurations(config);
+        expect(config.orderOptions.orderItemPriceCalculationStrategy).toBe(chain);
+        expect(await callOrder(config)).toEqual(['Layer100', 'Layer200', 'TestBasePrice']);
+    });
+
+    it('logs each chain with the layers in call order', async () => {
+        const info = vi.spyOn(Logger, 'info');
+        await runPluginConfigurations(makeLayerConfig([Plugin300, Plugin100]));
+        expect(info).toHaveBeenCalledWith(
+            'Strategy chain "orderOptions.orderItemPriceCalculationStrategy": Layer100 -> Layer300 -> TestBasePrice',
+        );
+    });
+
+    it('does not log when no strategy is composed', async () => {
+        const info = vi.spyOn(Logger, 'info');
+        const warn = vi.spyOn(Logger, 'warn');
+        await runPluginConfigurations(makeLayerConfig([]));
+        expect(info).not.toHaveBeenCalled();
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('warns when a plugin replaces a chain with a plain strategy', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        @VendurePlugin({
+            configuration: cfg => {
+                cfg.orderOptions.orderItemPriceCalculationStrategy = new TestBasePrice('Replaced');
+                return cfg;
+            },
+        })
+        class ReplacingPlugin {}
+
+        const config = await runPluginConfigurations(
+            makeLayerConfig([Plugin100, Plugin200, ReplacingPlugin, Plugin300]),
+        );
+        expect(warn).toHaveBeenCalledWith(
+            'The plugin "ReplacingPlugin" replaced "orderOptions.orderItemPriceCalculationStrategy" and ' +
+                'dropped the layers Layer100, Layer200. To change only the base strategy, use replaceBase(). ' +
+                'To add a layer, use composeStrategy().',
+        );
+        expect(await callOrder(config)).toEqual(['Layer300', 'Replaced']);
+    });
+
+    it('keeps the layers when a plugin uses replaceBase()', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        @VendurePlugin({
+            configuration: cfg => {
+                cfg.orderOptions.orderItemPriceCalculationStrategy = replaceBase(
+                    cfg.orderOptions.orderItemPriceCalculationStrategy,
+                    new TestBasePrice('Replaced'),
+                );
+                return cfg;
+            },
+        })
+        class ReplacingPlugin {}
+
+        const config = await runPluginConfigurations(
+            makeLayerConfig([Plugin200, Plugin100, ReplacingPlugin]),
+        );
+        expect(warn).not.toHaveBeenCalled();
+        expect(await callOrder(config)).toEqual(['Layer100', 'Layer200', 'Replaced']);
+    });
+
+    it('warns about two layers with the same priority and keeps plugin order', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        const PluginA = layerPlugin(priceLayer('LayerA', 100));
+        const PluginB = layerPlugin(priceLayer('LayerB', 100));
+
+        const config = await runPluginConfigurations(makeLayerConfig([PluginB, PluginA]));
+        expect(warn).toHaveBeenCalledWith(
+            'The strategy layers "LayerB" and "LayerA" of "orderOptions.orderItemPriceCalculationStrategy" ' +
+                'have the same priority (100), so they run in plugin order. ' +
+                'Set the priority of one of them in the project config to remove this warning.',
+        );
+        expect(await callOrder(config)).toEqual(['LayerB', 'LayerA', 'TestBasePrice']);
+    });
+
+    it('removes a plugin layer with removeLayer() in the project config', async () => {
+        const config = await runPluginConfigurations(
+            makeLayerConfig([Plugin100, Plugin200, Plugin300], removeLayer(new TestBasePrice(), Layer200)),
+        );
+        expect(await callOrder(config)).toEqual(['Layer100', 'Layer300', 'TestBasePrice']);
+    });
+
+    it('changes the priority of a plugin layer with setLayerPriority() in the project config', async () => {
+        const config = await runPluginConfigurations(
+            makeLayerConfig(
+                [Plugin100, Plugin200, Plugin300],
+                setLayerPriority(new TestBasePrice(), Layer100, 250),
+            ),
+        );
+        expect(await callOrder(config)).toEqual(['Layer200', 'Layer100', 'Layer300', 'TestBasePrice']);
+    });
+
+    it('uses the priority from with() in the project config for a plugin layer', async () => {
+        const projectStrategy = composeStrategy(
+            Layer300.with(undefined, { priority: 50 }),
+            new TestBasePrice(),
+        );
+        const config = await runPluginConfigurations(
+            makeLayerConfig([Plugin100, Plugin200, Plugin300], projectStrategy),
+        );
+        expect(await callOrder(config)).toEqual(['Layer300', 'Layer100', 'Layer200', 'TestBasePrice']);
+    });
+
+    it('keeps the chain through mergeConfig()', async () => {
+        const projectConfig = mergeConfig(makeLayerConfig([Plugin100, Plugin200]), {
+            orderOptions: {
+                orderItemPriceCalculationStrategy: removeLayer(new TestBasePrice(), Layer100),
+            },
+        });
+        @VendurePlugin({ configuration: cfg => mergeConfig(cfg, {}) })
+        class NewObjectPlugin {}
+        projectConfig.plugins.push(NewObjectPlugin);
+
+        const warn = vi.spyOn(Logger, 'warn');
+        const config = await runPluginConfigurations(projectConfig);
+        expect(warn).not.toHaveBeenCalled();
+        expect(await callOrder(config)).toEqual(['Layer200', 'TestBasePrice']);
     });
 });
 
