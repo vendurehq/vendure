@@ -2,6 +2,8 @@ import { Type } from '@vendure/common/lib/shared-types';
 
 import { ActiveOrderStrategy } from '../order/active-order-strategy';
 
+import { getStrategyChain } from './strategy-chain';
+
 /**
  * The priorities of the entries that `addStrategyToList()` added. The data is kept on the entries
  * and not on the array, because `mergeConfig()` copies arrays.
@@ -36,6 +38,14 @@ export function getListEntryPriority(entry: object): number {
     return listPriorities.get(entry) ?? 0;
 }
 
+/**
+ * Returns the class that identifies a list entry. For a composed entry, this is the class of its
+ * base strategy.
+ */
+export function getListEntryClass(entry: object): Type<unknown> {
+    return (getStrategyChain(entry)?.base ?? entry).constructor as Type<unknown>;
+}
+
 export function setListEntryPriority(entry: object, priority: number) {
     listPriorities.set(entry, priority);
 }
@@ -57,10 +67,7 @@ export function sortStrategyList<S extends object>(list: S[]): S[] {
     ) as unknown as RemovedStrategyListEntry[];
     const removed = markers.map(m => m.removed);
     const entries = list
-        .filter(
-            e =>
-                !(e instanceof RemovedStrategyListEntry) && !removed.includes(e.constructor as Type<unknown>),
-        )
+        .filter(e => !(e instanceof RemovedStrategyListEntry) && !removed.includes(getListEntryClass(e)))
         .sort((a, b) => getListEntryPriority(a) - getListEntryPriority(b));
     return [...entries, ...(markers as unknown as S[])];
 }

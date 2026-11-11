@@ -215,6 +215,12 @@ describe('setLayerPriority()', () => {
         expect(setLayerPriority(prioritised, SuffixLayer, 50) === prioritised).toBe(false);
     });
 
+    it('rejects a priority that is not a finite number', () => {
+        expect(() => setLayerPriority(new BaseGreeting(), Layer100, NaN)).toThrow(
+            'A priority must be a finite number',
+        );
+    });
+
     it('does not add the layer', () => {
         expect(setLayerPriority(new BaseGreeting(), Layer100, 1).greet('a')).toEqual(['base:a']);
     });

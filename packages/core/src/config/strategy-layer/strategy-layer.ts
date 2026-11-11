@@ -64,7 +64,9 @@ export type StrategyLayerType<S extends InjectableStrategy> =
  * * Vendure calls `init()` on the base strategy and then on each layer from the inside out. It calls
  *   `destroy()` in the opposite order. A layer does not call `init()` or `destroy()` on `inner`.
  * * Vendure sends each method that the layer class does not define to `inner`. If `inner` does not
- *   have an optional method, the layer does not have it either.
+ *   have an optional method, the layer does not have it either. Vendure finds the members of `inner`
+ *   when it builds the chain, before `init()`. A member that a strategy adds to itself in `init()`
+ *   is not forwarded.
  *
  * A layer that uses `implements` must define each method of the strategy interface. A layer that
  * defines only some methods extends `StrategyLayer.passThrough<S>()`.

@@ -1,6 +1,12 @@
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 
-import { buildStrategyChain, getChainDefinition, getStrategyChain, toLayerEntry } from './strategy-chain';
+import {
+    assertValidPriority,
+    buildStrategyChain,
+    getChainDefinition,
+    getStrategyChain,
+    toLayerEntry,
+} from './strategy-chain';
 import { StrategyLayerClass, StrategyLayerType } from './strategy-layer';
 
 /**
@@ -141,6 +147,7 @@ export function setLayerPriority<S extends InjectableStrategy>(
     layer: StrategyLayerClass<S>,
     priority: number,
 ): S {
+    assertValidPriority(priority);
     const definition = getChainDefinition(strategy);
     if (definition.priorities.get(layer) === priority) {
         return strategy;

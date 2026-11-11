@@ -667,6 +667,25 @@ describe('runPluginConfigurations() with a strategy list', () => {
         );
     });
 
+    it('warns when a plugin removes an entry from the list array in place', async () => {
+        const warn = vi.spyOn(Logger, 'warn');
+        @VendurePlugin({
+            configuration: cfg => {
+                (cfg.orderOptions.activeOrderStrategy as ActiveOrderStrategy[]).splice(0, 1);
+                return cfg;
+            },
+        })
+        class SplicingPlugin {}
+
+        await runPluginConfigurations(
+            makeListConfig([SplicingPlugin], [new DefaultEntry(), new LateEntry()]),
+        );
+        expect(warn).toHaveBeenCalledWith(
+            'The plugin "SplicingPlugin" replaced "orderOptions.activeOrderStrategy" and dropped the entries ' +
+                'default. To add an entry, use addStrategyToList(). To remove an entry, use removeStrategyFromList().',
+        );
+    });
+
     it('warns about an added entry with the same priority as another entry', async () => {
         const warn = vi.spyOn(Logger, 'warn');
         const config = await runPluginConfigurations(makeListConfig([entryPlugin(() => new LateEntry(), 0)]));

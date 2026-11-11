@@ -97,12 +97,23 @@ export function toLayerEntry(layerType: StrategyLayerType<any>): StrategyLayerEn
                   options: layerType.options,
                   priority: layerType.priority ?? layerType.layer.priority,
               };
-    if (typeof entry.priority !== 'number' || Number.isNaN(entry.priority)) {
+    if (typeof entry.priority !== 'number' || !Number.isFinite(entry.priority)) {
         throw new Error(
             `The strategy layer "${entry.layer.name}" has no priority. Set a static "priority" number on the class.`,
         );
     }
     return entry;
+}
+
+/**
+ * Throws if the priority is not a finite number. A sort by `NaN` or `Infinity` gives no stable order.
+ */
+export function assertValidPriority(priority: number) {
+    if (typeof priority !== 'number' || !Number.isFinite(priority)) {
+        throw new Error(
+            `The priority "${String(priority)}" is not valid. A priority must be a finite number.`,
+        );
+    }
 }
 
 /**

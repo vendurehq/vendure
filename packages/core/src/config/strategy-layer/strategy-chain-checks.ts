@@ -5,6 +5,7 @@ import { RuntimeVendureConfig } from '../vendure-config';
 
 import { getStrategyChain, StrategyChain } from './strategy-chain';
 import {
+    getListEntryClass,
     getListEntryPriority,
     hasListEntryPriority,
     RemovedStrategyListEntry,
@@ -108,7 +109,7 @@ export function findStrategyLists(config: RuntimeVendureConfig): Map<string, obj
     for (const [optionsKey, key] of strategyListOptions) {
         const value = (config[optionsKey] as Record<string, unknown> | undefined)?.[key];
         if (value) {
-            result.set(`${optionsKey}.${key}`, toArray(value));
+            result.set(`${optionsKey}.${key}`, [...toArray(value)]);
         }
     }
     return result;
@@ -137,11 +138,13 @@ export function warnOnDroppedListEntries(
 ) {
     for (const [path, oldList] of before) {
         const newList = after.get(path) ?? [];
-        const newClasses = newList.map(e => e.constructor);
+        const newClasses = newList.map(getListEntryClass);
         const newRemoved = getRemovedClasses(newList);
         const droppedEntries = oldList
             .filter(e => !(e instanceof RemovedStrategyListEntry))
-            .filter(e => !newClasses.includes(e.constructor) && !newRemoved.includes(e.constructor as any))
+            .filter(
+                e => !newClasses.includes(getListEntryClass(e)) && !newRemoved.includes(getListEntryClass(e)),
+            )
             .map(getEntryName);
         const droppedRemovals = getRemovedClasses(oldList)
             .filter(c => !newRemoved.includes(c))

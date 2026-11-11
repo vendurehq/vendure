@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { RequestContext } from '../../api/common/request-context';
 import { ActiveOrderStrategy } from '../order/active-order-strategy';
 
+import { composeStrategy } from './compose-strategy';
+import { StrategyLayer } from './strategy-layer';
 import { addStrategyToList, removeStrategyFromList } from './strategy-list';
 import { RemovedStrategyListEntry, sortStrategyList } from './strategy-list-entries';
 
@@ -34,6 +36,40 @@ describe('addStrategyToList()', () => {
     it('does not add a second entry of the same class', () => {
         const list = addStrategyToList([new FirstStrategy()], new SecondStrategy());
         expect(addStrategyToList(list, new SecondStrategy())).toBe(list);
+    });
+});
+
+describe('list entries with layers', () => {
+    class EntryLayer extends StrategyLayer.passThrough<ActiveOrderStrategy>() {
+        static priority = 1;
+    }
+
+    it('uses the class of the base strategy as the identity of an entry', () => {
+        const list = addStrategyToList(
+            composeStrategy(EntryLayer, new FirstStrategy()),
+            composeStrategy(EntryLayer, new SecondStrategy()),
+        );
+        expect(names(list)).toEqual(['first', 'second']);
+        expect(addStrategyToList(list, new SecondStrategy())).toBe(list);
+    });
+
+    it('applies a removal to an entry with layers', () => {
+        const list = removeStrategyFromList(
+            [composeStrategy(EntryLayer, new FirstStrategy()), new SecondStrategy()],
+            FirstStrategy,
+        );
+        expect(names(sortStrategyList(list))).toEqual(['second']);
+    });
+});
+
+describe('priority validation', () => {
+    it('rejects a priority that is not a finite number', () => {
+        expect(() => addStrategyToList(new FirstStrategy(), new SecondStrategy(), { priority: NaN })).toThrow(
+            'A priority must be a finite number',
+        );
+        expect(() =>
+            addStrategyToList(new FirstStrategy(), new SecondStrategy(), { priority: Infinity }),
+        ).toThrow('A priority must be a finite number');
     });
 });
 

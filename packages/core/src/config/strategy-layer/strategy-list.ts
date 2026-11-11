@@ -2,7 +2,13 @@ import { Type } from '@vendure/common/lib/shared-types';
 
 import { ActiveOrderStrategy } from '../order/active-order-strategy';
 
-import { RemovedStrategyListEntry, setListEntryPriority, toArray } from './strategy-list-entries';
+import { assertValidPriority } from './strategy-chain';
+import {
+    getListEntryClass,
+    RemovedStrategyListEntry,
+    setListEntryPriority,
+    toArray,
+} from './strategy-list-entries';
 
 /**
  * @description
@@ -14,8 +20,8 @@ import { RemovedStrategyListEntry, setListEntryPriority, toArray } from './strat
  * an entry of the array in the project config, has the priority 0 and keeps its position relative to
  * the other entries with priority 0. Use a negative priority to call an entry before them.
  *
- * The class of an entry is its identity. If the list has an entry of the same class, the list does
- * not change.
+ * The class of an entry is its identity. For an entry with layers, the class of its base strategy
+ * is the identity. If the list has an entry of the same class, the list does not change.
  *
  * @example
  * ```ts
@@ -35,11 +41,14 @@ export function addStrategyToList<S extends ActiveOrderStrategy<any>>(
     entry: S,
     options?: { priority?: number },
 ): S[] {
+    const priority = options?.priority ?? 0;
+    assertValidPriority(priority);
     const entries = toArray(list);
-    if (entries.some(e => e.constructor === entry.constructor)) {
+    const entryClass = getListEntryClass(entry);
+    if (entries.some(e => getListEntryClass(e) === entryClass)) {
         return entries;
     }
-    setListEntryPriority(entry, options?.priority ?? 0);
+    setListEntryPriority(entry, priority);
     return [...entries, entry];
 }
 
