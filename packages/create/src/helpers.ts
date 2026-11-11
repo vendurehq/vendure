@@ -410,10 +410,10 @@ export function getSingleProjectPackageJson(
 
 /**
  * The `vendure` field of the server's package.json. Enables the CLI plugins of the scaffolded
- * dependencies, such as the `vendure email` commands of the EmailPlugin.
+ * dependencies, such as the `vendure email` commands of `@vendure/email`.
  */
 export function getVendureCliConfig() {
-    return { cli: { plugins: ['@vendure/email-plugin'] } };
+    return { cli: { plugins: ['@vendure/email'] } };
 }
 
 /**
@@ -601,7 +601,7 @@ export function getDependencies(
 ): { dependencies: string[]; devDependencies: string[] } {
     const dependencies = [
         `@vendure/core${vendurePkgVersion}`,
-        `@vendure/email-plugin${vendurePkgVersion}`,
+        `@vendure/email${vendurePkgVersion}`,
         `@vendure/asset-server-plugin${vendurePkgVersion}`,
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
@@ -1146,5 +1146,52 @@ export async function findAvailablePort(startPort: number, range: number = 20): 
         if (port > startPort + range) {
             throw new Error(`Could not find an available port between ${startPort} and ${startPort + range}`);
         }
+    }
+}
+
+/**
+ * Copies every default email of `@vendure/email` into `src/email/<type>/` of the new project, so that
+ * customising an email means editing a file, and writes `src/email/index.ts` exporting the list. Uses
+ * the `eject` logic of the installed package. When that is not possible (e.g. the install failed),
+ * `src/email/index.ts` re-exports the package defaults instead, so the config still compiles.
+ */
+export async function scaffoldEmails(serverRoot: string): Promise<{ ejected: boolean; error?: string }> {
+    const emailDir = path.join(serverRoot, 'src', 'email');
+    await fs.ensureDir(emailDir);
+    try {
+        const requireFromServer = createRequire(path.join(serverRoot, 'package.json'));
+        const cliPath = path.join(
+            path.dirname(requireFromServer.resolve('@vendure/email/package.json')),
+            'lib/cli/index.js',
+        );
+        const { ejectTemplate, defaultEmailTypes } = requireFromServer(cliPath);
+        const exports: Array<{ name: string; importPath: string }> = [];
+        for (const type of await defaultEmailTypes()) {
+            const result = await ejectTemplate(type, 'src/email', true, serverRoot);
+            exports.push({ name: result.definitionExport, importPath: `./${type}/definition` });
+        }
+        const index = [
+            "import type { EmailDefinition } from '@vendure/email';",
+            '',
+            ...exports.map(e => `import { ${e.name} } from '${e.importPath}';`),
+            '',
+            '/**',
+            ' * The emails this server sends. Each one has a definition (when it is sent, to whom, with which',
+            ' * data) and a template (what it looks like) in its own directory. Edit them freely.',
+            ' */',
+            'export const emails: Array<EmailDefinition<any, any>> = [',
+            ...exports.map(e => `    ${e.name},`),
+            '];',
+            '',
+        ].join('\n');
+        await fs.writeFile(path.join(emailDir, 'index.ts'), index);
+        return { ejected: true };
+    } catch (e: any) {
+        await fs.writeFile(
+            path.join(emailDir, 'index.ts'),
+            "// Run `npx vendure email eject <type>` to copy a default email here and customise it.\n" +
+                "export { defaultEmails as emails } from '@vendure/email';\n",
+        );
+        return { ejected: false, error: e?.message ?? String(e) };
     }
 }

@@ -5,12 +5,14 @@ import {
     DefaultSearchPlugin,
     VendureConfig,
 } from '@vendure/core';
-import { defaultEmailHandlers, EmailPlugin } from '@vendure/email-plugin';
+import { EmailPlugin } from '@vendure/email';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
 import 'dotenv/config';
 import path from 'path';
+
+import { emails } from './email';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
 // PORT wins because hosting platforms inject it into the environment at runtime, and that
@@ -97,16 +99,17 @@ export const config: VendureConfig = {
             } : {
                 // No email transport is configured yet, so emails are written to this directory
                 // and not sent. Replace this with an SMTP, SES or other transport before you go
-                // live: https://docs.vendure.io/reference/core-plugins/email-plugin/
+                // live: https://docs.vendure.io/reference/core-plugins/email/
                 // This is the same directory that dev mode uses. Nothing serves it over HTTP.
                 transport: {
                     type: 'file',
                     outputPath: path.join(__dirname, '../static/email/test-emails'),
                 },
             }),
-            // The default handlers come with React email templates. To customize them, change the
-            // `branding` below, or write your own templates: https://docs.vendure.io/guides/core-concepts/email/
-            handlers: defaultEmailHandlers,
+            // Every email has a definition and a React template in src/email/<type>/. Edit them to
+            // change when an email is sent or what it looks like: https://docs.vendure.io/guides/core-concepts/email/
+            emails,
+            defaultFrom: '"example" <noreply@example.com>',
             globalTemplateVars: {
                 // Shown in the header and footer of every email.
                 branding: {
@@ -123,7 +126,6 @@ export const config: VendureConfig = {
                 // No storefront was created, so port {{ storefrontPort }} is only a placeholder:
                 // nothing is listening on it until you point these at your own storefront.
 {{/if}}
-                fromAddress: '"example" <noreply@example.com>',
 {{!-- These paths must match the routes in vendurehq/nextjs-starter-vendure (src/app/[locale]/)
       and vendurehq/tanstack-starter-vendure (src/routes/). Both are installed from main. --}}
                 verifyEmailAddressUrl: 'http://localhost:{{ storefrontPort }}/verify',

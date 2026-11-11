@@ -466,7 +466,7 @@ describe('getSingleProjectPackageJson', () => {
 
     it('enables the EmailPlugin CLI plugin, so that `vendure email` works', () => {
         const pkg = getSingleProjectPackageJson('my-shop', getPackageManagerInfo('npm'), 'postgres');
-        expect(pkg.vendure).toEqual({ cli: { plugins: ['@vendure/email-plugin'] } });
+        expect(pkg.vendure).toEqual({ cli: { plugins: ['@vendure/email'] } });
     });
 
     // #4932 — pnpm settings live in pnpm-workspace.yaml; yarn build scripts need allowlisting.

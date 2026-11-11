@@ -33,15 +33,16 @@ This project was generated with `@vendure/create`.
 
 ## Emails
 
-- Emails are sent by the `EmailPlugin`. The default emails use React templates from `@vendure/email-plugin`, styled through the `branding` template variable in `vendure-config.ts`.
-- Custom templates are React components (`.tsx`) created with `defineEmailTemplate()` and set on a handler with `.setTemplate()`. Build them from the components exported by `@vendure/email-plugin`, such as `EmailLayout`, `EmailText`, `EmailButton` and `OrderSummary`.
-- In development the plugin runs in dev mode: no email is sent, and every email is recorded in an outbox. Check emails with the `vendure email` commands while the server{{#if isMonorepo}} (run them from `apps/server`){{/if}} and worker are running:
-  - `npx vendure email list`: the email types and where their sample data comes from.
-  - `npx vendure email render <type> [--language de] [--arg order=CODE]`: render an email from real database data, without sending it. Prints the subject and recipient, and the paths of the HTML and text files.
-  - `npx vendure email send <type> [--to address]`: send an email through the real pipeline (job queue, worker, transport) and wait for it to arrive.
-  - `npx vendure email outbox --since 5m --to <address> --wait 15`: to check that an action you performed (e.g. a GraphQL mutation) sends an email, run the action, then wait for the email here. Exits with code 1 if none arrives.
-  - `npx vendure email check --language en,de`: render every email type and fail if any template errors. Run it after changing templates or template variables.
-- These commands print JSON when their output is not a terminal. A failure names the stage it happened at (`filter`, `loadData`, `render`, `queue`, ...).
+- Emails are sent by the `EmailPlugin` from `@vendure/email`. Each email lives in `src/email/<type>/`: `definition.ts` says when it is sent, to whom and with which data; `template.tsx` is the React template (subject and body). `src/email/index.ts` lists the emails the server sends.
+- The definitions spread the package default (`...packageDefault`), so they keep its event, filter, data and recipient logic. Override a field to change it. To add an email, create a new directory with `defineEmail()` and `defineEmailTemplate()` and add it to `src/email/index.ts`.
+- Build templates from the components exported by `@vendure/email` (`EmailLayout`, `EmailSection`, `EmailText`, `EmailButton`, `OrderSummary`, `FulfillmentSummary`, `Money`, ...). Email clients ignore external CSS: use inline `style` props only. Colours, logo and footer come from the `branding` template variable in `vendure-config.ts`.
+- The full guide for agents is in `node_modules/@vendure/email/AGENTS.md`. Read it before changing emails.
+- In development no email is sent: every email is recorded in an outbox. Use the `vendure email` commands while the server{{#if isMonorepo}} (run them from `apps/server`){{/if}} and worker are running:
+  - `npx vendure email render <type> --preview [--language de] [--arg order=CODE]`: render an email from real database data and print a preview URL that serves its HTML. Screenshot it at 600px and 375px wide. Do this after every design change.
+  - `npx vendure email check --language en,de`: render every email and fail if any template errors. Run it before you finish.
+  - `npx vendure email send <type> [--to address]`: send through the real pipeline (job queue, worker, transport) and wait for it to arrive.
+  - `npx vendure email outbox --since 5m --to <address> --wait 15`: check that an action (e.g. a GraphQL mutation) sent an email. Exits with code 1 if none arrives.
+  - `npx vendure email eject <type>`: copy a default email into `src/email/` if it is not there yet.
 
 ## Commands
 

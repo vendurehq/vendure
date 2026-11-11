@@ -49,6 +49,7 @@ import {
     getSingleProjectPackageJson,
     getYarnRcYml,
     installPackages,
+    scaffoldEmails,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
     resolvePackageRootDir,
@@ -453,6 +454,14 @@ export async function createVendureApp(
             .then(() => fs.writeFile(path.join(serverRoot, 'vite.config.mts'), viteConfigSource))
             .then(() => writeFileIfMissing(path.join(root, 'AGENTS.md'), agentsSource))
             .then(() => createDirectoryStructure(serverRoot));
+        const emailScaffold = await scaffoldEmails(serverRoot);
+        if (!emailScaffold.ejected) {
+            log(
+                `Could not copy the default email templates into src/email (${String(emailScaffold.error)}). ` +
+                    'The server uses the package defaults; run `npx vendure email eject <type>` later to customise one.',
+                { level: 'info' },
+            );
+        }
     } catch (e: any) {
         outro(pc.red(`Failed to create app scaffold: ${e.message as string}`));
         process.exit(1);
