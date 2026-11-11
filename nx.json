@@ -2,7 +2,7 @@
     "$schema": "./node_modules/nx/schemas/nx-schema.json",
     "defaultBase": "master",
     "neverConnectToCloud": true,
-    "maxCacheSize": "1GB",
+    "maxCacheSize": "200MB",
     "pluginsConfig": {
         "@nx/js": {
             "analyzeSourceFiles": false
