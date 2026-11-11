@@ -13,10 +13,10 @@ const CORE = '@vendure/core';
 
 /** The number of core shards for each database. The core e2e specs take longer on MySQL and Postgres. */
 const CORE_SHARDS = {
-    sqljs: 6,
-    mariadb: 8,
-    postgres: 6,
-    mysql: 8,
+    sqljs: 5,
+    mariadb: 6,
+    postgres: 7,
+    mysql: 7,
 };
 
 /**
