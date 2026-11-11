@@ -16,7 +16,7 @@ Headless e-commerce framework. Nx monorepo with fixed versioning.
 
 ## Plugin packages
 
-- The plugin packages (`packages/*-plugin`) get their targets from the local Nx plugin in `tools/nx-plugin`. They have no `build`, `test` or `e2e` scripts. Use `bunx nx run <package>:<target>`. `nx watch` is a built-in Nx command, so use `bunx nx run <package>:watch`.
+- The plugin packages (`packages/*-plugin`) get their targets from the local Nx plugin in `tools/nx-plugin`. Do not add `build`, `test` or `e2e` scripts. A script replaces the inferred target, so keep one only when the package needs a different command: asset-server and graphiql keep `build`, and job-queue keeps `e2e`. Use `bunx nx run <package>:<target>`. `nx watch` is a built-in Nx command, so use `bunx nx run <package>:watch`.
 - Their `tsconfig*.json` files are generated. Do not edit them. Run `bunx nx sync` after you add an entry point, a `*.spec-d.ts` file or a `.tsx` file. CI runs `bunx nx sync:check`.
 - Every package needs a scope tag in `nx.tags`. `bun run lint:boundaries` checks the import rules between scopes.
 - New plugin package: `bunx nx g ./tools/nx-plugin:package <name>-plugin`.
