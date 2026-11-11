@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { runProductionCheck } from './production-check';
+import { runProductionCheck } from './production-check.js';
 
 /**
  * Creates a minimal RuntimeVendureConfig-like object for testing.

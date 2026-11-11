@@ -1,14 +1,14 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
-import { addApiExtension } from './api-extension/add-api-extension';
-import { addCodegen } from './codegen/add-codegen';
-import { addDashboard } from './dashboard/add-dashboard';
-import { addEntity } from './entity/add-entity';
-import { addJobQueue } from './job-queue/add-job-queue';
-import { addPlatform } from './platform/add-platform';
-import { createNewPlugin } from './plugin/create-new-plugin';
-import { addService } from './service/add-service';
+import { addApiExtension } from './api-extension/add-api-extension.js';
+import { addCodegen } from './codegen/add-codegen.js';
+import { addDashboard } from './dashboard/add-dashboard.js';
+import { addEntity } from './entity/add-entity.js';
+import { addJobQueue } from './job-queue/add-job-queue.js';
+import { addPlatform } from './platform/add-platform.js';
+import { createNewPlugin } from './plugin/create-new-plugin.js';
+import { addService } from './service/add-service.js';
 
 export const addCommandDef: CliCommandDefinition = {
     name: 'add',
@@ -149,7 +149,7 @@ export const addCommandDef: CliCommandDefinition = {
     ],
     action: async options => {
         return runCliCommand(async () => {
-            const { addCommand } = await import('./add');
+            const { addCommand } = await import('./add.js');
             await addCommand(options);
         });
     },

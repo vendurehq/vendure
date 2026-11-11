@@ -1,11 +1,11 @@
 import { Command, CommanderError } from 'commander';
 import { vi } from 'vitest';
 
-import { CliCommandNode, CliCommandOption } from '../cli-command-definition';
-import { CliPluginExtensionAccessor } from '../cli-plugin-extension';
-import { registerCommands } from '../command-registry';
-import { CommandTreeEntry, RootOptionEntry } from '../command-registry-store';
-import { stripAnsi } from '../strip-ansi';
+import { CliCommandNode, CliCommandOption } from '../cli-command-definition.js';
+import { CliPluginExtensionAccessor } from '../cli-plugin-extension.js';
+import { CommandTreeEntry, RootOptionEntry } from '../command-registry-store.js';
+import { registerCommands } from '../command-registry.js';
+import { stripAnsi } from '../strip-ansi.js';
 
 /**
  * Accepts either shape so a test can pass a bare fixture when it does not care

@@ -1,15 +1,15 @@
 import { log } from '@clack/prompts';
 import type { RuntimeVendureConfig } from '@vendure/core';
 
-import { runConfigCheck } from './checks/config-check';
-import { runDatabaseCheck } from './checks/database-check';
-import { runDependencyCheck } from './checks/dependency-check';
-import { runProductionCheck } from './checks/production-check';
-import { runProjectCheck } from './checks/project-check';
-import { runSchemaCheck } from './checks/schema-check';
-import { formatConsoleReport } from './formatters/console-formatter';
-import { formatJsonReport } from './formatters/json-formatter';
-import { CheckResult, DoctorOptions, DoctorReport } from './types';
+import { runConfigCheck } from './checks/config-check.js';
+import { runDatabaseCheck } from './checks/database-check.js';
+import { runDependencyCheck } from './checks/dependency-check.js';
+import { runProductionCheck } from './checks/production-check.js';
+import { runProjectCheck } from './checks/project-check.js';
+import { runSchemaCheck } from './checks/schema-check.js';
+import { formatConsoleReport } from './formatters/console-formatter.js';
+import { formatJsonReport } from './formatters/json-formatter.js';
+import { CheckResult, DoctorOptions, DoctorReport } from './types.js';
 
 const ALL_CHECKS = ['project', 'dependencies', 'config', 'schema', 'database'] as const;
 const VALID_PROFILES = ['production'] as const;

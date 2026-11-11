@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { findPackageJsonWithDependency, findWorkspacePackageJsonsWithDependency } from './monorepo-utils';
+import { findPackageJsonWithDependency, findWorkspacePackageJsonsWithDependency } from './monorepo-utils.js';
 
 describe('workspace package discovery', () => {
     let dir: string;

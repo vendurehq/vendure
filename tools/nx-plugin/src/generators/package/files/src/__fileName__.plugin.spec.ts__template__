@@ -1,0 +1,9 @@
+import { describe, expect, it } from 'vitest';
+
+import { <%= className %>Plugin } from './<%= fileName %>.plugin';
+
+describe('<%= className %>Plugin', () => {
+    it('declares the Vendure version it is compatible with', () => {
+        expect(Reflect.getMetadata('compatibility', <%= className %>Plugin)).toBe('^<%= majorVersion %>.0.0');
+    });
+});

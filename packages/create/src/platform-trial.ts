@@ -1,9 +1,10 @@
 import { confirm } from '@clack/prompts';
 import spawn from 'cross-spawn';
+import { createRequire } from 'node:module';
 import path from 'path';
 import pc from 'picocolors';
 
-import { log } from './logger';
+import { log } from './logger.js';
 
 export const PLATFORM_TRIAL_QUESTION = 'Start your free 30-day trial of Vendure Platform?';
 
@@ -61,9 +62,9 @@ function isTruthy(value: string | undefined): boolean {
 function runPlatformFlow(projectRoot: string): Promise<number> {
     let cliPath: string;
     try {
-        const packageJsonPath = require.resolve('@vendure/cli/package.json', { paths: [projectRoot] });
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        cliPath = path.join(path.dirname(packageJsonPath), require(packageJsonPath).bin.vendure);
+        const requireModule = createRequire(import.meta.url);
+        const packageJsonPath = requireModule.resolve('@vendure/cli/package.json', { paths: [projectRoot] });
+        cliPath = path.join(path.dirname(packageJsonPath), requireModule(packageJsonPath).bin.vendure);
     } catch (e) {
         log(
             pc.yellow(

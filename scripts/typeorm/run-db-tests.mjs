@@ -53,23 +53,33 @@ const dbEngine = process.env.DB || 'sqljs';
 
 console.log(`\nRunning database tests against typeorm@${typeormVersion} on ${dbEngine}.\n`);
 
-const scopeArgs = scope ? ['--scope', scope] : [];
+// The packages are built before this script runs (see build-for-tests.mjs), and that build
+// continues past type errors. `--exclude-task-dependencies` stops Nx from running the `ci`
+// builds again, because a build that fails there would skip the suites that depend on it.
+const runArgs = target => [
+    'run-many',
+    '-t',
+    target,
+    ...(scope ? ['-p', scope] : []),
+    '--exclude-task-dependencies',
+    '--output-style=stream',
+];
 const suites = [
-    ...(e2eOnly ? [] : [{ name: 'unit', args: ['run', 'test', ...scopeArgs, '--stream', '--no-bail'] }]),
-    ...(unitOnly ? [] : [{ name: 'e2e', args: ['run', 'e2e', ...scopeArgs, '--stream', '--no-bail'] }]),
+    ...(e2eOnly ? [] : [{ name: 'unit', args: runArgs('test') }]),
+    ...(unitOnly ? [] : [{ name: 'e2e', args: runArgs('e2e') }]),
 ];
 
-// Run lerna's entry point under the current Node binary, so neither the
+// Run the Nx entry point under the current Node binary, so neither the
 // executable nor the runtime is resolved through PATH.
-const lernaCli = path.join(repoRoot, 'node_modules', 'lerna', 'dist', 'cli.js');
-if (!fs.existsSync(lernaCli)) {
-    console.error(`Could not find lerna at ${lernaCli}. Run \`bun install\` first.`);
+const nxCli = path.join(repoRoot, 'node_modules', 'nx', 'bin', 'nx.js');
+if (!fs.existsSync(nxCli)) {
+    console.error(`Could not find nx at ${nxCli}. Run \`bun install\` first.`);
     process.exit(1);
 }
 
 const failed = [];
 for (const suite of suites) {
-    const result = spawnSync(process.execPath, [lernaCli, ...suite.args], {
+    const result = spawnSync(process.execPath, [nxCli, ...suite.args], {
         cwd: repoRoot,
         stdio: 'inherit',
         env: { ...process.env, DB: dbEngine },

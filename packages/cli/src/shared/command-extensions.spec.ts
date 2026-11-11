@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runCli } from './__tests__/run-cli';
+import { runCli } from './__tests__/run-cli.js';
 import {
     CliCommandDefinition,
     CliCommandGroupDefinition,
     CliCommandNode,
     CliCommandOption,
     readCommandContext,
-} from './cli-command-definition';
-import { defineCliPlugin } from './cli-plugin';
-import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
+} from './cli-command-definition.js';
+import { defineCliPlugin } from './cli-plugin.js';
+import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store.js';
 
 /**
  * Records the order in which the built-in and each plugin wrapper runs, so a

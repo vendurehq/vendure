@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repoRoot = dirname(packageRoot);
-const lernaJson = JSON.parse(readFileSync(join(repoRoot, 'lerna.json'), 'utf-8'));
+const corePackageJson = JSON.parse(readFileSync(join(repoRoot, 'packages/core/package.json'), 'utf-8'));
 
 const file = (relativePath: string) => join(packageRoot, relativePath);
 const folder = (relativePath: string) => join(packageRoot, relativePath);
@@ -14,7 +14,7 @@ const folder = (relativePath: string) => join(packageRoot, relativePath);
 const manifestInput: DocsPackageManifestInput = {
     id: 'core',
     name: 'Vendure Framework Documentation',
-    version: lernaJson.version,
+    version: corePackageJson.version,
     vendureVersion: 'v3',
     basePath: packageRoot,
     navigation: [

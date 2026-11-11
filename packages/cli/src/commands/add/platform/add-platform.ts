@@ -2,14 +2,14 @@ import { cancel, confirm, isCancel, log } from '@clack/prompts';
 import spawn from 'cross-spawn';
 import pc from 'picocolors';
 
-import { exitCliCommand } from '../../../shared/cli-command-exit';
-import { abortIfNonInteractive } from '../../../utilities/utils';
-import { openConsoleBrowser } from '../../console/authentication';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { abortIfNonInteractive } from '../../../utilities/utils.js';
+import { openConsoleBrowser } from '../../console/authentication.js';
 import {
     consoleOriginsForManifest,
     readProjectLinkManifest,
     resolveProjectRoot,
-} from '../../console/project-link-manifest';
+} from '../../console/project-link-manifest.js';
 
 /**
  * The Platform package that installs the plan packages for a linked Project. It is public, so it

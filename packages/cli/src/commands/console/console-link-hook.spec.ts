@@ -5,14 +5,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CliCommandExit } from '../../shared/cli-command-exit';
-import { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from '../../shared/cli-plugin';
-import { CommandRegistry } from '../../shared/command-registry-store';
-import { builtinCommandDefs } from '../builtins';
+import { CliCommandExit } from '../../shared/cli-command-exit.js';
+import { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from '../../shared/cli-plugin.js';
+import { CommandRegistry } from '../../shared/command-registry-store.js';
+import { builtinCommandDefs } from '../builtins.js';
 
-import { ConsoleCommandDependencies, consoleCommand } from './console';
-import { ConsoleLinkContext, ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook';
-import { ConsoleReporter } from './console-reporter';
+import { ConsoleLinkContext, ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook.js';
+import { ConsoleReporter } from './console-reporter.js';
 import {
     NOW,
     PROJECT_ID,
@@ -21,8 +20,9 @@ import {
     projectList,
     singleAccountBody,
     storeLogin,
-} from './console.fixtures';
-import { getProjectLinkManifestPath } from './project-link-manifest';
+} from './console.fixtures.js';
+import { ConsoleCommandDependencies, consoleCommand } from './console.js';
+import { getProjectLinkManifestPath } from './project-link-manifest.js';
 
 // Two plugins, so the tests that care about order can name which is which.
 const FIRST_PLUGIN = '@example/first-cli-plugin';

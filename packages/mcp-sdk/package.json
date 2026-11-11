@@ -34,5 +34,10 @@
     "devDependencies": {
         "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1"
+    },
+    "nx": {
+        "tags": [
+            "scope:util"
+        ]
     }
 }

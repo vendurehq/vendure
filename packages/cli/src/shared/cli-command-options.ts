@@ -1,6 +1,6 @@
 import { Option } from 'commander';
 
-import { CliCommandOption } from './cli-command-definition';
+import { CliCommandOption } from './cli-command-definition.js';
 
 /**
  * Builds the Commander flags string for an option, e.g. `-p, --plugin [name]`.

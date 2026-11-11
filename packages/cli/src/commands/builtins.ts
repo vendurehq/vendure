@@ -1,16 +1,16 @@
-import { CliCommandDefinition, CliCommandNode, isRunnableCliCommand } from '../shared/cli-command-definition';
+import { CliCommandDefinition, CliCommandNode, isRunnableCliCommand } from '../shared/cli-command-definition.js';
 
-import { addCommandDef } from './add/command';
-import { authCommandDef } from './auth/command';
-import { buildCommandDef } from './build/command';
-import { codemodCommandDef } from './codemod/command';
-import { consoleCommandDef } from './console/command';
-import { devCommandDef } from './dev/command';
-import { doctorCommandDef } from './doctor/command';
-import { migrateCommandDef } from './migrate/command';
-import { pluginsCommandDef } from './plugins/command';
-import { schemaCommandDef } from './schema/command';
-import { startCommandDef } from './start/command';
+import { addCommandDef } from './add/command.js';
+import { authCommandDef } from './auth/command.js';
+import { buildCommandDef } from './build/command.js';
+import { codemodCommandDef } from './codemod/command.js';
+import { consoleCommandDef } from './console/command.js';
+import { devCommandDef } from './dev/command.js';
+import { doctorCommandDef } from './doctor/command.js';
+import { migrateCommandDef } from './migrate/command.js';
+import { pluginsCommandDef } from './plugins/command.js';
+import { schemaCommandDef } from './schema/command.js';
+import { startCommandDef } from './start/command.js';
 
 /**
  * Built-in CLI commands in registration order.

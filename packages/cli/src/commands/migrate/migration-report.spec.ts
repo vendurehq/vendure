@@ -1,7 +1,7 @@
 import { MigrationDiagnostic } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 
-import { buildMigrationReport } from './migration-report';
+import { buildMigrationReport } from './migration-report.js';
 
 const unmatched: MigrationDiagnostic = {
     code: 'no-migrations-matched',

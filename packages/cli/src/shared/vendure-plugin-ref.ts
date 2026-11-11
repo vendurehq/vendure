@@ -8,7 +8,7 @@ import {
     VariableDeclaration,
 } from 'ts-morph';
 
-import { EntityRef } from './entity-ref';
+import { EntityRef } from './entity-ref.js';
 
 export class VendurePluginRef {
     constructor(public classDeclaration: ClassDeclaration) {}

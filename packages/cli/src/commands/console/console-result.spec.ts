@@ -1,21 +1,21 @@
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { defineCliPlugin, type ConsoleLinkContext } from '../../index';
-import { runCli } from '../../shared/__tests__/run-cli';
-import { CliCommandExit } from '../../shared/cli-command-exit';
-import { CommandRegistry } from '../../shared/command-registry-store';
+import { defineCliPlugin, type ConsoleLinkContext } from '../../index.js';
+import { runCli } from '../../shared/__tests__/run-cli.js';
+import { CliCommandExit } from '../../shared/cli-command-exit.js';
+import { CommandRegistry } from '../../shared/command-registry-store.js';
 
-import { consoleCommandDef } from './command';
-import { consoleCommand } from './console';
+import { consoleCommandDef } from './command.js';
 import {
     createCliConfigDir,
     createVendureProject,
     fakeConsole,
     manifest as legacyManifest,
     storeLogin,
-} from './console.fixtures';
-import { getProjectLinkManifestPath } from './project-link-manifest';
+} from './console.fixtures.js';
+import { consoleCommand } from './console.js';
+import { getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /** A value that must never reach stdout. */
 const SECRET = 'vcli_access-token';

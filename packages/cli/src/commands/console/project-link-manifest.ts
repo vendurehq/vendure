@@ -3,15 +3,15 @@ import { randomUUID } from 'node:crypto';
 import * as fsPromises from 'node:fs/promises';
 import path from 'node:path';
 
-import { findProjectDirectoryHints, MONOREPO_PACKAGE_DIRS } from '../../utilities/monorepo-utils';
+import { findProjectDirectoryHints, MONOREPO_PACKAGE_DIRS } from '../../utilities/monorepo-utils.js';
 
 import {
     ConsoleOrigins,
     DEFAULT_CONSOLE_API_URL,
     DEFAULT_CONSOLE_URL,
     trustedConsoleOrigins,
-} from './console-origins';
-import { exactObjectValue, nonEmptyString, objectValue, uuid } from './project-link-validation';
+} from './console-origins.js';
+import { exactObjectValue, nonEmptyString, objectValue, uuid } from './project-link-validation.js';
 
 export const PROJECT_LINK_MANIFEST_RELATIVE_PATH = path.join('.vendure', 'project.json');
 

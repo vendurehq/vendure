@@ -1,5 +1,8 @@
 import { confirm, isCancel, log } from '@clack/prompts';
 
+import { AuthOptions, resolveConsoleApiUrl } from '../../auth/auth-options.js';
+import { hasLoginForOtherConsole } from '../../auth/auth-session.js';
+import { StoredOrganization } from '../../auth/auth-store.js';
 import {
     AuthStatus,
     DeviceLoginOptions,
@@ -7,12 +10,9 @@ import {
     loginWithDevice,
     logout,
     readAuthStatus,
-} from '../../auth';
-import { AuthOptions, resolveConsoleApiUrl } from '../../auth/auth-options';
-import { hasLoginForOtherConsole } from '../../auth/auth-session';
-import { StoredOrganization } from '../../auth/auth-store';
-import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
-import { openConsoleBrowser } from '../console/authentication';
+} from '../../auth/index.js';
+import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils.js';
+import { openConsoleBrowser } from '../console/authentication.js';
 
 export interface AuthCommandReporter {
     error(message: string): void;

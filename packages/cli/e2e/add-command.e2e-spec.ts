@@ -6,14 +6,14 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { addCommand } from '../src/commands/add/add';
-import * as apiExtensionModule from '../src/commands/add/api-extension/add-api-extension';
-import * as codegenModule from '../src/commands/add/codegen/add-codegen';
-import * as entityModule from '../src/commands/add/entity/add-entity';
-import * as jobQueueModule from '../src/commands/add/job-queue/add-job-queue';
-import * as pluginModule from '../src/commands/add/plugin/create-new-plugin';
-import * as serviceModule from '../src/commands/add/service/add-service';
-import { runCliCommand } from '../src/shared/cli-command-exit';
+import { addCommand } from '../src/commands/add/add.js';
+import * as apiExtensionModule from '../src/commands/add/api-extension/add-api-extension.js';
+import * as codegenModule from '../src/commands/add/codegen/add-codegen.js';
+import * as entityModule from '../src/commands/add/entity/add-entity.js';
+import * as jobQueueModule from '../src/commands/add/job-queue/add-job-queue.js';
+import * as pluginModule from '../src/commands/add/plugin/create-new-plugin.js';
+import * as serviceModule from '../src/commands/add/service/add-service.js';
+import { runCliCommand } from '../src/shared/cli-command-exit.js';
 
 const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');

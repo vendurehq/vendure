@@ -6,7 +6,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { claimPath, withFileLock } from './file-lock';
+import { claimPath, withFileLock } from './file-lock.js';
 
 let directory: string;
 let lockFile: string;
@@ -126,7 +126,7 @@ describe('withFileLock across processes', () => {
         options: { leftBehind?: (lockContent: string) => string[]; slowUnlinkMs?: number } = {},
     ): Promise<string[][]> {
         const lockModule = path.join(directory, 'file-lock.js');
-        const source = fs.readFileSync(path.join(__dirname, 'file-lock.ts'), 'utf-8');
+        const source = fs.readFileSync(path.join(import.meta.dirname, 'file-lock.ts'), 'utf-8');
         fs.writeFileSync(
             lockModule,
             ts.transpileModule(source, {

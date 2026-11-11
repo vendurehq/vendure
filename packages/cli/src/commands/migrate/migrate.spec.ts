@@ -1,13 +1,13 @@
 import { log, select } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { migrateCommandDef } from './command';
-import { migrateCommand } from './migrate';
+import { migrateCommandDef } from './command.js';
+import { migrateCommand } from './migrate.js';
 import {
     generateMigrationOperation,
     revertMigrationOperation,
     runMigrationsOperation,
-} from './migration-operations';
+} from './migration-operations.js';
 
 const commandMocks = vi.hoisted(() => ({
     generateMigrationRun: vi.fn(),
@@ -28,30 +28,30 @@ vi.mock('@clack/prompts', () => ({
     select: vi.fn(),
 }));
 
-vi.mock('../../utilities/utils', () => ({
+vi.mock('../../utilities/utils.js', () => ({
     abortIfNonInteractive: vi.fn(() => false),
     withInteractiveTimeout: vi.fn((fn: () => Promise<any>) => fn()),
 }));
 
-vi.mock('./migration-operations', () => ({
+vi.mock('./migration-operations.js', () => ({
     generateMigrationOperation: vi.fn(),
     revertMigrationOperation: vi.fn(),
     runMigrationsOperation: vi.fn(),
 }));
 
-vi.mock('./generate-migration/generate-migration', () => ({
+vi.mock('./generate-migration/generate-migration.js', () => ({
     generateMigrationCommand: {
         run: commandMocks.generateMigrationRun,
     },
 }));
 
-vi.mock('./revert-migration/revert-migration', () => ({
+vi.mock('./revert-migration/revert-migration.js', () => ({
     revertMigrationCommand: {
         run: commandMocks.revertMigrationRun,
     },
 }));
 
-vi.mock('./run-migration/run-migration', () => ({
+vi.mock('./run-migration/run-migration.js', () => ({
     runMigrationCommand: {
         run: commandMocks.runMigrationRun,
     },

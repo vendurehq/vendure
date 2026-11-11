@@ -1,8 +1,8 @@
 import type { RuntimeVendureConfig } from '@vendure/core';
 import type { DataSource } from 'typeorm';
 
-import { requireFromProject } from '../../../shared/project-core';
-import { CheckResult } from '../types';
+import { requireFromProject } from '../../../shared/project-core.js';
+import { CheckResult } from '../types.js';
 
 /**
  * Checks database connectivity by attempting to connect using the

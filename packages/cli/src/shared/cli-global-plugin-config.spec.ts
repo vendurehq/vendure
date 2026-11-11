@@ -10,7 +10,7 @@ import {
     getGlobalPluginAllowlist,
     readGlobalCliConfig,
     removeGlobalPlugin,
-} from './cli-global-plugin-config';
+} from './cli-global-plugin-config.js';
 
 describe('global CLI plugin config', () => {
     const tempDirs: string[] = [];

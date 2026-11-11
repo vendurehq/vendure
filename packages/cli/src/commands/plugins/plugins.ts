@@ -1,7 +1,7 @@
 import { cancel, intro, isCancel, log, multiselect, outro } from '@clack/prompts';
 import pc from 'picocolors';
 
-import { exitCliCommand } from '../../shared/cli-command-exit';
+import { exitCliCommand } from '../../shared/cli-command-exit.js';
 import {
     addGlobalPlugin,
     CLI_PLUGINS_ENV_VAR,
@@ -9,15 +9,15 @@ import {
     readEnvPluginNames,
     removeGlobalPlugin,
     writeGlobalPluginAllowlist,
-} from '../../shared/cli-global-plugin-config';
+} from '../../shared/cli-global-plugin-config.js';
 import {
     addCliPluginToProjectConfig,
     mergeEnabledPluginSelection,
     readCliProjectPackageJson,
     removeCliPluginFromProjectConfig,
     writeCliPluginProjectConfig,
-} from '../../shared/cli-plugin-project-config';
-import { findVendureProjectRoot } from '../../shared/project-validation';
+} from '../../shared/cli-plugin-project-config.js';
+import { findVendureProjectRoot } from '../../shared/project-validation.js';
 import {
     cliPluginCommandNames,
     CliPluginScopeKind,
@@ -27,12 +27,12 @@ import {
     pluginsCommandFor,
     PluginScope,
     resolveCliProjectRoot,
-} from '../../shared/resolve-cli-plugins';
+} from '../../shared/resolve-cli-plugins.js';
 import {
     abortIfNonInteractive,
     isNonInteractiveEnvironment,
     withInteractiveTimeout,
-} from '../../utilities/utils';
+} from '../../utilities/utils.js';
 
 export interface PluginsCommandOptions {
     json?: boolean;

@@ -33,8 +33,8 @@ vi.mock('@clack/prompts', async importOriginal => ({
     log: { info: (message: string) => events.push(`hint: ${message}`) },
 }));
 // Skips the installs, the database check and the real project require, which need a real project.
-vi.mock('./helpers', async importOriginal => {
-    const actual = await importOriginal<typeof import('./helpers')>();
+vi.mock('./helpers.js', async importOriginal => {
+    const actual = await importOriginal<typeof import('./helpers.js')>();
     return {
         ...actual,
         findAvailablePort: () => Promise.resolve(3000),
@@ -70,8 +70,8 @@ describe('createVendureApp() Console hint', () => {
 
     // OSS-882 - the hint appears once, between "Setup complete!" and "Happy hacking!".
     it('prints the hint once between the Setup complete note and the outro', async () => {
-        const { createVendureApp } = await import('./create-vendure-app');
-        const { getConsoleHint } = await import('./console-hint');
+        const { createVendureApp } = await import('./create-vendure-app.js');
+        const { getConsoleHint } = await import('./console-hint.js');
         events.length = 0;
 
         await createVendureApp(path.join(workDir, 'app'), false, 'silent', true);

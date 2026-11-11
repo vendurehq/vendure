@@ -1,7 +1,7 @@
+import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { EntityMetadata, In } from 'typeorm';
-import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';

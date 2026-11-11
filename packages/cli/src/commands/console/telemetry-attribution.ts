@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-import { ProjectLinkManifest } from './project-link-manifest';
+import { ProjectLinkManifest } from './project-link-manifest.js';
 
 /** The pattern Core accepts for a stored installation ID. */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

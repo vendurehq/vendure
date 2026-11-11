@@ -14,7 +14,7 @@ import {
     shouldRestartOnFileChange,
     startSupervisedDevProcess,
     waitForDevProcesses,
-} from './dev';
+} from './dev.js';
 
 function createTempDir() {
     return mkdtempSync(path.join(tmpdir(), 'vendure-cli-dev-'));

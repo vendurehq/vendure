@@ -1,9 +1,9 @@
 import { log } from '@clack/prompts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CliCommandExit } from '../shared/cli-command-exit';
+import { CliCommandExit } from '../shared/cli-command-exit.js';
 
-import { isNonInteractiveEnvironment, isTruthyEnvVar, withInteractiveTimeout } from './utils';
+import { isNonInteractiveEnvironment, isTruthyEnvVar, withInteractiveTimeout } from './utils.js';
 
 vi.mock('@clack/prompts', () => ({
     log: { warning: vi.fn(), info: vi.fn(), error: vi.fn() },

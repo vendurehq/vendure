@@ -56,7 +56,7 @@ export {
     logout,
     readAuthStatus,
     refreshAccessToken,
-} from './auth';
+} from './auth/index.js';
 export type {
     AuthOptions,
     AuthOrganization,
@@ -66,11 +66,11 @@ export type {
     DeviceLoginOptions,
     LogoutResult,
     StoredOrganization,
-} from './auth';
-export { builtinCommands } from './commands/builtins';
-export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication';
-export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication';
-export type { ConsoleSession } from './commands/console/cli-auth';
+} from './auth/index.js';
+export { builtinCommands } from './commands/builtins.js';
+export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication.js';
+export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication.js';
+export type { ConsoleSession } from './commands/console/cli-auth.js';
 export type {
     ConsoleLinkContext,
     ConsoleLinkEndpoints,
@@ -79,17 +79,17 @@ export type {
     ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
     ConsoleSessionUnavailableReason,
-} from './commands/console/console-link-hook';
-export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins';
-export type { ConsoleReporter } from './commands/console/console-reporter';
+} from './commands/console/console-link-hook.js';
+export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins.js';
+export type { ConsoleReporter } from './commands/console/console-reporter.js';
 export type {
     ConsoleCommandResult,
     ConsoleLinkResultContribution,
     ConsoleMissingInput,
     ConsoleResultData,
-} from './commands/console/console-result';
-export type { ProjectLinkManifest } from './commands/console/project-link-manifest';
-export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';
+} from './commands/console/console-result.js';
+export type { ProjectLinkManifest } from './commands/console/project-link-manifest.js';
+export { readCommandContext, readCommandOptions } from './shared/cli-command-definition.js';
 export type {
     CliCommandAction,
     CliCommandArgument,
@@ -102,7 +102,7 @@ export type {
     CliCommandNode,
     CliCommandOption,
     ProjectCliPluginConfig,
-} from './shared/cli-command-definition';
-export { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from './shared/cli-plugin';
-export type { CliPlugin } from './shared/cli-plugin';
-export type { CliPluginExtensionAccessor, RegisteredCliPluginExtension } from './shared/cli-plugin-extension';
+} from './shared/cli-command-definition.js';
+export { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from './shared/cli-plugin.js';
+export type { CliPlugin } from './shared/cli-plugin.js';
+export type { CliPluginExtensionAccessor, RegisteredCliPluginExtension } from './shared/cli-plugin-extension.js';
