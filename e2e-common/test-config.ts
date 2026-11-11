@@ -11,6 +11,7 @@ import path from 'path';
 import { DataSourceOptions } from 'typeorm';
 
 import { getPackageDir } from './get-package-dir';
+import { getTestFileIndex } from './get-test-file-index';
 
 declare global {
     namespace NodeJS {
@@ -35,11 +36,15 @@ registerInitializer('mysql', new MysqlInitializer());
 registerInitializer('mariadb', new MysqlInitializer());
 
 export const testConfig = () => {
-    const index = getIndexOfTestFileInParentDir();
+    const testFilePath = getCallerFilename(1);
+    const index = getTestFileIndex(path.dirname(packageDir), testFilePath);
     const { basePort, size } = getPortRange();
+    if (index === -1) {
+        throw new Error(`${testFilePath} is not a test file of ${path.dirname(packageDir)}.`);
+    }
     if (index >= size) {
         throw new Error(
-            `${packageDir} has more than ${size} entries. Make its port range in e2e-common/test-config.ts larger.`,
+            `${path.dirname(packageDir)} has more than ${size} test files. Make its port range in e2e-common/test-config.ts larger.`,
         );
     }
     return mergeConfig(defaultTestConfig, {
@@ -83,19 +88,6 @@ function getPortRange(): { basePort: number; size: number } {
         basePort: PACKAGE_BASE_PORT + packages.indexOf(packageName) * PORTS_PER_PACKAGE,
         size: PORTS_PER_PACKAGE,
     };
-}
-
-/**
- * Returns the index of the test file in the parent directory.
- * This is used to ensure each test file has a unique
- * port number.
- */
-function getIndexOfTestFileInParentDir() {
-    const testFilePath = getCallerFilename(2);
-    const parentDir = path.dirname(testFilePath);
-    const files = fs.readdirSync(parentDir);
-    const index = files.indexOf(path.basename(testFilePath));
-    return index;
 }
 
 /**

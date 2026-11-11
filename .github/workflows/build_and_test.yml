@@ -31,16 +31,24 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
+            # nx-set-shas reads the last successful run of this workflow on push.
+            actions: read
         outputs:
             packages: ${{ steps.check.outputs.packages }}
             dashboard: ${{ steps.check.outputs.dashboard }}
             nx: ${{ steps.check.outputs.nx }}
+            e2e-sqljs: ${{ steps.plan-e2e.outputs.e2e-sqljs }}
+            e2e-mariadb: ${{ steps.plan-e2e.outputs.e2e-mariadb }}
+            e2e-mysql: ${{ steps.plan-e2e.outputs.e2e-mysql }}
+            e2e-postgres: ${{ steps.plan-e2e.outputs.e2e-postgres }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
             # Nx needs the installed workspace to compute the project graph.
             - uses: ./.github/actions/setup
+            - name: Test the workflow scripts
+              run: node --test .github/workflows/scripts/*.test.js e2e-common/*.test.js
             - name: Detect changed paths
               id: check
               env:
@@ -48,6 +56,17 @@ jobs:
                   GITHUB_EVENT_BEFORE: ${{ github.event.before }}
               run: |
                   bash .github/workflows/scripts/detect-changes.sh
+            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+              if: steps.check.outputs.packages == 'true'
+              with:
+                  main-branch-name: ${{ github.base_ref || github.ref_name }}
+            # Selects the e2e jobs of each database: the core shards and one job for the other packages.
+            - name: Plan the e2e jobs
+              id: plan-e2e
+              if: steps.check.outputs.packages == 'true'
+              env:
+                  NX_COMMAND: ${{ steps.check.outputs.nx }}
+              run: node .github/workflows/scripts/plan-e2e.js "$NX_COMMAND"
     codegen:
         needs: detect-changes
         if: needs.detect-changes.outputs.packages == 'true'
@@ -129,8 +148,8 @@ jobs:
             - name: Type-check the Nx plugin
               run: bun run nx run nx-plugin:typecheck
     unit-tests:
-        name: unit tests
-        needs: [detect-changes, build]
+        name: unit tests (${{ matrix.node }}, ${{ matrix.part.id }})
+        needs: detect-changes
         if: needs.detect-changes.outputs.packages == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -141,6 +160,12 @@ jobs:
             fail-fast: false
             matrix:
                 node: [22.x, 24.x]
+                # Core and the dashboard have the longest unit tests. Each runs alone in a job with
+                # more Vitest workers. `exclude` takes Nx project patterns.
+                part:
+                    - { id: core, exclude: '*,!@vendure/core', workers: 3 }
+                    - { id: dashboard, exclude: '*,!@vendure/dashboard', workers: 3 }
+                    - { id: other, exclude: '@vendure/core,@vendure/dashboard', workers: 1 }
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -151,8 +176,8 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            # A re-run restores the results of the earlier attempt. The first attempt restores the
-            # packages that the build job built.
+            # A re-run restores the results of the earlier attempt. The first attempt does not wait
+            # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -160,10 +185,11 @@ jobs:
                   path: |
                       .nx/cache
                       .nx/workspace-data/*.db
-                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-
                       nx-${{ runner.os }}-build-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
             - name: Use the restored Nx cache database
@@ -176,7 +202,9 @@ jobs:
             - name: Unit tests
               env:
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t test --output-style=stream
+                  EXCLUDE: ${{ matrix.part.exclude }}
+                  VITEST_MAX_WORKERS: ${{ matrix.part.workers }}
+              run: bun run nx "$NX_COMMAND" -t test --exclude="$EXCLUDE" --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -213,7 +241,7 @@ jobs:
               run: bun run lint
     dashboard-e2e:
         name: dashboard e2e (${{ matrix.shard }})
-        needs: [detect-changes, build]
+        needs: detect-changes
         if: needs.detect-changes.outputs.dashboard == 'true'
         runs-on: ubuntu-latest
         permissions:
@@ -235,6 +263,7 @@ jobs:
                   key: nx-${{ runner.os }}-build-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
                       nx-${{ runner.os }}-build-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
             - name: Use the restored Nx cache database
@@ -295,10 +324,11 @@ jobs:
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     e2e-sqljs:
-        name: e2e (sqljs)
-        needs: [detect-changes, build]
-        if: needs.detect-changes.outputs.packages == 'true'
+        name: e2e (sqljs) (${{ matrix.node }}, ${{ matrix.part.id }})
+        needs: detect-changes
+        if: needs.detect-changes.outputs.e2e-sqljs != '[]' && needs.detect-changes.outputs.e2e-sqljs != ''
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: read
             # nx-set-shas reads the last successful run of this workflow on push.
@@ -312,6 +342,7 @@ jobs:
             fail-fast: false
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
+                part: ${{ fromJSON(needs.detect-changes.outputs.e2e-sqljs) }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -322,8 +353,8 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            # A re-run restores the results of the earlier attempt. The first attempt restores the
-            # packages that the build job built.
+            # A re-run restores the results of the earlier attempt. The first attempt does not wait
+            # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -331,10 +362,11 @@ jobs:
                   path: |
                       .nx/cache
                       .nx/workspace-data/*.db
-                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-
                       nx-${{ runner.os }}-build-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
             - name: Use the restored Nx cache database
@@ -349,7 +381,13 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: sqljs
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+                  SHARD: ${{ matrix.part.shard }}
+              run: |
+                  if [[ -n "$SHARD" ]]; then
+                      bun run nx run @vendure/core:e2e --shard="$SHARD" --output-style=stream
+                  else
+                      bun run nx "$NX_COMMAND" -t e2e --exclude=@vendure/core --parallel=4 --output-style=stream
+                  fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -359,10 +397,11 @@ jobs:
                       .nx/workspace-data/*.db
                   key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     e2e-mariadb:
-        name: e2e (mariadb)
-        needs: [detect-changes, build]
-        if: needs.detect-changes.outputs.packages == 'true'
+        name: e2e (mariadb) (${{ matrix.node }}, ${{ matrix.part.id }})
+        needs: detect-changes
+        if: needs.detect-changes.outputs.e2e-mariadb != '[]' && needs.detect-changes.outputs.e2e-mariadb != ''
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: read
             # nx-set-shas reads the last successful run of this workflow on push.
@@ -385,6 +424,7 @@ jobs:
             fail-fast: false
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
+                part: ${{ fromJSON(needs.detect-changes.outputs.e2e-mariadb) }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -395,8 +435,8 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            # A re-run restores the results of the earlier attempt. The first attempt restores the
-            # packages that the build job built.
+            # A re-run restores the results of the earlier attempt. The first attempt does not wait
+            # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -404,10 +444,11 @@ jobs:
                   path: |
                       .nx/cache
                       .nx/workspace-data/*.db
-                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-
                       nx-${{ runner.os }}-build-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
             - name: Use the restored Nx cache database
@@ -423,7 +464,13 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mariadb
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+                  SHARD: ${{ matrix.part.shard }}
+              run: |
+                  if [[ -n "$SHARD" ]]; then
+                      bun run nx run @vendure/core:e2e --shard="$SHARD" --output-style=stream
+                  else
+                      bun run nx "$NX_COMMAND" -t e2e --exclude=@vendure/core --parallel=4 --output-style=stream
+                  fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -433,10 +480,11 @@ jobs:
                       .nx/workspace-data/*.db
                   key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     e2e-mysql:
-        name: e2e (mysql)
-        needs: [detect-changes, build]
-        if: needs.detect-changes.outputs.packages == 'true'
+        name: e2e (mysql) (${{ matrix.node }}, ${{ matrix.part.id }})
+        needs: detect-changes
+        if: needs.detect-changes.outputs.e2e-mysql != '[]' && needs.detect-changes.outputs.e2e-mysql != ''
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: read
             # nx-set-shas reads the last successful run of this workflow on push.
@@ -469,6 +517,7 @@ jobs:
             fail-fast: false
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
+                part: ${{ fromJSON(needs.detect-changes.outputs.e2e-mysql) }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -479,8 +528,8 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            # A re-run restores the results of the earlier attempt. The first attempt restores the
-            # packages that the build job built.
+            # A re-run restores the results of the earlier attempt. The first attempt does not wait
+            # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -488,10 +537,11 @@ jobs:
                   path: |
                       .nx/cache
                       .nx/workspace-data/*.db
-                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-
                       nx-${{ runner.os }}-build-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
             - name: Use the restored Nx cache database
@@ -507,7 +557,13 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mysql
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+                  SHARD: ${{ matrix.part.shard }}
+              run: |
+                  if [[ -n "$SHARD" ]]; then
+                      bun run nx run @vendure/core:e2e --shard="$SHARD" --output-style=stream
+                  else
+                      bun run nx "$NX_COMMAND" -t e2e --exclude=@vendure/core --parallel=4 --output-style=stream
+                  fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -517,10 +573,11 @@ jobs:
                       .nx/workspace-data/*.db
                   key: ${{ steps.nx-cache.outputs.cache-primary-key }}
     e2e-postgres:
-        name: e2e (postgres)
-        needs: [detect-changes, build]
-        if: needs.detect-changes.outputs.packages == 'true'
+        name: e2e (postgres) (${{ matrix.node }}, ${{ matrix.part.id }})
+        needs: detect-changes
+        if: needs.detect-changes.outputs.e2e-postgres != '[]' && needs.detect-changes.outputs.e2e-postgres != ''
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: read
             # nx-set-shas reads the last successful run of this workflow on push.
@@ -542,6 +599,7 @@ jobs:
             fail-fast: false
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
+                part: ${{ fromJSON(needs.detect-changes.outputs.e2e-postgres) }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -552,8 +610,8 @@ jobs:
             - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
-            # A re-run restores the results of the earlier attempt. The first attempt restores the
-            # packages that the build job built.
+            # A re-run restores the results of the earlier attempt. The first attempt does not wait
+            # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
               uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -561,10 +619,11 @@ jobs:
                   path: |
                       .nx/cache
                       .nx/workspace-data/*.db
-                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-${{ github.run_attempt }}
+                  key: nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-${{ github.run_attempt }}
                   restore-keys: |
-                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ github.sha }}-
+                      nx-${{ runner.os }}-${{ github.job }}-${{ matrix.node }}-${{ matrix.part.id }}-${{ github.sha }}-
                       nx-${{ runner.os }}-build-${{ github.sha }}-
+                      nx-${{ runner.os }}-build-
             # Nx names the database after the machine ID. Give the restored database the name
             # that Nx uses on this runner.
             - name: Use the restored Nx cache database
@@ -580,7 +639,13 @@ jobs:
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: postgres
                   NX_COMMAND: ${{ needs.detect-changes.outputs.nx }}
-              run: bun run nx "$NX_COMMAND" -t e2e --output-style=stream
+                  SHARD: ${{ matrix.part.shard }}
+              run: |
+                  if [[ -n "$SHARD" ]]; then
+                      bun run nx run @vendure/core:e2e --shard="$SHARD" --output-style=stream
+                  else
+                      bun run nx "$NX_COMMAND" -t e2e --exclude=@vendure/core --parallel=4 --output-style=stream
+                  fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
