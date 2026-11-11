@@ -269,7 +269,7 @@ export const OrderShippedTemplate = defineEmailTemplate<OrderShippedProps>({
   as a function of the props or a string with `{{ path.to.value }}` placeholders.
 - **`variables`** are the values the text can include as `{{ name }}`. Each one turns the props into display text,
   so amounts and dates are formatted in the email's language. `orderVariables()` adds `orderCode`,
-  `customerFirstName`, `customerName`, `orderTotal` and `orderDate`. Every email can also use `shopName`.
+  `customerFirstName`, `customerFullName`, `orderTotal` and `orderDate`. Every email can also use `shopName`.
 - **`useEmailContent()`** returns the text with stored changes applied and variables filled in.
 
 Build templates from the components exported by `@vendure/email`: `EmailLayout` (always the root), `EmailSection`,

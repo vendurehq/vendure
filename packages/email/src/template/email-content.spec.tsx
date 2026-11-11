@@ -18,7 +18,11 @@ const order = {
 const context = { languageCode: 'en', channelCode: 'default' };
 
 describe('resolveEmailContent()', () => {
-    const props = { order, fulfillment: { method: 'DHL', trackingCode: 'X1', lines: [] }, branding: { name: 'Shop' } };
+    const props = {
+        order,
+        fulfillment: { method: 'DHL', trackingCode: 'X1', lines: [] },
+        branding: { name: 'Shop' },
+    };
 
     it('uses the draft, then the channel text, then the all-channels text, then the default', () => {
         const { values, origins } = resolveEmailContent(
@@ -39,31 +43,47 @@ describe('resolveEmailContent()', () => {
     });
 
     it('treats empty text as not set', () => {
-        const { origins } = resolveEmailContent(OrderShippedTemplate, props, context, { channel: { title: '  ' } });
+        const { origins } = resolveEmailContent(OrderShippedTemplate, props, context, {
+            channel: { title: '  ' },
+        });
         expect(origins.title).toBe('default');
     });
 
     it('fills in template and built-in variables', () => {
-        const { values } = resolveEmailContent(OrderShippedTemplate, props, context, {}, {
-            intro: '{{ customerFirstName }}, {{ trackingCode }} from {{ shopName }}',
-        });
-        expect(values.intro).toBe('Ada, X1 from Shop');
+        const { values } = resolveEmailContent(
+            OrderShippedTemplate,
+            props,
+            context,
+            {},
+            {
+                intro: '{{ customerFirstName }} ({{ customerFullName }}), {{ trackingCode }} from {{ shopName }}',
+            },
+        );
+        expect(values.intro).toBe('Ada (Ada Lovelace), X1 from Shop');
     });
 
     it('formats money variables in the email language', () => {
         const refundProps = { order, refund: { total: 5000 } };
-        const de = resolveEmailContent(OrderRefundedTemplate, refundProps, { ...context, languageCode: 'de' }, {}, {
-            intro: '{{ refundAmount }}',
-        });
+        const de = resolveEmailContent(
+            OrderRefundedTemplate,
+            refundProps,
+            { ...context, languageCode: 'de' },
+            {},
+            {
+                intro: '{{ refundAmount }}',
+            },
+        );
         expect(de.values.intro).toContain('50,00');
     });
 });
 
 describe('validateEmailContent()', () => {
     it('accepts known slots and variables', () => {
-        expect(validateEmailContent(OrderShippedTemplate, { intro: 'Hi {{ customerFirstName }} at {{ shopName }}' })).toEqual(
-            [],
-        );
+        expect(
+            validateEmailContent(OrderShippedTemplate, {
+                intro: 'Hi {{ customerFirstName }} at {{ shopName }}',
+            }),
+        ).toEqual([]);
     });
 
     it('rejects unknown variables and slots', () => {
@@ -78,7 +98,9 @@ describe('validateEmailContent()', () => {
 
     it('lists the variables with labels', () => {
         const names = listEmailVariables(OrderRefundedTemplate).map(v => v.name);
-        expect(names).toEqual(expect.arrayContaining(['shopName', 'orderCode', 'refundAmount', 'refundReason']));
+        expect(names).toEqual(
+            expect.arrayContaining(['shopName', 'orderCode', 'refundAmount', 'refundReason']),
+        );
     });
 });
 
@@ -93,21 +115,25 @@ describe('rendering with content', () => {
     }
 
     it('uses stored text for the subject and body, and reports where each slot came from', async () => {
-        const result = await service({ allChannels: { subject: 'Money back for {{ orderCode }}', title: 'Refund!' } }).render(
-            RequestContext.empty(),
-            {
-                type: 'order-refunded',
-                from: 'x',
-                templateVars: { order, refund: { total: 5000 } },
-                languageCode: LanguageCode.en,
-                channelCode: 'default',
-                contentDraft: { note: 'Draft note' },
-            },
-        );
+        const result = await service({
+            allChannels: { subject: 'Money back for {{ orderCode }}', title: 'Refund!' },
+        }).render(RequestContext.empty(), {
+            type: 'order-refunded',
+            from: 'x',
+            templateVars: { order, refund: { total: 5000 } },
+            languageCode: LanguageCode.en,
+            channelCode: 'default',
+            contentDraft: { note: 'Draft note' },
+        });
         expect(result.subject).toBe('Money back for T_1');
         expect(result.html).toContain('Refund!');
         expect(result.html).toContain('Draft note');
-        expect(result.contentOrigins).toMatchObject({ subject: 'all-channels', title: 'all-channels', note: 'draft', intro: 'default' });
+        expect(result.contentOrigins).toMatchObject({
+            subject: 'all-channels',
+            title: 'all-channels',
+            note: 'draft',
+            intro: 'default',
+        });
     });
 
     it('marks the text for editing and shows variables in curly brackets', async () => {

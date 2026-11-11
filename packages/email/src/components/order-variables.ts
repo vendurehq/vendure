@@ -6,7 +6,7 @@ import { EmailOrder } from './order-blocks';
 /**
  * @description
  * The variables that every order email's text can use: `orderCode`, `customerFirstName`,
- * `customerName`, `orderTotal` and `orderDate`. Spread them into a template's `variables`.
+ * `customerFullName`, `orderTotal` and `orderDate`. Spread them into a template's `variables`.
  *
  * @example
  * ```ts
@@ -24,8 +24,8 @@ export function orderVariables<Props extends { order: EmailOrder }>(): Record<st
     return {
         orderCode: { label: 'Order code', value: ({ order }) => order.code },
         customerFirstName: { label: 'Customer first name', value: ({ order }) => order.customer?.firstName },
-        customerName: {
-            label: 'Customer name',
+        customerFullName: {
+            label: 'Customer full name',
             value: ({ order }) =>
                 [order.customer?.firstName, order.customer?.lastName].filter(Boolean).join(' '),
         },
