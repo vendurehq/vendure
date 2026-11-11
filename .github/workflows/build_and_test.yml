@@ -105,6 +105,8 @@ jobs:
               run: bun run nx sync:check
             - name: Check module boundaries
               run: bun run lint:boundaries
+            - name: Type-check the Nx plugin
+              run: bun run nx run nx-plugin:typecheck
     unit-tests:
         name: unit tests
         needs: detect-changes
