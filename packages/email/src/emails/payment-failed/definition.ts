@@ -40,7 +40,9 @@ function createEvent(ctx: RequestContext, order: Order, targetId: string) {
     if (!payment) {
         throw new Error(`Order ${order.code} has no payment with id "${targetId}"`);
     }
-    return new PaymentStateTransitionEvent('Created', payment.state, ctx, payment, order);
+    // A preview may use a payment that didn't fail; the email is about a failure either way.
+    const toState = FAILED_STATES.has(payment.state) ? payment.state : 'Declined';
+    return new PaymentStateTransitionEvent('Created', toState, ctx, payment, order);
 }
 
 /**

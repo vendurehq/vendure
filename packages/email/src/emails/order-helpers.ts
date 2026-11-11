@@ -115,14 +115,18 @@ export async function findSampleOrderWithTarget(
     args: Record<string, string>,
     targets: (order: Order) => OrderEmailTarget[],
 ): Promise<{ order: Order; targetId: string } | undefined> {
-    const pick = (order: Order) => {
+    const pick = (order: Order, anyState: boolean) => {
         const all = targets(order);
-        const wanted = args.target ? all.find(t => t.id === args.target) : all.find(t => t.eligible);
+        const wanted = args.target
+            ? all.find(t => t.id === args.target)
+            : (all.find(t => t.eligible) ?? (anyState ? all[0] : undefined));
         return wanted ? { order, targetId: wanted.id } : undefined;
     };
     if (args.order) {
+        // The caller chose this order, so preview it even when its state wouldn't allow sending,
+        // e.g. the payment failed email for a paid order. Sending from the order page still checks.
         const order = await findSampleOrder(ctx, injector, args);
-        return order ? pick(order) : undefined;
+        return order ? pick(order, true) : undefined;
     }
     const recent = await injector
         .get(TransactionalConnection)
@@ -136,7 +140,7 @@ export async function findSampleOrderWithTarget(
         .getMany();
     for (const { id } of recent) {
         const order = await loadOrderForEmail(ctx, injector, id);
-        const result = pick(order);
+        const result = pick(order, false);
         if (result) {
             return result;
         }

@@ -280,7 +280,30 @@ export function EmailEditorBlock({ email, initialOrderCode }: Readonly<{ email: 
                 </div>
             ) : null}
 
-            {preview.error ? (
+            {preview.error && appliedOrderCode && isSampleError(preview.error) ? (
+                <Alert>
+                    <AlertDescription className="flex flex-wrap items-center gap-3">
+                        <span>
+                            <Trans>
+                                Order {appliedOrderCode} has nothing this email can be about, for example no
+                                refund or no shipment.
+                            </Trans>
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                setOrderCode('');
+                                setAppliedOrderCode('');
+                            }}
+                        >
+                            <Trans>Use the most recent matching order</Trans>
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            {preview.error && !(appliedOrderCode && isSampleError(preview.error)) ? (
                 <Alert variant="destructive">
                     <AlertDescription className="whitespace-pre-wrap">
                         {String((preview.error as any)?.message ?? preview.error)}
@@ -400,4 +423,10 @@ function normalize(text: string): string {
 function unknownVariables(text: string, known: Set<string>): string[] {
     const names = [...text.matchAll(/\{\{\{?\s*([^}\s]+)\s*\}?\}\}/g)].map(match => match[1]);
     return [...new Set(names)].filter(name => !known.has(name));
+}
+
+/** No sample data for the chosen order, or the email's filter rejected it. */
+function isSampleError(error: unknown): boolean {
+    const message = String((error as any)?.message ?? '');
+    return message.includes('[sample]') || message.includes('[filter]');
 }
