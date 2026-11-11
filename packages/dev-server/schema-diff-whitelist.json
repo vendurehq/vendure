@@ -247,6 +247,22 @@
     {
       "key": "con:campus_review_alert_rule.campus_review_alert_rule_channelId_key",
       "reason": "campus_review_alert_rule 由 p10-review-alert 迁移显式创建的「每渠道一条规则」唯一约束，属业务不变量，不随元数据删除"
+    },
+    {
+      "key": "index:IDX_d0556dd29c9e6fc1275d968463",
+      "reason": "onebridge_rfq 手工建表已按实体定义建同名索引，TypeORM 仍生成同名 DROP+CREATE 对，实际无变化"
+    },
+    {
+      "key": "index:IDX_a875474c17fd66c6791efd9906",
+      "reason": "onebridge_stage_event 手工建表已按实体定义建同名索引，TypeORM 仍生成同名 DROP+CREATE 对，实际无变化"
+    },
+    {
+      "key": "index:IDX_12e44a92c3a2e79b5e59c9ce67",
+      "reason": "onebridge_inspection_report 手工建表已按实体定义建同名索引，TypeORM 仍生成同名 DROP+CREATE 对，实际无变化"
+    },
+    {
+      "key": "index:IDX_f4b223fd7cf45fdb6f17c9ff94",
+      "reason": "onebridge_exchange_rate 手工建表已按实体定义建同名索引，TypeORM 仍生成同名 DROP+CREATE 对，实际无变化"
     }
   ]
 }
