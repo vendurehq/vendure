@@ -129,6 +129,9 @@ such as `activeOrder` and `addItemToOrder`. By default, the strategy uses the ac
 
 Note that if multiple strategies are defined, they will be checked in order and the first one that
 returns an Order will be used.
+
+A plugin adds an entry with [addStrategyToList](/reference/typescript-api/configuration/add-strategy-to-list#addstrategytolist), and a project removes an entry with
+[removeStrategyFromList](/reference/typescript-api/configuration/add-strategy-to-list#removestrategyfromlist). Core then sorts the list by priority.
 ### orderSellerStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-seller-strategy#ordersellerstrategy'>OrderSellerStrategy</a>`} default={`<a href='/reference/typescript-api/orders/order-seller-strategy#defaultordersellerstrategy'>DefaultOrderSellerStrategy</a>`}  since="2.0.0"  />

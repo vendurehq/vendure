@@ -1,4 +1,5 @@
 import { getConfig } from '../config/config-helpers';
+import { getBaseStrategy } from '../config/strategy-layer/compose-strategy';
 import { NoopInstrumentationStrategy } from '../config/system/noop-instrumentation-strategy';
 
 export const ENABLE_INSTRUMENTATION_ENV_VAR = 'VENDURE_ENABLE_INSTRUMENTATION';
@@ -66,7 +67,7 @@ export function Instrument(): ClassDecorator {
                     return this;
                 }
 
-                if (instrumentationStrategy instanceof NoopInstrumentationStrategy) {
+                if (getBaseStrategy(instrumentationStrategy) instanceof NoopInstrumentationStrategy) {
                     throw new Error('Please add a TelemetryPlugin to your VendureConfig');
                 }
 
