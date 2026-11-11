@@ -105,6 +105,8 @@ export * from './shipping-method/default-shipping-line-assignment-strategy';
 export * from './shipping-method/shipping-calculator';
 export * from './shipping-method/shipping-eligibility-checker';
 export * from './shipping-method/shipping-line-assignment-strategy';
+export * from './strategy-layer/compose-strategy';
+export * from './strategy-layer/strategy-layer';
 export * from './system/default-encryption-strategy';
 export * from './system/encryption-strategy';
 export * from './system/error-handler-strategy';
