@@ -27,4 +27,4 @@ export * from './scheduler/index';
 export * from './service/index';
 export { VENDURE_VERSION } from './version';
 export * from './worker/index';
-// Temporary change to measure CI (2).
+// Temporary change to measure CI.
