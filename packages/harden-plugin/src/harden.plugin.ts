@@ -174,4 +174,3 @@ export class HardenPlugin {
         return HardenPlugin;
     }
 }
-// Temporary change to measure CI. Reverted before merge.
