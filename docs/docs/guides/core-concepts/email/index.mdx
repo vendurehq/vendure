@@ -292,16 +292,17 @@ Use `EmailData<typeof myEmail>` to type a template's props from the definition i
 
 ### Editing the text in the Dashboard
 
-In **System > Emails**, select an email to edit its text. Each piece of text from the template's `content` has its
-own field, and the chips above the fields insert the email's variables. The preview shows the changes as you type,
-before they are saved. The design stays as it is in code.
+In **System > Emails**, select an email and click any text in its preview to change it. The preview shows the
+email with real data, and the editable text with its variables in curly brackets, such as `{{ orderCode }}`. The
+chips above the preview insert a variable where the cursor is. The subject and the inbox preview text are not part
+of the email body, so they have fields above the preview. The design stays as it is in code.
 
 - **Language.** Text is stored per language. A language without stored text uses the template's default.
 - **Channel.** "Applies to" stores text for all channels, or for the active channel only. Text for a channel takes
   precedence over text for all channels, which takes precedence over the default.
-- **Use default.** Clearing a field removes the stored text, so the field falls back again.
-- **Validation.** Saving fails when the text uses a variable the email doesn't have. The field also shows a
-  warning while you type.
+- **Use default.** The list of changed text below the preview has a "Use default" button for each piece of text,
+  which removes the stored text so it falls back again.
+- **Validation.** Saving fails when the text uses a variable the email doesn't have.
 
 Editing the text needs the `UpdateSettings` permission, and viewing it needs `ReadSettings`.
 

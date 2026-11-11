@@ -37,6 +37,8 @@ export const emailAdminApiExtensions = gql`
         sampleArgs: JSON
         "Unsaved text for content slots, by slot name. Shown instead of the stored text"
         content: JSON
+        "Marks the editable text in the HTML and shows it with its {{ variables }}, for editing in the preview"
+        editable: Boolean
     }
 
     type EmailPreview {
@@ -155,13 +157,14 @@ export class EmailAdminResolver {
                 channelCode?: string;
                 sampleArgs?: Record<string, any>;
                 content?: Record<string, any>;
+                editable?: boolean;
             };
         },
     ) {
-        const { type, languageCode, channelCode, sampleArgs, content } = args.input;
+        const { type, languageCode, channelCode, sampleArgs, content, editable } = args.input;
         try {
             const result = await this.previewService.render(
-                { type, languageCode, channelCode, args: toStringRecord(sampleArgs), contentDraft: toStringRecord(content) },
+                { type, languageCode, channelCode, args: toStringRecord(sampleArgs), contentDraft: toStringRecord(content), editable: !!editable },
                 req,
             );
             return {

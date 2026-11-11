@@ -58,6 +58,8 @@ export interface EmailPreviewInput {
     args?: Record<string, string>;
     /** Unsaved text for content slots, shown instead of the stored text. */
     contentDraft?: Record<string, string>;
+    /** Renders the email for editing in the Dashboard preview. See `RenderEmailInput.editable`. */
+    editable?: boolean;
 }
 
 /**
@@ -129,6 +131,7 @@ export class EmailPreviewService {
                 languageCode: job.languageCode,
                 channelCode: job.channelCode,
                 contentDraft: input.contentDraft,
+                editable: input.editable,
             }),
         );
         return {

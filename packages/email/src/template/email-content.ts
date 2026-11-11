@@ -69,8 +69,8 @@ export interface EmailContentOverrides {
 
 /**
  * Resolves the text of every content slot of a template: the draft, then the channel override, then
- * the all-channels override, then the default. Empty strings count as "not set". Then fills in the
- * variables.
+ * the all-channels override, then the default. Empty strings count as "not set". `raw` is the text with
+ * its `{{ variables }}`, `values` has them filled in.
  */
 export function resolveEmailContent(
     template: EmailTemplate,
@@ -78,9 +78,14 @@ export function resolveEmailContent(
     context: { languageCode: string; channelCode: string },
     overrides: EmailContentOverrides = {},
     draft: Record<string, string> = {},
-): { values: Record<string, string>; origins: Record<string, EmailContentOrigin> } {
+): {
+    values: Record<string, string>;
+    raw: Record<string, string>;
+    origins: Record<string, EmailContentOrigin>;
+} {
     const variables = computeEmailVariables(template, props, context);
     const values: Record<string, string> = {};
+    const raw: Record<string, string> = {};
     const origins: Record<string, EmailContentOrigin> = {};
     for (const [name, slot] of Object.entries(template.content ?? {})) {
         const candidates: Array<[EmailContentOrigin, string | undefined]> = [
@@ -92,10 +97,11 @@ export function resolveEmailContent(
             'default',
             slot.default,
         ];
+        raw[name] = text ?? '';
         values[name] = interpolateTemplateString(text ?? '', variables);
         origins[name] = origin;
     }
-    return { values, origins };
+    return { values, raw, origins };
 }
 
 /**

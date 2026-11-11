@@ -7,15 +7,13 @@ import {
     PageLayout,
     PageTitle,
     PermissionGuard,
-    useChannel,
     useQuery,
 } from '@vendure/dashboard';
 import { useState } from 'react';
 
-import { EmailContentBlock } from './components/email-content-block';
+import { EmailEditorBlock } from './components/email-editor-block';
 import { EmailListBlock } from './components/email-list-block';
 import { EmailOutboxBlock } from './components/email-outbox-block';
-import { EmailPreviewBlock } from './components/email-preview-block';
 import { EmailOverviewResult, emailOverviewQuery } from './email.graphql';
 
 function initialParam(name: string) {
@@ -23,10 +21,7 @@ function initialParam(name: string) {
 }
 
 function EmailsPage() {
-    const { activeChannel } = useChannel();
     const [selectedType, setSelectedType] = useState<string | undefined>(() => initialParam('type'));
-    const [languageCode, setLanguageCode] = useState<string>(activeChannel?.defaultLanguageCode ?? 'en');
-    const [contentDraft, setContentDraft] = useState<Record<string, string>>({});
     const { data } = useQuery<EmailOverviewResult>({
         queryKey: ['emailOverview'],
         queryFn: () => api.query(emailOverviewQuery),
@@ -36,7 +31,6 @@ function EmailsPage() {
 
     const select = (type: string) => {
         setSelectedType(type);
-        setContentDraft({});
         const url = new URL(window.location.href);
         url.searchParams.set('type', type);
         window.history.replaceState(window.history.state, '', url);
@@ -54,32 +48,12 @@ function EmailsPage() {
                     </PageBlock>
                     <PageBlock
                         column="main"
-                        blockId="email-content"
-                        title={selected ? selected.label : <Trans>Text</Trans>}
+                        blockId="email-editor"
+                        title={selected ? selected.label : <Trans>Email</Trans>}
                         description={<Trans>Change the wording of this email. The design stays the same.</Trans>}
                     >
                         {selected ? (
-                            <EmailContentBlock
-                                key={selected.type}
-                                type={selected.type}
-                                languageCode={languageCode}
-                                onLanguageChange={code => {
-                                    setLanguageCode(code);
-                                    setContentDraft({});
-                                }}
-                                onDraftChange={setContentDraft}
-                            />
-                        ) : null}
-                    </PageBlock>
-                    <PageBlock column="main" blockId="email-preview" title={<Trans>Preview</Trans>}>
-                        {selected ? (
-                            <EmailPreviewBlock
-                                key={selected.type}
-                                email={selected}
-                                languageCode={languageCode}
-                                contentDraft={contentDraft}
-                                initialOrderCode={initialParam('order')}
-                            />
+                            <EmailEditorBlock key={selected.type} email={selected} initialOrderCode={initialParam('order')} />
                         ) : null}
                     </PageBlock>
                     {data?.emailOverview.devMode ? (

@@ -109,4 +109,26 @@ describe('rendering with content', () => {
         expect(result.html).toContain('Draft note');
         expect(result.contentOrigins).toMatchObject({ subject: 'all-channels', title: 'all-channels', note: 'draft', intro: 'default' });
     });
+
+    it('marks the text for editing and shows variables in curly brackets', async () => {
+        const result = await service({ allChannels: { title: 'Money back for {{ orderCode }}' } }).render(
+            RequestContext.empty(),
+            {
+                type: 'order-refunded',
+                from: 'x',
+                templateVars: { order, refund: { total: 5000 } },
+                languageCode: LanguageCode.en,
+                channelCode: 'default',
+                editable: true,
+            },
+        );
+        expect(result.html).toContain(
+            '<span data-email-slot="title">Money back for <span data-email-variable="orderCode" contenteditable="false">{{ orderCode }}</span></span>',
+        );
+        // No span inside the document title.
+        expect(result.html).toMatch(/<title[^>]*>Money back for \{\{ orderCode \}\}<\/title>/);
+        expect(result.html).not.toContain('[[[vendure-slot');
+        // The subject is still the real one.
+        expect(result.subject).toBe('Refund for your order #T_1');
+    });
 });

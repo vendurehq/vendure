@@ -8,6 +8,7 @@ import { createElement } from 'react';
 import { EMAIL_DATA_TABLE_CLASS } from './components/order-blocks';
 import { EMAIL_OPTIONS } from './constants';
 import { EmailContentService } from './email-content.service';
+import { editableSlotToken, markEditableContent } from './template/editable-content';
 import { EmailContentOrigin, EmailContentReactContext, resolveEmailContent } from './template/email-content';
 import { EmailRenderReactContext } from './template/email-context';
 import { EmailTemplate, isPackageDefault } from './template/email-template';
@@ -44,6 +45,11 @@ export interface RenderEmailInput {
     template?: EmailTemplate;
     /** Unsaved text for content slots, e.g. from the Dashboard editor. Beats stored overrides. */
     contentDraft?: Record<string, string>;
+    /**
+     * Marks the content slots in the HTML and shows their text with `{{ variables }}`, so the
+     * Dashboard can edit the text inside the preview. Not for sending.
+     */
+    editable?: boolean;
 }
 
 /**
@@ -99,11 +105,17 @@ export class EmailRenderService {
             { value: { type: input.type, languageCode, channelCode } },
             createElement(
                 EmailContentReactContext.Provider,
-                { value: content.values },
+                { value: input.editable ? editableTokens(content.raw) : content.values },
                 createElement(template.body, vars),
             ),
         );
-        const html = await render(element);
+        const rendered = await render(element);
+        const multiline = new Set(
+            Object.entries(template.content ?? {})
+                .filter(([, slot]) => slot.multiline)
+                .map(([name]) => name),
+        );
+        const html = input.editable ? markEditableContent(rendered, content.raw, multiline) : rendered;
         const subject = this.resolveSubject(template, vars, content.values);
         const text = template.text
             ? template.text(vars)
@@ -159,4 +171,8 @@ export class EmailRenderService {
             origin: isPackageDefault(definition.template) ? 'package-default' : 'project',
         };
     }
+}
+
+function editableTokens(raw: Record<string, string>): Record<string, string> {
+    return Object.fromEntries(Object.keys(raw).map(name => [name, editableSlotToken(name)]));
 }
