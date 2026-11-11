@@ -3,10 +3,11 @@
  * Runs the same builds as `nx run-many -t ci`, but without stopping at type errors, so
  * that the database-backed suites can run and report what breaks at runtime.
  *
- * Packages are selected by the presence of a `ci` script, as `nx run-many -t ci` selects
- * them. Any package without one is named in the output, since some of those have
- * e2e suites and an unbuilt package fails in ways that read like a version
- * incompatibility.
+ * Packages are selected by the presence of a `ci` target, as `nx run-many -t ci` selects
+ * them. The targets come from the Nx project graph, because the Nx plugin in
+ * `tools/nx-plugin` infers the targets of the plugin packages. Any package without a `ci`
+ * target is named in the output, since some of those have e2e suites and an unbuilt
+ * package fails in ways that read like a version incompatibility.
  *
  * See scripts/typeorm/README.md for why the build stages are run separately.
  *
@@ -15,6 +16,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +24,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
 
 const order = topologicalPackageOrder();
+const targetsByRoot = readProjectTargets();
 const failed = [];
 
 // Searched in the order a package manager would, to resolve each command to an
@@ -35,9 +38,10 @@ const notBuilt = [];
 
 for (const { name, location } of order) {
     const manifest = JSON.parse(fs.readFileSync(path.join(location, 'package.json'), 'utf8'));
-    const stages = resolveBuildStages(manifest);
+    const targets = targetsByRoot.get(path.relative(repoRoot, location).split(path.sep).join('/')) ?? {};
+    const stages = resolveBuildStages(targets, manifest);
     if (stages.length === 0) {
-        notBuilt.push({ name, hasE2e: Boolean(manifest.scripts?.e2e) });
+        notBuilt.push({ name, hasE2e: Boolean(targets.e2e) });
         continue;
     }
     console.log(`\n--- ${name}`);
@@ -69,7 +73,7 @@ if (failed.length) {
 const skippedWithE2e = notBuilt.filter(pkg => pkg.hasE2e);
 if (skippedWithE2e.length) {
     console.log(
-        `\nNot built (no \`ci\` script), but has an e2e suite that \`nx run-many -t e2e\` will run: ` +
+        `\nNot built (no \`ci\` target), but has an e2e suite that \`nx run-many -t e2e\` will run: ` +
             `${skippedWithE2e.map(pkg => pkg.name).join(', ')}. ` +
             'A failure in those suites may be a missing build rather than a TypeORM incompatibility.',
     );
@@ -80,15 +84,40 @@ if (skippedWithE2e.length) {
 process.exit(0);
 
 /**
- * Returns the `ci` script's stages, split on `&&` so each runs regardless of
- * whether the previous one exited non-zero. One level of `npm run <script>`
- * indirection is followed, which covers the `ci` -> `build` alias the packages
- * use. Splitting on `&&` assumes no build command contains `&&` inside a quoted
- * argument, which holds for every package script in this repo.
+ * Returns the targets of each project in the Nx project graph, by project root.
  */
-function resolveBuildStages(manifest) {
+function readProjectTargets() {
+    const graphFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nx-graph-')), 'graph.json');
+    // Run the Nx entry point under the current Node binary, as run-db-tests.mjs does.
+    const nxCli = path.join(repoRoot, 'node_modules', 'nx', 'bin', 'nx.js');
+    const result = spawnSync(process.execPath, [nxCli, 'graph', `--file=${graphFile}`], {
+        cwd: repoRoot,
+        stdio: 'inherit',
+    });
+    if (result.status !== 0) {
+        console.log('Could not read the Nx project graph.');
+        process.exit(1);
+    }
+    const { nodes } = JSON.parse(fs.readFileSync(graphFile, 'utf8')).graph;
+    return new Map(Object.values(nodes).map(node => [node.data.root, node.data.targets ?? {}]));
+}
+
+/**
+ * Returns the stages of the `ci` target's command, split on `&&` so each runs
+ * regardless of whether the previous one exited non-zero. A `ci` target that only
+ * depends on `build` runs the `build` command. For a target from a package script,
+ * one level of `npm run <script>` indirection is followed, which covers the
+ * `ci` -> `build` alias the packages use. Splitting on `&&` assumes no build command
+ * contains `&&` inside a quoted argument, which holds for every package script in this repo.
+ */
+function resolveBuildStages(targets, manifest) {
     const scripts = manifest.scripts ?? {};
-    let script = scripts.ci;
+    let target = targets.ci;
+    if (target?.executor === 'nx:noop' && target.dependsOn?.includes('build')) {
+        target = targets.build;
+    }
+    let script =
+        target?.executor === 'nx:run-script' ? scripts[target.options?.script] : target?.options?.command;
     if (!script) {
         return [];
     }
