@@ -17,7 +17,7 @@ export function toJsonInputSchema(schema: unknown): Record<string, unknown> {
 
 /** The metadata a tool class carries from its `@McpTool` decorator. */
 export function metadataFor(provider: unknown): McpToolMetadata {
-    const metadata = Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata | undefined;
+    const metadata = Reflect.getMetadata(McpTool.KEY, provider as object) as McpToolMetadata | undefined;
     if (!metadata) {
         throw new Error(`Missing @McpTool metadata on ${String(provider)}`);
     }

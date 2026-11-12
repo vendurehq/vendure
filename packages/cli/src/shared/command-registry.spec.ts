@@ -12,6 +12,7 @@ import {
     readCommandOptions,
 } from './cli-command-definition.js';
 import { exitCliCommand } from './cli-command-exit.js';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
 import { parseOptionFlags } from './cli-command-options.js';
 import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
 import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry.js';
@@ -127,8 +128,11 @@ describe('registerCommands() with nested commands', () => {
             },
         };
 
-        await runCli([command], [], ['inspect'], name =>
-            name === 'example' ? [{ pluginId: '@example/plugin', extension }] : [],
+        await runCli(
+            [command],
+            [],
+            ['inspect'],
+            (name => (name === 'example' ? [{ pluginId: '@example/plugin', extension }] : [])) as CliPluginExtensionAccessor,
         );
 
         expect(received).toEqual({ pluginId: '@example/plugin', extension });

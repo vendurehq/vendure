@@ -344,7 +344,7 @@ function createConfig(customFields: CustomFields): VendureConfig {
         dbConnectionOptions: {
             type: 'sqlite',
         },
-    } as VendureConfig;
+    } as unknown as VendureConfig;
 }
 
 function getProductCustomFieldsClass() {
@@ -462,7 +462,7 @@ describe('registerCustomFieldsForEntity() indexes', () => {
                 {
                     name: 'related',
                     type: 'relation',
-                    entity: RelatedEntity,
+                    entity: RelatedEntity as any,
                     index: true,
                 },
             ];
@@ -506,13 +506,13 @@ describe('registerCustomFieldsForEntity() indexes', () => {
     });
 
     function register(
-        dbEngine: VendureConfig['dbConnectionOptions']['type'],
+        dbEngine: 'mysql' | 'mariadb' | 'postgres' | 'sqlite',
         fields: CustomFieldConfig[],
     ): void {
         const config = {
             customFields: { Product: fields },
             dbConnectionOptions: { type: dbEngine },
-        } as VendureConfig;
+        } as unknown as VendureConfig;
         registerCustomFieldsForEntity(config, 'Product', IndexedCustomFields);
     }
 

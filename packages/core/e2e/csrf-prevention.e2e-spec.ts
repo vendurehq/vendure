@@ -27,6 +27,11 @@ const LOGIN_MUTATION =
     `mutation { login(username: "${SUPER_ADMIN_USER_IDENTIFIER}", password: "${SUPER_ADMIN_USER_PASSWORD}") ` +
     '{ ... on CurrentUser { id identifier } ... on ErrorResult { errorCode } } }';
 
+interface GraphQlResponseBody {
+    data: { login: { identifier: string } };
+    errors: Array<{ extensions: { code: string; stacktrace?: unknown } }>;
+}
+
 function post(contentType: string, body: string, extraHeaders: Record<string, string> = {}) {
     return fetch(ADMIN_URL, {
         method: 'POST',
@@ -102,7 +107,7 @@ describe('apiOptions.csrfPrevention', () => {
 
     it('allows a normal application/json login', async () => {
         const res = await post('application/json', JSON.stringify({ query: LOGIN_MUTATION }));
-        const body = await res.json();
+        const body = (await res.json()) as GraphQlResponseBody;
 
         expect(res.status).toBe(200);
         expect(body.data.login.identifier).toBe(SUPER_ADMIN_USER_IDENTIFIER);
@@ -134,7 +139,7 @@ describe('apiOptions.csrfPrevention', () => {
         });
 
         expect(res.status).toBe(200);
-        expect((await res.json()).errors).toBeUndefined();
+        expect(((await res.json()) as GraphQlResponseBody).errors).toBeUndefined();
     });
 
     describe('error responses', () => {
@@ -142,7 +147,7 @@ describe('apiOptions.csrfPrevention', () => {
         // Apollo itself, so they must not expose a stack trace (and with it server file paths).
         it('omits the stack trace from a rejected CSRF request', async () => {
             const res = await post('text/plain', JSON.stringify({ query: LOGIN_MUTATION }));
-            const body = await res.json();
+            const body = (await res.json()) as GraphQlResponseBody;
 
             expect(res.status).toBe(400);
             expect(body.errors[0].extensions.code).toBe('BAD_REQUEST');
@@ -159,7 +164,7 @@ describe('apiOptions.csrfPrevention', () => {
                     headers: { 'content-type': 'application/json' },
                     body: '',
                 });
-                const body = await res.json();
+                const body = (await res.json()) as GraphQlResponseBody;
 
                 expect(res.status).toBe(400);
                 expect(body.errors[0].extensions.code).toBe('BAD_REQUEST');
@@ -173,7 +178,7 @@ describe('apiOptions.csrfPrevention', () => {
                     headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({ query: '{ me { id } }' }),
                 });
-                const body = await res.json();
+                const body = (await res.json()) as GraphQlResponseBody;
 
                 expect(body.errors[0].extensions.code).toBe('FORBIDDEN');
                 expect(body.errors[0].extensions.stacktrace).toBeUndefined();

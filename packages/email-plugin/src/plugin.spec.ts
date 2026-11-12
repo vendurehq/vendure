@@ -1070,7 +1070,8 @@ describe('EmailPlugin', () => {
             await module!.get(EventBus).publish(new MockEvent(ctx, true));
             await pause();
             expect(module).toBeDefined();
-            expect(typeof module.get(EmailPlugin).options.transport).toBe('function');
+            // `options` is private.
+            expect(typeof (module.get(EmailPlugin) as any).options.transport).toBe('function');
         });
 
         it('Passes injector and context to transport function', async () => {

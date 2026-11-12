@@ -63,7 +63,7 @@ describe('VendureEntity', () => {
     // https://github.com/vendurehq/vendure/issues/5040
     it('clones customFields rather than sharing the input reference', () => {
         const input = { customFields: { relatedId: 1 } };
-        const child = new ChildEntityWithCustomFields(input);
+        const child = new ChildEntityWithCustomFields(input as unknown as DeepPartial<ChildEntityWithCustomFields>);
 
         expect(child.customFields).toEqual({ relatedId: 1 });
         expect(child.customFields).not.toBe(input.customFields);

@@ -26,6 +26,7 @@ const { posix } = require('node:path');
  * @property {boolean} hasTypeTests
  * @property {boolean} hasE2e
  * @property {boolean} hasJsx True when there are `.tsx` files outside `src/dashboard`.
+ * @property {boolean} hasDashboardConfig True when there is a `src/dashboard/tsconfig.json`.
  */
 
 /** Files that mark a package as a Vendure plugin. Paths are relative to `src`. */
@@ -104,6 +105,7 @@ function readPluginPackage(root, reader) {
         hasTypeTests: srcFiles.some(file => file.endsWith('.spec-d.ts')),
         hasE2e: e2eFiles.some(file => file.endsWith('.e2e-spec.ts')),
         hasJsx: srcFiles.some(file => file.endsWith('.tsx') && !file.startsWith('src/dashboard/')),
+        hasDashboardConfig: srcFiles.includes('src/dashboard/tsconfig.json'),
     };
 }
 

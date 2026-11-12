@@ -18,6 +18,9 @@ import { graphql } from './graphql/graphql-admin';
 import { graphql as shopGraphql } from './graphql/graphql-shop';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
+// The generated admin types do not include the localized custom field `tagline` in list options.
+const sellerListOptions = (options: object) => options as never;
+
 // The bootstrap creates this Seller before any translation rows exist. It is the
 // "legacy row" case: a Seller from before this feature shipped.
 const DEFAULT_SELLER_ID = 'T_1';
@@ -171,7 +174,7 @@ describe('Seller with localized custom fields', () => {
     it('filters and sorts the seller list by a localized custom field', async () => {
         const filtered = await adminClient.query(
             getSellerListDocument,
-            { options: { filter: { tagline: { contains: 'frisch' } } } },
+            { options: sellerListOptions({ filter: { tagline: { contains: 'frisch' } } }) },
             { languageCode: LanguageCode.de },
         );
         expect(filtered.sellers.items.map(s => s.name)).toEqual(['Fresh Foods']);
@@ -181,7 +184,7 @@ describe('Seller with localized custom fields', () => {
         // and the set of names are asserted here; T11 asserts the order.
         const sorted = await adminClient.query(
             getSellerListDocument,
-            { options: { sort: { tagline: SortOrder.ASC } } },
+            { options: sellerListOptions({ sort: { tagline: SortOrder.ASC } }) },
             { languageCode: LanguageCode.de },
         );
         expect(sorted.sellers.totalItems).toBe(3);
@@ -195,10 +198,10 @@ describe('Seller with localized custom fields', () => {
         const filteredAndSorted = await adminClient.query(
             getSellerListDocument,
             {
-                options: {
+                options: sellerListOptions({
                     filter: { tagline: { contains: 'frisch' } },
                     sort: { tagline: SortOrder.ASC },
-                },
+                }),
             },
             { languageCode: LanguageCode.de },
         );
@@ -212,7 +215,7 @@ describe('Seller with localized custom fields', () => {
     it('sorts the seller list by a localized custom field in the default language', async () => {
         const sorted = await adminClient.query(
             getSellerListDocument,
-            { options: { sort: { tagline: SortOrder.ASC } } },
+            { options: sellerListOptions({ sort: { tagline: SortOrder.ASC } }) },
             { languageCode: LanguageCode.en },
         );
         expect(sorted.sellers.totalItems).toBe(3);
@@ -288,7 +291,7 @@ describe('Seller with localized custom fields', () => {
     it('orders the seller list by a localized custom field once every seller has a value', async () => {
         const { sellers } = await adminClient.query(
             getSellerListDocument,
-            { options: { sort: { tagline: SortOrder.ASC } } },
+            { options: sellerListOptions({ sort: { tagline: SortOrder.ASC } }) },
             { languageCode: LanguageCode.en },
         );
         expect(sellers.items.map(s => s.customFields.tagline)).toEqual([
@@ -322,7 +325,9 @@ describe('Seller with localized custom fields', () => {
         // The foreign key removes the translation rows along with the seller.
         const connection = server.app.get(TransactionalConnection);
         const translations = await connection.rawConnection.getRepository(SellerTranslation).find();
-        expect(translations.some(t => t.customFields.tagline === 'Here briefly')).toBe(false);
+        expect(
+            translations.some(t => (t.customFields as { tagline?: string }).tagline === 'Here briefly'),
+        ).toBe(false);
     });
 
     it(
@@ -375,9 +380,7 @@ describe('Seller with localized custom fields', () => {
         const { createSeller } = await adminClient.query(createSellerDocument, {
             input: {
                 name: 'Clearable Seller',
-                translations: [
-                    { languageCode: LanguageCode.en, customFields: { tagline: 'Has a tagline' } },
-                ],
+                translations: [{ languageCode: LanguageCode.en, customFields: { tagline: 'Has a tagline' } }],
             },
         });
         expect(createSeller.customFields.tagline).toBe('Has a tagline');

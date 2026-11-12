@@ -14,14 +14,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { FragmentOf } from './graphql/graphql-shop';
+import { ResultOf } from './graphql/graphql-shop';
 import {
     addItemToOrderDocument,
     adjustItemQuantityDocument,
     getActiveOrderDocument,
     removeAllOrderLinesDocument,
     removeItemFromOrderDocument,
-    testOrderFragment,
 } from './graphql/shop-definitions';
 
 class Interceptor1 implements OrderInterceptor {
@@ -85,8 +84,13 @@ class Interceptor2 implements OrderInterceptor {
     }
 }
 
-type TestOrderFragmentType = FragmentOf<typeof testOrderFragment>;
-type OrderSuccessResult = TestOrderFragmentType;
+type SuccessOf<R> = Exclude<R, { errorCode: string }>;
+type AddItemSuccessResult = SuccessOf<ResultOf<typeof addItemToOrderDocument>['addItemToOrder']>;
+type OrderSuccessResult = SuccessOf<ResultOf<typeof adjustItemQuantityDocument>['adjustOrderLine']>;
+type InterceptorErrorResult = { interceptorError: string };
+const addItemResultGuard: ErrorResultGuard<AddItemSuccessResult> = createErrorResultGuard(
+    input => !!input.lines,
+);
 const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(input => !!input.lines);
 
 describe('Order interceptor', () => {
@@ -197,9 +201,11 @@ describe('Order interceptor', () => {
             quantity: 1,
         });
 
-        orderResultGuard.assertErrorResult(addItemToOrder);
+        addItemResultGuard.assertErrorResult(addItemToOrder);
         expect(addItemToOrder.message).toBe('An error occurred when attempting to modify the Order');
-        expect(addItemToOrder.interceptorError).toBe('Quantity must be at least 2');
+        expect((addItemToOrder as InterceptorErrorResult).interceptorError).toBe(
+            'Quantity must be at least 2',
+        );
     });
 
     it('item was not added to order', async () => {
@@ -228,7 +234,9 @@ describe('Order interceptor', () => {
         orderResultGuard.assertErrorResult(adjustOrderLine);
 
         expect(adjustOrderLine.message).toBe('An error occurred when attempting to modify the Order');
-        expect(adjustOrderLine.interceptorError).toBe('Quantity must be at least 2');
+        expect((adjustOrderLine as InterceptorErrorResult).interceptorError).toBe(
+            'Quantity must be at least 2',
+        );
     });
 
     it('item was not adjusted', async () => {
@@ -258,7 +266,7 @@ describe('Order interceptor', () => {
         orderResultGuard.assertErrorResult(removeOrderLine);
 
         expect(removeOrderLine.message).toBe('An error occurred when attempting to modify the Order');
-        expect(removeOrderLine.interceptorError).toBe('Cannot remove this item');
+        expect((removeOrderLine as InterceptorErrorResult).interceptorError).toBe('Cannot remove this item');
     });
 
     it('item was not removed', async () => {

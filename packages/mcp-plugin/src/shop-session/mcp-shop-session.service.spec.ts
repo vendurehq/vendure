@@ -112,7 +112,7 @@ describe('McpShopSessionService', () => {
             expect(outcome).toEqual({
                 kind: 'refused',
                 message: expect.stringMatching(
-                    /not valid or has expired.*Retry the call without sessionToken/s,
+                    /not valid or has expired[\s\S]*Retry the call without sessionToken/,
                 ),
             });
         });

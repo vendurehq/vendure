@@ -16,7 +16,7 @@ import {
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { Client } from 'pg';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { PostgresDataSourceOptions } from 'typeorm/driver/postgres/PostgresDataSourceOptions';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -147,7 +147,7 @@ describe.skipIf(process.env.DB !== 'postgres')('PgNotifyJobQueueStrategy', () =>
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const { host, port, username, password, database } = connection.rawConnection
-            .options as PostgresConnectionOptions;
+            .options as PostgresDataSourceOptions;
         const observer = new Client({ host, port, user: username, password: password as string, database });
         const notified: string[] = [];
         observer.on('notification', message => notified.push(message.payload ?? ''));

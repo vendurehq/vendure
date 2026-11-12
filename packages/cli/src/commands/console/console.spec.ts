@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 
@@ -578,7 +578,7 @@ describe('console command', () => {
             ),
         ).toBe(0);
         for (const fn of [openUrl, prompt, select]) expect(fn).not.toHaveBeenCalled();
-        expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`Bearer ${STORED_ACCESS_TOKEN}`);
+        expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe(`Bearer ${STORED_ACCESS_TOKEN}`);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
@@ -1773,8 +1773,8 @@ function jsonResponse(value: unknown, status = 200): Response {
     });
 }
 
-function sequenceFetch(...responses: Response[]): ReturnType<typeof vi.fn> {
-    const fetchMock = vi.fn();
+function sequenceFetch(...responses: Response[]): Mock<typeof fetch> {
+    const fetchMock = vi.fn<typeof fetch>();
     for (const response of responses) {
         fetchMock.mockResolvedValueOnce(response);
     }

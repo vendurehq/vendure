@@ -78,6 +78,8 @@ async function getTsconfigFiles(pkg, rootLib) {
         'tsconfig.json': await format({
             extends: `${toWorkspaceRoot}/tsconfig.json`,
             compilerOptions,
+            // A dashboard extension has its own tsconfig with the JSX, DOM and path settings it needs.
+            ...(pkg.hasDashboardConfig ? { exclude: ['src/dashboard'] } : {}),
         }),
         'tsconfig.build.json': await format({
             extends: './tsconfig.json',

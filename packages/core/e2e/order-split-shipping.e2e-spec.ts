@@ -245,7 +245,7 @@ describe('Order splitting with a default-Channel-only ShippingMethod', () => {
         const { transitionOrderToState } = await shopClient.query(transitionToStateDocument, {
             state: 'ArrangingPayment',
         });
-        orderResultGuard.assertSuccess(transitionOrderToState);
+        orderResultGuard.assertSuccess(transitionOrderToState!);
 
         const { addPaymentToOrder } = await shopClient.query(addPaymentDocument, {
             input: { method: testSuccessfulPaymentMethod.code, metadata: {} },
@@ -309,7 +309,7 @@ describe('Order splitting with a default-Channel-only ShippingMethod', () => {
         const { transitionOrderToState } = await shopClient.query(transitionToStateDocument, {
             state: 'ArrangingPayment',
         });
-        orderResultGuard.assertSuccess(transitionOrderToState);
+        orderResultGuard.assertSuccess(transitionOrderToState!);
         const { addPaymentToOrder } = await shopClient.query(addPaymentDocument, {
             input: { method: testSuccessfulPaymentMethod.code, metadata: {} },
         });

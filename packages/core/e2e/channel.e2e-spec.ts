@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
+    CreateChannelInput,
     CurrencyCode,
     DeletionResult,
     ErrorCode,
@@ -21,8 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { channelFragment } from './graphql/fragments-admin';
-import { FragmentOf, graphql } from './graphql/graphql-admin';
+import { graphql } from './graphql/graphql-admin';
 import {
     assignProductToChannelDocument,
     createAdministratorDocument,
@@ -45,7 +45,10 @@ describe('Channels', () => {
 
     let customerUser: ResultOf<typeof getCustomerListDocument>['customers']['items'][number];
 
-    type ChannelFragment = FragmentOf<typeof channelFragment>;
+    type ChannelFragment = Exclude<
+        ResultOf<typeof createChannelDocument>['createChannel'],
+        { errorCode: unknown }
+    >;
 
     const channelGuard: ErrorResultGuard<ChannelFragment> = createErrorResultGuard(
         input => !!input.defaultLanguageCode,
@@ -213,7 +216,7 @@ describe('Channels', () => {
             defaultLanguageCode: LanguageCode.en,
             defaultCurrencyCode: CurrencyCode.USD,
             pricesIncludeTax: false,
-        });
+        } as CreateChannelInput);
 
         expect('id' in programmaticChannel).toBe(true);
         if (!('id' in programmaticChannel)) return;
@@ -261,7 +264,7 @@ describe('Channels', () => {
             defaultLanguageCode: LanguageCode.en,
             defaultCurrencyCode: CurrencyCode.USD,
             pricesIncludeTax: false,
-        });
+        } as CreateChannelInput);
         const channel = await channelService.getChannelFromToken('late-channel-token');
         expect(channel.code).toBe('late-channel');
 
