@@ -95,7 +95,7 @@ describe('createVendureApp()', () => {
         const { createVendureApp } = await import('./create-vendure-app.js');
         mkdirSync(path.join(workDir, 'app-templates'));
         // Importing the module already called process.exit(1), so drop that call first.
-        const exitSpy = vi.mocked(process.exit);
+        const exitSpy = vi.spyOn(process, 'exit');
         exitSpy.mockClear();
 
         // resolvePackageRootDir points at a missing package, so the template copy fails first.
