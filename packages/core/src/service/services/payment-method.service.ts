@@ -25,6 +25,7 @@ import { PaymentMethodEligibilityChecker } from '../../config/payment/payment-me
 import { PaymentMethodHandler } from '../../config/payment/payment-method-handler';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Order } from '../../entity/order/order.entity';
+import { Payment } from '../../entity/payment/payment.entity';
 import { PaymentMethodTranslation } from '../../entity/payment-method/payment-method-translation.entity';
 import { PaymentMethod } from '../../entity/payment-method/payment-method.entity';
 import { EventBus } from '../../event-bus/event-bus';
@@ -327,6 +328,14 @@ export class PaymentMethodService {
         return results;
     }
 
+    /**
+     * @description
+     * Returns the enabled PaymentMethod with the given code in the current Channel, along with its
+     * handler and eligibility checker. Use this to create a new Payment: a disabled method is not
+     * found.
+     *
+     * To settle, cancel or refund an existing Payment, use `getMethodAndOperationsForPayment()`.
+     */
     async getMethodAndOperations(
         ctx: RequestContext,
         method: string,
@@ -335,14 +344,52 @@ export class PaymentMethodService {
         handler: PaymentMethodHandler;
         checker: PaymentMethodEligibilityChecker | null;
     }> {
-        const paymentMethod = await this.connection
+        const candidates = await this.findMethodsByCode(ctx, method, { enabledOnly: true });
+        return this.withOperations(candidates[0], method);
+    }
+
+    /**
+     * @description
+     * Returns the PaymentMethod that handles an existing Payment in the current Channel, along with
+     * its handler and eligibility checker. Use this to settle, cancel or refund a Payment, so that
+     * disabling a method stops new payments but not the handling of the payments it already took.
+     *
+     * A Payment stores only the method code, and codes are not unique. So when several methods
+     * share the code, the enabled one with the lowest id is used, which is the method that
+     * `getMethodAndOperations()` returns. A disabled method is only used when it is the only
+     * method with that code. If several disabled methods share the code and none is enabled, this
+     * throws rather than guess which handler took the payment.
+     *
+     * @since 3.8.2
+     */
+    async getMethodAndOperationsForPayment(
+        ctx: RequestContext,
+        payment: Payment,
+    ): Promise<{
+        paymentMethod: PaymentMethod;
+        handler: PaymentMethodHandler;
+        checker: PaymentMethodEligibilityChecker | null;
+    }> {
+        const candidates = await this.findMethodsByCode(ctx, payment.method, { enabledOnly: false });
+        const paymentMethod =
+            candidates.find(m => m.enabled) ?? (candidates.length === 1 ? candidates[0] : undefined);
+        return this.withOperations(paymentMethod, payment.method);
+    }
+
+    private findMethodsByCode(ctx: RequestContext, code: string, options: { enabledOnly: boolean }) {
+        const qb = this.connection
             .getRepository(ctx, PaymentMethod)
             .createQueryBuilder('method')
             .leftJoin('method.channels', 'channel')
-            .where('method.code = :code', { code: method })
-            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
-            .andWhere('method.enabled IS true')
-            .getOne();
+            .where('method.code = :code', { code })
+            .andWhere('channel.id = :channelId', { channelId: ctx.channelId });
+        if (options.enabledOnly) {
+            qb.andWhere('method.enabled IS true');
+        }
+        return qb.orderBy('method.id', 'ASC').getMany();
+    }
+
+    private withOperations(paymentMethod: PaymentMethod | undefined, method: string) {
         if (!paymentMethod) {
             throw new UserInputError('error.payment-method-not-found', { method });
         }
