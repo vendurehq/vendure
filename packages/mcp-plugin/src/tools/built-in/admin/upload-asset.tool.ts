@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AssetService, ConfigService, Permission, RequestContext } from '@vendure/core';
+import { AssetEvent, AssetService, ConfigService, EventBus, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -33,6 +33,7 @@ export class UploadAssetTool implements McpToolHandler<UploadAssetInput> {
     constructor(
         private readonly assetService: AssetService,
         private readonly configService: ConfigService,
+        private readonly eventBus: EventBus,
         private readonly serializer: McpToolSerializerService,
     ) {}
 
@@ -43,6 +44,9 @@ export class UploadAssetTool implements McpToolHandler<UploadAssetInput> {
             this.assetService,
             this.configService.importExportOptions.assetImportStrategy,
         );
+        // createFromFileStream() is meant for data import and publishes no event, so the tool publishes
+        // the one AssetService.create() does for the createAssets mutation. See #5661
+        await this.eventBus.publish(new AssetEvent(ctx, asset, 'created'));
         return { asset: this.serializer.asset(asset) };
     }
 }

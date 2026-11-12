@@ -1,17 +1,22 @@
-import { LanguageCode, Permission } from '@vendure/common/lib/generated-types';
+import { GlobalFlag, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import {
     Asset,
+    AssetEvent,
     AssetService,
     ConfigService,
     Customer,
     DefaultAssetImportStrategy,
     DefaultEntityAccessControlStrategy,
+    EventBus,
     ID,
+    manualFulfillmentHandler,
     mergeConfig,
     Order,
+    OrderService,
     Payment,
     Product,
     ProductVariant,
+    ProductVariantService,
     RequestContext,
     RequestContextService,
     Sale,
@@ -25,6 +30,7 @@ import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
 import * as http from 'http';
 import { AddressInfo } from 'net';
+import { firstValueFrom, timeout } from 'rxjs';
 import { Readable } from 'stream';
 import { SelectQueryBuilder } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -116,6 +122,12 @@ async function startAssetFileServer(): Promise<{
         close: () =>
             new Promise((resolve, reject) => server.close(error => (error ? reject(error) : resolve()))),
     };
+}
+
+function deferred() {
+    let resolve!: () => void;
+    const promise = new Promise<void>(r => (resolve = r));
+    return { promise, resolve };
 }
 
 const SECOND_CHANNEL_CODE = 'admin-tools-second-channel';
@@ -1343,6 +1355,222 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
+    // #5652 — on a database with row locks, concurrent adjustments must each apply their delta rather
+    // than overwrite one another with a stock figure read before the other committed.
+    it('adjust_stock applies every delta of concurrent calls', async () => {
+        const token = await adminAccessToken();
+        const stockOnHand = async () =>
+            (
+                await connection
+                    .getRepository(adminCtx, StockLevel)
+                    .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } })
+            ).stockOnHand;
+        const before = await stockOnHand();
+        const calls = 5;
+
+        try {
+            const responses = await Promise.all(
+                Array.from({ length: calls }, (_, i) =>
+                    postMcp(
+                        baseUrl(),
+                        'admin',
+                        callTool(
+                            'adjust_stock',
+                            { variantId, locationId: stockLocationId, delta: 1, confirm: true },
+                            i + 1,
+                        ),
+                        { token },
+                    ),
+                ),
+            );
+
+            for (const response of responses) {
+                expect(response.body.result.isError).toBeUndefined();
+            }
+            expect(await stockOnHand()).toBe(before + calls);
+        } finally {
+            // Put the stock back, so the adjustments do not leak into later tests.
+            const delta = before - (await stockOnHand());
+            if (delta !== 0) {
+                await postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'adjust_stock',
+                        { variantId, locationId: stockLocationId, delta, confirm: true },
+                        calls + 1,
+                    ),
+                    { token },
+                );
+            }
+        }
+    });
+
+    // #5652 — a fulfilment which commits while adjust_stock runs must not be overwritten by it. SQLite
+    // and SQL.js have no row locks and run one write transaction at a time, so this needs a real database.
+    it.skipIf(!process.env.DB || process.env.DB === 'sqljs')(
+        'adjust_stock keeps the sale of a fulfilment which commits while it runs',
+        async () => {
+            const token = await adminAccessToken();
+            const variants = connection.getRepository(adminCtx, ProductVariant);
+            const stockLevel = () =>
+                connection
+                    .getRepository(adminCtx, StockLevel)
+                    .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
+            // The seeded variants do not track inventory, and a fulfilment of an untracked variant
+            // writes no sale, so there would be nothing for adjust_stock to overwrite.
+            await variants.update(variantId, { trackInventory: GlobalFlag.TRUE });
+            try {
+                const { graphqlId } = await createSettledOrder(2);
+                const lines = await orderLines(graphqlId);
+                const before = await stockLevel();
+
+                // The fulfilment writes its sale and then stays open, so adjust_stock starts while the
+                // sale is not yet committed.
+                const fulfilled = deferred();
+                const fulfilmentMayCommit = deferred();
+                const fulfilment = connection.withTransaction(
+                    await server.app.get(RequestContextService).create({ apiType: 'admin' }),
+                    async txCtx => {
+                        const result = await server.app.get(OrderService).createFulfillment(txCtx, {
+                            lines: lines.map(line => ({ orderLineId: line.id, quantity: line.quantity })),
+                            handler: {
+                                code: manualFulfillmentHandler.code,
+                                arguments: [
+                                    { name: 'method', value: 'Test Carrier' },
+                                    { name: 'trackingCode', value: '' },
+                                ],
+                            },
+                        });
+                        expect(result).toHaveProperty('id');
+                        fulfilled.resolve();
+                        await fulfilmentMayCommit.promise;
+                    },
+                );
+                await fulfilled.promise;
+
+                const adjusted = postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'adjust_stock',
+                        { variantId, locationId: stockLocationId, delta: 5, confirm: true },
+                        1,
+                    ),
+                    { token },
+                );
+                // There is no signal for "blocked inside the database", so a fixed wait gives the call
+                // time to reach its read of the stock level before the fulfilment commits.
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                fulfilmentMayCommit.resolve();
+                await fulfilment;
+                const response = await adjusted;
+
+                expect(response.body.result.isError).toBeUndefined();
+                const after = await stockLevel();
+                // The sale released the 2 allocated units, which shows the fulfilment really moved stock.
+                expect(after.stockAllocated).toBe(before.stockAllocated - 2);
+                // Without the locked read the call read the stock level from before the sale and wrote
+                // that figure plus 5, so the 2 units the fulfilment took came back.
+                expect(after.stockOnHand).toBe(before.stockOnHand - 2 + 5);
+
+                // Undo the adjustment, so the changed stock does not leak into later tests.
+                await postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'adjust_stock',
+                        { variantId, locationId: stockLocationId, delta: -5, confirm: true },
+                        2,
+                    ),
+                    { token },
+                );
+            } finally {
+                await variants.update(variantId, { trackInventory: GlobalFlag.FALSE });
+            }
+        },
+    );
+
+    // #5652 — the first stock at a location has no StockLevel row to lock yet. On Postgres a locked read
+    // which waited does not return a row inserted while it waited, and on MySQL and MariaDB core's write
+    // looks the row up in the transaction's snapshot. A concurrent first adjustment at that location must
+    // still apply its delta to the figure the other one committed.
+    it.skipIf(!process.env.DB || process.env.DB === 'sqljs')(
+        'adjust_stock keeps a concurrent first adjustment at a location without stock',
+        async () => {
+            const token = await adminAccessToken();
+            const { createStockLocation } = await adminClient.query(gql`
+                mutation {
+                    createStockLocation(input: { name: "adjust-stock-new-location" }) {
+                        id
+                    }
+                }
+            `);
+            const newLocationId = getIdStrategy(server.app.get(ConfigService)).decodeId(
+                createStockLocation.id,
+            );
+            try {
+                // A Dashboard user sets the first stock at the location to 3 and has not committed yet.
+                const adjustedElsewhere = deferred();
+                const elsewhereMayCommit = deferred();
+                const elsewhere = connection.withTransaction(
+                    await server.app.get(RequestContextService).create({ apiType: 'admin' }),
+                    async txCtx => {
+                        await server.app
+                            .get(ProductVariantService)
+                            .update(txCtx, [
+                                {
+                                    id: variantId,
+                                    stockLevels: [{ stockLocationId: newLocationId, stockOnHand: 3 }],
+                                },
+                            ]);
+                        adjustedElsewhere.resolve();
+                        await elsewhereMayCommit.promise;
+                    },
+                );
+                await adjustedElsewhere.promise;
+
+                const adjusted = postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'adjust_stock',
+                        { variantId, locationId: newLocationId, delta: 1, confirm: true },
+                        1,
+                    ),
+                    { token },
+                );
+                // See the fulfilment test above for why a fixed wait.
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                elsewhereMayCommit.resolve();
+                await elsewhere;
+                const response = await adjusted;
+
+                expect(response.body.result.isError).toBeUndefined();
+                const level = await connection
+                    .getRepository(adminCtx, StockLevel)
+                    .findOneOrFail({
+                        where: { productVariantId: variantId, stockLocationId: newLocationId },
+                    });
+                // On Postgres the call otherwise started from 0 and set the stock to 1, losing the 3. On
+                // MySQL and MariaDB core otherwise tried to insert the row again and the call failed.
+                expect(level.stockOnHand).toBe(4);
+            } finally {
+                // Removing the location removes its stock levels, so they do not leak into later tests.
+                await adminClient.query(
+                    gql`
+                        mutation DeleteNewStockLocation($id: ID!) {
+                            deleteStockLocation(input: { id: $id }) {
+                                result
+                            }
+                        }
+                    `,
+                    { id: createStockLocation.id },
+                );
+            }
+        },
+    );
+
     it('get_stock_levels refuses a variant that is not in the active channel', async () => {
         const token = await adminAccessToken();
         // The seeded variant belongs to the default channel only, so once this grant is switched to the
@@ -2382,6 +2610,23 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 expect(await assetRepo().count()).toBe(countBefore + 1);
                 const [newest] = await assetRepo().find({ order: { id: 'DESC' }, take: 1 });
                 expect(newest.source).toBe(asset.source);
+            });
+
+            // #5661 — as for an Asset created with the createAssets mutation, subscribers learn of the new Asset
+            it('publishes an AssetEvent for the created asset, and none for a refused upload', async () => {
+                const event = firstValueFrom(server.app.get(EventBus).ofType(AssetEvent).pipe(timeout(5000)));
+
+                // Refused before the asset is stored, so the first event must belong to the next upload.
+                const refused = await callUploadAsset({ url: `${fileServer.baseUrl}/notes.txt` });
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png?event=1` });
+
+                expect(refused.body.result.isError).toBe(true);
+                expect(response.body.result.isError).toBeUndefined();
+                const published = await event;
+                expect(published.type).toBe('created');
+                expect(String(published.entity.id)).toBe(
+                    String(response.body.result.structuredContent.asset.id),
+                );
             });
 
             it('names the asset from the URL path and drops the query string', async () => {

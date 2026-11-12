@@ -158,7 +158,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
     const [status, setStatus] = React.useState<AuthContext['status']>('initial');
     const [authenticationError, setAuthenticationError] = React.useState<string | undefined>();
     const [isLoginLogoutInProgress, setIsLoginLogoutInProgress] = React.useState(false);
-    const { settings, setActiveChannelId } = useUserSettings();
+    const { settings, setActiveChannelId, resetServerSettings } = useUserSettings();
     const queryClient = useQueryClient();
     const { t } = useLingui();
     const noChannelAccessError = t`You do not have access to any channel`;
@@ -332,6 +332,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
             if (data?.logout.success) {
                 // Clear all cached queries to prevent stale data
                 queryClient.clear();
+                resetServerSettings();
                 try {
                     // localStorage can throw (quota exceeded, Safari private
                     // mode, security errors, storage disabled). The server-side
@@ -351,7 +352,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
                 setIsLoginLogoutInProgress(false);
             }
         },
-        [queryClient, isAuthenticated, refetchCurrentUser],
+        [queryClient, isAuthenticated, refetchCurrentUser, resetServerSettings],
     );
 
     // Handle status transitions based on query state

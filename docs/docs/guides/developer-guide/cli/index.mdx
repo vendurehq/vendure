@@ -395,8 +395,15 @@ npx vendure auth status --json
 npx vendure auth logout
 ```
 
-`status --json` prints the user, organization, client and access token expiry. It never includes a token. It exits with
-code 1 when nobody is signed in.
+`status` renews the stored login to check that it still works. When the authentication service refuses the renewal,
+`status` says so with the code it answered, for example `invalid_grant`, and tells you to run `vendure auth login`. When
+the check cannot finish, for example without a network, it shows the login with a warning.
+
+`status --json` prints the user, organization, client and access token expiry, and `renewable` with the result of the
+check. It never includes a token. It exits with code 1 when nobody is signed in or the login can no longer be renewed.
+
+When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
+asks before it is replaced. A login that can no longer be renewed is replaced without asking.
 
 The login is stored in `auth.json` in the CLI configuration directory (`~/.config/vendure` by default, or
 `VENDURE_CLI_CONFIG_DIR`) and is readable only by your user. The CLI renews the access token automatically.
@@ -404,7 +411,7 @@ The login is stored in `auth.json` in the CLI configuration directory (`~/.confi
 the login for `vendure console` too. Once Console has ended the session, a copy of the login stops working as well. When Console cannot be reached, the command still
 removes the login and warns that a copy keeps working until it expires.
 
-The CLI signs in to production Vendure Console by default. It reads the WorkOS client to sign in with from that
+The CLI signs in to production Vendure Console by default. It reads the authentication client to sign in with from that
 Console, so a login is always one the Console accepts. To work against staging, set
 `VENDURE_CONSOLE_API_URL=https://staging.api.vendure.io`. `vendure console link` reads the same variable but also needs
 `VENDURE_CONSOLE_APP_URL=https://staging.console.vendure.io`, so set both when you use both commands. A login stored
@@ -438,6 +445,15 @@ The CLI then lists the active Projects of the organization you are signed in to.
 Project. With more than one, you choose the Project in the terminal. Console records the Project Link, and the CLI
 writes `.vendure/project.json` in the resolved Vendure project. Your role in the organization must allow you to
 develop the Project.
+
+To link a Project without choosing it in the terminal, pass its id or its slug, the name in its Console URL:
+
+```bash
+npx vendure console link --console-project parts-counter
+```
+
+If the Customer Account has no active Project with that id or slug, the command stops, lists the Projects it has,
+and links nothing. Add `--organization` when the Project belongs to another of your Customer Accounts.
 
 To link a Project of a different organization, pass its Account identifier (in Vendure Console under **Settings**) or
 its name:
@@ -517,15 +533,28 @@ For automation, run:
 npx vendure console link --json --non-interactive --project ./apps/server
 ```
 
-`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. If the
-project has no manifest, the command returns `incomplete` with exit code 1 and an interactive repair command. It
-sends no request to Console. `--force` still means a different Project Link, so it requires an interactive run even
-with `--yes`. Neither flag authorizes a plugin to replace credentials or registry tokens.
+`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. To
+create a Project Link, pass the Project with `--console-project`. The command then uses the login stored by
+`vendure auth login`:
+
+```bash
+npx vendure console link --non-interactive --console-project parts-counter
+npx vendure console link --non-interactive --force --console-project parts-counter
+```
+
+Without `--console-project`, a project with no manifest returns `incomplete` with exit code 1, names the flag and
+an interactive command, and sends no request to Console. Without a stored login, the command returns `incomplete`
+and names `vendure auth login`. `--force` still means a different Project Link, so without `--console-project` it
+requires an interactive run even with `--yes`. Neither flag authorizes a plugin to replace credentials or registry
+tokens.
 
 `--json` writes one result to stdout and disables terminal prompts. Reporter progress, including the sign-in code,
 goes to stderr. Sign-in remains available unless `--non-interactive` is set. Without a terminal, the command links
-only an organization's single Project. When there are more, it fails and lists them. Human output remains the
-default.
+the Project that `--console-project` names, or an organization's single Project. When there are more and no
+`--console-project`, or when `--console-project` names none of them, the result is `incomplete`: `missingInputs`
+names `--console-project`, and `nextSteps` lists the Projects with their slugs. For a value that names none of them,
+`nextSteps` also points to `--organization`. When `--console-project` names another Project than the linked one,
+`missingInputs` names `--force`. Human output remains the default.
 The result has this shape:
 
 ```json
@@ -599,11 +628,21 @@ Before it links, `vendure console link --force` tells Console to stop the teleme
 replaces. See [Telemetry attribution](#telemetry-attribution).
 
 `--force` also permits replacement of an invalid manifest. It does not bypass ambiguous project selection or a manifest
-that belongs to another project root.
+that belongs to another project root. Use `--console-project` to choose the Project. On a linked project,
+`--console-project` with a different Project needs `--force`.
+
+A prompt in a terminal waits for your answer. In a run without a terminal, or with `CI` or
+`VENDURE_CLI_NON_INTERACTIVE` set, the command does not prompt. Where it needs an answer, it stops and names the flag
+that gives it.
 
 Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
 is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
 may have arrived with a clone.
+
+A cloned manifest can link a Project of a Customer Account that you are not a member of. The repair then names that
+account, and plugin setup runs without a Console session. Run `vendure console link --force` to link the project to
+one of your own Projects, or ask an administrator of that account to add you. If you use another Vendure Console login
+for that account, run `vendure auth login` with it.
 
 Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes and plugin setup on a
 repair. It does not answer questions asked by a plugin hook:
@@ -1078,7 +1117,7 @@ export default defineCliPlugin({
 ```
 
 The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
-`outcome`, the optional `session`, `signal`, `reporter`, `confirm`,
+`outcome`, the optional `session` and `sessionUnavailable`, `signal`, `reporter`, `confirm`,
 `isNonInteractive`, `force`, `outputMode`, immutable parsed `options`, and `contributeResult`. Each hook gets its own manifest and endpoint
 objects. A session is also copied when the hook requested one and a CLI login
 exists.
@@ -1142,6 +1181,14 @@ for the manifest's account, or for the organization that `--organization` names.
 first when no such login is stored. A non-interactive repair does not sign in. If the login is missing, report
 incomplete setup through `contributeResult`. Core does not read plugin credential stores.
 
+When a session-requesting hook gets no session, `context.sessionUnavailable` says why:
+
+- `'not-signed-in'`: no CLI login for the account is stored, and the run does not sign in. Ask the user to sign in.
+- `'account-inaccessible'`: the signed-in user is not a member of the manifest's Customer Account, and Core has
+  said so. Signing in again as the same user does not help. Point to `vendure console link --force`, and do not
+  fall back to `getAccessToken()`, whose login belongs to another account.
+- `'sign-in-failed'`: the sign-in failed, and Core has reported why.
+
 Check `context.isNonInteractive` before calling `context.confirm`. The confirm
 function rejects in a non-interactive run. Put multi-choice setup in a plugin
 command.
@@ -1192,13 +1239,17 @@ if (response.status === 401) {
 
 Refresh tokens are single-use. The CLI serializes renewals across concurrent `vendure` processes with a lock file, so
 renew through these functions only. A `SessionRejectedError` means the login has ended and the user must run
-`vendure auth login` again. So does a `ReauthenticationRequiredError`, which WorkOS raises when, for example, the
-organization starts to enforce SSO or MFA. Its `code` names the reason. A `SessionRefreshUnavailableError` leaves the
-login in place and is usually transient, such as a network failure. Its message says when a retry will not help. A
+`vendure auth login` again. So does a `ReauthenticationRequiredError`, which the authentication service raises when,
+for example, the organization starts to enforce SSO or MFA. A `SessionRefreshUnavailableError` leaves the
+login in place and is usually transient, such as a network failure. Its message says when a retry will not help. All
+three carry the authentication service's error `code` and HTTP `status` when it answered, so branch on those rather
+than on the message. `isRenewalRefused(error)` returns `true` when only a new sign-in helps. A
 `SessionLockUnavailableError` means another `vendure` command held the login for too long, or the config directory is
 not writable. Nothing was spent, so the command can be retried.
 
-`readAuthStatus()` describes the login, including the organization it is scoped to, without its tokens.
+`readAuthStatus()` describes the login, including the organization it is scoped to, without its tokens. It makes no
+request. `checkAuthStatus()` returns the same, after renewing the login to check it: `renewable` is `false` and
+`loggedIn` is `false` when the authentication service refused the renewal, and `renewalError` says why.
 `listOrganizations()` returns the Vendure Console organizations the user is an active member of. To change the
 organization, ask the user to run `vendure auth login --organization`.
 

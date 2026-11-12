@@ -21,7 +21,7 @@ import { GraphiqlPluginOptions } from './types';
  * This plugin provides a GraphiQL UI for exploring and testing the Vendure GraphQL APIs.
  *
  * It adds routes `/graphiql/admin` and `/graphiql/shop` which serve the GraphiQL interface
- * for the respective APIs.
+ * for the respective APIs. The `route` option changes the `graphiql` prefix.
  *
  * ## Installation
  *
@@ -38,17 +38,12 @@ import { GraphiqlPluginOptions } from './types';
  * };
  * ```
  *
- * ## Custom API paths
+ * ## API URLs
  *
- * By default, the plugin automatically reads the Admin API and Shop API paths from your Vendure configuration.
- *
- * If you need to override these paths, you can specify them explicitly:
- *
- * ```typescript
- * GraphiQLPlugin.init({
- *     route: 'my-custom-route', // defaults to `graphiql`
- * });
- * ```
+ * The GraphiQL page sends its requests to the Admin API and Shop API paths of your Vendure
+ * configuration (`apiOptions.adminApiPath` and `apiOptions.shopApiPath`), relative to the
+ * server that served the page. `apiOptions.hostname` is not used, so the page works behind
+ * a proxy or in a container that listens on `0.0.0.0`.
  *
  * ## Query parameters
  *
@@ -104,20 +99,25 @@ export class GraphiqlPlugin implements NestModule {
             return;
         }
 
-        const adminRoute = GraphiqlPlugin.options.route + '/admin';
-        const shopRoute = GraphiqlPlugin.options.route + '/shop';
+        // A single leading slash, also for an empty route (`'/'`), which mounts at the site root
+        const route = trimSlashes(GraphiqlPlugin.options.route);
+        const routePrefix = route ? `/${route}` : '';
+        const adminRoute = `${routePrefix}/admin`;
+        const shopRoute = `${routePrefix}/shop`;
+        const assetsPrefix = `${routePrefix}/assets/`;
 
-        consumer.apply(this.createStaticServer()).forRoutes(adminRoute);
-        consumer.apply(this.createStaticServer()).forRoutes(shopRoute);
+        consumer.apply(this.createStaticServer(assetsPrefix)).forRoutes(adminRoute);
+        consumer.apply(this.createStaticServer(assetsPrefix)).forRoutes(shopRoute);
 
         // Add middleware for serving assets
-        consumer.apply(this.createAssetsServer()).forRoutes('/graphiql/assets/*path');
+        consumer.apply(this.createAssetsServer()).forRoutes(`${assetsPrefix}*path`);
 
-        registerPluginStartupMessage('GraphiQL Admin', adminRoute);
-        registerPluginStartupMessage('GraphiQL Shop', shopRoute);
+        // The startup message adds its own leading slash
+        registerPluginStartupMessage('GraphiQL Admin', adminRoute.slice(1));
+        registerPluginStartupMessage('GraphiQL Shop', shopRoute.slice(1));
     }
 
-    private createStaticServer() {
+    private createStaticServer(assetsPrefix: string) {
         const distDir = path.join(__dirname, '../dist/graphiql');
 
         const adminApiUrl = this.graphiQLService.getAdminApiUrl();
@@ -131,13 +131,17 @@ export class GraphiqlPlugin implements NestModule {
                     // Read the HTML file
                     let html = fs.readFileSync(indexHtmlPath, 'utf-8');
 
+                    // The app is built with relative asset URLs. Make them absolute under the
+                    // configured route, so they resolve whatever the page URL looks like.
+                    html = html.replace(/(src|href)="\.\/assets\//g, `$1="${assetsPrefix}`);
+
                     // Inject API URLs
                     html = html.replace(
                         '</head>',
                         `<script>
                                 window.GRAPHIQL_SETTINGS = {
-                                    adminApiUrl: "${adminApiUrl}",
-                                    shopApiUrl: "${shopApiUrl}"
+                                    adminApiUrl: ${JSON.stringify(adminApiUrl)},
+                                    shopApiUrl: ${JSON.stringify(shopApiUrl)}
                                 };
                             </script>
                             </head>`,
@@ -185,6 +189,10 @@ export class GraphiqlPlugin implements NestModule {
             }
         };
     }
+}
+
+function trimSlashes(value: string): string {
+    return value.replace(/^\/+|\/+$/g, '');
 }
 
 /**

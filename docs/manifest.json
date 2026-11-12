@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Framework Documentation",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-10-19T20:40:40+02:00"
+          "lastModified": "2026-11-02T13:57:36+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -1001,7 +1001,7 @@
           "title": "Built-in Tool Reference",
           "slug": "built-in-tools",
           "file": "docs/guides/mcp-server/built-in-tools/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-10-28T10:59:46+01:00"
         },
         {
           "title": "OAuth Protocol Reference",
@@ -1226,13 +1226,13 @@
                   "title": "RedisCachePlugin",
                   "slug": "redis-cache-plugin",
                   "file": "docs/reference/typescript-api/cache/redis-cache-plugin.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-10-30T11:14:22Z"
                 },
                 {
                   "title": "RedisCacheStrategy",
                   "slug": "redis-cache-strategy",
                   "file": "docs/reference/typescript-api/cache/redis-cache-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-10-30T11:14:22Z"
                 },
                 {
                   "title": "RequestContextCacheService",
@@ -2432,7 +2432,7 @@
                   "title": "PollingJobQueueStrategy",
                   "slug": "polling-job-queue-strategy",
                   "file": "docs/reference/typescript-api/job-queue/polling-job-queue-strategy.mdx",
-                  "lastModified": "2026-09-30T09:45:08Z"
+                  "lastModified": "2026-11-09T14:33:03Z"
                 },
                 {
                   "title": "SqlJobQueueStrategy",
@@ -2722,7 +2722,7 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-10T11:11:27Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
@@ -3930,7 +3930,7 @@
               "slug": "graphiql-plugin",
               "file": "docs/reference/core-plugins/graphiql-plugin/index.mdx",
               "children": [],
-              "lastModified": "2026-04-20T16:08:16+02:00"
+              "lastModified": "2026-10-30T13:57:08Z"
             },
             {
               "title": "HardenPlugin",
@@ -4431,7 +4431,7 @@
                   "title": "AssetPickerDialog",
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
-                  "lastModified": "2026-09-01T11:21:59+02:00"
+                  "lastModified": "2026-11-09T12:36:02Z"
                 },
                 {
                   "title": "ChannelChip",
@@ -4901,7 +4901,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-10-22T06:20:30Z"
+                  "lastModified": "2026-11-12T12:09:47Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
