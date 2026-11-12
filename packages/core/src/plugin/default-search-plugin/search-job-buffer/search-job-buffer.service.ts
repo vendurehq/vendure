@@ -4,8 +4,10 @@ import { forkJoin } from 'rxjs';
 import { ConfigService } from '../../../config/config.service';
 import { isInspectableJobQueueStrategy } from '../../../config/job-queue/inspectable-job-queue-strategy';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { InMemoryJobBufferStorageStrategy } from '../../../job-queue/job-buffer/in-memory-job-buffer-storage-strategy';
 import { JobQueueService } from '../../../job-queue/job-queue.service';
 import { SubscribableJob } from '../../../job-queue/subscribable-job';
+import { ProcessContext } from '../../../process-context/process-context';
 import { BUFFER_SEARCH_INDEX_UPDATES } from '../constants';
 
 import { CollectionJobBuffer } from './collection-job-buffer';
@@ -19,14 +21,30 @@ export class SearchJobBufferService implements OnApplicationBootstrap {
     constructor(
         private jobQueueService: JobQueueService,
         private configService: ConfigService,
+        private processContext: ProcessContext,
         @Inject(BUFFER_SEARCH_INDEX_UPDATES) private bufferUpdates: boolean,
     ) {}
 
     onApplicationBootstrap(): any {
-        if (this.bufferUpdates === true) {
-            this.jobQueueService.addBuffer(this.searchIndexJobBuffer);
-            this.jobQueueService.addBuffer(this.collectionJobBuffer);
+        if (this.bufferUpdates !== true) {
+            return;
         }
+        const { jobBufferStorageStrategy } = this.configService.jobQueueOptions;
+        if (
+            this.processContext.isWorker &&
+            jobBufferStorageStrategy instanceof InMemoryJobBufferStorageStrategy
+        ) {
+            Logger.warn(
+                'bufferUpdates is enabled, but the job buffer store keeps jobs in memory, so the worker ' +
+                    'cannot share its buffer with the server. Search updates created in the worker are ' +
+                    'added to the job queue without buffering. To buffer them, use a shared store: ' +
+                    'DefaultJobQueuePlugin with useDatabaseForBuffer: true, or BullMQJobQueuePlugin.',
+                'DefaultSearchPlugin',
+            );
+            return;
+        }
+        this.jobQueueService.addBuffer(this.searchIndexJobBuffer);
+        this.jobQueueService.addBuffer(this.collectionJobBuffer);
     }
 
     async getPendingSearchUpdates(): Promise<number> {
