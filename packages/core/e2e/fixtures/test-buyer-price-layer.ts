@@ -25,6 +25,9 @@ export const BOX_SIZE = 6;
  */
 export const fixedPriceEmailAddresses = new Set<string>();
 
+/** The SKUs of the variants that have no price for the Customers of {@link fixedPriceEmailAddresses}. */
+export const noPriceSkusForFixedPriceCustomers = new Set<string>();
+
 /** The metadata that {@link MetadataRecordingLayer} reads from the result of the inner strategy. */
 export const orderItemMetadata: Array<Record<string, unknown> | undefined> = [];
 
@@ -32,7 +35,7 @@ export const orderItemMetadata: Array<Record<string, unknown> | undefined> = [];
  * A layer over the {@link ProductVariantBuyerPriceStrategy}:
  *
  * * no price when the pricing data has `unitCode: 'NONE'`,
- * * a fixed unit price for some Customers,
+ * * a fixed unit price for some Customers, and no price for some variants for these Customers,
  * * 20% off for a quantity of 10 or more,
  * * the price of {@link BOX_SIZE} units when the pricing data has `unitCode: 'BOX'`. In the cart, the
  *   pricing data is the OrderLine custom fields.
@@ -58,6 +61,9 @@ export class TestBuyerPriceLayer extends StrategyLayer.passThrough<ProductVarian
         let rule = 'CHANNEL';
         const customer = await args.buyer.getCustomer();
         if (customer && fixedPriceEmailAddresses.has(customer.emailAddress)) {
+            if (noPriceSkusForFixedPriceCustomers.has(productVariant.sku)) {
+                return undefined;
+            }
             price = FIXED_UNIT_PRICE;
             rule = 'FIXED';
         }

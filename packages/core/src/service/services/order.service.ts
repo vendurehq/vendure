@@ -51,7 +51,12 @@ import { RequestContextCacheService } from '../../cache/request-context-cache.se
 import { LocalizedStringArray } from '../../common/configurable-operation';
 import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
+import {
+    EntityNotFoundError,
+    IllegalOperationError,
+    InternalServerError,
+    UserInputError,
+} from '../../common/error/errors';
 import {
     CancelPaymentError,
     EmptyOrderLineSelectionError,
@@ -142,7 +147,7 @@ import { FulfillmentService } from './fulfillment.service';
 import { HistoryService } from './history.service';
 import { PaymentMethodService } from './payment-method.service';
 import { PaymentService } from './payment.service';
-import { ProductVariantService } from './product-variant.service';
+import { NO_BUYER_PRICE_ERROR_MESSAGE, ProductVariantService } from './product-variant.service';
 import { PromotionService } from './promotion.service';
 import { StockLevelService } from './stock-level.service';
 
@@ -2379,17 +2384,60 @@ export class OrderService implements OnApplicationBootstrap {
     /**
      * The unit price of an OrderLine can depend on the Customer, for example with a custom
      * ProductVariantBuyerPriceStrategy. So when the Customer of an active or draft Order changes,
-     * the price of each line is calculated again. A placed Order keeps its prices.
+     * the price of each line is calculated again. A line that has no price for the new Customer is
+     * removed, so that the change of the Customer does not fail. A placed Order keeps its prices.
      */
     private async applyPriceAdjustmentsForNewCustomer(ctx: RequestContext, order: Order): Promise<Order> {
         if (!order.active && order.state !== 'Draft') {
             return order;
         }
-        const fullOrder = await this.getOrderOrThrow(ctx, order.id);
+        let fullOrder = await this.getOrderOrThrow(ctx, order.id);
         if (!fullOrder.lines.length) {
             return order;
         }
+        const linesWithoutPrice = await this.getLinesWithoutBuyerPrice(ctx, fullOrder);
+        if (linesWithoutPrice.length) {
+            const result = await this.removeItemsFromOrder(
+                ctx,
+                order.id,
+                linesWithoutPrice.map(line => line.id),
+            );
+            if (isGraphQlErrorResult(result)) {
+                // The lines cannot be removed in this state, so the Order keeps its prices
+                return order;
+            }
+            fullOrder = await this.getOrderOrThrow(ctx, order.id);
+        }
         return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
+    }
+
+    private async getLinesWithoutBuyerPrice(ctx: RequestContext, order: Order): Promise<OrderLine[]> {
+        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
+        const lines: OrderLine[] = [];
+        for (const line of order.lines) {
+            const variant = await this.productVariantService.applyChannelPriceAndTax(
+                line.productVariant,
+                ctx,
+                order,
+            );
+            try {
+                await orderItemPriceCalculationStrategy.calculateUnitPrice(
+                    ctx,
+                    variant,
+                    line.customFields || {},
+                    order,
+                    line.quantity,
+                );
+            } catch (e) {
+                // The error of ProductVariantService.calculateBuyerPriceForOrder() for no price
+                if (e instanceof IllegalOperationError && e.message === NO_BUYER_PRICE_ERROR_MESSAGE) {
+                    lines.push(line);
+                } else {
+                    throw e;
+                }
+            }
+        }
+        return lines;
     }
 
     private async getOrderOrThrow(

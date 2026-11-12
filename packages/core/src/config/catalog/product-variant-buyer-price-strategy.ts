@@ -79,7 +79,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * The strategy returns `undefined` when there is no price for this buyer, for example for "price on
  * request" or "log in to see prices". The `buyerPrice` field then gives `null`. In the cart,
  * `ProductVariantService.calculateBuyerPriceForOrder()` throws an error, so the item is not added at
- * no price.
+ * no price. When the Customer of an active or draft Order changes, Vendure removes each OrderLine that
+ * has no price for the new Customer.
  *
  * The result can carry `metadata`, for example the price rule that applied. An outer layer over the
  * OrderItemPriceCalculationStrategy can read it from the result of `inner`, and a plugin can read it

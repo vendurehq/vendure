@@ -73,6 +73,11 @@ import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
 
 /**
+ * The message of the error that `calculateBuyerPriceForOrder()` throws when there is no price.
+ */
+export const NO_BUYER_PRICE_ERROR_MESSAGE = 'error.no-buyer-price-for-product-variant';
+
+/**
  * @description
  * The result of `ProductVariantService.calculateBuyerPrice()`: the price for the GraphQL `BuyerPrice`
  * type, and the `metadata` of the {@link ProductVariantBuyerPriceStrategy} result.
@@ -925,7 +930,7 @@ export class ProductVariantService {
             },
         );
         if (!result) {
-            throw new IllegalOperationError('error.no-buyer-price-for-product-variant', {
+            throw new IllegalOperationError(NO_BUYER_PRICE_ERROR_MESSAGE, {
                 productVariantId: productVariant.id,
             });
         }

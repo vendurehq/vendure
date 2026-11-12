@@ -17,6 +17,7 @@ import {
     BOX_SIZE,
     FIXED_UNIT_PRICE,
     fixedPriceEmailAddresses,
+    noPriceSkusForFixedPriceCustomers,
     orderItemMetadata,
     TestBuyerPricePlugin,
 } from './fixtures/test-buyer-price-layer';
@@ -35,6 +36,7 @@ const getVariantPricesDocument = graphql(`
         product(id: $id) {
             variants {
                 id
+                sku
                 price
                 priceWithTax
                 buyerPrice(quantity: $quantity, customFields: $customFields) {
@@ -217,6 +219,8 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
     let fixedPriceCustomer: { id: string; emailAddress: string };
     /** A second Customer with the fixed price, who has no Order before the login test. */
     let loginCustomer: { id: string; emailAddress: string };
+    /** A third Customer with the fixed price, who has no Order before the login test without a price. */
+    let secondLoginCustomer: { id: string; emailAddress: string };
     /** The variants of the first product, with the channel prices. */
     let channelPrices: VariantPrices;
 
@@ -243,13 +247,14 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         await server.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
-            customerCount: 2,
+            customerCount: 3,
         });
         await adminClient.asSuperAdmin();
-        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 2 } });
-        [fixedPriceCustomer, loginCustomer] = customers.items;
+        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 3 } });
+        [fixedPriceCustomer, loginCustomer, secondLoginCustomer] = customers.items;
         fixedPriceEmailAddresses.add(fixedPriceCustomer.emailAddress);
         fixedPriceEmailAddresses.add(loginCustomer.emailAddress);
+        fixedPriceEmailAddresses.add(secondLoginCustomer.emailAddress);
         fixedPriceEmailAddresses.add(GUEST_EMAIL_ADDRESS);
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
         channelPrices = product!.variants;
@@ -454,6 +459,69 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         expect(setCustomerForDraftOrder).toEqual({
             id: createDraftOrder.id,
             lines: [{ unitPrice: FIXED_UNIT_PRICE }],
+        });
+    });
+
+    describe('a line that has no price for the new customer of the order', () => {
+        beforeAll(() => {
+            noPriceSkusForFixedPriceCustomers.add(channelPrices[3].sku);
+        });
+
+        afterAll(() => {
+            noPriceSkusForFixedPriceCustomers.clear();
+        });
+
+        it('is removed by setCustomerForOrder, and the other lines get the new price', async () => {
+            await shopClient.asAnonymousUser();
+            await addToCart(shopClient, channelPrices[0].id, 1);
+            await addToCart(shopClient, channelPrices[3].id, 1);
+
+            const { setCustomerForOrder } = await shopClient.query(setCustomerForOrderDocument, {
+                input: { emailAddress: GUEST_EMAIL_ADDRESS, firstName: 'Guest', lastName: 'Shopper' },
+            });
+            expect(setCustomerForOrder).toEqual({ id: expect.any(String) });
+
+            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+            expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
+                [channelPrices[0].id, FIXED_UNIT_PRICE],
+            ]);
+        });
+
+        it('is removed when a login gives the guest order to the customer', async () => {
+            await shopClient.asAnonymousUser();
+            await addToCart(shopClient, channelPrices[0].id, 1);
+            await addToCart(shopClient, channelPrices[3].id, 1);
+
+            const { login } = await shopClient.query(attemptLoginDocument, {
+                username: secondLoginCustomer.emailAddress,
+                password: 'test',
+            });
+            expect(login).toEqual(expect.objectContaining({ identifier: secondLoginCustomer.emailAddress }));
+
+            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+            expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
+                [channelPrices[0].id, FIXED_UNIT_PRICE],
+            ]);
+        });
+
+        it('is removed by setCustomerForDraftOrder', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            for (const variant of [channelPrices[0], channelPrices[3]]) {
+                await adminClient.query(addItemToDraftOrderDocument, {
+                    orderId: createDraftOrder.id,
+                    input: { productVariantId: variant.id, quantity: 1 },
+                });
+            }
+
+            const { setCustomerForDraftOrder } = await adminClient.query(setCustomerForDraftOrderDocument, {
+                orderId: createDraftOrder.id,
+                customerId: fixedPriceCustomer.id,
+            });
+
+            expect(setCustomerForDraftOrder).toEqual({
+                id: createDraftOrder.id,
+                lines: [{ unitPrice: FIXED_UNIT_PRICE }],
+            });
         });
     });
 
