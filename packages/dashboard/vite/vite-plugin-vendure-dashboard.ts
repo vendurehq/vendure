@@ -17,6 +17,7 @@ import {
 import { getDefaultTempCompilationDir } from './utils/temp-compilation-dir.js';
 import { adminApiSchemaPlugin } from './vite-plugin-admin-api-schema.js';
 import { bundleEntryPlugin } from './vite-plugin-bundle-entry.js';
+import { chunkHashPlugin } from './vite-plugin-chunk-hash.js';
 import { configLoaderPlugin } from './vite-plugin-config-loader.js';
 import { viteConfigPlugin } from './vite-plugin-config.js';
 import { dashboardMetadataPlugin } from './vite-plugin-dashboard-metadata.js';
@@ -332,12 +333,14 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
         },
         {
             key: 'viteConfig',
-            plugin: () =>
+            plugin: () => [
                 viteConfigPlugin({
                     packageRoot,
                     gqlOutputPath: options.gqlOutputPath,
                     useExperimentalBundle: options.useExperimentalBundle,
                 }),
+                chunkHashPlugin(),
+            ],
         },
         {
             key: 'bundleEntry',

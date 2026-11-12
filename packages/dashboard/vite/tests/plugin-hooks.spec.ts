@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PluginInfo } from '../types.js';
 import { filterActivePluginInfo } from '../utils/get-active-plugin-info.js';
 import { bundleEntryPlugin } from '../vite-plugin-bundle-entry.js';
+import { chunkHashPlugin } from '../vite-plugin-chunk-hash.js';
 import { viteConfigPlugin } from '../vite-plugin-config.js';
 import { dashboardMetadataPlugin } from '../vite-plugin-dashboard-metadata.js';
 import { hmrPlugin } from '../vite-plugin-hmr.js';
@@ -1180,5 +1181,39 @@ describe('filterActivePluginInfo', () => {
             });
             expect(result.map(p => p.name)).toEqual(['SelfComposingPlugin']);
         });
+    });
+});
+
+// ─── chunkHashPlugin ────────────────────────────────────────────────────────
+
+describe('chunkHashPlugin', () => {
+    function callAugmentChunkHash(plugin: Plugin) {
+        return (plugin.augmentChunkHash as () => string)();
+    }
+
+    function callBuildStart(plugin: Plugin) {
+        (plugin.buildStart as () => void)();
+    }
+
+    it('applies only to builds', () => {
+        expect(chunkHashPlugin().apply).toBe('build');
+    });
+
+    // #5564 — every chunk of one build gets the same value, so hashes stay stable within the build
+    it('returns one value for all chunks of a build', () => {
+        const plugin = chunkHashPlugin();
+        callBuildStart(plugin);
+        const first = callAugmentChunkHash(plugin);
+        expect(first).toEqual(expect.any(String));
+        expect(callAugmentChunkHash(plugin)).toBe(first);
+    });
+
+    // #5564 — `vite build --watch` runs several builds in one process
+    it('returns a new value after the next buildStart', () => {
+        const plugin = chunkHashPlugin();
+        callBuildStart(plugin);
+        const first = callAugmentChunkHash(plugin);
+        callBuildStart(plugin);
+        expect(callAugmentChunkHash(plugin)).not.toBe(first);
     });
 });
