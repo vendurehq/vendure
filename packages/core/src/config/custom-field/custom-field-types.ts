@@ -90,6 +90,27 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     index?: boolean;
     /**
      * @description
+     * If set to `true`, the field holds a separate value per Channel. It is only supported on
+     * {@link ChannelAware} entities which have a channel assignment entity (see
+     * `ChannelAssignment`), e.g. `Product`: the value is stored on the entity's row for each Channel
+     * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value in the active
+     * Channel.
+     *
+     * - A value which is not set in a Channel reads `null`. There is no fallback to another
+     *   Channel's value or to `defaultValue`.
+     * - When the entity is assigned to another Channel with `ChannelService.assignToChannels()`,
+     *   the new Channel starts with the values of an existing assignment: the active Channel's if
+     *   the entity is assigned to it, otherwise the default Channel's, otherwise any.
+     * - Removing the entity from a Channel deletes its values in that Channel.
+     *
+     * Not supported with localized types, `struct`, `list: true` relations, `unique` or `secret`.
+     *
+     * @since 4.0.0
+     * @default false
+     */
+    channelScoped?: boolean;
+    /**
+     * @description
      * If set to `true`, the value of this field is encrypted at rest using the configured
      * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
      * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`

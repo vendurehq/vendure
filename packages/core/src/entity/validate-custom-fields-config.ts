@@ -9,6 +9,7 @@ import {
 } from '../config/custom-field/custom-field-types';
 
 import { VendureEntity } from './base/base.entity';
+import { getChannelAssignmentEntities } from './channel-assignment/channel-assignment-registry';
 
 function validateCustomFieldsForEntity(
     entity: Type<VendureEntity>,
@@ -23,7 +24,44 @@ function validateCustomFieldsForEntity(
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
         ...assertValidIndexConfiguration(entity.name, customFields, dbEngine),
         ...(isTranslatable(entity) ? [] : assertNoLocalizedFields(entity.name, customFields)),
+        ...assertValidChannelScopedFields(entity, customFields),
     ];
+}
+
+/**
+ * Assert that `channelScoped` custom fields are only declared on entities with a channel assignment
+ * entity, and only with the field types and options which are supported there.
+ */
+function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomFieldConfig[]): string[] {
+    const channelScoped = customFields.filter(f => f.channelScoped);
+    if (!channelScoped.length) {
+        return [];
+    }
+    const hasAssignmentEntity = Array.from(getChannelAssignmentEntities().values()).some(
+        options => options.entity() === entity,
+    );
+    if (!hasAssignmentEntity) {
+        return [
+            `${entity.name} entity custom field(s) ${channelScoped.map(f => `"${f.name}"`).join(', ')} ` +
+                'have "channelScoped: true", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
+        ];
+    }
+    const errors: string[] = [];
+    for (const field of channelScoped) {
+        const unsupported = [
+            isLocalizedCustomFieldType(field.type) && `type "${field.type}"`,
+            field.type === 'struct' && 'type "struct"',
+            field.type === 'relation' && field.list && '"list: true" relations',
+            field.unique && '"unique: true"',
+            field.secret && '"secret: true"',
+        ].filter(Boolean);
+        if (unsupported.length) {
+            errors.push(
+                `${entity.name} entity custom field "${field.name}" has "channelScoped: true", which does not support ${unsupported.join(', ')}`,
+            );
+        }
+    }
+    return errors;
 }
 
 /**

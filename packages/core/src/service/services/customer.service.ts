@@ -858,7 +858,15 @@ export class CustomerService {
             await this.channelService.assignToCurrentChannel(customer, ctx);
             await this.eventBus.publish(new CustomerEvent(ctx, customer, 'created', input));
         }
-        return this.connection.getRepository(ctx, Customer).save(customer);
+        const saved = await this.connection.getRepository(ctx, Customer).save(customer);
+        // Once assigned to the Channel, so that its channel assignment row exists
+        await this.customFieldRelationService.updateChannelScopedFields(
+            ctx,
+            Customer,
+            input.customFields,
+            saved,
+        );
+        return saved;
     }
 
     /**

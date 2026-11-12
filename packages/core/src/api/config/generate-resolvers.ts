@@ -20,6 +20,7 @@ import {
 import { Logger } from '../../config/logger/vendure-logger';
 import { Region } from '../../entity/region/region.entity';
 import { getPluginAPIExtensions } from '../../plugin/plugin-metadata';
+import { ChannelAssignmentService } from '../../service/helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationResolverService } from '../common/custom-field-relation-resolver.service';
 import { ApiType } from '../common/get-api-type';
 import { internal_getRequestContext } from '../common/request-context';
@@ -36,6 +37,7 @@ import { GraphQLMoney } from './money-scalar';
 export async function generateResolvers(
     configService: ConfigService,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    channelAssignmentService: ChannelAssignmentService,
     apiType: ApiType,
     schema: GraphQLSchema,
 ) {
@@ -155,6 +157,7 @@ export async function generateResolvers(
     const customFieldResolvers = generateCustomFieldResolvers(
         configService,
         customFieldRelationResolverService,
+        channelAssignmentService,
         schema,
     );
 
@@ -192,6 +195,7 @@ export async function generateResolvers(
 function generateCustomFieldResolvers(
     configService: ConfigService,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    channelAssignmentService: ChannelAssignmentService,
     schema: GraphQLSchema,
 ) {
     const ENTITY_ID_KEY = '__entityId__';
@@ -213,9 +217,27 @@ function generateCustomFieldResolvers(
         // In order to resolve the relations in the CustomFields type, we need
         // access to the entity id. Therefore, we attach it to the resolved value
         // so that it is available to the `relationResolver` below.
-        const customFieldResolver: IFieldResolver<any, any> = (source: any) => {
+        // Channel-scoped custom fields are stored on the entity's channel assignment row, so their
+        // values for the active Channel are merged in. Relation fields resolve via relationResolver.
+        const channelScopedFieldNames = customFields
+            .filter(f => f.channelScoped && !isRelationalType(f))
+            .map(f => f.name);
+        const customFieldResolver: IFieldResolver<any, any> = async (
+            source: any,
+            args: any,
+            context: any,
+        ) => {
+            const channelScopedValues = channelScopedFieldNames.length
+                ? await channelAssignmentService.getCustomFieldValues(
+                      internal_getRequestContext(context.req),
+                      entityName,
+                      source.id,
+                      channelScopedFieldNames,
+                  )
+                : {};
             return {
                 ...source.customFields,
+                ...channelScopedValues,
                 [ENTITY_ID_KEY]: source.id,
                 // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
                 // pass the real VendureEntity to strategies, rather than this customFields wrapper.
