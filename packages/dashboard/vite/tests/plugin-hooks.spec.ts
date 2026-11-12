@@ -5,7 +5,7 @@ import os from 'node:os';
 import { pathToFileURL } from 'node:url';
 import path from 'path';
 import type { Plugin } from 'vite';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PluginInfo } from '../types.js';
 import { filterActivePluginInfo } from '../utils/get-active-plugin-info.js';
@@ -17,6 +17,10 @@ import { hmrPlugin } from '../vite-plugin-hmr.js';
 import { dashboardTailwindSourcePlugin } from '../vite-plugin-tailwind-source.js';
 import { themeVariablesPlugin } from '../vite-plugin-theme.js';
 import { transformIndexHtmlPlugin } from '../vite-plugin-transform-index.js';
+import {
+    createDashboardPlugins,
+    VitePluginVendureDashboardOptions,
+} from '../vite-plugin-vendure-dashboard.js';
 
 // ─── Typed hook helpers ─────────────────────────────────────────────────────
 // Thin wrappers that cast once so individual tests stay type-safe without
@@ -1191,29 +1195,73 @@ describe('chunkHashPlugin', () => {
         return (plugin.augmentChunkHash as () => string)();
     }
 
-    function callBuildStart(plugin: Plugin) {
-        (plugin.buildStart as () => void)();
-    }
-
     it('applies only to builds', () => {
         expect(chunkHashPlugin().apply).toBe('build');
     });
 
-    // #5564 — every chunk of one build gets the same value, so hashes stay stable within the build
-    it('returns one value for all chunks of a build', () => {
+    // #5564 — a new value on each call, so no build reuses a chunk hash from another build
+    it('returns a new value on each call', () => {
         const plugin = chunkHashPlugin();
-        callBuildStart(plugin);
         const first = callAugmentChunkHash(plugin);
         expect(first).toEqual(expect.any(String));
-        expect(callAugmentChunkHash(plugin)).toBe(first);
+        expect(callAugmentChunkHash(plugin)).not.toBe(first);
+    });
+});
+
+describe('vendureDashboardPlugin: chunkHash wiring', () => {
+    const originalLinguiConfig = process.env.LINGUI_CONFIG;
+
+    afterEach(() => {
+        if (originalLinguiConfig === undefined) {
+            delete process.env.LINGUI_CONFIG;
+        } else {
+            process.env.LINGUI_CONFIG = originalLinguiConfig;
+        }
     });
 
-    // #5564 — `vite build --watch` runs several builds in one process
-    it('returns a new value after the next buildStart', () => {
-        const plugin = chunkHashPlugin();
-        callBuildStart(plugin);
-        const first = callAugmentChunkHash(plugin);
-        callBuildStart(plugin);
-        expect(callAugmentChunkHash(plugin)).not.toBe(first);
+    // Every other plugin is disabled, so the test constructs only the plugins it checks.
+    const otherPluginsDisabled = {
+        tanstackRouter: true,
+        linguiBabel: true,
+        react: true,
+        lingui: true,
+        themeVariables: true,
+        tailwindSource: true,
+        tailwindcss: true,
+        configLoader: true,
+        bundleEntry: true,
+        adminApiSchema: true,
+        dashboardMetadata: true,
+        uiConfig: true,
+        gqlTada: true,
+        transformIndexHtml: true,
+        translations: true,
+        hmr: true,
+    };
+
+    function pluginNames(disablePlugins?: VitePluginVendureDashboardOptions['disablePlugins']) {
+        return createDashboardPlugins(
+            {
+                vendureConfigPath: './vendure-config.ts',
+                disablePlugins: { ...otherPluginsDisabled, ...disablePlugins },
+            },
+            path.resolve(import.meta.dirname, '../..'),
+        )
+            .flat()
+            .map(p => (p && typeof p === 'object' && 'name' in p ? p.name : undefined));
+    }
+
+    // #5564
+    it('includes the chunk hash plugin by default', () => {
+        expect(pluginNames()).toContain('vendure:chunk-hash');
+    });
+
+    // #5564 — disabling viteConfig must not turn the fix off
+    it('keeps the chunk hash plugin when viteConfig is disabled', () => {
+        expect(pluginNames({ viteConfig: true })).toContain('vendure:chunk-hash');
+    });
+
+    it('drops the chunk hash plugin when chunkHash is disabled', () => {
+        expect(pluginNames({ chunkHash: true })).not.toContain('vendure:chunk-hash');
     });
 });

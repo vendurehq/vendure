@@ -62,6 +62,18 @@ describe('chunkHashPlugin', () => {
         }
     });
 
+    // #5564 — control: without the plugin, the bundler reuses a file name for different code.
+    // If this fails, the bundler now hashes chunks differently and `chunkHashPlugin` may no longer be needed.
+    it('reuses a file name for different code without the plugin', async () => {
+        const first = await buildFixture(writeFixture(['a', 'b']), []);
+        const second = await buildFixture(writeFixture(['b', 'a']), []);
+
+        const reused = first.filter(chunk =>
+            second.some(other => other.fileName === chunk.fileName && other.code !== chunk.code),
+        );
+        expect(reused.length).toBeGreaterThan(0);
+    });
+
     // #5564 — a reordered dynamic import must not leave a chunk with the same file name and different content
     it('gives every JS chunk a new file name when the import order changes', async () => {
         const first = await buildFixture(writeFixture(['a', 'b']), [chunkHashPlugin()]);
@@ -83,7 +95,7 @@ describe('chunkHashPlugin', () => {
         expect(jsFileNames(second).filter(name => firstNames.includes(name))).toEqual([]);
     });
 
-    // #5564 — the build output stays complete and its imports resolve
+    // The plugin must not drop chunks or break the imports between them.
     it('emits all chunks and the imports resolve to emitted file names', async () => {
         const chunks = await buildFixture(writeFixture(['a', 'b']), [chunkHashPlugin()]);
         const names = jsFileNames(chunks);
