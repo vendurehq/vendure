@@ -32,7 +32,7 @@ export interface SlugConflict {
  * Before v4 the slug check only looked at the active channel, and assigning to a channel
  * did not check slugs at all, so an existing database can hold such duplicates. A lookup by
  * a duplicated slug returns one of the matches. In v4 the choice is deterministic (see
- * `entityOptions.slugUniqueness`), but it is still worth renaming the duplicates.
+ * `SlugStrategy.getUniquenessScope()`), but it is still worth renaming the duplicates.
  *
  * Call it from a migration's `up()` to log the conflicts, or from a script:
  *

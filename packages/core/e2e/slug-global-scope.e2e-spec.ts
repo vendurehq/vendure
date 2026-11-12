@@ -1,5 +1,5 @@
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import { DefaultSlugStrategy, mergeConfig } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -10,11 +10,13 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { graphql } from './graphql/graphql-admin';
 import { createChannelDocument } from './graphql/shared-definitions';
 
-// OSS-1000 — `entityOptions.slugUniqueness: 'global'` keeps slugs unique across all channels,
+// OSS-1000 — `new DefaultSlugStrategy({ uniqueness: 'global' })` keeps slugs unique across all channels,
 // for setups such as a marketplace where one storefront shows several channels' products.
 describe('Slug uniqueness: global', () => {
     const { server, adminClient } = createTestEnvironment(
-        mergeConfig(testConfig(), { entityOptions: { slugUniqueness: 'global' } }),
+        mergeConfig(testConfig(), {
+            entityOptions: { slugStrategy: new DefaultSlugStrategy({ uniqueness: 'global' }) },
+        }),
     );
     const B_TOKEN = 'slug-global-b';
     const C_TOKEN = 'slug-global-c';

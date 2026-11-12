@@ -8,6 +8,7 @@ import { RequestContext } from '../../../api/common/request-context';
 import { UserInputError } from '../../../common/error/errors';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
+import { SlugUniquenessScope } from '../../../config/entity/slug-strategy';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { ChannelService } from '../../services/channel.service';
@@ -47,7 +48,7 @@ export type SlugScope = ID[] | 'global';
  * Used to validate slugs to ensure they are URL-safe and unique. Designed to be used with translatable
  * entities such as {@link Product} and {@link Collection}.
  *
- * With the default `entityOptions.slugUniqueness: 'channel'`, a slug must be unique (per language)
+ * With the default uniqueness scope of `'channel'` (see {@link SlugStrategy}), a slug must be unique (per language)
  * in every channel the entity belongs to. The default channel is a special case: every entity
  * is assigned to it, so it is only taken into account for entities that belong to no other
  * channel. Such entities are checked against every entity, which keeps a single-channel shop
@@ -138,7 +139,12 @@ export class SlugValidator {
         baseIds: ID[],
         channelId: ID,
     ): Promise<void> {
-        if (!baseIds.length || this.configService.entityOptions.slugUniqueness === 'global') {
+        if (!baseIds.length) {
+            return;
+        }
+        const uniqueness = await this.getUniquenessScope(ctx, translationEntity, undefined, [channelId]);
+        if (uniqueness === 'global') {
+            // Slugs are already unique across every channel.
             return;
         }
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
@@ -262,9 +268,6 @@ export class SlugValidator {
      * the validation.
      */
     async getScope(ctx: RequestContext, translationEntity: Type<any>, baseId?: ID): Promise<SlugScope> {
-        if (this.configService.entityOptions.slugUniqueness === 'global') {
-            return 'global';
-        }
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
         let channelIds: ID[];
         if (baseId != null) {
@@ -285,9 +288,29 @@ export class SlugValidator {
             // A new entity is assigned to the active channel and the default channel.
             channelIds = [ctx.channelId];
         }
+        const uniqueness = await this.getUniquenessScope(ctx, translationEntity, baseId, channelIds);
+        if (uniqueness === 'global') {
+            return 'global';
+        }
         const nonDefault = channelIds.filter(id => !idsAreEqual(id, defaultChannel.id));
         // An entity that only lives in the default channel is checked against every entity.
         return nonDefault.length ? nonDefault : 'global';
+    }
+
+    private async getUniquenessScope(
+        ctx: RequestContext,
+        translationEntity: Type<any>,
+        entityId: ID | undefined,
+        channelIds: ID[],
+    ): Promise<SlugUniquenessScope> {
+        const strategy = this.configService.entityOptions.slugStrategy;
+        if (!strategy?.getUniquenessScope) {
+            return 'channel';
+        }
+        const entityName =
+            this.connection.rawConnection.getMetadata(translationEntity).findRelationWithPropertyPath('base')
+                ?.inverseEntityMetadata.name ?? translationEntity.name;
+        return strategy.getUniquenessScope(ctx, { entityName, entityId, channelIds });
     }
 
     private notDeleted<E extends TranslationEntity>(translationEntity: Type<E>): string {

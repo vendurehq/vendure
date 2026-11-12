@@ -164,7 +164,6 @@ export const defaultConfig: RuntimeVendureConfig = {
         taxRateCacheTtl: 30000,
         metadataModifiers: [],
         slugStrategy: new DefaultSlugStrategy(),
-        slugUniqueness: 'channel',
     },
     promotionOptions: {
         promotionConditions: defaultPromotionConditions,

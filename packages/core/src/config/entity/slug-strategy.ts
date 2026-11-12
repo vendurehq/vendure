@@ -1,3 +1,5 @@
+import { ID } from '@vendure/common/lib/shared-types';
+
 import { RequestContext } from '../../api/common/request-context';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 
@@ -18,6 +20,44 @@ export interface SlugGenerateParams {
      * The optional field name (e.g., 'slug', 'code')
      */
     fieldName?: string;
+}
+
+/**
+ * @description
+ * The scope within which a slug must be unique (per language).
+ *
+ * - `'channel'`: unique in each channel the entity belongs to. The default channel holds every
+ *   entity, so it only counts for entities that belong to no other channel.
+ * - `'global'`: unique across all channels.
+ *
+ * @docsCategory configuration
+ * @docsPage SlugStrategy
+ * @since 4.0.0
+ */
+export type SlugUniquenessScope = 'channel' | 'global';
+
+/**
+ * @description
+ * Parameters for {@link SlugStrategy}`.getUniquenessScope()`.
+ *
+ * @docsCategory configuration
+ * @docsPage SlugStrategy
+ * @since 4.0.0
+ */
+export interface SlugUniquenessScopeParams {
+    /**
+     * The name of the entity that owns the slug, e.g. `'Product'` or `'Collection'`.
+     */
+    entityName: string;
+    /**
+     * The id of the entity, or undefined when it is being created.
+     */
+    entityId?: ID;
+    /**
+     * The channels the entity belongs to, or will belong to: for a new entity, the active
+     * channel; for an assignment, the target channel.
+     */
+    channelIds: ID[];
 }
 
 /**
@@ -51,4 +91,21 @@ export interface SlugStrategy extends InjectableStrategy {
      * @returns A URL-friendly slug string
      */
     generate(ctx: RequestContext, params: SlugGenerateParams): string | Promise<string>;
+
+    /**
+     * @description
+     * Returns the scope within which a Product or Collection slug must be unique. It is used
+     * when a slug is validated on create and update, when an entity is assigned to a channel,
+     * and by the `slugForEntity` query, so that the dashboard suggestions agree with the
+     * validation. It does not affect how the slug text is generated.
+     *
+     * If not implemented, the scope is `'channel'`.
+     *
+     * @since 4.0.0
+     * @default 'channel'
+     */
+    getUniquenessScope?(
+        ctx: RequestContext,
+        params: SlugUniquenessScopeParams,
+    ): SlugUniquenessScope | Promise<SlugUniquenessScope>;
 }
