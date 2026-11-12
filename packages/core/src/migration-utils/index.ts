@@ -15,4 +15,8 @@ export {
     formatRoleAssignmentMigrationPreview,
     previewRoleAssignmentMigration,
 } from './v4_0_role_assignments_preview';
-export { TrackInventoryMigrationResult, migrateTrackInventoryToChannels } from './v4_0_track_inventory';
+export {
+    TrackInventoryMigrationResult,
+    backfillStockMovementTracking,
+    migrateTrackInventoryToChannels,
+} from './v4_0_track_inventory';

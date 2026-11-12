@@ -47,7 +47,10 @@ export abstract class StockMovement extends VendureEntity implements HasCustomFi
      * not the current setting, so changing `trackInventory` while an Order is open cannot
      * leave allocated stock behind or release stock that was never allocated.
      *
-     * `null` for movements recorded before v4.0, which fall back to the current setting.
+     * StockAdjustments are always `true`: they change `stockOnHand` whatever the setting.
+     *
+     * Movements recorded before v4.0 are filled in by the `backfillStockMovementTracking()`
+     * migration helper. Any still `null` fall back to the current setting.
      *
      * @since 4.0.0
      */

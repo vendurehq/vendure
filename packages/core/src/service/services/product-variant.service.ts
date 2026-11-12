@@ -336,9 +336,12 @@ export class ProductVariantService {
         options?: StockLevelReadOptions,
     ): Promise<number> {
         const { outOfStockThreshold } = await this.globalSettingsService.getSettings(ctx);
-        const { stockOnHand, stockAllocated, hasUntrackedStock } =
-            await this.stockLevelService.getAvailableStock(ctx, variant.id, options);
-        if (await this.isUntracked(ctx, variant, hasUntrackedStock)) {
+        const available = await this.stockLevelService.getAvailableStock(ctx, variant.id, {
+            ...options,
+            productVariant: variant,
+        });
+        const { stockOnHand, stockAllocated } = available;
+        if (await this.stockLevelService.hasUntrackedStock(ctx, variant, available)) {
             return Number.MAX_SAFE_INTEGER;
         }
         const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
@@ -346,22 +349,6 @@ export class ProductVariantService {
             : variant.outOfStockThreshold;
 
         return stockOnHand - stockAllocated - effectiveOutOfStockThreshold;
-    }
-
-    /**
-     * `hasUntrackedStock` comes from the StockLocationStrategy. A strategy written before v4
-     * leaves it undefined, in which case the ProductVariant/Channel setting decides, as it did
-     * before StockLevels could override it.
-     */
-    private async isUntracked(
-        ctx: RequestContext,
-        variant: ProductVariant,
-        hasUntrackedStock: boolean | undefined,
-    ): Promise<boolean> {
-        if (hasUntrackedStock !== undefined) {
-            return hasUntrackedStock;
-        }
-        return !(await this.stockLevelService.isInventoryTracked(ctx, variant));
     }
 
     private async getOutOfStockThreshold(ctx: RequestContext, variant: ProductVariant): Promise<number> {
@@ -392,11 +379,11 @@ export class ProductVariantService {
      * for those variants which are tracking inventory.
      */
     async getFulfillableStockLevel(ctx: RequestContext, variant: ProductVariant): Promise<number> {
-        const { stockOnHand, hasUntrackedStock } = await this.stockLevelService.getAvailableStock(
-            ctx,
-            variant.id,
-        );
-        if (await this.isUntracked(ctx, variant, hasUntrackedStock)) {
+        const available = await this.stockLevelService.getAvailableStock(ctx, variant.id, {
+            productVariant: variant,
+        });
+        const { stockOnHand } = available;
+        if (await this.stockLevelService.hasUntrackedStock(ctx, variant, available)) {
             return Number.MAX_SAFE_INTEGER;
         }
         return stockOnHand;

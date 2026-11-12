@@ -5,8 +5,8 @@ import { filter } from 'rxjs/operators';
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
 import { Injector } from '../../common/injector';
-import { idsAreEqual } from '../../common/utils';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
 import { ChangeChannelEvent, EventBus, StockLocationEvent } from '../../event-bus/index';
@@ -75,29 +75,33 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
      * @description
      * Returns the available stock for the given ProductVariant, taking into account the active Channel.
      */
-    async getAvailableStock(
+    getAvailableStock(
         ctx: RequestContext,
         productVariantId: ID,
         stockLevels: StockLevel[],
+        productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>,
     ): Promise<AvailableStock> {
-        const variant = await this.getVariant(ctx, productVariantId);
-        const applicable: StockLevel[] = [];
-        for (const stockLevel of stockLevels) {
-            if (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel)) {
-                applicable.push(stockLevel);
+        return (async () => {
+            const variant = productVariant ?? (await this.getVariant(ctx, productVariantId));
+            const applicable: StockLevel[] = [];
+            for (const stockLevel of stockLevels) {
+                if (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel)) {
+                    applicable.push(stockLevel);
+                }
             }
-        }
-        return this.sumStockLevels(ctx, variant, applicable);
+            return this.sumStockLevels(ctx, variant, applicable);
+        })();
     }
 
     /**
      * @description
-     * Allocates from the active Channel's StockLocations in order. A tracked StockLevel gives at
-     * most `stockOnHand - stockAllocated - outOfStockThreshold`; an untracked one gives whatever is
-     * still needed. Tracked StockLevels are read under a write lock, so concurrent allocations of
-     * the same variant cannot both take the same units.
+     * Allocates from the active Channel's StockLocations, in their order: first from tracked
+     * StockLevels, each giving at most `stockOnHand - stockAllocated - outOfStockThreshold`, then
+     * whatever is still needed from the first untracked StockLevel. Tracked StockLevels are read
+     * under a write lock, so concurrent allocations of the same variant cannot both take the same
+     * units.
      *
-     * @since 4.0.0 - Tracking is resolved per StockLevel
+     * @since 4.0.0 - Tracking is resolved per StockLevel; tracked stock is used before untracked
      */
     async forAllocation(
         ctx: RequestContext,
@@ -108,27 +112,28 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         const variant = await this.getVariant(ctx, orderLine.productVariantId);
         const { effectiveOutOfStockThreshold } = await this.getVariantStockSettings(ctx, variant);
         const stockLevels = await this.getStockLevelsForAllocation(ctx, variant);
-        let totalAllocated = 0;
-        const locations: LocationWithQuantity[] = [];
-        for (const stockLocation of stockLocations) {
-            const stockLevel = stockLevels.find(sl => idsAreEqual(sl.stockLocationId, stockLocation.id));
-            if (stockLevel && (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
-                const tracked = await this.isInventoryTracked(ctx, variant, stockLevel);
-                const quantityAvailable = tracked
-                    ? stockLevel.stockOnHand - stockLevel.stockAllocated - effectiveOutOfStockThreshold
-                    : Number.MAX_SAFE_INTEGER;
-                if (quantityAvailable > 0) {
-                    const quantityToAllocate = Math.min(quantity - totalAllocated, quantityAvailable);
-                    locations.push({
-                        location: stockLocation,
-                        quantity: quantityToAllocate,
-                    });
-                    totalAllocated += quantityToAllocate;
-                }
+        const inScope: Array<{ level: StockLevel; location: StockLocation; tracked: boolean }> = [];
+        for (const entry of await this.orderLevelsByLocation(ctx, variant, stockLevels, stockLocations)) {
+            if (await this.stockLevelAppliesToActiveChannel(ctx, entry.level)) {
+                inScope.push(entry);
             }
-            if (totalAllocated >= quantity) {
+        }
+        const locations: LocationWithQuantity[] = [];
+        let remaining = quantity;
+        for (const { level, location } of inScope.filter(e => e.tracked)) {
+            if (remaining <= 0) {
                 break;
             }
+            const quantityAvailable = level.stockOnHand - level.stockAllocated - effectiveOutOfStockThreshold;
+            const take = Math.min(remaining, quantityAvailable);
+            if (take > 0) {
+                locations.push({ location, quantity: take, tracked: true });
+                remaining -= take;
+            }
+        }
+        const untracked = inScope.find(e => !e.tracked);
+        if (remaining > 0 && untracked) {
+            locations.push({ location: untracked.location, quantity: remaining, tracked: false });
         }
         return locations;
     }

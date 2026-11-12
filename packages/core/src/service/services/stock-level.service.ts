@@ -12,6 +12,7 @@ import {
 import { RequestContext } from '../../api/common/request-context';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Instrument } from '../../common/instrument-decorator';
+import { idsAreEqual } from '../../common/utils';
 import { AvailableStock } from '../../config/catalog/stock-location-strategy';
 import { resolveTrackInventory } from '../../config/catalog/track-inventory';
 import { ConfigService } from '../../config/config.service';
@@ -50,6 +51,14 @@ export interface StockLevelReadOptions {
      * @default false
      */
     lockStockLevels?: boolean;
+    /**
+     * @description
+     * The ProductVariant, when the caller already has it, so its `trackInventory` need not be
+     * loaded. Otherwise it is loaded with a request-scoped batching loader.
+     *
+     * @since 4.0.0
+     */
+    productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>;
 }
 
 /**
@@ -153,7 +162,35 @@ export class StockLevelService {
         const stockLevels = options?.lockStockLevels
             ? await this.getLockedStockLevelsForVariant(ctx, productVariantId)
             : await this.getStockLevelLoader(ctx).load(productVariantId);
-        return stockLocationStrategy.getAvailableStock(ctx, productVariantId, stockLevels);
+        // A caller's variant is only used if it carries `trackInventory`: partially loaded
+        // entities (e.g. from a select) would otherwise resolve as INHERIT by accident.
+        const productVariant =
+            options?.productVariant?.trackInventory != null
+                ? options.productVariant
+                : await this.getVariantTrackingLoader(ctx).load(productVariantId);
+        return stockLocationStrategy.getAvailableStock(ctx, productVariantId, stockLevels, productVariant);
+    }
+
+    /**
+     * @description
+     * Whether the ProductVariant can be sold without limit in the active Channel: at least one
+     * StockLevel the StockLocationStrategy counts does not track inventory (or there is none and
+     * the variant/Channel does not track it). A strategy written before v4.0 does not report this,
+     * in which case the variant/Channel setting decides, as it did before StockLevel overrides.
+     *
+     * @since 4.0.0
+     */
+    async hasUntrackedStock(
+        ctx: RequestContext,
+        productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>,
+        available?: AvailableStock,
+    ): Promise<boolean> {
+        const { hasUntrackedStock } =
+            available ?? (await this.getAvailableStock(ctx, productVariant.id, { productVariant }));
+        if (hasUntrackedStock !== undefined) {
+            return hasUntrackedStock;
+        }
+        return !(await this.isInventoryTracked(ctx, productVariant));
     }
 
     /**
@@ -171,7 +208,7 @@ export class StockLevelService {
     ): Promise<boolean> {
         const { stockLocationStrategy } = this.configService.catalogOptions;
         if (typeof stockLocationStrategy.isInventoryTracked === 'function') {
-            return stockLocationStrategy.isInventoryTracked(ctx, productVariant as ProductVariant, stockLevel);
+            return stockLocationStrategy.isInventoryTracked(ctx, productVariant, stockLevel);
         }
         return resolveTrackInventory({
             stockLevel: stockLevel?.trackInventory,
@@ -212,6 +249,38 @@ export class StockLevelService {
                 new DataLoader<ID, StockLevel[]>(ids => this.batchLoadStockLevels(ctx, ids as ID[]), {
                     cache: false,
                 }),
+        );
+    }
+
+    /**
+     * Batches the `trackInventory` of the variants whose stock is read in one tick (e.g. a list of
+     * variants), so the StockLocationStrategy gets it without one query per variant. Keyed per
+     * RequestContext and not memoized, like the StockLevel loader, so a change earlier in the
+     * request is seen.
+     */
+    private getVariantTrackingLoader(
+        ctx: RequestContext,
+    ): DataLoader<ID, Pick<ProductVariant, 'id' | 'trackInventory'>> {
+        return this.requestCache.get(
+            ctx,
+            'StockLevelService.variantTrackingById',
+            () =>
+                new DataLoader<ID, Pick<ProductVariant, 'id' | 'trackInventory'>>(
+                    async ids => {
+                        const variants = await this.connection.getRepository(ctx, ProductVariant).find({
+                            where: { id: In(this.uniqueIds(ids as ID[])) },
+                            select: { id: true, trackInventory: true },
+                            loadEagerRelations: false,
+                            withDeleted: true,
+                        });
+                        return ids.map(
+                            id =>
+                                variants.find(v => idsAreEqual(v.id, id)) ??
+                                new Error(`ProductVariant ${String(id)} not found`),
+                        );
+                    },
+                    { cache: false },
+                ),
         );
     }
 
@@ -412,17 +481,21 @@ export class StockLevelService {
         if (!ids.length) {
             return;
         }
-        const idsToLock = options?.includeUntrackedVariants ? ids : await this.filterToTrackedIds(ctx, ids);
+        const idsToLock = options?.includeUntrackedVariants ? ids : await this.getTrackedVariantIds(ctx, ids);
         for (const productVariantId of [...idsToLock].sort(compareIdsForLockOrder)) {
             await this.getLockedStockLevelsForVariant(ctx, productVariantId);
         }
     }
 
     /**
-     * A variant needs locking if it is tracked at the variant/Channel level, or if any of its
-     * StockLevels overrides that to tracked.
+     * @description
+     * The ids of the given ProductVariants which track inventory in the active Channel: at the
+     * variant/Channel level, or because one of their StockLevels overrides it to tracked. These
+     * are the variants whose StockLevels need locking before a saleable stock check.
+     *
+     * @since 4.0.0
      */
-    private async filterToTrackedIds(ctx: RequestContext, ids: ID[]): Promise<ID[]> {
+    async getTrackedVariantIds(ctx: RequestContext, ids: ID[]): Promise<ID[]> {
         const variants = await this.connection.getRepository(ctx, ProductVariant).find({
             where: { id: In(ids) },
             select: { id: true, trackInventory: true },
@@ -438,7 +511,7 @@ export class StockLevelService {
                 tracked.push(variant.id);
                 continue;
             }
-            for (const level of stockLevels.filter(l => l.productVariantId === variant.id)) {
+            for (const level of stockLevels.filter(l => idsAreEqual(l.productVariantId, variant.id))) {
                 if (await this.isInventoryTracked(ctx, variant, level)) {
                     tracked.push(variant.id);
                     break;

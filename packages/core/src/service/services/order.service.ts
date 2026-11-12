@@ -91,10 +91,10 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -115,7 +115,6 @@ import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { FulfillmentState } from '../helpers/fulfillment-state-machine/fulfillment-state';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
-import { getOrderChannelContext } from '../helpers/utils/order-channel-context';
 import { ApplyPriceAdjustmentsOptions, OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { OrderMerger } from '../helpers/order-merger/order-merger';
 import { OrderModifier } from '../helpers/order-modifier/order-modifier';
@@ -128,6 +127,7 @@ import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calc
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
+import { getOrderChannelContext } from '../helpers/utils/order-channel-context';
 import {
     assertOrderIsInChannel,
     getOrdersFromLines,
@@ -1878,7 +1878,12 @@ export class OrderService implements OnApplicationBootstrap {
             const lineInput = input.lines.find(l => idsAreEqual(l.orderLineId, line.id))!;
 
             // Judged in the Order's Channel, not the Channel of the Administrator fulfilling it.
-            const orderCtx = await getOrderChannelContext(ctx, this.connection, line.order.id);
+            const orderCtx = await getOrderChannelContext(
+                ctx,
+                this.connection,
+                this.channelService,
+                line.order.id,
+            );
             const fulfillableStockLevel = await this.productVariantService.getFulfillableStockLevel(
                 orderCtx,
                 line.productVariant,

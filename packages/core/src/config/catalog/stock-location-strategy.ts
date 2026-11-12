@@ -32,6 +32,9 @@ export interface AvailableStock {
      * When a strategy leaves this undefined, core falls back to the ProductVariant/Channel
      * setting, which is the pre-v4 behaviour.
      *
+     * `productVariant` is passed by core (batched, at least `id` and `trackInventory`) so that
+     * implementations need not load it. It is optional for callers written before v4.0.
+     *
      * @since 4.0.0
      */
     hasUntrackedStock?: boolean;
@@ -49,6 +52,15 @@ export interface AvailableStock {
 export interface LocationWithQuantity {
     location: StockLocation;
     quantity: number;
+    /**
+     * @description
+     * Whether this quantity is tracked inventory, as decided by the strategy when it chose the
+     * location. Recorded on the resulting {@link Allocation}. When omitted, core resolves it
+     * for the ProductVariant at this location with `isInventoryTracked`.
+     *
+     * @since 4.0.0
+     */
+    tracked?: boolean;
 }
 
 /**
@@ -79,11 +91,20 @@ export interface StockLocationStrategy extends InjectableStrategy {
      * When not implemented, core uses {@link resolveTrackInventory}: StockLevel, then
      * ProductVariant, then Channel.
      *
+     * The arguments are deliberately minimal, because this is called on hot paths (locking,
+     * saleable stock of every variant in a list):
+     * - `productVariant` carries at least `id` and `trackInventory`. Other columns, custom fields
+     *   and relations may not be loaded; load them yourself if your rule needs them.
+     * - `stockLevel` has its columns but no relations (`stockLocation` is not loaded; use
+     *   `stockLevel.stockLocationId`).
+     * - `ctx.channel` is the Channel whose rules apply: for anything to do with an Order, the
+     *   Order's own Channel, even when an Administrator acts from another Channel.
+     *
      * @since 4.0.0
      */
     isInventoryTracked?(
         ctx: RequestContext,
-        productVariant: ProductVariant,
+        productVariant: Pick<ProductVariant, 'id' | 'trackInventory'> & Partial<ProductVariant>,
         stockLevel?: StockLevel,
     ): boolean | Promise<boolean>;
 
@@ -96,6 +117,7 @@ export interface StockLocationStrategy extends InjectableStrategy {
         ctx: RequestContext,
         productVariantId: ID,
         stockLevels: StockLevel[],
+        productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>,
     ): AvailableStock | Promise<AvailableStock>;
 
     /**

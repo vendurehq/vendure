@@ -1,24 +1,25 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
- * Spike OSS-1002 (#2908): more granular `trackInventory` controls.
+ * #2908: granular `trackInventory` controls, run with the MultiChannelStockLocationStrategy.
+ * The DefaultStockLocationStrategy is covered by stock-control-granular-tracking-default.e2e-spec.ts.
  *
- * Covers four things:
- * 1. Allocation correctness when the effective `trackInventory` value changes while an Order is
- *    open (allocated, then released / sold). Fails on master: release and sale re-read the
- *    *current* flag instead of the one in force when the stock was allocated.
- * 2. `Channel.trackInventory` acting as the default for variants set to INHERIT. Fails on master:
- *    the column exists but nothing reads it (GlobalSettings.trackInventory is used instead).
- * 3. A per-StockLevel override: a variant tracked at one location and untracked at another.
- * 4. An order split across a tracked and an untracked location, incl. Sale quantities per location.
+ * Covers:
+ * - stock correctness when the effective `trackInventory` changes while an Order is open
+ *   (releases, sales and cancellations follow the state recorded at allocation)
+ * - `Channel.trackInventory` as the default for INHERIT, judged in the Order's own Channel
+ * - per-StockLevel overrides and Orders split across tracked and untracked locations
+ * - fulfilments, shortfalls and stock movements recorded before v4.0
  */
 import {
     CurrencyCode,
     EventBus,
-    StockShortfallEvent,
     LanguageCode,
     manualFulfillmentHandler,
     mergeConfig,
     MultiChannelStockLocationStrategy,
+    StockLevelService,
+    StockShortfallEvent,
+    TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
@@ -300,7 +301,46 @@ const TRANSITION_FULFILLMENT = graphqlAdmin(`
     }
 `);
 
-describe('Stock control: granular trackInventory (OSS-1002)', () => {
+const UPDATE_CHANNEL = graphqlAdmin(`
+    mutation GranularUpdateChannel($input: UpdateChannelInput!) {
+        updateChannel(input: $input) {
+            ... on Channel {
+                id
+                trackInventory
+            }
+        }
+    }
+`);
+
+const DUPLICATE_PRODUCT = graphqlAdmin(`
+    mutation GranularDuplicate($input: DuplicateEntityInput!) {
+        duplicateEntity(input: $input) {
+            ... on DuplicateEntitySuccess {
+                newEntityId
+            }
+            ... on ErrorResult {
+                message
+            }
+        }
+    }
+`);
+
+const GET_PRODUCT_STOCK_FLAGS = graphqlAdmin(`
+    query GranularProductStockFlags($id: ID!) {
+        product(id: $id) {
+            variants {
+                id
+                name
+                stockLevels {
+                    stockLocationId
+                    trackInventory
+                }
+            }
+        }
+    }
+`);
+
+describe('Stock control: granular trackInventory', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: {
@@ -366,7 +406,10 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
     /** Takes a guest Order up to ArrangingPayment, in the shop client's current Channel. */
     async function startOrder(variantId: string, quantity: number) {
         await shopClient.asAnonymousUser();
-        const { addItemToOrder } = await shopClient.query(ADD_ITEM, { productVariantId: variantId, quantity });
+        const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
+            productVariantId: variantId,
+            quantity,
+        });
         if (!('lines' in addItemToOrder)) {
             throw new Error(`addItemToOrder failed: ${JSON.stringify(addItemToOrder)}`);
         }
@@ -398,6 +441,16 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
         return addPaymentToOrder.id;
     }
 
+    async function waitFor(condition: () => boolean, timeoutMs = 5000) {
+        const start = Date.now();
+        while (!condition()) {
+            if (Date.now() - start > timeoutMs) {
+                throw new Error('Timed out waiting for condition');
+            }
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+    }
+
     async function cancelOrder(orderId: string) {
         const { cancelOrder: result } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
         expect((result as any).state).toBe('Cancelled');
@@ -422,6 +475,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
     }
 
     describe('flag changes while an order is open', () => {
+        // #2908 — tracked at allocation, untracked at release: stockAllocated returns to its start value
         it('tracked at allocation, untracked at release: stockAllocated returns to its start value', async () => {
             await setVariantTracking('T_1', 'TRUE');
             const before = levelAt(await getStock('T_1'), defaultLocationId)!;
@@ -433,13 +487,14 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             await setVariantTracking('T_1', 'FALSE');
             await cancelOrder(orderId);
 
-            // On master the release skips the decrement because the variant is now untracked,
+            // Re-reading the current (untracked) setting would skip the decrement,
             // so 3 units stay allocated forever.
             expect(levelAt(await getStock('T_1'), defaultLocationId)!.stockAllocated).toBe(
                 before.stockAllocated,
             );
         });
 
+        // #2908 — untracked at allocation, tracked at release: another order's allocation is not released
         it("untracked at allocation, tracked at release: another order's allocation is not released", async () => {
             // A bystander order holds 4 tracked units of T_2.
             await setVariantTracking('T_2', 'TRUE');
@@ -459,7 +514,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             await setVariantTracking('T_2', 'TRUE');
             await cancelOrder(orderId);
 
-            // On master the release decrements 2 units it never allocated, silently freeing
+            // Re-reading the current (tracked) setting would decrement 2 units never allocated,
             // half of the bystander's allocation (the clamp at zero hides it when nothing else
             // is allocated).
             expect(levelAt(await getStock('T_2'), defaultLocationId)!.stockAllocated).toBe(
@@ -467,6 +522,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             );
         });
 
+        // #2908 — tracked at allocation, untracked at fulfillment: the sale still consumes the allocated stock
         it('tracked at allocation, untracked at fulfillment: the sale still consumes the allocated stock', async () => {
             await setVariantTracking('T_1', 'TRUE');
             const before = levelAt(await getStock('T_1'), defaultLocationId)!;
@@ -476,7 +532,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             await fulfillOrder(orderId);
 
             const after = levelAt(await getStock('T_1'), defaultLocationId)!;
-            // On master neither figure moves: the units stay allocated and are never deducted.
+            // Re-reading the current setting would leave both figures unchanged.
             expect(after.stockAllocated).toBe(before.stockAllocated);
             expect(after.stockOnHand).toBe(before.stockOnHand - 2);
             await setVariantTracking('T_1', 'TRUE');
@@ -518,7 +574,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         });
 
-        // Review H1: every Order also belongs to the default Channel, so an Administrator there
+        // #2908 — Every Order also belongs to the default Channel, so an Administrator there
         // can add the payment that triggers allocation. Tracking must follow the Order's Channel.
         it("an admin in the default channel paying a channel B order allocates by channel B's rules", async () => {
             await adminClient.query(ASSIGN_SHIPPING_METHODS, {
@@ -542,6 +598,61 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             );
         });
 
+        // #2908 — #2908 — the stock lock is taken in the Order's Channel. With the default Channel
+        // untracked and channel B tracked, locking in the acting admin's Channel would skip the
+        // variant and leave the saleable check and the allocation unprotected.
+        it("locks a variant tracked in the order's channel when an admin in another channel pays", async () => {
+            await adminClient.query(UPDATE_CHANNEL, { input: { id: 'T_1', trackInventory: false } });
+            await adminClient.query(UPDATE_CHANNEL, { input: { id: channelBId, trackInventory: true } });
+            // Only the up-front batch lock (lockStockLevelsForVariants) is counted: it is the one
+            // that must cover the variant before the saleable stock check runs.
+            const stockLevelService = server.app.get(StockLevelService);
+            const original = stockLevelService.getLockedStockLevelsForVariant.bind(stockLevelService);
+            const originalBatch = stockLevelService.lockStockLevelsForVariants.bind(stockLevelService);
+            const lockedVariantIds: string[] = [];
+            let inBatchLock = false;
+            try {
+                await adminClient.query(UPDATE_VARIANT, {
+                    input: [
+                        {
+                            id: 'T_3',
+                            stockLevels: [{ stockLocationId: channelBLocationId, stockOnHand: 10 }] as any,
+                        },
+                    ],
+                });
+                shopClient.setChannelToken(CHANNEL_B_TOKEN);
+                const orderId = await startOrder('T_3', 1);
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+                stockLevelService.lockStockLevelsForVariants = async (ctx, ids, options) => {
+                    inBatchLock = true;
+                    try {
+                        return await originalBatch(ctx, ids, options);
+                    } finally {
+                        inBatchLock = false;
+                    }
+                };
+                stockLevelService.getLockedStockLevelsForVariant = (ctx, id) => {
+                    if (inBatchLock) {
+                        lockedVariantIds.push(String(id));
+                    }
+                    return original(ctx, id);
+                };
+                const { addManualPaymentToOrder } = await adminClient.query(ADD_MANUAL_PAYMENT, {
+                    input: { orderId, method: 'manual', transactionId: 'X2', metadata: {} },
+                });
+                expect((addManualPaymentToOrder as any).state).toBe('PaymentSettled');
+                expect(lockedVariantIds).toContain('3');
+                expect(levelAt(await getStock('T_3'), channelBLocationId)!.stockAllocated).toBe(1);
+            } finally {
+                stockLevelService.getLockedStockLevelsForVariant = original;
+                stockLevelService.lockStockLevelsForVariants = originalBatch;
+                await adminClient.query(UPDATE_CHANNEL, { input: { id: 'T_1', trackInventory: true } });
+                await adminClient.query(UPDATE_CHANNEL, { input: { id: channelBId, trackInventory: false } });
+            }
+        });
+
+        // #2908 — default channel (trackInventory: true) treats T_3 as tracked
         it('default channel (trackInventory: true) treats T_3 as tracked', async () => {
             shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             await shopClient.asAnonymousUser();
@@ -552,20 +663,21 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             expect((addItemToOrder as any).errorCode).toBe('INSUFFICIENT_STOCK_ERROR');
         });
 
+        // #2908 — channel B (trackInventory: false) treats T_3 as untracked, though it has no stock there
         it('channel B (trackInventory: false) treats T_3 as untracked, though it has no stock there', async () => {
-            expect(channelBLocationId).toBeDefined();
             shopClient.setChannelToken(CHANNEL_B_TOKEN);
             await shopClient.asAnonymousUser();
             const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
                 productVariantId: 'T_3',
                 quantity: 500,
             });
-            // On master Channel.trackInventory is ignored, so this is an InsufficientStockError.
+            // Before v4.0 Channel.trackInventory was ignored: an InsufficientStockError.
             expect((addItemToOrder as any).lines?.[0]?.quantity).toBe(500);
         });
     });
 
     describe('per-StockLevel override', () => {
+        // #2908 — sets trackInventory: FALSE on the StockLevel at the second location
         it('sets trackInventory: FALSE on the StockLevel at the second location', async () => {
             await setVariantTracking('T_4', 'TRUE');
             await adminClient.query(UPDATE_VARIANT, {
@@ -582,20 +694,35 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             const { productVariant } = await adminClient.query(GET_STOCK_WITH_FLAGS, { id: 'T_4' });
             expect(productVariant!.stockLevels).toEqual(
                 expect.arrayContaining([
-                    { stockLocationId: defaultLocationId, stockOnHand: 2, stockAllocated: 0, trackInventory: 'INHERIT' },
-                    { stockLocationId: secondLocationId, stockOnHand: 0, stockAllocated: 0, trackInventory: 'FALSE' },
+                    {
+                        stockLocationId: defaultLocationId,
+                        stockOnHand: 2,
+                        stockAllocated: 0,
+                        trackInventory: 'INHERIT',
+                    },
+                    {
+                        stockLocationId: secondLocationId,
+                        stockOnHand: 0,
+                        stockAllocated: 0,
+                        trackInventory: 'FALSE',
+                    },
                 ]),
             );
         });
 
+        // #2908 — an untracked location makes the variant saleable beyond the tracked stock
         it('an untracked location makes the variant saleable beyond the tracked stock', async () => {
             const { product } = await shopClient.query(SHOP_PRODUCT_STOCK, { id: 'T_1' });
             expect(product!.variants.find(v => v.id === 'T_4')!.stockLevel).toBe('IN_STOCK');
             await shopClient.asAnonymousUser();
-            const { addItemToOrder } = await shopClient.query(ADD_ITEM, { productVariantId: 'T_4', quantity: 5 });
+            const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
+                productVariantId: 'T_4',
+                quantity: 5,
+            });
             expect((addItemToOrder as any).lines?.[0]?.quantity).toBe(5);
         });
 
+        // #2908 — split order: tracked units allocated at location 1, the rest from the untracked location
         it('split order: tracked units allocated at location 1, the rest from the untracked location', async () => {
             const orderId = await placeOrder('T_4', 5);
             const variant = await getStock('T_4');
@@ -608,6 +735,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             expect(levelAt(afterCancel, secondLocationId)!.stockAllocated).toBe(0);
         });
 
+        // #2908 — split order fulfilled: only the tracked location loses stockOnHand, Sale rows sum to the line quantity
         it('split order fulfilled: only the tracked location loses stockOnHand, Sale rows sum to the line quantity', async () => {
             const orderId = await placeOrder('T_4', 5);
             await fulfillOrder(orderId);
@@ -619,13 +747,69 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             const saleTotal = productVariant!.stockMovements.items
                 .filter((m: any) => m.type === 'SALE')
                 .reduce((sum: number, m: any) => sum + m.quantity, 0);
-            // On master each per-location Sale records the whole line quantity, so this is -10.
+            // Recording the whole line quantity at each location would give -10.
             expect(saleTotal).toBe(-5);
+        });
+
+        // #2908 — #2908 — the tracking setting can be changed without sending stockOnHand, so a stale
+        // value cannot overwrite concurrent stock changes
+        it('changes StockLevel.trackInventory without touching stockOnHand', async () => {
+            const adjustments = async () => {
+                const { productVariant: withMovements } = await adminClient.query(GET_SALES, { id: 'T_4' });
+                return withMovements!.stockMovements.items.filter((m: any) => m.type === 'ADJUSTMENT').length;
+            };
+            const before = await adjustments();
+            const levelBefore = levelAt(await getStock('T_4'), secondLocationId)!;
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [
+                    {
+                        id: 'T_4',
+                        stockLevels: [{ stockLocationId: secondLocationId, trackInventory: 'TRUE' }] as any,
+                    },
+                ],
+            });
+            const { productVariant } = await adminClient.query(GET_STOCK_WITH_FLAGS, { id: 'T_4' });
+            expect(productVariant!.stockLevels.find(l => l.stockLocationId === secondLocationId)).toEqual({
+                ...levelBefore,
+                trackInventory: 'TRUE',
+            });
+            expect(await adjustments()).toBe(before);
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [
+                    {
+                        id: 'T_4',
+                        stockLevels: [{ stockLocationId: secondLocationId, trackInventory: 'FALSE' }] as any,
+                    },
+                ],
+            });
+        });
+
+        // #2908 — duplicating a product keeps its per-location tracking settings
+        it('keeps StockLevel overrides when a product is duplicated', async () => {
+            const { duplicateEntity } = await adminClient.query(DUPLICATE_PRODUCT, {
+                input: {
+                    entityName: 'Product',
+                    entityId: 'T_1',
+                    duplicatorInput: {
+                        code: 'product-duplicator',
+                        arguments: [{ name: 'includeVariants', value: 'true' }],
+                    },
+                },
+            });
+            const newProductId = (duplicateEntity as any).newEntityId;
+            expect(newProductId).toBeDefined();
+            const { product: original } = await adminClient.query(GET_PRODUCT_STOCK_FLAGS, { id: 'T_1' });
+            const { product: copy } = await adminClient.query(GET_PRODUCT_STOCK_FLAGS, { id: newProductId });
+            const originalT4 = original!.variants.find(v => v.id === 'T_4')!;
+            const copiedT4 = copy!.variants.find(v => v.name === originalT4.name)!;
+            expect(
+                copiedT4.stockLevels.find(l => l.stockLocationId === secondLocationId)?.trackInventory,
+            ).toBe('FALSE');
         });
     });
 
-    describe('review follow-ups', () => {
-        // Review H3: a StockLevel set to TRUE on an untracked variant caps the allocation, so a
+    describe('fulfilments, shortfalls and pre-v4.0 movements', () => {
+        // #2908 — A StockLevel set to TRUE on an untracked variant caps the allocation, so a
         // shortfall must be reported even though the variant itself is untracked.
         it('reports a shortfall for a tracked StockLevel of an untracked variant', async () => {
             await adminClient.query(UPDATE_VARIANT, {
@@ -633,14 +817,21 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
                     {
                         id: 'T_5',
                         trackInventory: 'FALSE' as any,
-                        stockLevels: [{ stockLocationId: defaultLocationId, stockOnHand: 2, trackInventory: 'TRUE' }] as any,
+                        stockLevels: [
+                            { stockLocationId: defaultLocationId, stockOnHand: 2, trackInventory: 'TRUE' },
+                        ] as any,
                     },
                 ],
             });
             await startOrder('T_5', 2);
             // Another channel sells a unit between the stock check and the payment.
             await adminClient.query(UPDATE_VARIANT, {
-                input: [{ id: 'T_5', stockLevels: [{ stockLocationId: defaultLocationId, stockOnHand: 1 }] as any }],
+                input: [
+                    {
+                        id: 'T_5',
+                        stockLevels: [{ stockLocationId: defaultLocationId, stockOnHand: 1 }] as any,
+                    },
+                ],
             });
             const events: StockShortfallEvent[] = [];
             const subscription = server.app
@@ -649,16 +840,19 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
                 .subscribe(e => events.push(e));
             try {
                 await payOrder();
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Events are published after the transaction commits.
+                await waitFor(() => events.length > 0);
                 expect(levelAt(await getStock('T_5'), defaultLocationId)!.stockAllocated).toBe(1);
                 expect(events.length).toBe(1);
-                expect(events[0].shortfalls).toEqual([expect.objectContaining({ requested: 2, allocated: 1 })]);
+                expect(events[0].shortfalls).toEqual([
+                    expect.objectContaining({ requested: 2, allocated: 1 }),
+                ]);
             } finally {
                 subscription.unsubscribe();
             }
         });
 
-        // Review M5: the second partial fulfilment must sell from the location which still has
+        // #2908 — The second partial fulfilment must sell from the location which still has
         // allocated units, not from the first location again.
         it('a second partial fulfilment of a split line sells from the location still holding allocations', async () => {
             await adminClient.query(UPDATE_VARIANT, {
@@ -688,7 +882,7 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
             expect(levelAt(variant, secondLocationId)).toMatchObject({ stockOnHand: 0, stockAllocated: 0 });
         });
 
-        // Review M3: cancelling a fulfilment puts back exactly what the Sale took, with the
+        // #2908 — Cancelling a fulfilment puts back exactly what the Sale took, with the
         // tracked state of that Sale, even after trackInventory has changed.
         it('cancelling a fulfilment after a flag flip restores stock exactly, and re-fulfilment deducts it again', async () => {
             await adminClient.query(UPDATE_VARIANT, {
@@ -724,6 +918,39 @@ describe('Stock control: granular trackInventory (OSS-1002)', () => {
                 stockOnHand: 8,
                 stockAllocated: 0,
             });
+        });
+
+        // #2908 — #2908 — before v4.0, each per-location Sale of a split line recorded the whole line
+        // quantity. Cancelling such an Order must still put each location's units back there.
+        it('cancels a split sale recorded before v4.0 back to the right locations', async () => {
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [
+                    {
+                        id: 'T_6',
+                        stockLevels: [
+                            { stockLocationId: defaultLocationId, stockOnHand: 2 },
+                            { stockLocationId: secondLocationId, stockOnHand: 3 },
+                        ] as any,
+                    },
+                ],
+            });
+            const orderId = await placeOrder('T_6', 5);
+            await fulfillOrder(orderId);
+            const { order } = await adminClient.query(GET_ORDER, { id: orderId });
+            const orderLineId = order!.lines[0].id.replace('T_', '');
+            const raw = server.app.get(TransactionalConnection).rawConnection;
+            const esc = (name: string) => raw.driver.escape(name);
+            // Rewrite this line's Sales the way the pre-v4.0 code recorded them.
+            await raw.query(
+                `UPDATE ${esc('stock_movement')} SET ${esc('quantity')} = -5, ${esc('tracked')} = NULL
+                 WHERE ${esc('orderLineId')} = ${orderLineId} AND ${esc('type')} = 'SALE'`,
+            );
+
+            await cancelOrder(orderId);
+
+            const variant = await getStock('T_6');
+            expect(levelAt(variant, defaultLocationId)).toMatchObject({ stockOnHand: 2, stockAllocated: 0 });
+            expect(levelAt(variant, secondLocationId)).toMatchObject({ stockOnHand: 3, stockAllocated: 0 });
         });
     });
 });

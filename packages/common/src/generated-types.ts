@@ -6878,7 +6878,11 @@ export type StockLevel = Node & {
 
 export type StockLevelInput = {
   stockLocationId: Scalars['ID']['input'];
-  stockOnHand: Scalars['Int']['input'];
+  /**
+   * Omit to leave the stock on hand unchanged, e.g. when only changing `trackInventory`.
+   * Required before v4.0.
+   */
+  stockOnHand?: InputMaybe<Scalars['Int']['input']>;
   trackInventory?: InputMaybe<GlobalFlag>;
 };
 

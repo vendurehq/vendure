@@ -6,11 +6,19 @@ metaDescription: "Vendure inventory management explained: stock locations, alloc
 
 Vendure includes features to help manage your stock levels, stock allocations and back orders. The basic purpose is to help you keep track of how many of a given ProductVariant you have available to sell.
 
-Stock control is enabled globally via the Global Settings:
+Stock control (whether inventory is tracked) is set at three levels. The most specific setting wins:
 
-![./global-stock-control.webp](./global-stock-control.webp)
+1. **Stock level**: a ProductVariant at a particular StockLocation (`StockLevel.trackInventory`). For example, track a variant in your warehouse but not at a drop-ship supplier's location.
+2. **ProductVariant** (`ProductVariant.trackInventory`).
+3. **Channel** (`Channel.trackInventory`): the default for everything set to "inherit". For anything to do with an Order (allocation, fulfillment, cancellation), the Order's own Channel decides, even when an Administrator works from another Channel.
 
-It can be disabled if, for example, you manage your stock with a separate inventory management system and synchronize stock levels into Vendure automatically. The setting can also be overridden at the individual ProductVariant level.
+Tracking can be disabled if, for example, you manage your stock with a separate inventory management system and synchronize stock levels into Vendure automatically, or if a Channel sells made-to-order or drop-shipped goods.
+
+Each stock movement records whether it changed the stock figures. If you change a tracking setting while Orders are open, their remaining releases, sales and cancellations still follow the setting that applied when their stock was allocated, so no stock is left allocated or released twice.
+
+:::info
+Before Vendure v4.0 the default was set in the Global Settings (`GlobalSettings.trackInventory`). The v4.0 migration copies that value to every Channel.
+:::
 
 ## Stock Locations
 
