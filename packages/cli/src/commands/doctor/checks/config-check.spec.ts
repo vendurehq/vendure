@@ -46,6 +46,6 @@ describe('runConfigCheck()', () => {
 
         expect(check.status).toBe('fail');
         expect(check.details).toContain('2 plugin(s) loaded');
-        expect(check.details.join('\n')).toContain('Plugin "IncompatibleChildPlugin": incompatible');
+        expect(check.details?.join('\n')).toContain('Plugin "IncompatibleChildPlugin": incompatible');
     });
 });

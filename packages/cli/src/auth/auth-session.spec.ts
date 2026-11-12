@@ -287,7 +287,7 @@ describe('loginWithDevice', () => {
 
         await expect(
             loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Acme' }),
-        ).rejects.toThrow(/More than one of your Customer Accounts is named "Acme".*\n.*11111111/s);
+        ).rejects.toThrow(/More than one of your Customer Accounts is named "Acme"[\s\S]*\n[\s\S]*11111111/);
         expect(readStoredAuth(options)).toBeUndefined();
     });
 
@@ -301,7 +301,7 @@ describe('loginWithDevice', () => {
                 viewer(),
             ]);
             await expect(loginWithDevice({ ...options, fetch: run.fetch, organization })).rejects.toThrow(
-                /not an active member.*Example GmbH/s,
+                /not an active member[\s\S]*Example GmbH/,
             );
         }
         expect(readStoredAuth(options)).toBeUndefined();
