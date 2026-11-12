@@ -18,6 +18,34 @@ When an item is added to an order, Vendure resolves its price through the follow
 
 The result of this pipeline is exposed in the GraphQL API as a pair of fields on every taxable price: a **base** field and a **WithTax** field. For example, an `OrderLine` exposes `linePrice` and `linePriceWithTax`, and the `Order` itself exposes `subTotal` / `subTotalWithTax`, `total` / `totalWithTax`, and so on.
 
+## The calculated price in the storefront
+
+`ProductVariant.price` and `priceWithTax` give the price of the channel. They do not run the `OrderItemPriceCalculationStrategy`. When a project uses a custom strategy, for example a price per customer or a price from an external system, the cart can show a different unit price than the product page.
+
+To show the price that the cart would use, request the `calculatedPrice` field in the Shop API. It runs the configured `OrderItemPriceCalculationStrategy` for the active session and the given quantity (default `1`), without an order:
+
+```graphql
+query {
+    product(slug: "laptop") {
+        variants {
+            id
+            price
+            priceWithTax
+            calculatedPrice(quantity: 10) {
+                price
+                priceWithTax
+            }
+        }
+    }
+}
+```
+
+- With the default strategy, `calculatedPrice` equals `price` and `priceWithTax`, and the field runs no extra database query.
+- The strategy receives `undefined` as the `order` argument and an empty object for the order line custom fields. A strategy that reads the order must handle this case.
+- The strategy runs once for each variant that requests the field. Vendure does not cache the result. If your strategy is slow, for example because it calls an external system, it must cache the results itself.
+- The field uses the tax zone of the session, as `priceWithTax` does. The cart uses the tax zone of the order, which can come from the shipping address. When the two zones differ, `calculatedPrice.priceWithTax` can differ from the `unitPriceWithTax` of the order line.
+- In code, use `ProductVariantService.calculateShopPrice()`.
+
 ## Channel-specific pricing
 
 Because [`ProductVariantPrice`](/reference/typescript-api/entities/product-variant-price/) records are scoped to a specific [channel](/core-concepts/channels/) and currency, the same product variant can have entirely different prices in different channels. This is essential for multi-region or multi-vendor setups where each storefront operates with its own currency and pricing structure.

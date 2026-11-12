@@ -6,6 +6,7 @@
     "api-key-impersonated-user-cannot-receive-roles": "Roles cannot be assigned through an ApiKey whose user is an existing user",
     "api-key-role-channel-not-assigned": "An API key can only be granted roles on the channels it belongs to",
     "available-currency-codes-must-include-default": "availableCurrencyCodes must include the defaultCurrencyCode ({ defaultCurrencyCode })",
+    "calculated-price-quantity-must-be-positive": "The quantity for the calculated price must be a positive integer",
     "cannot-assign-legacy-customer-role": "The pre-v4 Customer role cannot be assigned. Customers hold the Authenticated permission on the Channels they are a member of",
     "cannot-delete-own-administrator": "An Administrator cannot delete themselves",
     "cannot-delete-role": "The role \"{ roleCode }\" cannot be deleted",

@@ -164,6 +164,15 @@ export type BooleanStructFieldConfig = StructField & {
   ui?: Maybe<Scalars['JSON']['output']>;
 };
 
+/** The unit price of a ProductVariant as calculated for the active session */
+export type CalculatedPrice = {
+  __typename?: 'CalculatedPrice';
+  /** The price of a single unit, excluding tax */
+  price: Scalars['Money']['output'];
+  /** The price of a single unit, including tax */
+  priceWithTax: Scalars['Money']['output'];
+};
+
 export type Channel = Node & {
   __typename?: 'Channel';
   availableCurrencyCodes: Array<CurrencyCode>;
@@ -2903,6 +2912,15 @@ export type ProductTranslation = {
 export type ProductVariant = Node & {
   __typename?: 'ProductVariant';
   assets: Array<Asset>;
+  /**
+   * The unit price that the configured OrderItemPriceCalculationStrategy calculates for the
+   * active session, for the given quantity. Unlike `price` and `priceWithTax`, which give the
+   * price of the Channel, this is the price that the cart would use. No Order is needed.
+   *
+   * The tax rate comes from the tax zone of the session, as for `priceWithTax`. The cart uses
+   * the tax zone of the Order, so `priceWithTax` can differ when the two zones differ.
+   */
+  calculatedPrice: CalculatedPrice;
   createdAt: Scalars['DateTime']['output'];
   currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -2922,6 +2940,11 @@ export type ProductVariant = Node & {
   taxRateApplied: TaxRate;
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ProductVariantCalculatedPriceArgs = {
+  quantity?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ProductVariantFilterParameter = {

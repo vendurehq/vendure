@@ -82,6 +82,7 @@ import {
 import {
     ProductVariantAdminEntityResolver,
     ProductVariantEntityResolver,
+    ProductVariantShopEntityResolver,
 } from './resolvers/entity/product-variant-entity.resolver';
 import { RefundEntityResolver } from './resolvers/entity/refund-entity.resolver';
 import { RefundLineEntityResolver } from './resolvers/entity/refund-line-entity.resolver';
@@ -174,6 +175,8 @@ export const entityResolvers = [
     ZoneEntityResolver,
 ];
 
+export const shopEntityResolvers = [ProductVariantShopEntityResolver];
+
 export const adminEntityResolvers = [
     RoleAssignmentEntityResolver,
     RoleEntityResolver,
@@ -229,7 +232,7 @@ export class AdminApiModule {}
  */
 @Module({
     imports: [ApiSharedModule, ...createDynamicGraphQlModulesForPlugins('shop')],
-    providers: [...shopResolvers, ...entityResolvers],
+    providers: [...shopResolvers, ...entityResolvers, ...shopEntityResolvers],
     exports: [...shopResolvers],
 })
 export class ShopApiModule {}

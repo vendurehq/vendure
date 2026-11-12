@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CalculatedPrice } from '@vendure/common/lib/generated-shop-types';
 import {
     AssignProductVariantsToChannelInput,
     CreateProductVariantInput,
@@ -820,6 +821,54 @@ export class ProductVariantService {
         variant: ProductVariant,
         priceField: F,
     ): Promise<ProductVariant[F]> {
+        const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
+        return hydratedVariant[priceField];
+    }
+
+    /**
+     * @description
+     * Calculates the unit price of the ProductVariant for the active session and the given quantity,
+     * without an Order. It applies the Channel price and tax (as for the `price` and `priceWithTax`
+     * fields), and then runs the configured {@link OrderItemPriceCalculationStrategy} with an
+     * `undefined` order. The result is the unit price that the cart would calculate for the same
+     * variant and quantity.
+     *
+     * The tax rate comes from the tax zone of the active session. The cart uses the tax zone of the
+     * Order, so the gross price can differ when the two zones differ.
+     *
+     * The strategy receives a copy of the variant, so the `price` and `priceWithTax` of the given
+     * variant do not change. Vendure does not cache the result: the strategy runs on each call.
+     *
+     * @since 4.0.0
+     */
+    async calculateShopPrice(
+        ctx: RequestContext,
+        variant: ProductVariant,
+        quantity = 1,
+    ): Promise<CalculatedPrice> {
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            throw new UserInputError('error.calculated-price-quantity-must-be-positive');
+        }
+        const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
+        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
+        const { price, priceIncludesTax } = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+            ctx,
+            new ProductVariant(hydratedVariant),
+            {},
+            undefined,
+            quantity,
+        );
+        const taxRate = hydratedVariant.taxRateApplied;
+        return {
+            price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
+            priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
+        };
+    }
+
+    /**
+     * Applies the Channel price and tax to the variant once for each request.
+     */
+    private getVariantWithPrices(ctx: RequestContext, variant: ProductVariant): Promise<ProductVariant> {
         const cacheKey = `hydrate-variant-price-fields-${variant.id}`;
         let populatePricesPromise = this.requestCache.get<Promise<ProductVariant>>(ctx, cacheKey);
 
@@ -852,8 +901,7 @@ export class ProductVariantService {
             });
             this.requestCache.set(ctx, cacheKey, populatePricesPromise);
         }
-        const hydratedVariant = await populatePricesPromise;
-        return hydratedVariant[priceField];
+        return populatePricesPromise;
     }
 
     /**
