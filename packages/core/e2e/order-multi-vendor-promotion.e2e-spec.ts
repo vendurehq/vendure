@@ -96,6 +96,9 @@ const GET_ORDER_DISCOUNTS = gql`
     }
 `;
 
+// registerNewSeller comes from the multivendor plugin and is not part of the generated shop types.
+const sellerInput = (input: object) => input as never;
+
 describe('Multi-vendor order promotions', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
@@ -136,7 +139,7 @@ describe('Multi-vendor order promotions', () => {
 
     it('setup sellers', async () => {
         const result1 = await shopClient.query(registerSellerDocument, {
-            input: {
+            input: sellerInput({
                 shopName: "Bob's Parts",
                 seller: {
                     firstName: 'Bob',
@@ -144,12 +147,12 @@ describe('Multi-vendor order promotions', () => {
                     emailAddress: 'bob@bobs-parts.com',
                     password: 'test',
                 },
-            },
+            }),
         });
-        bobsPartsChannel = result1.registerNewSeller;
+        bobsPartsChannel = result1.registerNewSeller as typeof bobsPartsChannel;
 
         const result2 = await shopClient.query(registerSellerDocument, {
-            input: {
+            input: sellerInput({
                 shopName: "Alice's Wares",
                 seller: {
                     firstName: 'Alice',
@@ -157,9 +160,9 @@ describe('Multi-vendor order promotions', () => {
                     emailAddress: 'alice@alices-wares.com',
                     password: 'test',
                 },
-            },
+            }),
         });
-        alicesWaresChannel = result2.registerNewSeller;
+        alicesWaresChannel = result2.registerNewSeller as typeof alicesWaresChannel;
     });
 
     it('assign products to sellers', async () => {
@@ -243,7 +246,7 @@ describe('Multi-vendor order promotions', () => {
         const { transitionOrderToState } = await shopClient.query(transitionToStateDocument, {
             state: 'ArrangingPayment',
         });
-        orderResultGuard.assertSuccess(transitionOrderToState);
+        orderResultGuard.assertSuccess(transitionOrderToState!);
 
         const { addPaymentToOrder } = await shopClient.query(addPaymentDocument, {
             input: { method: CONNECTED_PAYMENT_METHOD_CODE, metadata: {} },

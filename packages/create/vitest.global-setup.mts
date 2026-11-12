@@ -1,6 +1,6 @@
 import { cp } from 'node:fs/promises';
 import path from 'node:path';
-import type { GlobalSetupContext } from 'vitest/node';
+import type { TestProject } from 'vitest/node';
 
 /**
  * `generateSources()` reads its Handlebars templates from `assets/`, which is gitignored and
@@ -12,7 +12,7 @@ import type { GlobalSetupContext } from 'vitest/node';
  * which needs `@vendure/common` compiled first. The specs only need the templates, and this is
  * the same copy that `copy-assets` performs first.
  */
-export async function setup({ config }: GlobalSetupContext): Promise<void> {
+export async function setup({ config }: TestProject): Promise<void> {
     await cp(path.join(config.root, 'templates'), path.join(config.root, 'assets'), {
         recursive: true,
         force: true,

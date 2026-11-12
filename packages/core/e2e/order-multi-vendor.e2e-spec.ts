@@ -33,6 +33,9 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
     }
 }
 
+// registerNewSeller comes from the multivendor plugin and is not part of the generated shop types.
+const sellerInput = (input: object) => input as never;
+
 describe('Multi-vendor orders', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
@@ -73,7 +76,7 @@ describe('Multi-vendor orders', () => {
 
     it('setup sellers', async () => {
         const result1 = await shopClient.query(registerSellerDocument, {
-            input: {
+            input: sellerInput({
                 shopName: "Bob's Parts",
                 seller: {
                     firstName: 'Bob',
@@ -81,13 +84,13 @@ describe('Multi-vendor orders', () => {
                     emailAddress: 'bob@bobs-parts.com',
                     password: 'test',
                 },
-            },
+            }),
         });
-        bobsPartsChannel = result1.registerNewSeller;
+        bobsPartsChannel = result1.registerNewSeller as typeof bobsPartsChannel;
         expect(bobsPartsChannel.token).toBe('bobs-parts-token');
 
         const result2 = await shopClient.query(registerSellerDocument, {
-            input: {
+            input: sellerInput({
                 shopName: "Alice's Wares",
                 seller: {
                     firstName: 'Alice',
@@ -95,9 +98,9 @@ describe('Multi-vendor orders', () => {
                     emailAddress: 'alice@alices-wares.com',
                     password: 'test',
                 },
-            },
+            }),
         });
-        alicesWaresChannel = result2.registerNewSeller;
+        alicesWaresChannel = result2.registerNewSeller as typeof alicesWaresChannel;
         expect(alicesWaresChannel.token).toBe('alices-wares-token');
     });
 
@@ -179,7 +182,7 @@ describe('Multi-vendor orders', () => {
             state: 'ArrangingPayment',
         });
 
-        orderResultGuard.assertSuccess(transitionOrderToState);
+        orderResultGuard.assertSuccess(transitionOrderToState!);
 
         const { addPaymentToOrder } = await shopClient.query(addPaymentDocument, {
             input: {
@@ -194,7 +197,7 @@ describe('Multi-vendor orders', () => {
         const { order } = await adminClient.query(getOrderWithSellerOrdersDocument, {
             id: addPaymentToOrder.id,
         });
-        orderId = order.id;
+        orderId = order!.id;
 
         expect(order?.sellerOrders?.length).toBe(2);
     });

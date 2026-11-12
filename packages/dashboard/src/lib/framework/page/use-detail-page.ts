@@ -403,7 +403,7 @@ export function useDetailPage<
     const document = isNew ? (createDocument ?? updateDocument) : updateDocument;
     const { form, submitHandler } = useGeneratedForm({
         document,
-        varName: 'input',
+        varName: 'input' as VarNameCreate,
         entity,
         customFieldConfig,
         extendSchema,

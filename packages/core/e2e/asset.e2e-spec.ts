@@ -6,6 +6,7 @@ import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from 
 import fs from 'fs-extra';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import { fail } from 'assert';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';

@@ -60,7 +60,7 @@ describe('resolveMcpPluginOptions', () => {
     });
 
     it('ignores an undefined per-tool entry instead of removing the shipped cap', () => {
-        const resolved = resolveMcpPluginOptions({ rateLimits: { perTool: { place_order: undefined } } });
+        const resolved = resolveMcpPluginOptions({ rateLimits: { perTool: { place_order: undefined } as any } });
         expect(resolved.rateLimits.perTool.place_order).toEqual({ rpm: 5 });
     });
 

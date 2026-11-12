@@ -27,7 +27,6 @@
     "scripts": {
         "build": "rimraf dist && tsc -p ./tsconfig.cli.json && ts-node ./build.cts",
         "watch": "tsc -p ./tsconfig.cli.json --watch",
-        "ci": "npm run build",
         "test": "vitest --config vitest.config.mts --run",
         "e2e": "cross-env PACKAGE=cli vitest --config ../../e2e-common/vitest.config.mts --run --pool=forks",
         "e2e:watch": "cross-env PACKAGE=cli vitest --config ../../e2e-common/vitest.config.mts"
@@ -75,6 +74,9 @@
     "nx": {
         "tags": [
             "scope:tool"
-        ]
+        ],
+        "targets": {
+            "ci": {}
+        }
     }
 }

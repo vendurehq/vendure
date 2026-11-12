@@ -36,7 +36,8 @@ class ApiKey extends VendureEntity implements HasCustomFields, ChannelAware, Tra
     @EntityId()
     userId: ID;
     @ManyToMany(() => Channel)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
     @OneToMany(() => ApiKeyTranslation, t => t.base, { eager: true })
     translations: Array<Translation<ApiKey>>;

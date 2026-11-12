@@ -46,14 +46,8 @@ import {
     singleStageRefundablePaymentMethod,
     twoStagePaymentMethod,
 } from './fixtures/test-payment-methods';
-import {
-    canceledOrderFragment,
-    fulfillmentFragment,
-    paymentFragment,
-    refundFragment,
-} from './graphql/fragments-admin';
-import { FragmentOf, ResultOf } from './graphql/graphql-admin';
-import { FragmentOf as FragmentOfShop } from './graphql/graphql-shop';
+import { ResultOf } from './graphql/graphql-admin';
+import { FragmentOf as FragmentOfShop, ResultOf as ResultOfShop } from './graphql/graphql-shop';
 import {
     addManualPaymentDocument,
     addNoteToOrderDocument,
@@ -124,10 +118,25 @@ describe('Orders resolver', () => {
     let customers: ResultOf<typeof getCustomerListDocument>['customers']['items'];
     const password = 'test';
 
-    type RefundFragment = FragmentOf<typeof refundFragment>;
-    type PaymentFragment = FragmentOf<typeof paymentFragment>;
-    type FulfillmentFragment = FragmentOf<typeof fulfillmentFragment>;
-    type CanceledOrderFragment = FragmentOf<typeof canceledOrderFragment>;
+    type RefundFragment = Exclude<
+        ResultOf<typeof refundOrderDocument>['refundOrder'],
+        { errorCode: unknown }
+    >;
+    type PaymentFragment = Exclude<
+        ResultOf<typeof settlePaymentDocument>['settlePayment'],
+        { errorCode: unknown }
+    >;
+    type FulfillmentFragment = Exclude<
+        ResultOf<typeof createFulfillmentDocument>['addFulfillmentToOrder'],
+        { errorCode: unknown }
+    >;
+    type CanceledOrderFragment = Exclude<
+        ResultOf<typeof cancelOrderDocument>['cancelOrder'],
+        { errorCode: unknown }
+    >;
+    type SetCurrencyCodeResult = ResultOfShop<
+        typeof setCurrencyCodeForOrderDocument
+    >['setCurrencyCodeForOrder'];
     type ShopOrderFragment = FragmentOfShop<typeof testOrderWithPaymentsFragment>;
 
     const canceledOrderGuard: ErrorResultGuard<CanceledOrderFragment> = createErrorResultGuard(
@@ -2636,7 +2645,10 @@ describe('Orders resolver', () => {
             const { setCurrencyCodeForOrder } = await shopClient.query(setCurrencyCodeForOrderDocument, {
                 currencyCode: 'USD' as CurrencyCode,
             });
-            expect(setCurrencyCodeForOrder.currencyCode).toBe('USD');
+            expect(
+                (setCurrencyCodeForOrder as Extract<SetCurrencyCodeResult, { currencyCode: unknown }>)
+                    .currencyCode,
+            ).toBe('USD');
         });
 
         it('successfully changes currency code', async () => {
@@ -2651,7 +2663,10 @@ describe('Orders resolver', () => {
             const { setCurrencyCodeForOrder } = await shopClient.query(setCurrencyCodeForOrderDocument, {
                 currencyCode: 'GBP' as CurrencyCode,
             });
-            expect(setCurrencyCodeForOrder.currencyCode).toBe('GBP');
+            expect(
+                (setCurrencyCodeForOrder as Extract<SetCurrencyCodeResult, { currencyCode: unknown }>)
+                    .currencyCode,
+            ).toBe('GBP');
         });
 
         it('creates a history entry when currency is changed', async () => {
@@ -2688,12 +2703,15 @@ describe('Orders resolver', () => {
             const { transitionOrderToState } = await shopClient.query(transitionToStateDocument, {
                 state: 'ArrangingPayment',
             });
-            expect(transitionOrderToState?.state).toBe('ArrangingPayment');
+            expect((transitionOrderToState as { state?: string } | null)?.state).toBe('ArrangingPayment');
 
             const { setCurrencyCodeForOrder } = await shopClient.query(setCurrencyCodeForOrderDocument, {
                 currencyCode: 'USD' as CurrencyCode,
             });
-            expect(setCurrencyCodeForOrder.errorCode).toBe('ORDER_MODIFICATION_ERROR');
+            expect(
+                (setCurrencyCodeForOrder as Exclude<SetCurrencyCodeResult, { currencyCode: unknown }>)
+                    .errorCode,
+            ).toBe('ORDER_MODIFICATION_ERROR');
         });
     });
 

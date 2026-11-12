@@ -2,6 +2,7 @@
 import { ErrorCode, Permission } from '@vendure/common/lib/generated-types';
 import { SUPER_ADMIN_USER_IDENTIFIER, SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import { fail } from 'assert';
 import { DocumentNode } from 'graphql';
 import path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -18,7 +19,6 @@ import {
     getProductWithTransactionsDocument,
     issue2097QueryDocument,
 } from './graphql/admin-definitions';
-import { currentUserFragment } from './graphql/fragments-admin';
 import { ResultOf } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
@@ -177,8 +177,9 @@ describe('Authorization & permissions', () => {
         const adminPassword = 'admin-password';
         const customerPassword = 'customer-password';
 
-        const loginErrorGuard: ErrorResultGuard<ResultOf<typeof currentUserFragment>> =
-            createErrorResultGuard(input => !!input.identifier);
+        const loginErrorGuard: ErrorResultGuard<
+            Extract<ResultOf<typeof attemptLoginDocument>['login'], { identifier: string }>
+        > = createErrorResultGuard(input => !!input.identifier);
 
         beforeAll(async () => {
             await adminClient.asSuperAdmin();

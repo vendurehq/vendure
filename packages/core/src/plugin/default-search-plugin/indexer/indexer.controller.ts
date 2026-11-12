@@ -71,6 +71,7 @@ export const variantRelations = [
     'product.facetValues.facet',
     'collections',
     'collections.translations',
+    'collections.channels',
 ];
 export const workerLoggerCtx = 'DefaultSearchPlugin Worker';
 
@@ -448,9 +449,6 @@ export class IndexerController {
             for (const languageCode of availableLanguageCodes) {
                 const productTranslation = this.getTranslation(product, languageCode);
                 const variantTranslation = this.getTranslation(variant, languageCode);
-                const collectionTranslations = variant.collections.map(c =>
-                    this.getTranslation(c, languageCode),
-                );
                 let channelIds = variant.channels.map(x => x.id);
                 const clone = new ProductVariant({ id: variant.id });
                 await this.entityHydrator.hydrate(ctx, clone, {
@@ -471,6 +469,14 @@ export class IndexerController {
                     for (const currencyCode of availableCurrencyCodes) {
                         const ch = new Channel({ ...channel, defaultCurrencyCode: currencyCode });
                         ctx.setChannel(ch);
+                        // Collection slugs are unique per channel, so only record the
+                        // collections that belong to the channel of this index row.
+                        const channelCollections = variant.collections.filter(c =>
+                            c.channels?.some(cc => idsAreEqual(cc.id, channel.id)),
+                        );
+                        const collectionTranslations = channelCollections.map(c =>
+                            this.getTranslation(c, languageCode),
+                        );
 
                         await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
                         const item = new SearchIndexItem({
@@ -510,7 +516,7 @@ export class IndexerController {
                             channelIds: channelIds.map(x => x.toString()),
                             facetIds: this.getFacetIds(variant, product),
                             facetValueIds: this.getFacetValueIds(variant, product),
-                            collectionIds: variant.collections.map(c => c.id.toString()),
+                            collectionIds: channelCollections.map(c => c.id.toString()),
                             collectionSlugs:
                                 collectionTranslations.map(c => c?.slug).filter(notNullOrUndefined) ?? [],
                         });

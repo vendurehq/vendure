@@ -104,7 +104,7 @@ describe('useExtendedRouter base route tree', () => {
             authenticated: false,
             component: () => null,
         } as any);
-        const routeTree = buildBaseRouteTree();
+        const routeTree = buildBaseRouteTree() as any;
         const authenticatedRoute = routeTree.children.find((r: any) => r.id === '/_authenticated');
         const rootChildren = routeTree.children;
         const rootChildIds = rootChildren.map((r: any) => r.id);

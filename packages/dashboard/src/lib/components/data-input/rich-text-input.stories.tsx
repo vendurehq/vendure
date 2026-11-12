@@ -1,6 +1,8 @@
+import type { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { RichTextInput } from './rich-text-input.js';
 
 const meta = {
@@ -31,7 +33,7 @@ export const Playground: Story = {
         const field = register('content');
         return (
             <div className="w-[600px]">
-                <RichTextInput {...field} {...args} />
+                <RichTextInput {...asField(field)} {...args} />
             </div>
         );
     },
@@ -43,7 +45,7 @@ export const EmptyEditor: Story = {
         const field = register('empty');
         return (
             <div className="w-[600px]">
-                <RichTextInput {...field} />
+                <RichTextInput {...asField(field)} />
             </div>
         );
     },
@@ -56,7 +58,7 @@ export const WithComplexContent: Story = {
         return (
             <div className="w-[600px]">
                 <RichTextInput
-                    {...field}
+                    {...asField(field)}
                     value={`
                         <h2>Product Description</h2>
                         <p>This is a <strong>high-quality</strong> product with the following features:</p>
@@ -82,9 +84,9 @@ export const ReadonlyMode: Story = {
         return (
             <div className="w-[600px]">
                 <RichTextInput
-                    {...field}
+                    {...asField(field)}
                     value="<p>This content is <strong>readonly</strong> and cannot be edited.</p>"
-                    fieldDef={{ readonly: true }}
+                    fieldDef={{ readonly: true } as ConfigurableFieldDef}
                 />
             </div>
         );

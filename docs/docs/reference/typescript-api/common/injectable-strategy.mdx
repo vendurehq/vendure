@@ -9,8 +9,8 @@ various strategies used to configure Vendure.
 
 ```ts title="Signature"
 interface InjectableStrategy {
-    init?: (injector: Injector) => void | Promise<void>;
-    destroy?: () => void | Promise<void>;
+    init?(injector: Injector): void | Promise<void>;
+    destroy?(): void | Promise<void>;
 }
 ```
 
@@ -18,7 +18,7 @@ interface InjectableStrategy {
 
 ### init
 
-<MemberInfo kind="property" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => void | Promise<void>`}   />
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => void | Promise<void>`}   />
 
 Defines setup logic to be run during application bootstrap. Receives
 the [Injector](/reference/typescript-api/common/injector#injector) as an argument, which allows application providers
@@ -35,7 +35,7 @@ async init(injector: Injector) {
 ```
 ### destroy
 
-<MemberInfo kind="property" type={`() => void | Promise<void>`}   />
+<MemberInfo kind="method" type={`() => void | Promise<void>`}   />
 
 Defines teardown logic to be run before application shutdown.
 

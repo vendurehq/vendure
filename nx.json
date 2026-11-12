@@ -44,17 +44,8 @@
             "cache": true
         },
         "ci": {
-            "dependsOn": ["^ci"],
-            "inputs": ["production", "^production"],
-            "outputs": [
-                "{projectRoot}/lib",
-                "{projectRoot}/dist",
-                "{projectRoot}/dist-plugin",
-                "{projectRoot}/package",
-                "{projectRoot}/cli",
-                "{projectRoot}/assets"
-            ],
-            "cache": true
+            "executor": "nx:noop",
+            "dependsOn": ["build"]
         },
         "test": {
             "dependsOn": [

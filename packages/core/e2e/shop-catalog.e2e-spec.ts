@@ -3,6 +3,7 @@ import { LanguageCode, LogicalOperator } from '@vendure/common/lib/generated-typ
 import { facetValueCollectionFilter } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import * as path from 'path';
+import { fail } from 'assert';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';

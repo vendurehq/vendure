@@ -6,11 +6,7 @@ import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from 
 import path from 'path';
 import { Logger as TypeOrmLogger } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type {
-    productVariantFragment,
-    productWithOptionsFragment,
-    productWithVariantsFragment,
-} from './graphql/fragments-admin';
+import type { productVariantFragment, productWithVariantsFragment } from './graphql/fragments-admin';
 import type { ResultOf, VariablesOf } from './graphql/graphql-admin';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -65,8 +61,12 @@ describe('Product resolver', () => {
         },
     });
 
-    const removeOptionGuard: ErrorResultGuard<ResultOf<typeof productWithOptionsFragment>> =
-        createErrorResultGuard(input => !!input && 'optionGroups' in input);
+    const removeOptionGuard: ErrorResultGuard<
+        Exclude<
+            ResultOf<typeof removeOptionGroupFromProductDocument>['removeOptionGroupFromProduct'],
+            { errorCode: string }
+        >
+    > = createErrorResultGuard(input => !!input && 'optionGroups' in input);
 
     const updateChannelGuard: ErrorResultGuard<ResultOf<typeof updateChannelDocument>['updateChannel']> =
         createErrorResultGuard(input => !!input && 'id' in input);

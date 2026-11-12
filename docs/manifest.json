@@ -1230,7 +1230,7 @@
                   "title": "InjectableStrategy",
                   "slug": "injectable-strategy",
                   "file": "docs/reference/typescript-api/common/injectable-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-12T10:33:36Z"
                 },
                 {
                   "title": "Injector",
@@ -1396,7 +1396,7 @@
                   "title": "DefaultSlugStrategy",
                   "slug": "default-slug-strategy",
                   "file": "docs/reference/typescript-api/configuration/default-slug-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "EncryptionStrategy",
@@ -1414,7 +1414,7 @@
                   "title": "EntityId Decorator",
                   "slug": "entity-id-decorator",
                   "file": "docs/reference/typescript-api/configuration/entity-id-decorator.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "EntityIdStrategy",
@@ -1468,7 +1468,7 @@
                   "title": "SlugStrategy",
                   "slug": "slug-strategy",
                   "file": "docs/reference/typescript-api/configuration/slug-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "StrategyLayer",
@@ -1622,7 +1622,7 @@
                   "title": "ListQueryBuilder",
                   "slug": "list-query-builder",
                   "file": "docs/reference/typescript-api/data-access/list-query-builder.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "ToTypeOrmFindOptions",
@@ -1728,13 +1728,25 @@
                   "title": "ApiKey",
                   "slug": "api-key",
                   "file": "docs/reference/typescript-api/entities/api-key.mdx",
-                  "lastModified": "2026-08-31T14:33:32+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ApiKeyChannel",
+                  "slug": "api-key-channel",
+                  "file": "docs/reference/typescript-api/entities/api-key-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "Asset",
                   "slug": "asset",
                   "file": "docs/reference/typescript-api/entities/asset.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "AssetChannel",
+                  "slug": "asset-channel",
+                  "file": "docs/reference/typescript-api/entities/asset-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "AuthenticatedSession",
@@ -1755,10 +1767,28 @@
                   "lastModified": "2026-11-06T10:17:03Z"
                 },
                 {
+                  "title": "ChannelAssignment",
+                  "slug": "channel-assignment",
+                  "file": "docs/reference/typescript-api/entities/channel-assignment.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ChannelAssignmentEntity",
+                  "slug": "channel-assignment-entity",
+                  "file": "docs/reference/typescript-api/entities/channel-assignment-entity.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
                   "title": "Collection",
                   "slug": "collection",
                   "file": "docs/reference/typescript-api/entities/collection.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "CollectionChannel",
+                  "slug": "collection-channel",
+                  "file": "docs/reference/typescript-api/entities/collection-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "Country",
@@ -1770,7 +1800,13 @@
                   "title": "Customer",
                   "slug": "customer",
                   "file": "docs/reference/typescript-api/entities/customer.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "CustomerChannel",
+                  "slug": "customer-channel",
+                  "file": "docs/reference/typescript-api/entities/customer-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "CustomerGroup",
@@ -1788,13 +1824,25 @@
                   "title": "Facet",
                   "slug": "facet",
                   "file": "docs/reference/typescript-api/entities/facet.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "FacetChannel",
+                  "slug": "facet-channel",
+                  "file": "docs/reference/typescript-api/entities/facet-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "FacetValue",
                   "slug": "facet-value",
                   "file": "docs/reference/typescript-api/entities/facet-value.mdx",
-                  "lastModified": "2026-10-19T13:56:33Z"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "FacetValueChannel",
+                  "slug": "facet-value-channel",
+                  "file": "docs/reference/typescript-api/entities/facet-value-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "Fulfillment",
@@ -1824,13 +1872,19 @@
                   "title": "Order",
                   "slug": "order",
                   "file": "docs/reference/typescript-api/entities/order.mdx",
-                  "lastModified": "2026-09-21T15:40:19+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "OrderableAsset",
                   "slug": "orderable-asset",
                   "file": "docs/reference/typescript-api/entities/orderable-asset.mdx",
                   "lastModified": "2026-04-20T16:08:16+02:00"
+                },
+                {
+                  "title": "OrderChannel",
+                  "slug": "order-channel",
+                  "file": "docs/reference/typescript-api/entities/order-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "OrderHistoryEntry",
@@ -1866,31 +1920,61 @@
                   "title": "PaymentMethod",
                   "slug": "payment-method",
                   "file": "docs/reference/typescript-api/entities/payment-method.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "PaymentMethodChannel",
+                  "slug": "payment-method-channel",
+                  "file": "docs/reference/typescript-api/entities/payment-method-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "Product",
                   "slug": "product",
                   "file": "docs/reference/typescript-api/entities/product.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ProductChannel",
+                  "slug": "product-channel",
+                  "file": "docs/reference/typescript-api/entities/product-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "ProductOption",
                   "slug": "product-option",
                   "file": "docs/reference/typescript-api/entities/product-option.mdx",
-                  "lastModified": "2026-10-19T13:56:33Z"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ProductOptionChannel",
+                  "slug": "product-option-channel",
+                  "file": "docs/reference/typescript-api/entities/product-option-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "ProductOptionGroup",
                   "slug": "product-option-group",
                   "file": "docs/reference/typescript-api/entities/product-option-group.mdx",
-                  "lastModified": "2026-10-19T13:56:33Z"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ProductOptionGroupChannel",
+                  "slug": "product-option-group-channel",
+                  "file": "docs/reference/typescript-api/entities/product-option-group-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "ProductVariant",
                   "slug": "product-variant",
                   "file": "docs/reference/typescript-api/entities/product-variant.mdx",
-                  "lastModified": "2026-10-19T13:56:33Z"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ProductVariantChannel",
+                  "slug": "product-variant-channel",
+                  "file": "docs/reference/typescript-api/entities/product-variant-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "ProductVariantPrice",
@@ -1902,7 +1986,13 @@
                   "title": "Promotion",
                   "slug": "promotion",
                   "file": "docs/reference/typescript-api/entities/promotion.mdx",
-                  "lastModified": "2026-10-19T13:56:33Z"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "PromotionChannel",
+                  "slug": "promotion-channel",
+                  "file": "docs/reference/typescript-api/entities/promotion-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "Province",
@@ -1962,7 +2052,13 @@
                   "title": "ShippingMethod",
                   "slug": "shipping-method",
                   "file": "docs/reference/typescript-api/entities/shipping-method.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "ShippingMethodChannel",
+                  "slug": "shipping-method-channel",
+                  "file": "docs/reference/typescript-api/entities/shipping-method-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "StockLevel",
@@ -1974,7 +2070,13 @@
                   "title": "StockLocation",
                   "slug": "stock-location",
                   "file": "docs/reference/typescript-api/entities/stock-location.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "StockLocationChannel",
+                  "slug": "stock-location-channel",
+                  "file": "docs/reference/typescript-api/entities/stock-location-channel.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "StockMovement",
@@ -2439,10 +2541,22 @@
                   "lastModified": "2026-10-11T09:39:19+02:00"
                 },
                 {
+                  "title": "FindSlugConflicts",
+                  "slug": "find-slug-conflicts",
+                  "file": "docs/reference/typescript-api/migration/find-slug-conflicts.mdx",
+                  "lastModified": "2026-11-12T12:08:18Z"
+                },
+                {
+                  "title": "FormatSlugConflicts",
+                  "slug": "format-slug-conflicts",
+                  "file": "docs/reference/typescript-api/migration/format-slug-conflicts.mdx",
+                  "lastModified": "2026-11-12T12:08:18Z"
+                },
+                {
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-10-11T09:39:19+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2466,13 +2580,13 @@
                   "title": "MigrationDiagnostic",
                   "slug": "migration-diagnostic",
                   "file": "docs/reference/typescript-api/migration/migration-diagnostic.mdx",
-                  "lastModified": "2026-10-09T13:26:48+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "MigrationOptions",
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
-                  "lastModified": "2026-10-09T13:26:48+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "PreviewRoleAssignmentMigration",
@@ -2496,19 +2610,25 @@
                   "title": "RevertLastMigration",
                   "slug": "revert-last-migration",
                   "file": "docs/reference/typescript-api/migration/revert-last-migration.mdx",
-                  "lastModified": "2026-10-09T13:26:48+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
-                  "lastModified": "2026-10-09T13:26:48+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "RunMigrationsOptions",
                   "slug": "run-migrations-options",
                   "file": "docs/reference/typescript-api/migration/run-migrations-options.mdx",
-                  "lastModified": "2026-10-09T13:26:48+02:00"
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "SlugConflict",
+                  "slug": "slug-conflict",
+                  "file": "docs/reference/typescript-api/migration/slug-conflict.mdx",
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "TranslationTableColumnNames",
@@ -3084,7 +3204,7 @@
                   "title": "SlugValidator",
                   "slug": "slug-validator",
                   "file": "docs/reference/typescript-api/service-helpers/slug-validator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "TranslatableSaver",
@@ -3125,10 +3245,16 @@
                   "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
+                  "title": "ChannelAssignmentService",
+                  "slug": "channel-assignment-service",
+                  "file": "docs/reference/typescript-api/services/channel-assignment-service.mdx",
+                  "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
                   "title": "CollectionService",
@@ -3164,7 +3290,7 @@
                   "title": "EntitySlugService",
                   "slug": "entity-slug-service",
                   "file": "docs/reference/typescript-api/services/entity-slug-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "FacetService",
@@ -3248,7 +3374,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-10-19T10:45:31Z"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "PromotionService",

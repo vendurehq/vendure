@@ -180,7 +180,7 @@ describe('translateEntity()', () => {
 
             const result = translateEntity(product, LanguageCode.de);
 
-            expect(result.customFields.localeName).toBe('English locale name');
+            expect((result.customFields as Record<string, any>).localeName).toBe('English locale name');
         });
 
         it('should fall back null custom field values to default language', () => {
@@ -193,7 +193,7 @@ describe('translateEntity()', () => {
 
             const result = translateEntity(product, LanguageCode.de);
 
-            expect(result.customFields.localeName).toBe('English locale name');
+            expect((result.customFields as Record<string, any>).localeName).toBe('English locale name');
         });
 
         it('should fall back null field values to default language', () => {

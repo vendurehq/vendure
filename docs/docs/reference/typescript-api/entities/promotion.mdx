@@ -35,7 +35,8 @@ class Promotion extends AdjustmentSource implements ChannelAware, SoftDeletable,
     translations: Array<Translation<Promotion>>;
     @Column() enabled: boolean;
     @ManyToMany(type => Channel, channel => channel.promotions)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
     @ManyToMany(type => Order, order => order.promotions, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
     orders: Order[];

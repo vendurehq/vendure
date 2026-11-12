@@ -73,7 +73,7 @@ describe('CreateFulfillmentTool', () => {
             orderId: 1,
             method: 'Test Carrier',
             state: 'Shipped',
-        });
+        } as any);
 
         expect(result).toBe(REFUSAL);
         // Throwing is what undoes the fulfillment created a moment earlier.
@@ -88,7 +88,7 @@ describe('CreateFulfillmentTool', () => {
         const { connection } = connectionStub();
 
         await expect(
-            tool(orderService, connection).execute({} as any, { orderId: 1, method: 'Test Carrier' }),
+            tool(orderService, connection).execute({} as any, { orderId: 1, method: 'Test Carrier' } as any),
         ).rejects.toBe(boom);
     });
 });

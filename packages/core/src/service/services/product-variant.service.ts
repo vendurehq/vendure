@@ -41,6 +41,7 @@ import { FacetValue } from '../../entity/facet-value/facet-value.entity';
 import { ProductOption } from '../../entity/product-option/product-option.entity';
 import { ProductVariantTranslation } from '../../entity/product-variant/product-variant-translation.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { ProductTranslation } from '../../entity/product/product-translation.entity';
 import { Product } from '../../entity/product/product.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { ProductVariantChannelEvent } from '../../event-bus/events/product-variant-channel-event';
@@ -50,6 +51,7 @@ import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channe
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
+import { SlugValidator } from '../helpers/slug-validator/slug-validator';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -91,6 +93,7 @@ export class ProductVariantService {
         private requestCache: RequestContextCacheService,
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
+        private slugValidator: SlugValidator,
         private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
@@ -940,6 +943,13 @@ export class ProductVariantService {
         );
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
+        // Assigning a variant also assigns its Product, so the Product's slug must be free there.
+        await this.slugValidator.assertNoConflictsInChannel(
+            ctx,
+            ProductTranslation,
+            unique(variants.filter(v => !v.deletedAt).map(v => v.productId)),
+            input.channelId,
+        );
         const assignedVariantIds: ID[] = [];
         const optionIds: ID[] = [];
         const optionGroupIds: ID[] = [];
