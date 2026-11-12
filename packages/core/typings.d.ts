@@ -12,3 +12,5 @@ declare module 'i18next-icu' {
 declare module 'i18next-fs-backend' {
     // default
 }
+
+declare module 'better-sqlite3';

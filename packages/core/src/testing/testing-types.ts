@@ -1,1 +1,3 @@
-export type MockClass<T> = { [K in keyof T]: vi.Mock<any> | any };
+import type { Mock } from 'vitest';
+
+export type MockClass<T> = { [K in keyof T]: Mock<any> | any };
