@@ -1407,6 +1407,16 @@ describe('Order modification', () => {
             );
         });
 
+        // https://github.com/vendurehq/vendure/issues/5671
+        it('cannot transition from ArrangingAdditionalPayment to Cancelled unless all items are cancelled', async () => {
+            const transitionOrderToState = await adminTransitionOrderToState(orderId2, 'Cancelled');
+            orderGuard.assertErrorResult(transitionOrderToState);
+            expect(transitionOrderToState.errorCode).toBe(ErrorCode.ORDER_STATE_TRANSITION_ERROR);
+            expect((transitionOrderToState as any).transitionError).toBe(
+                'Cannot transition Order to the "Cancelled" state unless all OrderItems are cancelled',
+            );
+        });
+
         it('addManualPaymentToOrder', async () => {
             const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentToOrderDocument, {
                 input: {
@@ -3151,6 +3161,103 @@ describe('Order modification', () => {
                     ],
                 }),
             ).rejects.toThrow('The custom field "readonlyField" is readonly');
+        });
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5671
+    describe('cancelling from ArrangingAdditionalPayment', () => {
+        let aapOrderId: string;
+        let aapLineId: string;
+        let allocatedBeforeOrder: number;
+
+        async function getT1StockAllocated() {
+            const { product } = await adminClient.query(getStockMovementDocument, { id: 'T_1' });
+            return product!.variants.find(v => v.id === 'T_1')!.stockAllocated;
+        }
+
+        async function getStateAndStock(id: string) {
+            const { order } = await adminClient.query(getOrderDocument, { id });
+            return {
+                state: order!.state,
+                lineQuantities: order!.lines.map(l => l.quantity),
+                stockAllocated: await getT1StockAllocated(),
+            };
+        }
+
+        beforeAll(async () => {
+            allocatedBeforeOrder = await getT1StockAllocated();
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 2 },
+            ]);
+            aapOrderId = order.id;
+            aapLineId = order.lines[0].id;
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: aapOrderId,
+                    surcharges: [
+                        {
+                            description: 'extra fee',
+                            sku: 'AAP_CANCEL',
+                            price: 300,
+                            priceIncludesTax: true,
+                            taxRate: 20,
+                            taxDescription: 'VAT',
+                        },
+                    ],
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(modifyOrder);
+            const result = await adminTransitionOrderToState(aapOrderId, 'ArrangingAdditionalPayment');
+            orderGuard.assertSuccess(result);
+            expect(result.state).toBe('ArrangingAdditionalPayment');
+            expect(await getT1StockAllocated()).toBe(allocatedBeforeOrder + 2);
+        });
+
+        it('refuses a direct transition to Cancelled while lines are not cancelled', async () => {
+            const result = await adminTransitionOrderToState(aapOrderId, 'Cancelled');
+
+            expect(await getStateAndStock(aapOrderId)).toEqual({
+                state: 'ArrangingAdditionalPayment',
+                lineQuantities: [2],
+                stockAllocated: allocatedBeforeOrder + 2,
+            });
+            orderGuard.assertErrorResult(result);
+            expect(result.errorCode).toBe(ErrorCode.ORDER_STATE_TRANSITION_ERROR);
+            expect((result as any).transitionError).toBe(
+                'Cannot transition Order to the "Cancelled" state unless all OrderItems are cancelled',
+            );
+        });
+
+        it('still refuses the direct transition after a partial cancellation', async () => {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId: aapOrderId, lines: [{ orderLineId: aapLineId, quantity: 1 }] },
+            });
+            canceledOrderGuard.assertSuccess(cancelOrder);
+            expect(await getStateAndStock(aapOrderId)).toEqual({
+                state: 'ArrangingAdditionalPayment',
+                lineQuantities: [1],
+                stockAllocated: allocatedBeforeOrder + 1,
+            });
+
+            const result = await adminTransitionOrderToState(aapOrderId, 'Cancelled');
+            orderGuard.assertErrorResult(result);
+            expect((result as any).transitionError).toBe(
+                'Cannot transition Order to the "Cancelled" state unless all OrderItems are cancelled',
+            );
+        });
+
+        it('cancelOrder still cancels while the additional payment is outstanding, releasing stock', async () => {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId: aapOrderId, reason: 'additional payment never arrived' },
+            });
+            canceledOrderGuard.assertSuccess(cancelOrder);
+
+            expect(await getStateAndStock(aapOrderId)).toEqual({
+                state: 'Cancelled',
+                lineQuantities: [0],
+                stockAllocated: allocatedBeforeOrder,
+            });
         });
     });
 

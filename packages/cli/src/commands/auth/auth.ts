@@ -7,10 +7,13 @@ import {
     AuthStatus,
     DeviceLoginOptions,
     LogoutResult,
+    RenewalError,
+    checkAuthStatus,
     loginWithDevice,
     logout,
     readAuthStatus,
 } from '../../auth/index.js';
+import { TOKEN_TOO_BIG, TOKEN_TOO_BIG_ADVICE } from '../../auth/workos-client.js';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils.js';
 import { openConsoleBrowser } from '../console/authentication.js';
 
@@ -64,15 +67,9 @@ export async function authLoginCommand(
     if (!hasValidEnvironment(deps)) {
         return 1;
     }
-    const existing = readAuthStatus(deps);
-    if (existing.loggedIn && !deps.isNonInteractive()) {
-        const replace = await deps.confirm(
-            `Already logged in as ${existing.user?.email ?? 'an unknown user'}. Sign in again?`,
-        );
-        if (!replace) {
-            deps.reporter.info('Login cancelled.');
-            return 0;
-        }
+    if (!(await confirmReplacingStoredLogin(deps))) {
+        deps.reporter.info('Login cancelled.');
+        return 0;
     }
 
     const abortController = new AbortController();
@@ -114,18 +111,26 @@ export async function authLoginCommand(
     }
 }
 
-export function authStatusCommand(
+/**
+ * Renews the stored login to check it, so a login the authentication service
+ * no longer renews is reported instead of shown as logged in.
+ */
+export async function authStatusCommand(
     options: { json?: boolean } = {},
     dependencies: Partial<AuthCommandDependencies> = {},
-): number {
+): Promise<number> {
     const deps = resolveDependencies(dependencies);
     if (!hasValidEnvironment(deps)) {
         return 1;
     }
-    const status = readAuthStatus(deps);
+    const status = await checkAuthStatus(deps);
     if (options.json) {
         deps.writeStdout(`${JSON.stringify(status)}\n`);
         return status.loggedIn ? 0 : 1;
+    }
+    if (status.renewable === false) {
+        deps.reporter.warn(describeRefusal(status, 'Run `vendure auth login` to sign in again.'));
+        return 1;
     }
     if (!status.loggedIn) {
         deps.reporter.warn('Not logged in. Run `vendure auth login` to sign in.');
@@ -148,10 +153,13 @@ export function authStatusCommand(
     }
     lines.push(
         `Vendure Console: ${status.consoleApiUrl}`,
-        `WorkOS client: ${status.clientId ?? 'unknown'}`,
+        `Authentication client: ${status.clientId ?? 'unknown'}`,
         `Stored in: ${status.path}`,
     );
     deps.reporter.info(lines.join('\n'));
+    if (status.renewalError) {
+        deps.reporter.warn(`Could not check that the login can be renewed: ${status.renewalError.message}`);
+    }
     return 0;
 }
 
@@ -179,6 +187,33 @@ export async function authLogoutCommand(
     return 0;
 }
 
+/**
+ * Checks a stored login before the sign-in replaces it. A login that can still
+ * be renewed is replaced only when the user confirms. Resolves `false` when the
+ * user keeps it.
+ */
+async function confirmReplacingStoredLogin(deps: AuthCommandDependencies): Promise<boolean> {
+    // Without a terminal the login is replaced without asking, so there is nothing to check.
+    if (deps.isNonInteractive() || !readAuthStatus(deps).loggedIn) {
+        return true;
+    }
+    const existing = await checkAuthStatus(deps);
+    if (existing.renewable === false) {
+        deps.reporter.warn(describeRefusal(existing, 'Signing in again.'));
+        return true;
+    }
+    if (!existing.loggedIn) {
+        return true;
+    }
+    if (existing.renewalError) {
+        deps.reporter.warn(
+            `Could not check that the stored login can be renewed: ${existing.renewalError.message}`,
+        );
+    }
+    const replace = await deps.confirm(`Already logged in as ${describeEmail(existing)}. Sign in again?`);
+    return replace === true;
+}
+
 /** Reports a misconfigured Console API rather than throwing it. */
 function hasValidEnvironment(deps: AuthCommandDependencies): boolean {
     try {
@@ -200,6 +235,27 @@ function describeOrganization(organization: StoredOrganization): string {
 
 function describeLogin(status: AuthStatus): string {
     const name = [status.user?.firstName, status.user?.lastName].filter(Boolean).join(' ');
-    const email = status.user?.email ?? 'an unknown user';
+    const email = describeEmail(status);
     return name ? `${name} <${email}>` : email;
+}
+
+function describeEmail(status: AuthStatus): string {
+    return status.user?.email ?? 'an unknown user';
+}
+
+function describeRefusal(status: AuthStatus, nextStep: string): string {
+    const error = status.renewalError;
+    const advice = error?.code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
+    return (
+        `The stored login for ${describeEmail(status)} can no longer be renewed` +
+        `${describeAnswer(error)}.${advice} ${nextStep}`
+    );
+}
+
+/** The authentication service's answer, such as ` (invalid_grant, HTTP 400)`, or nothing without one. */
+function describeAnswer(error: RenewalError | undefined): string {
+    const parts = [error?.code, error?.status === undefined ? undefined : `HTTP ${error.status}`].filter(
+        Boolean,
+    );
+    return parts.length ? ` (${parts.join(', ')})` : '';
 }

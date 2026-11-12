@@ -1,6 +1,6 @@
 {
     "name": "dev-server",
-    "version": "3.8.1",
+    "version": "3.8.2",
     "main": "index.js",
     "license": "GPL-3.0-or-later",
     "private": true,
@@ -32,18 +32,18 @@
     },
     "dependencies": {
         "@nestjs/axios": "^12.0.0",
-        "@vendure/asset-server-plugin": "3.8.1",
-        "@vendure/common": "3.8.1",
-        "@vendure/core": "3.8.1",
-        "@vendure/email-plugin": "3.8.1"
+        "@vendure/asset-server-plugin": "3.8.2",
+        "@vendure/common": "3.8.2",
+        "@vendure/core": "3.8.2",
+        "@vendure/email-plugin": "3.8.2"
     },
     "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260515.1",
-        "@vendure/cli": "3.8.1",
-        "@vendure/dashboard": "3.8.1",
-        "@vendure/graphiql-plugin": "3.8.1",
-        "@vendure/telemetry-plugin": "3.8.1",
-        "@vendure/testing": "3.8.1",
+        "@vendure/cli": "3.8.2",
+        "@vendure/dashboard": "3.8.2",
+        "@vendure/graphiql-plugin": "3.8.2",
+        "@vendure/telemetry-plugin": "3.8.2",
+        "@vendure/testing": "3.8.2",
         "commander": "^12.0.0",
         "concurrently": "^9.2.0",
         "csv-stringify": "^6.4.6",

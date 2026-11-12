@@ -1,8 +1,11 @@
 import {
     NotLoggedInError,
     ReauthenticationRequiredError,
+    RenewalFailureDetails,
     SessionLockUnavailableError,
+    SessionRefreshUnavailableError,
     SessionRejectedError,
+    isRenewalRefused,
 } from './auth-errors.js';
 import { AuthOptions, getAuthFilePath, getAuthLockPath, resolveConsoleApiUrl } from './auth-options.js';
 import {
@@ -52,6 +55,30 @@ export interface AuthStatus {
     organization?: StoredOrganization | null;
     /** When the current access token expires, as epoch milliseconds. It is renewed automatically. */
     accessTokenExpiresAt?: number;
+    /**
+     * Set by {@link checkAuthStatus} only. `true` when the login was renewed.
+     * `false` when the authentication service refused to renew it, so only a
+     * new sign-in helps. Absent when the check could not finish.
+     *
+     * @since 3.8.2
+     */
+    renewable?: boolean;
+    /**
+     * Set by {@link checkAuthStatus} when the renewal failed.
+     *
+     * @since 3.8.2
+     */
+    renewalError?: RenewalError;
+}
+
+/**
+ * Why {@link checkAuthStatus} could not renew the login. `code` and `status`
+ * are what the authentication service answered, when it answered.
+ *
+ * @since 3.8.2
+ */
+export interface RenewalError extends RenewalFailureDetails {
+    message: string;
 }
 
 /** What {@link logout} did. @since 3.8.0 */
@@ -148,9 +175,9 @@ const activeRefreshes = new Map<string, Promise<string>>();
  * redundant exchange is what strands a login.
  *
  * @throws NotLoggedInError when this machine has no login.
- * @throws SessionRejectedError when WorkOS refused the refresh token. The stored login is removed.
+ * @throws SessionRejectedError when the authentication service refused the refresh token. The stored login is removed.
  * @throws SessionRefreshUnavailableError on a transient failure. The stored login is kept.
- * @throws ReauthenticationRequiredError when WorkOS needs a new sign-in. The stored login is kept.
+ * @throws ReauthenticationRequiredError when the authentication service needs a new sign-in. The stored login is kept.
  * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
  * @since 3.8.0
  */
@@ -285,7 +312,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
             authentication = await scopeToOrganization(client, authentication.refreshToken, target, options);
         }
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
-            throw new Error(`WorkOS did not scope the login to ${target.name}.`);
+            throw new Error(`The authentication service did not scope the login to ${target.name}.`);
         }
     } else {
         organization = await describeTokenOrganization(consoleApiUrl, authentication, options);
@@ -309,7 +336,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
  * organization is recorded with it.
  *
  * @throws NotLoggedInError when this machine has no login.
- * @throws SessionRejectedError when WorkOS refused the refresh token. The stored login is removed.
+ * @throws SessionRejectedError when the authentication service refused the refresh token. The stored login is removed.
  * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
  */
 export function scopeStoredLogin(
@@ -356,7 +383,8 @@ export function scopeStoredLogin(
                 ? `is now scoped to ${tokenOrganization.name ?? tokenOrganization.workosOrganizationId}`
                 : 'has no organization';
             throw new Error(
-                `WorkOS did not scope the login to ${organization.name}. The stored login ${current}. ` +
+                `The authentication service did not scope the login to ${organization.name}. ` +
+                    `The stored login ${current}. ` +
                     'Run vendure auth login --organization <Account identifier> to choose the account.',
             );
         }
@@ -379,7 +407,7 @@ async function scopeToOrganization(
     } catch (error) {
         if (error instanceof ReauthenticationRequiredError) {
             throw new Error(
-                `${target.name} requires a new sign-in through WorkOS (${error.code}). Run ` +
+                `${target.name} requires a new sign-in (${error.code}). Run ` +
                     `\`vendure auth login\` without --organization and choose ${target.name} in the browser.`,
             );
         }
@@ -509,6 +537,59 @@ export function readAuthStatus(options: AuthOptions = {}): AuthStatus {
         organization: stored.organization,
         ...(expiresAt === undefined ? {} : { accessTokenExpiresAt: expiresAt }),
     };
+}
+
+/**
+ * Describes the stored login like {@link readAuthStatus}, after renewing it to
+ * check that it can still be renewed. The renewal spends the refresh token and
+ * stores the new pair, the same as any renewal.
+ *
+ * When the authentication service refuses the renewal, `loggedIn` is `false`,
+ * `renewable` is `false` and `renewalError` says why. A refused refresh token
+ * (`invalid_grant`) also removes the stored login. When the check cannot
+ * finish, for example without a network, `loggedIn` describes the stored
+ * login, `renewable` is absent and `renewalError` says why.
+ *
+ * @since 3.8.2
+ */
+export async function checkAuthStatus(options: AuthOptions = {}): Promise<AuthStatus> {
+    const status = readAuthStatus(options);
+    const stored = readStoredAuth(options);
+    if (!stored) {
+        return status;
+    }
+    try {
+        // Passing the stored token as the failed one forces an exchange.
+        await refreshAccessToken(stored.accessToken, options);
+        return { ...readAuthStatus(options), renewable: true };
+    } catch (error) {
+        if (error instanceof NotLoggedInError) {
+            // Another command removed the login meanwhile.
+            return readAuthStatus(options);
+        }
+        const renewalError = toRenewalError(error);
+        if (isRenewalRefused(error)) {
+            return { ...status, loggedIn: false, renewable: false, renewalError };
+        }
+        return { ...status, renewalError };
+    }
+}
+
+function toRenewalError(error: unknown): RenewalError {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+        error instanceof SessionRejectedError ||
+        error instanceof SessionRefreshUnavailableError ||
+        error instanceof ReauthenticationRequiredError
+    ) {
+        const { code, status } = error;
+        return {
+            message,
+            ...(code === undefined ? {} : { code }),
+            ...(status === undefined ? {} : { status }),
+        };
+    }
+    return { message };
 }
 
 /** Whether a login for a different Vendure Console is on disk. */

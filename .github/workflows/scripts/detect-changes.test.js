@@ -19,7 +19,10 @@ function makeFakeBin() {
             'set -euo pipefail',
             '[[ "$*" == "run nx show projects --affected --base="*" --head=HEAD" ]] || exit 64',
             'base="${6#--base=}"',
-            'git diff --name-only "$base" HEAD | grep -qE "^(packages|e2e-common)/" && echo "@vendure/core" || true',
+            // A here-string, not a pipe: with `pipefail`, `grep -q` closes the pipe early on a
+            // long diff and the failed `git diff` would hide the match.
+            'changed=$(git diff --name-only "$base" HEAD)',
+            'grep -qE "^(packages|e2e-common)/" <<< "$changed" && echo "@vendure/core" || true',
             '',
         ].join('\n'),
         { mode: 0o755 },
@@ -101,6 +104,47 @@ function runPushClassifier(changedPath) {
     );
 }
 
+function runLongDiffClassifier(changedPath) {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-detect-changes-long-'));
+    const output = path.join(repo, 'github-output');
+    execFileSync('git', ['init', '-q', '-b', 'master'], { cwd: repo });
+    execFileSync('git', ['config', 'user.name', 'workflow-test'], { cwd: repo });
+    execFileSync('git', ['config', 'user.email', 'workflow-test@example.invalid'], { cwd: repo });
+    fs.writeFileSync(path.join(repo, 'README.md'), 'base\n');
+    execFileSync('git', ['add', 'README.md'], { cwd: repo });
+    execFileSync('git', ['commit', '-qm', 'base'], { cwd: repo });
+    const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
+
+    // git lists changed paths in sorted order, so `changedPath` comes first and the
+    // `site/` paths after it make the list larger than a pipe buffer.
+    fs.mkdirSync(path.join(repo, path.dirname(changedPath)), { recursive: true });
+    fs.writeFileSync(path.join(repo, changedPath), 'package change\n');
+    const filler = path.join(repo, 'site', 'a-long-directory-name-to-make-each-changed-path-longer');
+    fs.mkdirSync(filler, { recursive: true });
+    for (let i = 0; i < 2000; i++) {
+        fs.writeFileSync(path.join(filler, `page-${i}.md`), `${i}\n`);
+    }
+    execFileSync('git', ['add', '.'], { cwd: repo });
+    execFileSync('git', ['commit', '-qm', 'large change'], { cwd: repo });
+
+    execFileSync('bash', [script], {
+        cwd: repo,
+        env: {
+            ...fakeEnv,
+            GITHUB_BASE_SHA: base,
+            GITHUB_EVENT_NAME: 'pull_request',
+            GITHUB_OUTPUT: output,
+        },
+    });
+    return Object.fromEntries(
+        fs
+            .readFileSync(output, 'utf8')
+            .trim()
+            .split('\n')
+            .map(line => line.split('=')),
+    );
+}
+
 test('workflow and composite-action changes enable package and dashboard jobs for all projects', () => {
     assert.deepEqual(runClassifier('.github/workflows/build_and_test.yml'), {
         packages: 'true',
@@ -154,6 +198,19 @@ test('push events use event.before across multiple commits', () => {
         nx: 'affected',
     });
     assert.deepEqual(runPushClassifier('packages/dashboard/src/index.ts'), {
+        packages: 'true',
+        dashboard: 'true',
+        nx: 'affected',
+    });
+});
+
+test('a long changed-path list still detects the package change listed first', () => {
+    assert.deepEqual(runLongDiffClassifier('packages/core/src/index.ts'), {
+        packages: 'true',
+        dashboard: 'false',
+        nx: 'affected',
+    });
+    assert.deepEqual(runLongDiffClassifier('packages/dashboard/src/index.ts'), {
         packages: 'true',
         dashboard: 'true',
         nx: 'affected',

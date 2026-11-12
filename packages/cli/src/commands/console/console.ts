@@ -2,8 +2,9 @@ import { confirm, isCancel, log, select } from '@clack/prompts';
 
 import {
     NotLoggedInError,
-    ReauthenticationRequiredError,
+    SessionRefreshUnavailableError,
     SessionRejectedError,
+    isRenewalRefused,
 } from '../../auth/auth-errors.js';
 import { AuthOptions } from '../../auth/auth-options.js';
 import {
@@ -116,6 +117,16 @@ interface ConsoleProject {
 interface ConsoleLogin {
     auth: AuthOptions;
     accessToken: string;
+}
+
+/**
+ * The stored CLI login a command can use. `login` is absent when none is
+ * stored for the organization, and when the authentication service no longer
+ * renews the stored one: `refusal` then says why.
+ */
+interface StoredLogin {
+    login?: ConsoleLogin;
+    refusal?: Error;
 }
 
 class ConsoleRequestError extends Error {
@@ -479,9 +490,9 @@ async function link(
         return 1;
     }
     // `--non-interactive` does not sign in, so it needs the stored login before anything changes.
-    const nonInteractiveLogin = options.nonInteractive
+    const { login: nonInteractiveLogin, refusal } = options.nonInteractive
         ? await nonInteractiveStoredLogin(endpoints, options, dependencies, signal)
-        : undefined;
+        : {};
     if (options.nonInteractive && !nonInteractiveLogin) {
         const requestedOrganization = options.organization?.trim();
         const command = requestedOrganization
@@ -491,9 +502,14 @@ async function link(
         state.result.missingInputs.push({ input: 'consoleSession', command });
         const nextStep = `Run ${command} in a terminal, then rerun this command.`;
         state.result.nextSteps.push(nextStep);
+        const subject = `${requestedOrganization ? `${requestedOrganization} for ` : ''}${endpoints.apiUrl}`;
         dependencies.reporter.error(
-            `No CLI login${requestedOrganization ? ` for ${requestedOrganization}` : ''} for ${endpoints.apiUrl} is stored on this ` +
-                'machine, and --non-interactive does not sign in.',
+            !refusal
+                ? `No CLI login${requestedOrganization ? ` for ${requestedOrganization}` : ''} for ${endpoints.apiUrl} is stored on this ` +
+                      'machine, and --non-interactive does not sign in.'
+                : refusal instanceof SessionRejectedError
+                  ? `${describeRefusal(refusal, subject)}, and --non-interactive does not sign in.`
+                  : `${describeRefusal(refusal, subject)}\n--non-interactive does not sign in.`,
         );
         dependencies.reporter.info(nextStep);
         return 1;
@@ -630,14 +646,16 @@ async function signIn(
     organization: string | undefined,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
+    /** The caller already found that the stored login cannot be used, so do not renew it again. */
+    skipStoredLogin = false,
 ): Promise<ConsoleLogin> {
     const auth = consoleAuthOptions(endpoints, dependencies, signal);
     const wanted = organization?.trim() || undefined;
     try {
         // Inside the try: renewing a stored login can be interrupted too.
-        const stored = await storedLogin(auth, wanted);
-        if (stored) {
-            return stored;
+        const { login } = skipStoredLogin ? ({} as StoredLogin) : await storedLogin(auth, wanted);
+        if (login) {
+            return login;
         }
         await loginWithDevice({
             ...auth,
@@ -694,7 +712,7 @@ async function namesLinkedProject(
         return 'same';
     }
     try {
-        const login = await storedLogin(
+        const { login } = await storedLogin(
             consoleAuthOptions(endpoints, dependencies, signal),
             manifest.account.id,
         );
@@ -734,7 +752,7 @@ async function nonInteractiveStoredLogin(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
-): Promise<ConsoleLogin | undefined> {
+): Promise<StoredLogin> {
     try {
         return await storedLogin(
             consoleAuthOptions(endpoints, dependencies, signal),
@@ -749,30 +767,39 @@ async function nonInteractiveStoredLogin(
 }
 
 /**
- * The stored login, or `undefined` when there is none for `organization` or
- * when it must be renewed in the browser.
+ * The stored login for `organization`, renewed first when it is about to
+ * expire. A renewal that cannot finish, for example without a network, throws
+ * {@link SessionRefreshUnavailableError} and keeps the login.
  */
-async function storedLogin(
-    auth: AuthOptions,
-    organization: string | undefined,
-): Promise<ConsoleLogin | undefined> {
+async function storedLogin(auth: AuthOptions, organization: string | undefined): Promise<StoredLogin> {
     const stored = readAuthStatus(auth);
     if (!stored.loggedIn || (organization && !matchesOrganization(stored.organization, organization))) {
-        return undefined;
+        return {};
     }
     try {
         const accessToken = await getAccessToken(auth);
-        return accessToken ? { auth, accessToken } : undefined;
+        return accessToken ? { login: { auth, accessToken } } : {};
     } catch (error) {
-        if (
-            error instanceof NotLoggedInError ||
-            error instanceof SessionRejectedError ||
-            error instanceof ReauthenticationRequiredError
-        ) {
-            return undefined;
+        if (error instanceof NotLoggedInError) {
+            // Another command removed the login meanwhile.
+            return {};
+        }
+        if (error instanceof Error && isRenewalRefused(error)) {
+            return { refusal: error };
         }
         throw error;
     }
+}
+
+/**
+ * Why the stored login for `subject` cannot be used, as the start of a
+ * sentence. A refused refresh token means the session expired or was revoked.
+ * Any other refusal carries its own reason and next step.
+ */
+function describeRefusal(refusal: Error, subject: string): string {
+    return refusal instanceof SessionRejectedError
+        ? `Your Vendure CLI session for ${subject} has expired or was revoked`
+        : `Your Vendure CLI session for ${subject} can no longer be renewed: ${refusal.message}`;
 }
 
 /** Matches `--organization` the way `vendure auth login` resolves it: an Account identifier or a name. */
@@ -1190,9 +1217,10 @@ interface RepairSession {
 /**
  * The session for a repair, which asks Console nothing itself. It is the CLI
  * login for the manifest's account, or the one `--organization` names. When no
- * such login is stored, an interactive run signs in with the device flow. A
- * failed sign-in does not stop the repair: the hooks run without a session and
- * report what they could not do.
+ * such login is stored, or the authentication service no longer renews it, an
+ * interactive run signs in with the device flow. A failed sign-in, or a renewal
+ * that cannot finish, does not stop the repair: the hooks run without a session
+ * and report what they could not do.
  *
  * A login for another account is enough to tell whether the user is a member
  * of the manifest's account at all. A manifest from a cloned repository often
@@ -1210,9 +1238,27 @@ async function repairSession(
     const organization = requested ?? manifest.account.id;
     const auth = consoleAuthOptions(endpoints, dependencies, signal);
     try {
-        const stored = await storedLogin(auth, organization);
-        if (stored) {
-            return { session: hookSession(stored) };
+        const { login, refusal } = await storedLogin(auth, organization);
+        if (login) {
+            return { session: hookSession(login) };
+        }
+        if (refusal) {
+            const reason = describeRefusal(refusal, manifest.account.name);
+            if (!dependencies.isNonInteractive()) {
+                dependencies.reporter.info(
+                    `${reason}${refusal instanceof SessionRejectedError ? '.' : ''} Signing in again.`,
+                );
+                return {
+                    session: hookSession(await signIn(endpoints, organization, dependencies, signal, true)),
+                };
+            }
+            dependencies.reporter.warn(
+                refusal instanceof SessionRejectedError
+                    ? `${reason}, so plugin setup runs without a Console session. ` +
+                          'Run `vendure auth login` to sign in again.'
+                    : `${reason}\nPlugin setup runs without a Console session.`,
+            );
+            return { sessionUnavailable: 'not-signed-in' };
         }
         const memberships = requested ? undefined : await storedLoginOrganizations(auth, signal);
         if (memberships && !memberships.some(org => isManifestAccount(org, manifest))) {
@@ -1234,6 +1280,13 @@ async function repairSession(
         if (error instanceof OrganizationNotFoundError && !requested) {
             reportInaccessibleAccount(manifest, error.organizations, dependencies.reporter);
             return { sessionUnavailable: 'account-inaccessible' };
+        }
+        if (error instanceof SessionRefreshUnavailableError) {
+            dependencies.reporter.warn(
+                `Could not renew your Vendure CLI session for ${manifest.account.name}: ${error.message}\n` +
+                    'The stored login is kept. Try again later. Plugin setup runs without a Console session.',
+            );
+            return { sessionUnavailable: 'sign-in-failed' };
         }
         dependencies.reporter.warn(
             `Could not sign in to Vendure Console: ${
@@ -1583,12 +1636,16 @@ async function detachTelemetry(
 ): Promise<boolean> {
     try {
         const endpoints = resolveConsoleEndpoints(dependencies.env, manifest.console);
-        const login =
+        const { login, refusal }: StoredLogin =
             reason === 'replace' || dependencies.isNonInteractive()
                 ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), manifest.account.id)
-                : await signIn(endpoints, manifest.account.id, dependencies, signal);
+                : { login: await signIn(endpoints, manifest.account.id, dependencies, signal) };
         if (!login) {
-            throw new Error(`No CLI login for ${manifest.account.name} is stored on this machine.`);
+            throw new Error(
+                refusal
+                    ? `${describeRefusal(refusal, manifest.account.name)}${refusal instanceof SessionRejectedError ? '.' : ''}`
+                    : `No CLI login for ${manifest.account.name} is stored on this machine.`,
+            );
         }
         const linkUrl = `${endpoints.apiUrl}${PROJECTS_PATH}/${encodeURIComponent(manifest.project.id)}/link`;
         await requestWithLogin(
