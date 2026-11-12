@@ -2387,8 +2387,8 @@ describe('Collection resolver', () => {
          * statements are captured and re-run because the row count is what grows when an
          * unwanted relation is joined, and it is not visible in the GraphQL response.
          *
-         * Only the statements carrying the `lqb__channel` alias are counted. That alias is
-         * added by the Channel scoping join, so it selects the list query's own statements
+         * Only the statements carrying an `lqb__channel` alias are counted (`lqb__channelAssignment`
+         * for a Collection). That alias is added by the Channel scoping join, so it selects the list query's own statements
          * and leaves out session lookups and any job queue activity, whose number varies
          * between runs. The test asserts a non-zero row count, so this narrowing fails
          * loudly rather than silently measuring nothing if that alias is ever renamed.

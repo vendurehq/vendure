@@ -1,6 +1,5 @@
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
-    Channel,
     ChannelAssignmentService,
     ChannelService,
     ID,
@@ -22,6 +21,7 @@ import {
     TestChannelThing,
     TestChannelThingChannel,
     TestChannelThingPlugin,
+    TestPlainChannelThing,
 } from './fixtures/test-plugins/channel-assignment-test-plugin';
 
 const CREATE_CHANNEL = gql`
@@ -50,11 +50,12 @@ describe('Channel assignment entities', () => {
     let things: TestChannelThing[];
 
     const dataSource = () => server.app.get(TransactionalConnection).rawConnection;
-    // Every entity with an owning `channels` many-to-many relation, core and plugin
+    // Every entity with an owning `channels` many-to-many relation, core and plugin, except the
+    // plugin entity which deliberately has no assignment entity
     const channelAwareMetadatas = () =>
         dataSource().entityMetadatas.filter(m => {
             const relation = m.findRelationWithPropertyPath('channels');
-            return relation?.isManyToMany && relation.isOwning;
+            return relation?.isManyToMany && relation.isOwning && m.target !== TestPlainChannelThing;
         });
     const rows = (thingIds: ID[], channelId: ID) =>
         service.getAssignments<TestChannelThingChannel>(ctx, TestChannelThing, thingIds, channelId);
@@ -297,6 +298,66 @@ describe('Channel assignment entities', () => {
                     take: 2,
                 }),
             ).toEqual(['b', 'a']);
+        });
+
+        // Channel scoping and per-channel filters and sorts share one join on the assignment row,
+        // rather than joining the junction table once for each
+        it('scopes to the Channel with a single join on the assignment table', async () => {
+            const tableName = dataSource().getMetadata(TestChannelThingChannel).tableName;
+            const joinCount = (options: any) =>
+                server.app
+                    .get(ListQueryBuilder)
+                    .build(TestChannelThing, options, { channelId: channelBId, ctx })
+                    .getQuery()
+                    .split(tableName).length - 1;
+            expect(joinCount({})).toBe(1);
+            expect(joinCount({ filter: { note: { isNull: false }, flagInChannel: { eq: true } } })).toBe(1);
+            expect(joinCount({ sort: { note: 'ASC' } })).toBe(1);
+        });
+
+        it('returns the items and count of the given Channel, with and without per-channel filters', async () => {
+            const listAndCount = async (channelId: ID, options: any) => {
+                const [items, totalItems] = await server.app
+                    .get(ListQueryBuilder)
+                    .build(TestChannelThing, options, { channelId, ctx })
+                    .getManyAndCount();
+                return { names: items.map(i => i.name).sort(), totalItems };
+            };
+            expect(await listAndCount(defaultChannelId, {})).toEqual({
+                names: ['a', 'b', 'c'],
+                totalItems: 3,
+            });
+            expect(await listAndCount(channelBId, {})).toEqual({ names: ['a', 'b'], totalItems: 2 });
+            expect(await listAndCount(channelBId, { take: 1 })).toEqual({
+                names: [expect.any(String)],
+                totalItems: 2,
+            });
+            expect(await listAndCount(channelBId, { filter: { note: { eq: 'set on assign' } } })).toEqual({
+                names: ['b'],
+                totalItems: 1,
+            });
+        });
+
+        it('scopes an entity without an assignment entity via its channels relation', async () => {
+            const plain = await dataSource()
+                .getRepository(TestPlainChannelThing)
+                .save([
+                    new TestPlainChannelThing({ name: 'p1', channels: [{ id: defaultChannelId }] }),
+                    new TestPlainChannelThing({
+                        name: 'p2',
+                        channels: [{ id: defaultChannelId }, { id: channelBId }],
+                    }),
+                ]);
+            const listPlain = async (channelId: ID) => {
+                const [items, totalItems] = await server.app
+                    .get(ListQueryBuilder)
+                    .build(TestPlainChannelThing, { sort: { name: 'ASC' } }, { channelId, ctx })
+                    .getManyAndCount();
+                return { names: items.map(i => i.name), totalItems };
+            };
+            expect(await listPlain(defaultChannelId)).toEqual({ names: ['p1', 'p2'], totalItems: 2 });
+            expect(await listPlain(channelBId)).toEqual({ names: ['p2'], totalItems: 1 });
+            await dataSource().getRepository(TestPlainChannelThing).remove(plain);
         });
     });
 
