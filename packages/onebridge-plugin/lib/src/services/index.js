@@ -1,9 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OnebridgeSpecSheetService = exports.OnebridgeRfqService = exports.OnebridgeOrderSummaryService = exports.OnebridgeInspectionService = exports.OnebridgeCustomsService = exports.OnebridgeContentService = exports.setOnebridgeChannelToken = exports.resolveChannelToken = void 0;
+exports.OnebridgeSpecSheetService = exports.OnebridgeRfqService = exports.OnebridgeOrderSummaryService = exports.OnebridgeInspectionService = exports.OnebridgeCustomsService = exports.OnebridgeContentService = exports.resolveCarrierName = exports.CARRIER_NAMES = exports.setOnebridgeChannelToken = exports.resolveChannelToken = void 0;
 var channel_context_1 = require("./channel-context");
 Object.defineProperty(exports, "resolveChannelToken", { enumerable: true, get: function () { return channel_context_1.resolveChannelToken; } });
 Object.defineProperty(exports, "setOnebridgeChannelToken", { enumerable: true, get: function () { return channel_context_1.setOnebridgeChannelToken; } });
+var carrier_dictionary_1 = require("./carrier-dictionary");
+Object.defineProperty(exports, "CARRIER_NAMES", { enumerable: true, get: function () { return carrier_dictionary_1.CARRIER_NAMES; } });
+Object.defineProperty(exports, "resolveCarrierName", { enumerable: true, get: function () { return carrier_dictionary_1.resolveCarrierName; } });
 var content_service_1 = require("./content.service");
 Object.defineProperty(exports, "OnebridgeContentService", { enumerable: true, get: function () { return content_service_1.OnebridgeContentService; } });
 var customs_service_1 = require("./customs.service");

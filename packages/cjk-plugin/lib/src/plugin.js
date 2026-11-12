@@ -82,6 +82,7 @@ const map_config_service_1 = require("./map/map-config.service");
 const sso_provider_service_1 = require("./auth/sso-provider.service");
 const invite_code_service_1 = require("./auth/invite-code.service");
 const basic_config_service_1 = require("./tenant/basic-config.service");
+const channel_provisioning_service_1 = require("./tenant/channel-provisioning.service");
 const service_notify_config_service_1 = require("./tenant/service-notify-config.service");
 const multi_language_config_service_1 = require("./tenant/multi-language-config.service");
 const tenant_config_permissions_1 = require("./admin/tenant-config-permissions");
@@ -518,6 +519,7 @@ exports.CjkPlugin = CjkPlugin = CjkPlugin_1 = __decorate([
             sso_provider_service_1.SsoProviderService,
             invite_code_service_1.InviteCodeService,
             basic_config_service_1.BasicConfigService,
+            channel_provisioning_service_1.ChannelProvisioningService,
             service_notify_config_service_1.ServiceNotifyConfigService,
             multi_language_config_service_1.MultiLanguageConfigService,
             shipping_template_service_1.ShippingTemplateService,

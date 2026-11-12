@@ -26,6 +26,7 @@ const tenant_member_entity_1 = require("./tenant-member.entity");
 const role_templates_1 = require("./role-templates");
 const tenant_permissions_1 = require("./tenant-permissions");
 const virtual_physical_stock_service_1 = require("../inventory/virtual-physical-stock.service");
+const channel_provisioning_service_1 = require("./channel-provisioning.service");
 /**
  * 租户级业务权限目录（单一来源，前后端共用，避免双份硬编码）。
  * 不含超管专属权限；Vendure v3 已将 Variant/Fulfillment 等合并进 catalog/product/order 权限。
@@ -234,7 +235,7 @@ function dedupeRolesByLabel(roles) {
     return [...seen.values()];
 }
 let TenantMemberService = class TenantMemberService {
-    constructor(connection, administratorService, roleService, channelService, authService, requestContextCache, virtualPhysicalStockService, pluginOptions) {
+    constructor(connection, administratorService, roleService, channelService, authService, requestContextCache, virtualPhysicalStockService, channelProvisioningService, pluginOptions) {
         this.connection = connection;
         this.administratorService = administratorService;
         this.roleService = roleService;
@@ -242,6 +243,7 @@ let TenantMemberService = class TenantMemberService {
         this.authService = authService;
         this.requestContextCache = requestContextCache;
         this.virtualPhysicalStockService = virtualPhysicalStockService;
+        this.channelProvisioningService = channelProvisioningService;
         this.pluginOptions = pluginOptions;
     }
     /** 校验角色权限全部在业务权限白名单内（超管专属权限不入租户角色）。Authenticated 为基础权限不计入 */
@@ -337,14 +339,14 @@ let TenantMemberService = class TenantMemberService {
         const defaultDomain = (_b = (_a = this.pluginOptions) === null || _a === void 0 ? void 0 : _a.tenant) === null || _b === void 0 ? void 0 : _b.defaultPublicDomain;
         const defaultLanguageCode = ((_c = input.defaultLanguageCode) !== null && _c !== void 0 ? _c : 'zh_Hans');
         await this.ensureLanguageEnabled(ctx, defaultLanguageCode);
-        const channel = await this.channelService.create(ctx, {
-            code,
-            token: input.token,
-            defaultLanguageCode,
-            currencyCode: ((_d = input.currencyCode) !== null && _d !== void 0 ? _d : 'CNY'),
-            pricesIncludeTax: true,
-            customFields: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, ((_e = input.extraCustomFields) !== null && _e !== void 0 ? _e : {})), (((_f = input.customDomains) === null || _f === void 0 ? void 0 : _f.length) ? { customDomains: input.customDomains } : {})), { tenantNo, isOfficial: (_g = input.isOfficial) !== null && _g !== void 0 ? _g : false, enabled: true, shopName: input.name }), (defaultDomain ? { domain: `${defaultDomain}/${code}` } : {})), (input.domain ? { domain: input.domain } : {})),
-        });
+        // B-01：新渠道默认继承默认渠道的税区/配送区。ChannelService.create 不会自动继承，
+        // 缺税区会让 hydratePriceFields 报「tax zone 无法确定」，缺配送区会让运费/资格判定异常。
+        const inheritedZones = await this.channelProvisioningService.getDefaultChannelZones(ctx);
+        const channel = await this.channelService.create(ctx, Object.assign(Object.assign(Object.assign({ code, token: input.token, defaultLanguageCode, currencyCode: ((_d = input.currencyCode) !== null && _d !== void 0 ? _d : 'CNY'), pricesIncludeTax: true }, (inheritedZones.defaultTaxZoneId
+            ? { defaultTaxZoneId: inheritedZones.defaultTaxZoneId }
+            : {})), (inheritedZones.defaultShippingZoneId
+            ? { defaultShippingZoneId: inheritedZones.defaultShippingZoneId }
+            : {})), { customFields: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, ((_e = input.extraCustomFields) !== null && _e !== void 0 ? _e : {})), (((_f = input.customDomains) === null || _f === void 0 ? void 0 : _f.length) ? { customDomains: input.customDomains } : {})), { tenantNo, isOfficial: (_g = input.isOfficial) !== null && _g !== void 0 ? _g : false, enabled: true, shopName: input.name }), (defaultDomain ? { domain: `${defaultDomain}/${code}` } : {})), (input.domain ? { domain: input.domain } : {})) }));
         // createChannel 的返回是 ErrorResultUnion：LanguageNotAvailableError 等错误对象没有 id，
         // 直接返回会被 GraphQL 非空 Channel 序列化成 "Cannot return null for non-nullable field Channel.id"
         if (channel === null || channel === void 0 ? void 0 : channel.errorCode) {
@@ -374,6 +376,14 @@ let TenantMemberService = class TenantMemberService {
         }
         catch (e) {
             core_1.Logger.warn(`租户 ${code} 默认角色创建失败（可手动补建）: ${e.message}`, constants_1.loggerCtx);
+        }
+        // B-01/B-02：补齐配送方式 / 支付方式 / 租户默认配送档案，避免新租户「配置全要二次手工补」
+        // 导致 price null → 无法下单 → 订单卡 `not all lines have shipping`。
+        try {
+            await this.channelProvisioningService.provision(ctx, channel);
+        }
+        catch (e) {
+            core_1.Logger.warn(`租户 ${code} 兜底配置失败（可手动补配）: ${e.message}`, constants_1.loggerCtx);
         }
         this.syncChannelToSso(code, input.name);
         core_1.Logger.info(`已创建租户 ${code}（tenantNo=${tenantNo}）`, constants_1.loggerCtx);
@@ -1217,14 +1227,15 @@ let TenantMemberService = class TenantMemberService {
 exports.TenantMemberService = TenantMemberService;
 exports.TenantMemberService = TenantMemberService = __decorate([
     (0, common_1.Injectable)(),
-    __param(7, (0, common_1.Optional)()),
-    __param(7, (0, common_1.Inject)(constants_1.CJK_PLUGIN_OPTIONS)),
+    __param(8, (0, common_1.Optional)()),
+    __param(8, (0, common_1.Inject)(constants_1.CJK_PLUGIN_OPTIONS)),
     __metadata("design:paramtypes", [core_1.TransactionalConnection,
         core_1.AdministratorService,
         core_1.RoleService,
         core_1.ChannelService,
         core_1.AuthService,
         core_1.RequestContextCacheService,
-        virtual_physical_stock_service_1.VirtualPhysicalStockService, Object])
+        virtual_physical_stock_service_1.VirtualPhysicalStockService,
+        channel_provisioning_service_1.ChannelProvisioningService, Object])
 ], TenantMemberService);
 //# sourceMappingURL=tenant-member.service.js.map

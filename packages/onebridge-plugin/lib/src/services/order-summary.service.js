@@ -15,6 +15,7 @@ const core_1 = require("@vendure/core");
 const errors_1 = require("../errors");
 const entities_1 = require("../entities");
 const channel_context_1 = require("./channel-context");
+const carrier_dictionary_1 = require("./carrier-dictionary");
 /** 订单聚合（CT-04）：标准 Order 字段 + 跨境 customFields + StageEvent 时间轴。 */
 let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
     constructor(connection, orderService, customerService) {
@@ -81,7 +82,7 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
      * TODO(联调)：logistics_track.trackInfo 的承运商节点映射与 carrierName 字典待物流插件提供。
      */
     async orderTracks(ctx, orderCode, enforceOwnership = true) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f;
         (0, channel_context_1.resolveChannelToken)(ctx);
         const order = await this.orderService.findOneByCode(ctx, orderCode, ['fulfillments', 'customer']);
         if (!order)
@@ -95,11 +96,12 @@ let OnebridgeOrderSummaryService = class OnebridgeOrderSummaryService {
             fulfillmentId: (track === null || track === void 0 ? void 0 : track.fulfillmentId) != null ? String(track.fulfillmentId) : null,
             trackingNo: (_b = track === null || track === void 0 ? void 0 : track.trackingNo) !== null && _b !== void 0 ? _b : null,
             carrierCode: (_c = track === null || track === void 0 ? void 0 : track.carrierCode) !== null && _c !== void 0 ? _c : null,
-            carrierName: (_d = track === null || track === void 0 ? void 0 : track.carrierCode) !== null && _d !== void 0 ? _d : null,
-            status: (_e = track === null || track === void 0 ? void 0 : track.status) !== null && _e !== void 0 ? _e : 'unknown',
+            // B-16：承运商字典命中则给展示名，命不中保持 null（C 端按未知占位），不改 status 口径
+            carrierName: (0, carrier_dictionary_1.resolveCarrierName)(track === null || track === void 0 ? void 0 : track.carrierCode),
+            status: (_d = track === null || track === void 0 ? void 0 : track.status) !== null && _d !== void 0 ? _d : 'unknown',
             trackInfo: await this.timeline(ctx, orderCode),
-            signedAt: (_f = track === null || track === void 0 ? void 0 : track.signedAt) !== null && _f !== void 0 ? _f : null,
-            lastSyncedAt: (_g = track === null || track === void 0 ? void 0 : track.lastSyncedAt) !== null && _g !== void 0 ? _g : null,
+            signedAt: (_e = track === null || track === void 0 ? void 0 : track.signedAt) !== null && _e !== void 0 ? _e : null,
+            lastSyncedAt: (_f = track === null || track === void 0 ? void 0 : track.lastSyncedAt) !== null && _f !== void 0 ? _f : null,
             channelId: String(ctx.channelId),
         };
     }

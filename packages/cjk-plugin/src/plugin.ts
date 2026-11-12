@@ -81,6 +81,7 @@ import { MapConfigService } from './map/map-config.service';
 import { SsoProviderService } from './auth/sso-provider.service';
 import { InviteCodeService } from './auth/invite-code.service';
 import { BasicConfigService } from './tenant/basic-config.service';
+import { ChannelProvisioningService } from './tenant/channel-provisioning.service';
 import { ServiceNotifyConfigService } from './tenant/service-notify-config.service';
 import { MultiLanguageConfigService } from './tenant/multi-language-config.service';
 import { tenantConfigPermission } from './admin/tenant-config-permissions';
@@ -251,6 +252,7 @@ function mergeCustomFields<T extends { name: string }>(
         SsoProviderService,
         InviteCodeService,
         BasicConfigService,
+        ChannelProvisioningService,
         ServiceNotifyConfigService,
         MultiLanguageConfigService,
         ShippingTemplateService,

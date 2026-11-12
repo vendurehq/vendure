@@ -4,6 +4,7 @@ import { CustomerService, OrderService, RequestContext, TransactionalConnection,
 import { Errors } from '../errors';
 import { StageEvent } from '../entities';
 import { resolveChannelToken } from './channel-context';
+import { resolveCarrierName } from './carrier-dictionary';
 
 /** 订单聚合（CT-04）：标准 Order 字段 + 跨境 customFields + StageEvent 时间轴。 */
 @Injectable()
@@ -82,7 +83,8 @@ export class OnebridgeOrderSummaryService {
             fulfillmentId: track?.fulfillmentId != null ? String(track.fulfillmentId) : null,
             trackingNo: track?.trackingNo ?? null,
             carrierCode: track?.carrierCode ?? null,
-            carrierName: track?.carrierCode ?? null,
+            // B-16：承运商字典命中则给展示名，命不中保持 null（C 端按未知占位），不改 status 口径
+            carrierName: resolveCarrierName(track?.carrierCode),
             status: track?.status ?? 'unknown',
             trackInfo: await this.timeline(ctx, orderCode),
             signedAt: track?.signedAt ?? null,

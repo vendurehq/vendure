@@ -24,6 +24,7 @@ import type { ShippingProfile } from '../shipping/shipping-profile.entity';
 import { OFFICIAL_ROLE_TEMPLATES } from './role-templates';
 import { TenantMemberManagePermission, TenantRoleManagePermission } from './tenant-permissions';
 import { VirtualPhysicalStockService } from '../inventory/virtual-physical-stock.service';
+import { ChannelProvisioningService } from './channel-provisioning.service';
 
 export interface PermissionCatalogItem {
     code: string;
@@ -275,6 +276,7 @@ export class TenantMemberService {
         private authService: AuthService,
         private requestContextCache: RequestContextCacheService,
         private virtualPhysicalStockService: VirtualPhysicalStockService,
+        private channelProvisioningService: ChannelProvisioningService,
         @Optional() @Inject(CJK_PLUGIN_OPTIONS) private pluginOptions?: CjkPluginOptions,
     ) {}
 
@@ -384,12 +386,21 @@ export class TenantMemberService {
         const defaultDomain = this.pluginOptions?.tenant?.defaultPublicDomain;
         const defaultLanguageCode = (input.defaultLanguageCode ?? 'zh_Hans') as any;
         await this.ensureLanguageEnabled(ctx, defaultLanguageCode);
+        // B-01：新渠道默认继承默认渠道的税区/配送区。ChannelService.create 不会自动继承，
+        // 缺税区会让 hydratePriceFields 报「tax zone 无法确定」，缺配送区会让运费/资格判定异常。
+        const inheritedZones = await this.channelProvisioningService.getDefaultChannelZones(ctx);
         const channel = await this.channelService.create(ctx, {
             code,
             token: input.token,
             defaultLanguageCode,
             currencyCode: (input.currencyCode ?? 'CNY') as any,
             pricesIncludeTax: true,
+            ...(inheritedZones.defaultTaxZoneId
+                ? { defaultTaxZoneId: inheritedZones.defaultTaxZoneId }
+                : {}),
+            ...(inheritedZones.defaultShippingZoneId
+                ? { defaultShippingZoneId: inheritedZones.defaultShippingZoneId }
+                : {}),
             customFields: {
                 ...(input.extraCustomFields ?? {}),
                 ...(input.customDomains?.length ? { customDomains: input.customDomains } : {}),
@@ -435,6 +446,13 @@ export class TenantMemberService {
             );
         } catch (e: any) {
             Logger.warn(`租户 ${code} 默认角色创建失败（可手动补建）: ${e.message}`, loggerCtx);
+        }
+        // B-01/B-02：补齐配送方式 / 支付方式 / 租户默认配送档案，避免新租户「配置全要二次手工补」
+        // 导致 price null → 无法下单 → 订单卡 `not all lines have shipping`。
+        try {
+            await this.channelProvisioningService.provision(ctx, channel as any);
+        } catch (e: any) {
+            Logger.warn(`租户 ${code} 兜底配置失败（可手动补配）: ${e.message}`, loggerCtx);
         }
         this.syncChannelToSso(code, input.name);
         Logger.info(`已创建租户 ${code}（tenantNo=${tenantNo}）`, loggerCtx);
