@@ -1,0 +1,151 @@
+---
+title: "ChannelEnabledChecker"
+generated: true
+---
+## ChannelEnabledEntityType
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-enabled-checker/channel-enabled-checker.ts" sourceLine="22" packageName="@vendure/core" since="4.0.0" />
+
+The entity types which can be enabled or disabled per Channel.
+
+```ts title="Signature"
+type ChannelEnabledEntityType = Type<Product> | Type<ProductVariant>
+```
+## isEnabledInChannel
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-enabled-checker/channel-enabled-checker.ts" sourceLine="41" packageName="@vendure/core" since="4.0.0" />
+
+Decides whether a [Product](/reference/typescript-api/entities/product#product) or [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) is available in a Channel, from its
+global `enabled` value and its `enabled` value in that Channel (`ProductChannel.enabled` /
+`ProductVariantChannel.enabled`, exposed in the Admin API as `enabledInChannel`).
+
+The global value is a master switch: the entity is available in a Channel only if it is enabled
+globally and enabled in that Channel. `enabledInChannel` is `undefined` if the entity is not
+assigned to the Channel, in which case it is not available there either.
+
+This is the pure form of [ChannelEnabledChecker](/reference/typescript-api/service-helpers/channel-enabled-checker#channelenabledchecker), for code which already has both values,
+such as search indexers.
+
+```ts title="Signature"
+function isEnabledInChannel(enabled: boolean, enabledInChannel: boolean | undefined): boolean
+```
+Parameters
+
+### enabled
+
+<MemberInfo kind="parameter" type={`boolean`} />
+
+### enabledInChannel
+
+<MemberInfo kind="parameter" type={`boolean | undefined`} />
+
+## EnabledInChannelFilter
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-enabled-checker/channel-enabled-checker.ts" sourceLine="58" packageName="@vendure/core" since="4.0.0" />
+
+The [ListQueryBuilder](/reference/typescript-api/data-access/list-query-builder#listquerybuilder) filter which restricts a Product list to Products available in the
+Channel the list is scoped to (see [isEnabledInChannel](/reference/typescript-api/service-helpers/channel-enabled-checker#isenabledinchannel)). The list must be scoped to a
+Channel (the `channelId` option of `ListQueryBuilder.build()`, as `ProductService.findAll()`
+does): the ListQueryBuilder then resolves `enabledInChannel` against the `ProductChannel` row
+of that Channel. It is named `enabledInChannel` rather than `enabled` because `Product.enabled`
+is the global value.
+
+```ts title="Signature"
+interface EnabledInChannelFilter {
+    enabled: { eq: true };
+    enabledInChannel: { eq: true };
+}
+```
+
+<div className="members-wrapper">
+
+### enabled
+
+<MemberInfo kind="property" type={`{ eq: true }`}   />
+
+
+### enabledInChannel
+
+<MemberInfo kind="property" type={`{ eq: true }`}   />
+
+
+
+
+</div>
+## enabledInChannelFilter
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-enabled-checker/channel-enabled-checker.ts" sourceLine="72" packageName="@vendure/core" since="4.0.0" />
+
+Returns the [EnabledInChannelFilter](/reference/typescript-api/service-helpers/channel-enabled-checker#enabledinchannelfilter), to be combined with any other filter of the list
+with `_and`.
+
+```ts title="Signature"
+function enabledInChannelFilter(): EnabledInChannelFilter
+```
+## ChannelEnabledChecker
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-enabled-checker/channel-enabled-checker.ts" sourceLine="107" packageName="@vendure/core" since="4.0.0" />
+
+Checks and sets whether Products and ProductVariants are available in a Channel. A Product or
+ProductVariant is available in a Channel only if it is enabled globally (`enabled`) *and*
+enabled in that Channel (the `enabled` column of its [ProductChannel](/reference/typescript-api/entities/product-channel#productchannel) /
+[ProductVariantChannel](/reference/typescript-api/entities/product-variant-channel#productvariantchannel) row, `enabledInChannel` in the Admin API). See
+[isEnabledInChannel](/reference/typescript-api/service-helpers/channel-enabled-checker#isenabledinchannel).
+
+Use this helper rather than reading `enabled` directly when deciding what customers can see or
+buy in a Channel.
+
+*Example*
+
+```ts
+export class MyCustomService {
+  constructor(private connection: TransactionalConnection,
+              private channelEnabledChecker: ChannelEnabledChecker) {}
+
+  getAvailableVariants(ctx: RequestContext, productId: ID) {
+    const qb = this.connection
+      .getRepository(ctx, ProductVariant)
+      .createQueryBuilder('variant')
+      .where('variant.productId = :productId', { productId });
+    this.channelEnabledChecker.applyToQuery(ctx, qb, ProductVariant);
+    return qb.getMany();
+  }
+}
+```
+
+```ts title="Signature"
+class ChannelEnabledChecker {
+    constructor(channelAssignmentService: ChannelAssignmentService)
+    isEnabled(ctx: RequestContext, entityType: ChannelEnabledEntityType, entity: { id: ID; enabled: boolean }) => Promise<boolean>;
+    applyToQuery(ctx: RequestContext, qb: SelectQueryBuilder<T>, entityType: ChannelEnabledEntityType, alias: string = qb.alias) => void;
+    updateEnabledInChannel(ctx: RequestContext, entityType: ChannelEnabledEntityType, entityIds: ID | ID[], input: { enabledInChannel?: boolean | null }, channelId: ID = ctx.channelId) => Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### isEnabled
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: <a href='/reference/typescript-api/service-helpers/channel-enabled-checker#channelenabledentitytype'>ChannelEnabledEntityType</a>, entity: { id: <a href='/reference/typescript-api/common/id#id'>ID</a>; enabled: boolean }) => Promise<boolean>`}   />
+
+Returns whether the entity is available in the active Channel: enabled globally, assigned to
+the active Channel and enabled there. Calls made in the same tick are batched into one query
+per entity type.
+### applyToQuery
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, qb: SelectQueryBuilder<T>, entityType: <a href='/reference/typescript-api/service-helpers/channel-enabled-checker#channelenabledentitytype'>ChannelEnabledEntityType</a>, alias: string = qb.alias) => void`}   />
+
+Restricts the query to entities which are available in the active Channel, by joining their
+assignment row in that Channel. This also restricts the query to entities assigned to the
+active Channel, so no separate join on `channels` is needed. `alias` is the alias of the
+Product or ProductVariant in the query, and defaults to the query's main alias.
+### updateEnabledInChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: <a href='/reference/typescript-api/service-helpers/channel-enabled-checker#channelenabledentitytype'>ChannelEnabledEntityType</a>, entityIds: <a href='/reference/typescript-api/common/id#id'>ID</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>[], input: { enabledInChannel?: boolean | null }, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> = ctx.channelId) => Promise<void>`}   />
+
+Sets whether the entities are enabled in the given Channel (defaults to the active Channel)
+from the `enabledInChannel` field of a create, update or assign-to-channel input. Does nothing
+if the field is omitted. The entities must already be assigned to the Channel.
+
+
+</div>
