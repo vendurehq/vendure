@@ -26,7 +26,6 @@ rg -n "RoleChangeEvent|getCustomerRole|getChannelsForRole|assignRoleToChannel|as
 rg -n "CUSTOMER_ROLE_CODE|CUSTOMER_ROLE_DESCRIPTION|user_roles_role|role_channels_channel"
 rg -n "createApiKeyUser\(|createAdministratorAndUser\(|implements SessionCacheStrategy"
 rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
-rg -n "implements OrderItemPriceCalculationStrategy|calculateUnitPrice\("
 ```
 
 | Match | What to do |
@@ -37,7 +36,6 @@ rg -n "implements OrderItemPriceCalculationStrategy|calculateUnitPrice\("
 | `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
 | `implements SessionCacheStrategy` | Check that it stores `globalPermissions`. See [Sessions and permission checks](/developer-guide/migrating-from-v3/role-assignments#sessions-and-permission-checks). |
 | `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
-| `implements OrderItemPriceCalculationStrategy`, `calculateUnitPrice(` | The `order` argument can be `undefined`. Handle a missing order. See [OrderItemPriceCalculationStrategy](#orderitempricecalculationstrategy). |
 
 **Done when:** every match is updated, and `npx tsc --noEmit` passes.
 
@@ -56,32 +54,6 @@ rg -n "implements OrderItemPriceCalculationStrategy|calculateUnitPrice\("
 - `BaseAuthResolver.publiclyAccessibleUser()` takes the `RequestContext` as its first argument. Only relevant if you extend the auth resolvers.
 
 For the full list, and what stays the same, see [Updating your code](/developer-guide/migrating-from-v3/role-assignments#updating-your-code).
-
-## OrderItemPriceCalculationStrategy
-
-The `order` argument of `OrderItemPriceCalculationStrategy.calculateUnitPrice()` has the type `Order | undefined`. Vendure passes `undefined` when it calculates a price outside an order, for the new Shop API field `ProductVariant.calculatedPrice`. The `orderLineCustomFields` argument is then an empty object.
-
-A strategy that reads the order must handle a missing order:
-
-```ts
-calculateUnitPrice(
-    ctx: RequestContext,
-    productVariant: ProductVariant,
-    orderLineCustomFields: { [key: string]: any },
-    order: Order | undefined,
-    quantity: number,
-): PriceCalculationResult {
-    // There is no shipping address without an order
-    const countryCode = order?.shippingAddress?.countryCode;
-    const surcharge = countryCode === 'CH' ? 500 : 0;
-    return {
-        price: productVariant.listPrice + surcharge,
-        priceIncludesTax: productVariant.listPriceIncludesTax,
-    };
-}
-```
-
-The strategy runs once for each variant that requests `calculatedPrice`, and Vendure does not cache the result. See [The calculated price in the storefront](/core-concepts/pricing/#the-calculated-price-in-the-storefront).
 
 ## Next steps
 

@@ -21,11 +21,6 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * * adjustOrderLine  (only on the adjusted order line)
  * * setOrderShippingAddress (on all order lines)
  * * setOrderBillingAddress (on all order lines)
- * * The Shop API `ProductVariant.calculatedPrice` field, once for each variant that requests the field.
- *   In this case there is no Order, and the `order` argument is `undefined`.
- *
- * Vendure does not cache the result of this strategy. If your implementation is slow, for example
- * because it calls an external system, your strategy must cache the results itself.
  *
  * ### OrderItemPriceCalculationStrategy vs Promotions
  * Both the OrderItemPriceCalculationStrategy and Promotions can be used to alter the price paid for a product.
@@ -73,16 +68,12 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
      * to join the missing relations.
      *
      * Note: the `quantity` argument was added in v2.0.0
-     *
-     * Note: since v4.0.0 the `order` argument can be `undefined`. This is the case when Vendure calculates
-     * the price outside an Order, for the Shop API `ProductVariant.calculatedPrice` field. The
-     * `orderLineCustomFields` argument is then an empty object.
      */
     calculateUnitPrice(
         ctx: RequestContext,
         productVariant: ProductVariant,
         orderLineCustomFields: { [key: string]: any },
-        order: Order | undefined,
+        order: Order,
         quantity: number,
     ): PriceCalculationResult | Promise<PriceCalculationResult>;
 }
