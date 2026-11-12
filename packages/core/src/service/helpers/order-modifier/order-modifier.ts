@@ -951,7 +951,13 @@ export class OrderModifier {
             productVariantId,
             ctx.channelId,
             {
-                relations: ['product', 'productVariantPrices', 'taxCategory'],
+                relations: [
+                    'product',
+                    'taxCategory',
+                    ...(this.configService.catalogOptions.productVariantPriceLoadingStrategy.eagerLoading
+                        ? ['productVariantPrices']
+                        : []),
+                ],
                 loadEagerRelations: false,
                 where: { deletedAt: IsNull() },
             },
