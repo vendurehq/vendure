@@ -51,7 +51,7 @@ export interface DefaultSlugStrategyOptions {
  * @since 3.5.0
  */
 export class DefaultSlugStrategy implements SlugStrategy {
-    constructor(private options: DefaultSlugStrategyOptions = {}) {}
+    constructor(private readonly options: DefaultSlugStrategyOptions = {}) {}
 
     getUniquenessScope(): SlugUniquenessScope {
         return this.options.uniqueness ?? 'channel';

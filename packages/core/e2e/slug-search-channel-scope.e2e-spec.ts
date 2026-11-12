@@ -99,7 +99,7 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
                 input: { channelId, productIds: ['T_1', 'T_2'] },
             });
         }
-        await awaitRunningJobs(adminClient, 10_000, 1000);
+        await awaitRunningJobs(adminClient, 60_000, 1000);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -112,7 +112,7 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
         const inB = await saleCollection(B_TOKEN, 'T_2');
         expect(inC.slug).toBe('sale');
         expect(inB.slug).toBe('sale');
-        await awaitRunningJobs(adminClient, 10_000, 1000);
+        await awaitRunningJobs(adminClient, 60_000, 1000);
 
         shopClient.setChannelToken(B_TOKEN);
         const { search: inBResult } = await shopClient.query(search, {

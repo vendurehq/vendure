@@ -46,104 +46,98 @@ export interface SlugConflict {
  */
 export async function findSlugConflicts(queryRunner: QueryRunner): Promise<SlugConflict[]> {
     const esc = (name: string) => getDataSource(queryRunner).driver.escape(name);
-    const results: SlugConflict[] = [];
-    const tables = [
-        { entity: 'Product' as const, base: 'product', softDelete: true },
-        { entity: 'Collection' as const, base: 'collection', softDelete: false },
-    ];
     const defaultRows: Array<{ id: string | number }> = await queryRunner.query(
         `SELECT ${esc('id')} FROM ${esc('channel')} WHERE ${esc('code')} = '${DEFAULT_CHANNEL_CODE}'`,
     );
     if (!defaultRows.length) {
-        return results;
+        return [];
     }
-    const defaultChannelId = defaultRows[0].id;
-    for (const { entity, base, softDelete } of tables) {
-        const t = esc(`${base}_translation`);
-        const b = esc(base);
-        const j = esc(`${base}_channels_channel`);
-        const baseFk = esc(`${base}Id`);
-        const notDeleted = softDelete ? `AND ${b}.${esc('deletedAt')} IS NULL` : '';
-        const rows: Array<{
-            id: string | number;
-            channelId: string | number;
-            channelCode: string;
-            languageCode: string;
-            slug: string;
-        }> = await queryRunner.query(
-            `SELECT ${b}.${esc('id')} AS ${esc('id')}, ${j}.${esc('channelId')} AS ${esc('channelId')},
-                    c.${esc('code')} AS ${esc('channelCode')},
-                    ${t}.${esc('languageCode')} AS ${esc('languageCode')}, ${t}.${esc('slug')} AS ${esc('slug')}
-             FROM ${t}
-             INNER JOIN ${b} ON ${b}.${esc('id')} = ${t}.${esc('baseId')}
-             INNER JOIN ${j} ON ${j}.${baseFk} = ${b}.${esc('id')}
-             INNER JOIN ${esc('channel')} c ON c.${esc('id')} = ${j}.${esc('channelId')}
-             WHERE ${t}.${esc('slug')} IS NOT NULL ${notDeleted}`,
-        );
-        // Channels per entity, to find the ones that live only in the default channel.
-        const channelsByEntity = new Map<string, Set<string>>();
-        for (const r of rows) {
-            const set = channelsByEntity.get(String(r.id)) ?? new Set<string>();
-            set.add(String(r.channelId));
-            channelsByEntity.set(String(r.id), set);
+    const defaultChannelId = String(defaultRows[0].id);
+    const tables: SlugTable[] = [
+        { entity: 'Product', base: 'product', softDelete: true },
+        { entity: 'Collection', base: 'collection', softDelete: false },
+    ];
+    const rowsPerTable = await Promise.all(tables.map(table => readSlugRows(queryRunner, table)));
+    return tables.flatMap((table, i) => findConflictsInRows(table.entity, rowsPerTable[i], defaultChannelId));
+}
+
+interface SlugTable {
+    entity: SlugConflict['entity'];
+    base: string;
+    softDelete: boolean;
+}
+
+interface SlugRow {
+    id: string | number;
+    channelId: string | number;
+    channelCode: string;
+    languageCode: string;
+    slug: string;
+}
+
+/**
+ * One row per (entity, translation, channel) for every non-deleted entity with a slug.
+ */
+function readSlugRows(queryRunner: QueryRunner, { base, softDelete }: SlugTable): Promise<SlugRow[]> {
+    const esc = (name: string) => getDataSource(queryRunner).driver.escape(name);
+    const t = esc(`${base}_translation`);
+    const b = esc(base);
+    const j = esc(`${base}_channels_channel`);
+    const notDeleted = softDelete ? `AND ${b}.${esc('deletedAt')} IS NULL` : '';
+    return queryRunner.query(
+        `SELECT ${b}.${esc('id')} AS ${esc('id')}, ${j}.${esc('channelId')} AS ${esc('channelId')},
+                c.${esc('code')} AS ${esc('channelCode')},
+                ${t}.${esc('languageCode')} AS ${esc('languageCode')}, ${t}.${esc('slug')} AS ${esc('slug')}
+         FROM ${t}
+         INNER JOIN ${b} ON ${b}.${esc('id')} = ${t}.${esc('baseId')}
+         INNER JOIN ${j} ON ${j}.${esc(`${base}Id`)} = ${b}.${esc('id')}
+         INNER JOIN ${esc('channel')} c ON c.${esc('id')} = ${j}.${esc('channelId')}
+         WHERE ${t}.${esc('slug')} IS NOT NULL ${notDeleted}`,
+    );
+}
+
+/**
+ * Groups the rows by (channel, language, slug) and returns the groups with more than one
+ * entity. In the default channel, which holds every entity, only entities that belong to no
+ * other channel are compared.
+ */
+function findConflictsInRows(
+    entity: SlugConflict['entity'],
+    rows: SlugRow[],
+    defaultChannelId: string,
+): SlugConflict[] {
+    const channelCount = new Map<string, number>();
+    for (const r of rows) {
+        if (String(r.channelId) !== defaultChannelId) {
+            channelCount.set(String(r.id), (channelCount.get(String(r.id)) ?? 0) + 1);
         }
-        const isDefaultOnly = (id: string) => {
-            const set = channelsByEntity.get(id);
-            return !!set && set.size === 1 && set.has(String(defaultChannelId));
+    }
+    const groups = new Map<string, Omit<SlugConflict, 'entityIds'> & { ids: Set<string> }>();
+    for (const r of rows) {
+        const id = String(r.id);
+        const inDefault = String(r.channelId) === defaultChannelId;
+        if (inDefault && channelCount.has(id)) {
+            // Also in another channel, so it is compared there instead.
+            continue;
+        }
+        const channelCode = inDefault ? DEFAULT_CHANNEL_CODE : r.channelCode;
+        const key = [String(r.channelId), r.languageCode, r.slug].join('\u0000');
+        const group = groups.get(key) ?? {
+            entity,
+            channelCode,
+            languageCode: r.languageCode,
+            slug: r.slug,
+            ids: new Set<string>(),
         };
-        // 1. Conflicts within each non-default channel.
-        const groups = new Map<
-            string,
-            { channelCode: string; languageCode: string; slug: string; ids: Set<string> }
-        >();
-        // 2. Entities that live only in the default channel must not share a slug.
-        const defaultOnlyBySlug = new Map<string, Set<string>>();
-        for (const r of rows) {
-            const id = String(r.id);
-            const slugKey = `${r.languageCode}\u0000${r.slug}`;
-            if (String(r.channelId) === String(defaultChannelId)) {
-                if (isDefaultOnly(id)) {
-                    const set = defaultOnlyBySlug.get(slugKey) ?? new Set<string>();
-                    set.add(id);
-                    defaultOnlyBySlug.set(slugKey, set);
-                }
-                continue;
-            }
-            const key = `${String(r.channelId)}\u0000${slugKey}`;
-            const g = groups.get(key) ?? {
-                channelCode: r.channelCode,
-                languageCode: r.languageCode,
-                slug: r.slug,
-                ids: new Set<string>(),
-            };
-            g.ids.add(id);
-            groups.set(key, g);
-        }
-        for (const g of groups.values()) {
-            if (g.ids.size > 1) {
-                results.push({
-                    entity,
-                    channelCode: g.channelCode,
-                    languageCode: g.languageCode,
-                    slug: g.slug,
-                    entityIds: [...g.ids].sort(),
-                });
-            }
-        }
-        for (const [slugKey, ids] of defaultOnlyBySlug) {
-            if (ids.size > 1) {
-                const [languageCode, slug] = slugKey.split('\u0000');
-                results.push({
-                    entity,
-                    channelCode: DEFAULT_CHANNEL_CODE,
-                    languageCode,
-                    slug,
-                    entityIds: [...ids].sort(),
-                });
-            }
-        }
+        group.ids.add(id);
+        groups.set(key, group);
     }
-    return results;
+    return [...groups.values()]
+        .filter(group => group.ids.size > 1)
+        .map(({ ids, ...rest }) => ({
+            ...rest,
+            entityIds: [...ids].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+        }));
 }
 
 /**

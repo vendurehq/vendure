@@ -223,8 +223,12 @@ export class SlugValidator {
         if (!rows.length) {
             return undefined;
         }
-        const languageRank = (code: LanguageCode) =>
-            code === ctx.languageCode ? 2 : code === ctx.channel.defaultLanguageCode ? 1 : 0;
+        const languageRank = (code: LanguageCode) => {
+            if (code === ctx.languageCode) {
+                return 2;
+            }
+            return code === ctx.channel.defaultLanguageCode ? 1 : 0;
+        };
         const best = new Map<string, { id: ID; rank: number; createdAt: number }>();
         for (const row of rows) {
             const key = String(row.id);
