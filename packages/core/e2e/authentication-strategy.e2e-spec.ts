@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { CurrencyCode, ErrorCode, HistoryEntryType, LanguageCode } from '@vendure/common/lib/generated-types';
+import {
+    AuthenticationInput,
+    CurrencyCode,
+    ErrorCode,
+    HistoryEntryType,
+    LanguageCode,
+} from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import {
     Customer,
@@ -33,8 +39,7 @@ import {
     TestUnverifiedEmailStrategy,
     VALID_AUTH_TOKEN,
 } from './fixtures/test-authentication-strategies';
-import { currentUserFragment, customerFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { ResultOf } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
     authenticateDocument,
@@ -58,15 +63,29 @@ import {
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
-type CurrentUserFragmentType = FragmentOf<typeof currentUserFragment>;
+type CurrentUserFragmentType = Exclude<
+    ResultOf<typeof authenticateDocument>['authenticate'],
+    { errorCode: unknown }
+>;
+type InvalidCredentialsResult = Extract<
+    ResultOf<typeof authenticateDocument>['authenticate'],
+    { errorCode: unknown; authenticationError: string }
+>;
+
 const currentUserGuard: ErrorResultGuard<CurrentUserFragmentType> = createErrorResultGuard(
     input => input.identifier != null,
 );
 
-type CustomerFragmentType = FragmentOf<typeof customerFragment>;
+type CustomerFragmentType = Exclude<
+    ResultOf<typeof updateCustomerDocument>['updateCustomer'],
+    { errorCode: unknown }
+>;
 const customerGuard: ErrorResultGuard<CustomerFragmentType> = createErrorResultGuard(
     input => input.emailAddress != null,
 );
+
+// Custom authentication strategies add their own keys to the AuthenticationInput at runtime.
+const authInput = (input: Record<string, unknown>) => input as AuthenticationInput;
 
 class TestCustomerChannelAssignmentStrategy implements CustomerChannelAssignmentStrategy {
     canAssign = true;
@@ -122,30 +141,34 @@ describe('AuthenticationStrategy', () => {
 
         it('fails with a bad token', async () => {
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_strategy: {
                         token: 'bad-token',
                     },
-                },
+                }),
             });
 
-            expect(authenticate.message).toBe('The provided credentials are invalid');
-            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
-            expect(authenticate.authenticationError).toBe('');
+            const error = authenticate as InvalidCredentialsResult;
+
+            expect(error.message).toBe('The provided credentials are invalid');
+            expect(error.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            expect(error.authenticationError).toBe('');
         });
 
         it('fails with an expired token', async () => {
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_strategy: {
                         token: 'expired-token',
                     },
-                },
+                }),
             });
 
-            expect(authenticate.message).toBe('The provided credentials are invalid');
-            expect(authenticate.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
-            expect(authenticate.authenticationError).toBe('Expired token');
+            const error = authenticate as InvalidCredentialsResult;
+
+            expect(error.message).toBe('The provided credentials are invalid');
+            expect(error.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            expect(error.authenticationError).toBe('Expired token');
         });
 
         it('creates a new Customer with valid token', async () => {
@@ -153,12 +176,12 @@ describe('AuthenticationStrategy', () => {
             expect(before.totalItems).toBe(1);
 
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_strategy: {
                         token: VALID_AUTH_TOKEN,
                         userData,
                     },
-                },
+                }),
             });
             currentUserGuard.assertSuccess(authenticate);
 
@@ -222,12 +245,12 @@ describe('AuthenticationStrategy', () => {
 
         it('logging in again re-uses created User & Customer', async () => {
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_strategy: {
                         token: VALID_AUTH_TOKEN,
                         userData,
                     },
-                },
+                }),
             });
             currentUserGuard.assertSuccess(authenticate);
             expect(authenticate.identifier).toEqual(userData.email);
@@ -256,12 +279,12 @@ describe('AuthenticationStrategy', () => {
             const { customers: customers1 } = await adminClient.query(getCustomersDocument);
             expect(customers1.items).toEqual(EXPECTED_CUSTOMERS);
             const { authenticate: auth1 } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_strategy2: {
                         token: VALID_AUTH_TOKEN,
                         email: userData.email,
                     },
-                },
+                }),
             });
 
             currentUserGuard.assertSuccess(auth1);
@@ -273,12 +296,12 @@ describe('AuthenticationStrategy', () => {
             await shopClient.asAnonymousUser();
 
             const { authenticate: auth2 } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_strategy: {
                         token: VALID_AUTH_TOKEN,
                         userData,
                     },
-                },
+                }),
             });
 
             currentUserGuard.assertSuccess(auth2);
@@ -334,11 +357,11 @@ describe('AuthenticationStrategy', () => {
             const emailAddress = 'hello@test-domain.com';
             await adminClient.asAnonymousUser();
             const { authenticate: adminAuth } = await adminClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_sso_strategy_admin: {
                         email: emailAddress,
                     },
-                },
+                }),
             });
             currentUserGuard.assertSuccess(adminAuth);
 
@@ -349,11 +372,11 @@ describe('AuthenticationStrategy', () => {
             expect(activeAdministrator?.avatar?.source).toContain('external-profile.png');
 
             const { authenticate: shopAuth } = await shopClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_sso_strategy_shop: {
                         email: emailAddress,
                     },
-                },
+                }),
             });
             currentUserGuard.assertSuccess(shopAuth);
 
@@ -366,12 +389,12 @@ describe('AuthenticationStrategy', () => {
             const emailAddress = 'avatar-sync@test-domain.com';
             await adminClient.asAnonymousUser();
             const { authenticate: firstLogin } = await adminClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_sso_strategy_admin_avatar_sync: {
                         email: emailAddress,
                         avatarFilename: 'first-profile.png',
                     },
-                },
+                }),
             });
             currentUserGuard.assertSuccess(firstLogin);
 
@@ -386,12 +409,12 @@ describe('AuthenticationStrategy', () => {
             // Logging in again syncs a new image, which replaces the one already stored.
             await adminClient.asAnonymousUser();
             const { authenticate: secondLogin } = await adminClient.query(authenticateDocument, {
-                input: {
+                input: authInput({
                     test_sso_strategy_admin_avatar_sync: {
                         email: emailAddress,
                         avatarFilename: 'second-profile.png',
                     },
-                },
+                }),
             });
             currentUserGuard.assertSuccess(secondLogin);
 
@@ -423,7 +446,7 @@ describe('AuthenticationStrategy', () => {
             assertThrowsWithMessage(
                 () =>
                     shopClient.query(authenticateDocument, {
-                        input: { test_unverified_strategy: { email: victimEmail } },
+                        input: authInput({ test_unverified_strategy: { email: victimEmail } }),
                     }),
                 'Cannot link an unverified external authentication method to an existing account',
             ),
@@ -443,7 +466,7 @@ describe('AuthenticationStrategy', () => {
             const newEmail = 'fresh-unverified-ghsa@test.com';
             await shopClient.asAnonymousUser();
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: { test_unverified_strategy: { email: newEmail } },
+                input: authInput({ test_unverified_strategy: { email: newEmail } }),
             });
             currentUserGuard.assertSuccess(authenticate);
             expect(authenticate.identifier).toBe(newEmail);
@@ -474,7 +497,7 @@ describe('AuthenticationStrategy', () => {
         it('stores the email address of a new Customer in lowercase', async () => {
             await shopClient.asAnonymousUser();
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: 'Case.Test@test-domain.com' } },
+                input: authInput({ test_sso_strategy_shop: { email: 'Case.Test@test-domain.com' } }),
             });
             currentUserGuard.assertSuccess(authenticate);
 
@@ -486,13 +509,13 @@ describe('AuthenticationStrategy', () => {
         it('links a login with the same email address in different case to the existing Customer', async () => {
             await shopClient.asAnonymousUser();
             const { authenticate: first } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: 'Case.Test@test-domain.com' } },
+                input: authInput({ test_sso_strategy_shop: { email: 'Case.Test@test-domain.com' } }),
             });
             currentUserGuard.assertSuccess(first);
 
             await shopClient.asAnonymousUser();
             const { authenticate: second } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: 'case.test@test-domain.com' } },
+                input: authInput({ test_sso_strategy_shop: { email: 'case.test@test-domain.com' } }),
             });
             currentUserGuard.assertSuccess(second);
 
@@ -517,7 +540,7 @@ describe('AuthenticationStrategy', () => {
 
             await shopClient.asAnonymousUser();
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: 'legacy.login@test-domain.com' } },
+                input: authInput({ test_sso_strategy_shop: { email: 'legacy.login@test-domain.com' } }),
             });
             currentUserGuard.assertSuccess(authenticate);
 
@@ -545,7 +568,7 @@ describe('AuthenticationStrategy', () => {
 
             await shopClient.asAnonymousUser();
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: 'guest.case@test-domain.com' } },
+                input: authInput({ test_sso_strategy_shop: { email: 'guest.case@test-domain.com' } }),
             });
             currentUserGuard.assertSuccess(authenticate);
 
@@ -573,7 +596,7 @@ describe('AuthenticationStrategy', () => {
 
             await shopClient.asAnonymousUser();
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: 'SEVERAL.CASE@test-domain.com' } },
+                input: authInput({ test_sso_strategy_shop: { email: 'SEVERAL.CASE@test-domain.com' } }),
             });
             currentUserGuard.assertSuccess(authenticate);
 
@@ -590,7 +613,7 @@ describe('AuthenticationStrategy', () => {
             await shopClient.asAnonymousUser();
             await expect(
                 shopClient.query(authenticateDocument, {
-                    input: { test_unverified_strategy: { email: 'Case.Victim@test-domain.com' } },
+                    input: authInput({ test_unverified_strategy: { email: 'Case.Victim@test-domain.com' } }),
                 }),
             ).rejects.toThrow(
                 'Cannot link an unverified external authentication method to an existing account',
@@ -849,7 +872,9 @@ describe('AuthenticationStrategy', () => {
                     },
                 };
                 await shopClient.asAnonymousUser();
-                const { authenticate: first } = await shopClient.query(authenticateDocument, { input });
+                const { authenticate: first } = await shopClient.query(authenticateDocument, {
+                    input: authInput(input),
+                });
                 currentUserGuard.assertSuccess(first);
 
                 // The strategy does not find the User in the second Channel, so it calls
@@ -857,7 +882,9 @@ describe('AuthenticationStrategy', () => {
                 // Log out first, so that the logout request does not assign the previous User to the Channel
                 await shopClient.asAnonymousUser();
                 shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                const { authenticate: second } = await shopClient.query(authenticateDocument, { input });
+                const { authenticate: second } = await shopClient.query(authenticateDocument, {
+                    input: authInput(input),
+                });
                 shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
                 currentUserGuard.assertSuccess(second);
 

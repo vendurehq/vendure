@@ -33,8 +33,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { requestCustomerPasswordResetDocument } from './graphql/admin-definitions';
-import { customerFragment } from './graphql/fragments-admin';
-import { FragmentOf, ResultOf } from './graphql/graphql-admin';
+import { ResultOf } from './graphql/graphql-admin';
 import { FragmentOf as FragmentOfShop } from './graphql/graphql-shop';
 import {
     addNoteToCustomerDocument,
@@ -70,7 +69,10 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 type CustomerListItem = ResultOf<typeof getCustomerListDocument>['customers']['items'][number];
-type CustomerFragment = FragmentOf<typeof customerFragment>;
+type CustomerFragment = Exclude<
+    ResultOf<typeof createCustomerDocument>['createCustomer'],
+    { errorCode: unknown }
+>;
 type UpdatedOrderFragment = FragmentOfShop<typeof updatedOrderFragment>;
 type ActiveOrderCustomerFragment = FragmentOfShop<typeof activeOrderCustomerDocument>;
 type CustomerOrdersResult = NonNullable<ResultOf<typeof getCustomerOrdersDocument>['customer']>;

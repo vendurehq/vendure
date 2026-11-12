@@ -182,7 +182,7 @@ describe('Plugins', () => {
         it('permission-restricted route forbidden', async () => {
             const response = await shopClient.fetch(restControllerUrl + '/restricted');
             expect(response.status).toBe(403);
-            const result = await response.json();
+            const result = (await response.json()) as { message: string };
             expect(result.message).toContain('FORBIDDEN');
         });
 
@@ -197,7 +197,7 @@ describe('Plugins', () => {
         it('handling I18nErrors', async () => {
             const response = await shopClient.fetch(restControllerUrl + '/bad');
             expect(response.status).toBe(500);
-            const result = await response.json();
+            const result = (await response.json()) as { message: string };
             expect(result.message).toContain('uh oh!');
         });
     });

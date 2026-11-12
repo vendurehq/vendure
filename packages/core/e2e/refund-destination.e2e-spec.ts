@@ -26,7 +26,7 @@ import {
     singleStageRefundablePaymentMethod,
     testFailingPaymentMethod,
 } from './fixtures/test-payment-methods';
-import { graphql } from './graphql/graphql-admin';
+import { graphql, ResultOf } from './graphql/graphql-admin';
 import { createChannelDocument } from './graphql/shared-definitions';
 import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
@@ -216,9 +216,9 @@ describe('Refund destinations', () => {
     let declinedPaymentId: string;
     let orderTotalWithTax: number;
 
-    const refundGuard: ErrorResultGuard<{ id: string; total: number }> = createErrorResultGuard(
-        input => input.total != null,
-    );
+    const refundGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof refundWithDestinationDocument>['refundOrder'], { errorCode: string }>
+    > = createErrorResultGuard(input => input.total != null);
 
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {

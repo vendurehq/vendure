@@ -52,7 +52,7 @@ describe.runIf(isServerDb)(`generateMigration --from-empty (${dbType})`, () => {
             ...serverConnection(),
             ...(isPostgres ? { database: 'postgres' } : {}),
             name: 'from-empty-e2e-maintenance',
-        } as DataSourceOptions);
+        } as DataSourceOptions & { name: string });
         await maintenance.initialize();
         await dropDedicated();
         await maintenance.query(`CREATE DATABASE ${quoted(dedicatedDb)}`);

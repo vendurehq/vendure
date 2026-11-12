@@ -8,12 +8,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import {
-    SearchProductsShopQuery,
-    SearchProductsShopQueryVariables,
-} from './graphql/generated-e2e-shop-types';
+import { ResultOf, VariablesOf } from './graphql/graphql-shop';
 import { searchProductsShopDocument } from './graphql/shop-definitions';
 import { awaitRunningJobs } from './utils/await-running-jobs';
+
+type SearchProductsShopQuery = ResultOf<typeof searchProductsShopDocument>;
+type SearchProductsShopQueryVariables = VariablesOf<typeof searchProductsShopDocument>;
 
 registerInitializer('sqljs', new SqljsInitializer(path.join(__dirname, '__data__'), 1000));
 

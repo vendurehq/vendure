@@ -27,10 +27,9 @@ import { AlreadyLoggedInError } from '../src/common/error/generated-graphql-shop
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { ResultOf } from './graphql/graphql-admin';
-import { FragmentOf } from './graphql/graphql-shop';
+import { ResultOf as ResultOfShop } from './graphql/graphql-shop';
 import { getCustomerListDocument } from './graphql/shared-definitions';
 import {
-    activeOrderCustomerDocument,
     addItemToOrderDocument,
     getActiveOrderCustomerUserDocument,
     setCustomerDocument,
@@ -94,8 +93,9 @@ describe('GuestCheckoutStrategy', () => {
     });
     let customers: ResultOf<typeof getCustomerListDocument>['customers']['items'];
 
-    const orderResultGuard: ErrorResultGuard<FragmentOf<typeof activeOrderCustomerDocument>> =
-        createErrorResultGuard(input => !!input.lines);
+    const orderResultGuard: ErrorResultGuard<
+        Exclude<ResultOfShop<typeof setCustomerDocument>['setCustomerForOrder'], { errorCode: unknown }>
+    > = createErrorResultGuard(input => !!input.lines);
 
     beforeAll(async () => {
         await server.init({

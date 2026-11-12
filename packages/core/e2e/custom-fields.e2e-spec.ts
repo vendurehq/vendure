@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import {
     Asset,
@@ -425,12 +426,12 @@ describe('Custom fields', () => {
 
     it('dashboard: false field is still queryable via Admin API', async () => {
         const { product } = await adminClient.query(getProductDashboardHiddenDocument);
-        expect(product.customFields.dashboardHidden).toBeNull();
+        expect(product!.customFields.dashboardHidden).toBeNull();
     });
 
     it('dashboard: false field is still queryable via Shop API', async () => {
         const { product } = await shopClient.query(getShopProductDashboardHiddenDocument);
-        expect(product.customFields.dashboardHidden).toBeNull();
+        expect(product!.customFields.dashboardHidden).toBeNull();
     });
 
     it('ui.dashboard: false field is still writable via Admin API', async () => {
@@ -850,7 +851,7 @@ describe('Custom fields', () => {
                     );
                     fail('Should have thrown');
                 } catch (e) {
-                    expect(e.message).toContain(
+                    expect((e as Error).message).toContain(
                         'The custom field "validateInt" value [11] is greater than the maximum [10]',
                     );
                 }
@@ -887,7 +888,7 @@ describe('Custom fields', () => {
                     );
                     fail('Should have thrown');
                 } catch (e) {
-                    expect(e.message).toContain(
+                    expect((e as Error).message).toContain(
                         'The custom field "validateInt" value [11] is greater than the maximum [10]',
                     );
                 }
@@ -1108,7 +1109,8 @@ describe('Custom fields', () => {
                 fail('Should have thrown');
             } catch (e: any) {
                 let duplicateKeyErrMessage = 'unassigned';
-                switch (customConfig.dbConnectionOptions.type) {
+                // The TypeORM type union has no 'sqlite' member, so compare as a plain string.
+                switch (customConfig.dbConnectionOptions.type as string) {
                     case 'mariadb':
                     case 'mysql':
                         duplicateKeyErrMessage = "Duplicate entry 'foo' for key";
@@ -1225,7 +1227,7 @@ describe('Custom fields', () => {
             },
         );
 
-        expect(updateProductVariants[0].prices).toContainEqual({
+        expect(updateProductVariants[0]!.prices).toContainEqual({
             currencyCode: 'EUR',
             price: 99900,
             customFields: {

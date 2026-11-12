@@ -18,7 +18,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { administratorFragment, currentUserFragment } from './graphql/fragments-admin';
-import { FragmentOf, graphql } from './graphql/graphql-admin';
+import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
     createAdministratorDocument,
@@ -237,7 +237,7 @@ describe('Administrator resolver', () => {
                 username: 'newest-email',
                 password: 'new password',
             });
-            expect(login.errorCode).toBe('INVALID_CREDENTIALS_ERROR');
+            expect((login as { errorCode: ErrorCode }).errorCode).toBe('INVALID_CREDENTIALS_ERROR');
         } finally {
             await adminClient.asSuperAdmin();
         }
@@ -367,8 +367,9 @@ describe('Administrator resolver', () => {
         const successGuard: ErrorResultGuard<{ success: boolean }> = createErrorResultGuard(
             input => input.success != null,
         );
-        const currentUserGuard: ErrorResultGuard<FragmentOf<typeof currentUserFragment>> =
-            createErrorResultGuard(input => !!input.identifier);
+        const currentUserGuard: ErrorResultGuard<
+            Exclude<ResultOf<typeof resetAdminPasswordDocument>['resetPassword'], { errorCode: unknown }>
+        > = createErrorResultGuard(input => !!input.identifier);
         const shopCurrentUserGuard: ErrorResultGuard<FragmentOf<typeof shopCurrentUserFragment>> =
             createErrorResultGuard(input => !!input.identifier);
 

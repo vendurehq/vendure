@@ -5,6 +5,7 @@ import {
     PriceCalculationResult,
     ProductService,
     StrategyLayer,
+    StrategyLayerClass,
     VendurePlugin,
 } from '@vendure/core';
 
@@ -51,7 +52,7 @@ export class ZeroPriceStrategy implements OrderItemPriceCalculationStrategy {
  * Each layer multiplies the inner price by 10 and adds its digit. Thus the price shows the
  * order of the layers: the digit of the outermost layer is the last digit.
  */
-function digitLayer(digit: number) {
+function digitLayer(digit: number): StrategyLayerClass<OrderItemPriceCalculationStrategy> {
     return class extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
         static priority = digit * 100;
 

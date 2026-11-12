@@ -50,7 +50,8 @@ describe('SqlJobQueueStrategy next()', () => {
             customerCount: 0,
         });
         connection = server.app.get(TransactionalConnection).rawConnection;
-        strategy = server.app.get(ConfigService).jobQueueOptions.jobQueueStrategy as PollingJobQueueStrategy;
+        strategy = server.app.get(ConfigService).jobQueueOptions
+            .jobQueueStrategy as unknown as PollingJobQueueStrategy;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

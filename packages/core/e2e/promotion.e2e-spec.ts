@@ -66,9 +66,13 @@ describe('Promotion resolver', () => {
 
     let promotion: PromotionFragment;
 
-    const promotionGuard: ErrorResultGuard<PromotionFragment> = createErrorResultGuard(
-        input => !!input.couponCode,
-    );
+    const promotionGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof createPromotionDocument>['createPromotion'], { errorCode: string }>
+    > = createErrorResultGuard(input => !!input.couponCode);
+
+    const updatePromotionGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof updatePromotionDocument>['updatePromotion'], { errorCode: string }>
+    > = createErrorResultGuard(input => !!input.couponCode);
 
     const promotionQueryGuard: ErrorResultGuard<
         NonNullable<ResultOf<typeof getPromotionDocument>['promotion']>
@@ -213,7 +217,7 @@ describe('Promotion resolver', () => {
                 ],
             },
         });
-        promotionGuard.assertSuccess(updatePromotion);
+        updatePromotionGuard.assertSuccess(updatePromotion);
 
         expect(pick(updatePromotion, snapshotProps)).toMatchSnapshot();
     });
@@ -234,7 +238,7 @@ describe('Promotion resolver', () => {
                 ],
             },
         });
-        promotionGuard.assertSuccess(updatePromotion);
+        updatePromotionGuard.assertSuccess(updatePromotion);
 
         // Verify the action args were correctly round-tripped (decoded and re-encoded)
         const action = updatePromotion.actions.find(a => a.code === promoAction.code);
@@ -263,7 +267,7 @@ describe('Promotion resolver', () => {
                 conditions: [],
             },
         });
-        promotionGuard.assertErrorResult(updatePromotion);
+        updatePromotionGuard.assertErrorResult(updatePromotion);
 
         expect(updatePromotion.message).toBe(
             'A Promotion must have either at least one condition or a coupon code set',
