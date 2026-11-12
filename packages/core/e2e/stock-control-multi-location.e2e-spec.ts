@@ -83,7 +83,7 @@ describe('Stock control (multi-location)', () => {
         });
         await adminClient.asSuperAdmin();
 
-        // v4 (OSS-1002): the default for INHERIT is Channel.trackInventory, not GlobalSettings.
+        // #2908: the default for INHERIT is Channel.trackInventory, not GlobalSettings.
         await adminClient.query(updateChannelDocument, {
             input: { id: 'T_1', trackInventory: false },
         });

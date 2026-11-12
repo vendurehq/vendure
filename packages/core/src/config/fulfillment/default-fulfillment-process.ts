@@ -97,8 +97,8 @@ export const defaultFulfillmentProcess: FulfillmentProcess<FulfillmentState> = {
                 quantity: l.quantity,
             }));
             // Puts the sold units back on hand and allocates them to the lines again, with the
-            // same tracked state as the Sales being reversed (v4.0). Re-running the allocation
-            // instead would re-resolve trackInventory and could cap the re-allocation.
+            // same tracked state as the Sales being reversed, so the stock figures end up as they
+            // were before the Fulfillment whatever trackInventory is now.
             await stockMovementService.reverseSalesForOrderLines(ctx, orderLineInput);
         }
         if (fromState === 'Created' && toState === 'Pending') {

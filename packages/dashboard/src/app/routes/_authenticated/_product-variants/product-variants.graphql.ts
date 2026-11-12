@@ -118,12 +118,15 @@ export const productVariantDetailDocument = graphql(
                     ...ProductVariantPrice
                 }
                 trackInventory
+                tracksInventory
                 outOfStockThreshold
                 useGlobalOutOfStockThreshold
                 stockLevels {
                     id
                     stockOnHand
                     stockAllocated
+                    trackInventory
+                    tracksInventory
                     stockLocation {
                         id
                         name
@@ -140,8 +143,11 @@ export const productVariantGlobalSettingsDocument = graphql(`
     query ProductVariantGlobalStockSettings {
         globalSettings {
             id
-            trackInventory
             outOfStockThreshold
+        }
+        activeChannel {
+            id
+            trackInventory
         }
     }
 `);

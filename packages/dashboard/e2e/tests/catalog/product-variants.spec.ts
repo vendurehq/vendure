@@ -904,18 +904,14 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await sizeInput.fill('ZZZ');
         await sizeInput.press('Enter');
         await expect(sizeInput).toHaveValue('ZZZ');
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
 
         // Picking a suggestion with Enter (popup open) still works — and still no submit.
         await sizeInput.fill('La');
         await sizeInput.press('ArrowDown');
         await sizeInput.press('Enter');
         await expect(sizeInput).toHaveValue('Large');
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
 
         // Definitive: a reload shows the original option — nothing was persisted.
         await page.reload();
@@ -958,9 +954,7 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await skuInput.press('Enter');
 
         // No success toast, and a reload shows the option unchanged.
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
         await page.reload();
         await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
             timeout: 10_000,
@@ -1039,12 +1033,21 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         ).toBeVisible({ timeout: 10_000 });
     });
 
-    // product-variants-option-groups-ux PRD — the track-inventory select shows the resolved
-    // global value in the closed trigger, not just the bare "Inherit" text.
-    test('shows the resolved global value in the track-inventory select', async ({ page }) => {
+    // product-variants-option-groups-ux PRD, #2908 — the track-inventory select shows the value
+    // resolved from the Channel in the closed trigger, not just the bare "Inherit" text.
+    test('shows the resolved channel value in the track-inventory select', async ({ page }) => {
         await page.goto(`/product-variants/${mediumVariantId}`);
         const trackField = fieldByLabel(page, 'Stock levels');
-        await expect(trackField).toContainText(/Inherit from global settings \((Track|Do not track)\)/, {
+        await expect(trackField).toContainText(/Inherit from channel \((Track|Do not track)\)/, {
+            timeout: 10_000,
+        });
+    });
+
+    // #2908 — each stock location has its own tracking setting, inheriting the variant's
+    test('shows a per-location track-inventory select inheriting from the variant', async ({ page }) => {
+        await page.goto(`/product-variants/${mediumVariantId}`);
+        const locationField = fieldByLabel(page, 'Track inventory at this location').first();
+        await expect(locationField).toContainText(/Inherit from variant \((Track|Do not track)\)/, {
             timeout: 10_000,
         });
     });

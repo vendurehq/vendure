@@ -63,6 +63,19 @@ const GET_STOCK_WITH_FLAGS = graphqlAdmin(`
     }
 `);
 
+const GET_RESOLVED_TRACKING = graphqlAdmin(`
+    query GranularResolvedTracking($id: ID!) {
+        productVariant(id: $id) {
+            id
+            tracksInventory
+            stockLevels {
+                stockLocationId
+                tracksInventory
+            }
+        }
+    }
+`);
+
 const GET_SALES = graphqlAdmin(`
     query GranularGetSales($id: ID!) {
         productVariant(id: $id) {
@@ -598,7 +611,7 @@ describe('Stock control: granular trackInventory', () => {
             );
         });
 
-        // #2908 — #2908 — the stock lock is taken in the Order's Channel. With the default Channel
+        // #2908 — the stock lock is taken in the Order's Channel. With the default Channel
         // untracked and channel B tracked, locking in the acting admin's Channel would skip the
         // variant and leave the saleable check and the allocation unprotected.
         it("locks a variant tracked in the order's channel when an admin in another channel pays", async () => {
@@ -710,6 +723,19 @@ describe('Stock control: granular trackInventory', () => {
             );
         });
 
+        // #2908 — the Admin API exposes the resolved tracking, so clients need not re-implement it
+        it('resolves tracksInventory for the variant and each StockLevel', async () => {
+            const { productVariant } = await adminClient.query(GET_RESOLVED_TRACKING, { id: 'T_4' });
+            // An untracked StockLevel means stock limits do not apply to the variant.
+            expect(productVariant!.tracksInventory).toBe(false);
+            expect(productVariant!.stockLevels).toEqual(
+                expect.arrayContaining([
+                    { stockLocationId: defaultLocationId, tracksInventory: true },
+                    { stockLocationId: secondLocationId, tracksInventory: false },
+                ]),
+            );
+        });
+
         // #2908 — an untracked location makes the variant saleable beyond the tracked stock
         it('an untracked location makes the variant saleable beyond the tracked stock', async () => {
             const { product } = await shopClient.query(SHOP_PRODUCT_STOCK, { id: 'T_1' });
@@ -751,7 +777,7 @@ describe('Stock control: granular trackInventory', () => {
             expect(saleTotal).toBe(-5);
         });
 
-        // #2908 — #2908 — the tracking setting can be changed without sending stockOnHand, so a stale
+        // #2908 — the tracking setting can be changed without sending stockOnHand, so a stale
         // value cannot overwrite concurrent stock changes
         it('changes StockLevel.trackInventory without touching stockOnHand', async () => {
             const adjustments = async () => {
@@ -920,7 +946,7 @@ describe('Stock control: granular trackInventory', () => {
             });
         });
 
-        // #2908 — #2908 — before v4.0, each per-location Sale of a split line recorded the whole line
+        // #2908 — before v4.0, each per-location Sale of a split line recorded the whole line
         // quantity. Cancelling such an Order must still put each location's units back there.
         it('cancels a split sale recorded before v4.0 back to the right locations', async () => {
             await adminClient.query(UPDATE_VARIANT, {

@@ -10,5 +10,10 @@ type StockLevel implements Node {
     the ProductVariant's `trackInventory`, and then to the Channel's.
     """
     trackInventory: GlobalFlag!
+    """
+    Whether inventory is tracked at this StockLevel in the active Channel, with INHERIT resolved
+    against the ProductVariant and the Channel.
+    """
+    tracksInventory: Boolean!
     stockLocation: StockLocation!
 }

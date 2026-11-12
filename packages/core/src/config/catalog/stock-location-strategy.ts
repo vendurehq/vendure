@@ -31,9 +31,7 @@ export interface AvailableStock {
      *
      * When a strategy leaves this undefined, core falls back to the ProductVariant/Channel
      * setting, which is the pre-v4 behaviour.
-     *
-     * `productVariant` is passed by core (batched, at least `id` and `trackInventory`) so that
-     * implementations need not load it. It is optional for callers written before v4.0.
+
      *
      * @since 4.0.0
      */
@@ -112,6 +110,11 @@ export interface StockLocationStrategy extends InjectableStrategy {
      * @description
      * Returns the available stock for the given ProductVariant, taking into account
      * the stock levels at each StockLocation.
+     *
+     * `productVariant` is passed by core (batched, carrying at least `id` and `trackInventory`)
+     * so that implementations need not load it. Callers written before v4.0 omit it.
+     *
+     * @since 4.0.0 - The `productVariant` parameter
      */
     getAvailableStock(
         ctx: RequestContext,

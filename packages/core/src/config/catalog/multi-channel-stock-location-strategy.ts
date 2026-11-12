@@ -75,22 +75,20 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
      * @description
      * Returns the available stock for the given ProductVariant, taking into account the active Channel.
      */
-    getAvailableStock(
+    async getAvailableStock(
         ctx: RequestContext,
         productVariantId: ID,
         stockLevels: StockLevel[],
         productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>,
     ): Promise<AvailableStock> {
-        return (async () => {
-            const variant = productVariant ?? (await this.getVariant(ctx, productVariantId));
-            const applicable: StockLevel[] = [];
-            for (const stockLevel of stockLevels) {
-                if (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel)) {
-                    applicable.push(stockLevel);
-                }
+        const variant = productVariant ?? (await this.getVariant(ctx, productVariantId));
+        const applicable: StockLevel[] = [];
+        for (const stockLevel of stockLevels) {
+            if (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel)) {
+                applicable.push(stockLevel);
             }
-            return this.sumStockLevels(ctx, variant, applicable);
-        })();
+        }
+        return this.sumStockLevels(ctx, variant, applicable);
     }
 
     /**
@@ -111,9 +109,9 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
     ): Promise<LocationWithQuantity[]> {
         const variant = await this.getVariant(ctx, orderLine.productVariantId);
         const { effectiveOutOfStockThreshold } = await this.getVariantStockSettings(ctx, variant);
-        const stockLevels = await this.getStockLevelsForAllocation(ctx, variant);
+        const levels = await this.getStockLevelsForAllocation(ctx, variant);
         const inScope: Array<{ level: StockLevel; location: StockLocation; tracked: boolean }> = [];
-        for (const entry of await this.orderLevelsByLocation(ctx, variant, stockLevels, stockLocations)) {
+        for (const entry of this.orderLevelsByLocation(levels, stockLocations)) {
             if (await this.stockLevelAppliesToActiveChannel(ctx, entry.level)) {
                 inScope.push(entry);
             }

@@ -445,8 +445,8 @@ export class OrderModifier {
             reason: refund.reason || input.note,
         }));
 
-        // Saleable stock is judged in the Order's Channel, not the Administrator's (v4.0), and the
-        // lock is taken in the same Channel so it covers the variants the check treats as tracked.
+        // Saleable stock is judged in the Order's Channel, not the Administrator's, and the lock is
+        // taken in the same Channel so it covers the variants the check treats as tracked.
         const stockCtx = await getOrderChannelContext(ctx, this.connection, this.channelService, order.id);
         await this.lockStockLevelsForModification(stockCtx, order, input);
 

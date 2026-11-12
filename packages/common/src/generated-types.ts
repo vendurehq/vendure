@@ -5391,6 +5391,12 @@ export type ProductVariant = Node & {
   taxCategory: TaxCategory;
   taxRateApplied: TaxRate;
   trackInventory: GlobalFlag;
+  /**
+   * Whether stock limits apply to this ProductVariant in the active Channel: false when any
+   * StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+   * sold and fulfilled without limit.
+   */
+  tracksInventory: Scalars['Boolean']['output'];
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
   useGlobalOutOfStockThreshold: Scalars['Boolean']['output'];
@@ -5420,6 +5426,12 @@ export type ProductVariantFilterParameter = {
   stockLevel?: InputMaybe<StringOperators>;
   stockOnHand?: InputMaybe<NumberOperators>;
   trackInventory?: InputMaybe<StringOperators>;
+  /**
+   * Whether stock limits apply to this ProductVariant in the active Channel: false when any
+   * StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+   * sold and fulfilled without limit.
+   */
+  tracksInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
   useGlobalOutOfStockThreshold?: InputMaybe<BooleanOperators>;
 };
@@ -6873,6 +6885,11 @@ export type StockLevel = Node & {
    * the ProductVariant's `trackInventory`, and then to the Channel's.
    */
   trackInventory: GlobalFlag;
+  /**
+   * Whether inventory is tracked at this StockLevel in the active Channel, with INHERIT resolved
+   * against the ProductVariant and the Channel.
+   */
+  tracksInventory: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 

@@ -138,6 +138,7 @@ export const orderLineFragment = graphql(
                 name
                 sku
                 trackInventory
+                tracksInventory
                 stockOnHand
             }
             discounts {

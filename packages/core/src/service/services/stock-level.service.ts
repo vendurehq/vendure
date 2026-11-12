@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import DataLoader from 'dataloader';
@@ -219,6 +220,18 @@ export class StockLevelService {
 
     /**
      * @description
+     * Whether inventory is tracked at the given StockLevel in the active Channel. The
+     * ProductVariant's setting is read with the batching loader.
+     *
+     * @since 4.0.0
+     */
+    async isStockLevelTracked(ctx: RequestContext, stockLevel: StockLevel): Promise<boolean> {
+        const productVariant = await this.getVariantTrackingLoader(ctx).load(stockLevel.productVariantId);
+        return this.isInventoryTracked(ctx, productVariant, stockLevel);
+    }
+
+    /**
+     * @description
      * Whether inventory is tracked for the ProductVariant at the given StockLocation. Loads the
      * StockLevel if it exists.
      *
@@ -273,10 +286,14 @@ export class StockLevelService {
                             loadEagerRelations: false,
                             withDeleted: true,
                         });
+                        // An unknown id resolves as INHERIT, so its stock reads as zero as it did
+                        // before v4.0, rather than throwing.
                         return ids.map(
                             id =>
-                                variants.find(v => idsAreEqual(v.id, id)) ??
-                                new Error(`ProductVariant ${String(id)} not found`),
+                                variants.find(v => idsAreEqual(v.id, id)) ?? {
+                                    id,
+                                    trackInventory: GlobalFlag.INHERIT,
+                                },
                         );
                     },
                     { cache: false },

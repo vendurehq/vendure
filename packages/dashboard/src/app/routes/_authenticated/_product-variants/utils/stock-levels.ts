@@ -1,6 +1,9 @@
+import { TrackInventorySetting } from './stock-settings.js';
+
 export interface StockLevelInput {
     stockLocationId: string;
-    stockOnHand: number;
+    stockOnHand?: number | null;
+    trackInventory?: TrackInventorySetting | null;
 }
 
 /**
@@ -14,18 +17,37 @@ export interface StockLevelInput {
  * drifted — if stock moved concurrently (an order completed, another admin edited,
  * an integration ran), the stale value silently reverts that movement. Mirrors the
  * legacy Angular UI, which only sent dirty stock locations. See #4803.
+ *
+ * For the same reason, a location whose tracking setting changed but whose stock did not is
+ * sent with `trackInventory` only, without `stockOnHand` (#2908).
  */
-export function getChangedStockLevels<T extends StockLevelInput>(
-    submitted: readonly T[] | null | undefined,
+export function getChangedStockLevels(
+    submitted: readonly StockLevelInput[] | null | undefined,
     original: readonly StockLevelInput[] | null | undefined,
-): T[] {
+): StockLevelInput[] {
     if (!submitted) {
         return [];
     }
-    const originalByLocation = new Map((original ?? []).map(s => [s.stockLocationId, s.stockOnHand]));
-    return submitted.filter(level => {
-        const originalStockOnHand = originalByLocation.get(level.stockLocationId);
-        // Include new locations and locations whose value the admin edited.
-        return originalStockOnHand === undefined || originalStockOnHand !== level.stockOnHand;
-    });
+    const originalByLocation = new Map((original ?? []).map(s => [s.stockLocationId, s]));
+    const changed: StockLevelInput[] = [];
+    for (const level of submitted) {
+        const originalLevel = originalByLocation.get(level.stockLocationId);
+        if (!originalLevel) {
+            // A newly added location: send everything.
+            changed.push(level);
+            continue;
+        }
+        const stockChanged = originalLevel.stockOnHand !== level.stockOnHand;
+        const trackingChanged =
+            (originalLevel.trackInventory ?? 'INHERIT') !== (level.trackInventory ?? 'INHERIT');
+        if (!stockChanged && !trackingChanged) {
+            continue;
+        }
+        changed.push({
+            stockLocationId: level.stockLocationId,
+            ...(stockChanged ? { stockOnHand: level.stockOnHand } : {}),
+            ...(trackingChanged ? { trackInventory: level.trackInventory } : {}),
+        });
+    }
+    return changed;
 }

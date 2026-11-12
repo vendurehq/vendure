@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { QueryRunner } from 'typeorm';
 
 import { qualifiedTableName } from './v4_0_role_assignments';
@@ -22,9 +23,9 @@ export interface TrackInventoryMigrationResult {
  * Channels whose stored value differed are overwritten (it had no effect before) and are
  * returned and logged, so you can set them again on purpose after the upgrade.
  *
- * The new `stock_level.trackInventory` column (default `INHERIT`) and the nullable
- * `stock_movement.tracked` column need no data: `INHERIT` keeps the variant setting in force,
- * and movements with `tracked = NULL` fall back to the current setting, as before v4.
+ * The new `stock_level.trackInventory` column needs no data: its default, `INHERIT`, keeps the
+ * variant setting in force. The new `stock_movement.tracked` column is filled by
+ * {@link backfillStockMovementTracking}.
  *
  * Table names honour the `entityPrefix` of the connection options and, on Postgres, the
  * `schema` option. The helper throws if the `global_settings` table cannot be found, rather than
@@ -152,7 +153,7 @@ export async function backfillStockMovementTracking(queryRunner: QueryRunner): P
                 WHEN pv.${esc('trackInventory')} = 'FALSE' THEN FALSE
                 ELSE (
                     SELECT ch.${esc('trackInventory')} FROM ${escTable(channelTable)} ch
-                    WHERE ch.${esc('code')} = '__default_channel__'
+                    WHERE ch.${esc('code')} = '${DEFAULT_CHANNEL_CODE}'
                 )
             END
             FROM ${escTable(variantTable)} pv

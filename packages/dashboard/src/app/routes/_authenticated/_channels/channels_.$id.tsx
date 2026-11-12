@@ -91,6 +91,7 @@ function ChannelDetailPage() {
                 code: entity.code,
                 token: entity.token,
                 pricesIncludeTax: entity.pricesIncludeTax,
+                trackInventory: entity.trackInventory,
                 availableCurrencyCodes: entity.availableCurrencyCodes,
                 availableLanguageCodes: entity.availableLanguageCodes,
                 defaultCurrencyCode: entity.defaultCurrencyCode,
@@ -135,7 +136,9 @@ function ChannelDetailPage() {
                     ...(creatingNewEntity
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
-                              defaultShippingZoneId: z.string().min(1, { message: t`This field is required` }),
+                              defaultShippingZoneId: z
+                                  .string()
+                                  .min(1, { message: t`This field is required` }),
                           }
                         : {}),
                 })
@@ -156,7 +159,10 @@ function ChannelDetailPage() {
                     if (!available.length) {
                         // Nothing is available, so the default cannot be filled in yet — say so on
                         // both fields rather than only on the one that happens to be required.
-                        addIssue('availableCurrencyCodes', t`You must select at least one available currency`);
+                        addIssue(
+                            'availableCurrencyCodes',
+                            t`You must select at least one available currency`,
+                        );
                         addIssue(
                             'defaultCurrencyCode',
                             t`You must first select an available currency to set a default currency`,
@@ -346,6 +352,20 @@ function ChannelDetailPage() {
                             }
                             render={({ field }) => (
                                 <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                            )}
+                        />
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="trackInventory"
+                            label={<Trans>Track inventory by default</Trans>}
+                            description={
+                                <Trans>
+                                    When tracked, stock levels are adjusted as products are sold in this
+                                    channel. Product variants and individual stock levels can override this.
+                                </Trans>
+                            }
+                            render={({ field }) => (
+                                <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
                             )}
                         />
                     </DetailFormGrid>
