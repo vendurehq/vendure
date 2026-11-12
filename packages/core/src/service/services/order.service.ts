@@ -2127,9 +2127,12 @@ export class OrderService implements OnApplicationBootstrap {
             orderIdOrOrder instanceof Order
                 ? orderIdOrOrder
                 : await this.getOrderOrThrow(ctx, orderIdOrOrder);
+        const customerChanged = !idsAreEqual(order.customerId ?? order.customer?.id, customer.id);
         order.customer = customer;
         await this.connection.getRepository(ctx, Order).save(order, { reload: false });
-        let updatedOrder = order;
+        let updatedOrder = customerChanged
+            ? await this.applyPriceAdjustmentsForNewCustomer(ctx, order)
+            : order;
         // Check that any applied couponCodes are still valid now that
         // we know the Customer.
         if (order.active && order.couponCodes) {
@@ -2355,8 +2358,12 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 const customer = await this.customerService.findOneByUserId(txCtx, user.id);
                 if (order && customer) {
+                    const customerChanged = !idsAreEqual(order.customerId, customer.id);
                     order.customer = customer;
                     await this.connection.getRepository(txCtx, Order).save(order, { reload: false });
+                    if (customerChanged) {
+                        order = await this.applyPriceAdjustmentsForNewCustomer(txCtx, order);
+                    }
                 }
                 return order;
             });
@@ -2367,6 +2374,22 @@ export class OrderService implements OnApplicationBootstrap {
             Logger.error(`Failed to merge orders: ${error.message}`, undefined, error.stack);
             return existingOrder;
         }
+    }
+
+    /**
+     * The unit price of an OrderLine can depend on the Customer, for example with a custom
+     * ProductVariantShopperPriceStrategy. So when the Customer of an active or draft Order changes,
+     * the price of each line is calculated again. A placed Order keeps its prices.
+     */
+    private async applyPriceAdjustmentsForNewCustomer(ctx: RequestContext, order: Order): Promise<Order> {
+        if (!order.active && order.state !== 'Draft') {
+            return order;
+        }
+        const fullOrder = await this.getOrderOrThrow(ctx, order.id);
+        if (!fullOrder.lines.length) {
+            return order;
+        }
+        return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
     }
 
     private async getOrderOrThrow(

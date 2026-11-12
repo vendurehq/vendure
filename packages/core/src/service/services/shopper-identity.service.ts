@@ -4,7 +4,6 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Customer } from '../../entity/customer/customer.entity';
 
 import { CustomerService } from './customer.service';
@@ -25,6 +24,9 @@ type ShopperScope = { customerId: ID | undefined };
  *
  * Both methods cache their result for each request, so a strategy can call them for each OrderLine
  * without a query for each line.
+ *
+ * A custom {@link OrderItemPriceCalculationStrategy} gets the same scope when it calls
+ * `ProductVariantService.calculateShopperPriceForOrder()`.
  *
  * @example
  * ```ts
@@ -54,7 +56,6 @@ export class ShopperIdentityService {
     private scope = new AsyncLocalStorage<ShopperScope>();
 
     constructor(
-        private connection: TransactionalConnection,
         private requestCache: RequestContextCacheService,
         private customerService: CustomerService,
     ) {}
@@ -78,41 +79,40 @@ export class ShopperIdentityService {
      */
     async getCustomerId(ctx: RequestContext): Promise<ID | undefined> {
         const scope = this.scope.getStore();
-        if (scope) {
-            return scope.customerId;
-        }
-        return (await this.getActiveCustomer(ctx))?.id;
+        return scope ? scope.customerId : this.getActiveCustomerId(ctx);
     }
 
     /**
      * @description
      * Returns the Customer that the price is for, or `undefined` for a guest. Loads each Customer
-     * once for each request.
+     * once for each request. It gives only a Customer of the active Channel that is not deleted.
      */
     async getCustomer(ctx: RequestContext): Promise<Customer | undefined> {
-        const scope = this.scope.getStore();
-        if (!scope) {
-            return this.getActiveCustomer(ctx);
-        }
-        const { customerId } = scope;
+        const customerId = await this.getCustomerId(ctx);
         if (customerId == null) {
             return undefined;
         }
-        return this.requestCache.get(ctx, `ShopperIdentityService.customer(${customerId})`, () =>
-            this.connection
-                .getRepository(ctx, Customer)
-                .findOne({ where: { id: customerId } })
-                .then(customer => customer ?? undefined),
+        return this.requestCache.get(ctx, this.customerCacheKey(customerId), () =>
+            this.customerService.findOne(ctx, customerId, ['user']),
         );
     }
 
-    private getActiveCustomer(ctx: RequestContext): Promise<Customer | undefined> {
+    private getActiveCustomerId(ctx: RequestContext): Promise<ID | undefined> {
         const userId = ctx.activeUserId;
         if (userId == null) {
             return Promise.resolve(undefined);
         }
-        return this.requestCache.get(ctx, `ShopperIdentityService.activeCustomer(${userId})`, () =>
-            this.customerService.findOneByUserId(ctx, userId),
-        );
+        return this.requestCache.get(ctx, `ShopperIdentityService.activeCustomerId(${userId})`, async () => {
+            const customer = await this.customerService.findOneByUserId(ctx, userId);
+            if (customer) {
+                // getCustomer() then uses this Customer and runs no second query
+                this.requestCache.set(ctx, this.customerCacheKey(customer.id), Promise.resolve(customer));
+            }
+            return customer?.id;
+        });
+    }
+
+    private customerCacheKey(customerId: ID) {
+        return `ShopperIdentityService.customer(${customerId})`;
     }
 }

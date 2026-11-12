@@ -22,7 +22,7 @@ import { RequestContextCacheService } from '../../cache/request-context-cache.se
 import { EntityNotFoundError, ForbiddenError, UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { roundMoney } from '../../common/round-money';
-import { ListQueryOptions } from '../../common/types/common-types';
+import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { idsAreEqual } from '../../common/utils';
 import { UpdatedProductVariantPrice } from '../../config/catalog/product-variant-price-update-strategy';
@@ -62,6 +62,7 @@ import { ChannelService } from './channel.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
+import { ShopperIdentityService } from './shopper-identity.service';
 import { StockLevelReadOptions, StockLevelService } from './stock-level.service';
 import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
@@ -94,6 +95,7 @@ export class ProductVariantService {
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
         private slugValidator: SlugValidator,
+        private shopperIdentityService: ShopperIdentityService,
     ) {}
 
     async findAll(
@@ -861,6 +863,36 @@ export class ProductVariantService {
             price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
             priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
         };
+    }
+
+    /**
+     * @description
+     * Calculates the unit price of an OrderLine with the configured {@link ProductVariantShopperPriceStrategy},
+     * for the Customer of the Order. The {@link DefaultOrderItemPriceCalculationStrategy} uses this method.
+     * A custom {@link OrderItemPriceCalculationStrategy} that replaces the default calls it too, so that the
+     * cart and the Shop API `ProductVariant.shopperPrice` field use the same strategy and the same shopper.
+     *
+     * The `productVariant` must have the Channel price and tax applied, as the OrderItemPriceCalculationStrategy
+     * receives it. The strategy runs inside {@link ShopperIdentityService}`.runForCustomer()` with the Customer of
+     * the Order, and receives the OrderLine custom fields as the `data` argument. It receives a copy of the variant
+     * and a shallow copy of the custom fields, so the given objects do not change.
+     *
+     * @since 4.0.0
+     */
+    calculateShopperPriceForOrder(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        order: Order,
+        quantity: number,
+        orderLineCustomFields: { [key: string]: any },
+    ): Promise<PriceCalculationResult> {
+        const { productVariantShopperPriceStrategy } = this.configService.catalogOptions;
+        return this.shopperIdentityService.runForCustomer(ctx, order.customerId, async () =>
+            productVariantShopperPriceStrategy.calculateUnitPrice(ctx, new ProductVariant(productVariant), {
+                quantity,
+                data: { ...orderLineCustomFields },
+            }),
+        );
     }
 
     /**

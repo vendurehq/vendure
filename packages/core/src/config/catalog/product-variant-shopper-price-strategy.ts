@@ -19,7 +19,7 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * ### Where the strategy is used
  *
  * * The {@link DefaultOrderItemPriceCalculationStrategy} calls it for the unit price of each OrderLine,
- *   for the Customer of the Order.
+ *   for the Customer of the Order, through `ProductVariantService.calculateShopperPriceForOrder()`.
  * * The Shop API `ProductVariant.shopperPrice` field calls it for the active Customer, without an Order.
  *   Thus a storefront can show the base unit price of the shopper.
  *
@@ -41,9 +41,14 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * ### Pricing data
  *
  * The `data` argument carries pricing input that the strategy defines, for example a packaging unit.
- * The storefront passes it to the `shopperPrice` field. For the cart, add a
- * {@link StrategyLayer} over the {@link OrderItemPriceCalculationStrategy} that maps the OrderLine
- * custom fields to the same data in its `getShopperPriceData()` method.
+ * For the `shopperPrice` field, the storefront passes it. In the cart, `data` is the OrderLine custom
+ * fields that the {@link OrderItemPriceCalculationStrategy} chain passes down. To get the same price,
+ * a storefront passes the same values to `shopperPrice(data: ...)` that it passes as `customFields`
+ * to `addItemToOrder`.
+ *
+ * The custom fields of a saved OrderLine can differ from the raw input: they can contain default
+ * values, other custom fields, and relation entities in place of IDs. So read only the fields that the
+ * strategy needs, and validate them.
  *
  * ### ProductVariantShopperPriceStrategy vs OrderItemPriceCalculationStrategy
  *
@@ -52,9 +57,11 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * depends on the variant, the shopper, the quantity and the pricing data goes in the
  * ProductVariantShopperPriceStrategy.
  *
- * A custom OrderItemPriceCalculationStrategy that replaces the default must call this strategy itself.
- * Otherwise the cart does not use it. Prefer to add your logic as a {@link StrategyLayer} over the
- * default OrderItemPriceCalculationStrategy.
+ * A custom OrderItemPriceCalculationStrategy that replaces the default must call
+ * `ProductVariantService.calculateShopperPriceForOrder()`. This runs the strategy for the Customer of the
+ * Order. Otherwise the cart does not use this strategy, or uses it for the wrong Customer. Prefer to add
+ * your logic as a {@link StrategyLayer} over the default OrderItemPriceCalculationStrategy. A layer that
+ * needs pricing data in a different shape changes the custom fields that it passes to `inner`.
  *
  * ### The shopper price and the cart price
  *
@@ -106,9 +113,9 @@ export interface ProductVariantShopperPriceArgs {
      * Pricing input that the strategy defines, for example the code of a packaging unit. Vendure does
      * not validate or interpret it: the strategy must do this.
      *
-     * For the `shopperPrice` field, this is the `data` argument of the field. In the cart, the configured
-     * {@link OrderItemPriceCalculationStrategy} gives it with its `getShopperPriceData()` method. By
-     * default it is `undefined`.
+     * For the `shopperPrice` field, this is the `data` argument of the field, or `undefined`. In the cart,
+     * this is a copy of the OrderLine custom fields that the {@link OrderItemPriceCalculationStrategy}
+     * receives.
      */
     data?: Record<string, unknown>;
 }

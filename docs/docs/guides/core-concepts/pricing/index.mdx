@@ -25,7 +25,7 @@ The result of this pipeline is exposed in the GraphQL API as a pair of fields on
 
 Vendure uses the strategy in two places:
 
-- In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order.
+- In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order. When the customer of an active order or a draft order changes, Vendure calculates the price of each line again.
 - In the Shop API, the `ProductVariant.shopperPrice` field calls it for the active customer.
 
 ```graphql
@@ -51,6 +51,8 @@ query {
 - the tax zone of the order, which can come from the shipping address,
 - a custom [`TaxLineCalculationStrategy`](/reference/typescript-api/tax/tax-line-calculation-strategy/).
 
+Search results do not have a shopper price. `SearchResult.price` and `priceWithTax` give the channel price, so a product list built on the `search` query shows the channel price.
+
 ### Finding the shopper
 
 The strategy gets the customer from the [`ShopperIdentityService`](/reference/typescript-api/services/shopper-identity-service/):
@@ -62,9 +64,14 @@ The strategy gets the customer from the [`ShopperIdentityService`](/reference/ty
 
 ### Pricing data
 
-`data` is pricing input that your strategy defines, for example the code of a packaging unit. Vendure does not validate or interpret it. Your strategy must check it.
+`data` is pricing input that your strategy defines, for example the code of a packaging unit. Vendure does not validate or interpret it.
 
-The storefront passes it in the `data` argument of `shopperPrice`. In the cart, Vendure does not map the order line custom fields to `data` by itself. To use an order line custom field as pricing data, add a layer over the `OrderItemPriceCalculationStrategy` that implements `getShopperPriceData()`. The default `OrderItemPriceCalculationStrategy` calls this method on the configured chain, so the layer does not replace the default.
+- For the `shopperPrice` field, the storefront passes it in the `data` argument.
+- In the cart, `data` is a copy of the order line custom fields that the `OrderItemPriceCalculationStrategy` chain passes down.
+
+To get the same price in both places, the storefront passes the same values to `shopperPrice(data: ...)` that it passes as `customFields` to `addItemToOrder`.
+
+The custom fields of a saved order line can differ from the raw input. They can contain default values, other custom fields, and relation entities in place of IDs. So your strategy reads only the fields that it needs, and checks them.
 
 ### Example
 
@@ -73,8 +80,6 @@ This plugin gives the price of six units for the packaging unit `BOX`, in the st
 ```ts title="src/plugins/packaging-units/packaging-unit.plugin.ts"
 import {
     composeStrategy,
-    Order,
-    OrderItemPriceCalculationStrategy,
     PriceCalculationResult,
     ProductVariant,
     ProductVariantShopperPriceArgs,
@@ -101,29 +106,12 @@ export class PackagingUnitPriceLayer extends StrategyLayer.passThrough<ProductVa
     }
 }
 
-export class PackagingUnitDataLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
-    static priority = 100;
-
-    async getShopperPriceData(
-        ctx: RequestContext,
-        orderLineCustomFields: { [key: string]: any },
-        order: Order,
-    ) {
-        const data = await this.inner.getShopperPriceData?.(ctx, orderLineCustomFields, order);
-        return { ...data, unitCode: orderLineCustomFields.unitCode };
-    }
-}
-
 @VendurePlugin({
     configuration: config => {
         config.customFields.OrderLine.push({ name: 'unitCode', type: 'string' });
         config.catalogOptions.productVariantShopperPriceStrategy = composeStrategy(
             PackagingUnitPriceLayer,
             config.catalogOptions.productVariantShopperPriceStrategy,
-        );
-        config.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
-            PackagingUnitDataLayer,
-            config.orderOptions.orderItemPriceCalculationStrategy,
         );
         return config;
     },
@@ -133,16 +121,18 @@ export class PackagingUnitPlugin {}
 
 The storefront then sends `shopperPrice(quantity: 2, data: { unitCode: "BOX" })` and `addItemToOrder(..., customFields: { unitCode: "BOX" })`.
 
+If your pricing data has a different shape than the custom fields, add a `StrategyLayer` over the `OrderItemPriceCalculationStrategy` that changes the custom fields it passes to `inner`.
+
 Things to know:
 
 - Vendure does not cache the result. The `shopperPrice` field runs the strategy once for each variant that requests the field. If your strategy is slow, for example because it calls an external system, it must cache the results itself.
-- In code, use `ProductVariantService.calculateShopperPrice()`.
+- In code, use `ProductVariantService.calculateShopperPrice()` for the active shopper, and `ProductVariantService.calculateShopperPriceForOrder()` for an order line.
 
 ### Shopper price or order item price?
 
 The `OrderItemPriceCalculationStrategy` gives the price of an order line, and it has the order. Use it only for logic that needs the order, or that writes data to the order line. Put catalog pricing that depends on the variant, the shopper, the quantity and the pricing data in the shopper price strategy.
 
-A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `productVariantShopperPriceStrategy` itself. Otherwise the cart ignores the shopper price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a shopper price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`.
+A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `ProductVariantService.calculateShopperPriceForOrder()`. This method runs the shopper price strategy for the customer of the order. If the custom strategy calls the shopper price strategy directly, the strategy gets the customer of the session and not of the order. In a draft order, this gives no customer, because the administrator has no customer. If it does not call it, the cart ignores the shopper price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a shopper price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`.
 
 ## Channel-specific pricing
 

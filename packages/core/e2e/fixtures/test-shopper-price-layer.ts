@@ -1,8 +1,6 @@
 import {
     composeStrategy,
     Injector,
-    Order,
-    OrderItemPriceCalculationStrategy,
     PriceCalculationResult,
     ProductVariant,
     ProductVariantShopperPriceArgs,
@@ -29,7 +27,8 @@ export const fixedPriceEmailAddresses = new Set<string>();
  *
  * * a fixed unit price for some Customers,
  * * 20% off for a quantity of 10 or more,
- * * the price of {@link BOX_SIZE} units when the pricing data has `unitCode: 'BOX'`.
+ * * the price of {@link BOX_SIZE} units when the pricing data has `unitCode: 'BOX'`. In the cart, the
+ *   pricing data is the OrderLine custom fields.
  */
 export class TestShopperPriceLayer extends StrategyLayer.passThrough<ProductVariantShopperPriceStrategy>() {
     static priority = 100;
@@ -62,32 +61,11 @@ export class TestShopperPriceLayer extends StrategyLayer.passThrough<ProductVari
     }
 }
 
-/**
- * A layer over the {@link OrderItemPriceCalculationStrategy} that gives the OrderLine custom field
- * `unitCode` to the shopper price strategy as pricing data.
- */
-export class UnitCodePriceDataLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
-    static priority = 100;
-
-    async getShopperPriceData(
-        ctx: RequestContext,
-        orderLineCustomFields: { [key: string]: any },
-        order: Order,
-    ): Promise<Record<string, unknown>> {
-        const data = await this.inner.getShopperPriceData?.(ctx, orderLineCustomFields, order);
-        return { ...data, unitCode: orderLineCustomFields.unitCode };
-    }
-}
-
 @VendurePlugin({
     configuration: config => {
         config.catalogOptions.productVariantShopperPriceStrategy = composeStrategy(
             TestShopperPriceLayer,
             config.catalogOptions.productVariantShopperPriceStrategy,
-        );
-        config.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
-            UnitCodePriceDataLayer,
-            config.orderOptions.orderItemPriceCalculationStrategy,
         );
         return config;
     },

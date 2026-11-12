@@ -2923,7 +2923,9 @@ export type ProductVariant = Node & {
    * is needed.
    *
    * The `data` argument passes pricing input that the strategy defines, for example a packaging
-   * unit. Vendure passes it to the strategy as it is.
+   * unit. Vendure passes it to the strategy as it is. In the cart, the strategy receives the
+   * OrderLine custom fields as this data. To get the same price, pass the same values that you
+   * pass as `customFields` to `addItemToOrder`.
    *
    * This is the base unit price of the shopper, not a guarantee of the final cart price. For
    * example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone

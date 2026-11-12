@@ -20,7 +20,7 @@ import {
 } from './fixtures/test-shopper-price-layer';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql, ResultOf } from './graphql/graphql-shop';
-import { getCustomerListDocument } from './graphql/shared-definitions';
+import { attemptLoginDocument, getCustomerListDocument } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 const GUEST_EMAIL_ADDRESS = 'guest-with-fixed-price@example.com';
@@ -92,6 +92,17 @@ const addItemDocument = graphql(
     [orderLinesFragment],
 );
 
+const getActiveOrderLinesDocument = graphql(
+    `
+        query GetActiveOrderLinesForShopperPrice {
+            activeOrder {
+                ...ShopperPriceOrderLines
+            }
+        }
+    `,
+    [orderLinesFragment],
+);
+
 const setCustomerForOrderDocument = graphql(`
     mutation SetGuestCustomerForShopperPrice($input: CreateCustomerInput!) {
         setCustomerForOrder(input: $input) {
@@ -133,6 +144,9 @@ const setCustomerForDraftOrderDocument = adminGraphql(`
         setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId) {
             ... on Order {
                 id
+                lines {
+                    unitPrice
+                }
             }
             ... on ErrorResult {
                 errorCode
@@ -196,6 +210,8 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
     const orderGuard: ErrorResultGuard<OrderResult> = createErrorResultGuard(input => !!input.lines);
 
     let fixedPriceCustomer: { id: string; emailAddress: string };
+    /** A second Customer with the fixed price, who has no Order before the login test. */
+    let loginCustomer: { id: string; emailAddress: string };
     /** The variants of the first product, with the channel prices. */
     let channelPrices: VariantPrices;
 
@@ -226,9 +242,10 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
             customerCount: 2,
         });
         await adminClient.asSuperAdmin();
-        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 1 } });
-        fixedPriceCustomer = customers.items[0];
+        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 2 } });
+        [fixedPriceCustomer, loginCustomer] = customers.items;
         fixedPriceEmailAddresses.add(fixedPriceCustomer.emailAddress);
+        fixedPriceEmailAddresses.add(loginCustomer.emailAddress);
         fixedPriceEmailAddresses.add(GUEST_EMAIL_ADDRESS);
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
         channelPrices = product!.variants;
@@ -292,7 +309,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         expect(line.unitPriceWithTax).toBe(variant.shopperPrice.priceWithTax);
     });
 
-    it('equals the unit price of the cart line when a layer maps the OrderLine custom fields to data', async () => {
+    it('equals the unit price of the cart line for the same data and OrderLine custom fields', async () => {
         const { product } = await shopClient.query(getVariantPricesDocument, {
             id: 'T_1',
             quantity: 2,
@@ -331,6 +348,9 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         const secondLine = await addToCart(shopClient, channelPrices[1].id, 1);
 
         expect(secondLine.unitPrice).toBe(FIXED_UNIT_PRICE);
+        // The line that was added before the Customer was set gets the price of the Customer too
+        const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+        expect(activeOrder!.lines.map(l => l.unitPrice)).toEqual([FIXED_UNIT_PRICE, FIXED_UNIT_PRICE]);
         // The session has no Customer, so the shopper price is the channel price
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
         expect(product!.variants[1].shopperPrice.price).toBe(channelPrices[1].price);
@@ -351,6 +371,40 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
 
         expect(withTwoLines).toBeGreaterThan(0);
         expect(withFourLines).toBe(withTwoLines);
+    });
+
+    it('calculates the cart again when a login gives the guest order to a customer', async () => {
+        await shopClient.asAnonymousUser();
+        const line = await addToCart(shopClient, channelPrices[0].id, 1);
+        expect(line.unitPrice).toBe(channelPrices[0].price);
+
+        // Logs in with the session of the guest order. asUserWithCredentials() would log out first.
+        await shopClient.query(attemptLoginDocument, {
+            username: loginCustomer.emailAddress,
+            password: 'test',
+        });
+
+        const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+        expect(activeOrder!.lines.map(l => l.unitPrice)).toEqual([FIXED_UNIT_PRICE]);
+    });
+
+    it('calculates a draft order again when the customer is set after the items', async () => {
+        const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+        const { addItemToDraftOrder } = await adminClient.query(addItemToDraftOrderDocument, {
+            orderId: createDraftOrder.id,
+            input: { productVariantId: channelPrices[0].id, quantity: 1 },
+        });
+        expect(addItemToDraftOrder).toEqual({ lines: [{ unitPrice: channelPrices[0].price }] });
+
+        const { setCustomerForDraftOrder } = await adminClient.query(setCustomerForDraftOrderDocument, {
+            orderId: createDraftOrder.id,
+            customerId: fixedPriceCustomer.id,
+        });
+
+        expect(setCustomerForDraftOrder).toEqual({
+            id: createDraftOrder.id,
+            lines: [{ unitPrice: FIXED_UNIT_PRICE }],
+        });
     });
 
     it('uses the customer of the order in an Admin draft order', async () => {
