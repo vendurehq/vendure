@@ -203,12 +203,13 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         client: SimpleGraphQLClient,
         variantId: string,
         quantity: number,
-        customFields?: Record<string, any>,
+        customFields?: Record<string, unknown>,
     ) {
         const { addItemToOrder } = await client.query(addItemDocument, {
             productVariantId: variantId,
             quantity,
-            customFields,
+            // The generated shop types declare no fields for OrderLineCustomFieldsInput.
+            customFields: customFields as never,
         });
         orderGuard.assertSuccess(addItemToOrder);
         const line = addItemToOrder.lines.find(l => l.productVariant.id === variantId);
