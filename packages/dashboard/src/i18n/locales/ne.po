@@ -248,6 +248,11 @@ msgstr "यो सक्षम पारिएको बेला, उत्प�
 #~ msgid "Create variants for your product"
 #~ msgstr "तपाईंको उत्पादनको लागि भेरियन्टहरू सिर्जना गर्नुहोस्"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers.tsx
+msgid "Storefronts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
 msgstr "मस्यौदा अर्डर पूरा भयो"
@@ -5446,6 +5451,10 @@ msgstr "च्यानल थप्नुहोस्"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to update product option group"
 #~ msgstr "उत्पादन विकल्प समूह अद्यावधिक गर्न असफल"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

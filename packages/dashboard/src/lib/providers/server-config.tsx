@@ -227,6 +227,7 @@ export const getServerConfigDocument = graphql(
                 availableLanguages
                 serverConfig {
                     moneyStrategyPrecision
+                    customerIdentityIsGlobal
                     orderProcess {
                         name
                         to
@@ -256,6 +257,11 @@ export type CustomFieldConfig = QueryResult['entityCustomFields'][number]['custo
 export interface ServerConfig {
     availableLanguages: string[];
     moneyStrategyPrecision: QueryResult['moneyStrategyPrecision'];
+    /**
+     * Whether every Channel shares one customer base. When `false`, an IdentityScopeStrategy gives
+     * Channels separate customer bases.
+     */
+    customerIdentityIsGlobal: boolean;
     orderProcess: QueryResult['orderProcess'];
     permittedAssetTypes: QueryResult['permittedAssetTypes'];
     permissions: QueryResult['permissions'];
@@ -288,6 +294,8 @@ export const ServerConfigProvider = ({ children }: { children: React.ReactNode }
                 ? {
                       availableLanguages: data.globalSettings.availableLanguages ?? [],
                       moneyStrategyPrecision: data.globalSettings.serverConfig.moneyStrategyPrecision ?? 2,
+                      customerIdentityIsGlobal:
+                          data.globalSettings.serverConfig.customerIdentityIsGlobal ?? true,
                       orderProcess: data.globalSettings.serverConfig.orderProcess ?? [],
                       permittedAssetTypes: data.globalSettings.serverConfig.permittedAssetTypes ?? [],
                       permissions: data.globalSettings.serverConfig.permissions ?? [],

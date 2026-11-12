@@ -248,6 +248,11 @@ msgstr "이 옵션을 활성화하면 상품 카탈로그에 입력된 가격에
 #~ msgid "Create variants for your product"
 #~ msgstr "상품 변형 생성"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers.tsx
+msgid "Storefronts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
 msgstr "임시 저장 주문이 완료되었습니다"
@@ -5405,6 +5410,10 @@ msgstr ""
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Add channel"
 msgstr "채널 추가"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

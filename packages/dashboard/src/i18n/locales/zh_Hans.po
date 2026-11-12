@@ -248,6 +248,11 @@ msgstr "启用后，商品目录中输入的价格将包含默认税务区域的
 #~ msgid "Create variants for your product"
 #~ msgstr "为您的商品创建变体"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers.tsx
+msgid "Storefronts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
 msgstr "草稿订单已完成"
@@ -5446,6 +5451,10 @@ msgstr "添加渠道"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to update product option group"
 #~ msgstr "更新商品选项组失败"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
