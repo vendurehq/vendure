@@ -7,12 +7,20 @@ import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provi
 import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
 import { setupI18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { CellContext, flexRender } from '@tanstack/react-table';
+import { CellContext, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { act, type ReactNode, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AdditionalColumns } from '../shared/paginated-list-data-table.js';
 import { useGeneratedColumns } from './use-generated-columns.js';
+
+vi.mock('virtual:admin-api-schema', () => {
+    return import('../../framework/document-introspection/testing-utils.js').then(m => m.getMockSchemaInfo());
+});
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 // The display component registry is a module-level Map with no removal API, so an entry
 // registered by one test stays visible to every later test. Each test therefore uses its
@@ -36,6 +44,7 @@ const customizeColumns = {
 
 const cellContext = {
     cell: { getValue: () => PRICE },
+    column: { id: 'price', columnDef: { meta: {} } },
     row: { original: { sku: 'SKU-1', price: PRICE } },
 } as unknown as CellContext<any, any>;
 
@@ -49,6 +58,18 @@ function renderColumnCell(
     columnId: string,
     additionalColumns?: AdditionalColumns<any>,
 ): string {
+    return renderCell(generateColumn(pageId, columnId, additionalColumns));
+}
+
+function renderCell(column: { cell?: any }, context: CellContext<any, any> = cellContext): string {
+    return renderToStaticMarkup(<>{flexRender(column.cell, context)}</>);
+}
+
+function generateColumn(
+    pageId: string,
+    columnId: string,
+    additionalColumns?: AdditionalColumns<any>,
+): { id?: string; cell?: any } {
     const captured: { columns?: Array<{ id?: string; cell?: any }> } = {};
 
     function Harness() {
@@ -77,7 +98,7 @@ function renderColumnCell(
     if (!column?.cell) {
         throw new Error(`Column "${columnId}" was not generated`);
     }
-    return renderToStaticMarkup(<>{flexRender(column.cell, cellContext)}</>);
+    return column;
 }
 
 describe('useGeneratedColumns display component precedence', () => {
@@ -146,6 +167,83 @@ describe('useGeneratedColumns display component precedence', () => {
 
         expect(renderColumnCell(pageId, 'price')).toBe('<span>via-extension-api</span>');
     });
+
+    // #5346 — a column generated before a display component registers must not keep the unregistered renderer
+    it('applies a display component registered after the column was generated', () => {
+        const pageId = 'test-page-late-registration';
+
+        // Generated while nothing is registered, then reused as a memoised column would be.
+        const column = generateColumn(pageId, 'price');
+        expect(renderCell(column)).toBe('<span>core-money-cell</span>');
+
+        addDisplayComponent({
+            pageId,
+            blockId: BLOCK_ID,
+            field: 'price',
+            component: () => <span>late-registered</span>,
+        });
+
+        expect(renderCell(column)).toBe('<span>late-registered</span>');
+    });
+});
+
+describe('useGeneratedColumns custom field columns', () => {
+    // #5346 — a display component over a custom-field column's core cell must get the value
+    // from row.original.customFields, as CellWrapper does for columns without a core cell
+    it('passes the custom field value to a display component that overrides a core-supplied cell', () => {
+        const pageId = 'test-page-custom-field-value';
+        const captured: { columns?: Array<{ id?: string; cell?: any; meta?: any }> } = {};
+
+        function Harness() {
+            const { columns } = useGeneratedColumns({
+                fields: [
+                    {
+                        name: 'customFields',
+                        type: 'ProductCustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                    },
+                ],
+                customizeColumns: { custom1: { cell: () => <span>core-custom-field-cell</span> } } as any,
+                includeSelectionColumn: false,
+                includeActionsColumn: false,
+            });
+            captured.columns = columns as any;
+            return null;
+        }
+
+        renderToStaticMarkup(
+            <I18nProvider i18n={i18n}>
+                <PageContext.Provider value={{ pageId }}>
+                    <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
+                        <Harness />
+                    </PageBlockContext.Provider>
+                </PageContext.Provider>
+            </I18nProvider>,
+        );
+
+        addDisplayComponent({
+            pageId,
+            blockId: BLOCK_ID,
+            field: 'custom1',
+            component: ({ value }) => <span>{`value:${value as string}`}</span>,
+        });
+
+        const column = captured.columns?.find(c => c.id === 'custom1');
+        if (!column) {
+            throw new Error('Column "custom1" was not generated');
+        }
+        expect(column.meta?.isCustomField).toBe(true);
+        // A custom field is not a property of the row itself, so the accessor yields undefined.
+        const customFieldContext = {
+            cell: { getValue: () => undefined },
+            column: { id: column.id, columnDef: column },
+            row: { original: { customFields: { custom1: 'custom-field-value' } } },
+        } as unknown as CellContext<any, any>;
+        expect(renderCell(column, customFieldContext)).toBe('<span>value:custom-field-value</span>');
+    });
 });
 
 describe('useGeneratedColumns additionalColumns', () => {
@@ -180,5 +278,134 @@ describe('useGeneratedColumns additionalColumns', () => {
                 additionalColumns,
             ),
         ).toBe('<span>additional-column-cell</span>');
+    });
+
+    // #5346 — an additional column without a cell must pick up a display component registered later
+    it('applies a display component registered after an additional column without a cell was generated', () => {
+        const pageId = 'test-page-additional-column-late-registration';
+        const column = generateColumn(pageId, 'skuLabel', {
+            skuLabel: { accessorFn: (row: any) => row.sku },
+        } as any);
+        const skuLabelContext = { ...cellContext, renderValue: () => 'SKU-1' } as unknown as CellContext<
+            any,
+            any
+        >;
+        expect(renderCell(column, skuLabelContext)).toBe('SKU-1');
+
+        addDisplayComponent({
+            pageId,
+            blockId: BLOCK_ID,
+            field: 'skuLabel',
+            component: () => <span>late-registered</span>,
+        });
+
+        expect(renderCell(column, skuLabelContext)).toBe('<span>late-registered</span>');
+    });
+});
+
+/**
+ * Mounts a real TanStack table over the generated columns and returns a `render` that
+ * re-renders it. Each render passes a new `customizeColumns` object holding the same `cell`,
+ * which forces the column memo to recompute while the cell itself stays referentially stable.
+ */
+function mountGeneratedTable(pageId: string, cell: () => ReactNode) {
+    function Table() {
+        const { columns } = useGeneratedColumns({
+            fields,
+            customizeColumns: { price: { cell } } as any,
+            includeSelectionColumn: false,
+            includeActionsColumn: false,
+        });
+        const table = useReactTable({
+            data: [{ sku: 'SKU-1', price: PRICE }],
+            columns: columns as any,
+            getCoreRowModel: getCoreRowModel(),
+        });
+        return (
+            <>
+                {table
+                    .getRowModel()
+                    .rows.flatMap(row =>
+                        row
+                            .getVisibleCells()
+                            .map(tableCell => (
+                                <span key={tableCell.id}>
+                                    {flexRender(tableCell.column.columnDef.cell, tableCell.getContext())}
+                                </span>
+                            )),
+                    )}
+            </>
+        );
+    }
+
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    const render = () =>
+        act(() =>
+            root.render(
+                <I18nProvider i18n={i18n}>
+                    <PageContext.Provider value={{ pageId }}>
+                        <PageBlockContext.Provider value={{ blockId: BLOCK_ID, column: 'main' }}>
+                            <Table />
+                        </PageBlockContext.Provider>
+                    </PageContext.Provider>
+                </I18nProvider>,
+            ),
+        );
+    return { container, render, unmount: () => act(() => root.unmount()) };
+}
+
+describe('useGeneratedColumns mounted table', () => {
+    // #5346 — render-time lookup must not remount a stable cell when columns regenerate (see #4064)
+    it('does not remount a stable custom cell when the columns are regenerated', () => {
+        let mounts = 0;
+        function StatefulCell() {
+            useEffect(() => {
+                mounts++;
+            }, []);
+            return <span>stateful</span>;
+        }
+
+        const table = mountGeneratedTable('test-page-stable-cell', StatefulCell);
+        table.render();
+        table.render();
+        table.render();
+
+        expect(table.container.textContent).toBe('SKU-1stateful');
+        expect(mounts).toBe(1);
+        table.unmount();
+    });
+
+    // #5346 — the case an extension author actually hits: a stateful display component is
+    // registered, so the registered branch of the wrapper renders on every pass. The wrapper
+    // is cached per cell and key, so the component must stay mounted across regenerations.
+    it('does not remount a registered stateful display component when the columns are regenerated', () => {
+        const pageId = 'test-page-stable-registered-display';
+        let mounts = 0;
+        function StatefulDisplay() {
+            useEffect(() => {
+                mounts++;
+            }, []);
+            return <span>registered-stateful</span>;
+        }
+        addDisplayComponent({
+            pageId,
+            blockId: BLOCK_ID,
+            field: 'price',
+            component: StatefulDisplay,
+        });
+
+        function StableCell() {
+            return <span>core-money-cell</span>;
+        }
+
+        const table = mountGeneratedTable(pageId, StableCell);
+        table.render();
+        table.render();
+        table.render();
+
+        expect(table.container.textContent).toBe('SKU-1registered-stateful');
+        expect(mounts).toBe(1);
+        table.unmount();
     });
 });
