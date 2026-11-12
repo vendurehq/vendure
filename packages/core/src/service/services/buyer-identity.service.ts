@@ -1,60 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
-import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
+import { Buyer } from '../../config/catalog/product-variant-buyer-price-strategy';
 import { Customer } from '../../entity/customer/customer.entity';
 
 import { CustomerService } from './customer.service';
 
-type BuyerScope = { customerId: ID | undefined };
-
 /**
  * @description
- * Gives the Customer that a price is for. A {@link ProductVariantBuyerPriceStrategy} uses this
- * service to find the buyer.
+ * Creates the {@link Buyer} that Vendure passes to the {@link ProductVariantBuyerPriceStrategy} in the
+ * `buyer` argument. A Buyer loads nothing until a strategy calls one of its methods.
  *
- * * In the cart, the default {@link OrderItemPriceCalculationStrategy} calls the buyer price strategy
- *   inside `runForCustomer()` with the Customer of the Order. Thus the price is for the Customer of the
- *   Order: in an Admin draft order this is the Customer, not the Administrator, and in a guest Order it
- *   is the guest Customer.
- * * Outside `runForCustomer()`, for example for the Shop API `ProductVariant.buyerPrice` field, the
- *   service gives the Customer of the active User, or `undefined` for a guest session.
+ * * `forCustomer()` gives the Buyer for a known Customer ID, for example the Customer of an Order.
+ *   `ProductVariantService.calculateBuyerPriceForOrder()` uses it with the Customer of the Order. In an
+ *   Admin draft order this is the Customer, not the Administrator, and in a guest Order it is the guest
+ *   Customer.
+ * * `forActiveUser()` gives the Buyer for the Customer of the active User, or no Customer for a guest
+ *   session. The Shop API `ProductVariant.buyerPrice` field uses it.
  *
- * Both methods cache their result for each request, so a strategy can call them for each OrderLine
- * without a query for each line.
- *
- * A custom {@link OrderItemPriceCalculationStrategy} gets the same scope when it calls
- * `ProductVariantService.calculateBuyerPriceForOrder()`.
- *
- * @example
- * ```ts
- * export class CustomerPriceLayer extends StrategyLayer.passThrough<ProductVariantBuyerPriceStrategy>() {
- *     static priority = 100;
- *     private buyerIdentityService: BuyerIdentityService;
- *
- *     init(injector: Injector) {
- *         this.buyerIdentityService = injector.get(BuyerIdentityService);
- *     }
- *
- *     async calculateUnitPrice(...args: Parameters<ProductVariantBuyerPriceStrategy['calculateUnitPrice']>) {
- *         const [ctx] = args;
- *         const result = await this.inner.calculateUnitPrice(...args);
- *         const customerId = await this.buyerIdentityService.getCustomerId(ctx);
- *         // look up the price for this Customer
- *         return result;
- *     }
- * }
- * ```
+ * The service loads each Customer once for each request, so a strategy can call the Buyer for each
+ * OrderLine without a query for each line. It gives only a Customer of the active Channel that is not
+ * deleted.
  *
  * @docsCategory services
  * @since 4.0.0
  */
 @Injectable()
 export class BuyerIdentityService {
-    private scope = new AsyncLocalStorage<BuyerScope>();
-
     constructor(
         private requestCache: RequestContextCacheService,
         private customerService: CustomerService,
@@ -62,35 +36,32 @@ export class BuyerIdentityService {
 
     /**
      * @description
-     * Runs `fn` with the given Customer as the buyer. Inside `fn`, `getCustomerId()` and `getCustomer()`
-     * give this Customer, also for the calls that `fn` makes asynchronously. Pass `undefined` for a
-     * buyer without a Customer. The scope does not change the RequestContext, so other code that runs
-     * at the same time for the same request does not see it.
+     * Returns the Buyer for the given Customer ID. Pass `undefined` or `null` for a buyer without a
+     * Customer. `getCustomerId()` of this Buyer runs no query.
      */
-    runForCustomer<T>(ctx: RequestContext, customerId: ID | undefined, fn: () => Promise<T>): Promise<T> {
-        return this.scope.run({ customerId }, fn);
+    forCustomer(ctx: RequestContext, customerId: ID | null | undefined): Buyer {
+        const id = customerId ?? undefined;
+        return {
+            getCustomerId: () => Promise.resolve(id),
+            getCustomer: () => this.getCustomer(ctx, id),
+        };
     }
 
     /**
      * @description
-     * Returns the ID of the Customer that the price is for, or `undefined` for a guest. Inside
-     * `runForCustomer()` this runs no query. Otherwise it loads the Customer of the active User once
-     * for each request.
+     * Returns the Buyer for the Customer of the active User. For a guest session, the Buyer has no
+     * Customer.
      */
-    async getCustomerId(ctx: RequestContext): Promise<ID | undefined> {
-        const scope = this.scope.getStore();
-        return scope ? scope.customerId : this.getActiveCustomerId(ctx);
+    forActiveUser(ctx: RequestContext): Buyer {
+        return {
+            getCustomerId: () => this.getActiveCustomerId(ctx),
+            getCustomer: async () => this.getCustomer(ctx, await this.getActiveCustomerId(ctx)),
+        };
     }
 
-    /**
-     * @description
-     * Returns the Customer that the price is for, or `undefined` for a guest. Loads each Customer
-     * once for each request. It gives only a Customer of the active Channel that is not deleted.
-     */
-    async getCustomer(ctx: RequestContext): Promise<Customer | undefined> {
-        const customerId = await this.getCustomerId(ctx);
+    private getCustomer(ctx: RequestContext, customerId: ID | undefined): Promise<Customer | undefined> {
         if (customerId == null) {
-            return undefined;
+            return Promise.resolve(undefined);
         }
         return this.requestCache.get(ctx, this.customerCacheKey(customerId), () =>
             this.customerService.findOne(ctx, customerId, ['user']),

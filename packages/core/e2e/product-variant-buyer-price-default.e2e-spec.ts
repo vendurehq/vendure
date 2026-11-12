@@ -10,13 +10,13 @@ import { graphql } from './graphql/graphql-shop';
 import { getCustomerListDocument } from './graphql/shared-definitions';
 
 const getVariantPricesDocument = graphql(`
-    query GetVariantBuyerPricesDefault($id: ID!, $quantity: Int, $data: JSON) {
+    query GetVariantBuyerPricesDefault($id: ID!, $quantity: Int) {
         product(id: $id) {
             variants {
                 id
                 price
                 priceWithTax
-                buyerPrice(quantity: $quantity, data: $data) {
+                buyerPrice(quantity: $quantity) {
                     price
                     priceWithTax
                 }
@@ -82,7 +82,6 @@ describe('ProductVariant.buyerPrice with the default ProductVariantBuyerPriceStr
         const { product } = await shopClient.query(getVariantPricesDocument, {
             id: 'T_1',
             quantity: 5,
-            data: { unitCode: 'BOX' },
         });
 
         expect(product!.variants.length).toBeGreaterThan(1);
@@ -113,13 +112,9 @@ describe('ProductVariant.buyerPrice with the default ProductVariantBuyerPriceStr
             const withField = await countQueries(() =>
                 shopClient.query(getVariantPricesDocument, { id: 'T_1' }),
             );
-            const withData = await countQueries(() =>
-                shopClient.query(getVariantPricesDocument, { id: 'T_1', data: { unitCode: 'BOX' } }),
-            );
 
             expect(withoutField).toBeGreaterThan(0);
             expect(withField).toBe(withoutField);
-            expect(withData).toBe(withoutField);
         }
     });
 });

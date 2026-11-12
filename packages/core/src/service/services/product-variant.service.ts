@@ -19,7 +19,12 @@ import { In, IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { EntityNotFoundError, ForbiddenError, UserInputError } from '../../common/error/errors';
+import {
+    EntityNotFoundError,
+    ForbiddenError,
+    IllegalOperationError,
+    UserInputError,
+} from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { roundMoney } from '../../common/round-money';
 import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
@@ -58,14 +63,24 @@ import { patchEntity } from '../helpers/utils/patch-entity';
 import { samplesEach } from '../helpers/utils/samples-each';
 
 import { AssetService } from './asset.service';
+import { BuyerIdentityService } from './buyer-identity.service';
 import { ChannelService } from './channel.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
-import { BuyerIdentityService } from './buyer-identity.service';
 import { StockLevelReadOptions, StockLevelService } from './stock-level.service';
 import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
+
+/**
+ * @description
+ * The result of `ProductVariantService.calculateBuyerPrice()`: the price for the GraphQL `BuyerPrice`
+ * type, and the `metadata` of the {@link ProductVariantBuyerPriceStrategy} result.
+ *
+ * @docsCategory services
+ * @since 4.0.0
+ */
+export type BuyerPriceResult = BuyerPrice & { metadata?: Record<string, unknown> };
 
 /**
  * @description
@@ -831,8 +846,12 @@ export class ProductVariantService {
      * @description
      * Calculates the unit price of the ProductVariant for the active buyer, the given quantity and the
      * given pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
-     * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}.
-     * The {@link BuyerIdentityService} gives the active Customer to the strategy.
+     * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}
+     * with the Buyer of the active User, from the {@link BuyerIdentityService}.
+     *
+     * Returns `undefined` if the strategy gives no price for this buyer. The result has the `metadata`
+     * of the strategy result. It is not a field of the GraphQL `BuyerPrice` type, but a field resolver
+     * of a plugin can read it from the parent object.
      *
      * The result is the base unit price of the buyer, not a guarantee of the final cart price. The tax
      * rate comes from the tax zone of the active session, and the cart uses the tax zone of the Order.
@@ -847,21 +866,26 @@ export class ProductVariantService {
         variant: ProductVariant,
         quantity = 1,
         data?: Record<string, unknown>,
-    ): Promise<BuyerPrice> {
+    ): Promise<BuyerPriceResult | undefined> {
         if (!Number.isInteger(quantity) || quantity < 1) {
             throw new UserInputError('error.buyer-price-quantity-must-be-positive');
         }
         const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
         const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
-        const { price, priceIncludesTax } = await productVariantBuyerPriceStrategy.calculateUnitPrice(
+        const result = await productVariantBuyerPriceStrategy.calculateUnitPrice(
             ctx,
             new ProductVariant(hydratedVariant),
-            { quantity, data: structuredClone(data) },
+            { quantity, data: structuredClone(data), buyer: this.buyerIdentityService.forActiveUser(ctx) },
         );
+        if (!result) {
+            return undefined;
+        }
+        const { price, priceIncludesTax, metadata } = result;
         const taxRate = hydratedVariant.taxRateApplied;
         return {
             price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
             priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
+            metadata,
         };
     }
 
@@ -872,14 +896,18 @@ export class ProductVariantService {
      * A custom {@link OrderItemPriceCalculationStrategy} that replaces the default calls it too, so that the
      * cart and the Shop API `ProductVariant.buyerPrice` field use the same strategy and the same buyer.
      *
-     * The `productVariant` must have the Channel price and tax applied, as the OrderItemPriceCalculationStrategy
-     * receives it. The strategy runs inside {@link BuyerIdentityService}`.runForCustomer()` with the Customer of
-     * the Order, and receives the OrderLine custom fields as the `data` argument. It receives a copy of the variant
-     * and a shallow copy of the custom fields, so the given objects do not change.
+     * The `productVariant` must have the Channel price and tax applied, as the
+     * OrderItemPriceCalculationStrategy receives it. The strategy receives the Buyer of the Customer of the
+     * Order, and the OrderLine custom fields as the `data` argument. It receives a copy of the variant and
+     * a shallow copy of the custom fields, so the given objects do not change. The result includes the
+     * `metadata` of the strategy.
+     *
+     * If the strategy gives no price for this buyer, this method throws an `IllegalOperationError`, so
+     * the item cannot be added at no price.
      *
      * @since 4.0.0
      */
-    calculateBuyerPriceForOrder(
+    async calculateBuyerPriceForOrder(
         ctx: RequestContext,
         productVariant: ProductVariant,
         order: Order,
@@ -887,12 +915,21 @@ export class ProductVariantService {
         orderLineCustomFields: { [key: string]: any },
     ): Promise<PriceCalculationResult> {
         const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
-        return this.buyerIdentityService.runForCustomer(ctx, order.customerId, async () =>
-            productVariantBuyerPriceStrategy.calculateUnitPrice(ctx, new ProductVariant(productVariant), {
+        const result = await productVariantBuyerPriceStrategy.calculateUnitPrice(
+            ctx,
+            new ProductVariant(productVariant),
+            {
                 quantity,
                 data: { ...orderLineCustomFields },
-            }),
+                buyer: this.buyerIdentityService.forCustomer(ctx, order.customerId),
+            },
         );
+        if (!result) {
+            throw new IllegalOperationError('error.no-buyer-price-for-product-variant', {
+                productVariantId: productVariant.id,
+            });
+        }
+        return result;
     }
 
     /**

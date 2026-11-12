@@ -12,7 +12,8 @@ import { OrderItemPriceCalculationStrategy } from './order-item-price-calculatio
  * The default {@link OrderItemPriceCalculationStrategy}. It returns the unit price that the configured
  * {@link ProductVariantBuyerPriceStrategy} calculates for the Customer of the Order, with the OrderLine
  * custom fields as the pricing data. With the {@link DefaultProductVariantBuyerPriceStrategy}, this is
- * the price of the ProductVariant.
+ * the price of the ProductVariant. The result includes the `metadata` of the buyer price strategy, so an
+ * outer layer can read it from the result of `inner`.
  *
  * It uses `ProductVariantService.calculateBuyerPriceForOrder()`, so it must be initialized with `init()`
  * before use. Vendure does this for the configured strategy.

@@ -1,5 +1,5 @@
 import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
-import { ProductVariantBuyerPriceArgs, BuyerPrice } from '@vendure/common/lib/generated-shop-types';
+import { ProductVariantBuyerPriceArgs } from '@vendure/common/lib/generated-shop-types';
 import {
     CurrencyCode,
     ProductVariantPrice,
@@ -16,7 +16,7 @@ import { ProductVariant } from '../../../entity/product-variant/product-variant.
 import { StockMovement } from '../../../entity/stock-movement/stock-movement.entity';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { AssetService } from '../../../service/services/asset.service';
-import { ProductVariantService } from '../../../service/services/product-variant.service';
+import { BuyerPriceResult, ProductVariantService } from '../../../service/services/product-variant.service';
 import { StockLevelService } from '../../../service/services/stock-level.service';
 import { StockMovementService } from '../../../service/services/stock-movement.service';
 import { ApiType } from '../../common/get-api-type';
@@ -228,13 +228,14 @@ export class ProductVariantShopEntityResolver {
     async buyerPrice(
         @Ctx() ctx: RequestContext,
         @Parent() productVariant: ProductVariant,
-        @Args() args: ProductVariantBuyerPriceArgs,
-    ): Promise<BuyerPrice> {
+        // `customFields` exists when OrderLine custom fields are defined
+        @Args() args: ProductVariantBuyerPriceArgs & { customFields?: Record<string, unknown> | null },
+    ): Promise<BuyerPriceResult | undefined> {
         return this.productVariantService.calculateBuyerPrice(
             ctx,
             productVariant,
             args.quantity ?? 1,
-            args.data ?? undefined,
+            args.customFields ?? undefined,
         );
     }
 }

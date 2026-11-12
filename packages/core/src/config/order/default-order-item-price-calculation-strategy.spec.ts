@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
+import { PriceCalculationResult } from '../../common/types/common-types';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ProductVariantService } from '../../service/services/product-variant.service';
@@ -30,28 +31,32 @@ class UnitCodeLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationS
     }
 }
 
-async function calculate(layered: boolean, orderLineCustomFields: { [key: string]: any }) {
+const CHANNEL_PRICE = { price: 500, priceIncludesTax: false };
+
+async function calculate(
+    layered: boolean,
+    orderLineCustomFields: { [key: string]: any },
+    buyerPrice: PriceCalculationResult | undefined,
+) {
     const calls: Array<{ args: ProductVariantBuyerPriceArgs; customerId: unknown }> = [];
-    let scopedCustomerId: unknown;
     const configService = {
         catalogOptions: {
             productVariantBuyerPriceStrategy: {
-                calculateUnitPrice: (
+                calculateUnitPrice: async (
                     ctx: RequestContext,
                     variant: ProductVariant,
                     args: ProductVariantBuyerPriceArgs,
                 ) => {
-                    calls.push({ args, customerId: scopedCustomerId });
-                    return { price: variant.listPrice, priceIncludesTax: false };
+                    calls.push({ args, customerId: await args.buyer.getCustomerId() });
+                    return buyerPrice;
                 },
             },
         },
     };
     const buyerIdentityService = {
-        runForCustomer: (ctx: RequestContext, customerId: unknown, fn: () => Promise<unknown>) => {
-            scopedCustomerId = customerId;
-            return fn();
-        },
+        forCustomer: (ctx: RequestContext, customerId: unknown) => ({
+            getCustomerId: () => Promise.resolve(customerId),
+        }),
     };
     const productVariantService = Object.assign(Object.create(ProductVariantService.prototype), {
         configService,
@@ -61,9 +66,9 @@ async function calculate(layered: boolean, orderLineCustomFields: { [key: string
     base.init({ get: () => productVariantService } as unknown as Injector);
     const strategy = layered ? composeStrategy(UnitCodeLayer, base) : base;
 
-    const result = await strategy.calculateUnitPrice(
+    const result = strategy.calculateUnitPrice(
         RequestContext.empty(),
-        new ProductVariant({ listPrice: 500 }),
+        new ProductVariant({ id: 7, listPrice: 500 }),
         orderLineCustomFields,
         new Order({ customerId: 42 }),
         3,
@@ -74,16 +79,32 @@ async function calculate(layered: boolean, orderLineCustomFields: { [key: string
 describe('DefaultOrderItemPriceCalculationStrategy', () => {
     it('passes a copy of the OrderLine custom fields as data, for the customer of the order', async () => {
         const customFields = { unitCode: 'BOX' };
-        const { result, calls } = await calculate(false, customFields);
+        const { result, calls } = await calculate(false, customFields, CHANNEL_PRICE);
 
-        expect(result).toEqual({ price: 500, priceIncludesTax: false });
-        expect(calls).toEqual([{ args: { quantity: 3, data: { unitCode: 'BOX' } }, customerId: 42 }]);
+        expect(await result).toEqual({ price: 500, priceIncludesTax: false });
+        expect(calls).toEqual([
+            { args: { quantity: 3, data: { unitCode: 'BOX' }, buyer: expect.any(Object) }, customerId: 42 },
+        ]);
         expect(calls[0].args.data).not.toBe(customFields);
     });
 
     it('passes the custom fields that an outer layer gives to it', async () => {
-        const { calls } = await calculate(true, { unitCode: 'box' });
+        const { result, calls } = await calculate(true, { unitCode: 'box' }, CHANNEL_PRICE);
+        await result;
 
-        expect(calls).toEqual([{ args: { quantity: 3, data: { unitCode: 'BOX' } }, customerId: 42 }]);
+        expect(calls[0].args.data).toEqual({ unitCode: 'BOX' });
+    });
+
+    it('returns the metadata of the buyer price strategy', async () => {
+        const buyerPrice = { price: 400, priceIncludesTax: false, metadata: { priceRule: 'TIER_10' } };
+        const { result } = await calculate(false, {}, buyerPrice);
+
+        expect(await result).toEqual(buyerPrice);
+    });
+
+    it('throws when the buyer price strategy gives no price', async () => {
+        const { result } = await calculate(false, {}, undefined);
+
+        await expect(result).rejects.toThrow('error.no-buyer-price-for-product-variant');
     });
 });
