@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { getValidBackgroundColor } from './common';
 import { PresetOnlyStrategy } from './config/preset-only-strategy';
 import { Dimensions, Point, resizeToFocalPoint, transformImage } from './transform-image';
+import { createImageWithXmp, hasDigitalSourceType } from './xmp-test-utils';
 
 describe('resizeToFocalPoint', () => {
     it('no resize, crop left', () => {
@@ -254,5 +255,53 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             req: {} as any,
         });
         expect(result.backgroundColor).toBe('#ffffff');
+    });
+});
+
+// #5568 - generated images must keep the XMP packet of the source, e.g. an AI provenance marking
+describe('transformImage metadata', () => {
+    const baseParameters = {
+        width: 100,
+        height: 100,
+        mode: 'resize' as const,
+        quality: undefined,
+        format: undefined,
+        fpx: undefined,
+        fpy: undefined,
+        preset: undefined,
+        backgroundColor: undefined,
+    };
+
+    for (const format of ['jpeg', 'png', 'webp'] as const) {
+        it(`keeps XMP when resizing a ${format} source`, async () => {
+            const result = await transformImage(await createImageWithXmp(format), baseParameters);
+            expect(await hasDigitalSourceType(await result.toBuffer())).toBe(true);
+        });
+    }
+
+    it('keeps XMP when cropping to a focal point', async () => {
+        const result = await transformImage(await createImageWithXmp('jpeg'), {
+            ...baseParameters,
+            mode: 'crop',
+            fpx: 0.2,
+            fpy: 0.8,
+        });
+        expect(await hasDigitalSourceType(await result.toBuffer())).toBe(true);
+    });
+
+    it('keeps XMP when converting the format', async () => {
+        const result = await transformImage(await createImageWithXmp('jpeg'), {
+            ...baseParameters,
+            format: 'webp',
+            quality: 80,
+        });
+        expect(await hasDigitalSourceType(await result.toBuffer())).toBe(true);
+    });
+
+    it('keeps only XMP, not EXIF', async () => {
+        const result = await transformImage(await createImageWithXmp('jpeg'), baseParameters);
+        const buffer = await result.toBuffer();
+        expect(await hasDigitalSourceType(buffer)).toBe(true);
+        expect((await sharp(buffer).metadata()).exif).toBeUndefined();
     });
 });
