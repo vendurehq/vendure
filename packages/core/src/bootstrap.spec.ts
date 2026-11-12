@@ -4,14 +4,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RequestContext } from './api/common/request-context';
 import { runPluginConfigurations } from './bootstrap';
+import { PriceCalculationResult } from './common/types/common-types';
 import { CustomFieldConfig } from './config/custom-field/custom-field-types';
 import { Logger } from './config/logger/vendure-logger';
 import { mergeConfig } from './config/merge-config';
 import { ActiveOrderStrategy } from './config/order/active-order-strategy';
-import {
-    OrderItemPriceCalculationStrategy,
-    PriceCalculationResult,
-} from './config/order/order-item-price-calculation-strategy';
+import { OrderItemPriceCalculationStrategy } from './config/order/order-item-price-calculation-strategy';
 import {
     composeStrategy,
     removeLayer,
@@ -460,7 +458,10 @@ describe('runPluginConfigurations() with strategy layers', () => {
         })
         class ReplacingPlugin {}
 
-        const projectStrategy = removeLayer(setLayerPriority(new TestBasePrice(), Layer300, 50), Layer200);
+        const projectStrategy = removeLayer<OrderItemPriceCalculationStrategy>(
+            setLayerPriority<OrderItemPriceCalculationStrategy>(new TestBasePrice(), Layer300, 50),
+            Layer200,
+        );
         await runPluginConfigurations(makeLayerConfig([Plugin100, ReplacingPlugin], projectStrategy));
         expect(warn).toHaveBeenCalledWith(
             'The plugin "ReplacingPlugin" replaced "orderOptions.orderItemPriceCalculationStrategy" and ' +
@@ -505,7 +506,7 @@ describe('runPluginConfigurations() with strategy layers', () => {
 
     it('removes a plugin layer with removeLayer() in the project config', async () => {
         const config = await runPluginConfigurations(
-            makeLayerConfig([Plugin100, Plugin200, Plugin300], removeLayer(new TestBasePrice(), Layer200)),
+            makeLayerConfig([Plugin100, Plugin200, Plugin300], removeLayer<OrderItemPriceCalculationStrategy>(new TestBasePrice(), Layer200)),
         );
         expect(await callOrder(config)).toEqual(['Layer100', 'Layer300', 'TestBasePrice']);
     });
@@ -514,14 +515,14 @@ describe('runPluginConfigurations() with strategy layers', () => {
         const config = await runPluginConfigurations(
             makeLayerConfig(
                 [Plugin100, Plugin200, Plugin300],
-                setLayerPriority(new TestBasePrice(), Layer100, 250),
+                setLayerPriority<OrderItemPriceCalculationStrategy>(new TestBasePrice(), Layer100, 250),
             ),
         );
         expect(await callOrder(config)).toEqual(['Layer200', 'Layer100', 'Layer300', 'TestBasePrice']);
     });
 
     it('uses the priority from with() in the project config for a plugin layer', async () => {
-        const projectStrategy = composeStrategy(
+        const projectStrategy = composeStrategy<OrderItemPriceCalculationStrategy>(
             Layer300.with(undefined, { priority: 50 }),
             new TestBasePrice(),
         );
@@ -534,7 +535,7 @@ describe('runPluginConfigurations() with strategy layers', () => {
     it('keeps the chain through mergeConfig()', async () => {
         const projectConfig = mergeConfig(makeLayerConfig([Plugin100, Plugin200]), {
             orderOptions: {
-                orderItemPriceCalculationStrategy: removeLayer(new TestBasePrice(), Layer100),
+                orderItemPriceCalculationStrategy: removeLayer<OrderItemPriceCalculationStrategy>(new TestBasePrice(), Layer100),
             },
         });
         @VendurePlugin({ configuration: cfg => mergeConfig(cfg, {}) })

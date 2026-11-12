@@ -89,13 +89,13 @@ describe('getStrategyName()', () => {
 
     it('returns the name of the base strategy for a composed strategy', () => {
         class BaseStrategy implements InjectableStrategy {}
-        class NamedStrategy implements InjectableStrategy {
+        class NamedStrategy {
             readonly name = 'named';
         }
         class Layer extends StrategyLayer.passThrough<InjectableStrategy>() {
             static priority = 1;
         }
         expect(getStrategyName(composeStrategy(Layer, new BaseStrategy()))).toBe('BaseStrategy');
-        expect(getStrategyName(composeStrategy(Layer, new NamedStrategy()))).toBe('named');
+        expect(getStrategyName(composeStrategy(Layer, new NamedStrategy() as InjectableStrategy))).toBe('named');
     });
 });
