@@ -207,38 +207,8 @@ export class ProductService {
         slug: string,
         relations?: RelationPaths<Product>,
     ): Promise<Translated<Product> | undefined> {
-        const qb = this.connection.getRepository(ctx, Product).createQueryBuilder('product');
-        const translationQb = this.connection
-            .getRepository(ctx, ProductTranslation)
-            .createQueryBuilder('_product_translation')
-            .select('_product_translation.baseId')
-            .andWhere('_product_translation.slug = :slug', { slug });
-
-        qb.leftJoin('product.translations', 'translation')
-            .leftJoin('product.channels', 'channel')
-            .andWhere('product.deletedAt IS NULL')
-            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
-            .andWhere('product.id IN (' + translationQb.getQuery() + ')')
-            .setParameters(translationQb.getParameters())
-            .select('product.id', 'id')
-            .addSelect(
-                `CASE translation.languageCode WHEN :userLang THEN 2 WHEN :defaultLang THEN 1 ELSE 0 END`,
-                'sort_order',
-            )
-            .setParameters({
-                userLang: ctx.languageCode,
-                defaultLang: ctx.channel.defaultLanguageCode,
-            })
-            .orderBy('sort_order', 'DESC');
-        // We use getRawOne here to simply get the ID as efficiently as possible,
-        // which we then pass to the regular findOne() method which will handle
-        // all the joins etc.
-        const result = await qb.getRawOne();
-        if (result) {
-            return this.findOne(ctx, result.id, relations);
-        } else {
-            return undefined;
-        }
+        const id = await this.slugValidator.resolveSlug(ctx, ProductTranslation, slug);
+        return id != null ? this.findOne(ctx, id, relations) : undefined;
     }
 
     async create(ctx: RequestContext, input: CreateProductInput): Promise<Translated<Product>> {
@@ -359,6 +329,12 @@ export class ProductService {
             return [];
         }
         const productIds = unique(productsWithVariants.map(p => p.id));
+        await this.slugValidator.assertNoConflictsInChannel(
+            ctx,
+            ProductTranslation,
+            productIds,
+            input.channelId,
+        );
         await Promise.all(
             productIds.map(id => this.channelService.assignToChannels(ctx, Product, id, [input.channelId])),
         );

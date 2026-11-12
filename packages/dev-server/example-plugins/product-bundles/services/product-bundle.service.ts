@@ -54,7 +54,7 @@ export class ProductBundleService {
     ): Promise<ProductBundle | null> {
         return this.connection.getRepository(ctx, ProductBundle).findOne({
             where: { id },
-            relations,
+            relations: relations as any,
         });
     }
 

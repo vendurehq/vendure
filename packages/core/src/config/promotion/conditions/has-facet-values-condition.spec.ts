@@ -22,10 +22,7 @@ import { hasFacetValues } from './has-facet-values-condition';
  *  - boundary-value analysis: `matches = minimum ± 1` and `matches = minimum`
  */
 
-const mockHasFacetValues = vi.fn<
-    Parameters<FacetValueChecker['hasFacetValues']>,
-    ReturnType<FacetValueChecker['hasFacetValues']>
->();
+const mockHasFacetValues = vi.fn<FacetValueChecker['hasFacetValues']>();
 
 const mockFacetValueChecker = {
     hasFacetValues: mockHasFacetValues,

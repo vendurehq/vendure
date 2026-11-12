@@ -12,12 +12,6 @@
         "url": "git+https://github.com/vendurehq/vendure.git",
         "directory": "packages/harden-plugin"
     },
-    "scripts": {
-        "watch": "tsc -p ./tsconfig.build.json --watch",
-        "build": "rimraf lib && tsc -p ./tsconfig.build.json",
-        "lint": "eslint --fix .",
-        "e2e": "cross-env PACKAGE=harden-plugin vitest --config ../../e2e-common/vitest.config.mts --run"
-    },
     "homepage": "https://www.vendure.io/",
     "funding": "https://github.com/sponsors/michaelbromley",
     "publishConfig": {
@@ -32,5 +26,10 @@
     "devDependencies": {
         "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1"
+    },
+    "nx": {
+        "tags": [
+            "scope:plugin"
+        ]
     }
 }

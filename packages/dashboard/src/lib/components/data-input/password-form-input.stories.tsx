@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { PasswordFormInput } from './password-form-input.js';
 
 const meta = {
@@ -36,7 +37,7 @@ export const Playground: Story = {
         const field = register('password');
         return (
             <div className="w-[300px]">
-                <PasswordFormInput {...field} {...args} />
+                <PasswordFormInput {...asField(field)} {...args} />
             </div>
         );
     },
@@ -49,15 +50,15 @@ export const ChangePassword: Story = {
             <div className="w-[300px] space-y-4">
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Current Password</label>
-                    <PasswordFormInput {...register('currentPassword')} />
+                    <PasswordFormInput {...asField(register('currentPassword'))} />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-medium">New Password</label>
-                    <PasswordFormInput {...register('newPassword')} />
+                    <PasswordFormInput {...asField(register('newPassword'))} />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Confirm New Password</label>
-                    <PasswordFormInput {...register('confirmPassword')} />
+                    <PasswordFormInput {...asField(register('confirmPassword'))} />
                 </div>
             </div>
         );

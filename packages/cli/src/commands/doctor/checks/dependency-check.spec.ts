@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
 
-import { runDependencyCheck } from './dependency-check';
+import { runDependencyCheck } from './dependency-check.js';
 
 describe('dependency-check', () => {
     let originalCwd: string;

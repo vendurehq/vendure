@@ -1,18 +1,18 @@
 import { cancel, intro, isCancel, log, outro, select, spinner } from '@clack/prompts';
 import pc from 'picocolors';
 
-import { Messages } from '../../constants';
-import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
-import { abortIfNonInteractive, pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils';
-import { addApiExtension } from './api-extension/add-api-extension';
-import { addCodegen } from './codegen/add-codegen';
-import { addCommandDef } from './command';
-import { addDashboard } from './dashboard/add-dashboard';
-import { addEntity } from './entity/add-entity';
-import { addJobQueue } from './job-queue/add-job-queue';
-import { addPlatform } from './platform/add-platform';
-import { createNewPlugin } from './plugin/create-new-plugin';
-import { addService } from './service/add-service';
+import { Messages } from '../../constants.js';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { abortIfNonInteractive, pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils.js';
+import { addApiExtension } from './api-extension/add-api-extension.js';
+import { addCodegen } from './codegen/add-codegen.js';
+import { addCommandDef } from './command.js';
+import { addDashboard } from './dashboard/add-dashboard.js';
+import { addEntity } from './entity/add-entity.js';
+import { addJobQueue } from './job-queue/add-job-queue.js';
+import { addPlatform } from './platform/add-platform.js';
+import { createNewPlugin } from './plugin/create-new-plugin.js';
+import { addService } from './service/add-service.js';
 
 const cancelledMessage = 'Add feature cancelled.';
 

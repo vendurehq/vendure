@@ -8,7 +8,7 @@ import {
     createPkceChallenge,
     parseConsoleSession,
     startLoopbackCallback,
-} from './cli-auth';
+} from './cli-auth.js';
 
 describe('createPkceChallenge()', () => {
     it('derives the challenge from the verifier with S256', () => {

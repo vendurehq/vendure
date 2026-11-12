@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import { getVendureCliConfigDir } from './cli-config-dir';
+import { getVendureCliConfigDir } from './cli-config-dir.js';
 
 /**
  * The user-level CLI config, `cli.json` in {@link getVendureCliConfigDir}.

@@ -64,7 +64,8 @@ export class ShippingMethod
     fulfillmentHandlerCode: string;
 
     @ManyToMany(type => Channel, channel => channel.shippingMethods)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @OneToMany(type => ShippingMethodTranslation, translation => translation.base, { eager: true })

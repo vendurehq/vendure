@@ -181,7 +181,8 @@ export class ProductVariant
     collections: Collection[];
 
     @ManyToMany(type => Channel, channel => channel.productVariants)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @OneToMany(type => OrderLine, orderLine => orderLine.productVariant)

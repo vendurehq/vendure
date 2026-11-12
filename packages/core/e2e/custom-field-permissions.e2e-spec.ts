@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Permission } from '@vendure/common/lib/generated-types';
 import { Asset, mergeConfig } from '@vendure/core';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
@@ -103,7 +104,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'publicField Value',
             authenticatedField: 'authenticatedField Value',
             updateProductField: 'updateProductField Value',
@@ -119,7 +120,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'publicField Value',
             authenticatedField: 'authenticatedField Value',
             updateProductField: null,
@@ -135,7 +136,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'publicField Value',
             authenticatedField: 'authenticatedField Value',
             updateProductField: 'updateProductField Value',
@@ -163,7 +164,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'new publicField Value',
             authenticatedField: 'new authenticatedField Value',
             updateProductField: 'new updateProductField Value',
@@ -187,7 +188,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields.updateProductField).toBe('new updateProductField Value 2');
+        expect(product!.customFields.updateProductField).toBe('new updateProductField Value 2');
     });
 
     it('readProductUpdateProductAdmin cannot update superadminField', async () => {
@@ -236,7 +237,7 @@ describe('Custom field permissions', () => {
                 id: 'T_1',
             });
 
-            expect(product.customFields).toEqual({
+            expect(product!.customFields).toEqual({
                 publicField: 'new publicField Value',
                 authenticatedField: 'new authenticatedField Value',
                 updateProductField: 'new updateProductField Value 2',

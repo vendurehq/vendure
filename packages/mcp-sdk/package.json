@@ -16,7 +16,6 @@
     "scripts": {
         "watch": "tsc -p ./tsconfig.build.json --watch",
         "build": "rimraf lib && tsc -p ./tsconfig.build.json",
-        "ci": "npm run build",
         "lint": "eslint --fix .",
         "test": "vitest --config vitest.config.mts --run"
     },
@@ -34,5 +33,13 @@
     "devDependencies": {
         "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1"
+    },
+    "nx": {
+        "tags": [
+            "scope:util"
+        ],
+        "targets": {
+            "ci": {}
+        }
     }
 }

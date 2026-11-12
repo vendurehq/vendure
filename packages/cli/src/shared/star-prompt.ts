@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
 
-import { getVendureCliConfigDir } from './cli-config-dir';
+import { getVendureCliConfigDir } from './cli-config-dir.js';
 
 const horizontalPadding = 5;
 const verticalPadding = 5;

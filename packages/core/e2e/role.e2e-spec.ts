@@ -8,6 +8,7 @@ import {
     ErrorResultGuard,
 } from '@vendure/testing';
 import path from 'path';
+import { fail } from 'assert';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';

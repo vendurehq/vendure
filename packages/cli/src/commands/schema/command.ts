@@ -1,5 +1,5 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 export const schemaCommandDef: CliCommandDefinition = {
     name: 'schema',
@@ -38,7 +38,7 @@ export const schemaCommandDef: CliCommandDefinition = {
     ],
     action: async options => {
         return runCliCommand(async () => {
-            const { schemaCommand } = await import('./schema');
+            const { schemaCommand } = await import('./schema.js');
             await schemaCommand({
                 ...options,
                 outputDir: options?.dir,

@@ -3,8 +3,8 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Server, createServer } from 'node:http';
 import { AddressInfo } from 'node:net';
 
-import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, trustedConsoleOrigins } from './console-origins';
-import { nonEmptyString, objectValue } from './project-link-validation';
+import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, trustedConsoleOrigins } from './console-origins.js';
+import { nonEmptyString, objectValue } from './project-link-validation.js';
 
 /** Options for standalone Console login. Core does not store the returned session. */
 export interface ConsoleBrowserLoginOptions {

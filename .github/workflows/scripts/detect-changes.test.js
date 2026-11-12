@@ -7,6 +7,29 @@ const test = require('node:test');
 
 const script = path.join(__dirname, 'detect-changes.sh');
 
+// Stands in for `bun run nx show projects --affected --base=<sha> --head=HEAD`.
+// It reports one project when the diff touches `packages/` or `e2e-common/`, as
+// Nx does for those inputs. The real Nx graph is out of scope for this test.
+function makeFakeBin() {
+    const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-detect-changes-bin-'));
+    fs.writeFileSync(
+        path.join(bin, 'bun'),
+        [
+            '#!/usr/bin/env bash',
+            'set -euo pipefail',
+            '[[ "$*" == "run nx show projects --affected --base="*" --head=HEAD" ]] || exit 64',
+            'base="${6#--base=}"',
+            'git diff --name-only "$base" HEAD | grep -qE "^(packages|e2e-common)/" && echo "@vendure/core" || true',
+            '',
+        ].join('\n'),
+        { mode: 0o755 },
+    );
+    return bin;
+}
+
+const fakeBin = makeFakeBin();
+const fakeEnv = { ...process.env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` };
+
 function runClassifier(changedPath, eventName = 'pull_request') {
     const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-detect-changes-'));
     const output = path.join(repo, 'github-output');
@@ -23,7 +46,7 @@ function runClassifier(changedPath, eventName = 'pull_request') {
     execFileSync('bash', [script], {
         cwd: repo,
         env: {
-            ...process.env,
+            ...fakeEnv,
             GITHUB_BASE_SHA: base,
             GITHUB_EVENT_NAME: eventName,
             GITHUB_OUTPUT: output,
@@ -63,7 +86,7 @@ function runPushClassifier(changedPath) {
     execFileSync('bash', [script], {
         cwd: repo,
         env: {
-            ...process.env,
+            ...fakeEnv,
             GITHUB_EVENT_BEFORE: eventBefore,
             GITHUB_EVENT_NAME: 'push',
             GITHUB_OUTPUT: output,
@@ -78,14 +101,16 @@ function runPushClassifier(changedPath) {
     );
 }
 
-test('workflow and composite-action changes enable package and dashboard jobs', () => {
+test('workflow and composite-action changes enable package and dashboard jobs for all projects', () => {
     assert.deepEqual(runClassifier('.github/workflows/build_and_test.yml'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'run-many',
     });
     assert.deepEqual(runClassifier('.github/actions/setup/action.yml'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'run-many',
     });
 });
 
@@ -93,6 +118,7 @@ test('dashboard changes enable both classifiers', () => {
     assert.deepEqual(runClassifier('packages/dashboard/src/index.ts'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'affected',
     });
 });
 
@@ -100,13 +126,24 @@ test('unrelated documentation changes do not enable package jobs', () => {
     assert.deepEqual(runClassifier('docs/README.md'), {
         packages: 'false',
         dashboard: 'false',
+        nx: 'affected',
     });
 });
 
-test('workflow dispatch enables both classifiers without a diff', () => {
+test('changes that Nx maps to a project enable package jobs', () => {
+    assert.equal(runClassifier('e2e-common/test-config.ts').packages, 'true');
+});
+
+test('root scripts and ESLint config enable package jobs without an affected project', () => {
+    assert.equal(runClassifier('package.json').packages, 'true');
+    assert.equal(runClassifier('.eslintrc.boundaries.js').packages, 'true');
+});
+
+test('workflow dispatch enables both classifiers for all projects without a diff', () => {
     assert.deepEqual(runClassifier('docs/README.md', 'workflow_dispatch'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'run-many',
     });
 });
 
@@ -114,9 +151,11 @@ test('push events use event.before across multiple commits', () => {
     assert.deepEqual(runPushClassifier('packages/core/src/index.ts'), {
         packages: 'true',
         dashboard: 'false',
+        nx: 'affected',
     });
     assert.deepEqual(runPushClassifier('packages/dashboard/src/index.ts'), {
         packages: 'true',
         dashboard: 'true',
+        nx: 'affected',
     });
 });

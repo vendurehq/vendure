@@ -14,7 +14,7 @@ const ctx = {} as unknown as RequestContext;
  */
 function drainingAssetService(result: unknown = { id: 'A_1', name: 'logo.png' }) {
     const createFromFileStream = vi.fn(
-        (stream: Readable) =>
+        (stream: Readable, _filePath?: string) =>
             new Promise((resolve, reject) => {
                 stream.on('data', () => undefined);
                 stream.on('end', () => resolve(result));

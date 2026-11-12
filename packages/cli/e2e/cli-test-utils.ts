@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, write
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { stripAnsi } from '../src/shared/strip-ansi';
+import { stripAnsi } from '../src/shared/strip-ansi.js';
 
 export interface CliTestProject {
     projectDir: string;
@@ -119,7 +119,7 @@ export const config: VendureConfig = {
         ) => {
             return new Promise((resolve, reject) => {
                 // Use the built CLI from the dist directory
-                const cliPath = join(__dirname, '..', 'dist', 'cli.js');
+                const cliPath = join(import.meta.dirname, '..', 'dist', 'cli.js');
 
                 const child = spawn(process.execPath, [cliPath, ...args], {
                     cwd: projectDir,
@@ -170,8 +170,8 @@ export const config: VendureConfig = {
     };
 }
 
-const CLI_PACKAGE_DIR = join(__dirname, '..');
-const CLI_PLUGIN_FIXTURES_DIR = join(__dirname, 'fixtures', 'cli-plugins');
+const CLI_PACKAGE_DIR = join(import.meta.dirname, '..');
+const CLI_PLUGIN_FIXTURES_DIR = join(import.meta.dirname, 'fixtures', 'cli-plugins');
 
 /**
  * Copies a CLI plugin fixture into the test project's node_modules, declares it

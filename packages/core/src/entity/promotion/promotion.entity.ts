@@ -117,7 +117,8 @@ export class Promotion
     @Column() enabled: boolean;
 
     @ManyToMany(type => Channel, channel => channel.promotions)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).

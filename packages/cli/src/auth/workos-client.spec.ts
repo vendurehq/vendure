@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DeviceAuthorization, pollDeviceAuthorization, startDeviceAuthorization } from './workos-client';
+import { DeviceAuthorization, pollDeviceAuthorization, startDeviceAuthorization } from './workos-client.js';
 
 const CLIENT = { clientId: 'client_01TEST', apiHostname: 'api.workos.com' };
 

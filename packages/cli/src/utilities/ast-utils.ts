@@ -2,11 +2,11 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import { Directory, Node, Project, ProjectOptions, ScriptKind, SourceFile } from 'ts-morph';
 
-import { defaultManipulationSettings } from '../constants';
-import { EntityRef } from '../shared/entity-ref';
-import { PackageJson } from '../shared/package-json-ref';
+import { defaultManipulationSettings } from '../constants.js';
+import { EntityRef } from '../shared/entity-ref.js';
+import { PackageJson } from '../shared/package-json-ref.js';
 
-import { detectMonorepoStructure, findTsConfigInDir } from './monorepo-utils';
+import { detectMonorepoStructure, findTsConfigInDir } from './monorepo-utils.js';
 
 export function selectTsConfigFile() {
     const tsConfigFiles = fs.readdirSync(process.cwd()).filter(f => /^tsconfig.*\.json$/.test(f));

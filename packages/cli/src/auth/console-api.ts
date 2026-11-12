@@ -1,7 +1,7 @@
-import { classifyConsoleApiOrigin } from '../commands/console/console-origins';
+import { classifyConsoleApiOrigin } from '../commands/console/console-origins.js';
 
-import { AuthOptions } from './auth-options';
-import { WorkosClient } from './workos-client';
+import { AuthOptions } from './auth-options.js';
+import { WorkosClient } from './workos-client.js';
 
 /**
  * A Vendure Console Customer Account the signed-in user is an active member of.

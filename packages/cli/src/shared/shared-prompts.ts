@@ -3,15 +3,15 @@ import path from 'node:path';
 import pc from 'picocolors';
 import { ClassDeclaration, Project } from 'ts-morph';
 
-import { addServiceCommand } from '../commands/add/service/add-service';
-import { Messages } from '../constants';
-import { getPluginClasses, getTsMorphProject, selectTsConfigFile } from '../utilities/ast-utils';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../utilities/utils';
+import { addServiceCommand } from '../commands/add/service/add-service.js';
+import { Messages } from '../constants.js';
+import { getPluginClasses, getTsMorphProject, selectTsConfigFile } from '../utilities/ast-utils.js';
+import { pauseForPromptDisplay, withInteractiveTimeout } from '../utilities/utils.js';
 
-import { exitCliCommand } from './cli-command-exit';
-import { EntityRef } from './entity-ref';
-import { ServiceRef } from './service-ref';
-import { VendurePluginRef } from './vendure-plugin-ref';
+import { exitCliCommand } from './cli-command-exit.js';
+import { EntityRef } from './entity-ref.js';
+import { ServiceRef } from './service-ref.js';
+import { VendurePluginRef } from './vendure-plugin-ref.js';
 
 /**
  * Creates plugin selection options with duplicate name handling.

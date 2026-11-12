@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
 
-import { generateSchema } from './generate-schema';
+import { generateSchema } from './generate-schema.js';
 
 vi.mock('@clack/prompts', () => ({
     log: {
@@ -16,24 +16,24 @@ vi.mock('@clack/prompts', () => ({
     },
 }));
 
-vi.mock('../../../shared/shared-prompts', () => ({
+vi.mock('../../../shared/shared-prompts.js', () => ({
     analyzeProject: vi.fn(async () => ({ project: {}, vendureTsConfig: undefined })),
 }));
 
-vi.mock('../../../shared/vendure-config-ref', () => ({
+vi.mock('../../../shared/vendure-config-ref.js', () => ({
     // A `function` (not an arrow function) because the code under test calls it with `new`.
     VendureConfigRef: vi.fn(function () {
         return { getPathRelativeToProjectRoot: () => 'vendure-config.ts' };
     }),
 }));
 
-vi.mock('../../../shared/load-vendure-config-file', () => ({
+vi.mock('../../../shared/load-vendure-config-file.js', () => ({
     loadVendureConfigFile: vi.fn(),
 }));
 
 // Use the workspace packages as the "project" copies, so that the plugins below and the
 // schema generator share one `@vendure/core`.
-vi.mock('../../../shared/project-core', () => ({
+vi.mock('../../../shared/project-core.js', () => ({
     requireProjectCore: () => require('@vendure/core'),
     requireFromProject: (packageName: string) => require(packageName),
 }));

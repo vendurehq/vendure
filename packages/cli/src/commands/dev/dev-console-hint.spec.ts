@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getConsoleHint } from '../../shared/console-hint';
+import { getConsoleHint } from '../../shared/console-hint.js';
 
 const { infoMock, spawnMock } = vi.hoisted(() => ({ infoMock: vi.fn(), spawnMock: vi.fn() }));
 
@@ -16,14 +16,14 @@ vi.mock('node:child_process', async importOriginal => ({
     ...(await importOriginal<typeof import('node:child_process')>()),
     spawn: spawnMock,
 }));
-vi.mock('../../shared/cli-process-utils', async importOriginal => ({
-    ...(await importOriginal<typeof import('../../shared/cli-process-utils')>()),
+vi.mock('../../shared/cli-process-utils.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../shared/cli-process-utils.js')>()),
     resolvePackageBin: () => '/fake/bin.js',
 }));
 
-vi.mock('../../shared/star-prompt', () => ({ showStarPromptOnce: () => false }));
+vi.mock('../../shared/star-prompt.js', () => ({ showStarPromptOnce: () => false }));
 
-import { devCommand } from './dev';
+import { devCommand } from './dev.js';
 
 describe('devCommand() Console hint', () => {
     let projectDir: string;

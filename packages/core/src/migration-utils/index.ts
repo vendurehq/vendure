@@ -15,6 +15,7 @@ export {
     formatRoleAssignmentMigrationPreview,
     previewRoleAssignmentMigration,
 } from './v4_0_role_assignments_preview';
+export { SlugConflict, findSlugConflicts, formatSlugConflicts } from './v4_0_slug_conflicts';
 export {
     TrackInventoryMigrationResult,
     backfillStockMovementTracking,

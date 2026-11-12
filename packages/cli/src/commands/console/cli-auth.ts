@@ -7,5 +7,5 @@ export {
     createPkceChallenge,
     parseConsoleSession,
     startLoopbackCallback,
-} from './authentication';
-export type { ConsoleSession, LoopbackCallback, PkceChallenge } from './authentication';
+} from './authentication.js';
+export type { ConsoleSession, LoopbackCallback, PkceChallenge } from './authentication.js';

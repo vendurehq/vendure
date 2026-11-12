@@ -13,14 +13,13 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { FragmentOf, graphql } from './graphql/graphql-admin';
-import { FragmentOf as FragmentOfShop, ResultOf as ResultOfShop } from './graphql/graphql-shop';
+import { ResultOf as ResultOfShop } from './graphql/graphql-shop';
 import { createChannelDocument } from './graphql/shared-definitions';
 import {
     activePaymentMethodsQueryDocument,
     addItemToOrderDocument,
     addPaymentDocument,
     getEligiblePaymentMethodsDocument,
-    testOrderWithPaymentsFragment,
 } from './graphql/shop-definitions';
 import { proceedToArrangingPayment } from './utils/test-order-utils';
 
@@ -45,8 +44,13 @@ const minPriceChecker = new PaymentMethodEligibilityChecker({
 });
 
 describe('PaymentMethod resolver', () => {
-    const orderGuard: ErrorResultGuard<FragmentOfShop<typeof testOrderWithPaymentsFragment>> =
-        createErrorResultGuard(input => !!input.lines);
+    type AddPaymentSuccessResult = Exclude<
+        ResultOfShop<typeof addPaymentDocument>['addPaymentToOrder'],
+        { errorCode: string }
+    >;
+    const orderGuard: ErrorResultGuard<AddPaymentSuccessResult> = createErrorResultGuard(
+        input => !!input.lines,
+    );
 
     type PaymentMethodType = FragmentOf<typeof paymentMethodFragment>;
     const paymentMethodGuard: ErrorResultGuard<PaymentMethodType> = createErrorResultGuard(

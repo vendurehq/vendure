@@ -13,7 +13,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { channelFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import {
     assignFacetsToChannelDocument,
     assignProductToChannelDocument,
@@ -51,9 +51,9 @@ const SHARED_PRODUCT_ID = 'T_1';
 describe('duplicateEntity channel scope', () => {
     const { server, adminClient } = createTestEnvironment(testConfig());
 
-    const duplicateEntityGuard: ErrorResultGuard<{ newEntityId: string }> = createErrorResultGuard(
-        result => !!result.newEntityId,
-    );
+    const duplicateEntityGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof duplicateEntityDocument>['duplicateEntity'], { errorCode: unknown }>
+    > = createErrorResultGuard(result => !!result.newEntityId);
     const createChannelGuard: ErrorResultGuard<FragmentOf<typeof channelFragment>> = createErrorResultGuard(
         result => !!result.id,
     );

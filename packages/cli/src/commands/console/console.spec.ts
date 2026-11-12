@@ -1,18 +1,12 @@
 import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CliCommandExit } from '../../shared/cli-command-exit';
+import { CliCommandExit } from '../../shared/cli-command-exit.js';
 
-import {
-    ConsoleCommandDependencies,
-    ConsoleCommandOptions,
-    consoleCommand,
-    resolveConsoleEndpoints,
-} from './console';
-import { ConsoleReporter } from './console-reporter';
-import { ConsoleCommandResult } from './console-result';
+import { ConsoleReporter } from './console-reporter.js';
+import { ConsoleCommandResult } from './console-result.js';
 import {
     ACCOUNT_ID,
     NOW,
@@ -28,9 +22,15 @@ import {
     projectList,
     storeLogin,
     withSingleAccount,
-} from './console.fixtures';
-import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore';
-import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
+} from './console.fixtures.js';
+import {
+    ConsoleCommandDependencies,
+    ConsoleCommandOptions,
+    consoleCommand,
+    resolveConsoleEndpoints,
+} from './console.js';
+import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore.js';
+import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest.js';
 
 const UUID_V7_LINK_ID = '33333333-3333-7333-8333-333333333333';
 const INSTALLATION_ID = '77777777-7777-4777-8777-777777777777';
@@ -578,7 +578,7 @@ describe('console command', () => {
             ),
         ).toBe(0);
         for (const fn of [openUrl, prompt, select]) expect(fn).not.toHaveBeenCalled();
-        expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`Bearer ${STORED_ACCESS_TOKEN}`);
+        expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe(`Bearer ${STORED_ACCESS_TOKEN}`);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
@@ -1773,8 +1773,8 @@ function jsonResponse(value: unknown, status = 200): Response {
     });
 }
 
-function sequenceFetch(...responses: Response[]): ReturnType<typeof vi.fn> {
-    const fetchMock = vi.fn();
+function sequenceFetch(...responses: Response[]): Mock<typeof fetch> {
+    const fetchMock = vi.fn<typeof fetch>();
     for (const response of responses) {
         fetchMock.mockResolvedValueOnce(response);
     }

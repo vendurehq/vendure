@@ -96,7 +96,7 @@ describe('StoredMediaService', () => {
             { imageOnly: true },
         );
 
-        expect(result.__typename).toBe('MimeTypeError');
+        expect((result as { __typename?: string }).__typename).toBe('MimeTypeError');
         expect(files.size).toBe(0);
     });
 
@@ -170,7 +170,7 @@ describe('StoredMediaService', () => {
         const queryRunner = { isTransactionActive: true };
         const ctx = RequestContext.empty();
         (ctx as any)[TRANSACTION_MANAGER_KEY] = { queryRunner };
-        let resolveCommit: (queryRunner: any) => void;
+        let resolveCommit = undefined as ((queryRunner: any) => void) | undefined;
         awaitCommit.mockReturnValue(
             new Promise(resolve => {
                 resolveCommit = resolve;

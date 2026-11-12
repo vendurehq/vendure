@@ -6,6 +6,7 @@ import cronstrue from 'cronstrue';
 
 import { ConfigService } from '../config/config.service';
 import { Logger } from '../config/logger/vendure-logger';
+import { getBaseStrategy } from '../config/strategy-layer/compose-strategy';
 import { ProcessContext } from '../process-context';
 
 import { NoopSchedulerStrategy } from './noop-scheduler-strategy';
@@ -47,7 +48,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
         assertValidTimezones(this.configService.schedulerOptions);
         const scheduledTasks = this.configService.schedulerOptions.tasks ?? [];
         const schedulerStrategy = this.configService.schedulerOptions.schedulerStrategy;
-        if (!schedulerStrategy || schedulerStrategy instanceof NoopSchedulerStrategy) {
+        if (!schedulerStrategy || getBaseStrategy(schedulerStrategy) instanceof NoopSchedulerStrategy) {
             Logger.warn('No scheduler strategy is configured! Scheduled tasks will not be executed.');
             Logger.warn(
                 'Please use the `DefaultSchedulerPlugin` (or alternative) to enable scheduled tasks.',

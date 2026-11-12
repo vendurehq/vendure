@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getConsoleHint, showConsoleHint } from './console-hint';
+import { getConsoleHint, showConsoleHint } from './console-hint.js';
 
 const PLAIN =
     'Paid plans add 30+ features and include Vendure Cloud: https://vendure.io/pricing. Already on a plan? Run `vendure console link`.';

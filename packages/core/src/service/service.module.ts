@@ -8,6 +8,7 @@ import { JobQueueModule } from '../job-queue/job-queue.module';
 import { SchedulerModule } from '../scheduler/scheduler.module';
 
 import { ActiveOrderService } from './helpers/active-order/active-order.service';
+import { ChannelAssignmentService } from './helpers/channel-assignment/channel-assignment.service';
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
 import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
@@ -147,6 +148,7 @@ const helpers = [
     RequestContextService,
     RolePermissionResolver,
     CustomerChannelAssignmentService,
+    ChannelAssignmentService,
     TranslatorService,
     EntityDuplicatorService,
     FacetValueChecker,

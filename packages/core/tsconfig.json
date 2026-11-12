@@ -8,5 +8,6 @@
     "strictPropertyInitialization": false,
     "sourceMap": true,
     "allowJs": true
-  }
+  },
+  "exclude": ["dist/**/*"]
 }

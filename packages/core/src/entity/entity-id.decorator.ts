@@ -5,6 +5,13 @@ interface IdColumnOptions {
     nullable?: boolean;
     /** Whether this is a primary key. Defaults to false */
     primary?: boolean;
+    /**
+     * Whether the column references the primary key of another entity and must have exactly the
+     * same type, as the columns of a junction table do. Without it, ids stored by the UUID strategy
+     * use a plain `varchar` column, which differs from the primary key type on MySQL and Postgres.
+     * Defaults to false
+     */
+    matchPrimaryKeyType?: boolean;
 }
 
 interface IdColumnConfig {

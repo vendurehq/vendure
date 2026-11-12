@@ -1,0 +1,109 @@
+{
+    "$schema": "./node_modules/nx/schemas/nx-schema.json",
+    "defaultBase": "master",
+    "neverConnectToCloud": true,
+    "maxCacheSize": "200MB",
+    "pluginsConfig": {
+        "@nx/js": {
+            "analyzeSourceFiles": false
+        }
+    },
+    "plugins": [
+        {
+            "plugin": "./tools/nx-plugin",
+            "include": ["packages/*/src/**"]
+        }
+    ],
+    "sync": {
+        "globalGenerators": ["./tools/nx-plugin:sync-tsconfig"]
+    },
+    "namedInputs": {
+        "default": ["{projectRoot}/**/*", "sharedGlobals"],
+        "sharedGlobals": ["{workspaceRoot}/tsconfig.json", "{workspaceRoot}/bunfig.toml"],
+        "production": [
+            "default",
+            "!{projectRoot}/**/*.spec.ts",
+            "!{projectRoot}/**/*.spec.tsx",
+            "!{projectRoot}/**/*.e2e-spec.ts",
+            "!{projectRoot}/e2e/**/*",
+            "!{projectRoot}/**/vitest.config.mts"
+        ]
+    },
+    "targetDefaults": {
+        "build": {
+            "dependsOn": ["^build"],
+            "inputs": ["production", "^production"],
+            "outputs": [
+                "{projectRoot}/lib",
+                "{projectRoot}/dist",
+                "{projectRoot}/dist-plugin",
+                "{projectRoot}/package",
+                "{projectRoot}/cli",
+                "{projectRoot}/assets"
+            ],
+            "cache": true
+        },
+        "ci": {
+            "executor": "nx:noop",
+            "dependsOn": ["build"]
+        },
+        "test": {
+            "dependsOn": [
+                "^build",
+                {
+                    "projects": ["@vendure/testing"],
+                    "target": "build"
+                }
+            ],
+            "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/vitest.shared.mts",
+                "{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts",
+                { "runtime": "node --version" }
+            ],
+            "cache": true
+        },
+        "e2e": {
+            "dependsOn": [
+                "build",
+                {
+                    "projects": ["@vendure/testing"],
+                    "target": "build"
+                }
+            ],
+            "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/e2e-common/**/*",
+                "{workspaceRoot}/.github/workflows/build_and_test.yml",
+                { "env": "DB" },
+                { "runtime": "node --version" }
+            ],
+            "cache": true
+        },
+        "watch": {
+            "continuous": true
+        }
+    },
+    "release": {
+        "projects": ["packages/*"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+            "pattern": "v{version}"
+        },
+        "version": {
+            "currentVersionResolver": "disk",
+            "versionPrefix": "",
+            "preserveMatchingDependencyRanges": false,
+            "preserveLocalDependencyProtocols": false,
+            "versionActionsOptions": {
+                "skipLockFileUpdate": true
+            }
+        },
+        "changelog": {
+            "workspaceChangelog": false,
+            "projectChangelogs": false
+        }
+    }
+}

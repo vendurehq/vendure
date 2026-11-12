@@ -10,7 +10,7 @@
  *   }
  * }
  */
-import { CliCommandContext, defineCliPlugin } from '../../../index';
+import { CliCommandContext, defineCliPlugin } from '../../../index.js';
 
 interface ExampleSharedOptions {
     token?: string;

@@ -1,14 +1,15 @@
 #! /usr/bin/env node
 
 import { Command } from 'commander';
+import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
-import { builtinCommandDefs } from './commands/builtins';
-import { consoleCommandDef } from './commands/console/command';
-import { devCommandDef } from './commands/dev/command';
-import { buildOptionFlags } from './shared/cli-command-options';
-import { registerCommands, styleHelpTitle } from './shared/command-registry';
-import { CommandRegistry } from './shared/command-registry-store';
+import { builtinCommandDefs } from './commands/builtins.js';
+import { consoleCommandDef } from './commands/console/command.js';
+import { devCommandDef } from './commands/dev/command.js';
+import { buildOptionFlags } from './shared/cli-command-options.js';
+import { CommandRegistry } from './shared/command-registry-store.js';
+import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -18,13 +19,12 @@ import {
     pluginsCommandFor,
     resolveCliPlugins,
     ResolveCliPluginsOptions,
-} from './shared/resolve-cli-plugins';
+} from './shared/resolve-cli-plugins.js';
 
 async function main(): Promise<void> {
     const program = new Command();
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const version = require('../package.json').version;
+    const version = createRequire(import.meta.url)('../package.json').version;
 
     program
         // Commander otherwise names the program after the binary file

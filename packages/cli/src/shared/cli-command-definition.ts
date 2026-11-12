@@ -1,4 +1,4 @@
-import { CliPluginExtensionAccessor } from './cli-plugin-extension';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
 
 /**
  * An option on a CLI command.

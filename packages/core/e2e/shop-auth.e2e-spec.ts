@@ -16,6 +16,7 @@ import {
     mergeConfig,
 } from '@vendure/core';
 import { ErrorResultGuard, createErrorResultGuard, createTestEnvironment } from '@vendure/testing';
+import { fail } from 'assert';
 import path from 'path';
 import { Mock, afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,7 +24,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { PasswordValidationError } from '../src/common/error/generated-graphql-shop-errors';
 
-import { FragmentOf, ResultOf } from './graphql/graphql-admin';
+import { ResultOf } from './graphql/graphql-admin';
 import {
     MeDocument,
     getCustomerDocument,
@@ -32,7 +33,6 @@ import {
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
-    currentUserFragment,
     getActiveCustomerDocument,
     refreshTokenDocument,
     registerAccountDocument,
@@ -72,11 +72,13 @@ class TestEmailPlugin implements OnModuleInit {
     }
 }
 
-const successErrorGuard: ErrorResultGuard<{ success: boolean }> = createErrorResultGuard(
-    input => input.success != null,
-);
+const successErrorGuard: ErrorResultGuard<{ __typename?: 'Success'; success: boolean }> =
+    createErrorResultGuard(input => input.success != null);
 
-type CurrentUserShopFragment = FragmentOf<typeof currentUserFragment>;
+type CurrentUserShopFragment = Exclude<
+    ResultOf<typeof verifyEmailDocument>['verifyCustomerAccount'],
+    { errorCode: string }
+>;
 
 const currentUserErrorGuard: ErrorResultGuard<CurrentUserShopFragment> = createErrorResultGuard(
     input => input.identifier != null,

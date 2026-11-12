@@ -31,7 +31,6 @@
         "build": "tsc -p ./tsconfig.build.json",
         "watch": "tsc -p ./tsconfig.build.json -w",
         "lint": "eslint --fix .",
-        "ci": "npm run build",
         "test": "vitest --config vitest.config.mts --run"
     },
     "bugs": {
@@ -56,5 +55,13 @@
         "pg": "^8.11.3",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
+    },
+    "nx": {
+        "tags": [
+            "scope:util"
+        ],
+        "targets": {
+            "ci": {}
+        }
     }
 }

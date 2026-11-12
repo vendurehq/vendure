@@ -11,6 +11,8 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 
 Happy linting! 💖
 */
+const boundaries = require('./.eslintrc.boundaries.js');
+
 module.exports = {
     env: {
         es6: true,
@@ -38,8 +40,10 @@ module.exports = {
         'eslint-plugin-jsdoc',
         'eslint-plugin-prefer-arrow',
         '@typescript-eslint',
+        '@nx',
     ],
     root: true,
+    overrides: boundaries.overrides,
     rules: {
         '@typescript-eslint/adjacent-overload-signatures': 'error',
         '@typescript-eslint/array-type': [

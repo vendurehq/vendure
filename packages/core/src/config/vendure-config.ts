@@ -784,6 +784,9 @@ export interface OrderOptions {
      * Note that if multiple strategies are defined, they will be checked in order and the first one that
      * returns an Order will be used.
      *
+     * A plugin adds an entry with {@link addStrategyToList}, and a project removes an entry with
+     * {@link removeStrategyFromList}. Core then sorts the list by priority.
+     *
      * @since 1.9.0
      * @default DefaultActiveOrderStrategy
      */

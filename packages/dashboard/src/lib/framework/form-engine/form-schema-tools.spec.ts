@@ -1,4 +1,5 @@
 import { FieldInfo } from '@/vdb/framework/document-introspection/get-document-structure.js';
+import type { CustomFieldConfig } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { z } from '@/vdb/lib/zod.js';
 import { describe, expect, it } from 'vitest';
 
@@ -43,11 +44,12 @@ const createMockCustomField = (
         nullable?: boolean;
         readonly?: boolean;
     } = {},
-) => ({
-    name,
-    type,
-    ...options,
-});
+) =>
+    ({
+        name,
+        type,
+        ...options,
+    }) as CustomFieldConfig;
 
 describe('form-schema-tools', () => {
     describe('getZodTypeFromField', () => {

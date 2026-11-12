@@ -235,7 +235,7 @@ describe('MCP tool-call logging', () => {
 
 interface GraphQLResponse<T = any> {
     data?: T;
-    errors?: Array<{ message: string }>;
+    errors?: Array<{ message: string; extensions?: { code?: string } }>;
 }
 
 // A caller needs ReadMcpServer to reach mcpToolCallLogs at all, but with full capture on

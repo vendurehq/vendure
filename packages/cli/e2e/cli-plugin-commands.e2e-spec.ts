@@ -10,7 +10,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { sectionAfter } from '../src/shared/__tests__/help-sections';
+import { sectionAfter } from '../src/shared/__tests__/help-sections.js';
 
 import {
     CliTestProject,
@@ -18,7 +18,7 @@ import {
     installCliPluginFixture,
     readEnabledCliPlugins,
     readMarker,
-} from './cli-test-utils';
+} from './cli-test-utils.js';
 
 interface CloudResult {
     command: string[];

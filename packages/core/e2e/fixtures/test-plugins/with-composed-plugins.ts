@@ -29,7 +29,7 @@ export class DeduplicatedDynamicPlugin implements OnApplicationShutdown {
 @Entity()
 export class CompositeTestEntity extends VendureEntity {}
 
-@VendurePlugin({ entities: [CompositeTestEntity] })
+@VendurePlugin({ entities: [CompositeTestEntity as any] })
 class CompositeEntityPlugin {}
 
 @VendurePlugin({

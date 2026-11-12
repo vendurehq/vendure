@@ -3,13 +3,13 @@ import { unique } from '@vendure/common/lib/unique';
 import type { VendureConfig } from '@vendure/core';
 import path from 'path';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { exitCliCommand } from '../../../shared/cli-command-exit';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { requireProjectCore } from '../../../shared/project-core';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { withInteractiveTimeout } from '../../../utilities/utils';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { requireProjectCore } from '../../../shared/project-core.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { withInteractiveTimeout } from '../../../utilities/utils.js';
 
 const cancelledMessage = 'Generate migration cancelled';
 

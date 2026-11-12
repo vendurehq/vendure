@@ -2,15 +2,15 @@
 title: "ChannelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="65" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="66" packageName="@vendure/core" />
 
 Contains methods relating to [Channel](/reference/typescript-api/entities/channel#channel) entities.
 
 ```ts title="Signature"
 class ChannelService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, roleAssignmentService: RoleAssignmentService, roleService: RoleService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, roleAssignmentService: RoleAssignmentService, roleService: RoleService, channelAssignmentService: ChannelAssignmentService)
     assignToCurrentChannel(entity: T, ctx: RequestContext) => Promise<T>;
-    assignToChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T>;
+    assignToChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[], assignmentData?: Record<string, unknown>) => Promise<T>;
     removeFromChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T | undefined>;
     getChannelFromToken(token: string) => Promise<Channel>;
     getChannelFromToken(ctx: RequestContext, token: string) => Promise<Channel>;
@@ -36,9 +36,16 @@ specified in the RequestContext. This method will not save the entity to the dat
 assigns the `channels` property of the entity.
 ### assignToChannels
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: Type<T>, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<T>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: Type<T>, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], assignmentData?: Record<string, unknown>) => Promise<T>`}   />
 
 Assigns the entity to the given Channels and saves all changes to the database.
+
+If the entity has a channel assignment entity with per-channel data (see
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment)), each new assignment starts with a copy of the entity's data from an
+existing assignment: in the active Channel if the entity is assigned to it, otherwise in the
+default Channel, otherwise in any Channel. If `assignmentData` is given, it is then applied to
+the entity's assignments in all the given Channels, new or existing. `assignmentData` may only
+contain per-channel data properties, and is validated before anything is written.
 ### removeFromChannels
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: Type<T>, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<T | undefined>`}   />

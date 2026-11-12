@@ -16,8 +16,8 @@ import {
     messageForRemovedRelation,
     Messages,
     walkRelationPath,
-} from '../core-entities';
-import { FlagCollector } from '../flags';
+} from '../core-entities.js';
+import { FlagCollector } from '../flags.js';
 
 /** Find options that only filter or sort by a relation; using a removed one there is flagged. */
 const FLAGGED_OPTION_KEYS = new Set(['where', 'select', 'order']);

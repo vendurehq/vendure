@@ -1,7 +1,7 @@
 import { Type } from '@vendure/common/lib/shared-types';
 import { describe, expect, it } from 'vitest';
 
-import { CustomFields } from '../config/custom-field/custom-field-types';
+import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
 
 import { coreEntitiesMap } from './entities';
 import { validateCustomFieldsConfig } from './validate-custom-fields-config';
@@ -213,7 +213,7 @@ describe('validateCustomFieldsConfig()', () => {
 
     it('rejects an index on a list field assembled dynamically', () => {
         const fields = [{ name: 'tags', type: 'string', list: true, index: true }];
-        const config: CustomFields = { Product: fields as CustomFields['Product'] };
+        const config: CustomFields = { Product: fields as CustomFieldConfig[] };
         const result = validateCustomFieldsConfig(config, allEntities, 'postgres');
 
         expect(result.valid).toBe(false);
@@ -231,7 +231,7 @@ describe('validateCustomFieldsConfig()', () => {
                 fields: [{ name: 'width', type: 'int' }],
             },
         ];
-        const config: CustomFields = { Product: fields as CustomFields['Product'] };
+        const config: CustomFields = { Product: fields as CustomFieldConfig[] };
         const result = validateCustomFieldsConfig(config, allEntities, 'postgres');
 
         expect(result.valid).toBe(false);

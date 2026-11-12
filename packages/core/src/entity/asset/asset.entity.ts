@@ -63,7 +63,8 @@ export class Asset extends VendureEntity implements Taggable, ChannelAware, HasC
     tags: Tag[];
 
     @ManyToMany(type => Channel)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @OneToMany(type => Collection, collection => collection.featuredAsset)

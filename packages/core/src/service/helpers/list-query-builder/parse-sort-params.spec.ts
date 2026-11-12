@@ -123,7 +123,7 @@ describe('parseSortParams()', () => {
         const connection = new MockConnection();
         connection.setColumns(EntityWithCalculatedProperty, [{ propertyName: 'id' }]);
 
-        const result = parseSortParams(connection as any, EntityWithCalculatedProperty, {
+        const result = parseSortParams(connection as any, EntityWithCalculatedProperty as any, {
             price: 'ASC',
         } as any);
         expect(result).toEqual({
@@ -135,7 +135,7 @@ describe('parseSortParams()', () => {
         const connection = new MockConnection();
         connection.setColumns(EntityWithCalculatedProperty, [{ propertyName: 'id' }]);
 
-        const result = parseSortParams(connection as any, EntityWithCalculatedProperty, {
+        const result = parseSortParams(connection as any, EntityWithCalculatedProperty as any, {
             priceWithTax: 'ASC',
         } as any);
         expect(result).toEqual({

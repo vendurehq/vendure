@@ -9,9 +9,9 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
-import { SessionUnstorableError } from './auth-errors';
-import { AuthOptions, getAuthFilePath, resolveConsoleApiUrl } from './auth-options';
-import { errorCode } from './file-lock';
+import { SessionUnstorableError } from './auth-errors.js';
+import { AuthOptions, getAuthFilePath, resolveConsoleApiUrl } from './auth-options.js';
+import { errorCode } from './file-lock.js';
 
 /** The WorkOS user the stored session belongs to. @since 3.8.0 */
 export interface AuthUser {

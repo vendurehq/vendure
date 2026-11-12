@@ -1,5 +1,5 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
-import { runCliCommand } from '../../shared/cli-command-exit';
+import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
+import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 export const startCommandDef: CliCommandDefinition = {
     name: 'start',
@@ -26,7 +26,7 @@ export const startCommandDef: CliCommandDefinition = {
     ],
     action: async (target, options) => {
         return runCliCommand(async () => {
-            const { startCommand } = await import('./start');
+            const { startCommand } = await import('./start.js');
             return startCommand(target, options);
         });
     },

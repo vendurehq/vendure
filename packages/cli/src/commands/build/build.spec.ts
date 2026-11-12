@@ -16,7 +16,7 @@ import {
     shouldUseMultiBuildSpinner,
     shouldUseProgress,
     validateTsConfig,
-} from './build';
+} from './build.js';
 
 const originalCwd = process.cwd();
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -54,7 +54,7 @@ afterEach(() => {
     if (stdoutIsTTYDescriptor) {
         Object.defineProperty(process.stdout, 'isTTY', stdoutIsTTYDescriptor);
     } else {
-        delete (process.stdout as NodeJS.WriteStream & { isTTY?: boolean }).isTTY;
+        delete (process.stdout as unknown as { isTTY?: boolean }).isTTY;
     }
     vi.unstubAllEnvs();
 });

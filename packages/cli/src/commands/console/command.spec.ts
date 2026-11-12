@@ -3,9 +3,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { runCli } from '../../shared/__tests__/run-cli';
+import { runCli } from '../../shared/__tests__/run-cli.js';
 
-import { consoleCommandDef } from './command';
+import { consoleCommandDef } from './command.js';
 
 describe('console command definition', () => {
     // Every other test calls `consoleCommand` directly, so the flags the person
