@@ -1,0 +1,48 @@
+---
+title: "SlugConflict"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_slug_conflicts.ts" sourceLine="14" packageName="@vendure/core" since="4.0.0" />
+
+One slug that more than one Product or Collection uses in the same channel and language.
+
+```ts title="Signature"
+interface SlugConflict {
+    entity: 'Product' | 'Collection';
+    channelCode: string;
+    languageCode: string;
+    slug: string;
+    entityIds: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### entity
+
+<MemberInfo kind="property" type={`'<a href='/reference/typescript-api/entities/product#product'>Product</a>' | '<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>'`}   />
+
+
+### channelCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### languageCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### slug
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### entityIds
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+
+
+</div>

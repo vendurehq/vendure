@@ -315,26 +315,8 @@ export class CollectionService implements OnModuleInit {
         slug: string,
         relations?: RelationPaths<Collection>,
     ): Promise<Translated<Collection> | undefined> {
-        const translations = await this.connection.getRepository(ctx, CollectionTranslation).find({
-            relations: { base: true },
-            where: {
-                slug,
-                base: {
-                    channels: {
-                        id: ctx.channelId,
-                    },
-                },
-            },
-        });
-
-        if (!translations?.length) {
-            return;
-        }
-        const bestMatch =
-            translations.find(t => t.languageCode === ctx.languageCode) ??
-            translations.find(t => t.languageCode === ctx.channel.defaultLanguageCode) ??
-            translations[0];
-        return this.findOne(ctx, bestMatch.base.id, relations);
+        const id = await this.slugValidator.resolveSlug(ctx, CollectionTranslation, slug);
+        return id != null ? this.findOne(ctx, id, relations) : undefined;
     }
 
     /**
@@ -1317,6 +1299,12 @@ export class CollectionService implements OnModuleInit {
         if (collectionsToAssign.length === 0) {
             return [];
         }
+        await this.slugValidator.assertNoConflictsInChannel(
+            ctx,
+            CollectionTranslation,
+            collectionsToAssign.map(c => c.id),
+            input.channelId,
+        );
 
         await Promise.all(
             collectionsToAssign.map(collection =>
@@ -1331,6 +1319,12 @@ export class CollectionService implements OnModuleInit {
         await this.triggerApplyFiltersJob(ctx, {
             collectionIds: collectionsToAssign.map(collection => collection.id),
         });
+        // The variants do not change, so the filters job publishes no event. Search indexes
+        // record collections per channel, so they need to hear about the new channel.
+        for (const collection of collectionsToAssign) {
+            const affectedVariantIds = await this.getCollectionProductVariantIds(collection, ctx);
+            await this.eventBus.publish(new CollectionModificationEvent(ctx, collection, affectedVariantIds));
+        }
 
         return this.connection
             .findByIdsInChannel(

@@ -1396,7 +1396,7 @@
                   "title": "DefaultSlugStrategy",
                   "slug": "default-slug-strategy",
                   "file": "docs/reference/typescript-api/configuration/default-slug-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "EncryptionStrategy",
@@ -1468,7 +1468,7 @@
                   "title": "SlugStrategy",
                   "slug": "slug-strategy",
                   "file": "docs/reference/typescript-api/configuration/slug-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "StrategyLayer",
@@ -2541,6 +2541,18 @@
                   "lastModified": "2026-10-11T09:39:19+02:00"
                 },
                 {
+                  "title": "FindSlugConflicts",
+                  "slug": "find-slug-conflicts",
+                  "file": "docs/reference/typescript-api/migration/find-slug-conflicts.mdx",
+                  "lastModified": "2026-11-12T12:08:18Z"
+                },
+                {
+                  "title": "FormatSlugConflicts",
+                  "slug": "format-slug-conflicts",
+                  "file": "docs/reference/typescript-api/migration/format-slug-conflicts.mdx",
+                  "lastModified": "2026-11-12T12:08:18Z"
+                },
+                {
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
@@ -2611,6 +2623,12 @@
                   "slug": "run-migrations-options",
                   "file": "docs/reference/typescript-api/migration/run-migrations-options.mdx",
                   "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "SlugConflict",
+                  "slug": "slug-conflict",
+                  "file": "docs/reference/typescript-api/migration/slug-conflict.mdx",
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "TranslationTableColumnNames",
@@ -3186,7 +3204,7 @@
                   "title": "SlugValidator",
                   "slug": "slug-validator",
                   "file": "docs/reference/typescript-api/service-helpers/slug-validator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "TranslatableSaver",
@@ -3272,7 +3290,7 @@
                   "title": "EntitySlugService",
                   "slug": "entity-slug-service",
                   "file": "docs/reference/typescript-api/services/entity-slug-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "FacetService",
@@ -3356,7 +3374,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-10-19T10:45:31Z"
+                  "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
                   "title": "PromotionService",

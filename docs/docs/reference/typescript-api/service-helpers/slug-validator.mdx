@@ -4,15 +4,24 @@ generated: true
 ---
 ## SlugValidator
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="44" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="60" packageName="@vendure/core" />
 
 Used to validate slugs to ensure they are URL-safe and unique. Designed to be used with translatable
 entities such as [Product](/reference/typescript-api/entities/product#product) and [Collection](/reference/typescript-api/entities/collection#collection).
 
+With the default uniqueness scope of `'channel'` (see [SlugStrategy](/reference/typescript-api/configuration/slug-strategy#slugstrategy)), a slug must be unique (per language)
+in every channel the entity belongs to. The default channel is a special case: every entity
+is assigned to it, so it is only taken into account for entities that belong to no other
+channel. Such entities are checked against every entity, which keeps a single-channel shop
+behaving exactly as before.
+
 ```ts title="Signature"
 class SlugValidator {
-    constructor(connection: TransactionalConnection)
+    constructor(connection: TransactionalConnection, configService: ConfigService, channelService: ChannelService)
     validateSlugs(ctx: RequestContext, input: T, translationEntity: Type<E>) => Promise<T>;
+    assertNoConflictsInChannel(ctx: RequestContext, translationEntity: Type<E>, entityIds: ID[], channelId: ID) => Promise<void>;
+    resolveSlug(ctx: RequestContext, translationEntity: Type<E>, slug: string) => Promise<ID | undefined>;
+    getScope(ctx: RequestContext, translationEntity: Type<any>, baseId?: ID) => Promise<SlugScope>;
 }
 ```
 
@@ -23,12 +32,41 @@ class SlugValidator {
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: T, translationEntity: Type<E>) => Promise<T>`}   />
 
 
+### assertNoConflictsInChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, translationEntity: Type<E>, entityIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}   />
+
+Throws if assigning the given entities to the channel would leave two non-deleted entities
+with the same slug and language in that channel. Called before the assignment is written.
+
+The slug lives on the translation row, which is shared by every channel the entity is in,
+so the conflict cannot be resolved by renaming in the target channel only. Rejecting the
+assignment is the only behaviour that cannot silently change a URL in another channel.
+### resolveSlug
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, translationEntity: Type<E>, slug: string) => Promise<<a href='/reference/typescript-api/common/id#id'>ID</a> | undefined>`}   />
+
+Finds the id of the entity with this slug in the active channel. More than one entity can
+match: the slug may exist in several languages, and the default channel holds entities
+from every channel. The order is: a translation in the request language, then in the
+channel default language; then (in the default channel) an entity that belongs to no
+other channel; then the oldest entity, then the lowest id.
+
+It lives here because the order mirrors the uniqueness rule in `getScope`: an
+entity that only lives in the default channel owns its slug there.
+### getScope
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, translationEntity: Type<any>, baseId?: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<SlugScope>`}   />
+
+Returns the channels within which the slug must be unique for this entity, or `'global'`.
+Also used by the [EntitySlugService](/reference/typescript-api/services/entity-slug-service#entityslugservice) so that `slugForEntity` suggestions agree with
+the validation.
 
 
 </div>
 ## InputWithSlug
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="16" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="20" packageName="@vendure/core" />
 
 
 
@@ -60,7 +98,7 @@ type InputWithSlug = {
 </div>
 ## TranslationEntity
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="29" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="33" packageName="@vendure/core" />
 
 
 

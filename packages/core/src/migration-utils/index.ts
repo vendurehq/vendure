@@ -21,3 +21,4 @@ export {
     IdentityScopeMigrationChannel,
     migrateCustomerIdentityScopes,
 } from './v4_0_customer_identity_scopes';
+export { SlugConflict, findSlugConflicts, formatSlugConflicts } from './v4_0_slug_conflicts';
