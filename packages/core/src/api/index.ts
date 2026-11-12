@@ -3,6 +3,7 @@ export { ApiType } from './common/get-api-type';
 export * from './common/parse-context';
 export * from './common/request-context';
 export * from './common/set-session-token';
+export * from './common/user-has-permissions-on-custom-field';
 export * from './common/validate-custom-field-value';
 export * from './config/get-final-vendure-schema';
 export * from './constants';

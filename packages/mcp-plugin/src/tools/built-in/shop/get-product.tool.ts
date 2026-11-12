@@ -57,8 +57,8 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
         );
         return {
             product: {
-                ...this.serializer.product(product),
-                variants: variants.items.map(variant => this.serializer.variant(variant)),
+                ...this.serializer.product(ctx, product),
+                variants: variants.items.map(variant => this.serializer.variant(ctx, variant)),
                 ...variantPaging(offset, variants),
             },
         };

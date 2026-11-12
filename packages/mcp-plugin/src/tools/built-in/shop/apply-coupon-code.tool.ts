@@ -42,9 +42,10 @@ export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput>
     async execute(ctx: RequestContext, input: ApplyCouponCodeInput) {
         const order = await this.activeOrder.findEditable(ctx);
         if (isGraphQlErrorResult(order)) {
-            return this.serializer.orderOrError(order);
+            return this.serializer.orderOrError(ctx, order);
         }
         return this.serializer.orderOrError(
+            ctx,
             await this.orderService.applyCouponCode(ctx, order.id, input.code),
         );
     }

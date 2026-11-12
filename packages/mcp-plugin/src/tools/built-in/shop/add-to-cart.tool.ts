@@ -63,6 +63,7 @@ export class AddToCartTool implements McpToolHandler<AddToCartInput> {
         const variantId = await this.resolveVariantId(ctx, input);
         const cart = await this.activeOrder.findOrCreate(ctx);
         return this.serializer.orderOrError(
+            ctx,
             await this.orderService.addItemToOrder(cart.ctx, cart.order.id, variantId, input.quantity),
         );
     }

@@ -40,6 +40,7 @@ export class SetShippingMethodTool implements McpToolHandler<SetShippingMethodIn
     async execute(ctx: RequestContext, input: SetShippingMethodInput) {
         const order = await this.activeOrder.findOrThrow(ctx);
         return this.serializer.orderOrError(
+            ctx,
             await this.orderService.setShippingMethod(ctx, order.id, [input.methodId]),
         );
     }
