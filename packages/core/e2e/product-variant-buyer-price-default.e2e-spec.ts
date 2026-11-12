@@ -10,13 +10,13 @@ import { graphql } from './graphql/graphql-shop';
 import { getCustomerListDocument } from './graphql/shared-definitions';
 
 const getVariantPricesDocument = graphql(`
-    query GetVariantShopperPricesDefault($id: ID!, $quantity: Int, $data: JSON) {
+    query GetVariantBuyerPricesDefault($id: ID!, $quantity: Int, $data: JSON) {
         product(id: $id) {
             variants {
                 id
                 price
                 priceWithTax
-                shopperPrice(quantity: $quantity, data: $data) {
+                buyerPrice(quantity: $quantity, data: $data) {
                     price
                     priceWithTax
                 }
@@ -39,7 +39,7 @@ const getVariantChannelPricesDocument = graphql(`
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-describe('ProductVariant.shopperPrice with the default ProductVariantShopperPriceStrategy', () => {
+describe('ProductVariant.buyerPrice with the default ProductVariantBuyerPriceStrategy', () => {
     /** The number of SQL queries run since it was last reset to 0. */
     let sqlQueryCount = 0;
     const countingLogger: TypeOrmLogger = {
@@ -87,7 +87,7 @@ describe('ProductVariant.shopperPrice with the default ProductVariantShopperPric
 
         expect(product!.variants.length).toBeGreaterThan(1);
         for (const variant of product!.variants) {
-            expect(variant.shopperPrice).toEqual({
+            expect(variant.buyerPrice).toEqual({
                 price: variant.price,
                 priceWithTax: variant.priceWithTax,
             });

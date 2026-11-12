@@ -5,7 +5,7 @@ import { Injector } from '../../common/injector';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ProductVariantService } from '../../service/services/product-variant.service';
-import { ProductVariantShopperPriceArgs } from '../catalog/product-variant-shopper-price-strategy';
+import { ProductVariantBuyerPriceArgs } from '../catalog/product-variant-buyer-price-strategy';
 import { composeStrategy } from '../strategy-layer/compose-strategy';
 import { StrategyLayer } from '../strategy-layer/strategy-layer';
 
@@ -31,15 +31,15 @@ class UnitCodeLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationS
 }
 
 async function calculate(layered: boolean, orderLineCustomFields: { [key: string]: any }) {
-    const calls: Array<{ args: ProductVariantShopperPriceArgs; customerId: unknown }> = [];
+    const calls: Array<{ args: ProductVariantBuyerPriceArgs; customerId: unknown }> = [];
     let scopedCustomerId: unknown;
     const configService = {
         catalogOptions: {
-            productVariantShopperPriceStrategy: {
+            productVariantBuyerPriceStrategy: {
                 calculateUnitPrice: (
                     ctx: RequestContext,
                     variant: ProductVariant,
-                    args: ProductVariantShopperPriceArgs,
+                    args: ProductVariantBuyerPriceArgs,
                 ) => {
                     calls.push({ args, customerId: scopedCustomerId });
                     return { price: variant.listPrice, priceIncludesTax: false };
@@ -47,7 +47,7 @@ async function calculate(layered: boolean, orderLineCustomFields: { [key: string
             },
         },
     };
-    const shopperIdentityService = {
+    const buyerIdentityService = {
         runForCustomer: (ctx: RequestContext, customerId: unknown, fn: () => Promise<unknown>) => {
             scopedCustomerId = customerId;
             return fn();
@@ -55,7 +55,7 @@ async function calculate(layered: boolean, orderLineCustomFields: { [key: string
     };
     const productVariantService = Object.assign(Object.create(ProductVariantService.prototype), {
         configService,
-        shopperIdentityService,
+        buyerIdentityService,
     });
     const base = new DefaultOrderItemPriceCalculationStrategy();
     base.init({ get: () => productVariantService } as unknown as Injector);

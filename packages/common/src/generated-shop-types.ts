@@ -164,6 +164,15 @@ export type BooleanStructFieldConfig = StructField & {
   ui?: Maybe<Scalars['JSON']['output']>;
 };
 
+/** The unit price of a ProductVariant for the active Customer */
+export type BuyerPrice = {
+  __typename?: 'BuyerPrice';
+  /** The price of a single unit, excluding tax */
+  price: Scalars['Money']['output'];
+  /** The price of a single unit, including tax */
+  priceWithTax: Scalars['Money']['output'];
+};
+
 export type Channel = Node & {
   __typename?: 'Channel';
   availableCurrencyCodes: Array<CurrencyCode>;
@@ -2903,6 +2912,22 @@ export type ProductTranslation = {
 export type ProductVariant = Node & {
   __typename?: 'ProductVariant';
   assets: Array<Asset>;
+  /**
+   * The unit price that the configured ProductVariantBuyerPriceStrategy calculates for the
+   * active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
+   * price of the Channel, this is the price that the default cart pricing starts from. No Order
+   * is needed.
+   *
+   * The `data` argument passes pricing input that the strategy defines, for example a packaging
+   * unit. Vendure passes it to the strategy as it is. In the cart, the strategy receives the
+   * OrderLine custom fields as this data. To get the same price, pass the same values that you
+   * pass as `customFields` to `addItemToOrder`.
+   *
+   * This is the base unit price of the buyer, not a guarantee of the final cart price. For
+   * example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
+   * of the Order.
+   */
+  buyerPrice: BuyerPrice;
   createdAt: Scalars['DateTime']['output'];
   currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -2916,22 +2941,6 @@ export type ProductVariant = Node & {
   priceWithTax: Scalars['Money']['output'];
   product: Product;
   productId: Scalars['ID']['output'];
-  /**
-   * The unit price that the configured ProductVariantShopperPriceStrategy calculates for the
-   * active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
-   * price of the Channel, this is the price that the default cart pricing starts from. No Order
-   * is needed.
-   *
-   * The `data` argument passes pricing input that the strategy defines, for example a packaging
-   * unit. Vendure passes it to the strategy as it is. In the cart, the strategy receives the
-   * OrderLine custom fields as this data. To get the same price, pass the same values that you
-   * pass as `customFields` to `addItemToOrder`.
-   *
-   * This is the base unit price of the shopper, not a guarantee of the final cart price. For
-   * example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
-   * of the Order.
-   */
-  shopperPrice: ShopperPrice;
   sku: Scalars['String']['output'];
   stockLevel: Scalars['String']['output'];
   taxCategory: TaxCategory;
@@ -2941,7 +2950,7 @@ export type ProductVariant = Node & {
 };
 
 
-export type ProductVariantShopperPriceArgs = {
+export type ProductVariantBuyerPriceArgs = {
   data?: InputMaybe<Scalars['JSON']['input']>;
   quantity?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -3441,15 +3450,6 @@ export type ShippingMethodTranslation = {
   languageCode: LanguageCode;
   name: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
-};
-
-/** The unit price of a ProductVariant for the active Customer */
-export type ShopperPrice = {
-  __typename?: 'ShopperPrice';
-  /** The price of a single unit, excluding tax */
-  price: Scalars['Money']['output'];
-  /** The price of a single unit, including tax */
-  priceWithTax: Scalars['Money']['output'];
 };
 
 /** The price value where the result has a single price */

@@ -10,11 +10,11 @@ import { OrderItemPriceCalculationStrategy } from './order-item-price-calculatio
 /**
  * @description
  * The default {@link OrderItemPriceCalculationStrategy}. It returns the unit price that the configured
- * {@link ProductVariantShopperPriceStrategy} calculates for the Customer of the Order, with the OrderLine
- * custom fields as the pricing data. With the {@link DefaultProductVariantShopperPriceStrategy}, this is
+ * {@link ProductVariantBuyerPriceStrategy} calculates for the Customer of the Order, with the OrderLine
+ * custom fields as the pricing data. With the {@link DefaultProductVariantBuyerPriceStrategy}, this is
  * the price of the ProductVariant.
  *
- * It uses `ProductVariantService.calculateShopperPriceForOrder()`, so it must be initialized with `init()`
+ * It uses `ProductVariantService.calculateBuyerPriceForOrder()`, so it must be initialized with `init()`
  * before use. Vendure does this for the configured strategy.
  *
  * @docsCategory orders
@@ -33,7 +33,7 @@ export class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceC
         order: Order,
         quantity: number,
     ): Promise<PriceCalculationResult> {
-        return this.productVariantService.calculateShopperPriceForOrder(
+        return this.productVariantService.calculateBuyerPriceForOrder(
             ctx,
             productVariant,
             order,

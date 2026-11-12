@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ShopperPrice } from '@vendure/common/lib/generated-shop-types';
+import { BuyerPrice } from '@vendure/common/lib/generated-shop-types';
 import {
     AssignProductVariantsToChannelInput,
     CreateProductVariantInput,
@@ -62,7 +62,7 @@ import { ChannelService } from './channel.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
-import { ShopperIdentityService } from './shopper-identity.service';
+import { BuyerIdentityService } from './buyer-identity.service';
 import { StockLevelReadOptions, StockLevelService } from './stock-level.service';
 import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
@@ -95,7 +95,7 @@ export class ProductVariantService {
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
         private slugValidator: SlugValidator,
-        private shopperIdentityService: ShopperIdentityService,
+        private buyerIdentityService: BuyerIdentityService,
     ) {}
 
     async findAll(
@@ -829,12 +829,12 @@ export class ProductVariantService {
 
     /**
      * @description
-     * Calculates the unit price of the ProductVariant for the active shopper, the given quantity and the
+     * Calculates the unit price of the ProductVariant for the active buyer, the given quantity and the
      * given pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
-     * `priceWithTax` fields), and then runs the configured {@link ProductVariantShopperPriceStrategy}.
-     * The {@link ShopperIdentityService} gives the active Customer to the strategy.
+     * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}.
+     * The {@link BuyerIdentityService} gives the active Customer to the strategy.
      *
-     * The result is the base unit price of the shopper, not a guarantee of the final cart price. The tax
+     * The result is the base unit price of the buyer, not a guarantee of the final cart price. The tax
      * rate comes from the tax zone of the active session, and the cart uses the tax zone of the Order.
      *
      * The strategy receives a copy of the variant and of the data, so the given objects do not change.
@@ -842,18 +842,18 @@ export class ProductVariantService {
      *
      * @since 4.0.0
      */
-    async calculateShopperPrice(
+    async calculateBuyerPrice(
         ctx: RequestContext,
         variant: ProductVariant,
         quantity = 1,
         data?: Record<string, unknown>,
-    ): Promise<ShopperPrice> {
+    ): Promise<BuyerPrice> {
         if (!Number.isInteger(quantity) || quantity < 1) {
-            throw new UserInputError('error.shopper-price-quantity-must-be-positive');
+            throw new UserInputError('error.buyer-price-quantity-must-be-positive');
         }
         const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
-        const { productVariantShopperPriceStrategy } = this.configService.catalogOptions;
-        const { price, priceIncludesTax } = await productVariantShopperPriceStrategy.calculateUnitPrice(
+        const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
+        const { price, priceIncludesTax } = await productVariantBuyerPriceStrategy.calculateUnitPrice(
             ctx,
             new ProductVariant(hydratedVariant),
             { quantity, data: structuredClone(data) },
@@ -867,28 +867,28 @@ export class ProductVariantService {
 
     /**
      * @description
-     * Calculates the unit price of an OrderLine with the configured {@link ProductVariantShopperPriceStrategy},
+     * Calculates the unit price of an OrderLine with the configured {@link ProductVariantBuyerPriceStrategy},
      * for the Customer of the Order. The {@link DefaultOrderItemPriceCalculationStrategy} uses this method.
      * A custom {@link OrderItemPriceCalculationStrategy} that replaces the default calls it too, so that the
-     * cart and the Shop API `ProductVariant.shopperPrice` field use the same strategy and the same shopper.
+     * cart and the Shop API `ProductVariant.buyerPrice` field use the same strategy and the same buyer.
      *
      * The `productVariant` must have the Channel price and tax applied, as the OrderItemPriceCalculationStrategy
-     * receives it. The strategy runs inside {@link ShopperIdentityService}`.runForCustomer()` with the Customer of
+     * receives it. The strategy runs inside {@link BuyerIdentityService}`.runForCustomer()` with the Customer of
      * the Order, and receives the OrderLine custom fields as the `data` argument. It receives a copy of the variant
      * and a shallow copy of the custom fields, so the given objects do not change.
      *
      * @since 4.0.0
      */
-    calculateShopperPriceForOrder(
+    calculateBuyerPriceForOrder(
         ctx: RequestContext,
         productVariant: ProductVariant,
         order: Order,
         quantity: number,
         orderLineCustomFields: { [key: string]: any },
     ): Promise<PriceCalculationResult> {
-        const { productVariantShopperPriceStrategy } = this.configService.catalogOptions;
-        return this.shopperIdentityService.runForCustomer(ctx, order.customerId, async () =>
-            productVariantShopperPriceStrategy.calculateUnitPrice(ctx, new ProductVariant(productVariant), {
+        const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
+        return this.buyerIdentityService.runForCustomer(ctx, order.customerId, async () =>
+            productVariantBuyerPriceStrategy.calculateUnitPrice(ctx, new ProductVariant(productVariant), {
                 quantity,
                 data: { ...orderLineCustomFields },
             }),

@@ -8,40 +8,40 @@ import { Customer } from '../../entity/customer/customer.entity';
 
 import { CustomerService } from './customer.service';
 
-type ShopperScope = { customerId: ID | undefined };
+type BuyerScope = { customerId: ID | undefined };
 
 /**
  * @description
- * Gives the Customer that a price is for. A {@link ProductVariantShopperPriceStrategy} uses this
- * service to find the shopper.
+ * Gives the Customer that a price is for. A {@link ProductVariantBuyerPriceStrategy} uses this
+ * service to find the buyer.
  *
- * * In the cart, the default {@link OrderItemPriceCalculationStrategy} calls the shopper price strategy
+ * * In the cart, the default {@link OrderItemPriceCalculationStrategy} calls the buyer price strategy
  *   inside `runForCustomer()` with the Customer of the Order. Thus the price is for the Customer of the
  *   Order: in an Admin draft order this is the Customer, not the Administrator, and in a guest Order it
  *   is the guest Customer.
- * * Outside `runForCustomer()`, for example for the Shop API `ProductVariant.shopperPrice` field, the
+ * * Outside `runForCustomer()`, for example for the Shop API `ProductVariant.buyerPrice` field, the
  *   service gives the Customer of the active User, or `undefined` for a guest session.
  *
  * Both methods cache their result for each request, so a strategy can call them for each OrderLine
  * without a query for each line.
  *
  * A custom {@link OrderItemPriceCalculationStrategy} gets the same scope when it calls
- * `ProductVariantService.calculateShopperPriceForOrder()`.
+ * `ProductVariantService.calculateBuyerPriceForOrder()`.
  *
  * @example
  * ```ts
- * export class CustomerPriceLayer extends StrategyLayer.passThrough<ProductVariantShopperPriceStrategy>() {
+ * export class CustomerPriceLayer extends StrategyLayer.passThrough<ProductVariantBuyerPriceStrategy>() {
  *     static priority = 100;
- *     private shopperIdentityService: ShopperIdentityService;
+ *     private buyerIdentityService: BuyerIdentityService;
  *
  *     init(injector: Injector) {
- *         this.shopperIdentityService = injector.get(ShopperIdentityService);
+ *         this.buyerIdentityService = injector.get(BuyerIdentityService);
  *     }
  *
- *     async calculateUnitPrice(...args: Parameters<ProductVariantShopperPriceStrategy['calculateUnitPrice']>) {
+ *     async calculateUnitPrice(...args: Parameters<ProductVariantBuyerPriceStrategy['calculateUnitPrice']>) {
  *         const [ctx] = args;
  *         const result = await this.inner.calculateUnitPrice(...args);
- *         const customerId = await this.shopperIdentityService.getCustomerId(ctx);
+ *         const customerId = await this.buyerIdentityService.getCustomerId(ctx);
  *         // look up the price for this Customer
  *         return result;
  *     }
@@ -52,8 +52,8 @@ type ShopperScope = { customerId: ID | undefined };
  * @since 4.0.0
  */
 @Injectable()
-export class ShopperIdentityService {
-    private scope = new AsyncLocalStorage<ShopperScope>();
+export class BuyerIdentityService {
+    private scope = new AsyncLocalStorage<BuyerScope>();
 
     constructor(
         private requestCache: RequestContextCacheService,
@@ -62,9 +62,9 @@ export class ShopperIdentityService {
 
     /**
      * @description
-     * Runs `fn` with the given Customer as the shopper. Inside `fn`, `getCustomerId()` and `getCustomer()`
+     * Runs `fn` with the given Customer as the buyer. Inside `fn`, `getCustomerId()` and `getCustomer()`
      * give this Customer, also for the calls that `fn` makes asynchronously. Pass `undefined` for a
-     * shopper without a Customer. The scope does not change the RequestContext, so other code that runs
+     * buyer without a Customer. The scope does not change the RequestContext, so other code that runs
      * at the same time for the same request does not see it.
      */
     runForCustomer<T>(ctx: RequestContext, customerId: ID | undefined, fn: () => Promise<T>): Promise<T> {
@@ -102,7 +102,7 @@ export class ShopperIdentityService {
         if (userId == null) {
             return Promise.resolve(undefined);
         }
-        return this.requestCache.get(ctx, `ShopperIdentityService.activeCustomerId(${userId})`, async () => {
+        return this.requestCache.get(ctx, `BuyerIdentityService.activeCustomerId(${userId})`, async () => {
             const customer = await this.customerService.findOneByUserId(ctx, userId);
             if (customer) {
                 // getCustomer() then uses this Customer and runs no second query
@@ -113,6 +113,6 @@ export class ShopperIdentityService {
     }
 
     private customerCacheKey(customerId: ID) {
-        return `ShopperIdentityService.customer(${customerId})`;
+        return `BuyerIdentityService.customer(${customerId})`;
     }
 }

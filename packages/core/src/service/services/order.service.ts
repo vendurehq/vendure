@@ -2378,7 +2378,7 @@ export class OrderService implements OnApplicationBootstrap {
 
     /**
      * The unit price of an OrderLine can depend on the Customer, for example with a custom
-     * ProductVariantShopperPriceStrategy. So when the Customer of an active or draft Order changes,
+     * ProductVariantBuyerPriceStrategy. So when the Customer of an active or draft Order changes,
      * the price of each line is calculated again. A placed Order keeps its prices.
      */
     private async applyPriceAdjustmentsForNewCustomer(ctx: RequestContext, order: Order): Promise<Order> {

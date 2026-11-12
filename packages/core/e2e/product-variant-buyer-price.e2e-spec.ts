@@ -16,8 +16,8 @@ import {
     BOX_SIZE,
     FIXED_UNIT_PRICE,
     fixedPriceEmailAddresses,
-    TestShopperPricePlugin,
-} from './fixtures/test-shopper-price-layer';
+    TestBuyerPricePlugin,
+} from './fixtures/test-buyer-price-layer';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql, ResultOf } from './graphql/graphql-shop';
 import { attemptLoginDocument, getCustomerListDocument } from './graphql/shared-definitions';
@@ -26,13 +26,13 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 const GUEST_EMAIL_ADDRESS = 'guest-with-fixed-price@example.com';
 
 const getVariantPricesDocument = graphql(`
-    query GetVariantShopperPrices($id: ID!, $quantity: Int, $data: JSON) {
+    query GetVariantBuyerPrices($id: ID!, $quantity: Int, $data: JSON) {
         product(id: $id) {
             variants {
                 id
                 price
                 priceWithTax
-                shopperPrice(quantity: $quantity, data: $data) {
+                buyerPrice(quantity: $quantity, data: $data) {
                     price
                     priceWithTax
                 }
@@ -41,14 +41,14 @@ const getVariantPricesDocument = graphql(`
     }
 `);
 
-const getTwiceShopperPriceDocument = graphql(`
-    query GetTwiceShopperPrice($id: ID!) {
+const getTwiceBuyerPriceDocument = graphql(`
+    query GetTwiceBuyerPrice($id: ID!) {
         product(id: $id) {
             variants {
-                first: shopperPrice(quantity: 10) {
+                first: buyerPrice(quantity: 10) {
                     price
                 }
-                second: shopperPrice(quantity: 10) {
+                second: buyerPrice(quantity: 10) {
                     price
                 }
             }
@@ -57,7 +57,7 @@ const getTwiceShopperPriceDocument = graphql(`
 `);
 
 const orderLinesFragment = graphql(`
-    fragment ShopperPriceOrderLines on Order {
+    fragment BuyerPriceOrderLines on Order {
         lines {
             quantity
             unitPrice
@@ -71,7 +71,7 @@ const orderLinesFragment = graphql(`
 
 const addItemDocument = graphql(
     `
-        mutation AddItemForShopperPrice(
+        mutation AddItemForBuyerPrice(
             $productVariantId: ID!
             $quantity: Int!
             $customFields: OrderLineCustomFieldsInput
@@ -81,7 +81,7 @@ const addItemDocument = graphql(
                 quantity: $quantity
                 customFields: $customFields
             ) {
-                ...ShopperPriceOrderLines
+                ...BuyerPriceOrderLines
                 ... on ErrorResult {
                     errorCode
                     message
@@ -94,9 +94,9 @@ const addItemDocument = graphql(
 
 const getActiveOrderLinesDocument = graphql(
     `
-        query GetActiveOrderLinesForShopperPrice {
+        query GetActiveOrderLinesForBuyerPrice {
             activeOrder {
-                ...ShopperPriceOrderLines
+                ...BuyerPriceOrderLines
             }
         }
     `,
@@ -104,7 +104,7 @@ const getActiveOrderLinesDocument = graphql(
 );
 
 const setCustomerForOrderDocument = graphql(`
-    mutation SetGuestCustomerForShopperPrice($input: CreateCustomerInput!) {
+    mutation SetGuestCustomerForBuyerPrice($input: CreateCustomerInput!) {
         setCustomerForOrder(input: $input) {
             ... on Order {
                 id
@@ -118,7 +118,7 @@ const setCustomerForOrderDocument = graphql(`
 `);
 
 const setShippingAddressDocument = graphql(`
-    mutation SetShippingAddressForShopperPrice($input: CreateAddressInput!) {
+    mutation SetShippingAddressForBuyerPrice($input: CreateAddressInput!) {
         setOrderShippingAddress(input: $input) {
             ... on Order {
                 id
@@ -132,7 +132,7 @@ const setShippingAddressDocument = graphql(`
 `);
 
 const createDraftOrderDocument = adminGraphql(`
-    mutation CreateDraftOrderForShopperPrice {
+    mutation CreateDraftOrderForBuyerPrice {
         createDraftOrder {
             id
         }
@@ -140,7 +140,7 @@ const createDraftOrderDocument = adminGraphql(`
 `);
 
 const setCustomerForDraftOrderDocument = adminGraphql(`
-    mutation SetCustomerForDraftOrderForShopperPrice($orderId: ID!, $customerId: ID!) {
+    mutation SetCustomerForDraftOrderForBuyerPrice($orderId: ID!, $customerId: ID!) {
         setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId) {
             ... on Order {
                 id
@@ -157,7 +157,7 @@ const setCustomerForDraftOrderDocument = adminGraphql(`
 `);
 
 const addItemToDraftOrderDocument = adminGraphql(`
-    mutation AddItemToDraftOrderForShopperPrice($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+    mutation AddItemToDraftOrderForBuyerPrice($orderId: ID!, $input: AddItemToDraftOrderInput!) {
         addItemToDraftOrder(orderId: $orderId, input: $input) {
             ... on Order {
                 lines {
@@ -178,7 +178,7 @@ type VariantPrices = NonNullable<ResultOf<typeof getVariantPricesDocument>['prod
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceStrategy', () => {
+describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrategy', () => {
     /** The SQL queries that select from the customer table, since the count was last reset to 0. */
     let customerQueryCount = 0;
     const countingLogger: TypeOrmLogger = {
@@ -196,7 +196,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
     const config = testConfig();
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(config, {
-            plugins: [TestShopperPricePlugin],
+            plugins: [TestBuyerPricePlugin],
             customFields: {
                 OrderLine: [{ name: 'unitCode', type: 'string' }],
             },
@@ -260,8 +260,8 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
         const variant = product!.variants[0];
 
-        expect(variant.shopperPrice.price).toBe(FIXED_UNIT_PRICE);
-        expect(variant.shopperPrice.price).not.toBe(variant.price);
+        expect(variant.buyerPrice.price).toBe(FIXED_UNIT_PRICE);
+        expect(variant.buyerPrice.price).not.toBe(variant.price);
     });
 
     it('does not change price and priceWithTax', async () => {
@@ -277,7 +277,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         // The strategy writes to the variant that it receives. The shared entity must not change.
         // Without the fixed price, the strategy calculates from the listPrice of the variant.
         await shopClient.asAnonymousUser();
-        const { product } = await shopClient.query(getTwiceShopperPriceDocument, { id: 'T_1' });
+        const { product } = await shopClient.query(getTwiceBuyerPriceDocument, { id: 'T_1' });
         await shopClient.asUserWithCredentials(fixedPriceCustomer.emailAddress, 'test');
 
         product!.variants.forEach((variant, i) => {
@@ -292,21 +292,21 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
 
         const line = await addToCart(shopClient, variant.id, 1);
 
-        expect(line.unitPrice).toBe(variant.shopperPrice.price);
-        expect(line.unitPriceWithTax).toBe(variant.shopperPrice.priceWithTax);
+        expect(line.unitPrice).toBe(variant.buyerPrice.price);
+        expect(line.unitPriceWithTax).toBe(variant.buyerPrice.priceWithTax);
     });
 
     it('equals the unit price of the cart line for quantity 10', async () => {
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: 10 });
         const variant = product!.variants[1];
 
-        expect(variant.shopperPrice.price).toBe(Math.round(FIXED_UNIT_PRICE * 0.8));
+        expect(variant.buyerPrice.price).toBe(Math.round(FIXED_UNIT_PRICE * 0.8));
 
         const line = await addToCart(shopClient, variant.id, 10);
 
         expect(line.quantity).toBe(10);
-        expect(line.unitPrice).toBe(variant.shopperPrice.price);
-        expect(line.unitPriceWithTax).toBe(variant.shopperPrice.priceWithTax);
+        expect(line.unitPrice).toBe(variant.buyerPrice.price);
+        expect(line.unitPriceWithTax).toBe(variant.buyerPrice.priceWithTax);
     });
 
     it('equals the unit price of the cart line for the same data and OrderLine custom fields', async () => {
@@ -317,12 +317,12 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         });
         const variant = product!.variants[2];
 
-        expect(variant.shopperPrice.price).toBe(FIXED_UNIT_PRICE * BOX_SIZE);
+        expect(variant.buyerPrice.price).toBe(FIXED_UNIT_PRICE * BOX_SIZE);
 
         const line = await addToCart(shopClient, variant.id, 2, { unitCode: 'BOX' });
 
-        expect(line.unitPrice).toBe(variant.shopperPrice.price);
-        expect(line.unitPriceWithTax).toBe(variant.shopperPrice.priceWithTax);
+        expect(line.unitPrice).toBe(variant.buyerPrice.price);
+        expect(line.unitPriceWithTax).toBe(variant.buyerPrice.priceWithTax);
     });
 
     it('returns the channel price for a guest session', async () => {
@@ -330,7 +330,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
 
         for (const variant of product!.variants) {
-            expect(variant.shopperPrice).toEqual({
+            expect(variant.buyerPrice).toEqual({
                 price: variant.price,
                 priceWithTax: variant.priceWithTax,
             });
@@ -343,7 +343,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         expect(firstLine.unitPrice).toBe(channelPrices[0].price);
 
         await shopClient.query(setCustomerForOrderDocument, {
-            input: { emailAddress: GUEST_EMAIL_ADDRESS, firstName: 'Guest', lastName: 'Shopper' },
+            input: { emailAddress: GUEST_EMAIL_ADDRESS, firstName: 'Guest', lastName: 'Buyer' },
         });
         const secondLine = await addToCart(shopClient, channelPrices[1].id, 1);
 
@@ -351,9 +351,9 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         // The line that was added before the Customer was set gets the price of the Customer too
         const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
         expect(activeOrder!.lines.map(l => l.unitPrice)).toEqual([FIXED_UNIT_PRICE, FIXED_UNIT_PRICE]);
-        // The session has no Customer, so the shopper price is the channel price
+        // The session has no Customer, so the buyer price is the channel price
         const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
-        expect(product!.variants[1].shopperPrice.price).toBe(channelPrices[1].price);
+        expect(product!.variants[1].buyerPrice.price).toBe(channelPrices[1].price);
     });
 
     it('loads the customer once for each request, not once for each order line', async () => {
@@ -425,7 +425,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         'rejects a quantity of 0',
         assertThrowsWithMessage(
             () => shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: 0 }),
-            'The quantity for the shopper price must be a positive integer',
+            'The quantity for the buyer price must be a positive integer',
         ),
     );
 
@@ -433,7 +433,7 @@ describe('ProductVariant.shopperPrice with a custom ProductVariantShopperPriceSt
         'rejects a negative quantity',
         assertThrowsWithMessage(
             () => shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: -1 }),
-            'The quantity for the shopper price must be a positive integer',
+            'The quantity for the buyer price must be a positive integer',
         ),
     );
 });

@@ -3,11 +3,11 @@ import {
     Injector,
     PriceCalculationResult,
     ProductVariant,
-    ProductVariantShopperPriceArgs,
-    ProductVariantShopperPriceStrategy,
+    ProductVariantBuyerPriceArgs,
+    ProductVariantBuyerPriceStrategy,
     RequestContext,
     roundMoney,
-    ShopperIdentityService,
+    BuyerIdentityService,
     StrategyLayer,
     VendurePlugin,
 } from '@vendure/core';
@@ -23,29 +23,29 @@ export const BOX_SIZE = 6;
 export const fixedPriceEmailAddresses = new Set<string>();
 
 /**
- * A layer over the {@link ProductVariantShopperPriceStrategy}:
+ * A layer over the {@link ProductVariantBuyerPriceStrategy}:
  *
  * * a fixed unit price for some Customers,
  * * 20% off for a quantity of 10 or more,
  * * the price of {@link BOX_SIZE} units when the pricing data has `unitCode: 'BOX'`. In the cart, the
  *   pricing data is the OrderLine custom fields.
  */
-export class TestShopperPriceLayer extends StrategyLayer.passThrough<ProductVariantShopperPriceStrategy>() {
+export class TestBuyerPriceLayer extends StrategyLayer.passThrough<ProductVariantBuyerPriceStrategy>() {
     static priority = 100;
-    private shopperIdentityService: ShopperIdentityService;
+    private buyerIdentityService: BuyerIdentityService;
 
     init(injector: Injector) {
-        this.shopperIdentityService = injector.get(ShopperIdentityService);
+        this.buyerIdentityService = injector.get(BuyerIdentityService);
     }
 
     async calculateUnitPrice(
         ctx: RequestContext,
         productVariant: ProductVariant,
-        args: ProductVariantShopperPriceArgs,
+        args: ProductVariantBuyerPriceArgs,
     ): Promise<PriceCalculationResult> {
         const result = await this.inner.calculateUnitPrice(ctx, productVariant, args);
         let price = result.price;
-        const customer = await this.shopperIdentityService.getCustomer(ctx);
+        const customer = await this.buyerIdentityService.getCustomer(ctx);
         if (customer && fixedPriceEmailAddresses.has(customer.emailAddress)) {
             price = FIXED_UNIT_PRICE;
         }
@@ -63,11 +63,11 @@ export class TestShopperPriceLayer extends StrategyLayer.passThrough<ProductVari
 
 @VendurePlugin({
     configuration: config => {
-        config.catalogOptions.productVariantShopperPriceStrategy = composeStrategy(
-            TestShopperPriceLayer,
-            config.catalogOptions.productVariantShopperPriceStrategy,
+        config.catalogOptions.productVariantBuyerPriceStrategy = composeStrategy(
+            TestBuyerPriceLayer,
+            config.catalogOptions.productVariantBuyerPriceStrategy,
         );
         return config;
     },
 })
-export class TestShopperPricePlugin {}
+export class TestBuyerPricePlugin {}

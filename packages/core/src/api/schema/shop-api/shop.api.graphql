@@ -317,7 +317,7 @@ type UpdateMultipleOrderItemsResult  {
 
 extend type ProductVariant {
     """
-    The unit price that the configured ProductVariantShopperPriceStrategy calculates for the
+    The unit price that the configured ProductVariantBuyerPriceStrategy calculates for the
     active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
     price of the Channel, this is the price that the default cart pricing starts from. No Order
     is needed.
@@ -327,15 +327,15 @@ extend type ProductVariant {
     OrderLine custom fields as this data. To get the same price, pass the same values that you
     pass as `customFields` to `addItemToOrder`.
 
-    This is the base unit price of the shopper, not a guarantee of the final cart price. For
+    This is the base unit price of the buyer, not a guarantee of the final cart price. For
     example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
     of the Order.
     """
-    shopperPrice(quantity: Int = 1, data: JSON): ShopperPrice!
+    buyerPrice(quantity: Int = 1, data: JSON): BuyerPrice!
 }
 
 "The unit price of a ProductVariant for the active Customer"
-type ShopperPrice {
+type BuyerPrice {
     "The price of a single unit, excluding tax"
     price: Money!
     "The price of a single unit, including tax"

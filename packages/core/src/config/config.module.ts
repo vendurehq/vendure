@@ -164,7 +164,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             productVariantPriceCalculationStrategy,
             productVariantPriceSelectionStrategy,
             productVariantPriceUpdateStrategy,
-            productVariantShopperPriceStrategy,
+            productVariantBuyerPriceStrategy,
             stockDisplayStrategy,
             stockLocationStrategy,
         } = this.configService.catalogOptions;
@@ -245,7 +245,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             entityIdStrategy,
             productVariantPriceCalculationStrategy,
             productVariantPriceUpdateStrategy,
-            productVariantShopperPriceStrategy,
+            productVariantBuyerPriceStrategy,
             orderItemPriceCalculationStrategy,
             ...orderProcess,
             ...customFulfillmentProcess,
