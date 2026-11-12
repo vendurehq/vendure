@@ -2,7 +2,7 @@
 title: "ProductVariantChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="221" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="233" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,8 @@ The assignment of a [ProductVariant](/reference/typescript-api/entities/product-
 class ProductVariantChannel extends ChannelAssignment {
     productVariantId: ID;
     productVariant: ProductVariant;
+    @Column({ default: true })
+    enabled: boolean;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +30,12 @@ class ProductVariantChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>`}   />
 
 
+### enabled
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}  since="4.0.0"  />
+
+Whether the ProductVariant is enabled in this Channel. It is available in the Channel only if it is
+also enabled globally (`ProductVariant.enabled`): see [isEnabledInChannel](/reference/typescript-api/service-helpers/channel-enabled-checker#isenabledinchannel).
 
 
 </div>

@@ -45,8 +45,25 @@ export class TestChannelThingChannel extends ChannelAssignment {
     @Column({ type: Boolean, nullable: true, default: null }) flag: boolean | null;
 }
 
+/**
+ * A ChannelAware entity of a plugin without a channel assignment entity: TypeORM manages the
+ * junction table of its `channels` relation.
+ */
+@Entity()
+export class TestPlainChannelThing extends VendureEntity implements ChannelAware {
+    constructor(input?: DeepPartial<TestPlainChannelThing>) {
+        super(input);
+    }
+
+    @Column() name: string;
+
+    @ManyToMany(() => Channel)
+    @JoinTable()
+    channels: Channel[];
+}
+
 @VendurePlugin({
     imports: [PluginCommonModule],
-    entities: [TestChannelThing, TestChannelThingChannel],
+    entities: [TestChannelThing, TestChannelThingChannel, TestPlainChannelThing],
 })
 export class TestChannelThingPlugin {}

@@ -309,6 +309,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "To'lov qo'shish"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Expand"
 msgstr "Kengaytirish"
@@ -1082,6 +1086,10 @@ msgstr "Buyurtma qatori olib tashlandi"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Same as in <0/>"
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Tarkib:"
@@ -1121,6 +1129,10 @@ msgstr "Mijoz"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata returned by the payment handler."
 msgstr "To'lov ishlovchisi qaytargan metama'lumotlar."
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Hide it in {channel} without affecting other channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1942,6 +1954,11 @@ msgstr "Manzil yangilandi"
 msgid "Created"
 msgstr "Yaratilgan"
 
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Manzillar yuklanmoqda..."
@@ -2092,6 +2109,10 @@ msgstr "Hech qanday o'zgartirish kiritilmadi"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Enabled, but hidden in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
 msgstr "Standart yetkazib berish hududi"
@@ -2150,6 +2171,8 @@ msgstr "Mijozlar guruhlari"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "O'chirilgan"
 
@@ -3138,6 +3161,7 @@ msgstr "Global koʻrinishlarni boshqarish"
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "Standart kanal"
@@ -3317,6 +3341,10 @@ msgstr "Rolni tanlang"
 msgid "Order cancelled"
 msgstr "Buyurtma bekor qilindi"
 
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Available in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Discount"
 msgstr "Chegirma"
@@ -3386,6 +3414,10 @@ msgstr "Telefon raqami"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "New customer"
 msgstr "Yangi mijoz"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Visible in this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -4327,6 +4359,10 @@ msgstr "Yangi mahsulot"
 msgid "Failed for: {failedCodes}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Manage Tags"
 msgstr "Teglarni boshqarish"
@@ -4409,6 +4445,11 @@ msgstr "Ishlamayapti"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
 msgstr "Tayinlangan"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "Availability"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -4791,6 +4832,10 @@ msgstr "Pul qaytarishni yakunlab bo'lmadi"
 msgid "Stock level"
 msgstr "Zaxira darajasi"
 
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Visibility in the new channels"
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Add item"
 msgstr "Element qo'shish"
@@ -4958,6 +5003,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Password updated"
 msgstr "Parol yangilandi"
+
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Visible"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "does not contain"
@@ -5897,6 +5946,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "Yoqilgan"
 
@@ -6424,6 +6475,8 @@ msgstr "Standart til"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "Holat"
 
@@ -6927,6 +6980,10 @@ msgstr "Bu o'zgartirishlar uchun to'lov yoki pul qaytarish talab qilinmaydi."
 msgid "All possible variant combinations already exist."
 msgstr "Barcha mumkin bo‘lgan variant kombinatsiyalari allaqachon mavjud."
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "Hidden in this channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {{cancellableCount} ta vazifani bekor qilmoqchimisiz? Bu amalni qaytarib bo'lmaydi.} other {{cancellableCount} ta vazifani bekor qilmoqchimisiz? Bu amalni qaytarib bo'lmaydi.}}"
@@ -7028,6 +7085,10 @@ msgstr "Kalkulyator"
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Optsiya guruhini kanaldan olib tashlash amalga oshmadi: {message}"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Disabled in every channel. This setting applies once it is enabled."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -7185,6 +7246,10 @@ msgstr "Sahifadagi qatorlar"
 #. placeholder {0}: formatCurrency(capacity, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Disabled in every channel"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx

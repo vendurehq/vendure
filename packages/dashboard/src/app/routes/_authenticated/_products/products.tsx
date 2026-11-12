@@ -4,10 +4,11 @@ import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { NoProductsIllustration } from '@/vdb/components/ui/illustrations.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useChannelAvailabilityList } from '@/vdb/hooks/use-channel-availability-list.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -30,6 +31,7 @@ export const Route = createFileRoute('/_authenticated/_products/products')({
 
 function ProductListPage() {
     const { t } = useLingui();
+    const channelAvailability = useChannelAvailabilityList();
     const reindexMutation = useMutation({
         mutationFn: () => api.mutate(reindexDocument, {}),
         onSuccess: () => {
@@ -70,6 +72,8 @@ function ProductListPage() {
                 description: {
                     cell: RichTextDescriptionCell,
                 },
+                enabled: channelAvailability.statusColumn,
+                enabledInChannel: channelAvailability.enabledInChannelColumn,
             }}
             searchPlaceholder={t`Search products...`}
             onSearchTermChange={searchTerm => {
@@ -91,8 +95,11 @@ function ProductListPage() {
                     enableHiding: false,
                     enableColumnFilter: false,
                 },
+                [channelAvailability.filterId]: channelAvailability.filterColumn,
             }}
+            transformVariables={channelAvailability.transformVariables}
             facetedFilters={{
+                [channelAvailability.filterId]: channelAvailability.facetedFilter,
                 facetValueId: {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,
