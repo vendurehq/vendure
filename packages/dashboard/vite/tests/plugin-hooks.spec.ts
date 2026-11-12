@@ -1203,7 +1203,7 @@ describe('chunkHashPlugin', () => {
     it('returns a new value on each call', () => {
         const plugin = chunkHashPlugin();
         const first = callAugmentChunkHash(plugin);
-        expect(first).toEqual(expect.any(String));
+        expect(first).toMatch(/^[0-9a-f-]{36}$/);
         expect(callAugmentChunkHash(plugin)).not.toBe(first);
     });
 });

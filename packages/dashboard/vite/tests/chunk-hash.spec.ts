@@ -44,7 +44,11 @@ async function buildFixture(root: string, plugins: Plugin[]): Promise<Rollup.Out
         build: {
             write: false,
             minify: false,
-            rollupOptions: { input: path.join(root, 'entry.js') },
+            rollupOptions: {
+                input: path.join(root, 'entry.js'),
+                // Pinned so both dynamic chunks are named `index` on every Rollup version.
+                output: { chunkFileNames: 'assets/index-[hash].js' },
+            },
         },
     });
     const outputs = Array.isArray(result) ? result : [result as Rollup.RollupOutput];
@@ -102,16 +106,16 @@ describe('chunkHashPlugin', () => {
         expect(names).toHaveLength(3);
 
         const entry = chunks.find(c => c.isEntry);
-        expect(entry).toBeDefined();
-        expect(entry?.dynamicImports).toHaveLength(2);
+        if (!entry) throw new Error('no entry chunk');
+        expect(entry.dynamicImports).toHaveLength(2);
         for (const chunk of chunks) {
             for (const imported of [...chunk.imports, ...chunk.dynamicImports]) {
                 expect(names).toContain(imported);
             }
         }
         for (const chunk of chunks.filter(c => !c.isEntry)) {
-            expect(chunk.imports).toEqual([entry?.fileName]);
-            expect(chunk.code).toContain(path.basename(entry?.fileName ?? ''));
+            expect(chunk.imports).toEqual([entry.fileName]);
+            expect(chunk.code).toContain(path.basename(entry.fileName));
         }
     });
 });
