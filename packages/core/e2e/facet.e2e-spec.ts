@@ -827,6 +827,19 @@ describe('Facet resolver', () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         });
 
+        it('createFacet rejects a code that is already used in another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(createFacetDocument, {
+                    input: {
+                        isPrivate: false,
+                        code: 'cross-channel-facet',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Duplicate Facet Code' }],
+                    },
+                }),
+            ).rejects.toThrow(/already exists in another Channel/);
+        });
+
         it('cannot update a FacetValue belonging to another channel', async () => {
             // channel-b does not contain this value, so the update must be rejected.
             adminClient.setChannelToken(CHANNEL_B_TOKEN);
