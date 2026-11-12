@@ -66,16 +66,17 @@ describe('chunkHashPlugin', () => {
         }
     });
 
-    // #5564 — control: without the plugin, the bundler reuses a file name for different code.
-    // If this fails, the bundler now hashes chunks differently and `chunkHashPlugin` may no longer be needed.
-    it('reuses a file name for different code without the plugin', async () => {
+    // #5564 — control: Rollup (Vite 7) reused a file name for different code in this fixture.
+    // Rolldown (Vite 8) renames a chunk when the entry it imports is renamed, so it does not.
+    // `chunkHashPlugin` stays as a guard. If this fails, the bundler reuses file names again.
+    it('does not reuse a file name for different code without the plugin', async () => {
         const first = await buildFixture(writeFixture(['a', 'b']), []);
         const second = await buildFixture(writeFixture(['b', 'a']), []);
 
         const reused = first.filter(chunk =>
             second.some(other => other.fileName === chunk.fileName && other.code !== chunk.code),
         );
-        expect(reused.length).toBeGreaterThan(0);
+        expect(reused).toEqual([]);
     });
 
     // #5564 — a reordered dynamic import must not leave a chunk with the same file name and different content
