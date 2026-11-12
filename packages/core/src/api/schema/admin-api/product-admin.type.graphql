@@ -1,10 +1,10 @@
 type Product implements Node {
     channels: [Channel!]!
     """
-    Whether the Product is enabled in the active Channel: `false` disables it there, `null` means not set.
-    Combined with the global `enabled` value to decide whether it is available in the Channel.
+    Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+    also enabled globally (`enabled`).
     """
-    enabledInChannel: Boolean
+    enabledInChannel: Boolean!
 }
 
 type ProductVariantPrice {
@@ -15,10 +15,10 @@ type ProductVariantPrice {
 type ProductVariant implements Node {
     enabled: Boolean!
     """
-    Whether the ProductVariant is enabled in the active Channel: `false` disables it there, `null` means not set.
-    Combined with the global `enabled` value to decide whether it is available in the Channel.
+    Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+    also enabled globally (`enabled`).
     """
-    enabledInChannel: Boolean
+    enabledInChannel: Boolean!
     trackInventory: GlobalFlag!
     stockOnHand: Int! @deprecated(reason: "use stockLevels")
     stockAllocated: Int! @deprecated(reason: "use stockLevels")

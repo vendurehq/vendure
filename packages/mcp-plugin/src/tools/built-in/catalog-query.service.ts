@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 import {
+    ChannelEnabledChecker,
     ConfigService,
     ID,
     idsAreEqual,
@@ -14,7 +15,6 @@ import {
     TransactionalConnection,
     Translated,
     TranslatorService,
-    whereEnabledInChannel,
 } from '@vendure/core';
 import { FindOptionsWhere, In, IsNull, Raw } from 'typeorm';
 
@@ -26,6 +26,7 @@ export class McpCatalogQueryService {
         private readonly productVariantService: ProductVariantService,
         private readonly listQueryBuilder: ListQueryBuilder,
         private readonly translator: TranslatorService,
+        private readonly channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async variantsByProductId(
@@ -38,13 +39,22 @@ export class McpCatalogQueryService {
             return grouped;
         }
 
-        const query = this.variantsInChannel(ctx)
+        const query = this.connection
+            .getRepository(ctx, ProductVariant)
+            .createQueryBuilder('variant')
+            .innerJoin('variant.product', 'product')
             .leftJoinAndSelect('variant.productVariantPrices', 'price')
             .leftJoinAndSelect('variant.taxCategory', 'taxCategory')
+            .where('variant.deletedAt IS NULL')
+            .andWhere('product.deletedAt IS NULL')
             .andWhere('variant.productId IN (:...productIds)', { productIds });
-        if (!options.includeDisabled) {
-            // Enabled globally and in the active Channel
-            whereEnabledInChannel(query, ctx, ProductVariant, 'variant');
+        if (options.includeDisabled) {
+            query.innerJoin('variant.channels', 'channel', 'channel.id = :channelId', {
+                channelId: ctx.channelId,
+            });
+        } else {
+            // Also restricts the query to the active Channel
+            this.channelEnabledChecker.applyToQuery(ctx, query, ProductVariant);
         }
         const variants = await this.withChannelPrice(ctx, await query.getMany());
         for (const variant of variants) {
@@ -117,22 +127,10 @@ export class McpCatalogQueryService {
             .innerJoin('mcpVariant.collections', 'mcpCollection', 'mcpCollection.id = :mcpCollectionId', {
                 mcpCollectionId: collectionId,
             })
-            .innerJoin('mcpVariant.channels', 'mcpChannel', 'mcpChannel.id = :mcpChannelId', {
-                mcpChannelId: ctx.channelId,
-            })
             .where('mcpVariant.deletedAt IS NULL');
-        whereEnabledInChannel(subQuery, ctx, ProductVariant, 'mcpVariant');
+        // Also restricts the subquery to the active Channel
+        this.channelEnabledChecker.applyToQuery(ctx, subQuery, ProductVariant);
         return Raw(alias => `${alias} IN (${subQuery.getQuery()})`, subQuery.getParameters());
-    }
-
-    private variantsInChannel(ctx: RequestContext) {
-        return this.connection
-            .getRepository(ctx, ProductVariant)
-            .createQueryBuilder('variant')
-            .innerJoin('variant.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
-            .innerJoin('variant.product', 'product')
-            .where('variant.deletedAt IS NULL')
-            .andWhere('product.deletedAt IS NULL');
     }
 
     private async withChannelPrice(

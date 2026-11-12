@@ -1,4 +1,6 @@
 export * from './helpers/active-order/active-order.service';
+export * from './helpers/channel-assignment/channel-assignment.service';
+export * from './helpers/channel-enabled-checker/channel-enabled-checker';
 export * from './helpers/config-arg/config-arg.service';
 export * from './helpers/custom-field-relation/custom-field-relation.service';
 export * from './helpers/entity-duplicator/entity-duplicator.service';
@@ -20,8 +22,6 @@ export * from './helpers/order-state-machine/order-state-machine';
 export * from './helpers/password-cipher/password-cipher';
 export * from './helpers/payment-state-machine/payment-state';
 export * from './helpers/product-price-applicator/product-price-applicator';
-export * from './helpers/channel-assignment/channel-assignment.service';
-export * from './helpers/channel-enabled/channel-enabled';
 export * from './helpers/refund-state-machine/refund-state';
 export * from './helpers/request-context/request-context.service';
 export * from './helpers/role-permission-resolver/role-permission-resolver';

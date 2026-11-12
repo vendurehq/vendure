@@ -1434,7 +1434,7 @@ describe('MCP built-in shop tools', () => {
                 }
             }
         `);
-        const setEnabledInChannel = (enabledInChannel: boolean | null) =>
+        const setEnabledInChannel = (enabledInChannel: boolean) =>
             adminClient.query(
                 gql`
                     mutation SetEnabledInChannel($input: UpdateProductInput!) {
@@ -1456,7 +1456,7 @@ describe('MCP built-in shop tools', () => {
             const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }));
             expect(response.body.result.structuredContent).toEqual({ product: null });
         } finally {
-            await setEnabledInChannel(null);
+            await setEnabledInChannel(true);
         }
         expect(await searchNames()).toEqual(['Test Product', 'Test Shirt']);
     });

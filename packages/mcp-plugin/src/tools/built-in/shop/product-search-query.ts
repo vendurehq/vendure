@@ -31,9 +31,9 @@ export function publicProductListOptions(input: ListInput, words: string[] = [])
     }));
     return {
         ...options,
-        // Enabled globally and in the active Channel
         filter: {
-            _and: [enabledInChannelFilter(), ...wordFilters],
+            ...enabledInChannelFilter(),
+            ...(wordFilters.length ? { _and: wordFilters } : {}),
         },
     };
 }

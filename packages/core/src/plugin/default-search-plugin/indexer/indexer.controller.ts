@@ -25,7 +25,7 @@ import { ProductVariant } from '../../../entity/product-variant/product-variant.
 import { Product } from '../../../entity/product/product.entity';
 import { Job } from '../../../job-queue/job';
 import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
-import { isEnabledInChannel } from '../../../service/helpers/channel-enabled/channel-enabled';
+import { isEnabledInChannel } from '../../../service/helpers/channel-enabled-checker/channel-enabled-checker';
 import { EntityHydrator } from '../../../service/helpers/entity-hydrator/entity-hydrator.service';
 import { ProductPriceApplicator } from '../../../service/helpers/product-price-applicator/product-price-applicator';
 import { ProductVariantService } from '../../../service/services/product-variant.service';

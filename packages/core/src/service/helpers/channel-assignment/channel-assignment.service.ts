@@ -1,7 +1,7 @@
-import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { EntityMetadata, In } from 'typeorm';
+import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
@@ -234,7 +234,12 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         await repo.save(targets, { reload: false });
     }
 
-    private getMetadataOrThrow(entityType: AnyEntity): ChannelAssignmentMetadata {
+    /**
+     * @description
+     * Like {@link ChannelAssignmentService.getMetadata}, but throws if the entity has no channel
+     * assignment entity.
+     */
+    getMetadataOrThrow(entityType: AnyEntity): ChannelAssignmentMetadata {
         const meta = this.getMetadata(entityType);
         if (!meta) {
             throw new InternalServerError(`${entityType.name} has no channel assignment entity`);

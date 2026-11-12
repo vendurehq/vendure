@@ -1,5 +1,4 @@
 import { Args, Info, Query, Resolver } from '@nestjs/graphql';
-import { LogicalOperator } from '@vendure/common/lib/generated-types';
 import {
     QueryCollectionArgs,
     QueryCollectionsArgs,
@@ -9,6 +8,7 @@ import {
     QueryProductsArgs,
     SearchResponse,
 } from '@vendure/common/lib/generated-shop-types';
+import { LogicalOperator } from '@vendure/common/lib/generated-types';
 import { Omit } from '@vendure/common/lib/omit';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 import { GraphQLResolveInfo } from 'graphql';
@@ -19,14 +19,15 @@ import { InternalServerError, UserInputError } from '../../../common/error/error
 import { FilterParameter, ListQueryOptions, NullOptionals } from '../../../common/types/common-types';
 import { Translated } from '../../../common/types/locale-types';
 import { VendureEntity } from '../../../entity/base/base.entity';
-import { ProductChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { Facet } from '../../../entity/facet/facet.entity';
 import { Product } from '../../../entity/product/product.entity';
 import { CollectionService, FacetService } from '../../../service';
+import {
+    ChannelEnabledChecker,
+    enabledInChannelFilter,
+} from '../../../service/helpers/channel-enabled-checker/channel-enabled-checker';
 import { FacetValueService } from '../../../service/services/facet-value.service';
-import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
-import { enabledInChannelFilter, isEnabledInChannel } from '../../../service/helpers/channel-enabled/channel-enabled';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
 import { getVariantCountCollectionIds } from '../../common/get-variant-count-collection-ids';
@@ -43,7 +44,7 @@ export class ShopProductsResolver {
         private collectionService: CollectionService,
         private facetService: FacetService,
         private requestContextCache: RequestContextCacheService,
-        private channelAssignmentService: ChannelAssignmentService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     @Query()
@@ -52,7 +53,6 @@ export class ShopProductsResolver {
         @Args() args: QueryProductsArgs,
         @Relations({ entity: Product, omit: ['variants', 'assets'] }) relations: RelationPaths<Product>,
     ): Promise<PaginatedList<Translated<Product>>> {
-        // Enabled globally and in the active Channel (see isEnabledInChannel)
         const options = this.enforceGuardFilter<Product>(args.options, enabledInChannelFilter());
         return this.productService.findAll(ctx, options, relations);
     }
@@ -74,12 +74,7 @@ export class ShopProductsResolver {
         if (!result) {
             return;
         }
-        const assignment = await this.channelAssignmentService.getAssignment<ProductChannel>(
-            ctx,
-            Product,
-            result.id,
-        );
-        if (!isEnabledInChannel(result.enabled, assignment?.enabled)) {
+        if (!(await this.channelEnabledChecker.isEnabled(ctx, Product, result))) {
             return;
         }
         result.facetValues = result.facetValues?.filter(fv => !fv.facet.isPrivate) as any;

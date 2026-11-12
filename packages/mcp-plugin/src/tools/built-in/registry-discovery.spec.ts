@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import {
     ActiveOrderService,
     AssetService,
-    ChannelAssignmentService,
+    ChannelEnabledChecker,
     ChannelService,
     CollectionService,
     ConfigService,
@@ -62,7 +62,7 @@ describe('built-in registry discovery', () => {
                 { provide: ActiveOrderService, useValue: {} },
                 { provide: AssetService, useValue: {} },
                 { provide: ChannelService, useValue: {} },
-                { provide: ChannelAssignmentService, useValue: {} },
+                { provide: ChannelEnabledChecker, useValue: {} },
                 { provide: CollectionService, useValue: {} },
                 { provide: ConfigService, useValue: { authOptions: { customPermissions: [] } } },
                 { provide: CustomerGroupService, useValue: {} },

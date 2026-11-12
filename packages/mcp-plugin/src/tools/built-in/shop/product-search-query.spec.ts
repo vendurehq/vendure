@@ -1,3 +1,4 @@
+import { enabledInChannelFilter } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 
 import { productSearchWords, publicProductListOptions } from './product-search-query';
@@ -9,19 +10,8 @@ describe('built-in product search query', () => {
             skip: 5,
             sort: { createdAt: 'DESC', id: 'DESC' },
             filter: {
+                ...enabledInChannelFilter(),
                 _and: [
-                    // Enabled globally and not disabled in the active Channel
-                    {
-                        _and: [
-                            { enabled: { eq: true } },
-                            {
-                                _or: [
-                                    { enabledInChannel: { isNull: true } },
-                                    { enabledInChannel: { eq: true } },
-                                ],
-                            },
-                        ],
-                    },
                     { _or: [{ name: { contains: 'camera' } }, { slug: { contains: 'camera' } }] },
                     { _or: [{ name: { contains: 'bag' } }, { slug: { contains: 'bag' } }] },
                 ],
@@ -35,21 +25,7 @@ describe('built-in product search query', () => {
             take: 25,
             skip: 0,
             sort: { createdAt: 'DESC', id: 'DESC' },
-            filter: {
-                _and: [
-                    {
-                        _and: [
-                            { enabled: { eq: true } },
-                            {
-                                _or: [
-                                    { enabledInChannel: { isNull: true } },
-                                    { enabledInChannel: { eq: true } },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
+            filter: enabledInChannelFilter(),
         });
     });
 

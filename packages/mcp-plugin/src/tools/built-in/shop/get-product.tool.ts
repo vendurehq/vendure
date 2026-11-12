@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
-    ChannelAssignmentService,
-    isEnabledInChannel,
+    ChannelEnabledChecker,
     Permission,
     Product,
-    ProductChannel,
     ProductService,
     ProductVariantService,
     RequestContext,
@@ -48,20 +46,12 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
         private readonly productService: ProductService,
         private readonly productVariantService: ProductVariantService,
         private readonly serializer: McpToolSerializerService,
-        private readonly channelAssignmentService: ChannelAssignmentService,
+        private readonly channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {
         const product = await this.findProduct(ctx, input);
-        if (!product) {
-            return { product: null };
-        }
-        const assignment = await this.channelAssignmentService.getAssignment<ProductChannel>(
-            ctx,
-            Product,
-            product.id,
-        );
-        if (!isEnabledInChannel(product.enabled, assignment?.enabled)) {
+        if (!product || !(await this.channelEnabledChecker.isEnabled(ctx, Product, product))) {
             return { product: null };
         }
         // Loading variants through ProductService instead would silently return them with no price,

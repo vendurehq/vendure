@@ -10,11 +10,11 @@ import { ProductChannel } from '../../../entity/channel-assignment/channel-assig
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
-import { Product } from '../../../entity/product/product.entity';
 import { ProductOptionGroup } from '../../../entity/product-option-group/product-option-group.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
-import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
+import { Product } from '../../../entity/product/product.entity';
 import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
+import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { AssetService } from '../../../service/services/asset.service';
 import { CollectionService } from '../../../service/services/collection.service';
 import { FacetValueService } from '../../../service/services/facet-value.service';
@@ -146,16 +146,17 @@ export class ProductAdminEntityResolver {
     ) {}
 
     /**
-     * The per-channel `enabled` value in the active Channel, from the ProductChannel row.
+     * The per-channel `enabled` value in the active Channel, from the ProductChannel row. `false` if
+     * it is not assigned to the active Channel.
      */
     @ResolveField()
-    async enabledInChannel(@Ctx() ctx: RequestContext, @Parent() product: Product): Promise<boolean | null> {
+    async enabledInChannel(@Ctx() ctx: RequestContext, @Parent() product: Product): Promise<boolean> {
         const assignment = await this.channelAssignmentService.getAssignment<ProductChannel>(
             ctx,
             Product,
             product.id,
         );
-        return assignment?.enabled ?? null;
+        return assignment?.enabled ?? false;
     }
 
     @ResolveField()

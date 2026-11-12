@@ -102,7 +102,7 @@ input ProductTranslationInput {
 input CreateProductInput {
     featuredAssetId: ID
     enabled: Boolean
-    "Sets whether it is enabled in the active Channel. `null` clears the per-channel value."
+    "Sets whether it is enabled in the active Channel. Defaults to `true`."
     enabledInChannel: Boolean
     assetIds: [ID!]
     facetValueIds: [ID!]
@@ -112,7 +112,7 @@ input CreateProductInput {
 input UpdateProductInput {
     id: ID!
     enabled: Boolean
-    "Sets whether it is enabled in the active Channel. `null` clears the per-channel value."
+    "Sets whether it is enabled in the active Channel. If not set, it is left unchanged."
     enabledInChannel: Boolean
     featuredAssetId: ID
     assetIds: [ID!]
@@ -162,7 +162,7 @@ input UpdateProductVariantPriceInput {
 input CreateProductVariantInput {
     productId: ID!
     enabled: Boolean
-    "Sets whether it is enabled in the active Channel. `null` clears the per-channel value."
+    "Sets whether it is enabled in the active Channel. Defaults to `true`."
     enabledInChannel: Boolean
     translations: [ProductVariantTranslationInput!]!
     facetValueIds: [ID!]
@@ -183,7 +183,7 @@ input CreateProductVariantInput {
 input UpdateProductVariantInput {
     id: ID!
     enabled: Boolean
-    "Sets whether it is enabled in the active Channel. `null` clears the per-channel value."
+    "Sets whether it is enabled in the active Channel. If not set, it is left unchanged."
     enabledInChannel: Boolean
     translations: [ProductVariantTranslationInput!]
     facetValueIds: [ID!]
@@ -213,7 +213,7 @@ input AssignProductsToChannelInput {
     priceFactor: Float
     """
     Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
-    their per-channel data from the active Channel.
+    the value from the active Channel, and already assigned ones are left unchanged.
     """
     enabledInChannel: Boolean
 }
@@ -229,7 +229,7 @@ input AssignProductVariantsToChannelInput {
     priceFactor: Float
     """
     Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
-    their per-channel data from the active Channel.
+    the value from the active Channel, and already assigned ones are left unchanged.
     """
     enabledInChannel: Boolean
 }

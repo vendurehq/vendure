@@ -26,7 +26,6 @@ import { assertFound, idsAreEqual } from '../../common/utils';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
-import { ProductChannel } from '../../entity/channel-assignment/channel-assignment.entities';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
 import { ProductOptionGroup } from '../../entity/product-option-group/product-option-group.entity';
 import { ProductOption } from '../../entity/product-option/product-option.entity';
@@ -37,8 +36,8 @@ import { EventBus } from '../../event-bus/event-bus';
 import { ProductChannelEvent } from '../../event-bus/events/product-channel-event';
 import { ProductEvent } from '../../event-bus/events/product-event';
 import { ProductOptionGroupChangeEvent } from '../../event-bus/events/product-option-group-change-event';
+import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channel-enabled-checker';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
-import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { SlugValidator } from '../helpers/slug-validator/slug-validator';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
@@ -76,7 +75,7 @@ export class ProductService {
         private translator: TranslatorService,
         private productOptionGroupService: ProductOptionGroupService,
         private roleService: RoleService,
-        private channelAssignmentService: ChannelAssignmentService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async findAll(
@@ -261,11 +260,7 @@ export class ProductService {
         });
         await this.customFieldRelationService.updateRelations(ctx, Product, input, product);
         await this.assetService.updateEntityAssets(ctx, product, input);
-        if (input.enabledInChannel !== undefined) {
-            await this.channelAssignmentService.update<ProductChannel>(ctx, Product, [product.id], [ctx.channelId], {
-                enabled: input.enabledInChannel,
-            });
-        }
+        await this.channelEnabledChecker.updateEnabledInChannel(ctx, Product, product.id, input);
         await this.eventBus.publish(new ProductEvent(ctx, product, 'created', input));
 
         return assertFound(this.findOne(ctx, product.id));
@@ -297,11 +292,7 @@ export class ProductService {
             },
         });
         await this.customFieldRelationService.updateRelations(ctx, Product, input, updatedProduct);
-        if (input.enabledInChannel !== undefined) {
-            await this.channelAssignmentService.update<ProductChannel>(ctx, Product, [updatedProduct.id], [ctx.channelId], {
-                enabled: input.enabledInChannel,
-            });
-        }
+        await this.channelEnabledChecker.updateEnabledInChannel(ctx, Product, updatedProduct.id, input);
         await this.eventBus.publish(new ProductEvent(ctx, updatedProduct, 'updated', input));
 
         return assertFound(this.findOne(ctx, updatedProduct.id));
@@ -373,15 +364,14 @@ export class ProductService {
         }
         const productIds = unique(productsWithVariants.map(p => p.id));
         await Promise.all(
-            productIds.map(id =>
-                this.channelService.assignToChannels(
-                    ctx,
-                    Product,
-                    id,
-                    [input.channelId],
-                    input.enabledInChannel !== undefined ? { enabled: input.enabledInChannel } : undefined,
-                ),
-            ),
+            productIds.map(id => this.channelService.assignToChannels(ctx, Product, id, [input.channelId])),
+        );
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            Product,
+            productIds,
+            input,
+            input.channelId,
         );
         await this.productVariantService.assignProductVariantsToChannel(ctx, {
             productVariantIds: ([] as ID[]).concat(

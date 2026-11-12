@@ -64,7 +64,7 @@ export class CollectionEntityResolver {
         @Relations({ entity: ProductVariant, omit: ['assets'] }) relations: RelationPaths<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
         // In the Shop API, getVariantsByCollectionId() only returns variants available in the active
-        // Channel (see isEnabledInChannel)
+        // Channel (see ChannelEnabledChecker)
         return this.productVariantService.getVariantsByCollectionId(
             ctx,
             collection.id,
