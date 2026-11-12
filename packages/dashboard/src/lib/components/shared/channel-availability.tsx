@@ -1,5 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useId } from 'react';
+import { Control, Controller, FieldValues, Path, useWatch } from 'react-hook-form';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { Field, FieldDescription, FieldLabel } from '@/vdb/components/ui/field.js';
@@ -104,5 +105,34 @@ export function ChannelAvailabilityControl({
                 )}
             </FieldDescription>
         </Field>
+    );
+}
+
+/**
+ * @description
+ * A {@link ChannelAvailabilityControl} bound to the `enabledInChannel` field of a Product or
+ * ProductVariant detail form, following its `enabled` field. The form must have both fields.
+ * Meant as the content of an "Availability" side block, shown only when there is more than one
+ * Channel.
+ *
+ * @docsCategory components
+ * @since 4.0.0
+ */
+export function ChannelAvailabilityFormField<T extends FieldValues>({
+    control,
+}: Readonly<{ control: Control<T> }>) {
+    const enabled = useWatch({ control, name: 'enabled' as Path<T> });
+    return (
+        <Controller
+            control={control}
+            name={'enabledInChannel' as Path<T>}
+            render={({ field }) => (
+                <ChannelAvailabilityControl
+                    enabled={!!enabled}
+                    value={field.value ?? true}
+                    onChange={field.onChange}
+                />
+            )}
+        />
     );
 }

@@ -1,7 +1,7 @@
 import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
-import { ChannelAvailabilityControl } from '@/vdb/components/shared/channel-availability.js';
+import { ChannelAvailabilityFormField } from '@/vdb/components/shared/channel-availability.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
@@ -37,7 +37,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Settings2, Trash } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Controller, useWatch } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -194,7 +194,6 @@ function ProductVariantDetailPage() {
             );
         },
     });
-    const enabled = useWatch({ control: form.control, name: 'enabled' });
 
     useEffect(() => {
         originalStockLevelsRef.current = entity?.stockLevels.map(stockLevel => ({
@@ -549,17 +548,7 @@ function ProductVariantDetailPage() {
                         blockId="channel-availability"
                         title={<Trans>Availability</Trans>}
                     >
-                        <Controller
-                            control={form.control}
-                            name="enabledInChannel"
-                            render={({ field }) => (
-                                <ChannelAvailabilityControl
-                                    enabled={!!enabled}
-                                    value={field.value ?? true}
-                                    onChange={field.onChange}
-                                />
-                            )}
-                        />
+                        <ChannelAvailabilityFormField control={form.control} />
                     </PageBlock>
                 )}
                 {entity && optionGroups.length > 0 && (
