@@ -38,7 +38,6 @@ import {
     StockLocation,
     TaxCategory,
 } from '../../entity';
-import { Customer } from '../../entity/customer/customer.entity';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
 import { ProductOption } from '../../entity/product-option/product-option.entity';
 import { ProductVariantTranslation } from '../../entity/product-variant/product-variant-translation.entity';
@@ -60,7 +59,6 @@ import { samplesEach } from '../helpers/utils/samples-each';
 
 import { AssetService } from './asset.service';
 import { ChannelService } from './channel.service';
-import { CustomerService } from './customer.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
@@ -96,7 +94,6 @@ export class ProductVariantService {
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
         private slugValidator: SlugValidator,
-        private customerService: CustomerService,
     ) {}
 
     async findAll(
@@ -830,17 +827,16 @@ export class ProductVariantService {
 
     /**
      * @description
-     * Calculates the unit price of the ProductVariant for the active Customer, the given quantity and
-     * the given OrderLine custom fields, without an Order. It applies the Channel price and tax (as for
-     * the `price` and `priceWithTax` fields), and then runs the configured
-     * {@link ProductVariantShopperPriceStrategy}. With the default {@link OrderItemPriceCalculationStrategy},
-     * the result is the unit price that the cart calculates for the same input.
+     * Calculates the unit price of the ProductVariant for the active shopper, the given quantity and the
+     * given pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
+     * `priceWithTax` fields), and then runs the configured {@link ProductVariantShopperPriceStrategy}.
+     * The {@link ShopperIdentityService} gives the active Customer to the strategy.
      *
-     * The tax rate comes from the tax zone of the active session. The cart uses the tax zone of the
-     * Order, so the gross price can differ when the two zones differ.
+     * The result is the base unit price of the shopper, not a guarantee of the final cart price. The tax
+     * rate comes from the tax zone of the active session, and the cart uses the tax zone of the Order.
      *
-     * The strategy receives a copy of the variant and of the custom fields, so the given objects do
-     * not change. Vendure does not cache the result: the strategy runs on each call.
+     * The strategy receives a copy of the variant and of the data, so the given objects do not change.
+     * Vendure does not cache the result: the strategy runs on each call.
      *
      * @since 4.0.0
      */
@@ -848,7 +844,7 @@ export class ProductVariantService {
         ctx: RequestContext,
         variant: ProductVariant,
         quantity = 1,
-        orderLineCustomFields: { [key: string]: any } = {},
+        data?: Record<string, unknown>,
     ): Promise<ShopperPrice> {
         if (!Number.isInteger(quantity) || quantity < 1) {
             throw new UserInputError('error.shopper-price-quantity-must-be-positive');
@@ -858,30 +854,13 @@ export class ProductVariantService {
         const { price, priceIncludesTax } = await productVariantShopperPriceStrategy.calculateUnitPrice(
             ctx,
             new ProductVariant(hydratedVariant),
-            {
-                quantity,
-                orderLineCustomFields: { ...orderLineCustomFields },
-                getCustomer: () => this.getActiveCustomer(ctx),
-            },
+            { quantity, data: structuredClone(data) },
         );
         const taxRate = hydratedVariant.taxRateApplied;
         return {
             price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
             priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
         };
-    }
-
-    /**
-     * Loads the Customer of the active User once for each request.
-     */
-    private getActiveCustomer(ctx: RequestContext): Promise<Customer | undefined> {
-        const userId = ctx.activeUserId;
-        if (userId == null) {
-            return Promise.resolve(undefined);
-        }
-        return this.requestCache.get(ctx, `ProductVariantService.getActiveCustomer(${userId})`, () =>
-            this.customerService.findOneByUserId(ctx, userId),
-        );
     }
 
     /**

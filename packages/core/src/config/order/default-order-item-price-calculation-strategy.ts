@@ -1,10 +1,9 @@
 import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
 import { PriceCalculationResult } from '../../common/types/common-types';
-import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { ShopperIdentityService } from '../../service/services/shopper-identity.service';
 import { ConfigService } from '../config.service';
 
 import { OrderItemPriceCalculationStrategy } from './order-item-price-calculation-strategy';
@@ -15,42 +14,41 @@ import { OrderItemPriceCalculationStrategy } from './order-item-price-calculatio
  * {@link ProductVariantShopperPriceStrategy} calculates for the Customer of the Order. With the
  * {@link DefaultProductVariantShopperPriceStrategy}, this is the price of the ProductVariant.
  *
+ * The pricing data for the shopper price strategy comes from `getShopperPriceData()` of the configured
+ * chain of OrderItemPriceCalculationStrategies. This strategy gives no data.
+ *
  * @docsCategory orders
  */
 export class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
     private configService: ConfigService;
-    private connection: TransactionalConnection;
+    private shopperIdentityService: ShopperIdentityService;
 
     init(injector: Injector) {
         this.configService = injector.get(ConfigService);
-        this.connection = injector.get(TransactionalConnection);
+        this.shopperIdentityService = injector.get(ShopperIdentityService);
     }
 
-    calculateUnitPrice(
+    async calculateUnitPrice(
         ctx: RequestContext,
         productVariant: ProductVariant,
         orderLineCustomFields: { [key: string]: any },
         order: Order,
         quantity: number,
-    ): PriceCalculationResult | Promise<PriceCalculationResult> {
+    ): Promise<PriceCalculationResult> {
+        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
         const { productVariantShopperPriceStrategy } = this.configService.catalogOptions;
-        return productVariantShopperPriceStrategy.calculateUnitPrice(ctx, productVariant, {
-            quantity,
+        // The configured chain, so that a layer over this strategy can give the data
+        const data = await orderItemPriceCalculationStrategy.getShopperPriceData?.(
+            ctx,
             orderLineCustomFields,
-            getCustomer: () => this.getCustomer(ctx, order),
-        });
+            order,
+        );
+        return this.shopperIdentityService.runForCustomer(ctx, order.customerId, async () =>
+            productVariantShopperPriceStrategy.calculateUnitPrice(ctx, productVariant, { quantity, data }),
+        );
     }
 
-    private async getCustomer(ctx: RequestContext, order: Order): Promise<Customer | undefined> {
-        if (order.customer) {
-            return order.customer;
-        }
-        if (order.customerId == null) {
-            return undefined;
-        }
-        const customer = await this.connection
-            .getRepository(ctx, Customer)
-            .findOne({ where: { id: order.customerId } });
-        return customer ?? undefined;
+    getShopperPriceData(): Record<string, unknown> | undefined {
+        return undefined;
     }
 }

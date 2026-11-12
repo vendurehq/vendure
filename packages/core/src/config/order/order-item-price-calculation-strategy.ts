@@ -10,9 +10,9 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * {@link DefaultOrderItemPriceCalculationStrategy} is used.
  *
  * The default strategy returns the price of the {@link ProductVariantShopperPriceStrategy} for the Customer of the Order.
- * For a price that depends only on the ProductVariant, the Customer, the quantity and the OrderLine custom fields, use
- * the ProductVariantShopperPriceStrategy instead. Then the Shop API `ProductVariant.shopperPrice` field and the cart give
- * the same price. Keep logic here that needs the Order, or that writes data to the OrderLine.
+ * For catalog pricing that depends on the ProductVariant, the shopper and the quantity, use the
+ * ProductVariantShopperPriceStrategy instead. Then the Shop API `ProductVariant.shopperPrice` field gives the same base
+ * unit price. Keep logic here that needs the Order, or that writes data to the OrderLine.
  *
  * :::info
  *
@@ -82,4 +82,37 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
         order: Order,
         quantity: number,
     ): PriceCalculationResult | Promise<PriceCalculationResult>;
+
+    /**
+     * @description
+     * Returns the pricing data that the {@link DefaultOrderItemPriceCalculationStrategy} passes to the
+     * {@link ProductVariantShopperPriceStrategy} for an OrderLine, as the `data` argument. Vendure does not
+     * map the OrderLine custom fields to pricing data by itself.
+     *
+     * The default strategy calls this method on the configured chain of strategies, so a
+     * {@link StrategyLayer} can add data without replacing the default. A layer should merge the data of
+     * `inner`:
+     *
+     * @example
+     * ```ts
+     * export class UnitCodePriceDataLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
+     *     static priority = 100;
+     *
+     *     async getShopperPriceData(
+     *         ...args: Parameters<Required<OrderItemPriceCalculationStrategy>['getShopperPriceData']>
+     *     ) {
+     *         const [, orderLineCustomFields] = args;
+     *         const data = await this.inner.getShopperPriceData?.(...args);
+     *         return { ...data, unitCode: orderLineCustomFields.unitCode };
+     *     }
+     * }
+     * ```
+     *
+     * @since 4.0.0
+     */
+    getShopperPriceData?(
+        ctx: RequestContext,
+        orderLineCustomFields: { [key: string]: any },
+        order: Order,
+    ): Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>;
 }

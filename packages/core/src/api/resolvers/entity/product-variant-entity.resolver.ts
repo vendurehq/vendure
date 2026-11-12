@@ -228,13 +228,13 @@ export class ProductVariantShopEntityResolver {
     async shopperPrice(
         @Ctx() ctx: RequestContext,
         @Parent() productVariant: ProductVariant,
-        @Args() args: ProductVariantShopperPriceArgs & { customFields?: { [key: string]: any } },
+        @Args() args: ProductVariantShopperPriceArgs,
     ): Promise<ShopperPrice> {
         return this.productVariantService.calculateShopperPrice(
             ctx,
             productVariant,
             args.quantity ?? 1,
-            args.customFields ?? {},
+            args.data ?? undefined,
         );
     }
 }

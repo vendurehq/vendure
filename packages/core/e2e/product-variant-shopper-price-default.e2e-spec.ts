@@ -10,17 +10,13 @@ import { graphql } from './graphql/graphql-shop';
 import { getCustomerListDocument } from './graphql/shared-definitions';
 
 const getVariantPricesDocument = graphql(`
-    query GetVariantShopperPricesDefault(
-        $id: ID!
-        $quantity: Int
-        $customFields: OrderLineCustomFieldsInput
-    ) {
+    query GetVariantShopperPricesDefault($id: ID!, $quantity: Int, $data: JSON) {
         product(id: $id) {
             variants {
                 id
                 price
                 priceWithTax
-                shopperPrice(quantity: $quantity, customFields: $customFields) {
+                shopperPrice(quantity: $quantity, data: $data) {
                     price
                     priceWithTax
                 }
@@ -60,9 +56,6 @@ describe('ProductVariant.shopperPrice with the default ProductVariantShopperPric
     const config = testConfig();
     const { server, adminClient, shopClient } = createTestEnvironment({
         ...config,
-        customFields: {
-            OrderLine: [{ name: 'unitCode', type: 'string' }],
-        },
         dbConnectionOptions: {
             ...config.dbConnectionOptions,
             logging: ['query'],
@@ -89,7 +82,7 @@ describe('ProductVariant.shopperPrice with the default ProductVariantShopperPric
         const { product } = await shopClient.query(getVariantPricesDocument, {
             id: 'T_1',
             quantity: 5,
-            customFields: { unitCode: 'BOX' },
+            data: { unitCode: 'BOX' },
         });
 
         expect(product!.variants.length).toBeGreaterThan(1);
@@ -120,13 +113,13 @@ describe('ProductVariant.shopperPrice with the default ProductVariantShopperPric
             const withField = await countQueries(() =>
                 shopClient.query(getVariantPricesDocument, { id: 'T_1' }),
             );
-            const withCustomFields = await countQueries(() =>
-                shopClient.query(getVariantPricesDocument, { id: 'T_1', customFields: { unitCode: 'BOX' } }),
+            const withData = await countQueries(() =>
+                shopClient.query(getVariantPricesDocument, { id: 'T_1', data: { unitCode: 'BOX' } }),
             );
 
             expect(withoutField).toBeGreaterThan(0);
             expect(withField).toBe(withoutField);
-            expect(withCustomFields).toBe(withoutField);
+            expect(withData).toBe(withoutField);
         }
     });
 });

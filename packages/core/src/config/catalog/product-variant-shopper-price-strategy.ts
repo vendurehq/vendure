@@ -1,7 +1,6 @@
 import { RequestContext } from '../../api/common/request-context';
 import { PriceCalculationResult } from '../../common/types/common-types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
-import { Customer } from '../../entity/customer/customer.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 
 /**
@@ -19,10 +18,10 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * ### Where the strategy is used
  *
- * * The {@link DefaultOrderItemPriceCalculationStrategy} calls it for the unit price of each OrderLine.
- *   The price is for the Customer of the Order.
+ * * The {@link DefaultOrderItemPriceCalculationStrategy} calls it for the unit price of each OrderLine,
+ *   for the Customer of the Order.
  * * The Shop API `ProductVariant.shopperPrice` field calls it for the active Customer, without an Order.
- *   Thus a storefront can show the price that the cart will use.
+ *   Thus a storefront can show the base unit price of the shopper.
  *
  * ### ProductVariantShopperPriceStrategy vs ProductVariantPriceCalculationStrategy
  *
@@ -31,19 +30,38 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * `priceWithTax` fields. It has no quantity and no Customer.
  *
  * The ProductVariantShopperPriceStrategy runs after it, and receives the variant with the Channel price
- * in `listPrice`. Use it for a price that depends on the Customer or the quantity, for example a price
- * per Customer group, quantity tiers, or a base price from an external system.
+ * in `listPrice`. Use it for a price that depends on the shopper, the quantity or pricing data, for
+ * example a price per Customer group, quantity tiers, or a base price from an external system.
+ *
+ * ### The shopper
+ *
+ * To find the Customer that the price is for, inject the {@link ShopperIdentityService}. In the cart it
+ * gives the Customer of the Order, and for the `shopperPrice` field the active Customer.
+ *
+ * ### Pricing data
+ *
+ * The `data` argument carries pricing input that the strategy defines, for example a packaging unit.
+ * The storefront passes it to the `shopperPrice` field. For the cart, add a
+ * {@link StrategyLayer} over the {@link OrderItemPriceCalculationStrategy} that maps the OrderLine
+ * custom fields to the same data in its `getShopperPriceData()` method.
  *
  * ### ProductVariantShopperPriceStrategy vs OrderItemPriceCalculationStrategy
  *
  * The {@link OrderItemPriceCalculationStrategy} gives the price of an OrderLine and has the Order.
- * Keep logic in it that needs the Order. Logic that needs only the variant, the Customer, the quantity
- * and the OrderLine custom fields goes in the ProductVariantShopperPriceStrategy, so that the
- * `shopperPrice` field and the cart give the same price.
+ * Keep logic in it that needs the Order, or that writes data to the OrderLine. Catalog pricing that
+ * depends on the variant, the shopper, the quantity and the pricing data goes in the
+ * ProductVariantShopperPriceStrategy.
  *
  * A custom OrderItemPriceCalculationStrategy that replaces the default must call this strategy itself.
  * Otherwise the cart does not use it. Prefer to add your logic as a {@link StrategyLayer} over the
  * default OrderItemPriceCalculationStrategy.
+ *
+ * ### The shopper price and the cart price
+ *
+ * The `shopperPrice` field gives the base unit price of the shopper, not a guarantee of the final
+ * cart price. The cart can differ because of logic in the OrderItemPriceCalculationStrategy, a guest
+ * Order (the session has no Customer, but the Order has a guest Customer), the tax zone of the Order,
+ * or a custom {@link TaxLineCalculationStrategy}.
  *
  * ### Performance
  *
@@ -85,19 +103,12 @@ export interface ProductVariantShopperPriceArgs {
     quantity: number;
     /**
      * @description
-     * The OrderLine custom fields. In the cart, these are the custom fields of the OrderLine. For the
-     * `shopperPrice` field, they are the `customFields` argument of the field, in the same form as the
-     * `customFields` input of `addItemToOrder`.
+     * Pricing input that the strategy defines, for example the code of a packaging unit. Vendure does
+     * not validate or interpret it: the strategy must do this.
      *
-     * The strategy must not write to this object. To store data on the OrderLine, use the
-     * {@link OrderItemPriceCalculationStrategy}.
+     * For the `shopperPrice` field, this is the `data` argument of the field. In the cart, the configured
+     * {@link OrderItemPriceCalculationStrategy} gives it with its `getShopperPriceData()` method. By
+     * default it is `undefined`.
      */
-    orderLineCustomFields: { [key: string]: any };
-    /**
-     * @description
-     * Returns the Customer that the price is for: in the cart, the Customer of the Order, and for the
-     * `shopperPrice` field, the active Customer. Returns `undefined` for a guest. The Customer is
-     * loaded only when the strategy calls this function.
-     */
-    getCustomer(): Promise<Customer | undefined>;
+    data?: Record<string, unknown>;
 }

@@ -12,7 +12,7 @@ When an item is added to an order, Vendure resolves its price through the follow
 
 1. **ProductVariantPrice** — The base price stored in the database. Each [`ProductVariant`](/reference/typescript-api/entities/product-variant/) has one or more [`ProductVariantPrice`](/reference/typescript-api/entities/product-variant-price/) records, scoped by channel and currency.
 2. **ProductVariantPriceSelectionStrategy** — Selects which `ProductVariantPrice` to use when multiple prices exist for the active channel and currency.
-3. **ProductVariantShopperPriceStrategy** — Determines the unit price for the shopper and the quantity, and whether it includes tax. This is the main extension point for custom pricing logic such as customer-specific pricing, tiered pricing, or time-based deals. See [The shopper price](#the-shopper-price).
+3. **ProductVariantShopperPriceStrategy** — Determines the base unit price for the shopper, the quantity and the pricing data, and whether it includes tax. This is the main extension point for custom pricing logic such as customer-specific pricing, tiered pricing, or time-based deals. See [The shopper price](#the-shopper-price).
 4. **OrderItemPriceCalculationStrategy** — Determines the unit price of the order line. The default uses the shopper price. Use it for logic that needs the order or the order line.
 5. **Promotions** — Any active [promotions](/core-concepts/promotions/) that apply order-level or item-level discounts are calculated and applied as adjustments.
 6. **Tax calculation** — The applicable tax rate is determined (based on [tax category, zone, and strategy](/core-concepts/taxes/)) and applied to produce the final tax-inclusive price.
@@ -21,12 +21,12 @@ The result of this pipeline is exposed in the GraphQL API as a pair of fields on
 
 ## The shopper price
 
-`ProductVariant.price` and `priceWithTax` give the price of the channel. The price that a shopper pays can depend on more: the customer, the quantity, or input that the cart stores in order line custom fields. The [`ProductVariantShopperPriceStrategy`](/reference/typescript-api/products-stock/product-variant-shopper-price-strategy/) calculates this unit price. It receives the variant with the channel price applied, and returns the unit price for a shopper and a quantity, with no order.
+`ProductVariant.price` and `priceWithTax` give the price of the channel. The base price of a shopper can depend on more: the customer, the quantity, or pricing input such as a packaging unit. The [`ProductVariantShopperPriceStrategy`](/reference/typescript-api/products-stock/product-variant-shopper-price-strategy/) calculates this unit price. It receives the variant with the channel price applied, the quantity, and optional pricing `data`. It has no order.
 
 Vendure uses the strategy in two places:
 
-- In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order. In an Admin draft order, this is the customer of the order, not the administrator.
-- In the Shop API, the `ProductVariant.shopperPrice` field calls it for the active customer. A storefront can show the price that the cart will use.
+- In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order.
+- In the Shop API, the `ProductVariant.shopperPrice` field calls it for the active customer.
 
 ```graphql
 query {
@@ -35,7 +35,7 @@ query {
             id
             price
             priceWithTax
-            shopperPrice(quantity: 10) {
+            shopperPrice(quantity: 10, data: { unitCode: "BOX" }) {
                 price
                 priceWithTax
             }
@@ -44,23 +44,49 @@ query {
 }
 ```
 
-If you define custom fields on `OrderLine`, the field also has a `customFields` argument of the type `OrderLineCustomFieldsInput`. Pass the same values as to `addItemToOrder`. For example, a storefront that sells by packaging unit passes the unit code to both, and gets the same price on the product page and in the cart.
+`shopperPrice` is the base unit price of the shopper. It is not a guarantee of the final price in the cart. The cart can give a different price, also in the same tax zone, because of:
 
-### Writing a shopper price strategy
+- logic in a custom `OrderItemPriceCalculationStrategy` that uses the order,
+- a guest order: the session has no customer, but the order has a guest customer,
+- the tax zone of the order, which can come from the shipping address,
+- a custom [`TaxLineCalculationStrategy`](/reference/typescript-api/tax/tax-line-calculation-strategy/).
 
-Add your logic as a [`StrategyLayer`](/reference/typescript-api/configuration/strategy-layer/) over the configured strategy:
+### Finding the shopper
 
-```ts title="src/plugins/customer-prices/customer-price-layer.ts"
+The strategy gets the customer from the [`ShopperIdentityService`](/reference/typescript-api/services/shopper-identity-service/):
+
+- In the cart, the default `OrderItemPriceCalculationStrategy` runs the strategy inside `ShopperIdentityService.runForCustomer()` with the customer of the order. In an Admin draft order, this is the customer of the order, not the administrator. In a guest order, it is the guest customer.
+- For the `shopperPrice` field, the service gives the customer of the active user, or `undefined` for a guest session.
+
+`getCustomerId()` and `getCustomer()` cache their result for each request, so a strategy can call them for each order line. The default strategy does not call them, so the `shopperPrice` field runs no extra database query.
+
+### Pricing data
+
+`data` is pricing input that your strategy defines, for example the code of a packaging unit. Vendure does not validate or interpret it. Your strategy must check it.
+
+The storefront passes it in the `data` argument of `shopperPrice`. In the cart, Vendure does not map the order line custom fields to `data` by itself. To use an order line custom field as pricing data, add a layer over the `OrderItemPriceCalculationStrategy` that implements `getShopperPriceData()`. The default `OrderItemPriceCalculationStrategy` calls this method on the configured chain, so the layer does not replace the default.
+
+### Example
+
+This plugin gives the price of six units for the packaging unit `BOX`, in the storefront and in the cart:
+
+```ts title="src/plugins/packaging-units/packaging-unit.plugin.ts"
 import {
+    composeStrategy,
+    Order,
+    OrderItemPriceCalculationStrategy,
     PriceCalculationResult,
     ProductVariant,
     ProductVariantShopperPriceArgs,
     ProductVariantShopperPriceStrategy,
     RequestContext,
     StrategyLayer,
+    VendurePlugin,
 } from '@vendure/core';
 
-export class CustomerPriceLayer extends StrategyLayer.passThrough<ProductVariantShopperPriceStrategy>() {
+const UNIT_SIZES: Record<string, number> = { BOX: 6 };
+
+export class PackagingUnitPriceLayer extends StrategyLayer.passThrough<ProductVariantShopperPriceStrategy>() {
     static priority = 100;
 
     async calculateUnitPrice(
@@ -69,45 +95,54 @@ export class CustomerPriceLayer extends StrategyLayer.passThrough<ProductVariant
         args: ProductVariantShopperPriceArgs,
     ): Promise<PriceCalculationResult> {
         const result = await this.inner.calculateUnitPrice(ctx, productVariant, args);
-        const customer = await args.getCustomer();
-        if (!customer) {
-            return result;
-        }
-        // Look up the price of this customer, for example in a custom entity
-        return result;
+        const unitCode = args.data?.unitCode;
+        const size = typeof unitCode === 'string' ? UNIT_SIZES[unitCode] : undefined;
+        return size ? { ...result, price: result.price * size } : result;
     }
 }
-```
 
-```ts title="src/vendure-config.ts"
-import { composeStrategy, DefaultProductVariantShopperPriceStrategy, VendureConfig } from '@vendure/core';
+export class PackagingUnitDataLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
+    static priority = 100;
 
-import { CustomerPriceLayer } from './plugins/customer-prices/customer-price-layer';
+    async getShopperPriceData(
+        ctx: RequestContext,
+        orderLineCustomFields: { [key: string]: any },
+        order: Order,
+    ) {
+        const data = await this.inner.getShopperPriceData?.(ctx, orderLineCustomFields, order);
+        return { ...data, unitCode: orderLineCustomFields.unitCode };
+    }
+}
 
-export const config: VendureConfig = {
-    // ...
-    catalogOptions: {
-        productVariantShopperPriceStrategy: composeStrategy(
-            CustomerPriceLayer,
-            new DefaultProductVariantShopperPriceStrategy(),
-        ),
+@VendurePlugin({
+    configuration: config => {
+        config.customFields.OrderLine.push({ name: 'unitCode', type: 'string' });
+        config.catalogOptions.productVariantShopperPriceStrategy = composeStrategy(
+            PackagingUnitPriceLayer,
+            config.catalogOptions.productVariantShopperPriceStrategy,
+        );
+        config.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
+            PackagingUnitDataLayer,
+            config.orderOptions.orderItemPriceCalculationStrategy,
+        );
+        return config;
     },
-};
+})
+export class PackagingUnitPlugin {}
 ```
+
+The storefront then sends `shopperPrice(quantity: 2, data: { unitCode: "BOX" })` and `addItemToOrder(..., customFields: { unitCode: "BOX" })`.
 
 Things to know:
 
-- `args.getCustomer()` loads the customer only when you call it. With the default strategy, the `shopperPrice` field runs no extra database query.
-- Do not write to `args.orderLineCustomFields`. For the `shopperPrice` field it is a copy of the request input. To store data on the order line, use the `OrderItemPriceCalculationStrategy`.
 - Vendure does not cache the result. The `shopperPrice` field runs the strategy once for each variant that requests the field. If your strategy is slow, for example because it calls an external system, it must cache the results itself.
-- The field uses the tax zone of the session, as `priceWithTax` does. The cart uses the tax zone of the order, which can come from the shipping address. When the two zones differ, `shopperPrice.priceWithTax` can differ from the `unitPriceWithTax` of the order line.
 - In code, use `ProductVariantService.calculateShopperPrice()`.
 
 ### Shopper price or order item price?
 
-The `OrderItemPriceCalculationStrategy` gives the price of an order line, and it has the order. Use it only for logic that needs the order, or that writes data to the order line. Put logic that depends on the variant, the customer, the quantity and the order line custom fields in the shopper price strategy. Then the storefront and the cart show the same price.
+The `OrderItemPriceCalculationStrategy` gives the price of an order line, and it has the order. Use it only for logic that needs the order, or that writes data to the order line. Put catalog pricing that depends on the variant, the shopper, the quantity and the pricing data in the shopper price strategy.
 
-A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `productVariantShopperPriceStrategy` for its base price. Otherwise the cart ignores the shopper price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a shopper price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`.
+A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `productVariantShopperPriceStrategy` itself. Otherwise the cart ignores the shopper price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a shopper price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`.
 
 ## Channel-specific pricing
 
