@@ -1,10 +1,10 @@
-import { toast } from '@/vdb/components/ui/sonner.js';
 import { useMutation } from '@tanstack/react-query';
 import { ReactNode, useEffect, useState } from 'react';
+import { toast } from '@/vdb/components/ui/sonner.js';
 
-import { assignToChannels } from '@/vdb/components/shared/assign-to-channels.js';
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
+import { assignToChannels } from '@/vdb/components/shared/assign-to-channels.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -14,9 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
-import { Field, FieldLabel, FieldLegend, FieldSet } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { RadioGroup, RadioGroupItem } from '@/vdb/components/ui/radio-group.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -215,65 +213,4 @@ export function usePriceFactor() {
     );
 
     return { priceFactor, priceFactorField };
-}
-
-type EnabledInChannelOptionKey = 'copy' | 'visible' | 'hidden';
-
-/**
- * @description
- * Hook for the per-channel visibility option in the assign-to-channel dialogs of Products and
- * ProductVariants: keep the visibility they have in the active Channel (the default), or make them
- * visible or hidden in the new Channels.
- *
- * `enabledInChannel` is `undefined` for the default, which leaves it out of the mutation input so
- * that the server copies the value from the active Channel; `null` (not hidden) for visible; and
- * `false` for hidden.
- *
- * @docsCategory components
- * @since 4.0.0
- */
-export function useEnabledInChannelOption() {
-    const { activeChannel, channels } = useChannel();
-    const [option, setOption] = useState<EnabledInChannelOptionKey>('copy');
-    const enabledInChannel = option === 'copy' ? undefined : option === 'visible' ? null : false;
-    const items: Array<{ key: EnabledInChannelOptionKey; label: ReactNode }> = [
-        {
-            key: 'copy',
-            label: (
-                <Trans>
-                    Same as in <ChannelCodeLabel code={activeChannel?.code} />
-                </Trans>
-            ),
-        },
-        { key: 'visible', label: <Trans>Visible</Trans> },
-        { key: 'hidden', label: <Trans>Hidden</Trans> },
-    ];
-
-    const enabledInChannelField =
-        channels.length > 1 ? (
-            <FieldSet className="gap-3" data-testid="assign-enabled-in-channel">
-                <FieldLegend variant="label" className="mb-2">
-                    <Trans>Visibility in the new channels</Trans>
-                </FieldLegend>
-                <RadioGroup
-                    value={option}
-                    onValueChange={value => setOption(value as EnabledInChannelOptionKey)}
-                    className="gap-2.5"
-                >
-                    {items.map(item => (
-                        <Field key={item.key} orientation="horizontal" className="gap-2">
-                            <RadioGroupItem value={item.key} id={`assign-enabled-in-channel-${item.key}`} />
-                            <FieldLabel
-                                htmlFor={`assign-enabled-in-channel-${item.key}`}
-                                className="font-normal"
-                            >
-                                {item.label}
-                            </FieldLabel>
-                        </Field>
-                    ))}
-                </RadioGroup>
-            </FieldSet>
-        ) : null;
-
-    return { enabledInChannel, enabledInChannelField };
 }

@@ -1095,7 +1095,7 @@ msgstr "주문 항목이 제거되었습니다"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Same as in <0/>"
 msgstr ""
 
@@ -1143,7 +1143,7 @@ msgstr "고객"
 msgid "Metadata returned by the payment handler."
 msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Hide it in {channel} without affecting other channels."
 msgstr ""
 
@@ -1982,8 +1982,8 @@ msgstr "주소가 업데이트되었습니다"
 msgid "Created"
 msgstr "생성일"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Hidden"
 msgstr ""
 
@@ -2144,7 +2144,7 @@ msgstr "수정 없음"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Enabled, but hidden in {channelName}"
 msgstr ""
 
@@ -2206,8 +2206,8 @@ msgstr "고객 그룹"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "비활성화됨"
 
@@ -3197,8 +3197,8 @@ msgstr "전역 뷰 관리"
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "기본 채널"
 
@@ -3385,7 +3385,7 @@ msgstr "역할 선택"
 msgid "Order cancelled"
 msgstr "주문이 취소되었습니다"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Available in {channelName}"
 msgstr ""
 
@@ -3464,7 +3464,7 @@ msgstr "전화번호"
 msgid "New customer"
 msgstr "새 고객"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Visible in this channel"
 msgstr ""
 
@@ -4879,7 +4879,7 @@ msgstr "환불 정산 실패"
 msgid "Stock level"
 msgstr "재고 수준"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visibility in the new channels"
 msgstr ""
 
@@ -5055,7 +5055,7 @@ msgstr ""
 msgid "Password updated"
 msgstr "비밀번호가 업데이트되었습니다"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visible"
 msgstr ""
 
@@ -6021,8 +6021,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "활성화됨"
 
@@ -6552,9 +6552,8 @@ msgstr "기본 언어"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "상태"
 
@@ -7055,7 +7054,7 @@ msgstr "이 변경사항에는 결제 또는 환불이 필요하지 않습니다
 msgid "All possible variant combinations already exist."
 msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Hidden in this channel"
 msgstr ""
 
@@ -7165,7 +7164,7 @@ msgstr "계산 방식"
 msgid "Failed to remove option group from channel: {message}"
 msgstr "채널에서 옵션 그룹 제거 실패: {message}"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel. This setting applies once it is enabled."
 msgstr ""
 
@@ -7331,7 +7330,7 @@ msgstr "페이지당 행 수"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel"
 msgstr ""
 

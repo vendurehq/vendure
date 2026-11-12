@@ -1107,7 +1107,7 @@ msgstr "Megrendeléssor eltávolítva"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Same as in <0/>"
 msgstr ""
 
@@ -1151,7 +1151,7 @@ msgstr "Vásárló"
 msgid "Metadata returned by the payment handler."
 msgstr "A fizetéskezelő által visszaadott metaadatok."
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Hide it in {channel} without affecting other channels."
 msgstr ""
 
@@ -1990,8 +1990,8 @@ msgstr "Cím sikeresen frissítve"
 msgid "Created"
 msgstr "Létrehozva"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Hidden"
 msgstr ""
 
@@ -2152,7 +2152,7 @@ msgstr "Nem történt módosítás"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Enabled, but hidden in {channelName}"
 msgstr ""
 
@@ -2214,8 +2214,8 @@ msgstr "Vásárlói csoportok"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "Letiltva"
 
@@ -3205,8 +3205,8 @@ msgstr "Globális nézetek kezelése"
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "Alapértelmezett csatorna"
 
@@ -3393,7 +3393,7 @@ msgstr "Szerepkör kiválasztása"
 msgid "Order cancelled"
 msgstr "Megrendelés törölve"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Available in {channelName}"
 msgstr ""
 
@@ -3472,7 +3472,7 @@ msgstr "Telefonszám"
 msgid "New customer"
 msgstr "Új vásárló"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Visible in this channel"
 msgstr ""
 
@@ -4899,7 +4899,7 @@ msgstr "Visszatérítés rendezése sikertelen"
 msgid "Stock level"
 msgstr "Készletszint"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visibility in the new channels"
 msgstr ""
 
@@ -5079,7 +5079,7 @@ msgstr ""
 msgid "Password updated"
 msgstr "Jelszó frissítve"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visible"
 msgstr ""
 
@@ -6049,8 +6049,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "Engedélyezve"
 
@@ -6603,9 +6603,8 @@ msgstr "Alapértelmezett nyelv"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "Státusz"
 
@@ -7118,7 +7117,7 @@ msgstr "Ezekhez a módosításokhoz nem szükséges fizetés vagy visszatérít�
 msgid "All possible variant combinations already exist."
 msgstr "Már minden lehetséges variánskombináció létezik."
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Hidden in this channel"
 msgstr ""
 
@@ -7228,7 +7227,7 @@ msgstr "Kalkulátor"
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Nem sikerült eltávolítani az opciócsoportot a csatornából: {message}"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel. This setting applies once it is enabled."
 msgstr ""
 
@@ -7394,7 +7393,7 @@ msgstr "Sorok oldalanként"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel"
 msgstr ""
 

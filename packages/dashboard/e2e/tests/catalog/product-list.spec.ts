@@ -534,7 +534,7 @@ test.describe('per-channel enabled in the product list', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
-            input: { id: keyboardId, enabledInChannel: null },
+            input: { id: keyboardId, enabledInChannel: true },
         });
         await client.deleteChannel(channelId);
         await page.close();
@@ -597,7 +597,7 @@ test.describe('per-channel enabled in the product list', () => {
         await dialog.getByRole('combobox').first().click();
         await page.getByRole('option', { name: channelCode }).click();
         await page.keyboard.press('Escape');
-        const visibility = dialog.getByTestId('assign-enabled-in-channel');
+        const visibility = dialog.getByTestId('assign-channel-availability');
         // By default the products keep the visibility they have in the active channel
         await expect(visibility.getByRole('radio', { name: 'Same as in Default channel' })).toBeChecked();
         await visibility.getByRole('radio', { name: 'Hidden', exact: true }).click();

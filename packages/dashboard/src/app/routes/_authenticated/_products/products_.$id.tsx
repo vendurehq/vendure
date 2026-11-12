@@ -1,12 +1,9 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/slug-input.js';
-import {
-    useEnabledInChannelOption,
-    usePriceFactor,
-} from '@/vdb/components/shared/assign-to-channel-dialog.js';
+import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
-import { ChannelAvailabilityControl } from '@/vdb/components/shared/enabled-in-channel.js';
+import { ChannelAvailabilityControl } from '@/vdb/components/shared/channel-availability.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -29,6 +26,7 @@ import {
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useChannelAvailabilityOption } from '@/vdb/hooks/use-channel-availability-option.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -138,7 +136,7 @@ function ProductDetailPage() {
     const refreshRef = useRef<() => void>(() => {});
     const { channels } = useChannel();
     const { priceFactor, priceFactorField } = usePriceFactor();
-    const { enabledInChannel, enabledInChannelField } = useEnabledInChannelOption();
+    const { enabledInChannel, channelAvailabilityField } = useChannelAvailabilityOption();
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
@@ -154,7 +152,7 @@ function ProductDetailPage() {
             return {
                 id: entity.id,
                 enabled: entity.enabled,
-                enabledInChannel: entity.enabledInChannel ?? null,
+                enabledInChannel: entity.enabledInChannel,
                 featuredAssetId: entity.featuredAsset?.id,
                 assetIds: entity.assets.map(asset => asset.id),
                 facetValueIds: entity.facetValues.map(facetValue => facetValue.id),
@@ -273,8 +271,8 @@ function ProductDetailPage() {
                             name="enabledInChannel"
                             render={({ field }) => (
                                 <ChannelAvailabilityControl
-                                    enabled={enabled}
-                                    value={field.value}
+                                    enabled={!!enabled}
+                                    value={field.value ?? true}
                                     onChange={field.onChange}
                                 />
                             )}
@@ -422,7 +420,7 @@ function ProductDetailPage() {
                             additionalAssignFields={
                                 <>
                                     {priceFactorField}
-                                    {enabledInChannelField}
+                                    {channelAvailabilityField}
                                 </>
                             }
                             queryKeyScope={['DetailPage', 'product']}

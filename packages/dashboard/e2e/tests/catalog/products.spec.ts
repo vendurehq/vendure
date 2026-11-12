@@ -1102,11 +1102,11 @@ test.describe('per-channel enabled on the product detail page', () => {
 
             await visibleSwitch.click();
             await save();
-            expect(await readValues()).toEqual({ enabled: true, enabledInChannel: null });
+            expect(await readValues()).toEqual({ enabled: true, enabledInChannel: true });
         } finally {
             await client.gql(
                 `mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`,
-                { input: { id: productId, enabledInChannel: null } },
+                { input: { id: productId, enabledInChannel: true } },
             );
         }
     });

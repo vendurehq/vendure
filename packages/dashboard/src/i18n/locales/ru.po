@@ -1107,7 +1107,7 @@ msgstr "Строка заказа удалена"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Same as in <0/>"
 msgstr ""
 
@@ -1151,7 +1151,7 @@ msgstr "Клиент"
 msgid "Metadata returned by the payment handler."
 msgstr "Метаданные, возвращенные обработчиком платежа."
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Hide it in {channel} without affecting other channels."
 msgstr ""
 
@@ -1990,8 +1990,8 @@ msgstr "Адрес успешно обновлен"
 msgid "Created"
 msgstr "Создано"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Hidden"
 msgstr ""
 
@@ -2152,7 +2152,7 @@ msgstr "Изменения не внесены"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Enabled, but hidden in {channelName}"
 msgstr ""
 
@@ -2214,8 +2214,8 @@ msgstr "Группы клиентов"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "Отключено"
 
@@ -3211,8 +3211,8 @@ msgstr "Управление глобальными представлениям
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "Канал по умолчанию"
 
@@ -3403,7 +3403,7 @@ msgstr "Выберите роль"
 msgid "Order cancelled"
 msgstr "Заказ отменён"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Available in {channelName}"
 msgstr ""
 
@@ -3482,7 +3482,7 @@ msgstr "Номер телефона"
 msgid "New customer"
 msgstr "Новый клиент"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Visible in this channel"
 msgstr ""
 
@@ -4912,7 +4912,7 @@ msgstr "Не удалось провести возврат"
 msgid "Stock level"
 msgstr "Уровень запаса"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visibility in the new channels"
 msgstr ""
 
@@ -5092,7 +5092,7 @@ msgstr ""
 msgid "Password updated"
 msgstr "Пароль обновлён"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visible"
 msgstr ""
 
@@ -6062,8 +6062,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "Включено"
 
@@ -6616,9 +6616,8 @@ msgstr "Язык по умолчанию"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "Статус"
 
@@ -7131,7 +7130,7 @@ msgstr "Для этих изменений не требуется платёж 
 msgid "All possible variant combinations already exist."
 msgstr "Все возможные комбинации вариантов уже существуют."
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Hidden in this channel"
 msgstr ""
 
@@ -7241,7 +7240,7 @@ msgstr "Калькулятор"
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Не удалось удалить группу опций из канала: {message}"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel. This setting applies once it is enabled."
 msgstr ""
 
@@ -7407,7 +7406,7 @@ msgstr "Строк на странице"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel"
 msgstr ""
 

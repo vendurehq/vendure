@@ -1,14 +1,9 @@
 import { Money } from '@/vdb/components/data-display/money.js';
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import {
-    CHANNEL_AVAILABILITY_FILTER_ID,
-    ChannelAvailabilityBadge,
-    useChannelAvailabilityFilter,
-} from '@/vdb/components/shared/enabled-in-channel.js';
 import { StockLevelLabel } from '@/vdb/components/shared/stock-level-label.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useChannelAvailabilityList } from '@/vdb/hooks/use-channel-availability-list.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
@@ -28,8 +23,7 @@ export const Route = createFileRoute('/_authenticated/_product-variants/product-
 function ProductListPage() {
     const { formatCurrencyName } = useLocalFormat();
     const { t } = useLingui();
-    const { channels } = useChannel();
-    const channelAvailability = useChannelAvailabilityFilter();
+    const channelAvailability = useChannelAvailabilityList();
     return (
         <ListPage
             pageId="product-variant-list"
@@ -53,22 +47,8 @@ function ProductListPage() {
                 [{ component: DeleteProductVariantsBulkAction }],
             ]}
             customizeColumns={{
-                // With several channels, the Enabled column shows the status in the active channel,
-                // which takes the per-channel value into account
-                enabled:
-                    channels.length > 1
-                        ? {
-                              header: () => <Trans>Status</Trans>,
-                              meta: { dependencies: ['enabledInChannel'] },
-                              cell: ({ row }) => (
-                                  <ChannelAvailabilityBadge
-                                      enabled={row.original.enabled}
-                                      enabledInChannel={row.original.enabledInChannel}
-                                  />
-                              ),
-                          }
-                        : {},
-                enabledInChannel: { enableHiding: false, enableColumnFilter: false },
+                enabled: channelAvailability.statusColumn,
+                enabledInChannel: channelAvailability.enabledInChannelColumn,
                 name: {
                     cell: ({ row: { original } }) => (
                         <DetailPageButton id={original.id} label={original.name} />
@@ -111,11 +91,11 @@ function ProductListPage() {
                     enableHiding: false,
                     enableColumnFilter: false,
                 },
-                [CHANNEL_AVAILABILITY_FILTER_ID]: channelAvailability.filterColumn,
+                [channelAvailability.filterId]: channelAvailability.filterColumn,
             }}
             transformVariables={channelAvailability.transformVariables}
             facetedFilters={{
-                [CHANNEL_AVAILABILITY_FILTER_ID]: channelAvailability.facetedFilter,
+                [channelAvailability.filterId]: channelAvailability.facetedFilter,
                 facetValueId: {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,

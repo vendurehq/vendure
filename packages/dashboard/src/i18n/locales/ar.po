@@ -1107,7 +1107,7 @@ msgstr "تمت إزالة بند الطلب"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Same as in <0/>"
 msgstr ""
 
@@ -1151,7 +1151,7 @@ msgstr "العميل"
 msgid "Metadata returned by the payment handler."
 msgstr "البيانات الوصفية التي أعادها معالج الدفع."
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Hide it in {channel} without affecting other channels."
 msgstr ""
 
@@ -1990,8 +1990,8 @@ msgstr "تم تحديث العنوان بنجاح"
 msgid "Created"
 msgstr "تم الإنشاء"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Hidden"
 msgstr ""
 
@@ -2152,7 +2152,7 @@ msgstr "لم يتم إجراء تعديلات"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Enabled, but hidden in {channelName}"
 msgstr ""
 
@@ -2214,8 +2214,8 @@ msgstr "مجموعات العملاء"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "معطل"
 
@@ -3211,8 +3211,8 @@ msgstr "إدارة العروض العامة"
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
 msgid "Default channel"
 msgstr "القناة الافتراضية"
 
@@ -3403,7 +3403,7 @@ msgstr "حدد دورًا"
 msgid "Order cancelled"
 msgstr "تم إلغاء الطلب"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Available in {channelName}"
 msgstr ""
 
@@ -3482,7 +3482,7 @@ msgstr "رقم الهاتف"
 msgid "New customer"
 msgstr "عميل جديد"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Visible in this channel"
 msgstr ""
 
@@ -4912,7 +4912,7 @@ msgstr "فشل تسوية الاسترداد"
 msgid "Stock level"
 msgstr "مستوى المخزون"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visibility in the new channels"
 msgstr ""
 
@@ -5092,7 +5092,7 @@ msgstr ""
 msgid "Password updated"
 msgstr "تم تحديث كلمة المرور"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Visible"
 msgstr ""
 
@@ -6062,8 +6062,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "ممكّن"
 
@@ -6616,9 +6616,8 @@ msgstr "اللغة الافتراضية"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx
-#: src/app/routes/_authenticated/_products/products.tsx
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "الحالة"
 
@@ -7131,7 +7130,7 @@ msgstr "لا يلزم دفع أو استرداد لهذه التغييرات."
 msgid "All possible variant combinations already exist."
 msgstr "جميع تركيبات المتغيرات الممكنة موجودة بالفعل."
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Hidden in this channel"
 msgstr ""
 
@@ -7241,7 +7240,7 @@ msgstr "الحاسبة"
 msgid "Failed to remove option group from channel: {message}"
 msgstr "فشل في إزالة مجموعة الخيارات من القناة: {message}"
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel. This setting applies once it is enabled."
 msgstr ""
 
@@ -7407,7 +7406,7 @@ msgstr "صفوف لكل صفحة"
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
 msgstr ""
 
-#: src/lib/components/shared/enabled-in-channel.tsx
+#: src/lib/components/shared/channel-availability.tsx
 msgid "Disabled in every channel"
 msgstr ""
 

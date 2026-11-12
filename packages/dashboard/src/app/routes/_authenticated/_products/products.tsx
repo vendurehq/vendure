@@ -1,10 +1,5 @@
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import {
-    CHANNEL_AVAILABILITY_FILTER_ID,
-    ChannelAvailabilityBadge,
-    useChannelAvailabilityFilter,
-} from '@/vdb/components/shared/enabled-in-channel.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -13,7 +8,7 @@ import { NoProductsIllustration } from '@/vdb/components/ui/illustrations.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
-import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useChannelAvailabilityList } from '@/vdb/hooks/use-channel-availability-list.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -36,8 +31,7 @@ export const Route = createFileRoute('/_authenticated/_products/products')({
 
 function ProductListPage() {
     const { t } = useLingui();
-    const { channels } = useChannel();
-    const channelAvailability = useChannelAvailabilityFilter();
+    const channelAvailability = useChannelAvailabilityList();
     const reindexMutation = useMutation({
         mutationFn: () => api.mutate(reindexDocument, {}),
         onSuccess: () => {
@@ -78,22 +72,8 @@ function ProductListPage() {
                 description: {
                     cell: RichTextDescriptionCell,
                 },
-                // With several channels, the Enabled column shows the status in the active channel,
-                // which takes the per-channel value into account
-                enabled:
-                    channels.length > 1
-                        ? {
-                              header: () => <Trans>Status</Trans>,
-                              meta: { dependencies: ['enabledInChannel'] },
-                              cell: ({ row }) => (
-                                  <ChannelAvailabilityBadge
-                                      enabled={row.original.enabled}
-                                      enabledInChannel={row.original.enabledInChannel}
-                                  />
-                              ),
-                          }
-                        : {},
-                enabledInChannel: { enableHiding: false, enableColumnFilter: false },
+                enabled: channelAvailability.statusColumn,
+                enabledInChannel: channelAvailability.enabledInChannelColumn,
             }}
             searchPlaceholder={t`Search products...`}
             onSearchTermChange={searchTerm => {
@@ -115,11 +95,11 @@ function ProductListPage() {
                     enableHiding: false,
                     enableColumnFilter: false,
                 },
-                [CHANNEL_AVAILABILITY_FILTER_ID]: channelAvailability.filterColumn,
+                [channelAvailability.filterId]: channelAvailability.filterColumn,
             }}
             transformVariables={channelAvailability.transformVariables}
             facetedFilters={{
-                [CHANNEL_AVAILABILITY_FILTER_ID]: channelAvailability.facetedFilter,
+                [channelAvailability.filterId]: channelAvailability.facetedFilter,
                 facetValueId: {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,

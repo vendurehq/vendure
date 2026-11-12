@@ -1,8 +1,8 @@
 import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
+import { ChannelAvailabilityControl } from '@/vdb/components/shared/channel-availability.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
-import { ChannelAvailabilityControl } from '@/vdb/components/shared/enabled-in-channel.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -135,7 +135,7 @@ function ProductVariantDetailPage() {
             return {
                 id: entity.id,
                 enabled: entity.enabled,
-                enabledInChannel: entity.enabledInChannel ?? null,
+                enabledInChannel: entity.enabledInChannel,
                 sku: entity.sku,
                 optionIds: entity.options.map(option => option.id),
                 featuredAssetId: entity.featuredAsset?.id,
@@ -554,8 +554,8 @@ function ProductVariantDetailPage() {
                             name="enabledInChannel"
                             render={({ field }) => (
                                 <ChannelAvailabilityControl
-                                    enabled={enabled}
-                                    value={field.value}
+                                    enabled={!!enabled}
+                                    value={field.value ?? true}
                                     onChange={field.onChange}
                                 />
                             )}

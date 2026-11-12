@@ -1485,7 +1485,7 @@ test.describe('per-channel enabled on the variant detail page', () => {
         await client.login();
         await client.gql(
             `mutation ($input: [UpdateProductVariantInput!]!) { updateProductVariants(input: $input) { id } }`,
-            { input: [{ id: variantId, enabledInChannel: null }] },
+            { input: [{ id: variantId, enabledInChannel: true }] },
         );
         await client.deleteChannel(channelId);
         await page.close();
