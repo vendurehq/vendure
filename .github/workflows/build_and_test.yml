@@ -118,7 +118,10 @@ jobs:
         name: dashboard e2e (${{ matrix.shard }})
         needs: detect-changes
         if: needs.detect-changes.outputs.dashboard == 'true'
-        runs-on: ubuntu-latest
+        # Pinned: `ubuntu-latest` now resolves to Ubuntu 26.04, which the locked
+        # Playwright (1.58.2) has no Chromium build for. Go back to `ubuntu-latest`
+        # once Playwright is upgraded to a version that supports it.
+        runs-on: ubuntu-24.04
         permissions:
             contents: read
         strategy:
