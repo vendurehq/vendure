@@ -3,6 +3,7 @@ import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/slu
 import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
+import { ChannelAvailabilityFormField } from '@/vdb/components/shared/channel-availability.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -25,6 +26,7 @@ import {
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useChannelAvailabilityOption } from '@/vdb/hooks/use-channel-availability-option.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -134,6 +136,7 @@ function ProductDetailPage() {
     const refreshRef = useRef<() => void>(() => {});
     const { channels } = useChannel();
     const { priceFactor, priceFactorField } = usePriceFactor();
+    const { enabledInChannel, channelAvailabilityField } = useChannelAvailabilityOption();
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
@@ -149,6 +152,7 @@ function ProductDetailPage() {
             return {
                 id: entity.id,
                 enabled: entity.enabled,
+                enabledInChannel: entity.enabledInChannel,
                 featuredAssetId: entity.featuredAsset?.id,
                 assetIds: entity.assets.map(asset => asset.id),
                 facetValueIds: entity.facetValues.map(facetValue => facetValue.id),
@@ -223,7 +227,11 @@ function ProductDetailPage() {
                             render={({ field }) => (
                                 <div
                                     className="flex items-center gap-2"
-                                    title={t`When enabled, a product is available in the shop`}
+                                    title={
+                                        channels.length > 1
+                                            ? t`When enabled, a product is available in the shop of every channel where it is not hidden`
+                                            : t`When enabled, a product is available in the shop`
+                                    }
                                     data-testid="product-enabled-switch"
                                 >
                                     <label
@@ -250,6 +258,15 @@ function ProductDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                {channels.length > 1 && (
+                    <PageBlock
+                        column="side"
+                        blockId="channel-availability"
+                        title={<Trans>Availability</Trans>}
+                    >
+                        <ChannelAvailabilityFormField control={form.control} />
+                    </PageBlock>
+                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper
@@ -386,8 +403,14 @@ function ProductDetailPage() {
                                 productIds: [eid],
                                 channelId,
                                 priceFactor,
+                                enabledInChannel,
                             })}
-                            additionalAssignFields={priceFactorField}
+                            additionalAssignFields={
+                                <>
+                                    {priceFactorField}
+                                    {channelAvailabilityField}
+                                </>
+                            }
                             queryKeyScope={['DetailPage', 'product']}
                         />
                     </PageBlock>

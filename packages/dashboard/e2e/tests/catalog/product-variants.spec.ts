@@ -1467,3 +1467,64 @@ test.describe('two options in a group share a display name', () => {
         await page.close();
     });
 });
+
+// #3777 — per-channel enabled: the Availability block on the variant detail page
+test.describe('per-channel enabled on the variant detail page', () => {
+    test.describe.configure({ mode: 'serial' });
+    // The Availability block is only shown when there is more than one channel
+    const channelCode = `e2e-enabled-variant-${Date.now()}`;
+    let channelId = '';
+    let variantId = '';
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        channelId = (await client.createChannel(channelCode)).id;
+        const { productVariants } = await client.gql(
+            `query { productVariants(options: { filter: { name: { contains: "USB Cable" } } }) { items { id } } }`,
+        );
+        variantId = productVariants.items[0].id;
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(
+            `mutation ($input: [UpdateProductVariantInput!]!) { updateProductVariants(input: $input) { id } }`,
+            { input: [{ id: variantId, enabledInChannel: true }] },
+        );
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('hides the variant in the active channel, leaving the global value', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        const availability = page.getByTestId('channel-availability');
+        const visibleSwitch = availability.getByRole('switch', { name: 'Visible in this channel' });
+        await expect(visibleSwitch).toBeChecked();
+        await visibleSwitch.click();
+        await expect(visibleSwitch).not.toBeChecked();
+        await Promise.all([
+            page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.request().postData()?.includes('UpdateProductVariant') === true &&
+                    response.status() === 200,
+            ),
+            page.getByRole('button', { name: 'Update' }).click(),
+        ]);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { productVariant } = await client.gql(
+            `query ($id: ID!) { productVariant(id: $id) { enabled enabledInChannel } }`,
+            { id: variantId },
+        );
+        expect(productVariant).toEqual({ enabled: true, enabledInChannel: false });
+        await page.reload();
+        await expect(visibleSwitch).not.toBeChecked();
+    });
+});

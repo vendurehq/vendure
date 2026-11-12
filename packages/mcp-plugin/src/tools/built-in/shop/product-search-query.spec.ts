@@ -1,3 +1,4 @@
+import { enabledInChannelFilter } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 
 import { productSearchWords, publicProductListOptions } from './product-search-query';
@@ -9,7 +10,7 @@ describe('built-in product search query', () => {
             skip: 5,
             sort: { createdAt: 'DESC', id: 'DESC' },
             filter: {
-                enabled: { eq: true },
+                ...enabledInChannelFilter(),
                 _and: [
                     { _or: [{ name: { contains: 'camera' } }, { slug: { contains: 'camera' } }] },
                     { _or: [{ name: { contains: 'bag' } }, { slug: { contains: 'bag' } }] },
@@ -24,7 +25,7 @@ describe('built-in product search query', () => {
             take: 25,
             skip: 0,
             sort: { createdAt: 'DESC', id: 'DESC' },
-            filter: { enabled: { eq: true } },
+            filter: enabledInChannelFilter(),
         });
     });
 

@@ -3,6 +3,7 @@ import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { StockLevelLabel } from '@/vdb/components/shared/stock-level-label.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
+import { useChannelAvailabilityList } from '@/vdb/hooks/use-channel-availability-list.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/_authenticated/_product-variants/product-
 function ProductListPage() {
     const { formatCurrencyName } = useLocalFormat();
     const { t } = useLingui();
+    const channelAvailability = useChannelAvailabilityList();
     return (
         <ListPage
             pageId="product-variant-list"
@@ -45,6 +47,8 @@ function ProductListPage() {
                 [{ component: DeleteProductVariantsBulkAction }],
             ]}
             customizeColumns={{
+                enabled: channelAvailability.statusColumn,
+                enabledInChannel: channelAvailability.enabledInChannelColumn,
                 name: {
                     cell: ({ row: { original } }) => (
                         <DetailPageButton id={original.id} label={original.name} />
@@ -87,8 +91,11 @@ function ProductListPage() {
                     enableHiding: false,
                     enableColumnFilter: false,
                 },
+                [channelAvailability.filterId]: channelAvailability.filterColumn,
             }}
+            transformVariables={channelAvailability.transformVariables}
             facetedFilters={{
+                [channelAvailability.filterId]: channelAvailability.facetedFilter,
                 facetValueId: {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 test.describe('Product List', () => {
     const listPage = (page: import('@playwright/test').Page) =>
@@ -477,7 +478,7 @@ test.describe('Product List', () => {
             // Open the add filter menu and select "enabled" column
             await lp.openAddFilterMenu();
             const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
-            await dropdown.getByRole('menuitem', { name: /enabled/i }).click();
+            await dropdown.getByRole('menuitem', { name: 'Enabled', exact: true }).click();
 
             // The filter dialog should open with boolean filter controls
             const dialog = page.locator('[role="dialog"]');
@@ -497,5 +498,124 @@ test.describe('Product List', () => {
             await page.getByRole('button', { name: 'Clear all' }).click();
             await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
         });
+    });
+});
+
+// #3777 — per-channel enabled: the Status column and filter, and the visibility option in the
+// assign-to-channel dialog
+test.describe('per-channel enabled in the product list', () => {
+    test.describe.configure({ mode: 'serial' });
+    // The Status column, the filter and the dialog option are only shown with more than one channel
+    const channelCode = `e2e-enabled-list-${Date.now()}`;
+    let channelId = '';
+    let keyboardId = '';
+
+    const listPage = (page: import('@playwright/test').Page) =>
+        new BaseListPage(page, { path: '/products', title: 'Products', newButtonLabel: 'New Product' });
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        channelId = (await client.createChannel(channelCode)).id;
+        const { products } = await client.gql(
+            `query { products(options: { filter: { name: { eq: "Clacky Keyboard" } } }) { items { id } } }`,
+        );
+        keyboardId = products.items[0].id;
+        // Hidden in the default channel only
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: keyboardId, enabledInChannel: false },
+        });
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: keyboardId, enabledInChannel: true },
+        });
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('shows the status in this channel in the Status column', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        // One column combines the global and the per-channel value
+        await expect(page.getByRole('columnheader', { name: 'Status', exact: true })).toBeVisible();
+        await expect(page.getByRole('columnheader', { name: /in this channel/i })).toHaveCount(0);
+        await lp.search('Clacky Keyboard');
+        const keyboardRow = lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first();
+        await expect(keyboardRow).toContainText('Hidden');
+    });
+
+    test('filters on the status in this channel', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.openAddFilterMenu();
+        await page.getByRole('menuitem', { name: 'Status', exact: true }).click();
+        const filteredRequest = page.waitForRequest(req => {
+            const body = (req.postData() ?? '').replace(/\s/g, '');
+            return (
+                req.url().includes('/admin-api') &&
+                body.includes('{"enabled":{"eq":true}},{"enabledInChannel":{"eq":false}}')
+            );
+        });
+        await page.getByRole('option', { name: 'Hidden in this channel' }).click();
+        await filteredRequest;
+        await page.keyboard.press('Escape');
+        try {
+            // Other suites running in parallel may hide further products in this channel, so
+            // check that the keyboard is listed and that every listed product is hidden here
+            await expect(lp.getRows().filter({ hasText: 'Clacky Keyboard' })).toHaveCount(1);
+            for (const row of await lp.getRows().all()) {
+                await expect(row).toContainText('Hidden');
+            }
+            await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+        } finally {
+            // Column filters are saved in the user settings, which other tests share
+            await page.getByText('Clear all', { exact: true }).click();
+            await expect(page.getByText('Clear all', { exact: true })).toHaveCount(0);
+        }
+    });
+
+    test('assigns products to a channel, hidden there', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.search('Clacky Keyboard');
+        await lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first().getByRole('checkbox').click();
+        await page.getByRole('button', { name: /Actions/i }).click();
+        await page.locator('[role="menu"]').getByText('Assign to channel', { exact: true }).click();
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await dialog.getByRole('combobox').first().click();
+        await page.getByRole('option', { name: channelCode }).click();
+        await page.keyboard.press('Escape');
+        const visibility = dialog.getByTestId('assign-channel-availability');
+        // By default the products keep the visibility they have in the active channel
+        await expect(visibility.getByRole('radio', { name: 'Same as in Default channel' })).toBeChecked();
+        await visibility.getByRole('radio', { name: 'Hidden', exact: true }).click();
+        await dialog.getByRole('button', { name: 'Assign', exact: true }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasNotText: /error|fail/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { product } = await client.gql(
+            `query ($id: ID!) { product(id: $id) { enabledInChannel } }`,
+            { id: keyboardId },
+            channelCode,
+        );
+        expect(product.enabledInChannel).toBe(false);
     });
 });

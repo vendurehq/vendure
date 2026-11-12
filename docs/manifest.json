@@ -1206,7 +1206,7 @@
                   "title": "CurrencyCode",
                   "slug": "currency-code",
                   "file": "docs/reference/typescript-api/common/currency-code.mdx",
-                  "lastModified": "2026-11-06T10:17:03Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "EntityRelationPaths",
@@ -1242,7 +1242,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-11-06T10:17:03Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1254,7 +1254,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-11-06T10:17:03Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Middleware",
@@ -1272,7 +1272,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1622,7 +1622,7 @@
                   "title": "ListQueryBuilder",
                   "slug": "list-query-builder",
                   "file": "docs/reference/typescript-api/data-access/list-query-builder.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ToTypeOrmFindOptions",
@@ -1734,7 +1734,7 @@
                   "title": "ApiKeyChannel",
                   "slug": "api-key-channel",
                   "file": "docs/reference/typescript-api/entities/api-key-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Asset",
@@ -1746,7 +1746,7 @@
                   "title": "AssetChannel",
                   "slug": "asset-channel",
                   "file": "docs/reference/typescript-api/entities/asset-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "AuthenticatedSession",
@@ -1788,7 +1788,7 @@
                   "title": "CollectionChannel",
                   "slug": "collection-channel",
                   "file": "docs/reference/typescript-api/entities/collection-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Country",
@@ -1806,7 +1806,7 @@
                   "title": "CustomerChannel",
                   "slug": "customer-channel",
                   "file": "docs/reference/typescript-api/entities/customer-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "CustomerGroup",
@@ -1830,7 +1830,7 @@
                   "title": "FacetChannel",
                   "slug": "facet-channel",
                   "file": "docs/reference/typescript-api/entities/facet-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "FacetValue",
@@ -1842,7 +1842,7 @@
                   "title": "FacetValueChannel",
                   "slug": "facet-value-channel",
                   "file": "docs/reference/typescript-api/entities/facet-value-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Fulfillment",
@@ -1884,7 +1884,7 @@
                   "title": "OrderChannel",
                   "slug": "order-channel",
                   "file": "docs/reference/typescript-api/entities/order-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "OrderHistoryEntry",
@@ -1926,7 +1926,7 @@
                   "title": "PaymentMethodChannel",
                   "slug": "payment-method-channel",
                   "file": "docs/reference/typescript-api/entities/payment-method-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Product",
@@ -1938,7 +1938,7 @@
                   "title": "ProductChannel",
                   "slug": "product-channel",
                   "file": "docs/reference/typescript-api/entities/product-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ProductOption",
@@ -1950,7 +1950,7 @@
                   "title": "ProductOptionChannel",
                   "slug": "product-option-channel",
                   "file": "docs/reference/typescript-api/entities/product-option-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ProductOptionGroup",
@@ -1962,7 +1962,7 @@
                   "title": "ProductOptionGroupChannel",
                   "slug": "product-option-group-channel",
                   "file": "docs/reference/typescript-api/entities/product-option-group-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ProductVariant",
@@ -1974,7 +1974,7 @@
                   "title": "ProductVariantChannel",
                   "slug": "product-variant-channel",
                   "file": "docs/reference/typescript-api/entities/product-variant-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ProductVariantPrice",
@@ -1992,7 +1992,7 @@
                   "title": "PromotionChannel",
                   "slug": "promotion-channel",
                   "file": "docs/reference/typescript-api/entities/promotion-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Province",
@@ -2058,7 +2058,7 @@
                   "title": "ShippingMethodChannel",
                   "slug": "shipping-method-channel",
                   "file": "docs/reference/typescript-api/entities/shipping-method-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "StockLevel",
@@ -2076,7 +2076,7 @@
                   "title": "StockLocationChannel",
                   "slug": "stock-location-channel",
                   "file": "docs/reference/typescript-api/entities/stock-location-channel.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "StockMovement",
@@ -3177,6 +3177,12 @@
               "file": "docs/reference/typescript-api/service-helpers/index.mdx",
               "children": [
                 {
+                  "title": "ChannelEnabledChecker",
+                  "slug": "channel-enabled-checker",
+                  "file": "docs/reference/typescript-api/service-helpers/channel-enabled-checker.mdx",
+                  "lastModified": "2026-11-12T16:36:24Z"
+                },
+                {
                   "title": "EntityDuplicatorService",
                   "slug": "entity-duplicator-service",
                   "file": "docs/reference/typescript-api/service-helpers/entity-duplicator-service.mdx",
@@ -3248,7 +3254,7 @@
                   "title": "ChannelAssignmentService",
                   "slug": "channel-assignment-service",
                   "file": "docs/reference/typescript-api/services/channel-assignment-service.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ChannelService",
@@ -3332,7 +3338,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-10-19T19:00:30Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3368,13 +3374,13 @@
                   "title": "ProductService",
                   "slug": "product-service",
                   "file": "docs/reference/typescript-api/services/product-service.mdx",
-                  "lastModified": "2026-09-01T11:19:25Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-11-12T12:08:18Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "PromotionService",
@@ -4430,7 +4436,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "Mutations",
@@ -4448,7 +4454,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-12T16:36:24Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4514,6 +4520,24 @@
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
                   "lastModified": "2026-09-01T11:21:59+02:00"
+                },
+                {
+                  "title": "ChannelAvailabilityBadge",
+                  "slug": "channel-availability-badge",
+                  "file": "docs/reference/dashboard/components/channel-availability-badge.mdx",
+                  "lastModified": "2026-11-12T16:36:24Z"
+                },
+                {
+                  "title": "ChannelAvailabilityControl",
+                  "slug": "channel-availability-control",
+                  "file": "docs/reference/dashboard/components/channel-availability-control.mdx",
+                  "lastModified": "2026-11-12T16:36:24Z"
+                },
+                {
+                  "title": "ChannelAvailabilityFormField",
+                  "slug": "channel-availability-form-field",
+                  "file": "docs/reference/dashboard/components/channel-availability-form-field.mdx",
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "ChannelChip",
@@ -4816,6 +4840,18 @@
                   "slug": "use-channel",
                   "file": "docs/reference/dashboard/hooks/use-channel.mdx",
                   "lastModified": "2026-04-20T16:08:16+02:00"
+                },
+                {
+                  "title": "UseChannelAvailabilityList",
+                  "slug": "use-channel-availability-list",
+                  "file": "docs/reference/dashboard/hooks/use-channel-availability-list.mdx",
+                  "lastModified": "2026-11-12T16:36:24Z"
+                },
+                {
+                  "title": "UseChannelAvailabilityOption",
+                  "slug": "use-channel-availability-option",
+                  "file": "docs/reference/dashboard/hooks/use-channel-availability-option.mdx",
+                  "lastModified": "2026-11-12T16:36:24Z"
                 },
                 {
                   "title": "UseCustomFieldConfig",

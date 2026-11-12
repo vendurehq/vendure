@@ -1423,6 +1423,44 @@ describe('MCP built-in shop tools', () => {
         expect(await search('shirt product')).toEqual({ names: [], total: 0 });
     });
 
+    // #3777 — a product disabled in the active channel only is hidden from the shop tools
+    it('hides a product disabled in the active channel from search_products and get_product', async () => {
+        const { products } = await adminClient.query(gql`
+            query TestProductId {
+                products(options: { filter: { name: { eq: "Test Product" } } }) {
+                    items {
+                        id
+                    }
+                }
+            }
+        `);
+        const setEnabledInChannel = (enabledInChannel: boolean) =>
+            adminClient.query(
+                gql`
+                    mutation SetEnabledInChannel($input: UpdateProductInput!) {
+                        updateProduct(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { id: products.items[0].id, enabledInChannel } },
+            );
+        const searchNames = async () => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('search_products', { query: 'test' }));
+            const result = response.body.result.structuredContent as { items: Array<{ name: string }> };
+            return result.items.map(item => item.name).sort();
+        };
+        await setEnabledInChannel(false);
+        try {
+            expect(await searchNames()).toEqual(['Test Shirt']);
+            const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }));
+            expect(response.body.result.structuredContent).toEqual({ product: null });
+        } finally {
+            await setEnabledInChannel(true);
+        }
+        expect(await searchNames()).toEqual(['Test Product', 'Test Shirt']);
+    });
+
     it('limits search_products to one collection when asked', async () => {
         const collectionSlug = shirtCollectionSlug;
         const collectionId = shirtCollectionId;

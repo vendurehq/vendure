@@ -333,6 +333,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Přidat platbu"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Expand"
 msgstr "Rozbalit"
@@ -1111,6 +1115,10 @@ msgstr "Řádek objednávky odebrán"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Same as in <0/>"
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Obsah:"
@@ -1150,6 +1158,10 @@ msgstr "Zákazník"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata returned by the payment handler."
 msgstr "Metadata vrácená zpracovatelem platby."
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Hide it in {channel} without affecting other channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1998,6 +2010,11 @@ msgstr "Adresa úspěšně aktualizována"
 msgid "Created"
 msgstr "Vytvořeno"
 
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Načítání adres..."
@@ -2155,6 +2172,10 @@ msgstr "Nebyly provedeny žádné úpravy"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Enabled, but hidden in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
 msgstr "Výchozí dopravní zóna"
@@ -2213,6 +2234,8 @@ msgstr "Skupiny zákazníků"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "Zakázáno"
 
@@ -3212,6 +3235,7 @@ msgstr "Spravovat globální pohledy"
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "Výchozí kanál"
@@ -3403,6 +3427,10 @@ msgstr "Vyberte roli"
 msgid "Order cancelled"
 msgstr "Objednávka zrušena"
 
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Available in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Discount"
 msgstr "Sleva"
@@ -3477,6 +3505,10 @@ msgstr "Telefonní číslo"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "New customer"
 msgstr "Nový zákazník"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Visible in this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -4427,6 +4459,10 @@ msgstr "Nový produkt"
 msgid "Failed for: {failedCodes}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Manage Tags"
 msgstr "Spravovat štítky"
@@ -4512,6 +4548,11 @@ msgstr "Neběží"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
 msgstr "Přiřazeno"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "Availability"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -4897,6 +4938,10 @@ msgstr "Nepodařilo se vypořádat refund"
 msgid "Stock level"
 msgstr "Skladová úroveň"
 
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Visibility in the new channels"
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Add item"
 msgstr "Přidat položku"
@@ -5072,6 +5117,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Password updated"
 msgstr "Heslo aktualizováno"
+
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Visible"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "does not contain"
@@ -6049,6 +6098,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "Povoleno"
 
@@ -6601,6 +6652,8 @@ msgstr "Výchozí jazyk"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "Stav"
 
@@ -7113,6 +7166,10 @@ msgstr "Pro tyto změny není vyžadována žádná platba ani refund."
 msgid "All possible variant combinations already exist."
 msgstr "Všechny možné kombinace variant již existují."
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "Hidden in this channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Opravdu chcete zrušit {cancellableCount} úlohu? Tuto akci nelze vrátit zpět.} few {Opravdu chcete zrušit {cancellableCount} úlohy? Tuto akci nelze vrátit zpět.} other {Opravdu chcete zrušit {cancellableCount} úloh? Tuto akci nelze vrátit zpět.}}"
@@ -7218,6 +7275,10 @@ msgstr "Kalkulačka"
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Nepodařilo se odebrat skupinu voleb z kanálu: {message}"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Disabled in every channel. This setting applies once it is enabled."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -7379,6 +7440,10 @@ msgstr "Řádků na stránku"
 #. placeholder {0}: formatCurrency(capacity, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Disabled in every channel"
 msgstr ""
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
