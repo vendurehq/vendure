@@ -161,9 +161,14 @@ export async function createSelfRefreshingCache<V, RefreshArgs extends any[]>(
         if (cached && now < cached.expires) {
             return cached.value;
         }
-        const result = getValue(_refreshArgs, false).then(val => fn(val, ...args));
+        // Only the settled result is cached. Caching the pending promise would make every
+        // concurrent caller await a refresh which runs with the first caller's refreshArgs
+        // (e.g. its RequestContext and therefore its DB connection), which can deadlock the
+        // connection pool when the other callers hold connections inside transactions.
+        // See https://github.com/vendurehq/vendure/issues/5649
+        const result = await getValue(_refreshArgs, false).then(val => fn(val, ...args));
         memoCache.set(key, {
-            expires: now + ttl,
+            expires: getTimeNow() + ttl,
             value: result,
         });
         return result;
