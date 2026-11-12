@@ -19,6 +19,20 @@ export class InternalServerError extends I18nError {
 
 /**
  * @description
+ * This error is thrown when an entity property is read that needs a relation which was not
+ * joined when the entity was loaded. For example, `Order.totalQuantity` needs `Order.lines`.
+ *
+ * When the data of a {@link Job} is serialized, a property that throws this error is left out,
+ * so that the job can still be queued.
+ *
+ * @docsCategory errors
+ * @docsPage Error Types
+ * @since 3.8.2
+ */
+export class RelationNotJoinedError extends InternalServerError {}
+
+/**
+ * @description
  * This error should be thrown when user input is not as expected.
  *
  * @docsCategory errors
