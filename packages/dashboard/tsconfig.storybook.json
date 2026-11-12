@@ -4,6 +4,7 @@
     "jsx": "react-jsx"
   },
   "include": [
-    ".storybook/**/*.tsx"
+    ".storybook/**/*.tsx",
+    "src/vite-env.d.ts"
   ]
 }

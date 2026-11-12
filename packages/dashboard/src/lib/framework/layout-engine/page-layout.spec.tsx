@@ -105,7 +105,7 @@ function renderPageLayout(children: React.ReactNode, { isDesktop = true, pageId 
         setHasSeenOnboarding: noop,
         setTableSettings: () => undefined,
         setWidgetLayout: noop,
-    } as UserSettingsContextType;
+    } as unknown as UserSettingsContextType;
 
     return renderToStaticMarkup(
         <UserSettingsContext.Provider value={contextValue}>
@@ -154,7 +154,7 @@ function renderActionBar(
         setHasSeenOnboarding: noop,
         setTableSettings: () => undefined,
         setWidgetLayout: noop,
-    } as UserSettingsContextType;
+    } as unknown as UserSettingsContextType;
 
     return renderToStaticMarkup(
         <UserSettingsContext.Provider value={contextValue}>

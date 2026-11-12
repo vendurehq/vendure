@@ -19,7 +19,7 @@ import { transformIndexHtmlPlugin } from '../vite-plugin-transform-index.js';
 
 // ─── Typed hook helpers ─────────────────────────────────────────────────────
 // Thin wrappers that cast once so individual tests stay type-safe without
-// @ts-expect-error on every call.
+// a type-error suppression comment on every call.
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const noop = () => {};

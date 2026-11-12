@@ -44,7 +44,7 @@ const deleteCountryDocument = graphql(`
     }
 `);
 
-function ListPageStoryWrapper(props: Omit<ListPageProps<any, any, any, any>, 'route'>) {
+function ListPageStoryWrapper(props: Omit<ListPageProps<typeof countriesListQuery, any, any, any>, 'route'>) {
     return <DemoRouterProvider component={route => <ListPage {...props} route={() => route} />} />;
 }
 
