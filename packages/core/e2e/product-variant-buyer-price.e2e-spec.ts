@@ -504,6 +504,27 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
             ]);
         });
 
+        it('is not merged into the existing order of the customer at login', async () => {
+            // The login customer has an active order from an earlier test
+            const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_2' });
+            const [withPrice, withoutPrice] = product!.variants;
+            noPriceSkusForFixedPriceCustomers.add(withoutPrice.sku);
+            await shopClient.asAnonymousUser();
+            await addToCart(shopClient, withPrice.id, 1);
+            await addToCart(shopClient, withoutPrice.id, 1);
+
+            await shopClient.query(attemptLoginDocument, {
+                username: loginCustomer.emailAddress,
+                password: 'test',
+            });
+
+            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+            expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
+                [channelPrices[0].id, FIXED_UNIT_PRICE],
+                [withPrice.id, FIXED_UNIT_PRICE],
+            ]);
+        });
+
         it('is removed by setCustomerForDraftOrder', async () => {
             const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
             for (const variant of [channelPrices[0], channelPrices[3]]) {

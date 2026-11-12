@@ -2338,7 +2338,9 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 if (order && linesToInsert) {
                     const orderId = order.id;
-                    const result = await this.addItemsToOrder(txCtx, orderId, linesToInsert);
+                    // A guest line that has no price for the Customer is not merged
+                    const linesWithPrice = await this.getItemsWithBuyerPrice(txCtx, order, linesToInsert);
+                    const result = await this.addItemsToOrder(txCtx, orderId, linesWithPrice);
                     order = result.order;
                 }
                 if (order && linesToModify) {
@@ -2412,32 +2414,68 @@ export class OrderService implements OnApplicationBootstrap {
     }
 
     private async getLinesWithoutBuyerPrice(ctx: RequestContext, order: Order): Promise<OrderLine[]> {
-        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
         const lines: OrderLine[] = [];
         for (const line of order.lines) {
-            const variant = await this.productVariantService.applyChannelPriceAndTax(
-                line.productVariant,
-                ctx,
-                order,
-            );
-            try {
-                await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                    ctx,
-                    variant,
-                    line.customFields || {},
-                    order,
-                    line.quantity,
-                );
-            } catch (e) {
-                // The error of ProductVariantService.calculateBuyerPriceForOrder() for no price
-                if (e instanceof IllegalOperationError && e.message === NO_BUYER_PRICE_ERROR_MESSAGE) {
-                    lines.push(line);
-                } else {
-                    throw e;
-                }
+            if (
+                !(await this.hasBuyerPrice(ctx, order, line.productVariant, line.customFields, line.quantity))
+            ) {
+                lines.push(line);
             }
         }
         return lines;
+    }
+
+    /**
+     * Returns the items to merge into the Order of the Customer that have a price for the Customer.
+     */
+    private async getItemsWithBuyerPrice<
+        T extends { productVariantId: ID; quantity: number; customFields?: any },
+    >(ctx: RequestContext, order: Order, items: T[]): Promise<T[]> {
+        const itemsWithPrice: T[] = [];
+        for (const item of items) {
+            const variant = await this.connection.getRepository(ctx, ProductVariant).findOne({
+                where: { id: item.productVariantId },
+                relations: { productVariantPrices: true, taxCategory: true },
+            });
+            // addItemsToOrder() handles a variant that does not exist
+            if (
+                !variant ||
+                (await this.hasBuyerPrice(ctx, order, variant, item.customFields, item.quantity))
+            ) {
+                itemsWithPrice.push(item);
+            }
+        }
+        return itemsWithPrice;
+    }
+
+    /**
+     * Returns false if the configured OrderItemPriceCalculationStrategy gives no price for the Customer of
+     * the Order, with the error of ProductVariantService.calculateBuyerPriceForOrder().
+     */
+    private async hasBuyerPrice(
+        ctx: RequestContext,
+        order: Order,
+        productVariant: ProductVariant,
+        customFields: { [key: string]: any } | undefined,
+        quantity: number,
+    ): Promise<boolean> {
+        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
+        const variant = await this.productVariantService.applyChannelPriceAndTax(productVariant, ctx, order);
+        try {
+            await orderItemPriceCalculationStrategy.calculateUnitPrice(
+                ctx,
+                variant,
+                customFields || {},
+                order,
+                quantity,
+            );
+            return true;
+        } catch (e) {
+            if (e instanceof IllegalOperationError && e.message === NO_BUYER_PRICE_ERROR_MESSAGE) {
+                return false;
+            }
+            throw e;
+        }
     }
 
     private async getOrderOrThrow(

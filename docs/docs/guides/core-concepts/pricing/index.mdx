@@ -81,7 +81,7 @@ The strategy returns `undefined` when there is no price for the buyer, for examp
 
 - The `buyerPrice` field gives `null`.
 - In the cart, `ProductVariantService.calculateBuyerPriceForOrder()` throws an `IllegalOperationError`, so the item is not added at no price.
-- When the customer of an active order or a draft order changes, Vendure removes each line that has no price for the new customer, and calculates the other lines again. This applies to `setCustomerForOrder`, `setCustomerForDraftOrder`, `setOrderCustomer` and the login that gives the guest order to the customer. These operations do not fail because of a missing price. Vendure removes the lines in the usual way, so the order interceptors run and the `OrderLineEvent` is published. If the order state does not allow the removal, the lines keep their prices.
+- When the customer of an active order or a draft order changes, Vendure removes each line that has no price for the new customer, and calculates the other lines again. This applies to `setCustomerForOrder`, `setCustomerForDraftOrder`, `setOrderCustomer` and the login that gives the guest order to the customer. When the customer already has an active order, a login merges the guest order into it. Vendure merges the guest lines that have a price for the customer, and does not merge the lines that have no price. These operations do not fail because of a missing price. Vendure removes the lines in the usual way, so the order interceptors run and the `OrderLineEvent` is published. If the order state does not allow the removal, the lines keep their prices.
 
 ### Metadata
 

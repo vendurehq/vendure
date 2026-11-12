@@ -80,7 +80,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * request" or "log in to see prices". The `buyerPrice` field then gives `null`. In the cart,
  * `ProductVariantService.calculateBuyerPriceForOrder()` throws an error, so the item is not added at
  * no price. When the Customer of an active or draft Order changes, Vendure removes each OrderLine that
- * has no price for the new Customer.
+ * has no price for the new Customer. A login does not merge a guest line without a price into the
+ * active Order of the Customer.
  *
  * The result can carry `metadata`, for example the price rule that applied. An outer layer over the
  * OrderItemPriceCalculationStrategy can read it from the result of `inner`, and a plugin can read it
