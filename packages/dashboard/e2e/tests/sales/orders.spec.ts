@@ -1,5 +1,6 @@
 import { type Page, type Response, expect, test } from '@playwright/test';
 
+import { VENDURE_PORT } from '../../constants.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
@@ -1580,6 +1581,97 @@ test.describe('Orders', () => {
             // The history should contain payment-related entries
             await expect(page.getByText(/Payment/i).first()).toBeVisible();
         });
+
+        test('should cancel an order whose only payment is authorized', async ({ page }) => {
+            test.setTimeout(90_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createAuthorizedOrder(page, client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByTestId('order-state-control')).toContainText(/Payment authorized/i, {
+                timeout: 10_000,
+            });
+
+            await cancelOrderFromActionBar(page);
+
+            await expect(page.getByTestId('order-state-control')).toContainText(/Cancelled/i, {
+                timeout: 10_000,
+            });
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { state payments { state } } }`,
+                { id: orderId },
+            );
+            expect(order.state).toBe('Cancelled');
+            expect(order.payments.map((p: { state: string }) => p.state)).toEqual(['Authorized']);
+            await expect(page.getByTestId('action-bar-dropdown-trigger')).toHaveCount(0);
+        });
+
+        test('should cancel an order awaiting an additional payment when only an authorized payment exists', async ({
+            page,
+        }) => {
+            test.setTimeout(90_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createAuthorizedOrder(page, client, { awaitAdditionalPayment: true });
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByTestId('order-state-control')).toContainText(
+                /Arranging additional payment/i,
+                { timeout: 10_000 },
+            );
+
+            await cancelOrderFromActionBar(page);
+
+            await expect(page.getByTestId('order-state-control')).toContainText(/Cancelled/i, {
+                timeout: 10_000,
+            });
+            const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { state } }`, {
+                id: orderId,
+            });
+            expect(order.state).toBe('Cancelled');
+        });
+
+        test('should cancel an order with an authorized payment on a mobile viewport', async ({ page }) => {
+            test.setTimeout(90_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createAuthorizedOrder(page, client);
+
+            await page.setViewportSize({ width: 600, height: 900 });
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByTestId('order-state-control')).toContainText(/Payment authorized/i, {
+                timeout: 10_000,
+            });
+
+            await cancelOrderFromActionBar(page);
+
+            await expect(page.getByTestId('order-state-control')).toContainText(/Cancelled/i, {
+                timeout: 10_000,
+            });
+        });
+
+        test('should offer refund and cancel rather than cancel when a payment is settled', async ({
+            page,
+        }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+            await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+            await actionBarEllipsis.click();
+
+            const menu = page.locator('[data-slot="dropdown-menu-content"]');
+            await expect(menu.getByRole('menuitem', { name: /Refund/i })).toBeVisible();
+            await expect(menu.getByRole('menuitem', { name: /^Cancel order$/i })).toHaveCount(0);
+        });
     });
 });
 
@@ -1866,6 +1958,172 @@ async function createModifyingOrder(page: Page): Promise<string> {
     );
 
     return orderId;
+}
+
+async function createAuthorizedOrder(
+    page: Page,
+    client: VendureAdminClient,
+    options: { awaitAdditionalPayment?: boolean } = {},
+): Promise<string> {
+    const methodCode = 'test-authorize-payment';
+    const { paymentMethods } = await client.gql(
+        `query ($code: String!) { paymentMethods(options: { filter: { code: { eq: $code } } }) { items { id } } }`,
+        { code: methodCode },
+    );
+    if (paymentMethods.items.length === 0) {
+        await client.gql(
+            `
+            mutation ($code: String!) {
+                createPaymentMethod(input: {
+                    code: $code
+                    enabled: true
+                    handler: {
+                        code: "dummy-payment-handler",
+                        arguments: [{ name: "automaticSettle", value: "false" }]
+                    }
+                    translations: [{ languageCode: en, name: "Test Authorize Payment", description: "" }]
+                }) { id }
+            }
+        `,
+            { code: methodCode },
+        );
+    }
+
+    const { productVariants } = await client.gql(
+        `query { productVariants(options: { take: 1, filter: { enabled: { eq: true } } }) { items { id } } }`,
+    );
+
+    let shopToken: string | null = null;
+    const shopGql = async (query: string, variables?: Record<string, unknown>) => {
+        const response = await page.request.post(`http://localhost:${VENDURE_PORT}/shop-api`, {
+            headers: shopToken ? { Authorization: `Bearer ${shopToken}` } : {},
+            data: { query, variables },
+        });
+        shopToken = response.headers()['vendure-auth-token'] ?? shopToken;
+        const json = await response.json();
+        if (json.errors?.length) {
+            throw new Error(`Shop API error: ${String(json.errors[0].message)}`);
+        }
+        const failure = Object.values<{ errorCode?: string; message?: string }>(json.data).find(
+            result => result?.errorCode,
+        );
+        if (failure) {
+            throw new Error(`Shop API ${String(failure.errorCode)}: ${String(failure.message)}`);
+        }
+        return json.data;
+    };
+
+    await shopGql(
+        `mutation ($id: ID!) {
+            addItemToOrder(productVariantId: $id, quantity: 1) {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { id: productVariants.items[0].id },
+    );
+    await shopGql(
+        `mutation {
+            setCustomerForOrder(input: {
+                emailAddress: "authorized-order@example.com", firstName: "Authorized", lastName: "Order"
+            }) { ... on Order { id } ... on ErrorResult { errorCode message } }
+        }`,
+    );
+    await shopGql(
+        `mutation {
+            setOrderShippingAddress(input: {
+                fullName: "Test User", streetLine1: "123 Main St", city: "London", countryCode: "GB"
+            }) { ... on Order { id } ... on ErrorResult { errorCode message } }
+        }`,
+    );
+    const { eligibleShippingMethods } = await shopGql(`query { eligibleShippingMethods { id } }`);
+    await shopGql(
+        `mutation ($ids: [ID!]!) {
+            setOrderShippingMethod(shippingMethodId: $ids) {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { ids: [eligibleShippingMethods[0].id] },
+    );
+    await shopGql(
+        `mutation {
+            transitionOrderToState(state: "ArrangingPayment") {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+    );
+    const { addPaymentToOrder } = await shopGql(
+        `mutation ($method: String!) {
+            addPaymentToOrder(input: { method: $method, metadata: {} }) {
+                ... on Order { id state } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { method: methodCode },
+    );
+    const orderId: string = addPaymentToOrder.id;
+
+    if (options.awaitAdditionalPayment) {
+        const transition = async (state: string) => {
+            const { transitionOrderToState } = await client.gql(
+                `
+                mutation ($id: ID!, $state: String!) {
+                    transitionOrderToState(id: $id, state: $state) {
+                        ... on Order { id state }
+                        ... on OrderStateTransitionError { errorCode message transitionError }
+                    }
+                }
+            `,
+                { id: orderId, state },
+            );
+            if (transitionOrderToState?.errorCode) {
+                throw new Error(
+                    `transition to ${state} failed: ${String(transitionOrderToState.errorCode)} ${String(transitionOrderToState.message)}`,
+                );
+            }
+        };
+        await transition('Modifying');
+        const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { lines { id } } }`, {
+            id: orderId,
+        });
+        const { modifyOrder } = await client.gql(
+            `
+            mutation ($input: ModifyOrderInput!) {
+                modifyOrder(input: $input) {
+                    ... on Order { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }
+        `,
+            {
+                input: {
+                    dryRun: false,
+                    orderId,
+                    adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 2 }],
+                },
+            },
+        );
+        if (modifyOrder.errorCode) {
+            throw new Error(
+                `modifyOrder failed: ${String(modifyOrder.errorCode)} ${String(modifyOrder.message)}`,
+            );
+        }
+        await transition('ArrangingAdditionalPayment');
+    }
+
+    return orderId;
+}
+
+async function cancelOrderFromActionBar(page: Page) {
+    const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+    await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+    await actionBarEllipsis.click();
+
+    const menu = page.locator('[data-slot="dropdown-menu-content"]');
+    await expect(menu.getByRole('menuitem', { name: /Refund/i })).toHaveCount(0);
+    await menu.getByRole('menuitem', { name: /^Cancel order$/i }).click();
+
+    const dialog = page.locator('[role="alertdialog"]');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: /^Cancel order$/i }).click();
 }
 
 /**

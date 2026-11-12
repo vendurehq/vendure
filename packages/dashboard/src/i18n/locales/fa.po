@@ -442,6 +442,7 @@ msgid "No widgets to add"
 msgstr "ابزارکی برای افزودن وجود ندارد"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -773,6 +774,10 @@ msgstr "جابجایی مجموعه‌ها"
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "Roles"
 msgstr "نقش‌ها"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "This cancels every item in the order and releases the allocated stock. No payment is refunded or cancelled."
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Grid view"
@@ -3247,6 +3252,7 @@ msgstr "ازنو"
 msgid "Select a role"
 msgstr "یک نقش انتخاب کنید"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
@@ -6265,6 +6271,12 @@ msgstr "من این کلید API را ذخیره کرده‌ام"
 msgid "Configure available languages for your store and channels"
 msgstr "پیکربندی زبان‌های موجود برای فروشگاه و کانال‌های شما"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully created product"
 msgstr "محصول با موفقیت ایجاد شد"
@@ -7412,6 +7424,11 @@ msgstr ""
 msgid "Zones"
 msgstr "مناطق"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Failed to cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers.tsx
 #: src/lib/components/shared/seller-selector.tsx
 msgid "Search sellers..."
@@ -7433,6 +7450,10 @@ msgstr "فرآیند سفارش"
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "شماره تلفن"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Keep order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx

@@ -21,8 +21,8 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
-import { Pencil, RotateCcw, User } from 'lucide-react';
-import { useCallback, useMemo, useRef } from 'react';
+import { Ban, Pencil, RotateCcw, User } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -30,10 +30,16 @@ import {
     setOrderCustomFieldsDocument,
     transitionOrderToStateDocument,
 } from '../orders.graphql.js';
-import { canAddFulfillment, canRefundOrder, shouldShowAddManualPaymentButton } from '../utils/order-utils.js';
+import {
+    canAddFulfillment,
+    canCancelOrderWithoutRefund,
+    canRefundOrder,
+    shouldShowAddManualPaymentButton,
+} from '../utils/order-utils.js';
 
 
 import { AddManualPaymentDialog } from './add-manual-payment-dialog.js';
+import { CancelOrderDialog } from './cancel-order-dialog.js';
 import { FulfillOrderDialog } from './fulfill-order-dialog.js';
 import { FulfillmentDetails } from './fulfillment-details.js';
 import { OrderAddress } from './order-address.js';
@@ -110,6 +116,7 @@ export function OrderDetailShared({
 
     const customFieldConfig = useCustomFieldConfig('Order');
     const refundDialogRef = useRef<RefundOrderDialogRef>(null);
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
     const refreshPage = useCallback(async () => {
         if (!entity) return;
@@ -180,6 +187,18 @@ export function OrderDetailShared({
         [],
     );
 
+    const CancelMenuItem = useCallback(
+        () => (
+            <PermissionGuard requires={['UpdateOrder']}>
+                <DropdownMenuItem onClick={() => setCancelDialogOpen(true)}>
+                    <Ban className="w-4 h-4" />
+                    <Trans>Cancel order</Trans>
+                </DropdownMenuItem>
+            </PermissionGuard>
+        ),
+        [],
+    );
+
     if (!entity) {
         return null;
     }
@@ -188,6 +207,7 @@ export function OrderDetailShared({
     const showAddPaymentButton = shouldShowAddManualPaymentButton(entity);
     const showFulfillButton = canAddFulfillment(entity);
     const showRefundOption = canRefundOrder(entity);
+    const showCancelOption = canCancelOrderWithoutRefund(entity);
     const orderStateControl = (
         <div className="flex items-center gap-1.5" data-testid="order-state-control">
             <StateTransitionControl
@@ -207,6 +227,7 @@ export function OrderDetailShared({
                 dropdownMenuItems={[
                     ...(nextStates.includes('Modifying') ? [{ component: ModifyMenuItem }] : []),
                     ...(showRefundOption ? [{ component: RefundMenuItem }] : []),
+                    ...(showCancelOption ? [{ component: CancelMenuItem }] : []),
                 ]}
             >
                 {!isMobile && <ActionBarItem itemId="order-state-control">{orderStateControl}</ActionBarItem>}
@@ -240,6 +261,16 @@ export function OrderDetailShared({
                     />
                 )}
             </PageActionBar>
+            {showCancelOption && (
+                <CancelOrderDialog
+                    orderId={entity.id}
+                    open={cancelDialogOpen}
+                    onOpenChange={setCancelDialogOpen}
+                    onSettled={() => {
+                        void refreshPage();
+                    }}
+                />
+            )}
             <PageLayout>
                 {isMobile && (
                     <PageBlock column="side" blockId="state">

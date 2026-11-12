@@ -418,6 +418,7 @@ msgid "No widgets to add"
 msgstr "Niciun widget de adăugat"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -745,6 +746,10 @@ msgstr "Mută Colecții"
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "Roles"
 msgstr "Roluri"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "This cancels every item in the order and releases the allocated stock. No payment is refunded or cancelled."
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Grid view"
@@ -3168,6 +3173,7 @@ msgstr "Refă"
 msgid "Select a role"
 msgstr "Selectează un rol"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
@@ -6089,6 +6095,12 @@ msgstr "Am salvat această cheie API"
 msgid "Configure available languages for your store and channels"
 msgstr "Configurează limbile disponibile pentru magazin și canale"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully created product"
 msgstr "Produsul a fost creat cu succes"
@@ -7204,6 +7216,11 @@ msgstr ""
 msgid "Zones"
 msgstr "Zone"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Failed to cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers.tsx
 #: src/lib/components/shared/seller-selector.tsx
 msgid "Search sellers..."
@@ -7225,6 +7242,10 @@ msgstr "Procesul comenzii"
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "Număr de telefon"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Keep order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
