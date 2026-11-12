@@ -9,6 +9,11 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * The OrderItemPriceCalculationStrategy defines the listPrice of an OrderLine when adding an item to an Order. By default the
  * {@link DefaultOrderItemPriceCalculationStrategy} is used.
  *
+ * The default strategy returns the price of the {@link ProductVariantShopperPriceStrategy} for the Customer of the Order.
+ * For a price that depends only on the ProductVariant, the Customer, the quantity and the OrderLine custom fields, use
+ * the ProductVariantShopperPriceStrategy instead. Then the Shop API `ProductVariant.shopperPrice` field and the cart give
+ * the same price. Keep logic here that needs the Order, or that writes data to the OrderLine.
+ *
  * :::info
  *
  * This is configured via the `orderOptions.orderItemPriceCalculationStrategy` property of
@@ -53,7 +58,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * * A product-configurator where e.g. various finishes, colors, and materials can be selected and stored
  *   as OrderLine custom fields (see [the Custom Fields guide](/developer-guide/custom-fields/).
  * * Price lists or bulk pricing, where different price bands are stored e.g. in a customField on the ProductVariant, and this
- *   is used to calculate the price based on the current quantity.
+ *   is used to calculate the price based on the current quantity. Since v4.0.0, prefer the
+ *   {@link ProductVariantShopperPriceStrategy} for this, so that the storefront can show the same price.
  *
  * @docsCategory Orders
  */

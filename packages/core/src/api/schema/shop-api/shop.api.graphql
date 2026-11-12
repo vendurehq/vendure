@@ -317,18 +317,21 @@ type UpdateMultipleOrderItemsResult  {
 
 extend type ProductVariant {
     """
-    The unit price that the configured OrderItemPriceCalculationStrategy calculates for the
-    active session, for the given quantity. Unlike `price` and `priceWithTax`, which give the
-    price of the Channel, this is the price that the cart would use. No Order is needed.
+    The unit price that the configured ProductVariantShopperPriceStrategy calculates for the
+    active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
+    price of the Channel, this is the price that the cart uses. No Order is needed.
+
+    If OrderLine custom fields are defined, the field also has a `customFields` argument. Pass
+    the same values as to `addItemToOrder`.
 
     The tax rate comes from the tax zone of the session, as for `priceWithTax`. The cart uses
     the tax zone of the Order, so `priceWithTax` can differ when the two zones differ.
     """
-    calculatedPrice(quantity: Int = 1): CalculatedPrice!
+    shopperPrice(quantity: Int = 1): ShopperPrice!
 }
 
-"The unit price of a ProductVariant as calculated for the active session"
-type CalculatedPrice {
+"The unit price of a ProductVariant for the active Customer"
+type ShopperPrice {
     "The price of a single unit, excluding tax"
     price: Money!
     "The price of a single unit, including tax"

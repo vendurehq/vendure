@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CalculatedPrice } from '@vendure/common/lib/generated-shop-types';
+import { ShopperPrice } from '@vendure/common/lib/generated-shop-types';
 import {
     AssignProductVariantsToChannelInput,
     CreateProductVariantInput,
@@ -38,6 +38,7 @@ import {
     StockLocation,
     TaxCategory,
 } from '../../entity';
+import { Customer } from '../../entity/customer/customer.entity';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
 import { ProductOption } from '../../entity/product-option/product-option.entity';
 import { ProductVariantTranslation } from '../../entity/product-variant/product-variant-translation.entity';
@@ -59,6 +60,7 @@ import { samplesEach } from '../helpers/utils/samples-each';
 
 import { AssetService } from './asset.service';
 import { ChannelService } from './channel.service';
+import { CustomerService } from './customer.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
@@ -94,6 +96,7 @@ export class ProductVariantService {
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
         private slugValidator: SlugValidator,
+        private customerService: CustomerService,
     ) {}
 
     async findAll(
@@ -827,42 +830,58 @@ export class ProductVariantService {
 
     /**
      * @description
-     * Calculates the unit price of the ProductVariant for the active session and the given quantity,
-     * without an Order. It applies the Channel price and tax (as for the `price` and `priceWithTax`
-     * fields), and then runs the configured {@link OrderItemPriceCalculationStrategy} with an
-     * `undefined` order. The result is the unit price that the cart would calculate for the same
-     * variant and quantity.
+     * Calculates the unit price of the ProductVariant for the active Customer, the given quantity and
+     * the given OrderLine custom fields, without an Order. It applies the Channel price and tax (as for
+     * the `price` and `priceWithTax` fields), and then runs the configured
+     * {@link ProductVariantShopperPriceStrategy}. With the default {@link OrderItemPriceCalculationStrategy},
+     * the result is the unit price that the cart calculates for the same input.
      *
      * The tax rate comes from the tax zone of the active session. The cart uses the tax zone of the
      * Order, so the gross price can differ when the two zones differ.
      *
-     * The strategy receives a copy of the variant, so the `price` and `priceWithTax` of the given
-     * variant do not change. Vendure does not cache the result: the strategy runs on each call.
+     * The strategy receives a copy of the variant and of the custom fields, so the given objects do
+     * not change. Vendure does not cache the result: the strategy runs on each call.
      *
      * @since 4.0.0
      */
-    async calculateShopPrice(
+    async calculateShopperPrice(
         ctx: RequestContext,
         variant: ProductVariant,
         quantity = 1,
-    ): Promise<CalculatedPrice> {
+        orderLineCustomFields: { [key: string]: any } = {},
+    ): Promise<ShopperPrice> {
         if (!Number.isInteger(quantity) || quantity < 1) {
-            throw new UserInputError('error.calculated-price-quantity-must-be-positive');
+            throw new UserInputError('error.shopper-price-quantity-must-be-positive');
         }
         const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
-        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
-        const { price, priceIncludesTax } = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+        const { productVariantShopperPriceStrategy } = this.configService.catalogOptions;
+        const { price, priceIncludesTax } = await productVariantShopperPriceStrategy.calculateUnitPrice(
             ctx,
             new ProductVariant(hydratedVariant),
-            {},
-            undefined,
-            quantity,
+            {
+                quantity,
+                orderLineCustomFields: { ...orderLineCustomFields },
+                getCustomer: () => this.getActiveCustomer(ctx),
+            },
         );
         const taxRate = hydratedVariant.taxRateApplied;
         return {
             price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
             priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
         };
+    }
+
+    /**
+     * Loads the Customer of the active User once for each request.
+     */
+    private getActiveCustomer(ctx: RequestContext): Promise<Customer | undefined> {
+        const userId = ctx.activeUserId;
+        if (userId == null) {
+            return Promise.resolve(undefined);
+        }
+        return this.requestCache.get(ctx, `ProductVariantService.getActiveCustomer(${userId})`, () =>
+            this.customerService.findOneByUserId(ctx, userId),
+        );
     }
 
     /**

@@ -1,4 +1,4 @@
-import { printSchema } from 'graphql';
+import { GraphQLObjectType, GraphQLSchema, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 
 import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
@@ -351,6 +351,45 @@ describe('addOrderLineCustomFieldsInput()', () => {
         ];
         const result = addOrderLineCustomFieldsInput(input, customFieldConfig, false);
         expect(printSchema(result)).toMatchSnapshot();
+    });
+
+    const shopperPriceInput = `
+        type ProductVariant {
+            id: ID!
+            shopperPrice(quantity: Int = 1): Int!
+        }
+        type Query {
+            productVariant: ProductVariant
+        }
+        type Mutation {
+            addItemToOrder(id: ID!, quantity: Int!): Boolean
+        }
+    `;
+
+    function getShopperPriceArgs(schema: GraphQLSchema) {
+        const type = schema.getType('ProductVariant') as GraphQLObjectType;
+        return type.getFields().shopperPrice.args.map(a => `${a.name}: ${a.type.toString()}`);
+    }
+
+    it('adds a customFields argument to ProductVariant.shopperPrice', () => {
+        const customFieldConfig: CustomFieldConfig[] = [{ name: 'unitCode', type: 'string' }];
+        const result = addOrderLineCustomFieldsInput(shopperPriceInput, customFieldConfig, true);
+        expect(getShopperPriceArgs(result)).toEqual([
+            'quantity: Int',
+            'customFields: OrderLineCustomFieldsInput',
+        ]);
+    });
+
+    it('does not add a customFields argument to ProductVariant.shopperPrice without public OrderLine custom fields', () => {
+        const customFieldConfig: CustomFieldConfig[] = [
+            { name: 'internalCode', type: 'string', public: false },
+        ];
+        expect(getShopperPriceArgs(addOrderLineCustomFieldsInput(shopperPriceInput, [], true))).toEqual([
+            'quantity: Int',
+        ]);
+        expect(
+            getShopperPriceArgs(addOrderLineCustomFieldsInput(shopperPriceInput, customFieldConfig, true)),
+        ).toEqual(['quantity: Int']);
     });
 });
 

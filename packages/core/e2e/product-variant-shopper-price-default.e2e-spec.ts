@@ -7,15 +7,20 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { graphql } from './graphql/graphql-shop';
+import { getCustomerListDocument } from './graphql/shared-definitions';
 
 const getVariantPricesDocument = graphql(`
-    query GetVariantPricesDefault($id: ID!, $quantity: Int) {
+    query GetVariantShopperPricesDefault(
+        $id: ID!
+        $quantity: Int
+        $customFields: OrderLineCustomFieldsInput
+    ) {
         product(id: $id) {
             variants {
                 id
                 price
                 priceWithTax
-                calculatedPrice(quantity: $quantity) {
+                shopperPrice(quantity: $quantity, customFields: $customFields) {
                     price
                     priceWithTax
                 }
@@ -38,7 +43,7 @@ const getVariantChannelPricesDocument = graphql(`
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-describe('ProductVariant.calculatedPrice with the default OrderItemPriceCalculationStrategy', () => {
+describe('ProductVariant.shopperPrice with the default ProductVariantShopperPriceStrategy', () => {
     /** The number of SQL queries run since it was last reset to 0. */
     let sqlQueryCount = 0;
     const countingLogger: TypeOrmLogger = {
@@ -51,9 +56,13 @@ describe('ProductVariant.calculatedPrice with the default OrderItemPriceCalculat
         logMigration: () => undefined,
         log: () => undefined,
     };
+    let customerEmailAddress: string;
     const config = testConfig();
-    const { server, shopClient } = createTestEnvironment({
+    const { server, adminClient, shopClient } = createTestEnvironment({
         ...config,
+        customFields: {
+            OrderLine: [{ name: 'unitCode', type: 'string' }],
+        },
         dbConnectionOptions: {
             ...config.dbConnectionOptions,
             logging: ['query'],
@@ -67,6 +76,9 @@ describe('ProductVariant.calculatedPrice with the default OrderItemPriceCalculat
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 1,
         });
+        await adminClient.asSuperAdmin();
+        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 1 } });
+        customerEmailAddress = customers.items[0].emailAddress;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -74,32 +86,47 @@ describe('ProductVariant.calculatedPrice with the default OrderItemPriceCalculat
     });
 
     it('equals price and priceWithTax', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: 5 });
+        const { product } = await shopClient.query(getVariantPricesDocument, {
+            id: 'T_1',
+            quantity: 5,
+            customFields: { unitCode: 'BOX' },
+        });
 
         expect(product!.variants.length).toBeGreaterThan(1);
         for (const variant of product!.variants) {
-            expect(variant.calculatedPrice).toEqual({
+            expect(variant.shopperPrice).toEqual({
                 price: variant.price,
                 priceWithTax: variant.priceWithTax,
             });
         }
     });
 
-    it('runs no extra SQL query', async () => {
-        const countQueries = async (query: () => Promise<unknown>) => {
-            // The first request warms up caches which are not part of the field resolver
-            await query();
-            sqlQueryCount = 0;
-            await query();
-            return sqlQueryCount;
-        };
+    async function countQueries(query: () => Promise<unknown>) {
+        // The first request warms up caches which are not part of the field resolver
+        await query();
+        sqlQueryCount = 0;
+        await query();
+        return sqlQueryCount;
+    }
 
-        const withoutField = await countQueries(() =>
-            shopClient.query(getVariantChannelPricesDocument, { id: 'T_1' }),
-        );
-        const withField = await countQueries(() => shopClient.query(getVariantPricesDocument, { id: 'T_1' }));
+    it('runs no extra SQL query, for a guest and for a logged-in customer', async () => {
+        for (const login of [false, true]) {
+            if (login) {
+                await shopClient.asUserWithCredentials(customerEmailAddress, 'test');
+            }
+            const withoutField = await countQueries(() =>
+                shopClient.query(getVariantChannelPricesDocument, { id: 'T_1' }),
+            );
+            const withField = await countQueries(() =>
+                shopClient.query(getVariantPricesDocument, { id: 'T_1' }),
+            );
+            const withCustomFields = await countQueries(() =>
+                shopClient.query(getVariantPricesDocument, { id: 'T_1', customFields: { unitCode: 'BOX' } }),
+            );
 
-        expect(withoutField).toBeGreaterThan(0);
-        expect(withField).toBe(withoutField);
+            expect(withoutField).toBeGreaterThan(0);
+            expect(withField).toBe(withoutField);
+            expect(withCustomFields).toBe(withoutField);
+        }
     });
 });

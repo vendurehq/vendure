@@ -1,5 +1,5 @@
 import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
-import { CalculatedPrice, ProductVariantCalculatedPriceArgs } from '@vendure/common/lib/generated-shop-types';
+import { ProductVariantShopperPriceArgs, ShopperPrice } from '@vendure/common/lib/generated-shop-types';
 import {
     CurrencyCode,
     ProductVariantPrice,
@@ -225,11 +225,16 @@ export class ProductVariantShopEntityResolver {
     constructor(private productVariantService: ProductVariantService) {}
 
     @ResolveField()
-    async calculatedPrice(
+    async shopperPrice(
         @Ctx() ctx: RequestContext,
         @Parent() productVariant: ProductVariant,
-        @Args() args: ProductVariantCalculatedPriceArgs,
-    ): Promise<CalculatedPrice> {
-        return this.productVariantService.calculateShopPrice(ctx, productVariant, args.quantity ?? 1);
+        @Args() args: ProductVariantShopperPriceArgs & { customFields?: { [key: string]: any } },
+    ): Promise<ShopperPrice> {
+        return this.productVariantService.calculateShopperPrice(
+            ctx,
+            productVariant,
+            args.quantity ?? 1,
+            args.customFields ?? {},
+        );
     }
 }
