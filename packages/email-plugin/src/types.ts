@@ -320,6 +320,9 @@ export interface NoopTransportOptions {
  * @description
  * The final, generated email details to be sent.
  *
+ * `from` and `subject` are plain text and are not HTML-escaped. Escape them before you
+ * insert them into HTML.
+ *
  * @docsCategory core plugins/EmailPlugin
  * @docsPage Email Plugin Types
  */
