@@ -161,16 +161,12 @@ export class SlugValidator {
             .select('base.id', 'id')
             .distinct(true)
             .getRawMany();
-        const candidateIds = entityIds.filter(id => !alreadyAssigned.some(a => idsAreEqual(a.id, id)));
-        // Entities whose slugs are unique across every channel cannot clash in this one.
-        const scopes = await Promise.all(
-            candidateIds.map(id => this.getUniquenessScope(ctx, translationEntity, id, [channelId])),
-        );
-        const toCheck = candidateIds.filter((_, i) => scopes[i] !== 'global');
-        if (!toCheck.length) {
+        // This runs for both uniqueness scopes: with 'global', existing data may still hold
+        // per-channel duplicates written before the scope was switched.
+        const baseIds = entityIds.filter(id => !alreadyAssigned.some(a => idsAreEqual(a.id, id)));
+        if (!baseIds.length) {
             return;
         }
-        const baseIds = toCheck;
         const incoming = await repo
             .createQueryBuilder('translation')
             .innerJoinAndSelect('translation.base', 'base')

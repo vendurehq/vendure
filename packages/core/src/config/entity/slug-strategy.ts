@@ -30,6 +30,13 @@ export interface SlugGenerateParams {
  *   entity, so it only counts for entities that belong to no other channel.
  * - `'global'`: unique across all channels.
  *
+ * The scope is checked when a slug is saved and when an entity is assigned to a channel. It is
+ * not checked when an entity is removed from a channel or a channel is deleted. So with
+ * `'channel'`, two entities from different channels can both end up only in the default
+ * channel with the same slug. Lookups by that slug then return the oldest entity.
+ * `findSlugConflicts()` lists such duplicates. Run it before switching an existing database
+ * to `'global'` as well, since slugs that are saved unchanged are not checked again.
+ *
  * @docsCategory configuration
  * @docsPage SlugStrategy
  * @since 4.0.0

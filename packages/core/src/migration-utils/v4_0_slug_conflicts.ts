@@ -57,8 +57,13 @@ export async function findSlugConflicts(queryRunner: QueryRunner): Promise<SlugC
         { entity: 'Product', base: 'product', softDelete: true },
         { entity: 'Collection', base: 'collection', softDelete: false },
     ];
-    const rowsPerTable = await Promise.all(tables.map(table => readSlugRows(queryRunner, table)));
-    return tables.flatMap((table, i) => findConflictsInRows(table.entity, rowsPerTable[i], defaultChannelId));
+    const conflicts: SlugConflict[] = [];
+    // One after the other: a QueryRunner holds a single connection.
+    for (const table of tables) {
+        const rows = await readSlugRows(queryRunner, table);
+        conflicts.push(...findConflictsInRows(table.entity, rows, defaultChannelId));
+    }
+    return conflicts;
 }
 
 interface SlugTable {

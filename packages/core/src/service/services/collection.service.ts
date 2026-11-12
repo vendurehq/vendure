@@ -914,7 +914,9 @@ export class CollectionService implements OnModuleInit {
                     ? `collections ${options.collectionIds.join(', ')}`
                     : 'all collections';
                 const message = err instanceof Error ? err.message : String(err);
-                Logger.error(`Could not enqueue the apply-collection-filters job for ${target}: ${message}`);
+                Logger.error(
+                    `Could not enqueue the apply-collection-filters job for ${target}: ${message}`,
+                );
             });
     }
 

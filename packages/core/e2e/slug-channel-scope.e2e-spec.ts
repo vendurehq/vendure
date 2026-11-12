@@ -42,6 +42,27 @@ describe('Slug uniqueness is scoped per channel', () => {
             }
         }
     `);
+    const productById = graphql(`
+        query SlugProductById($id: ID!) {
+            product(id: $id) {
+                id
+            }
+        }
+    `);
+    const variantById = graphql(`
+        query SlugVariantById($id: ID!) {
+            productVariant(id: $id) {
+                id
+            }
+        }
+    `);
+    const collectionById = graphql(`
+        query SlugCollectionById($id: ID!) {
+            collection(id: $id) {
+                id
+            }
+        }
+    `);
     const assignProducts = graphql(`
         mutation SlugAssignProducts($input: AssignProductsToChannelInput!) {
             assignProductsToChannel(input: $input) {
@@ -134,6 +155,12 @@ describe('Slug uniqueness is scoped per channel', () => {
         return c;
     }
 
+    async function productInChannel(token: string, id: string) {
+        adminClient.setChannelToken(token);
+        const { product } = await adminClient.query(productById, { id });
+        return product;
+    }
+
     async function lookup(token: string, slug: string) {
         adminClient.setChannelToken(token);
         const { product } = await adminClient.query(productBySlug, { slug });
@@ -222,16 +249,12 @@ describe('Slug uniqueness is scoped per channel', () => {
         await newProduct(B_TOKEN, 'Clash B', 'clash');
         const inC = await newProduct(C_TOKEN, 'Clash C', 'clash');
         adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-        let error: any;
-        try {
-            await adminClient.query(assignProducts, {
+        await expect(
+            adminClient.query(assignProducts, {
                 input: { channelId: bChannelId, productIds: [inC.id] },
-            });
-        } catch (e: any) {
-            error = e;
-        }
-        expect(error?.message).toContain('clash');
-        expect((await lookup(B_TOKEN, 'clash'))?.name).toBe('Clash B');
+            }),
+        ).rejects.toThrow(/clash/);
+        expect(await productInChannel(B_TOKEN, inC.id)).toBeNull();
     });
 
     it("assigning a variant to a channel where its product's slug is taken is rejected", async () => {
@@ -254,7 +277,12 @@ describe('Slug uniqueness is scoped per channel', () => {
                 input: { channelId: bChannelId, productVariantIds: [createProductVariants[0]?.id as string] },
             }),
         ).rejects.toThrow(/variant-clash/);
-        expect((await lookup(B_TOKEN, 'variant-clash'))?.name).toBe('Variant Clash B');
+        expect(await productInChannel(B_TOKEN, inC.id)).toBeNull();
+        adminClient.setChannelToken(B_TOKEN);
+        const { productVariant } = await adminClient.query(variantById, {
+            id: createProductVariants[0]?.id as string,
+        });
+        expect(productVariant).toBeNull();
     });
 
     it('updating a slug checks every non-default channel the product belongs to', async () => {
@@ -342,15 +370,14 @@ describe('Slug uniqueness is scoped per channel', () => {
             adminClient.setChannelToken(C_TOKEN);
             const cSummer = (await adminClient.query(collectionBySlug, { slug: 'summer' })).collection;
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            let error: any;
-            try {
-                await adminClient.query(assignCollections, {
+            await expect(
+                adminClient.query(assignCollections, {
                     input: { channelId: bChannelId, collectionIds: [cSummer?.id as string] },
-                });
-            } catch (e: any) {
-                error = e;
-            }
-            expect(error?.message).toContain('summer');
+                }),
+            ).rejects.toThrow(/summer/);
+            adminClient.setChannelToken(B_TOKEN);
+            const { collection } = await adminClient.query(collectionById, { id: cSummer?.id as string });
+            expect(collection).toBeNull();
         });
 
         it('a default-channel collection lookup resolves to the oldest collection', async () => {
