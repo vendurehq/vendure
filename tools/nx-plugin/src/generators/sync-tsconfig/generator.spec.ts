@@ -122,6 +122,33 @@ describe('syncTsconfigGenerator', () => {
         expect(readJsonc('packages/foo-plugin/tsconfig.json').compilerOptions.jsx).toBeUndefined();
     });
 
+    it('excludes src/dashboard when it has its own tsconfig', async () => {
+        addPackage('packages/foo-plugin', {
+            'package.json': JSON.stringify({ name: '@vendure/foo-plugin' }),
+            'src/index.ts': '',
+            'src/plugin.ts': '',
+            'src/dashboard/index.tsx': '',
+            'src/dashboard/tsconfig.json': '{}',
+        });
+
+        await syncTsconfigGenerator(tree);
+
+        expect(readJsonc('packages/foo-plugin/tsconfig.json').exclude).toEqual(['src/dashboard']);
+    });
+
+    it('does not exclude src/dashboard when it has no tsconfig', async () => {
+        addPackage('packages/foo-plugin', {
+            'package.json': JSON.stringify({ name: '@vendure/foo-plugin' }),
+            'src/index.ts': '',
+            'src/plugin.ts': '',
+            'src/dashboard/index.tsx': '',
+        });
+
+        await syncTsconfigGenerator(tree);
+
+        expect(readJsonc('packages/foo-plugin/tsconfig.json').exclude).toBeUndefined();
+    });
+
     it('writes tsconfig.spec-d.json only while there are type-level tests', async () => {
         addPackage('packages/foo-plugin', {
             'package.json': JSON.stringify({ name: '@vendure/foo-plugin' }),
