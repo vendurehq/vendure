@@ -1,6 +1,26 @@
 import { RequestContext } from '../../api/common/request-context';
 
-import { SlugGenerateParams, SlugStrategy } from './slug-strategy';
+import { SlugGenerateParams, SlugStrategy, SlugUniquenessScope } from './slug-strategy';
+
+/**
+ * @description
+ * Options for the {@link DefaultSlugStrategy}.
+ *
+ * @docsCategory configuration
+ * @docsPage DefaultSlugStrategy
+ * @since 4.0.0
+ */
+export interface DefaultSlugStrategyOptions {
+    /**
+     * @description
+     * The scope within which Product and Collection slugs must be unique. Use `'global'` when a
+     * single storefront shows several channels' products, such as a marketplace built on the
+     * default channel.
+     *
+     * @default 'channel'
+     */
+    uniqueness?: SlugUniquenessScope;
+}
 
 /**
  * @description
@@ -19,10 +39,24 @@ import { SlugGenerateParams, SlugStrategy } from './slug-strategy';
  * strategy.generate(ctx, { value: "100% Natural" }); // "100-natural"
  * ```
  *
+ * Slugs are unique per channel by default. To make them unique across all channels:
+ *
+ * ```ts
+ * entityOptions: {
+ *   slugStrategy: new DefaultSlugStrategy({ uniqueness: 'global' }),
+ * },
+ * ```
+ *
  * @docsCategory configuration
  * @since 3.5.0
  */
 export class DefaultSlugStrategy implements SlugStrategy {
+    constructor(private readonly options: DefaultSlugStrategyOptions = {}) {}
+
+    getUniquenessScope(): SlugUniquenessScope {
+        return this.options.uniqueness ?? 'channel';
+    }
+
     generate(ctx: RequestContext, params: SlugGenerateParams): string {
         const { value } = params;
         if (!value) {
