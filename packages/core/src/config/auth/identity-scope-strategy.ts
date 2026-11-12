@@ -20,23 +20,30 @@ export const GLOBAL_IDENTITY_SCOPE = 'global';
  * check out as a guest and reset a password on each one without touching the other.
  *
  * The scope is stored on each {@link Customer} when it is created (`Customer.identityScope`).
- * Every lookup by email address, login, password reset and channel assignment is then limited
- * to the scope of the active Channel. A Customer can only become a member of Channels in its own
- * scope, so a session issued on one scope never holds `Authenticated` on another.
+ * Every lookup by email address, login, password reset and token redemption is then limited to
+ * the scope of the active Channel. A Customer acts only on Channels in its own scope: it is never
+ * auto-joined to a Channel outside it, holds no `Authenticated` permission there, and its session
+ * is treated as anonymous there. Every Customer is still joined to the default Channel, so that
+ * the Admin API lists it there; that membership grants nothing unless the default Channel is in
+ * the Customer's scope.
  *
  * Administrators are not scoped. An Administrator's User is found by email address across the
  * whole instance, as before.
  *
- * The returned key is persisted, so it must be stable for a given Channel. Use a Channel's `id`
- * rather than its `code`, which can be renamed. Changing the strategy on an install that already
- * has customers needs a data migration (see the v4 migration guide).
+ * The strategy receives the Channel with its own columns loaded, including `sellerId` and custom
+ * fields. Relations are not loaded. The returned key is persisted, so it must be stable for a given
+ * Channel. Use a Channel's `id` or `sellerId` rather than its `code`, which can be renamed. If the
+ * key depends on a value an administrator can edit, such as a custom field, a change that would move
+ * a Channel with Customers to another scope is refused. Changing the strategy on an install that
+ * already has Customers needs a data migration, see {@link migrateCustomerIdentityScopes}; the
+ * server refuses to start when the stored scopes no longer match the strategy.
  *
  * @example
  * ```ts
- * // Brands share a customer base across their regional channels.
- * class BrandIdentityScopeStrategy implements IdentityScopeStrategy {
+ * // Each Seller (vendor or brand) has one customer base across its Channels.
+ * class SellerIdentityScopeStrategy implements IdentityScopeStrategy {
  *     getIdentityScope(channel: Channel) {
- *         return `brand:${(channel.customFields as any).brand ?? 'default'}`;
+ *         return `seller:${channel.sellerId}`;
  *     }
  * }
  * ```

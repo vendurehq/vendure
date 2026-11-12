@@ -33,6 +33,7 @@ import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { VendureEntity } from '../../entity/base/base.entity';
 import { Channel } from '../../entity/channel/channel.entity';
+import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
@@ -44,6 +45,7 @@ import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event'
 import { ChannelEvent } from '../../event-bus/events/channel-event';
 import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
+import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { isChannelAwareMetadata } from '../helpers/utils/is-channel-aware-metadata';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -93,6 +95,7 @@ export class ChannelService {
         private roleAssignmentService: RoleAssignmentService,
         private roleService: RoleService,
         private channelAssignmentService: ChannelAssignmentService,
+        private identityScopeService: IdentityScopeService,
     ) {
         // The caches are also cleared synchronously in create, update and delete, but that happens
         // before the transaction commits. Events are published after the commit, so clearing again
@@ -471,6 +474,7 @@ export class ChannelService {
             throw new EntityNotFoundError('Channel', input.id);
         }
         const originalDefaultCurrencyCode = channel.defaultCurrencyCode;
+        const originalIdentityScope = await this.identityScopeService.getScopeForLoadedChannel(channel);
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
             return defaultLanguageValidationResult;
@@ -494,6 +498,7 @@ export class ChannelService {
             const seller = await this.connection.getEntityOrThrow(ctx, Seller, input.sellerId);
             updatedChannel.seller = seller;
         }
+        await this.assertIdentityScopeUnchanged(ctx, updatedChannel, originalIdentityScope);
         if (input.currencyCode) {
             updatedChannel.defaultCurrencyCode = input.currencyCode;
         }
@@ -628,6 +633,36 @@ export class ChannelService {
     public isChannelAware(entity: VendureEntity): entity is VendureEntity & ChannelAware {
         const entityType = Object.getPrototypeOf(entity).constructor;
         return isChannelAwareMetadata(this.connection.rawConnection.getMetadata(entityType));
+    }
+
+    /**
+     * The identity scope is stored on each Customer, so a Channel whose scope changes (for example
+     * because the IdentityScopeStrategy reads a custom field that was just edited) would lock out
+     * every Customer who uses it. That is refused while such Customers exist.
+     */
+    private async assertIdentityScopeUnchanged(
+        ctx: RequestContext,
+        channel: Channel,
+        originalScope: string,
+    ): Promise<void> {
+        const newScope = await this.identityScopeService.getScopeForLoadedChannel(channel);
+        if (newScope === originalScope) {
+            return;
+        }
+        const affected = await this.connection
+            .getRepository(ctx, Customer)
+            .createQueryBuilder('customer')
+            .innerJoin('customer.channels', 'channel', 'channel.id = :channelId', { channelId: channel.id })
+            .where('customer.deletedAt IS NULL')
+            .andWhere('customer.identityScope = :originalScope', { originalScope })
+            .getCount();
+        if (affected) {
+            throw new UserInputError('error.channel-identity-scope-change-with-customers', {
+                originalScope,
+                newScope,
+                count: affected,
+            });
+        }
     }
 
     private findChannel(

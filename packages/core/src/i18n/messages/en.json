@@ -20,6 +20,7 @@
     "cannot-transition-payment-from-to": "Cannot transition Payment from \"{ fromState }\" to \"{ toState }\"",
     "cannot-transition-refund-from-to": "Cannot transition Refund from \"{ fromState }\" to \"{ toState }\"",
     "cannot-transition-fulfillment-from-to": "Cannot transition Fulfillment from \"{ fromState }\" to \"{ toState }\"",
+    "channel-identity-scope-change-with-customers": "This change would move the Channel from identity scope \"{ originalScope }\" to \"{ newScope }\", and { count } Customers who use it would no longer be able to log in. Migrate the Customers first",
     "channel-not-found": "No Channel with the token \"{ token }\" could be found",
     "collection-id-or-slug-must-be-provided": "Either the Collection id or slug must be provided",
     "collection-id-slug-mismatch": "The provided id and slug refer to different Collections",

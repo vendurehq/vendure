@@ -42,14 +42,11 @@ import {
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 /**
- * OSS-999 spike: channel-scoped Customer/User identity.
+ * Channel-scoped Customer/User identity (IdentityScopeStrategy).
  *
  * Two brands share one Vendure instance and must have independent customer bases, so the same
  * email address is a different person (different password, profile and orders) on each brand.
  *
- * Before the prototype, these tests ran with a CustomerChannelAssignmentStrategy that never
- * auto-joins (the closest a deployment could get). The tests marked "fails today" failed then.
- * They now run with the prototype's ChannelIdentityScopeStrategy.
  */
 
 const BRAND_A = { code: 'brand-a', token: 'brand-a-token' };
@@ -112,7 +109,7 @@ class CapturePasswordResetPlugin implements OnModuleInit {
     }
 }
 
-describe('Customer identity scope (OSS-999)', () => {
+describe('Customer identity scope', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             authOptions: {
@@ -163,6 +160,15 @@ describe('Customer identity scope (OSS-999)', () => {
         passwordResetEvents.length = 0;
     });
 
+    /** Events are published after the transaction commits, so they arrive after the response. */
+    async function waitForPasswordResetEvents(count: number) {
+        const deadline = Date.now() + 5000;
+        while (passwordResetEvents.length < count && Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        expect(passwordResetEvents.length).toBeGreaterThanOrEqual(count);
+    }
+
     async function register(channelToken: string, emailAddress: string, password: string, firstName: string) {
         shopClient.setChannelToken(channelToken);
         await shopClient.asAnonymousUser();
@@ -206,8 +212,6 @@ describe('Customer identity scope (OSS-999)', () => {
             success: true,
         });
 
-        // Fails today: brand B's registration silently returned success without creating anything,
-        // so the brand B password does not work.
         const loginB = await login(BRAND_B.token, 'alice@test.com', 'alice-b-pass');
         expect((loginB as any).identifier).toBe('alice@test.com');
         const loginA = await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
@@ -222,8 +226,6 @@ describe('Customer identity scope (OSS-999)', () => {
 
     it("brand A's password does not log in on brand B", async () => {
         await register(BRAND_A.token, 'dave@test.com', 'dave-a-pass', 'Dave');
-        // Fails today: the User is found globally by email, so the login succeeds and creates a
-        // session (it only lacks permissions on B because of the no-autojoin strategy).
         const result = await login(BRAND_B.token, 'dave@test.com', 'dave-a-pass');
         expect((result as any).errorCode).toBe('INVALID_CREDENTIALS_ERROR');
     });
@@ -242,7 +244,6 @@ describe('Customer identity scope (OSS-999)', () => {
     it('guest checkout on brand B with an email registered on brand A', async () => {
         await register(BRAND_A.token, 'bob@test.com', 'bob-a-pass', 'BobA');
         const result = await guestCheckout(BRAND_B.token, 'bob@test.com', 'BobB');
-        // Fails today with EMAIL_ADDRESS_CONFLICT_ERROR.
         expect((result as any).errorCode).toBeUndefined();
         const [onA] = await customersOn(BRAND_A.token, 'bob@test.com');
         expect((result as any).customer.id).not.toBe(onA.id);
@@ -252,7 +253,6 @@ describe('Customer identity scope (OSS-999)', () => {
     it("guest checkout on brand B does not touch brand A's guest customer", async () => {
         const first = await guestCheckout(BRAND_A.token, 'carol@test.com', 'CarolA');
         const second = await guestCheckout(BRAND_B.token, 'carol@test.com', 'CarolB');
-        // Fails today: the brand A Customer is reused, renamed to CarolB and joined to brand B.
         expect((second as any).customer.id).not.toBe((first as any).customer.id);
         const [onA] = await customersOn(BRAND_A.token, 'carol@test.com');
         expect(onA.firstName).toBe('CarolA');
@@ -264,7 +264,6 @@ describe('Customer identity scope (OSS-999)', () => {
         const { createCustomer } = await adminClient.query(createCustomerDocument, {
             input: { emailAddress: 'erin@test.com', firstName: 'ErinB', lastName: 'Test' },
         });
-        // Fails today: the brand A Customer is patched (renamed ErinB) and joined to brand B.
         const [onA] = await customersOn(BRAND_A.token, 'erin@test.com');
         expect(onA.firstName).toBe('ErinA');
         expect((createCustomer as any).id).not.toBe(onA.id);
@@ -274,15 +273,18 @@ describe('Customer identity scope (OSS-999)', () => {
         await register(BRAND_A.token, 'frank@test.com', 'frank-a-pass', 'Frank');
         shopClient.setChannelToken(BRAND_B.token);
         await shopClient.asAnonymousUser();
-        // Fails today: "Cannot locate a Customer for the user" (#3469), which also discloses that
+        // #3469: this used to fail with "Cannot locate a Customer for the user", which disclosed that
         // the email has an account somewhere on the instance.
         const { requestPasswordReset } = await shopClient.query(requestPasswordResetDocument, {
             identifier: 'frank@test.com',
         });
         expect(requestPasswordReset).toEqual({ success: true });
-        // Events are published after the transaction commits.
-        await new Promise(resolve => setTimeout(resolve, 300));
-        expect(passwordResetEvents.length).toBe(0);
+        // A request on brand A afterwards is the control: its event is published after any event
+        // the brand B request would have caused.
+        shopClient.setChannelToken(BRAND_A.token);
+        await shopClient.query(requestPasswordResetDocument, { identifier: 'frank@test.com' });
+        await waitForPasswordResetEvents(1);
+        expect(passwordResetEvents.map(e => e.ctx.channel.code)).toEqual([BRAND_A.code]);
     });
 
     it('a brand B session does not authenticate on the default channel', async () => {
@@ -298,6 +300,33 @@ describe('Customer identity scope (OSS-999)', () => {
     it('the default channel lists customers of every brand in the Admin API', async () => {
         const all = await customersOn(E2E_DEFAULT_CHANNEL_TOKEN, 'alice@test.com');
         expect(all.map(c => c.firstName).sort()).toEqual(['AliceA', 'AliceB']);
+    });
+
+    it('the Admin API lists the storefronts of each Customer and says scopes are in use', async () => {
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { customers, globalSettings } = await adminClient.query(gql`
+            query {
+                customers(options: { filter: { emailAddress: { eq: "alice@test.com" } } }) {
+                    items {
+                        firstName
+                        identityScope
+                        identityScopeChannels {
+                            code
+                        }
+                    }
+                }
+                globalSettings {
+                    serverConfig {
+                        customerIdentityIsGlobal
+                    }
+                }
+            }
+        `);
+        const byName = Object.fromEntries(
+            customers.items.map((c: any) => [c.firstName, c.identityScopeChannels.map((ch: any) => ch.code)]),
+        );
+        expect(byName).toEqual({ AliceA: [BRAND_A.code], AliceB: [BRAND_B.code] });
+        expect(globalSettings.serverConfig.customerIdentityIsGlobal).toBe(false);
     });
 
     it('login.channels only lists channels in the identity scope', async () => {
@@ -319,13 +348,33 @@ describe('Customer identity scope (OSS-999)', () => {
         const a1 = await loginWith(BRAND_A.token, 'GinaA');
         const b1 = await loginWith(BRAND_B.token, 'GinaB');
         const a2 = await loginWith(BRAND_A.token, 'ignored');
-        expect(a1.id).toBeDefined();
         expect(b1.id).not.toBe(a1.id);
         expect(a2.id).toBe(a1.id);
         const [onA] = await customersOn(BRAND_A.token, 'gina@test.com');
         const [onB] = await customersOn(BRAND_B.token, 'gina@test.com');
         expect(onA.firstName).toBe('GinaA');
         expect(onB.firstName).toBe('GinaB');
+    });
+
+    it('a first external login on brand A is a guest on brand B straight away', async () => {
+        // The Customer is created in the login's transaction, so the session is cached before
+        // it commits. The next request, on another Channel, must still see the session's scope.
+        shopClient.setChannelToken(BRAND_A.token);
+        await shopClient.asAnonymousUser();
+        const { authenticate } = await shopClient.query(SOCIAL_LOGIN, {
+            sub: 'social-first-login',
+            email: 'kate@test.com',
+            name: 'Kate',
+        });
+        expect(authenticate.identifier).toBe('kate@test.com');
+        shopClient.setChannelToken(BRAND_B.token);
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+            input: { emailAddress: 'kate-guest@test.com', firstName: 'Kate', lastName: 'Guest' },
+        });
+        expect((setCustomerForOrder as any).errorCode).toBeUndefined();
+        const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
+        expect(activeCustomer).toBeNull();
     });
 
     it('password reset on brand A works for the brand A account', async () => {
@@ -335,10 +384,10 @@ describe('Customer identity scope (OSS-999)', () => {
             identifier: 'frank@test.com',
         });
         expect(requestPasswordReset).toEqual({ success: true });
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await waitForPasswordResetEvents(1);
         expect(passwordResetEvents.length).toBe(1);
     });
-    // Review of #5773: a session from another scope must be fully anonymous, not just lack permissions.
+    // A session from another scope must be fully anonymous, not just lack permissions.
     it('a brand A session can check out as a guest on brand B', async () => {
         await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
         shopClient.setChannelToken(BRAND_B.token);
@@ -365,7 +414,7 @@ describe('Customer identity scope (OSS-999)', () => {
         shopClient.setChannelToken(BRAND_A.token);
         await shopClient.asAnonymousUser();
         await shopClient.query(requestPasswordResetDocument, { identifier: 'frank@test.com' });
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await waitForPasswordResetEvents(1);
         const token = (
             passwordResetEvents[0].user.authenticationMethods.find(m => 'passwordResetToken' in m) as any
         ).passwordResetToken;

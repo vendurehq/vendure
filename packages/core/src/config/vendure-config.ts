@@ -18,8 +18,8 @@ import { AssetPreviewStrategy } from './asset-preview-strategy/asset-preview-str
 import { AssetStorageStrategy } from './asset-storage-strategy/asset-storage-strategy';
 import { AuthenticationStrategy } from './auth/authentication-strategy';
 import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assignment-strategy';
-import { IdentityScopeStrategy } from './auth/identity-scope-strategy';
 import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
+import { IdentityScopeStrategy } from './auth/identity-scope-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
 import { VerificationTokenStrategy } from './auth/verification-token-strategy';

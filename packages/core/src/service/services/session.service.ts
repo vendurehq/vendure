@@ -17,8 +17,8 @@ import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
-import { Role } from '../../entity/role/role.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
+import { Role } from '../../entity/role/role.entity';
 import { AnonymousSession } from '../../entity/session/anonymous-session.entity';
 import { AuthenticatedSession } from '../../entity/session/authenticated-session.entity';
 import { Session } from '../../entity/session/session.entity';
@@ -291,7 +291,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 verified: user.verified,
                 channelPermissions: channels,
                 ...(globalPermissions.length ? { globalPermissions } : {}),
-                ...(customer ? { customerIdentityScope: customer.identityScope } : {}),
+                customerIdentityScope: customer?.identityScope ?? null,
             };
         }
         return serializedSession;

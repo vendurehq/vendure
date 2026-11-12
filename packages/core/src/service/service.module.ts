@@ -12,7 +12,6 @@ import { ChannelAssignmentService } from './helpers/channel-assignment/channel-a
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
 import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
-import { IdentityScopeService } from './helpers/identity-scope/identity-scope.service';
 import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { EntityDuplicatorService } from './helpers/entity-duplicator/entity-duplicator.service';
 import { EntityHydrator } from './helpers/entity-hydrator/entity-hydrator.service';
@@ -20,6 +19,7 @@ import { EntitySlugService } from './helpers/entity-slug.service';
 import { ExternalAuthenticationService } from './helpers/external-authentication/external-authentication.service';
 import { FacetValueChecker } from './helpers/facet-value-checker/facet-value-checker';
 import { FulfillmentStateMachine } from './helpers/fulfillment-state-machine/fulfillment-state-machine';
+import { IdentityScopeService } from './helpers/identity-scope/identity-scope.service';
 import { ListQueryBuilder } from './helpers/list-query-builder/list-query-builder';
 import { LocaleStringHydrator } from './helpers/locale-string-hydrator/locale-string-hydrator';
 import { OrderCalculator } from './helpers/order-calculator/order-calculator';

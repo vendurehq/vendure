@@ -140,8 +140,9 @@ export class CustomerService {
     /**
      * @description
      * Returns the Customer entity associated with the given userId, if one exists.
-     * Setting `filterOnChannel` to `true` will limit the results to Customers which are assigned
-     * to the current active Channel only.
+     * Setting `filterOnChannel` to `true` (the default) limits the result to a Customer which is
+     * assigned to the active Channel and belongs to its identity scope (see
+     * {@link IdentityScopeStrategy}), that is, a Customer who may act on the active Channel.
      */
     async findOneByUserId(
         ctx: RequestContext,
@@ -698,8 +699,7 @@ export class CustomerService {
         const user = await this.userService.setPasswordResetToken(ctx, emailAddress);
         if (user) {
             // The User was found in the active identity scope, so its Customer may act on this
-            // Channel even if it has not joined it yet (it joins on its first authenticated
-            // request). Requiring membership here was #3469.
+            // Channel even if it has not joined it yet (it joins on its first authenticated request).
             const customer = await this.findOneByUserId(ctx, user.id, false);
             if (!customer) {
                 throw new InternalServerError('error.cannot-locate-customer-for-user');

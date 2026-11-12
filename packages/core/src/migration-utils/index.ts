@@ -9,16 +9,16 @@ export {
     RescaleOrderLinePromotionAdjustmentsOptions,
     rescaleOrderLinePromotionAdjustments,
 } from './v3_8_orderline_promotion_rescale';
+export {
+    CustomerIdentityScopeMigrationOptions,
+    CustomerIdentityScopeMigrationResult,
+    CustomerSplit,
+    migrateCustomerIdentityScopes,
+} from './v4_0_customer_identity_scopes';
 export { migrateRoleAssignmentData, removeLegacyRoleData } from './v4_0_role_assignments';
 export {
     RoleAssignmentMigrationPreview,
     formatRoleAssignmentMigrationPreview,
     previewRoleAssignmentMigration,
 } from './v4_0_role_assignments_preview';
-export {
-    CustomerIdentityScopeMigrationOptions,
-    CustomerIdentityScopeMigrationResult,
-    IdentityScopeMigrationChannel,
-    migrateCustomerIdentityScopes,
-} from './v4_0_customer_identity_scopes';
 export { SlugConflict, findSlugConflicts, formatSlugConflicts } from './v4_0_slug_conflicts';

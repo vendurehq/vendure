@@ -42,13 +42,14 @@ export type CachedSessionUser = {
     globalPermissions?: Permission[];
     /**
      * @description
-     * The identity scope of the User's Customer, if the User is a customer User. On a Channel in
-     * another scope the session is treated as anonymous: the same email address may be a
-     * different Customer there. See {@link IdentityScopeStrategy}.
+     * The identity scope of the User's Customer, or `null` if the User has no Customer. On a
+     * Channel in another scope the session is treated as anonymous: the same email address may be
+     * a different Customer there. See {@link IdentityScopeStrategy}. Missing only on entries cached
+     * before v4.0, whose scope is then looked up.
      *
      * @since 4.0.0
      */
-    customerIdentityScope?: string;
+    customerIdentityScope?: string | null;
 };
 
 /**

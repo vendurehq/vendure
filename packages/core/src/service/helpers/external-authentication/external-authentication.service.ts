@@ -413,8 +413,12 @@ export class ExternalAuthenticationService {
      * @description
      * Looks up a User based on their identifier from an external authentication
      * provider. Creates the user if does not exist. Unlike `findCustomerUser` and `findAdministratorUser`,
-     * this method does not enforce that the User is associated with a Customer or
-     * Administrator account.
+     * this method does not enforce that the User is associated with an Administrator account.
+     *
+     * Customer Users are never returned: with a non-global {@link IdentityScopeStrategy} one external
+     * identity can belong to a different customer User in each identity scope, and an Administrator
+     * attached to one of them would share its login. Use `findCustomerUser` and `createCustomerAndUser`
+     * for customers.
      *
      */
     async createUser(
@@ -428,7 +432,10 @@ export class ExternalAuthenticationService {
             ctx,
             config.strategy,
             config.externalIdentifier,
-            qb => qb,
+            qb =>
+                qb
+                    .leftJoin(Customer, 'customer', 'customer.userId = user.id')
+                    .andWhere('customer.id IS NULL'),
         );
         if (user) {
             return user;

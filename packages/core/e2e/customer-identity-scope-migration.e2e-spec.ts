@@ -1,14 +1,19 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
+    Channel,
     ChannelIdentityScopeStrategy,
     ConfigService,
     Customer,
+    GlobalIdentityScopeStrategy,
+    IdentityScopeService,
+    IdentityScopeStrategy,
     migrateCustomerIdentityScopes,
+    RequestContext,
     TransactionalConnection,
+    UserService,
 } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
-import fs from 'fs';
+import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -20,9 +25,11 @@ import {
     attemptLoginDocument,
     createChannelDocument,
     getCustomerListDocument,
+    updateChannelDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
+    getActiveCustomerDocument,
     getActiveOrderDocument,
     registerAccountDocument,
     requestPasswordResetDocument,
@@ -30,7 +37,7 @@ import {
 } from './graphql/shop-definitions';
 
 /**
- * OSS-999 spike: data migration for Customer.identityScope.
+ * Data migration for Customer.identityScope.
  *
  * Builds realistic pre-v4 data under the default global identity, removes the new column to get
  * the pre-migration schema, then runs (1) the schema migration TypeORM generates and (2) the
@@ -89,7 +96,7 @@ describe('Customer identity scope migration (OSS-999)', () => {
         await shopClient.query(requestPasswordResetDocument, { identifier: shared.emailAddress });
         // A Customer who uses the default Channel as a storefront (an order placed there only) and
         // brand A.
-        for (const token of ['e2e-default-channel', BRAND_A.token]) {
+        for (const token of [E2E_DEFAULT_CHANNEL_TOKEN, BRAND_A.token]) {
             await login(token, storefront.emailAddress, 'test');
             await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
         }
@@ -123,9 +130,22 @@ describe('Customer identity scope migration (OSS-999)', () => {
         return server.app.get(TransactionalConnection).rawConnection;
     }
 
-    async function customerRows() {
+    /** Quotes an identifier for the database under test. */
+    function quote(name: string) {
+        return rawConnection().driver.escape(name);
+    }
+
+    /** A positional parameter placeholder for the database under test. */
+    function p(index: number) {
+        return rawConnection().options.type === 'postgres' ? `$${index}` : '?';
+    }
+
+    async function customerRows(): Promise<
+        Array<{ id: number; emailAddress: string; identityScope: string; userId: number | null }>
+    > {
         return rawConnection().query(
-            'SELECT "id", "emailAddress", "identityScope", "userId" FROM "customer" ORDER BY "id"',
+            `SELECT ${quote('id')}, ${quote('emailAddress')}, ${quote('identityScope')}, ${quote('userId')}
+             FROM ${quote('customer')} ORDER BY ${quote('id')}`,
         );
     }
 
@@ -146,9 +166,6 @@ describe('Customer identity scope migration (OSS-999)', () => {
         const sqlInMemory = await rawConnection().driver.createSchemaBuilder().log();
         const upQueries = sqlInMemory.upQueries.map(q => q.query);
         expect(upQueries.length).toBeGreaterThan(0);
-        if (process.env.OSS999_SQL_OUT) {
-            fs.writeFileSync(process.env.OSS999_SQL_OUT, upQueries.join(';\n') + ';\n');
-        }
         expect(upQueries.every(q => /customer/i.test(q))).toBe(true);
         for (const q of sqlInMemory.upQueries) {
             await qr.query(q.query, q.parameters);
@@ -161,6 +178,13 @@ describe('Customer identity scope migration (OSS-999)', () => {
         const rows = await customerRows();
         expect(rows.length).toBe(5);
         expect(new Set(rows.map(r => r.identityScope))).toEqual(new Set(['global']));
+
+        // Code without a Channel keeps working under the default strategy.
+        await expect(
+            server.app
+                .get(UserService)
+                .getUserByEmailAddress(RequestContext.empty(), shared.emailAddress, 'customer'),
+        ).resolves.toBeDefined();
 
         // Nothing changes for users: the shared Customer still logs in on both brands.
         expect((await login(BRAND_A.token, shared.emailAddress, 'test')).identifier).toBe(
@@ -178,9 +202,32 @@ describe('Customer identity scope migration (OSS-999)', () => {
             .save(
                 new Customer({ emailAddress: 'no-channel@test.com', firstName: 'No', lastName: 'Channel' }),
             );
+        // A guest Customer on brand B with the email of the brand B registration, as pre-v4 data can
+        // hold (OSS-912). Both end up in brand B's scope.
+        await rawConnection()
+            .getRepository(Customer)
+            .save(
+                new Customer({
+                    emailAddress: 'only-b@test.com',
+                    firstName: 'Guest',
+                    lastName: 'B',
+                    channels: [{ id: idOf(BRAND_B) } as any],
+                }),
+            );
+        const strategy = new ChannelIdentityScopeStrategy();
         const qr = rawConnection().createQueryRunner();
-        const result = await migrateCustomerIdentityScopes(qr, ch => `channel:${ch.id}`);
+        const dryRun = await migrateCustomerIdentityScopes(qr, strategy, { dryRun: true });
+        expect(new Set((await customerRows()).map(r => r.identityScope))).toEqual(new Set(['global']));
+        const result = await migrateCustomerIdentityScopes(qr, strategy);
         await qr.release();
+        expect(dryRun).toEqual(result);
+        expect(result.duplicateEmails).toEqual([
+            {
+                identityScope: `channel:${idOf(BRAND_B)}`,
+                emailAddress: 'only-b@test.com',
+                customerIds: expect.any(Array),
+            },
+        ]);
         // Switch the running server to the strategy the migration was written for.
         server.app.get(ConfigService).authOptions.identityScopeStrategy = new ChannelIdentityScopeStrategy();
 
@@ -214,17 +261,20 @@ describe('Customer identity scope migration (OSS-999)', () => {
             Number(
                 (
                     await rawConnection().query(
-                        `SELECT COUNT(*) AS "n" FROM "address" WHERE "customerId" = ${customerId}`,
+                        `SELECT COUNT(*) AS ${quote('n')} FROM ${quote('address')} WHERE ${quote('customerId')} = ${p(1)}`,
+                        [customerId],
                     )
                 )[0].n,
             );
         expect(await addressCount(original.id)).toBeGreaterThan(0);
         expect(await addressCount(copy.id)).toBe(await addressCount(original.id));
 
-        const tokens = async (userId: number) =>
+        const tokens = async (userId: number | null) =>
             (
                 await rawConnection().query(
-                    `SELECT "passwordResetToken", "verificationToken", "identifierChangeToken" FROM "authentication_method" WHERE "userId" = ${userId}`,
+                    `SELECT ${quote('passwordResetToken')}, ${quote('verificationToken')}, ${quote('identifierChangeToken')}
+                     FROM ${quote('authentication_method')} WHERE ${quote('userId')} = ${p(1)}`,
+                    [userId],
                 )
             )[0];
         expect((await tokens(original.userId)).passwordResetToken).toBeTruthy();
@@ -236,7 +286,7 @@ describe('Customer identity scope migration (OSS-999)', () => {
     });
 
     it('after the split, a Customer can still log in on the default storefront and brand A', async () => {
-        const onDefault = await login('e2e-default-channel', storefront.emailAddress, 'test');
+        const onDefault = await login(E2E_DEFAULT_CHANNEL_TOKEN, storefront.emailAddress, 'test');
         const { activeOrder: orderDefault } = await shopClient.query(getActiveOrderDocument);
         const onA = await login(BRAND_A.token, storefront.emailAddress, 'test');
         expect(onDefault.identifier).toBe(storefront.emailAddress);
@@ -260,7 +310,7 @@ describe('Customer identity scope migration (OSS-999)', () => {
     });
 
     it('the default channel still lists both copies in the Admin API', async () => {
-        adminClient.setChannelToken('e2e-default-channel');
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         const { customers } = await adminClient.query(getCustomerListDocument, {
             options: { filter: { emailAddress: { eq: shared.emailAddress } } },
         });
@@ -276,6 +326,43 @@ describe('Customer identity scope migration (OSS-999)', () => {
             input: { emailAddress: 'someone@test.com', firstName: 'Some', lastName: 'One' },
         });
         expect((setCustomerForOrder as any).errorCode).toBeUndefined();
+        const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
+        expect(activeCustomer).toBeNull();
+    });
+
+    it('the startup check accepts the migrated data and refuses going back to the global strategy', async () => {
+        const authOptions = server.app.get(ConfigService).authOptions;
+        const identityScopeService = server.app.get(IdentityScopeService);
+        await expect(identityScopeService.onApplicationBootstrap()).resolves.toBeUndefined();
+
+        authOptions.identityScopeStrategy = new GlobalIdentityScopeStrategy();
+        try {
+            await expect(identityScopeService.onApplicationBootstrap()).rejects.toThrow(
+                /does not match the identity scopes stored on Customers/,
+            );
+        } finally {
+            authOptions.identityScopeStrategy = new ChannelIdentityScopeStrategy();
+        }
+    });
+
+    it('refuses a Channel update that would move its Customers to another scope', async () => {
+        const authOptions = server.app.get(ConfigService).authOptions;
+        // A strategy that reads an editable value, as a custom field based one would.
+        const codeBased: IdentityScopeStrategy = {
+            getIdentityScope: (channel: Channel) =>
+                channel.code === 'renamed-brand-a' ? 'renamed' : `channel:${channel.id}`,
+        };
+        authOptions.identityScopeStrategy = codeBased;
+        try {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await expect(
+                adminClient.query(updateChannelDocument, {
+                    input: { id: channelIds[BRAND_A.code], code: 'renamed-brand-a' },
+                }),
+            ).rejects.toThrow(/would move the Channel from identity scope/);
+        } finally {
+            authOptions.identityScopeStrategy = new ChannelIdentityScopeStrategy();
+        }
     });
 
     function idOf(brand: { code: string }) {

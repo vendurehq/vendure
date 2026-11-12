@@ -3,4 +3,6 @@ type Customer implements Node {
     history(options: HistoryEntryListOptions): HistoryEntryList!
     "The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0"
     identityScope: String!
+    "The Channels in this Customer's identity scope, that is, the storefronts this Customer belongs to. Only Channels the active administrator has permissions on are listed. Since 4.0.0"
+    identityScopeChannels: [Channel!]!
 }

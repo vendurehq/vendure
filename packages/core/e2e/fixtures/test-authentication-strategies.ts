@@ -101,7 +101,7 @@ export class TestSSOStrategyAdmin implements AuthenticationStrategy<{ email: str
 
     async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
         const { email } = data;
-        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        const user = await this.externalAuthenticationService.findAdministratorUser(ctx, this.name, email);
         if (user) {
             return user;
         }
@@ -156,7 +156,7 @@ export class TestSSOStrategyAdminAvatarSync implements AuthenticationStrategy<{
         data: { email: string; avatarFilename: string },
     ): Promise<User | false | string> {
         const { email, avatarFilename } = data;
-        let user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        let user = await this.externalAuthenticationService.findAdministratorUser(ctx, this.name, email);
         if (!user) {
             const superAdminRole = await this.roleService.getSuperAdminRole();
             user = await this.externalAuthenticationService.createAdministratorAndUser(ctx, {
@@ -205,7 +205,7 @@ export class TestSSOStrategyShopOnlyAdmin implements AuthenticationStrategy<{ em
 
     async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
         const { email } = data;
-        const user = await this.externalAuthenticationService.findCustomerUser(ctx, this.name, email, false);
+        const user = await this.externalAuthenticationService.findAdministratorUser(ctx, this.name, email);
         if (user) {
             return user;
         }
@@ -249,6 +249,7 @@ export class TestSSOStrategyRoleOnly implements AuthenticationStrategy<{ email: 
 
     async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
         const { email } = data;
+        // A User with neither an Administrator nor a Customer, which only the generic lookup finds.
         const existing = await this.externalAuthenticationService.findUser(ctx, this.name, email);
         if (existing) {
             return existing;
@@ -263,15 +264,13 @@ export class TestSSOStrategyRoleOnly implements AuthenticationStrategy<{ email: 
         const defaultChannel = await this.connection
             .getRepository(ctx, Channel)
             .findOneOrFail({ where: { code: DEFAULT_CHANNEL_CODE } });
-        await this.connection
-            .getRepository(ctx, RoleAssignment)
-            .save(
-                new RoleAssignment({
-                    userId: user.id,
-                    roleId: superAdminRole.id,
-                    channelId: defaultChannel.id,
-                }),
-            );
+        await this.connection.getRepository(ctx, RoleAssignment).save(
+            new RoleAssignment({
+                userId: user.id,
+                roleId: superAdminRole.id,
+                channelId: defaultChannel.id,
+            }),
+        );
         return user;
     }
 }
@@ -294,7 +293,7 @@ export class TestSSOStrategyShop implements AuthenticationStrategy<{ email: stri
 
     async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
         const { email } = data;
-        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        const user = await this.externalAuthenticationService.findCustomerUser(ctx, this.name, email, false);
         if (user) {
             return user;
         }
@@ -376,7 +375,7 @@ export class TestUnverifiedEmailStrategy implements AuthenticationStrategy<{ ema
 
     async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
         const { email } = data;
-        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        const user = await this.externalAuthenticationService.findCustomerUser(ctx, this.name, email, false);
         if (user) {
             return user;
         }
