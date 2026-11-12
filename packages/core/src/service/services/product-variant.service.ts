@@ -53,6 +53,7 @@ import { EventBus } from '../../event-bus/event-bus';
 import { ProductVariantChannelEvent } from '../../event-bus/events/product-variant-channel-event';
 import { ProductVariantEvent } from '../../event-bus/events/product-variant-event';
 import { ProductVariantPriceEvent } from '../../event-bus/events/product-variant-price-event';
+import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channel-enabled-checker';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
@@ -116,6 +117,7 @@ export class ProductVariantService {
         private translator: TranslatorService,
         private slugValidator: SlugValidator,
         private buyerIdentityService: BuyerIdentityService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async findAll(
@@ -140,6 +142,8 @@ export class ProductVariantService {
                 where: { deletedAt: IsNull() },
                 ctx,
                 customPropertyMap,
+                // For the Admin API `enabledInChannel` field of each item
+                loadChannelAssignment: ctx.apiType === 'admin',
             })
             .getManyAndCount()
             .then(async ([variants, totalItems]) => {
@@ -210,9 +214,6 @@ export class ProductVariantService {
                 where: { deletedAt: IsNull() },
                 ctx,
             })
-            .innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
-                channelId: ctx.channelId,
-            })
             // Not selected: the join is only here to constrain the query to one Product. Selecting
             // it would populate `productvariant.product` with a Product carrying none of its own
             // relations, which then takes precedence over the fully-loaded one when `product` is
@@ -222,7 +223,12 @@ export class ProductVariantService {
             });
 
         if (ctx.apiType === 'shop') {
-            qb.andWhere('productvariant.enabled = :enabled', { enabled: true });
+            // Also restricts the query to the active Channel
+            this.channelEnabledChecker.applyToQuery(ctx, qb, ProductVariant);
+        } else {
+            qb.innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
+                channelId: ctx.channelId,
+            });
         }
 
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
@@ -244,10 +250,13 @@ export class ProductVariantService {
         options: ListQueryOptions<ProductVariant>,
         relations: RelationPaths<ProductVariant> = [],
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
+        const isShop = ctx.apiType === 'shop';
         const qb = this.listQueryBuilder
             .build(ProductVariant, options, {
                 relations: unique([...relations, 'taxCategory']),
-                channelId: ctx.channelId,
+                // In the Shop API, the per-channel enabled check below restricts the query to the
+                // active Channel, so the ListQueryBuilder does not need to join it as well
+                channelId: isShop ? undefined : ctx.channelId,
                 ctx,
             })
             .leftJoin('productvariant.collections', 'collection')
@@ -256,8 +265,10 @@ export class ProductVariantService {
             .andWhere('productvariant.deletedAt IS NULL')
             .andWhere('collection.id = :collectionId', { collectionId });
 
-        if (options && options.filter && options.filter.enabled && options.filter.enabled.eq === true) {
-            qb.andWhere('product.enabled = :enabled', { enabled: true });
+        if (isShop) {
+            // Both the Product and the variant must be available in the active Channel
+            this.channelEnabledChecker.applyToQuery(ctx, qb, Product, 'product');
+            this.channelEnabledChecker.applyToQuery(ctx, qb, ProductVariant);
         }
 
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
@@ -507,6 +518,12 @@ export class ProductVariantService {
         });
         await this.customFieldRelationService.updateRelations(ctx, ProductVariant, input, createdVariant);
         await this.assetService.updateEntityAssets(ctx, createdVariant, input);
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            ProductVariant,
+            createdVariant.id,
+            input,
+        );
         if (input.stockOnHand != null || input.stockLevels) {
             await this.stockMovementService.adjustProductVariantStock(
                 ctx,
@@ -624,6 +641,12 @@ export class ProductVariantService {
             },
         });
         await this.customFieldRelationService.updateRelations(ctx, ProductVariant, input, updatedVariant);
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            ProductVariant,
+            updatedVariant.id,
+            input,
+        );
         if (input.price != null) {
             await this.createOrUpdateProductVariantPrice(ctx, input.id, input.price, ctx.channelId);
         }
@@ -1079,6 +1102,15 @@ export class ProductVariantService {
             }
             assignedVariantIds.push(variant.id);
         }
+        // One update for all variants, after assignToChannels() has copied the data of the existing
+        // assignments, so that an explicit `enabledInChannel` wins
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            ProductVariant,
+            assignedVariantIds,
+            input,
+            input.channelId,
+        );
         // Also assign the variants' options and their groups, matching
         // ProductService.assignProductsToChannel(). Otherwise `ProductOption.group`
         // cannot be resolved in the target channel. Variants of one product share

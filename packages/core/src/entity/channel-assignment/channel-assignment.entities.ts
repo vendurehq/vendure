@@ -1,4 +1,5 @@
 import { ID } from '@vendure/common/lib/shared-types';
+import { Column } from 'typeorm';
 
 import { ApiKey } from '../api-key/api-key.entity';
 import { Asset } from '../asset/asset.entity';
@@ -175,6 +176,17 @@ export class PaymentMethodChannel extends ChannelAssignment {
 export class ProductChannel extends ChannelAssignment {
     productId: ID;
     product: Product;
+
+    /**
+     * @description
+     * Whether the Product is enabled in this Channel. It is available in the Channel only if it is
+     * also enabled globally (`Product.enabled`): see {@link isEnabledInChannel}.
+     *
+     * @default true
+     * @since 4.0.0
+     */
+    @Column({ default: true })
+    enabled: boolean;
 }
 
 /**
@@ -226,6 +238,17 @@ export class ProductOptionGroupChannel extends ChannelAssignment {
 export class ProductVariantChannel extends ChannelAssignment {
     productVariantId: ID;
     productVariant: ProductVariant;
+
+    /**
+     * @description
+     * Whether the ProductVariant is enabled in this Channel. It is available in the Channel only if it is
+     * also enabled globally (`ProductVariant.enabled`): see {@link isEnabledInChannel}.
+     *
+     * @default true
+     * @since 4.0.0
+     */
+    @Column({ default: true })
+    enabled: boolean;
 }
 
 /**

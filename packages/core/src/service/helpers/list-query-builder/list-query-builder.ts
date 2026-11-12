@@ -27,7 +27,10 @@ import { TransactionalConnection } from '../../../connection';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
-import { ChannelAssignmentService } from '../channel-assignment/channel-assignment.service';
+import {
+    ChannelAssignmentService,
+    LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
+} from '../channel-assignment/channel-assignment.service';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
 import { resolveCalculatedColumnJoin } from './calculated-column-join';
@@ -42,6 +45,20 @@ import { createSqliteRegexpFunction } from './sqlite-regexp-function';
  * Using a module-level counter ensures uniqueness across all queries in a session.
  */
 let existsSubqueryCounter = 0;
+
+/**
+ * The alias of the channel assignment row joined when a list is scoped to a Channel.
+ */
+const CHANNEL_ASSIGNMENT_ALIAS = 'lqb__channelAssignment';
+
+interface ChannelAssignmentJoin {
+    /** The channel assignment entity, e.g. `ProductChannel` */
+    target: Type<any>;
+    /** The property holding the owning entity's id, e.g. `productId` */
+    ownerColumn: string;
+    /** The per-channel properties used by the filter or sort, mapped to their property paths */
+    columns: Map<string, string>;
+}
 
 /**
  * @description
@@ -135,6 +152,17 @@ export type ExtendedListQueryOptions<T extends VendureEntity> = {
      * @default false
      */
     ignoreQueryLimits?: boolean;
+    /**
+     * @description
+     * When the list is scoped to a Channel (`channelId`) and the entity has a channel assignment
+     * entity (see {@link ChannelAssignment}), loads the assignment row of that Channel onto each
+     * entity. {@link ChannelAssignmentService}`.getAssignment()` then returns it without a further
+     * query, e.g. for a field resolver of per-channel data on each item of the list.
+     *
+     * @since 4.0.0
+     * @default false
+     */
+    loadChannelAssignment?: boolean;
 };
 
 /**
@@ -307,7 +335,9 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             ? this.getChannelAssignmentJoin(qb, entity, options, providedCustomPropertyMap)
             : undefined;
         const customPropertyMap =
-            channelAssignmentJoin && !providedCustomPropertyMap ? {} : providedCustomPropertyMap;
+            channelAssignmentJoin?.columns.size && !providedCustomPropertyMap
+                ? {}
+                : providedCustomPropertyMap;
         // Store the original customPropertyMap before normalization for EXISTS subquery generation.
         // This is needed because normalizeCustomPropertyMap mutates customPropertyMap, but
         // parseFilterParams needs the original paths to detect *-to-Many relations.
@@ -319,7 +349,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             // Columns of the channel assignment row (e.g. `ProductChannel.enabled`) resolve against
             // the row of the active Channel, joined below.
             for (const [property, columnPath] of channelAssignmentJoin.columns) {
-                customPropertyMap[property] = `lqb__channelAssignment.${columnPath}`;
+                customPropertyMap[property] = `${CHANNEL_ASSIGNMENT_ALIAS}.${columnPath}`;
             }
         }
 
@@ -361,20 +391,13 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         }
 
         if (extendedOptions.channelId) {
-            qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
-                channelId: extendedOptions.channelId,
-            });
-            if (channelAssignmentJoin) {
-                const { target, ownerColumn } = channelAssignmentJoin;
-                // Selected, so that sorting on its columns works with pagination (TypeORM orders the
-                // distinct-id subquery by selected columns only), as for the other custom properties.
-                qb.innerJoinAndSelect(
-                    target,
-                    'lqb__channelAssignment',
-                    `lqb__channelAssignment.${ownerColumn} = ${qb.alias}.id AND lqb__channelAssignment.channelId = :channelId`,
-                    { channelId: extendedOptions.channelId },
-                );
-            }
+            this.joinChannel(
+                qb,
+                extendedOptions.channelId,
+                channelAssignmentJoin,
+                sortParams,
+                extendedOptions.loadChannelAssignment ?? false,
+            );
         }
 
         qb.orderBy(sort);
@@ -688,8 +711,8 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * current `filter` or `sort` uses.
      *
      * Channel scoping does not need a relation here, because `build()` applies it with a
-     * dedicated `lqb__channel` join. Adding `channels` joins the Channel table a second time,
-     * and on a tree entity that second join selects its rows, repeating every row of the page
+     * dedicated join (see `joinChannel()`). Adding `channels` joins the Channels a second time,
+     * and on a tree entity that second join selects their rows, repeating every row of the page
      * once per Channel. `collection.e2e-spec.ts` asserts that it does not.
      */
     private getMinimumRequiredRelations<T extends VendureEntity>(
@@ -741,19 +764,67 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     }
 
     /**
+     * Restricts the query to entities assigned to the given Channel.
+     *
+     * If the entity has a channel assignment entity (see `ChannelAssignment`), this is a single
+     * join on its row of that Channel, which filters and sorts on per-channel columns reuse. A
+     * join on the `channels` relation would read the same junction table a second time, and also
+     * join the Channel table. Otherwise, the `channels` relation is joined.
+     */
+    private joinChannel(
+        qb: SelectQueryBuilder<any>,
+        channelId: ID,
+        channelAssignmentJoin: ChannelAssignmentJoin | undefined,
+        sortParams: Record<string, unknown>,
+        loadChannelAssignment: boolean,
+    ) {
+        if (!channelAssignmentJoin) {
+            qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
+                channelId,
+            });
+            return;
+        }
+        const { target, ownerColumn, columns } = channelAssignmentJoin;
+        const condition =
+            `${CHANNEL_ASSIGNMENT_ALIAS}.${ownerColumn} = ${qb.alias}.id ` +
+            `AND ${CHANNEL_ASSIGNMENT_ALIAS}.channelId = :channelId`;
+        if (loadChannelAssignment) {
+            qb.innerJoinAndMapOne(
+                `${qb.alias}.${LOADED_CHANNEL_ASSIGNMENT_PROPERTY}`,
+                target,
+                CHANNEL_ASSIGNMENT_ALIAS,
+                condition,
+                { channelId },
+            );
+            return;
+        }
+        // Otherwise selected only when sorting on one of its columns: TypeORM orders the
+        // distinct-id subquery of a paginated query by selected columns only.
+        const sortsOnAssignment = Array.from(columns.keys()).some(property => sortParams[property]);
+        if (sortsOnAssignment) {
+            qb.innerJoinAndSelect(target, CHANNEL_ASSIGNMENT_ALIAS, condition, { channelId });
+        } else {
+            qb.innerJoin(target, CHANNEL_ASSIGNMENT_ALIAS, condition, { channelId });
+        }
+    }
+
+    /**
      * ChannelAware entities have their `channels` junction table owned by a channel assignment entity
      * (see `ChannelAssignment`), which can hold per-channel data columns. When the list is scoped to a
-     * Channel and a filter or sort uses such a column, it is resolved against the assignment row of
-     * that Channel. A column is exposed under its own name, or as `<name>InChannel` if the entity
-     * itself has a column of that name (e.g. `ProductChannel.enabled` → `enabledInChannel`, since
-     * `Product.enabled` is the global value).
+     * Channel, it is joined on the assignment row of that Channel (see `joinChannel()`), and a filter
+     * or sort on such a column is resolved against that row. A column is exposed under its own name,
+     * or as `<name>InChannel` if the entity itself has a column of that name (e.g.
+     * `ProductChannel.enabled` → `enabledInChannel`, since `Product.enabled` is the global value).
+     *
+     * Returns `undefined` if the entity has no channel assignment entity. `columns` maps the
+     * per-channel properties used by the filter or sort to their property paths.
      */
     private getChannelAssignmentJoin<T extends VendureEntity>(
         qb: SelectQueryBuilder<any>,
         entity: Type<T>,
         options: ListQueryOptions<T>,
         providedCustomPropertyMap?: { [name: string]: string },
-    ): { target: Type<any>; ownerColumn: string; columns: Map<string, string> } | undefined {
+    ): ChannelAssignmentJoin | undefined {
         const assignment = this.channelAssignmentService.getMetadata(entity);
         if (!assignment) {
             return;
@@ -782,9 +853,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 columns.set(property, column.propertyPath);
             }
         }
-        return columns.size
-            ? { target: assignment.target, ownerColumn: assignment.entityIdProperty, columns }
-            : undefined;
+        return { target: assignment.target, ownerColumn: assignment.entityIdProperty, columns };
     }
 
     /**

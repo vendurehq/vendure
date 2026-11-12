@@ -3481,11 +3481,11 @@ type PriceRange {
   typeName="Product"
   typeLinks={{
     Channel: '/reference/graphql-api/admin/object-types#channel',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
     String: '/reference/graphql-api/admin/object-types#string',
-    Boolean: '/reference/graphql-api/admin/object-types#boolean',
     Asset: '/reference/graphql-api/admin/object-types#asset',
     ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
     ProductVariantList: '/reference/graphql-api/admin/object-types#productvariantlist',
@@ -3499,6 +3499,11 @@ type PriceRange {
 >
 {`type Product {
   channels: [Channel!]!
+  """
+  Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+  also enabled globally (\`enabled\`).
+  """
+  enabledInChannel: Boolean!
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -3789,6 +3794,11 @@ type PriceRange {
 >
 {`type ProductVariant {
   enabled: Boolean!
+  """
+  Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+  also enabled globally (\`enabled\`).
+  """
+  enabledInChannel: Boolean!
   trackInventory: GlobalFlag!
   stockOnHand: Int!
   stockAllocated: Int!

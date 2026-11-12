@@ -96,12 +96,13 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Product } from '../../entity/product/product.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
 import { Refund } from '../../entity/refund/refund.entity';
 import { Session } from '../../entity/session/session.entity';
@@ -117,6 +118,7 @@ import { OrderLineEvent } from '../../event-bus/events/order-line-event';
 import { OrderStateTransitionEvent } from '../../event-bus/events/order-state-transition-event';
 import { RefundEvent } from '../../event-bus/events/refund-event';
 import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-transition-event';
+import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channel-enabled-checker';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { FulfillmentState } from '../helpers/fulfillment-state-machine/fulfillment-state';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
@@ -184,6 +186,7 @@ export class OrderService implements OnApplicationBootstrap {
         private requestCache: RequestContextCacheService,
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     /** @internal */
@@ -726,12 +729,17 @@ export class OrderService implements OnApplicationBootstrap {
             const variant = await this.connection.getEntityOrThrow(ctx, ProductVariant, productVariantId, {
                 relations: ['product'],
                 where: {
-                    enabled: true,
                     deletedAt: IsNull(),
                 },
                 loadEagerRelations: false,
+                channelId: ctx.channelId,
             });
-            if (variant.product.enabled === false) {
+            // The variant and its Product must be available in the active Channel
+            const [variantEnabled, productEnabled] = await Promise.all([
+                this.channelEnabledChecker.isEnabled(ctx, ProductVariant, variant),
+                this.channelEnabledChecker.isEnabled(ctx, Product, variant.product),
+            ]);
+            if (!variantEnabled || !productEnabled) {
                 throw new EntityNotFoundError('ProductVariant', productVariantId);
             }
             const existingQuantityInOtherLines = summate(
