@@ -2917,7 +2917,8 @@ export type ProductVariant = Node & {
    * active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
    * price of the Channel, this is the price that the default cart pricing starts from. No Order
    * is needed. It is `null` when the strategy gives no price for this buyer, for example for a
-   * price on request.
+   * price on request. It is also `null` when the variant or its Product is not available in the
+   * active Channel, for example for the variant of an OrderLine that was disabled later.
    *
    * When OrderLine custom fields are defined, the field also has a `customFields` argument, with
    * the same input type as `addItemToOrder`. To get the same price as the cart, pass the same

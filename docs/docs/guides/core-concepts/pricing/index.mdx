@@ -26,7 +26,7 @@ The result of this pipeline is exposed in the GraphQL API as a pair of fields on
 Vendure uses the strategy in two places:
 
 - In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order. When the customer of an active order or a draft order changes, Vendure calculates the price of each line again.
-- In the Shop API, the `ProductVariant.buyerPrice` field calls it for the active customer.
+- In the Shop API, the `ProductVariant.buyerPrice` field calls it for the active customer. If the variant or its product is not available in the active channel, the field gives `null` and the strategy does not run. This can occur for the variant of an order line that was disabled after it was added.
 
 ```graphql
 query {

@@ -877,7 +877,9 @@ export class ProductVariantService {
      * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}
      * with the Buyer of the active User, from the {@link BuyerIdentityService}.
      *
-     * Returns `undefined` if the strategy gives no price for this buyer. The result has the `metadata`
+     * Returns `undefined` if the variant or its Product is not available in the active Channel (see
+     * {@link ChannelEnabledChecker}). Then the strategy does not run. It also returns `undefined` if
+     * the strategy gives no price for this buyer. The result has the `metadata`
      * of the strategy result. It is not a field of the GraphQL `BuyerPrice` type, but a field resolver
      * of a plugin can read it from the parent object.
      *
@@ -897,6 +899,9 @@ export class ProductVariantService {
     ): Promise<BuyerPriceResult | undefined> {
         if (!Number.isInteger(quantity) || quantity < 1) {
             throw new UserInputError('error.buyer-price-quantity-must-be-positive');
+        }
+        if (!(await this.isAvailableInActiveChannel(ctx, variant))) {
+            return undefined;
         }
         const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
         const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
@@ -958,6 +963,31 @@ export class ProductVariantService {
             });
         }
         return result;
+    }
+
+    /**
+     * The variant and its Product must be available in the active Channel, as for `addItemToOrder`.
+     * The Product check runs once for each Product and request.
+     */
+    private async isAvailableInActiveChannel(ctx: RequestContext, variant: ProductVariant): Promise<boolean> {
+        const [variantEnabled, productEnabled] = await Promise.all([
+            this.channelEnabledChecker.isEnabled(ctx, ProductVariant, variant),
+            this.requestCache.get(
+                ctx,
+                `ProductVariantService.productEnabled(${variant.productId})`,
+                async () => {
+                    const product =
+                        variant.product ??
+                        (await this.connection.getRepository(ctx, Product).findOne({
+                            where: { id: variant.productId },
+                            select: { id: true, enabled: true },
+                            loadEagerRelations: false,
+                        }));
+                    return !!product && this.channelEnabledChecker.isEnabled(ctx, Product, product);
+                },
+            ),
+        ]);
+        return variantEnabled && productEnabled;
     }
 
     /**

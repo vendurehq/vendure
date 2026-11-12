@@ -7,7 +7,12 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { graphql } from './graphql/graphql-shop';
-import { getCustomerListDocument } from './graphql/shared-definitions';
+import {
+    getCustomerListDocument,
+    updateProductDocument,
+    updateProductVariantsDocument,
+} from './graphql/shared-definitions';
+import { addItemToOrderDocument } from './graphql/shop-definitions';
 
 const getVariantPricesDocument = graphql(`
     query GetVariantBuyerPricesDefault($id: ID!, $quantity: Int) {
@@ -32,6 +37,21 @@ const getVariantChannelPricesDocument = graphql(`
                 id
                 price
                 priceWithTax
+            }
+        }
+    }
+`);
+
+const getActiveOrderBuyerPricesDocument = graphql(`
+    query GetActiveOrderBuyerPricesDefault {
+        activeOrder {
+            lines {
+                productVariant {
+                    id
+                    buyerPrice {
+                        price
+                    }
+                }
             }
         }
     }
@@ -101,20 +121,68 @@ describe('ProductVariant.buyerPrice with the default ProductVariantBuyerPriceStr
         return sqlQueryCount;
     }
 
-    it('runs no extra SQL query, for a guest and for a logged-in customer', async () => {
+    // The check that the variant and its Product are available in the Channel adds a fixed number of
+    // queries for each request, not a number for each variant
+    it('runs the same number of extra SQL queries for each product, for a guest and for a logged-in customer', async () => {
         for (const login of [false, true]) {
             if (login) {
                 await shopClient.asUserWithCredentials(customerEmailAddress, 'test');
             }
-            const withoutField = await countQueries(() =>
-                shopClient.query(getVariantChannelPricesDocument, { id: 'T_1' }),
-            );
-            const withField = await countQueries(() =>
-                shopClient.query(getVariantPricesDocument, { id: 'T_1' }),
-            );
+            const extraQueries: number[] = [];
+            // The Product T_1 has 4 variants, and the Product T_2 has 2 variants
+            for (const id of ['T_1', 'T_2']) {
+                const withoutField = await countQueries(() =>
+                    shopClient.query(getVariantChannelPricesDocument, { id }),
+                );
+                const withField = await countQueries(() =>
+                    shopClient.query(getVariantPricesDocument, { id }),
+                );
+                expect(withoutField).toBeGreaterThan(0);
+                extraQueries.push(withField - withoutField);
+            }
 
-            expect(withoutField).toBeGreaterThan(0);
-            expect(withField).toBe(withoutField);
+            expect(extraQueries[0]).toBeLessThanOrEqual(3);
+            expect(extraQueries[1]).toBe(extraQueries[0]);
         }
+    });
+
+    describe('a variant that is not available in the Channel', () => {
+        async function getLineBuyerPrices() {
+            const { activeOrder } = await shopClient.query(getActiveOrderBuyerPricesDocument);
+            return Object.fromEntries(
+                activeOrder!.lines.map(line => [line.productVariant.id, line.productVariant.buyerPrice]),
+            );
+        }
+
+        beforeAll(async () => {
+            // T_1 is a variant of the Product T_1, and T_5 is a variant of the Product T_2
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_5', quantity: 1 });
+        });
+
+        it('has no buyer price when the variant is disabled in the Channel', async () => {
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: 'T_1', enabledInChannel: false }],
+            });
+
+            const prices = await getLineBuyerPrices();
+
+            expect(prices.T_1).toBeNull();
+            expect(prices.T_5).not.toBeNull();
+        });
+
+        it('has no buyer price when the Product is disabled in the Channel', async () => {
+            await adminClient.query(updateProductDocument, { input: { id: 'T_2', enabledInChannel: false } });
+
+            const prices = await getLineBuyerPrices();
+
+            expect(prices.T_5).toBeNull();
+        });
+
+        it('cannot be added to the Order', async () => {
+            await expect(
+                shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 }),
+            ).rejects.toThrow('No ProductVariant with the id');
+        });
     });
 });
