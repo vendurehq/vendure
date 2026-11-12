@@ -64,7 +64,7 @@ export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
 
 export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends CustomField> = Omit<
     C,
-    '__typename' | 'list' | 'requiresPermission'
+    '__typename' | 'list' | 'requiresPermission' | 'defaultValue'
 > & {
     type: T;
     /**

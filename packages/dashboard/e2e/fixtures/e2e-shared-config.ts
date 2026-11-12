@@ -51,6 +51,14 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Warranty Months' }],
         },
         {
+            name: 'warrantyCost',
+            type: 'int',
+            nullable: false,
+            defaultValue: 1250,
+            label: [{ languageCode: LanguageCode.en, value: 'Warranty Cost' }],
+            ui: { component: 'currency-form-input' },
+        },
+        {
             name: 'isDownloadable',
             type: 'boolean',
             label: [{ languageCode: LanguageCode.en, value: 'Downloadable' }],

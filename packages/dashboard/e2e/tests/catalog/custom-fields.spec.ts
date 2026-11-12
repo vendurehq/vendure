@@ -121,26 +121,30 @@ test.describe('Custom Fields', () => {
 
     // ─── Non-nullable field with a default ───────────────────────────────
 
-    // #5241 — an untouched non-nullable custom field must not block the create form
-    test('should create a product without touching a non-nullable custom field', async ({ page }) => {
+    // #5442 — a create form should show the configured default before saving.
+    test('should display and save the default for an untouched non-nullable custom field', async ({
+        page,
+    }) => {
         const dp = detailPage(page);
         await dp.gotoNew();
         await dp.expectNewPageLoaded();
 
         await dp.fillInput('Product name', 'Default Warranty Product');
         await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
-        await expect(dp.formItem('Warranty Months').getByRole('spinbutton')).toHaveValue('');
+        await expect(dp.formItem('Warranty Months').getByRole('spinbutton')).toHaveValue('12');
+        await expect(dp.formItem('Warranty Cost').getByRole('textbox')).toHaveValue('12.50');
         await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
 
         await dp.clickCreate();
         await dp.expectSuccessToast(/Successfully created product/);
         await dp.expectNavigatedToExisting();
 
-        // The empty field is omitted from the payload, so the column's SQL DEFAULT is what lands.
+        // The displayed default should match the value persisted by the server.
         await page.reload();
         await expect(dp.formItem('Warranty Months').getByRole('spinbutton')).toHaveValue('12', {
             timeout: 10_000,
         });
+        await expect(dp.formItem('Warranty Cost').getByRole('textbox')).toHaveValue('12.50');
     });
 
     // #5241 — the update form still requires a value for a non-nullable custom field
