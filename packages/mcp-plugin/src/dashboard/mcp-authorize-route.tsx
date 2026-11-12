@@ -265,7 +265,12 @@ function ConsentDetails({
             <Separator />
 
             <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{info.toolset}</Badge>
+                <Badge
+                    // @ts-expect-error `secondary` is not a Badge variant in @vendure-io/ui v2. Not changed here, so the rendering stays the same.
+                    variant="secondary"
+                >
+                    {info.toolset}
+                </Badge>
                 <span className="text-sm text-muted-foreground">{scope.grant}</span>
             </div>
             {info.toolset === 'admin' && activeChannel ? (

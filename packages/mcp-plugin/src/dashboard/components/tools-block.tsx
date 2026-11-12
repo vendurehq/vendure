@@ -55,7 +55,12 @@ function SafetyBadge({ behavior }: { behavior: McpTool['behavior'] }) {
     const { variant, label, explanation } = safetyPresentation(behavior);
     return (
         <TooltipButton tooltip={explanation} className="inline-flex h-auto p-0">
-            <Badge variant={variant}>{label}</Badge>
+            <Badge
+                // @ts-expect-error `safetyPresentation()` can return `secondary`, which is not a Badge variant in @vendure-io/ui v2.
+                variant={variant}
+            >
+                {label}
+            </Badge>
         </TooltipButton>
     );
 }

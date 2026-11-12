@@ -390,7 +390,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         const user = await server.app.get(UserService).getUserById(ctx, grant.actorId);
         const loserSession = await server.app
             .get(McpGrantSessionService)
-            .recreateGrantSession(ctx, staleGrantView, user);
+            .recreateGrantSession(ctx, staleGrantView, user as NonNullable<typeof user>);
 
         expect(await mcpSessionCount(ctx, grant.actorId)).toBe(countAfterWinner);
         expect(loserSession.token).toBe(sessionTokenOf(winner.ctx));
