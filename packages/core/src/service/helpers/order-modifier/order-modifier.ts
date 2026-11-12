@@ -864,6 +864,9 @@ export class OrderModifier {
             // of every property of an existing customFields object being null
             // or equal to the defaultValue
             for (const def of customFieldDefs) {
+                if (this.isServerSetCustomField(def)) {
+                    continue;
+                }
                 const key = def.name;
                 const existingValue = this.coerceValue(def, existingCustomFields);
                 if (existingValue != null && (!def.list || existingValue?.length !== 0)) {
@@ -899,6 +902,9 @@ export class OrderModifier {
             const key = def.name;
             const existingValue = this.coerceValue(def, existingCustomFields);
             if (def.type !== 'relation' && existingValue !== undefined) {
+                if (this.isServerSetCustomField(def) && inputCustomFields?.[key] === undefined) {
+                    continue;
+                }
                 const valuesMatch =
                     JSON.stringify(inputCustomFields?.[key]) === JSON.stringify(existingValue);
                 const undefinedMatchesNull = existingValue === null && inputCustomFields?.[key] === undefined;
@@ -926,6 +932,15 @@ export class OrderModifier {
             }
         }
         return true;
+    }
+
+    /**
+     * The API input cannot contain a readonly or an internal custom field. Only server-side code can set
+     * these fields, frequently after the OrderLine is created. When the input does not specify such a
+     * field, the field must not prevent a match with an existing OrderLine.
+     */
+    private isServerSetCustomField(def: CustomFieldConfig): boolean {
+        return def.readonly === true || def.internal === true;
     }
 
     /**
