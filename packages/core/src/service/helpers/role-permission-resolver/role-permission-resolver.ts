@@ -12,6 +12,7 @@ import { TransactionalConnection } from '../../../connection/transactional-conne
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Customer } from '../../../entity/customer/customer.entity';
 import { RoleAssignment } from '../../../entity/role-assignment/role-assignment.entity';
+import { IdentityScopeService } from '../identity-scope/identity-scope.service';
 
 /**
  * @description
@@ -76,6 +77,7 @@ export class RolePermissionResolver {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
+        private identityScopeService: IdentityScopeService,
     ) {}
 
     /**
@@ -122,6 +124,11 @@ export class RolePermissionResolver {
         });
         if (customer) {
             for (const channel of customer.channels) {
+                // Every Customer is joined to the default Channel for Admin API visibility. That
+                // membership grants nothing unless the Channel is in the Customer's identity scope.
+                if (!(await this.identityScopeService.isCustomerInChannelScope(customer, channel))) {
+                    continue;
+                }
                 addPermissions(channel, CUSTOMER_PERMISSIONS);
             }
         }

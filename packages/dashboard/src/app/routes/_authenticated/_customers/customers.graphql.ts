@@ -19,6 +19,10 @@ export const customerListDocument = graphql(`
                     id
                     verified
                 }
+                identityScopeChannels {
+                    id
+                    code
+                }
             }
             totalItems
         }
@@ -60,6 +64,10 @@ export const customerDetailDocument = graphql(
                 lastName
                 phoneNumber
                 emailAddress
+                identityScopeChannels {
+                    id
+                    code
+                }
                 groups {
                     id
                     name

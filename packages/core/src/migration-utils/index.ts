@@ -9,6 +9,12 @@ export {
     RescaleOrderLinePromotionAdjustmentsOptions,
     rescaleOrderLinePromotionAdjustments,
 } from './v3_8_orderline_promotion_rescale';
+export {
+    CustomerIdentityScopeMigrationOptions,
+    CustomerIdentityScopeMigrationResult,
+    CustomerSplit,
+    migrateCustomerIdentityScopes,
+} from './v4_0_customer_identity_scopes';
 export { migrateRoleAssignmentData, removeLegacyRoleData } from './v4_0_role_assignments';
 export {
     RoleAssignmentMigrationPreview,

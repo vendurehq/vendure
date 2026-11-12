@@ -2,9 +2,12 @@ import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { HistoryEntryListOptions, QueryOrdersArgs, SortOrder } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
+import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { Address } from '../../../entity/address/address.entity';
+import { Channel } from '../../../entity/channel/channel.entity';
 import { Customer } from '../../../entity/customer/customer.entity';
 import { Order } from '../../../entity/order/order.entity';
+import { IdentityScopeService } from '../../../service/helpers/identity-scope/identity-scope.service';
 import { CustomerService } from '../../../service/services/customer.service';
 import { HistoryService } from '../../../service/services/history.service';
 import { OrderService } from '../../../service/services/order.service';
@@ -65,7 +68,28 @@ export class CustomerAdminEntityResolver {
     constructor(
         private customerService: CustomerService,
         private historyService: HistoryService,
+        private identityScopeService: IdentityScopeService,
+        private requestContextCache: RequestContextCacheService,
     ) {}
+
+    @ResolveField()
+    async identityScopeChannels(
+        @Ctx() ctx: RequestContext,
+        @Parent() customer: Customer,
+    ): Promise<Channel[]> {
+        const channels = await this.requestContextCache.get(
+            ctx,
+            `CustomerAdminEntityResolver.identityScopeChannels.${customer.identityScope}`,
+            () => this.identityScopeService.getChannelsInScope(customer.identityScope),
+        );
+        // Channel names are not shown to administrators who hold no permissions on the Channel.
+        const user = ctx.session?.user;
+        if (user?.globalPermissions?.length) {
+            return channels;
+        }
+        const permitted = new Set((user?.channelPermissions ?? []).map(c => String(c.id)));
+        return channels.filter(channel => permitted.has(String(channel.id)));
+    }
 
     @ResolveField()
     groups(@Ctx() ctx: RequestContext, @Parent() customer: Customer) {

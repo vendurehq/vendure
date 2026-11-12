@@ -20,6 +20,7 @@ import { NoAssetPreviewStrategy } from './asset-preview-strategy/no-asset-previe
 import { NoAssetStorageStrategy } from './asset-storage-strategy/no-asset-storage-strategy';
 import { BcryptPasswordHashingStrategy } from './auth/bcrypt-password-hashing-strategy';
 import { DefaultCustomerChannelAssignmentStrategy } from './auth/default-customer-channel-assignment-strategy';
+import { GlobalIdentityScopeStrategy } from './auth/identity-scope-strategy';
 import { DefaultEntityAccessControlStrategy } from './auth/default-entity-access-control-strategy';
 import { DefaultPasswordValidationStrategy } from './auth/default-password-validation-strategy';
 import { DefaultVerificationTokenStrategy } from './auth/default-verification-token-strategy';
@@ -133,6 +134,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
         customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),
+        identityScopeStrategy: new GlobalIdentityScopeStrategy(),
     },
     catalogOptions: {
         collectionFilters: defaultCollectionFilters,

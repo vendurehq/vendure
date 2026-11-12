@@ -1575,6 +1575,10 @@ export type Customer = Node & {
   groups: Array<CustomerGroup>;
   history: HistoryEntryList;
   id: Scalars['ID']['output'];
+  /** The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0 */
+  identityScope: Scalars['String']['output'];
+  /** The Channels in this Customer's identity scope, that is, the storefronts this Customer belongs to. Only Channels the active administrator has permissions on are listed. Since 4.0.0 */
+  identityScopeChannels: Array<Channel>;
   lastName: Scalars['String']['output'];
   orders: OrderList;
   phoneNumber?: Maybe<Scalars['String']['output']>;
@@ -1600,6 +1604,8 @@ export type CustomerFilterParameter = {
   emailAddress?: InputMaybe<StringOperators>;
   firstName?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /** The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0 */
+  identityScope?: InputMaybe<StringOperators>;
   lastName?: InputMaybe<StringOperators>;
   phoneNumber?: InputMaybe<StringOperators>;
   postalCode?: InputMaybe<StringOperators>;
@@ -1681,6 +1687,8 @@ export type CustomerSortParameter = {
   emailAddress?: InputMaybe<SortOrder>;
   firstName?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0 */
+  identityScope?: InputMaybe<SortOrder>;
   lastName?: InputMaybe<SortOrder>;
   phoneNumber?: InputMaybe<SortOrder>;
   title?: InputMaybe<SortOrder>;
@@ -6668,6 +6676,8 @@ export type ServerConfig = {
    * which allows custom fields to be defined on user-supplies entities.
    */
   customFieldConfig: CustomFields;
+  /** Whether every Channel shares one customer base, as with the default GlobalIdentityScopeStrategy. Since 4.0.0 */
+  customerIdentityIsGlobal: Scalars['Boolean']['output'];
   entityCustomFields: Array<EntityCustomFields>;
   moneyStrategyPrecision: Scalars['Int']['output'];
   orderProcess: Array<OrderProcessState>;

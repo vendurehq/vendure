@@ -248,6 +248,11 @@ msgstr "Ha ez engedélyezve van, a termékkatalógusban megadott árak tartalmaz
 #~ msgid "Create variants for your product"
 #~ msgstr "Hozzon létre termékváltozatokat a termékéhez"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers.tsx
+msgid "Storefronts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
 msgstr "Piszkozat megrendelés befejezve"
@@ -5433,6 +5438,10 @@ msgstr "Csatorna hozzáadása"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to update product option group"
 #~ msgstr "Termékopció-csoport frissítése sikertelen"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

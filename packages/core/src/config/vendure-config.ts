@@ -19,6 +19,7 @@ import { AssetStorageStrategy } from './asset-storage-strategy/asset-storage-str
 import { AuthenticationStrategy } from './auth/authentication-strategy';
 import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assignment-strategy';
 import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
+import { IdentityScopeStrategy } from './auth/identity-scope-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
 import { VerificationTokenStrategy } from './auth/verification-token-strategy';
@@ -643,6 +644,15 @@ export interface AuthOptions {
      * @since 3.7.0
      */
     customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
+    /**
+     * @description
+     * Decides which Channels share one customer base. Within an identity scope an email address
+     * identifies one Customer. The default puts every Channel in one global scope.
+     *
+     * @default GlobalIdentityScopeStrategy
+     * @since 4.0.0
+     */
+    identityScopeStrategy?: IdentityScopeStrategy;
     /**
      * @description
      * When set to `true`, the `User.lastLogin` field is not updated when a user logs in.

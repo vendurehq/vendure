@@ -2,6 +2,8 @@ import { CustomerGroupChip } from '@/vdb/components/shared/customer-group-chip.j
 import { CustomerGroupSelector } from '@/vdb/components/shared/customer-group-selector.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
+import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
+import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -15,7 +17,7 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Label } from '@/vdb/components/ui/label.js';
-import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
+import { DEFAULT_CHANNEL_CODE, NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
@@ -31,6 +33,8 @@ import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-lo
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -84,6 +88,12 @@ function CustomerDetailPage() {
     const params = Route.useParams();
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
+    const customerIdentityIsGlobal = useServerConfig()?.customerIdentityIsGlobal ?? true;
+    const { activeChannel } = useChannel();
+    // With separate customer bases, a Customer belongs to the customer base of the Channel it is
+    // created on. Creating one on the default Channel is rarely what is meant.
+    const creatingInDefaultCustomerBase =
+        creatingNewEntity && !customerIdentityIsGlobal && activeChannel?.code === DEFAULT_CHANNEL_CODE;
     const { t } = useLingui();
     const queryClient = useQueryClient();
     const [newAddressOpen, setNewAddressOpen] = useState(false);
@@ -204,6 +214,16 @@ function CustomerDetailPage() {
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">
+                    {creatingInDefaultCustomerBase && (
+                        <Alert className="mb-4">
+                            <AlertDescription>
+                                <Trans>
+                                    This customer will belong to the default channel's customer base. To
+                                    create a customer for another storefront, switch to that channel first.
+                                </Trans>
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <DetailFormGrid>
                         <FormFieldWrapper
                             control={form.control}
@@ -317,6 +337,17 @@ function CustomerDetailPage() {
                         <PageBlock column="side" blockId="status" title={<Trans>Status</Trans>}>
                             <CustomerStatusBadge user={entity.user} />
                         </PageBlock>
+                        {!customerIdentityIsGlobal && (
+                            <PageBlock column="side" blockId="storefronts" title={<Trans>Storefronts</Trans>}>
+                                <div className="flex flex-wrap gap-1">
+                                    {entity.identityScopeChannels?.map(channel => (
+                                        <Badge variant="outline" key={channel.id}>
+                                            {channel.code}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </PageBlock>
+                        )}
                         <PageBlock column="side" blockId="groups" title={<Trans>Customer groups</Trans>}>
                             <div
                                 className={`flex flex-col gap-2 ${entity?.groups?.length > 0 ? 'mb-2' : ''}`}

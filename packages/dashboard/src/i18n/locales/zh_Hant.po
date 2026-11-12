@@ -248,6 +248,11 @@ msgstr "啟用後，商品目錄中輸入的價格將包含預設稅務區域的
 #~ msgid "Create variants for your product"
 #~ msgstr "為您的商品建立變體"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers.tsx
+msgid "Storefronts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
 msgstr "草稿訂單已完成"
@@ -5446,6 +5451,10 @@ msgstr "新增頻道"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to update product option group"
 #~ msgstr "更新商品選項群組失敗"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

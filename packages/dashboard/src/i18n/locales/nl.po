@@ -248,6 +248,11 @@ msgstr "Wanneer dit is ingeschakeld, worden de prijzen die in de productcatalogu
 #~ msgid "Create variants for your product"
 #~ msgstr "Maak varianten aan voor uw product"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers.tsx
+msgid "Storefronts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
 msgstr "Conceptbestelling voltooid"
@@ -5437,6 +5442,10 @@ msgstr "Kanaal toevoegen"
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to update product option group"
 #~ msgstr "Bijwerken van productoptiegroep mislukt"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

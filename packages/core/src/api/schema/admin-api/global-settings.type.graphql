@@ -25,4 +25,6 @@ type ServerConfig {
     permittedAssetTypes: [String!]!
     permissions: [PermissionDefinition!]!
     moneyStrategyPrecision: Int!
+    "Whether every Channel shares one customer base, as with the default GlobalIdentityScopeStrategy. Since 4.0.0"
+    customerIdentityIsGlobal: Boolean!
 }

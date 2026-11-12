@@ -7,6 +7,7 @@ import { ConfigService } from '../../../config/config.service';
 import { Customer } from '../../../entity/customer/customer.entity';
 import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
+import { IdentityScopeService } from '../identity-scope/identity-scope.service';
 
 /**
  * @description
@@ -20,6 +21,7 @@ export class CustomerChannelAssignmentService {
         private configService: ConfigService,
         private customerService: CustomerService,
         private channelService: ChannelService,
+        private identityScopeService: IdentityScopeService,
     ) {}
 
     /**
@@ -53,6 +55,12 @@ export class CustomerChannelAssignmentService {
         // No Customer record (e.g. an Administrator) means there is nothing to assign.
         const customer = await this.customerService.findOneByUserId(ctx, userId, false);
         if (!customer) {
+            return;
+        }
+        // A Customer never joins a Channel outside its identity scope, whatever the strategy
+        // says. On such a Channel the session is a guest, and the same email address may belong
+        // to a different Customer there. This applies to the default Channel too.
+        if (!(await this.identityScopeService.isCustomerInChannelScope(customer, ctx.channel))) {
             return;
         }
 

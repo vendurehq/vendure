@@ -4,13 +4,17 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { Request, Response } from 'express';
 import { GraphQLResolveInfo } from 'graphql';
 import ms, { type StringValue } from 'ms';
+import { IsNull } from 'typeorm';
 
 import { ForbiddenError } from '../../common/error/errors';
 import { API_KEY_AUTH_STRATEGY_NAME } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger, LogLevel } from '../../config/logger/vendure-logger';
 import { CachedSession } from '../../config/session-cache/session-cache-strategy';
+import { TransactionalConnection } from '../../connection/transactional-connection';
+import { Customer } from '../../entity/customer/customer.entity';
 import { CustomerChannelAssignmentService } from '../../service/helpers/customer-channel-assignment/customer-channel-assignment.service';
+import { IdentityScopeService } from '../../service/helpers/identity-scope/identity-scope.service';
 import { RequestContextService } from '../../service/helpers/request-context/request-context.service';
 import { ApiKeyService } from '../../service/services/api-key.service';
 import { SessionService } from '../../service/services/session.service';
@@ -44,6 +48,8 @@ export class AuthGuard implements CanActivate {
         private sessionService: SessionService,
         private customerChannelAssignmentService: CustomerChannelAssignmentService,
         private apiKeyService: ApiKeyService,
+        private identityScopeService: IdentityScopeService,
+        private connection: TransactionalConnection,
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -79,6 +85,18 @@ export class AuthGuard implements CanActivate {
                     info,
                     permissions,
                     updatedSession,
+                );
+            }
+            const sessionOutOfScope = await this.withoutOutOfScopeCustomer(
+                requestContext,
+                updatedSession ?? session,
+            );
+            if (sessionOutOfScope) {
+                requestContext = await this.requestContextService.fromRequest(
+                    req,
+                    info,
+                    permissions,
+                    sessionOutOfScope,
                 );
             }
             internal_setRequestContext(req, requestContext, context);
@@ -156,6 +174,37 @@ export class AuthGuard implements CanActivate {
             await this.customerChannelAssignmentService.tryAssignToActiveChannel(requestContext);
         }
         return this.sessionService.setActiveChannel(session, requestContext.channel);
+    }
+
+    /**
+     * A customer User's session is only logged in on Channels in its Customer's identity scope. On
+     * any other Channel the same email address may be a different Customer, so the session is
+     * treated as anonymous: it keeps its token and active order, but has no active User. Returns
+     * the anonymous view of the session, or undefined if the session may be used as it is.
+     */
+    private async withoutOutOfScopeCustomer(
+        requestContext: RequestContext,
+        session?: CachedSession,
+    ): Promise<CachedSession | undefined> {
+        if (!session?.user || requestContext.apiType === 'admin') {
+            return;
+        }
+        let customerScope = session.user.customerIdentityScope;
+        if (customerScope === undefined) {
+            // Cached before the field existed: look it up rather than let the session through.
+            const customer = await this.connection.rawConnection.getRepository(Customer).findOne({
+                where: { user: { id: session.user.id }, deletedAt: IsNull() },
+                select: { id: true, identityScope: true },
+            });
+            customerScope = customer?.identityScope ?? null;
+        }
+        if (customerScope === null) {
+            return;
+        }
+        if (customerScope === (await this.identityScopeService.getActiveScope(requestContext))) {
+            return;
+        }
+        return { ...session, user: undefined };
     }
 
     private async getSession(
