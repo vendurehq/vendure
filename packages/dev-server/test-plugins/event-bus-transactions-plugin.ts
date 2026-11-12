@@ -57,9 +57,9 @@ export class EventBusTransactionsPlugin implements OnModuleInit {
             Logger.info('Event handler started');
             const repository = this.connection.getRepository(event.ctx, Asset);
             await new Promise(resolve => setTimeout(resolve, 1000));
-            const asset = await repository.findOne(event.asset.id);
+            const asset = await repository.findOne(event.asset.id as any);
             Logger.info(`The asset name is ${asset?.name as string}`);
-            asset!.name = asset!.name + ' modified';
+            asset!.name = ((asset!.name as unknown as string) + ' modified') as any;
             await repository.save(asset!);
         });
     }
