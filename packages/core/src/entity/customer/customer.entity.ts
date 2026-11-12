@@ -2,6 +2,7 @@ import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne } from 'typeorm';
 
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
+import { GLOBAL_IDENTITY_SCOPE } from '../../config/auth/identity-scope-strategy';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Address } from '../address/address.entity';
 import { VendureEntity } from '../base/base.entity';
@@ -51,7 +52,7 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
      *
      * @since 4.0.0
      */
-    @Column({ length: 255, default: 'global' })
+    @Column({ length: 255, default: GLOBAL_IDENTITY_SCOPE })
     identityScope: string;
 
     @ManyToMany(type => CustomerGroup, group => group.customers)

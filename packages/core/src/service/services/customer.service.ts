@@ -28,7 +28,7 @@ import { IsNull, Not } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
-import { EntityNotFoundError, ForbiddenError, InternalServerError, UserInputError } from '../../common/error/errors';
+import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { EmailAddressConflictError as EmailAddressConflictAdminError } from '../../common/error/generated-graphql-admin-errors';
 import {
     EmailAddressConflictError,
@@ -38,6 +38,7 @@ import {
     PasswordResetTokenExpiredError,
     PasswordResetTokenInvalidError,
     PasswordValidationError,
+    VerificationTokenInvalidError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
@@ -63,8 +64,8 @@ import { IdentifierChangeRequestEvent } from '../../event-bus/events/identifier-
 import { PasswordResetEvent } from '../../event-bus/events/password-reset-event';
 import { PasswordResetVerifiedEvent } from '../../event-bus/events/password-reset-verified-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
-import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
+import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { addressToLine } from '../helpers/utils/address-to-line';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -155,6 +156,10 @@ export class CustomerService {
             .where('user.id = :userId', { userId })
             .andWhere('customer.deletedAt is null');
         if (filterOnChannel) {
+            if (ctx.channelId == null) {
+                // e.g. `RequestContext.empty()`: no Customer is a member of a Channel with no id.
+                return undefined;
+            }
             query = query.andWhere('channel.id = :channelId', { channelId: ctx.channelId });
             // Membership alone is not enough: every Customer is also joined to the default Channel
             // for Admin API visibility. A Customer only acts on a Channel in its own identity scope.
@@ -237,6 +242,9 @@ export class CustomerService {
             .leftJoin('customer.channels', 'channel')
             .where('channel.id = :channelId', { channelId: ctx.channelId })
             .andWhere('customer.emailAddress = :emailAddress', { emailAddress: input.emailAddress })
+            // Every Customer is joined to the default Channel, so membership alone would match
+            // Customers of other identity scopes there.
+            .andWhere('customer.identityScope = :identityScope', { identityScope })
             .andWhere('customer.deletedAt is null')
             .getOne();
 
@@ -335,6 +343,9 @@ export class CustomerService {
                     .andWhere('customer.emailAddress = :emailAddress', {
                         emailAddress: input.emailAddress,
                     })
+                    .andWhere('customer.identityScope = :identityScope', {
+                        identityScope: customer.identityScope,
+                    })
                     .andWhere('customer.id != :customerId', { customerId: input.id })
                     .andWhere('customer.deletedAt is null')
                     .getOne();
@@ -344,10 +355,13 @@ export class CustomerService {
                 }
 
                 if (customer.user) {
+                    // The conflict is checked in the Customer's own scope, which can differ from the
+                    // scope of the Channel the administrator is working on.
                     const existingUserWithEmailAddress = await this.userService.getUserByEmailAddress(
                         ctx,
                         input.emailAddress,
                         'customer',
+                        customer.identityScope,
                     );
 
                     if (
@@ -578,6 +592,9 @@ export class CustomerService {
         verificationToken: string,
         password?: string,
     ): Promise<ErrorResultUnion<VerifyCustomerAccountShopResult, Customer>> {
+        if (!(await this.tokenBelongsToActiveScope(ctx, 'verificationToken', verificationToken))) {
+            return new VerificationTokenInvalidError();
+        }
         const result = await this.userService.verifyUserByToken(ctx, verificationToken, password);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -585,11 +602,6 @@ export class CustomerService {
         const customer = await this.findOneByUserId(ctx, result.id, false);
         if (!customer) {
             throw new InternalServerError('error.cannot-locate-customer-for-user');
-        }
-        if (!(await this.identityScopeService.isCustomerInChannelScope(customer, ctx.channel))) {
-            // A token issued in another identity scope. Throwing rolls back the verification.
-            // A real implementation would check this before verifying and return an error result.
-            throw new ForbiddenError();
         }
         if (ctx.channelId) {
             await this.channelService.assignToChannels(ctx, Customer, customer.id, [ctx.channelId]);
@@ -637,6 +649,33 @@ export class CustomerService {
             await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
         }
         return assertFound(this.findOne(ctx, customer.id));
+    }
+
+    /**
+     * Whether a verification, password reset or identifier change token may be redeemed on the
+     * active Channel. A token belongs to the Customer of the User it was issued to, and may only be
+     * redeemed in that Customer's identity scope. Checked before the token is redeemed, so that a
+     * token from another scope changes nothing. An unknown token returns `true`, so that the normal
+     * flow reports it as invalid.
+     */
+    private async tokenBelongsToActiveScope(
+        ctx: RequestContext,
+        tokenColumn: 'verificationToken' | 'passwordResetToken' | 'identifierChangeToken',
+        token: string,
+    ): Promise<boolean> {
+        const customer = await this.connection
+            .getRepository(ctx, Customer)
+            .createQueryBuilder('customer')
+            .innerJoin('customer.user', 'user')
+            .innerJoin('user.authenticationMethods', 'authenticationMethod')
+            .where(`authenticationMethod.${tokenColumn} = :token`, { token })
+            .andWhere('customer.deletedAt IS NULL')
+            .select(['customer.id', 'customer.identityScope'])
+            .getOne();
+        if (!customer) {
+            return true;
+        }
+        return this.identityScopeService.isCustomerInChannelScope(customer, ctx.channel);
     }
 
     private async createVerifiedHistoryEntry(ctx: RequestContext, customerId: ID): Promise<void> {
@@ -691,13 +730,15 @@ export class CustomerService {
     ): Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
     > {
+        if (!(await this.tokenBelongsToActiveScope(ctx, 'passwordResetToken', passwordResetToken))) {
+            return new PasswordResetTokenInvalidError();
+        }
         const result = await this.userService.resetPasswordByToken(ctx, passwordResetToken, password);
         if (isGraphQlErrorResult(result)) {
             return result;
         }
         const customer = await this.findOneByUserId(ctx, result.id, false);
-        if (!customer || !(await this.identityScopeService.isCustomerInChannelScope(customer, ctx.channel))) {
-            // A token issued in another identity scope must not be redeemed here.
+        if (!customer) {
             throw new InternalServerError('error.cannot-locate-customer-for-user');
         }
         await this.historyService.createHistoryEntryForCustomer({
@@ -831,6 +872,9 @@ export class CustomerService {
         ctx: RequestContext,
         token: string,
     ): Promise<boolean | IdentifierChangeTokenInvalidError | IdentifierChangeTokenExpiredError> {
+        if (!(await this.tokenBelongsToActiveScope(ctx, 'identifierChangeToken', token))) {
+            return new IdentifierChangeTokenInvalidError();
+        }
         const result = await this.userService.changeIdentifierByToken(ctx, token);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -839,7 +883,9 @@ export class CustomerService {
         if (!user) {
             return false;
         }
-        const customer = await this.findOneByUserId(ctx, user.id);
+        // The scope was checked before the token was redeemed, so the Customer is found even if it
+        // has not joined the active Channel yet.
+        const customer = await this.findOneByUserId(ctx, user.id, false);
         if (!customer) {
             return false;
         }

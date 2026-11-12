@@ -8,10 +8,9 @@ import {
     EventBusModule,
     ExternalAuthenticationService,
     Injector,
-    RequestContext,
-    User,
     mergeConfig,
     PasswordResetEvent,
+    RequestContext,
     VendurePlugin,
 } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
@@ -29,13 +28,16 @@ import {
     createCustomerDocument,
     getCustomerListDocument,
     MeDocument,
+    updateCustomerDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
     getActiveCustomerDocument,
     registerAccountDocument,
     requestPasswordResetDocument,
+    resetPasswordDocument,
     setCustomerDocument,
+    updatePasswordDocument,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
@@ -226,7 +228,7 @@ describe('Customer identity scope (OSS-999)', () => {
         expect((result as any).errorCode).toBe('INVALID_CREDENTIALS_ERROR');
     });
 
-    it("a session from brand A does not authenticate on brand B", async () => {
+    it('a session from brand A does not authenticate on brand B', async () => {
         await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
         const { me } = await shopClient.query(MeDocument);
         expect(me?.identifier).toBe('alice@test.com');
@@ -335,5 +337,87 @@ describe('Customer identity scope (OSS-999)', () => {
         expect(requestPasswordReset).toEqual({ success: true });
         await new Promise(resolve => setTimeout(resolve, 300));
         expect(passwordResetEvents.length).toBe(1);
+    });
+    // Review of #5773: a session from another scope must be fully anonymous, not just lack permissions.
+    it('a brand A session can check out as a guest on brand B', async () => {
+        await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
+        shopClient.setChannelToken(BRAND_B.token);
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+            input: { emailAddress: 'jack@test.com', firstName: 'Jack', lastName: 'Guest' },
+        });
+        expect((setCustomerForOrder as any).errorCode).toBeUndefined();
+        expect((setCustomerForOrder as any).customer.emailAddress).toBe('jack@test.com');
+    });
+
+    it('a brand A session cannot change the brand A password from brand B', async () => {
+        await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
+        shopClient.setChannelToken(BRAND_B.token);
+        await assertThrowsWithMessage(
+            () => shopClient.query(updatePasswordDocument, { old: 'alice-a-pass', new: 'changed' }),
+            FORBIDDEN_MESSAGE,
+        )();
+        const result = await login(BRAND_A.token, 'alice@test.com', 'alice-a-pass');
+        expect((result as any).identifier).toBe('alice@test.com');
+    });
+
+    it('a password reset token from brand A is refused on brand B and changes nothing', async () => {
+        shopClient.setChannelToken(BRAND_A.token);
+        await shopClient.asAnonymousUser();
+        await shopClient.query(requestPasswordResetDocument, { identifier: 'frank@test.com' });
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const token = (
+            passwordResetEvents[0].user.authenticationMethods.find(m => 'passwordResetToken' in m) as any
+        ).passwordResetToken;
+        expect(token).toBeTruthy();
+
+        shopClient.setChannelToken(BRAND_B.token);
+        const { resetPassword: onB } = await shopClient.query(resetPasswordDocument, {
+            token,
+            password: 'frank-new',
+        });
+        expect((onB as any).errorCode).toBe('PASSWORD_RESET_TOKEN_INVALID_ERROR');
+        expect(((await login(BRAND_A.token, 'frank@test.com', 'frank-a-pass')) as any).identifier).toBe(
+            'frank@test.com',
+        );
+
+        shopClient.setChannelToken(BRAND_A.token);
+        await shopClient.asAnonymousUser();
+        const { resetPassword: onA } = await shopClient.query(resetPasswordDocument, {
+            token,
+            password: 'frank-new',
+        });
+        expect((onA as any).identifier).toBe('frank@test.com');
+    });
+
+    it('an admin on the default channel can give a brand B customer an email used only on brand A', async () => {
+        await register(BRAND_A.token, 'ivy@test.com', 'ivy-a-pass', 'IvyA');
+        await register(BRAND_B.token, 'henry@test.com', 'henry-b-pass', 'Henry');
+        const [henry] = await customersOn(BRAND_B.token, 'henry@test.com');
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { updateCustomer } = await adminClient.query(updateCustomerDocument, {
+            input: { id: henry.id, emailAddress: 'ivy@test.com' },
+        });
+        expect((updateCustomer as any).errorCode).toBeUndefined();
+        expect((updateCustomer as any).emailAddress).toBe('ivy@test.com');
+    });
+
+    it("an admin on the default channel cannot give a brand B customer another brand B user's email", async () => {
+        const [henry] = await customersOn(BRAND_B.token, 'ivy@test.com');
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { updateCustomer } = await adminClient.query(updateCustomerDocument, {
+            input: { id: henry.id, emailAddress: 'alice@test.com' },
+        });
+        expect((updateCustomer as any).errorCode).toBe('EMAIL_ADDRESS_CONFLICT_ERROR');
+    });
+
+    it('an admin on the default channel can create a customer whose email is used on the brands', async () => {
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { createCustomer } = await adminClient.query(createCustomerDocument, {
+            input: { emailAddress: 'ivy@test.com', firstName: 'IvyDefault', lastName: 'Test' },
+        });
+        expect((createCustomer as any).errorCode).toBeUndefined();
+        const all = await customersOn(E2E_DEFAULT_CHANNEL_TOKEN, 'ivy@test.com');
+        expect(all.map(c => c.firstName).sort()).toEqual(['Henry', 'IvyA', 'IvyDefault']);
     });
 });

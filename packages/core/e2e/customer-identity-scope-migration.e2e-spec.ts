@@ -3,6 +3,7 @@ import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types'
 import {
     ChannelIdentityScopeStrategy,
     ConfigService,
+    Customer,
     migrateCustomerIdentityScopes,
     TransactionalConnection,
 } from '@vendure/core';
@@ -24,6 +25,7 @@ import {
     addItemToOrderDocument,
     getActiveOrderDocument,
     registerAccountDocument,
+    requestPasswordResetDocument,
     setCustomerDocument,
 } from './graphql/shop-definitions';
 
@@ -43,12 +45,14 @@ describe('Customer identity scope migration (OSS-999)', () => {
     );
     const channelIds: Record<string, string> = {};
     let shared: { emailAddress: string };
+    let storefront: { emailAddress: string };
+    let defaultOnly: { emailAddress: string };
 
     beforeAll(async () => {
         await server.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
-            customerCount: 2,
+            customerCount: 3,
         });
         await adminClient.asSuperAdmin();
         for (const { code, token } of [BRAND_A, BRAND_B]) {
@@ -71,12 +75,22 @@ describe('Customer identity scope migration (OSS-999)', () => {
                 input: { channelId: createChannel.id, productIds: ['T_1'] },
             });
         }
-        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 1 } });
-        shared = customers.items[0];
+        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 3 } });
+        [shared, storefront, defaultOnly] = customers.items;
 
         // A registered Customer who shops on both brands (auto-joined on login) with an order on each.
         for (const brand of [BRAND_A, BRAND_B]) {
             await login(brand.token, shared.emailAddress, 'test');
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        }
+        // A pending password reset token on the shared Customer's User.
+        shopClient.setChannelToken(BRAND_A.token);
+        await shopClient.asAnonymousUser();
+        await shopClient.query(requestPasswordResetDocument, { identifier: shared.emailAddress });
+        // A Customer who uses the default Channel as a storefront (an order placed there only) and
+        // brand A.
+        for (const token of ['e2e-default-channel', BRAND_A.token]) {
+            await login(token, storefront.emailAddress, 'test');
             await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
         }
         // A guest on brand A only, and a registration on brand B only.
@@ -112,7 +126,7 @@ describe('Customer identity scope migration (OSS-999)', () => {
     async function customerRows() {
         return rawConnection().query(
             'SELECT "id", "emailAddress", "identityScope", "userId" FROM "customer" ORDER BY "id"',
-        ) as Promise<Array<{ id: number; emailAddress: string; identityScope: string; userId: number }>>;
+        );
     }
 
     it('the default migration only adds the column and index, and every Customer is global', async () => {
@@ -145,7 +159,7 @@ describe('Customer identity scope migration (OSS-999)', () => {
         await qr.release();
 
         const rows = await customerRows();
-        expect(rows.length).toBeGreaterThanOrEqual(4);
+        expect(rows.length).toBe(5);
         expect(new Set(rows.map(r => r.identityScope))).toEqual(new Set(['global']));
 
         // Nothing changes for users: the shared Customer still logs in on both brands.
@@ -158,14 +172,21 @@ describe('Customer identity scope migration (OSS-999)', () => {
     });
 
     it('opting into per-channel scopes assigns single-scope Customers and splits shared ones', async () => {
+        // A Customer created outside the CustomerService, with no Channel membership.
+        await rawConnection()
+            .getRepository(Customer)
+            .save(
+                new Customer({ emailAddress: 'no-channel@test.com', firstName: 'No', lastName: 'Channel' }),
+            );
         const qr = rawConnection().createQueryRunner();
         const result = await migrateCustomerIdentityScopes(qr, ch => `channel:${ch.id}`);
         await qr.release();
         // Switch the running server to the strategy the migration was written for.
         server.app.get(ConfigService).authOptions.identityScopeStrategy = new ChannelIdentityScopeStrategy();
 
-        expect(result.split).toBe(1);
-        expect(result.copiesCreated).toBe(1);
+        expect(result.split).toBe(2);
+        expect(result.copiesCreated).toBe(2);
+        expect(result.withoutChannel).toBe(1);
 
         const rows = await customerRows();
         const byEmail = (e: string) => rows.filter(r => r.emailAddress === e);
@@ -176,11 +197,52 @@ describe('Customer identity scope migration (OSS-999)', () => {
         expect(sharedRows[0].userId).not.toBe(sharedRows[1].userId);
         expect(byEmail('guest-a@test.com')[0].identityScope).toBe(`channel:${idOf(BRAND_A)}`);
         expect(byEmail('only-b@test.com')[0].identityScope).toBe(`channel:${idOf(BRAND_B)}`);
-        // The second populated Customer only ever used the default Channel.
-        const defaultOnly = rows.find(
-            r => ![shared.emailAddress, 'guest-a@test.com', 'only-b@test.com'].includes(r.emailAddress),
-        )!;
-        expect(defaultOnly.identityScope).toBe('channel:1');
+        expect(byEmail(defaultOnly.emailAddress)[0].identityScope).toBe('channel:1');
+        expect(byEmail('no-channel@test.com')[0].identityScope).toBe('channel:1');
+        // The default Channel counts as a storefront for a Customer who placed an order there.
+        expect(
+            byEmail(storefront.emailAddress)
+                .map(r => r.identityScope)
+                .sort(),
+        ).toEqual(['channel:1', `channel:${idOf(BRAND_A)}`].sort());
+    });
+
+    it('the split copies addresses and logins, but not pending tokens', async () => {
+        const rows = (await customerRows()).filter(r => r.emailAddress === shared.emailAddress);
+        const [original, copy] = rows;
+        const addressCount = async (customerId: number) =>
+            Number(
+                (
+                    await rawConnection().query(
+                        `SELECT COUNT(*) AS "n" FROM "address" WHERE "customerId" = ${customerId}`,
+                    )
+                )[0].n,
+            );
+        expect(await addressCount(original.id)).toBeGreaterThan(0);
+        expect(await addressCount(copy.id)).toBe(await addressCount(original.id));
+
+        const tokens = async (userId: number) =>
+            (
+                await rawConnection().query(
+                    `SELECT "passwordResetToken", "verificationToken", "identifierChangeToken" FROM "authentication_method" WHERE "userId" = ${userId}`,
+                )
+            )[0];
+        expect((await tokens(original.userId)).passwordResetToken).toBeTruthy();
+        expect(await tokens(copy.userId)).toEqual({
+            passwordResetToken: null,
+            verificationToken: null,
+            identifierChangeToken: null,
+        });
+    });
+
+    it('after the split, a Customer can still log in on the default storefront and brand A', async () => {
+        const onDefault = await login('e2e-default-channel', storefront.emailAddress, 'test');
+        const { activeOrder: orderDefault } = await shopClient.query(getActiveOrderDocument);
+        const onA = await login(BRAND_A.token, storefront.emailAddress, 'test');
+        expect(onDefault.identifier).toBe(storefront.emailAddress);
+        expect(onA.identifier).toBe(storefront.emailAddress);
+        expect(onDefault.id).not.toBe(onA.id);
+        expect(orderDefault?.lines.length).toBe(1);
     });
 
     it('after the split, the same password works on both brands and each sees its own order', async () => {
@@ -203,6 +265,17 @@ describe('Customer identity scope migration (OSS-999)', () => {
             options: { filter: { emailAddress: { eq: shared.emailAddress } } },
         });
         expect(customers.totalItems).toBe(2);
+    });
+
+    it('sessions are anonymous on a Channel outside their scope after the migration', async () => {
+        await login(BRAND_A.token, shared.emailAddress, 'test');
+        shopClient.setChannelToken(BRAND_B.token);
+        // The brand A session is a guest on brand B, so it can check out as one.
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+            input: { emailAddress: 'someone@test.com', firstName: 'Some', lastName: 'One' },
+        });
+        expect((setCustomerForOrder as any).errorCode).toBeUndefined();
     });
 
     function idOf(brand: { code: string }) {

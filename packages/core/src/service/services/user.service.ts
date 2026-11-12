@@ -24,8 +24,8 @@ import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { User } from '../../entity/user/user.entity';
-import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
+import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { VerificationTokenGenerator } from '../helpers/verification-token-generator/verification-token-generator';
 
 /**
@@ -58,10 +58,17 @@ export class UserService {
             .then(result => result ?? undefined);
     }
 
+    /**
+     * @description
+     * Finds a User by email address. Customer Users are looked up in an identity scope (see
+     * {@link IdentityScopeStrategy}): the scope of the active Channel unless `identityScope` is
+     * given. Administrator Users are not scoped.
+     */
     async getUserByEmailAddress(
         ctx: RequestContext,
         emailAddress: string,
         userType?: 'administrator' | 'customer',
+        identityScope?: string,
     ): Promise<User | undefined> {
         const entity = userType ?? (ctx.apiType === 'admin' ? 'administrator' : 'customer');
         const table = `${this.configService.dbConnectionOptions.entityPrefix ?? ''}${entity}`;
@@ -77,7 +84,7 @@ export class UserService {
             // Customer identity is scoped: the same email address can belong to a different
             // Customer (and User) in another identity scope. Administrators are not scoped.
             qb.andWhere(`${table}.identityScope = :identityScope`, {
-                identityScope: await this.identityScopeService.getActiveScope(ctx),
+                identityScope: identityScope ?? (await this.identityScopeService.getActiveScope(ctx)),
             });
         }
 

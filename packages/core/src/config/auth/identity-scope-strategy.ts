@@ -1,5 +1,5 @@
-import { InjectableStrategy } from '../../common/types/injectable-strategy';
-import { Channel } from '../../entity/channel/channel.entity';
+import type { InjectableStrategy } from '../../common/types/injectable-strategy';
+import type { Channel } from '../../entity/channel/channel.entity';
 
 /**
  * @description

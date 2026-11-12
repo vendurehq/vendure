@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
+import { SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { EntityNotFoundError, UnverifiedExternalEmailError } from '../../../common/error/errors';
@@ -45,9 +46,10 @@ export class ExternalAuthenticationService {
      * Looks up a User based on their identifier from an external authentication
      * provider, ensuring this User is associated with a Customer account.
      *
-     * By default, only customers in the currently-active Channel will be checked.
-     * By passing `false` as the `checkCurrentChannelOnly` argument, _all_ channels
-     * will be checked.
+     * The lookup is always limited to Customers in the identity scope of the active Channel (see
+     * {@link IdentityScopeStrategy}), because the same external identity can belong to a different
+     * Customer in each scope. By default the Customer must also be a member of the active Channel.
+     * Pass `false` as the `checkCurrentChannelOnly` argument to accept any Channel in the scope.
      */
     async findCustomerUser(
         ctx: RequestContext,
@@ -57,20 +59,13 @@ export class ExternalAuthenticationService {
     ): Promise<User | undefined> {
         // The same external identity can be linked to a different customer User in each identity
         // scope, so the lookup is limited to Users whose Customer is in the active scope.
-        const user = await this.connection
-            .getRepository(ctx, User)
-            .createQueryBuilder('user')
-            .leftJoinAndSelect('user.authenticationMethods', 'aums')
-            .innerJoin('user.authenticationMethods', 'authMethod')
-            .innerJoin(Customer, 'customer', 'customer.userId = user.id')
-            .andWhere('authMethod.externalIdentifier = :externalIdentifier', { externalIdentifier })
-            .andWhere('authMethod.strategy = :strategy', { strategy })
-            .andWhere('user.deletedAt IS NULL')
-            .andWhere('customer.deletedAt IS NULL')
-            .andWhere('customer.identityScope = :identityScope', {
-                identityScope: await this.identityScopeService.getActiveScope(ctx),
-            })
-            .getOne();
+        const identityScope = await this.identityScopeService.getActiveScope(ctx);
+        const user = await this.findUserByExternalIdentity(ctx, strategy, externalIdentifier, qb =>
+            qb
+                .innerJoin(Customer, 'customer', 'customer.userId = user.id')
+                .andWhere('customer.deletedAt IS NULL')
+                .andWhere('customer.identityScope = :identityScope', { identityScope }),
+        );
 
         if (user) {
             // Ensure this User is associated with a Customer
@@ -95,7 +90,13 @@ export class ExternalAuthenticationService {
         strategy: string,
         externalIdentifier: string,
     ): Promise<User | undefined> {
-        const user = await this.findUser(ctx, strategy, externalIdentifier);
+        // Joined on the Administrator so that a customer User linked to the same external identity
+        // is never returned instead.
+        const user = await this.findUserByExternalIdentity(ctx, strategy, externalIdentifier, qb =>
+            qb
+                .innerJoin(Administrator, 'administrator', 'administrator.userId = user.id')
+                .andWhere('administrator.deletedAt IS NULL'),
+        );
         if (user) {
             // Ensure this User is associated with an Administrator
             const administrator = await this.administratorService.findOneByUserId(ctx, user.id);
@@ -335,21 +336,39 @@ export class ExternalAuthenticationService {
         return this.administratorService.setAvatarWithoutVisibilityCheck(ctx, administrator.id, avatar);
     }
 
+    /**
+     * @description
+     * Looks up any User, customer or administrator, by an external identity.
+     *
+     * @deprecated Use {@link ExternalAuthenticationService.findCustomerUser} or
+     * {@link ExternalAuthenticationService.findAdministratorUser}. With a non-global
+     * {@link IdentityScopeStrategy} one external identity can be linked to a different customer User
+     * in each identity scope, and this method returns any one of them.
+     */
     async findUser(
         ctx: RequestContext,
         strategy: string,
         externalIdentifier: string,
     ): Promise<User | undefined> {
-        const user = await this.connection
+        return this.findUserByExternalIdentity(ctx, strategy, externalIdentifier, qb => qb);
+    }
+
+    private async findUserByExternalIdentity(
+        ctx: RequestContext,
+        strategy: string,
+        externalIdentifier: string,
+        restrict: (qb: SelectQueryBuilder<User>) => SelectQueryBuilder<User>,
+    ): Promise<User | undefined> {
+        const qb = this.connection
             .getRepository(ctx, User)
             .createQueryBuilder('user')
             .leftJoinAndSelect('user.authenticationMethods', 'aums')
-            .leftJoin('user.authenticationMethods', 'authMethod')
+            .innerJoin('user.authenticationMethods', 'authMethod')
             .andWhere('authMethod.externalIdentifier = :externalIdentifier', { externalIdentifier })
             .andWhere('authMethod.strategy = :strategy', { strategy })
-            .andWhere('user.deletedAt IS NULL')
-            .getOne();
-        return user || undefined;
+            .andWhere('user.deletedAt IS NULL');
+        const user = await restrict(qb).getOne();
+        return user ?? undefined;
     }
 
     private async findExistingCustomerUserByEmailAddress(ctx: RequestContext, emailAddress: string) {
@@ -405,7 +424,12 @@ export class ExternalAuthenticationService {
             externalIdentifier: string;
         },
     ): Promise<User> {
-        const user = await this.findUser(ctx, config.strategy, config.externalIdentifier);
+        const user = await this.findUserByExternalIdentity(
+            ctx,
+            config.strategy,
+            config.externalIdentifier,
+            qb => qb,
+        );
         if (user) {
             return user;
         }

@@ -3,7 +3,7 @@ import { ID } from '@vendure/common/lib/shared-types';
 import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
 import { filter } from 'rxjs/operators';
-import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
+import { Brackets, EntitySubscriberInterface, InsertEvent, IsNull, RemoveEvent, UpdateEvent } from 'typeorm';
 
 import { ApiType } from '../../api/common/get-api-type';
 import { DeserializedCachedSession, RequestContext } from '../../api/common/request-context';
@@ -17,8 +17,8 @@ import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { AnonymousSession } from '../../entity/session/anonymous-session.entity';
 import { AuthenticatedSession } from '../../entity/session/authenticated-session.entity';
 import { Session } from '../../entity/session/session.entity';
@@ -281,12 +281,17 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             const { channels, globalPermissions } = await this.rolePermissionResolver.resolvePermissions(
                 user.id,
             );
+            const customer = await this.connection.rawConnection.getRepository(Customer).findOne({
+                where: { user: { id: user.id }, deletedAt: IsNull() },
+                select: { id: true, identityScope: true },
+            });
             serializedSession.user = {
                 id: user.id,
                 identifier: user.identifier,
                 verified: user.verified,
                 channelPermissions: channels,
                 ...(globalPermissions.length ? { globalPermissions } : {}),
+                ...(customer ? { customerIdentityScope: customer.identityScope } : {}),
             };
         }
         return serializedSession;

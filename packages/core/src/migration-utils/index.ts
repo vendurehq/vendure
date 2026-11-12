@@ -16,6 +16,7 @@ export {
     previewRoleAssignmentMigration,
 } from './v4_0_role_assignments_preview';
 export {
+    CustomerIdentityScopeMigrationOptions,
     CustomerIdentityScopeMigrationResult,
     IdentityScopeMigrationChannel,
     migrateCustomerIdentityScopes,

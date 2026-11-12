@@ -61,7 +61,12 @@ export class TestAuthenticationStrategy implements AuthenticationStrategy<TestAu
         if (data.token !== VALID_AUTH_TOKEN) {
             return false;
         }
-        const user = await this.externalAuthenticationService.findUser(ctx, this.name, data.token);
+        const user = await this.externalAuthenticationService.findCustomerUser(
+            ctx,
+            this.name,
+            data.token,
+            false,
+        );
         if (user) {
             return user;
         }
@@ -200,7 +205,7 @@ export class TestSSOStrategyShopOnlyAdmin implements AuthenticationStrategy<{ em
 
     async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
         const { email } = data;
-        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        const user = await this.externalAuthenticationService.findCustomerUser(ctx, this.name, email, false);
         if (user) {
             return user;
         }

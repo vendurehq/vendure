@@ -44,6 +44,8 @@
     "field-invalid-string-option": "The custom field \"{ name }\" value [\"{ value }\"] is invalid. Valid options are [{ validOptions }]",
     "field-invalid-string-pattern": "The custom field \"{ name }\" value [\"{ value }\"] does not match the pattern [{ pattern }]",
     "forbidden": "You are not currently authorized to perform this action",
+    "identity-scope-requires-channel": "The identity scope cannot be resolved without a Channel. Use a RequestContext with a real Channel",
+    "invalid-identity-scope": "The IdentityScopeStrategy must return a non-empty string of at most 255 characters",
     "invalid-sort-field": "The sort field \"{ fieldName }\" is invalid. Valid fields are: { validFields }",
     "list-query-limit-exceeded": "Cannot take more than { limit } results from a list query",
     "no-active-tax-zone": "The active tax zone could not be determined. Ensure a default tax zone is set for the current channel.",
