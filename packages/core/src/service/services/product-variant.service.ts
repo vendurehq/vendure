@@ -116,6 +116,8 @@ export class ProductVariantService {
                 where: { deletedAt: IsNull() },
                 ctx,
                 customPropertyMap,
+                // For the Admin API `enabledInChannel` field of each item
+                loadChannelAssignment: ctx.apiType === 'admin',
             })
             .getManyAndCount()
             .then(async ([variants, totalItems]) => {

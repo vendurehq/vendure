@@ -338,6 +338,36 @@ describe('Channel assignment entities', () => {
             });
         });
 
+        it('loadChannelAssignment loads the row of the Channel, which getAssignment() reuses', async () => {
+            const [items] = await server.app
+                .get(ListQueryBuilder)
+                .build(
+                    TestChannelThing,
+                    { sort: { name: 'ASC' }, take: 2 },
+                    { channelId: channelBId, ctx, loadChannelAssignment: true },
+                )
+                .getManyAndCount();
+            expect(items.map(i => i.name)).toEqual(['a', 'b']);
+            const spy = vi.spyOn(service, 'getAssignments');
+            const inB = await Promise.all(
+                items.map(i =>
+                    service.getAssignment<TestChannelThingChannel>(ctx, TestChannelThing, i, channelBId),
+                ),
+            );
+            expect(inB.map(r => r?.note)).toEqual(['updated on assign', 'set on assign']);
+            expect(spy).not.toHaveBeenCalled();
+            // The row of another Channel is still read from the database
+            const inDefault = await service.getAssignment<TestChannelThingChannel>(
+                ctx,
+                TestChannelThing,
+                items[0],
+                defaultChannelId,
+            );
+            expect(inDefault?.note).toBe('first');
+            expect(spy).toHaveBeenCalledTimes(1);
+            spy.mockRestore();
+        });
+
         it('scopes an entity without an assignment entity via its channels relation', async () => {
             const plain = await dataSource()
                 .getRepository(TestPlainChannelThing)

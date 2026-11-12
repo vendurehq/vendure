@@ -176,7 +176,7 @@ export class ProductVariantAdminEntityResolver {
         const assignment = await this.channelAssignmentService.getAssignment<ProductVariantChannel>(
             ctx,
             ProductVariant,
-            productVariant.id,
+            productVariant,
         );
         return assignment?.enabled ?? false;
     }

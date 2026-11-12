@@ -124,7 +124,7 @@ export class ChannelEnabledChecker {
         }
         const assignment = await this.channelAssignmentService.getAssignment<
             ProductChannel | ProductVariantChannel
-        >(ctx, entityType, entity.id);
+        >(ctx, entityType, entity);
         return isEnabledInChannel(entity.enabled, assignment?.enabled);
     }
 

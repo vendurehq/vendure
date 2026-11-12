@@ -7,7 +7,7 @@
  *
  * The tests run in order and share the state they set up, like the other e2e specs.
  */
-import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, LanguageCode, SortOrder } from '@vendure/common/lib/generated-types';
 import {
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
@@ -251,6 +251,16 @@ describe('Per-channel enabled for Products and ProductVariants (#3777)', () => {
                 options: { filter: { enabledInChannel: { eq: false } } },
             });
             expect(inB.items.map(p => p.id)).toEqual(['T_1']);
+            expect(inB.items.map(p => p.enabledInChannel)).toEqual([false]);
+
+            // Each item resolves `enabledInChannel` from the row loaded by the list query
+            const { products: allInB } = await adminClient.query(adminProductsDocument, {
+                options: { sort: { id: SortOrder.ASC }, take: 2 },
+            });
+            expect(allInB.items.map(p => [p.id, p.enabledInChannel])).toEqual([
+                ['T_1', false],
+                ['T_2', true],
+            ]);
 
             asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
             const { products: inDefault } = await adminClient.query(adminProductsDocument, {

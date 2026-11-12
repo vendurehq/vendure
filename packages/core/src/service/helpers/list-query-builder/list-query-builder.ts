@@ -27,7 +27,10 @@ import { TransactionalConnection } from '../../../connection';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
-import { ChannelAssignmentService } from '../channel-assignment/channel-assignment.service';
+import {
+    ChannelAssignmentService,
+    LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
+} from '../channel-assignment/channel-assignment.service';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
 import { resolveCalculatedColumnJoin } from './calculated-column-join';
@@ -149,6 +152,17 @@ export type ExtendedListQueryOptions<T extends VendureEntity> = {
      * @default false
      */
     ignoreQueryLimits?: boolean;
+    /**
+     * @description
+     * When the list is scoped to a Channel (`channelId`) and the entity has a channel assignment
+     * entity (see {@link ChannelAssignment}), loads the assignment row of that Channel onto each
+     * entity. {@link ChannelAssignmentService}`.getAssignment()` then returns it without a further
+     * query, e.g. for a field resolver of per-channel data on each item of the list.
+     *
+     * @since 4.0.0
+     * @default false
+     */
+    loadChannelAssignment?: boolean;
 };
 
 /**
@@ -377,7 +391,13 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         }
 
         if (extendedOptions.channelId) {
-            this.joinChannel(qb, extendedOptions.channelId, channelAssignmentJoin, sortParams);
+            this.joinChannel(
+                qb,
+                extendedOptions.channelId,
+                channelAssignmentJoin,
+                sortParams,
+                extendedOptions.loadChannelAssignment ?? false,
+            );
         }
 
         qb.orderBy(sort);
@@ -756,6 +776,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         channelId: ID,
         channelAssignmentJoin: ChannelAssignmentJoin | undefined,
         sortParams: Record<string, unknown>,
+        loadChannelAssignment: boolean,
     ) {
         if (!channelAssignmentJoin) {
             qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
@@ -767,8 +788,18 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         const condition =
             `${CHANNEL_ASSIGNMENT_ALIAS}.${ownerColumn} = ${qb.alias}.id ` +
             `AND ${CHANNEL_ASSIGNMENT_ALIAS}.channelId = :channelId`;
-        // Selected only when sorting on one of its columns: TypeORM orders the distinct-id
-        // subquery of a paginated query by selected columns only.
+        if (loadChannelAssignment) {
+            qb.innerJoinAndMapOne(
+                `${qb.alias}.${LOADED_CHANNEL_ASSIGNMENT_PROPERTY}`,
+                target,
+                CHANNEL_ASSIGNMENT_ALIAS,
+                condition,
+                { channelId },
+            );
+            return;
+        }
+        // Otherwise selected only when sorting on one of its columns: TypeORM orders the
+        // distinct-id subquery of a paginated query by selected columns only.
         const sortsOnAssignment = Array.from(columns.keys()).some(property => sortParams[property]);
         if (sortsOnAssignment) {
             qb.innerJoinAndSelect(target, CHANNEL_ASSIGNMENT_ALIAS, condition, { channelId });
