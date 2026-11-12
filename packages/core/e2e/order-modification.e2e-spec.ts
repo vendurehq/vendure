@@ -273,7 +273,7 @@ export class TestOrderItemPriceCalculationStrategy implements OrderItemPriceCalc
         ctx: RequestContext,
         productVariant: ProductVariant,
         orderLineCustomFields: { [key: string]: any },
-        order: Order,
+        order: Order | undefined,
     ): PriceCalculationResult | Promise<PriceCalculationResult> {
         if (orderLineCustomFields.color === 'hotpink') {
             return {

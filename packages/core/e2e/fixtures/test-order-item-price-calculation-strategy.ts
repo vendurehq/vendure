@@ -15,7 +15,7 @@ export class TestOrderItemPriceCalculationStrategy implements OrderItemPriceCalc
         ctx: RequestContext,
         productVariant: ProductVariant,
         orderLineCustomFields: { [p: string]: any },
-        order: Order,
+        order: Order | undefined,
         quantity: number,
     ): PriceCalculationResult | Promise<PriceCalculationResult> {
         let price = productVariant.price;
