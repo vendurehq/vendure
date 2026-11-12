@@ -38,6 +38,13 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
             }
         }
     `);
+    const assignCollections = graphql(`
+        mutation SearchSlugAssignCollections($input: AssignCollectionsToChannelInput!) {
+            assignCollectionsToChannel(input: $input) {
+                id
+            }
+        }
+    `);
     const search = shopGraphql(`
         query SearchSlugSearch($input: SearchInput!) {
             search(input: $input) {
@@ -48,7 +55,7 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
         }
     `);
 
-    async function saleCollection(token: string, productId: string) {
+    async function filteredCollection(token: string, productId: string, slug = 'sale') {
         adminClient.setChannelToken(token);
         const { createCollection: c } = await adminClient.query(createCollection, {
             input: {
@@ -61,9 +68,7 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
                         ],
                     },
                 ],
-                translations: [
-                    { languageCode: LanguageCode.en, name: 'Sale', slug: 'sale', description: '' },
-                ],
+                translations: [{ languageCode: LanguageCode.en, name: slug, slug, description: '' }],
             },
         });
         return c;
@@ -108,8 +113,8 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
     });
 
     it('only matches the collection of the active channel', async () => {
-        const inC = await saleCollection(C_TOKEN, 'T_1');
-        const inB = await saleCollection(B_TOKEN, 'T_2');
+        const inC = await filteredCollection(C_TOKEN, 'T_1');
+        const inB = await filteredCollection(B_TOKEN, 'T_2');
         expect(inC.slug).toBe('sale');
         expect(inB.slug).toBe('sale');
         await awaitRunningJobs(adminClient, 60_000, 1000);
@@ -125,5 +130,22 @@ describe('Search by collectionSlug with per-channel collection slugs', () => {
             input: { collectionSlug: 'sale', groupByProduct: true },
         });
         expect(inCResult.items.map(i => i.productId)).toEqual(['T_1']);
+    });
+
+    it('assigning a collection to a channel makes it searchable there', async () => {
+        const clearance = await filteredCollection(E2E_DEFAULT_CHANNEL_TOKEN, 'T_1', 'clearance');
+        await awaitRunningJobs(adminClient, 60_000, 1000);
+        shopClient.setChannelToken(B_TOKEN);
+        const searchB = () =>
+            shopClient.query(search, { input: { collectionSlug: 'clearance', groupByProduct: true } });
+        expect((await searchB()).search.items).toEqual([]);
+
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(assignCollections, {
+            input: { channelId: channelIds['search-b'], collectionIds: [clearance.id] },
+        });
+        await awaitRunningJobs(adminClient, 60_000, 1000);
+        shopClient.setChannelToken(B_TOKEN);
+        expect((await searchB()).search.items.map(i => i.productId)).toEqual(['T_1']);
     });
 });

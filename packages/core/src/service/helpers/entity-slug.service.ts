@@ -82,7 +82,8 @@ export class EntitySlugService {
         // Translated slugs of channel-aware entities (Product, Collection) are unique per
         // channel, so the suggestion must use the same scope as the SlugValidator.
         let channelScope: { relation: string; channelIds: Array<string | number> } | undefined;
-        if (isTranslationEntity && ownerIsChannelAware && ownerRelationPropertyName) {
+        // The SlugValidator scopes through the `base` relation, which every core translation uses.
+        if (isTranslationEntity && ownerIsChannelAware && ownerRelationPropertyName === 'base') {
             const scope = await this.slugValidator.getScope(ctx, entityMetadata.target as any, entityId);
             if (scope !== 'global') {
                 channelScope = { relation: ownerRelationPropertyName, channelIds: scope };

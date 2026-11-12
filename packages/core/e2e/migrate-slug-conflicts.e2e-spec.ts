@@ -113,7 +113,7 @@ describe('findSlugConflicts()', () => {
         const { createProduct: inB } = await adminClient.query(createProduct, {
             input: { translations: translations('dup') },
         });
-        const { createCollection: colB } = await adminClient.query(createCollection, {
+        await adminClient.query(createCollection, {
             input: { filters: [], translations: translations('col') },
         });
         adminClient.setChannelToken(C_TOKEN);
@@ -123,12 +123,16 @@ describe('findSlugConflicts()', () => {
         const { createCollection: colC } = await adminClient.query(createCollection, {
             input: { filters: [], translations: translations('col') },
         });
-        // A product in B that shares a slug with a default-only product is valid in v4.
+        // A product in B may share a slug with a product that lives only in the default channel.
         adminClient.setChannelToken(B_TOKEN);
         await adminClient.query(createProduct, { input: { translations: translations('solo') } });
         adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-        const { createProduct: solo } = await adminClient.query(createProduct, {
-            input: { translations: translations('solo-default') },
+        const { createProduct: defaultOnly } = await adminClient.query(createProduct, {
+            input: { translations: translations('solo-tmp') },
+        });
+        await adminClient.query(createProduct, { input: { translations: translations('solo-default') } });
+        const { createProduct: another } = await adminClient.query(createProduct, {
+            input: { translations: translations('another') },
         });
 
         const ds = connection();
@@ -147,6 +151,7 @@ describe('findSlugConflicts()', () => {
             .execute();
         // Two default-only products with the same slug (e.g. a raw import).
         await setSlug('T_1', 'solo-default');
+        await setSlug(defaultOnly.id, 'solo');
 
         const queryRunner = ds.createQueryRunner();
         let conflicts;
@@ -164,21 +169,21 @@ describe('findSlugConflicts()', () => {
             ].sort(),
         );
         expect(formatSlugConflicts(conflicts)).toContain('3 slug conflict(s) found');
-        expect(colB.id).toBeDefined();
 
-        // The duplicates still resolve deterministically: the oldest product wins in B,
-        // and the default-only lookup is unaffected by the B product called "solo".
+        // "solo" (B product and default-only product) is not reported. The duplicates still
+        // resolve deterministically: the oldest product wins in B.
         adminClient.setChannelToken(B_TOKEN);
         expect((await adminClient.query(productBySlug, { slug: 'dup' })).product?.id).toBe(inB.id);
         adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         expect((await adminClient.query(productBySlug, { slug: 'solo-default' })).product?.id).toBe('T_1');
-        expect(solo.id).toBeDefined();
+
+        expect((await adminClient.query(productBySlug, { slug: 'solo' })).product?.id).toBe(defaultOnly.id);
 
         // v4 refuses to add another duplicate to B.
-        await setSlug('T_2', 'dup');
+        await setSlug(another.id, 'dup');
         await expect(
             adminClient.query(assignProducts, {
-                input: { channelId: channelIds['mig-b'], productIds: ['T_2'] },
+                input: { channelId: channelIds['mig-b'], productIds: [another.id] },
             }),
         ).rejects.toThrow(/dup/);
     });

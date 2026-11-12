@@ -49,6 +49,20 @@ describe('Slug uniqueness is scoped per channel', () => {
             }
         }
     `);
+    const createVariants = graphql(`
+        mutation SlugCreateVariants($input: [CreateProductVariantInput!]!) {
+            createProductVariants(input: $input) {
+                id
+            }
+        }
+    `);
+    const assignVariants = graphql(`
+        mutation SlugAssignVariants($input: AssignProductVariantsToChannelInput!) {
+            assignProductVariantsToChannel(input: $input) {
+                id
+            }
+        }
+    `);
     const duplicateEntity = graphql(`
         mutation SlugDuplicate($input: DuplicateEntityInput!) {
             duplicateEntity(input: $input) {
@@ -204,7 +218,6 @@ describe('Slug uniqueness is scoped per channel', () => {
         expect((await lookup(C_TOKEN, 'shared'))?.id).toBe(inC.id);
     });
 
-    // Gap 1: no conflict check when assigning to a channel.
     it('assigning a product to a channel where its slug is taken is rejected', async () => {
         await newProduct(B_TOKEN, 'Clash B', 'clash');
         const inC = await newProduct(C_TOKEN, 'Clash C', 'clash');
@@ -218,11 +231,32 @@ describe('Slug uniqueness is scoped per channel', () => {
             error = e;
         }
         expect(error?.message).toContain('clash');
-        // And channel B must still resolve the slug to exactly its own product.
         expect((await lookup(B_TOKEN, 'clash'))?.name).toBe('Clash B');
     });
 
-    // Gap 2: the validator only checks the active channel, not every channel the product is in.
+    it("assigning a variant to a channel where its product's slug is taken is rejected", async () => {
+        await newProduct(B_TOKEN, 'Variant Clash B', 'variant-clash');
+        const inC = await newProduct(C_TOKEN, 'Variant Clash C', 'variant-clash');
+        adminClient.setChannelToken(C_TOKEN);
+        const { createProductVariants } = await adminClient.query(createVariants, {
+            input: [
+                {
+                    productId: inC.id,
+                    sku: 'VARIANT-CLASH-C',
+                    price: 100,
+                    translations: [{ languageCode: LanguageCode.en, name: 'Variant Clash C' }],
+                },
+            ],
+        });
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        await expect(
+            adminClient.query(assignVariants, {
+                input: { channelId: bChannelId, productVariantIds: [createProductVariants[0]?.id as string] },
+            }),
+        ).rejects.toThrow(/variant-clash/);
+        expect((await lookup(B_TOKEN, 'variant-clash'))?.name).toBe('Variant Clash B');
+    });
+
     it('updating a slug checks every non-default channel the product belongs to', async () => {
         await newProduct(B_TOKEN, 'Taken in B', 'taken-in-b');
         const both = await newProduct(C_TOKEN, 'In B and C', 'in-b-and-c');
@@ -236,22 +270,47 @@ describe('Slug uniqueness is scoped per channel', () => {
         expect(updated.slug).toBe('taken-in-b-2');
     });
 
-    // Gap 3: the default channel holds every product, so lookups there must be deterministic.
-    it('a default-channel lookup prefers the product that lives only in the default channel', async () => {
+    it('a product created in the default channel only gets a slug that no other channel uses', async () => {
         const inB = await newProduct(B_TOKEN, 'Dflt B', 'dflt');
         const onlyDefault = await newProduct(E2E_DEFAULT_CHANNEL_TOKEN, 'Dflt Default', 'dflt');
-        // A product that lives only in the default channel claims its slug across every channel.
         expect(onlyDefault.slug).toBe('dflt-2');
         expect((await lookup(B_TOKEN, 'dflt'))?.id).toBe(inB.id);
-
-        // Two non-default products with the same slug: lowest id wins in the default channel.
-        const c1 = await newProduct(B_TOKEN, 'Tie B', 'tie');
-        await newProduct(C_TOKEN, 'Tie C', 'tie');
-        expect((await lookup(E2E_DEFAULT_CHANNEL_TOKEN, 'tie'))?.id).toBe(c1.id);
     });
 
-    // Gap 4: slugForEntity (the dashboard slug input) checks globally, so it suggests
-    // "foo-1" when "foo" is free in the active channel, and leaks other channels' slugs.
+    it('a default-channel lookup prefers the product that lives only in the default channel', async () => {
+        // The B product is older, so this checks the preference rather than the age order.
+        const inB = await newProduct(B_TOKEN, 'Pref B', 'pref-b');
+        const onlyDefault = await newProduct(E2E_DEFAULT_CHANNEL_TOKEN, 'Pref Default', 'pref');
+        adminClient.setChannelToken(B_TOKEN);
+        const { updateProduct: renamed } = await adminClient.query(updateProduct, {
+            input: { id: inB.id, translations: [{ languageCode: LanguageCode.en, slug: 'pref' }] },
+        });
+        expect(renamed.slug).toBe('pref');
+
+        expect((await lookup(E2E_DEFAULT_CHANNEL_TOKEN, 'pref'))?.id).toBe(onlyDefault.id);
+        expect((await lookup(B_TOKEN, 'pref'))?.id).toBe(inB.id);
+    });
+
+    it('saving an unchanged slug never renames it', async () => {
+        // "pref" is shared with the B product from the previous test.
+        const onlyDefault = await lookup(E2E_DEFAULT_CHANNEL_TOKEN, 'pref');
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { updateProduct: updated } = await adminClient.query(updateProduct, {
+            input: {
+                id: onlyDefault?.id as string,
+                translations: [{ languageCode: LanguageCode.en, name: 'Pref Default renamed', slug: 'pref' }],
+            },
+        });
+        expect(updated.slug).toBe('pref');
+    });
+
+    it('two non-default products with the same slug resolve to the oldest in the default channel', async () => {
+        const first = await newProduct(B_TOKEN, 'Tie B', 'tie');
+        await newProduct(C_TOKEN, 'Tie C', 'tie');
+        expect((await lookup(E2E_DEFAULT_CHANNEL_TOKEN, 'tie'))?.id).toBe(first.id);
+    });
+
+    // slugForEntity backs the dashboard slug input, so its suggestion must match validation.
     it('slugForEntity only considers the active channel', async () => {
         await newProduct(C_TOKEN, 'Only In C', 'only-in-c');
         adminClient.setChannelToken(B_TOKEN);
@@ -294,7 +353,7 @@ describe('Slug uniqueness is scoped per channel', () => {
             expect(error?.message).toContain('summer');
         });
 
-        it('a default-channel collection lookup is deterministic (lowest id)', async () => {
+        it('a default-channel collection lookup resolves to the oldest collection', async () => {
             adminClient.setChannelToken(B_TOKEN);
             const bSummer = (await adminClient.query(collectionBySlug, { slug: 'summer' })).collection;
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);

@@ -914,9 +914,7 @@ export class CollectionService implements OnModuleInit {
                     ? `collections ${options.collectionIds.join(', ')}`
                     : 'all collections';
                 const message = err instanceof Error ? err.message : String(err);
-                Logger.error(
-                    `Could not enqueue the apply-collection-filters job for ${target}: ${message}`,
-                );
+                Logger.error(`Could not enqueue the apply-collection-filters job for ${target}: ${message}`);
             });
     }
 
@@ -1319,6 +1317,12 @@ export class CollectionService implements OnModuleInit {
         await this.triggerApplyFiltersJob(ctx, {
             collectionIds: collectionsToAssign.map(collection => collection.id),
         });
+        // The variants do not change, so the filters job publishes no event. Search indexes
+        // record collections per channel, so they need to hear about the new channel.
+        for (const collection of collectionsToAssign) {
+            const affectedVariantIds = await this.getCollectionProductVariantIds(collection, ctx);
+            await this.eventBus.publish(new CollectionModificationEvent(ctx, collection, affectedVariantIds));
+        }
 
         return this.connection
             .findByIdsInChannel(

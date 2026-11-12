@@ -78,9 +78,15 @@ export class SlugValidator {
             return input;
         }
         const scope = await this.getScope(ctx, translationEntity, input.id ?? undefined);
+        const storedSlugs = await this.getStoredSlugs(ctx, translationEntity, input.id ?? undefined);
         for (const t of input.translations) {
             if (t.slug) {
                 t.slug = normalizeString(t.slug, '-');
+                if (storedSlugs.get(t.languageCode) === t.slug) {
+                    // An unchanged slug is never renamed: that would change a live URL on an
+                    // unrelated edit, e.g. when another channel's entity already shares it.
+                    continue;
+                }
                 let match: E | null;
                 let suffix = 1;
                 const seen: ID[] = [];
@@ -136,23 +142,35 @@ export class SlugValidator {
     async assertNoConflictsInChannel<E extends TranslationEntity>(
         ctx: RequestContext,
         translationEntity: Type<E>,
-        baseIds: ID[],
+        entityIds: ID[],
         channelId: ID,
     ): Promise<void> {
-        if (!baseIds.length) {
-            return;
-        }
-        const uniqueness = await this.getUniquenessScope(ctx, translationEntity, undefined, [channelId]);
-        if (uniqueness === 'global') {
-            // Slugs are already unique across every channel.
-            return;
-        }
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
-        if (idsAreEqual(defaultChannel.id, channelId)) {
+        if (!entityIds.length || idsAreEqual(defaultChannel.id, channelId)) {
             // Every entity is already in the default channel.
             return;
         }
         const repo = this.connection.getRepository(ctx, translationEntity);
+        // Entities already in the channel are not being added to it, so they cannot add a clash.
+        const alreadyAssigned: Array<{ id: ID }> = await repo
+            .createQueryBuilder('translation')
+            .innerJoin('translation.base', 'base')
+            .innerJoin('base.channels', 'channel')
+            .where('base.id IN (:...entityIds)', { entityIds })
+            .andWhere('channel.id = :channelId', { channelId })
+            .select('base.id', 'id')
+            .distinct(true)
+            .getRawMany();
+        const candidateIds = entityIds.filter(id => !alreadyAssigned.some(a => idsAreEqual(a.id, id)));
+        // Entities whose slugs are unique across every channel cannot clash in this one.
+        const scopes = await Promise.all(
+            candidateIds.map(id => this.getUniquenessScope(ctx, translationEntity, id, [channelId])),
+        );
+        const toCheck = candidateIds.filter((_, i) => scopes[i] !== 'global');
+        if (!toCheck.length) {
+            return;
+        }
+        const baseIds = toCheck;
         const incoming = await repo
             .createQueryBuilder('translation')
             .innerJoinAndSelect('translation.base', 'base')
@@ -201,7 +219,10 @@ export class SlugValidator {
      * match: the slug may exist in several languages, and the default channel holds entities
      * from every channel. The order is: a translation in the request language, then in the
      * channel default language; then (in the default channel) an entity that belongs to no
-     * other channel; then the oldest entity.
+     * other channel; then the oldest entity, then the lowest id.
+     *
+     * It lives here because the order mirrors the uniqueness rule in {@link getScope}: an
+     * entity that only lives in the default channel owns its slug there.
      */
     async resolveSlug<E extends TranslationEntity>(
         ctx: RequestContext,
@@ -261,7 +282,7 @@ export class SlugValidator {
                 }
             }
         }
-        candidates.sort((a, b) => a.createdAt - b.createdAt || String(a.id).localeCompare(String(b.id)));
+        candidates.sort((a, b) => a.createdAt - b.createdAt || compareIds(a.id, b.id));
         return candidates[0].id;
     }
 
@@ -301,6 +322,25 @@ export class SlugValidator {
         return nonDefault.length ? nonDefault : 'global';
     }
 
+    private async getStoredSlugs(
+        ctx: RequestContext,
+        translationEntity: Type<any>,
+        baseId?: ID,
+    ): Promise<Map<LanguageCode, string>> {
+        if (baseId == null) {
+            return new Map();
+        }
+        const rows: Array<{ languageCode: LanguageCode; slug: string }> = await this.connection
+            .getRepository(ctx, translationEntity)
+            .createQueryBuilder('translation')
+            .innerJoin('translation.base', 'base')
+            .where('base.id = :baseId', { baseId })
+            .select('translation.languageCode', 'languageCode')
+            .addSelect('translation.slug', 'slug')
+            .getRawMany();
+        return new Map(rows.map(r => [r.languageCode, r.slug]));
+    }
+
     private async getUniquenessScope(
         ctx: RequestContext,
         translationEntity: Type<any>,
@@ -323,4 +363,16 @@ export class SlugValidator {
             .findRelationWithPropertyPath('base')?.inverseEntityMetadata;
         return baseMetadata?.findColumnWithPropertyName('deletedAt') ? 'base.deletedAt IS NULL' : '1 = 1';
     }
+}
+
+/**
+ * Orders numeric ids numerically and other ids (e.g. UUIDs) as strings.
+ */
+function compareIds(a: ID, b: ID): number {
+    const na = Number(a);
+    const nb = Number(b);
+    if (!Number.isNaN(na) && !Number.isNaN(nb)) {
+        return na - nb;
+    }
+    return String(a).localeCompare(String(b));
 }
