@@ -49,7 +49,13 @@ export function gqlTadaPlugin(options: {
             // Copy the graphql.ts file to the output path
             const graphqlTsPath = path.join(options.packageRoot, 'src/lib/graphql/graphql.ts');
             try {
-                await fs.copyFile(graphqlTsPath, path.join(options.gqlTadaOutputPath, 'graphql.ts'));
+                // Only write when the content differs, so `vendure dev` does not restart the server and worker.
+                const targetPath = path.join(options.gqlTadaOutputPath, 'graphql.ts');
+                const source = await fs.readFile(graphqlTsPath, 'utf-8');
+                const target = await fs.readFile(targetPath, 'utf-8').catch(() => undefined);
+                if (source !== target) {
+                    await fs.writeFile(targetPath, source);
+                }
             } catch (error) {
                 if (error instanceof Error) {
                     this.error(error.message);
