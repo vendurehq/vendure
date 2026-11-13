@@ -2002,7 +2002,7 @@ describe('Custom field relations', () => {
         const { updateCustomerAddress } = await adminClient.query(gql`
             mutation {
                 updateCustomerAddress(
-                    input: { id: "T_1", customFields: { singleId: null, multiIds: ["T_1", "null"] } }
+                    input: { id: "T_1", customFields: { singleId: null, multiIds: ["T_1"] } }
                 ) {
                     id
                     customFields {
@@ -2019,6 +2019,19 @@ describe('Custom field relations', () => {
 
         expect(updateCustomerAddress.customFields.single).toEqual(null);
         expect(updateCustomerAddress.customFields.multi).toEqual([{ id: 'T_1' }]);
+    });
+
+    // Before v4 an id which matched no entity, such as "null", was silently dropped from a list.
+    it('rejects an id in a list which matches no entity', async () => {
+        await expect(
+            adminClient.query(gql`
+                mutation {
+                    updateCustomerAddress(input: { id: "T_1", customFields: { multiIds: ["T_1", "null"] } }) {
+                        id
+                    }
+                }
+            `),
+        ).rejects.toThrow(/No Asset with the id/);
     });
 
     describe('bi-direction relations', () => {
@@ -2166,6 +2179,50 @@ describe('Custom field relations', () => {
             await expect(deleteCollection(parentId)).rejects.toThrow(/foreign key/i);
 
             expect(await getVariantCount(parentId)).toBe(variantCount);
+        });
+    });
+
+    describe('unknown relation ids', () => {
+        const updateProductCustomFields = (customFields: Record<string, any>) =>
+            adminClient.query(
+                gql`
+                    mutation ($input: UpdateProductInput!) {
+                        updateProduct(input: $input) {
+                            id
+                            customFields {
+                                single {
+                                    id
+                                }
+                                multi {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                `,
+                { input: { id: 'T_1', customFields } },
+            );
+
+        it('rejects an unknown id on a single relation with ENTITY_NOT_FOUND', async () => {
+            await updateProductCustomFields({ singleId: 'T_1' });
+
+            await expect(updateProductCustomFields({ singleId: 'T_9999' })).rejects.toThrow(
+                /No Asset with the id "(T_)?9999" could be found/,
+            );
+
+            const { updateProduct } = await updateProductCustomFields({});
+            expect(updateProduct.customFields.single).toEqual({ id: 'T_1' });
+        });
+
+        it('rejects an unknown id in a list relation instead of dropping it', async () => {
+            await updateProductCustomFields({ multiIds: ['T_1'] });
+
+            await expect(updateProductCustomFields({ multiIds: ['T_2', 'T_9999'] })).rejects.toThrow(
+                /No Asset with the id "(T_)?9999" could be found/,
+            );
+
+            const { updateProduct } = await updateProductCustomFields({});
+            expect(updateProduct.customFields.multi).toEqual([{ id: 'T_1' }]);
         });
     });
 });
