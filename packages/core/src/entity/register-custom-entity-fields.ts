@@ -403,7 +403,9 @@ function getColumnType(
         case 'datetime':
             switch (dbEngine) {
                 case 'postgres':
-                    return 'timestamp';
+                    // `Date` maps to `timestamp`. setTimestampColumnTypes() turns it into
+                    // `timestamptz` according to EntityOptions.timestampColumnType.
+                    return Date as any;
                 case 'mysql':
                 case 'sqlite':
                 case 'sqljs':

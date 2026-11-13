@@ -1,0 +1,10 @@
+
+ RUN  v4.1.12 /home/michael/.paseo/worktrees/2mxx465k/spike-oss-1007-timezones/packages/core
+
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  05:12:44
+   Duration  11.22s (transform 98ms, setup 0ms, import 731ms, tests 10.40s, environment 0ms)
+

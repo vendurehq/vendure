@@ -1,0 +1,85 @@
+===== TZ SPIKE RESULTS (Asia/Kolkata, offset at 2026-01-01=-330 / 2026-07-01=-330) =====
+[Asia/Kolkata] D1 | 2026-03-29T00:30:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 3/29/2026
+[Asia/Kolkata] D1 | 2026-03-29T00:30:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 3/29/26, 6:00 AM
+[Asia/Kolkata] D1 | 2026-03-29T00:30:00.000Z history-entry-date full | March 29, 2026 at 6:00:00 AM
+[Asia/Kolkata] D1 | 2026-03-29T00:30:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 3/29/2026 / 6:00:00 AM GMT+5:30
+[Asia/Kolkata] D1 | 2026-03-29T01:00:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 3/29/2026
+[Asia/Kolkata] D1 | 2026-03-29T01:00:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 3/29/26, 6:30 AM
+[Asia/Kolkata] D1 | 2026-03-29T01:00:00.000Z history-entry-date full | March 29, 2026 at 6:30:00 AM
+[Asia/Kolkata] D1 | 2026-03-29T01:00:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 3/29/2026 / 6:30:00 AM GMT+5:30
+[Asia/Kolkata] D1 | 2026-10-25T01:00:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 10/25/2026
+[Asia/Kolkata] D1 | 2026-10-25T01:00:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 10/25/26, 6:30 AM
+[Asia/Kolkata] D1 | 2026-10-25T01:00:00.000Z history-entry-date full | October 25, 2026 at 6:30:00 AM
+[Asia/Kolkata] D1 | 2026-10-25T01:00:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 10/25/2026 / 6:30:00 AM GMT+5:30
+[Asia/Kolkata] D1 | 2026-03-08T10:00:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 3/8/2026
+[Asia/Kolkata] D1 | 2026-03-08T10:00:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 3/8/26, 3:30 PM
+[Asia/Kolkata] D1 | 2026-03-08T10:00:00.000Z history-entry-date full | March 8, 2026 at 3:30:00 PM
+[Asia/Kolkata] D1 | 2026-03-08T10:00:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 3/8/2026 / 3:30:00 PM GMT+5:30
+[Asia/Kolkata] D1 | 2026-07-15T23:30:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 7/16/2026
+[Asia/Kolkata] D1 | 2026-07-15T23:30:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 7/16/26, 5:00 AM
+[Asia/Kolkata] D1 | 2026-07-15T23:30:00.000Z history-entry-date full | July 16, 2026 at 5:00:00 AM
+[Asia/Kolkata] D1 | 2026-07-15T23:30:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 7/16/2026 / 5:00:00 AM GMT+5:30
+[Asia/Kolkata] D2 | order 2026-03-28T23:00Z, now 2026-03-29T08:00Z | 9 hours ago
+[Asia/Kolkata] D2 | order 2026-03-27T09:00Z (47h ago) | 2 days ago
+[Asia/Kolkata] D3 | expected "Mar 14, 2025" / "3/14/25" | Mar 14, 2025 / 3/14/25
+[Asia/Kolkata] D4 | formatScalarArgValue(datetime, "2026-03-29T00:30:00.000Z") (string, never a Date) | 2026-03-29T00:30:00.000Z
+[Asia/Kolkata] D5 | new Date(v).toLocaleString() | 3/29/2026, 6:00:00 AM
+[Asia/Kolkata] I1 | pick 2026-03-29 (no value) -> sent | 2026-03-28T18:30:00.000Z
+[Asia/Kolkata] I1 |   then time input shows | 00:00
+[Asia/Kolkata] I2 | pick 2026-3-29 then type 02:30 -> sent | 2026-03-28T21:00:00.000Z (redisplays as 02:30)
+[Asia/Kolkata] I2 | pick 2026-10-25 then type 02:30 -> sent | 2026-10-24T21:00:00.000Z (redisplays as 02:30)
+[Asia/Kolkata] I2 | pick 2026-3-8 then type 02:30 -> sent | 2026-03-07T21:00:00.000Z (redisplays as 02:30)
+[Asia/Kolkata] I2 | pick 2026-11-1 then type 01:30 -> sent | 2026-10-31T20:00:00.000Z (redisplays as 01:30)
+[Asia/Kolkata] I3 | value 2026-10-25T01:30:00.000Z shown 07:00; re-click same day -> sent | 2026-10-25T01:30:00.000Z (delta 0 min)
+[Asia/Kolkata] I3 | value 2026-11-01T09:30:00.000Z shown 15:00; re-click same day -> sent | 2026-11-01T09:30:00.000Z (delta 0 min)
+[Asia/Kolkata] I3 | value 2026-03-29T00:30:00.000Z shown 06:00; re-click same day -> sent | 2026-03-29T00:30:00.000Z (delta 0 min)
+[Asia/Kolkata] I3 | value 2026-03-29T10:15:42.123Z shown 15:45; re-click same day -> sent | 2026-03-29T10:15:00.000Z (delta -0.70205 min)
+[Asia/Kolkata] I4 | value 2026-03-29T00:30:00.000Z -> trigger label / time input | Mar 29, 2026 / 06:00
+[Asia/Kolkata] I4 | value 2026-03-29T01:00:00.000Z -> trigger label / time input | Mar 29, 2026 / 06:30
+[Asia/Kolkata] I4 | value 2026-10-25T01:00:00.000Z -> trigger label / time input | Oct 25, 2026 / 06:30
+[Asia/Kolkata] I4 | value 2026-03-08T10:00:00.000Z -> trigger label / time input | Mar 8, 2026 / 15:30
+[Asia/Kolkata] I4 | value 2026-07-15T23:30:00.000Z -> trigger label / time input | Jul 16, 2026 / 05:00
+[Asia/Kolkata] F1 | eq 2026-03-29 | {"eq":"2026-03-28T18:30:00.000Z"}
+[Asia/Kolkata] F1 | before 2026-03-29 | {"before":"2026-03-28T18:30:00.000Z"}
+[Asia/Kolkata] F1 | after 2026-03-29 | {"after":"2026-03-28T18:30:00.000Z"}
+[Asia/Kolkata] F1 | between 2026-03-29..2026-03-29 | {"between":{"start":"2026-03-28T18:30:00.000Z","end":"2026-03-28T18:30:00.000Z"}}
+[Asia/Kolkata] F1 | between 2026-03-29..2026-03-30 | {"between":{"start":"2026-03-28T18:30:00.000Z","end":"2026-03-29T18:30:00.000Z"}}
+[Asia/Kolkata] F2 | stored UTC-day filter re-parsed and rebuilt | {"between":{"start":"2026-03-29T00:00:00.000Z","end":"2026-03-29T23:59:00.000Z"}}
+[Asia/Kolkata] F2 | badge shows (data-table-filter-badge.tsx:100) | 3/29/26 .. 3/30/26
+[Asia/Kolkata] W1 | now=2026-03-29T00:30:00.000Z default range sent | 2026-02-28T18:30:00.000Z .. 2026-03-29T18:29:59.999Z
+[Asia/Kolkata] W1 | now=2026-03-29T00:30:00.000Z preset today 2026-03-29..2026-03-29 sent | 2026-03-28T18:30:00.000Z .. 2026-03-29T18:29:59.999Z (24h)
+[Asia/Kolkata] W1 | now=2026-03-29T00:30:00.000Z preset this-week 2026-03-23..2026-03-29 sent | 2026-03-22T18:30:00.000Z .. 2026-03-29T18:29:59.999Z (168h)
+[Asia/Kolkata] W1 | now=2026-03-29T00:30:00.000Z preset last-month 2026-02-01..2026-02-28 sent | 2026-01-31T18:30:00.000Z .. 2026-02-28T18:29:59.999Z (672h)
+[Asia/Kolkata] W1 | now=2026-03-29T01:00:00.000Z default range sent | 2026-02-28T18:30:00.000Z .. 2026-03-29T18:29:59.999Z
+[Asia/Kolkata] W1 | now=2026-03-29T01:00:00.000Z preset today 2026-03-29..2026-03-29 sent | 2026-03-28T18:30:00.000Z .. 2026-03-29T18:29:59.999Z (24h)
+[Asia/Kolkata] W1 | now=2026-03-29T01:00:00.000Z preset this-week 2026-03-23..2026-03-29 sent | 2026-03-22T18:30:00.000Z .. 2026-03-29T18:29:59.999Z (168h)
+[Asia/Kolkata] W1 | now=2026-03-29T01:00:00.000Z preset last-month 2026-02-01..2026-02-28 sent | 2026-01-31T18:30:00.000Z .. 2026-02-28T18:29:59.999Z (672h)
+[Asia/Kolkata] W1 | now=2026-03-08T10:00:00.000Z default range sent | 2026-02-28T18:30:00.000Z .. 2026-03-08T18:29:59.999Z
+[Asia/Kolkata] W1 | now=2026-03-08T10:00:00.000Z preset today 2026-03-08..2026-03-08 sent | 2026-03-07T18:30:00.000Z .. 2026-03-08T18:29:59.999Z (24h)
+[Asia/Kolkata] W1 | now=2026-03-08T10:00:00.000Z preset this-week 2026-03-02..2026-03-08 sent | 2026-03-01T18:30:00.000Z .. 2026-03-08T18:29:59.999Z (168h)
+[Asia/Kolkata] W1 | now=2026-03-08T10:00:00.000Z preset last-month 2026-02-01..2026-02-28 sent | 2026-01-31T18:30:00.000Z .. 2026-02-28T18:29:59.999Z (672h)
+[Asia/Kolkata] W1 | now=2026-03-31T12:00:00.000Z default range sent | 2026-02-28T18:30:00.000Z .. 2026-03-31T18:29:59.999Z
+[Asia/Kolkata] W1 | now=2026-03-31T12:00:00.000Z preset today 2026-03-31..2026-03-31 sent | 2026-03-30T18:30:00.000Z .. 2026-03-31T18:29:59.999Z (24h)
+[Asia/Kolkata] W1 | now=2026-03-31T12:00:00.000Z preset this-week 2026-03-30..2026-04-05 sent | 2026-03-29T18:30:00.000Z .. 2026-04-05T18:29:59.999Z (168h)
+[Asia/Kolkata] W1 | now=2026-03-31T12:00:00.000Z preset last-month 2026-03-01..2026-03-31 sent | 2026-02-28T18:30:00.000Z .. 2026-03-31T18:29:59.999Z (744h)
+[Asia/Kolkata] W2 | pick 2026-03-29..2026-03-29: sent | {"startDate":"2026-03-28T18:30:00.000Z","endDate":"2026-03-29T18:29:59.999Z"}
+[Asia/Kolkata] W2 |   server queries orderPlacedAt | 2026-03-28T00:00:00.000Z .. 2026-03-29T23:59:59.999Z (2 buckets)
+[Asia/Kolkata] W2 |   buckets (UTC dateKey -> x-axis label shown) | 2026-03-28->"Mar 28", 2026-03-29->"Mar 29"
+[Asia/Kolkata] W2 | pick 2026-03-01..2026-03-31: sent | {"startDate":"2026-02-28T18:30:00.000Z","endDate":"2026-03-31T18:29:59.999Z"}
+[Asia/Kolkata] W2 |   server queries orderPlacedAt | 2026-02-28T00:00:00.000Z .. 2026-03-31T23:59:59.999Z (32 buckets)
+[Asia/Kolkata] W2 |   buckets (UTC dateKey -> x-axis label shown) | 2026-02-28->"Feb 28", 2026-03-01->"Mar 1", ..., 2026-03-30->"Mar 30", 2026-03-31->"Mar 31"
+[Asia/Kolkata] W2 | pick 2026-10-25..2026-10-25: sent | {"startDate":"2026-10-24T18:30:00.000Z","endDate":"2026-10-25T18:29:59.999Z"}
+[Asia/Kolkata] W2 |   server queries orderPlacedAt | 2026-10-24T00:00:00.000Z .. 2026-10-25T23:59:59.999Z (2 buckets)
+[Asia/Kolkata] W2 |   buckets (UTC dateKey -> x-axis label shown) | 2026-10-24->"Oct 24", 2026-10-25->"Oct 25"
+[Asia/Kolkata] W3 | range 2026-03-29..2026-03-29 rangeLength=1 | current sent 2026-03-28T18:30:00.000Z..2026-03-29T18:29:59.999Z | previous sent 2026-03-27T18:30:00.000Z..2026-03-28T18:29:59.999Z
+[Asia/Kolkata] W3 |   server(UTC) current/previous days | 2026-03-28,2026-03-29 | 2026-03-27,2026-03-28
+[Asia/Kolkata] W3 | range 2026-03-30..2026-03-30 rangeLength=1 | current sent 2026-03-29T18:30:00.000Z..2026-03-30T18:29:59.999Z | previous sent 2026-03-28T18:30:00.000Z..2026-03-29T18:29:59.999Z
+[Asia/Kolkata] W3 |   server(UTC) current/previous days | 2026-03-29,2026-03-30 | 2026-03-28,2026-03-29
+[Asia/Kolkata] W3 | range 2026-03-23..2026-03-29 rangeLength=7 | current sent 2026-03-22T18:30:00.000Z..2026-03-29T18:29:59.999Z | previous sent 2026-03-15T18:30:00.000Z..2026-03-22T18:29:59.999Z
+[Asia/Kolkata] W3 |   server(UTC) current/previous days | 2026-03-22,2026-03-23,2026-03-24,2026-03-25,2026-03-26,2026-03-27,2026-03-28,2026-03-29 | 2026-03-15,2026-03-16,2026-03-17,2026-03-18,2026-03-19,2026-03-20,2026-03-21,2026-03-22
+[Asia/Kolkata] W3 | range 2026-04-01..2026-04-30 rangeLength=30 | current sent 2026-03-31T18:30:00.000Z..2026-04-30T18:29:59.999Z | previous sent 2026-03-01T18:30:00.000Z..2026-03-31T18:29:59.999Z
+[Asia/Kolkata] W3 |   server(UTC) current/previous days | 2026-03-31,2026-04-01,2026-04-02,2026-04-03,2026-04-04,2026-04-05,2026-04-06,2026-04-07,2026-04-08,2026-04-09,2026-04-10,2026-04-11,2026-04-12,2026-04-13,2026-04-14,2026-04-15,2026-04-16,2026-04-17,2026-04-18,2026-04-19,2026-04-20,2026-04-21,2026-04-22,2026-04-23,2026-04-24,2026-04-25,2026-04-26,2026-04-27,2026-04-28,2026-04-29,2026-04-30 | 2026-03-01,2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15,2026-03-16,2026-03-17,2026-03-18,2026-03-19,2026-03-20,2026-03-21,2026-03-22,2026-03-23,2026-03-24,2026-03-25,2026-03-26,2026-03-27,2026-03-28,2026-03-29,2026-03-30,2026-03-31
+[Asia/Kolkata] V1 | value 2025-12-31T23:30:00.000Z (shown as Jan 1, 2026, 5:00 AM) | Date must be after 1/1/2026
+[Asia/Kolkata] V1 | value 2026-01-01T00:00:00.000Z (shown as Jan 1, 2026, 5:30 AM) | valid
+[Asia/Kolkata] V1 | value 2025-12-31T18:30:00.000Z (shown as Jan 1, 2026, 12:00 AM) | Date must be after 1/1/2026
+[Asia/Kolkata] V1 | min date as shown in message: new Date("2026-01-01").toLocaleDateString() | 1/1/2026

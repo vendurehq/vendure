@@ -1,6 +1,9 @@
 import { DataSource, DataSourceOptions, EntityMetadata } from 'typeorm';
 
 import { getChannelAssignmentEntities } from '../entity/channel-assignment/channel-assignment-registry';
+import { findTimestampColumnsToMigrate } from '../migration-utils/v4_0_timestamptz';
+
+import { isMysqlDatabase, isPostgresDatabase, isUtcTimezone } from './timezone-utils';
 
 /**
  * @description
@@ -13,6 +16,7 @@ import { getChannelAssignmentEntities } from '../entity/channel-assignment/chann
  */
 export async function initializeDataSource(options: DataSourceOptions): Promise<DataSource> {
     const dataSource = new DataSource({ ...options, synchronize: false, migrationsRun: false });
+    pinMysqlSessionTimezone(dataSource);
     await dataSource.initialize();
     try {
         alignChannelAssignmentMetadata(dataSource);
@@ -25,6 +29,7 @@ export async function initializeDataSource(options: DataSourceOptions): Promise<
             await dataSource.runMigrations({ transaction: options.migrationsTransactionMode });
         }
         if (options.synchronize) {
+            await assertNoLegacyTimestampColumns(dataSource);
             await dataSource.synchronize();
         }
     } catch (e) {
@@ -79,5 +84,66 @@ export function alignChannelAssignmentMetadata(dataSource: DataSource) {
             }
         }
         metadatasMap?.set(junction.target, assignment);
+    }
+}
+
+/**
+ * MySQL and MariaDB fill `createdAt`/`updatedAt` with `CURRENT_TIMESTAMP` in the session
+ * `time_zone`, while the driver writes all other dates in the TypeORM `timezone` option (Vendure
+ * default `'Z'`). When the server `time_zone` is not UTC, the two disagree (#1375). So when the
+ * driver writes UTC, every new pooled connection sets its session `time_zone` to UTC too.
+ */
+function pinMysqlSessionTimezone(dataSource: DataSource) {
+    if (!isMysqlDatabase(dataSource.options.type)) {
+        return;
+    }
+    const zone = (dataSource.options as { timezone?: string }).timezone ?? 'local';
+    if (!isUtcTimezone(zone)) {
+        return;
+    }
+    const driver = dataSource.driver as any;
+    const mysql = driver.mysql;
+    // The aurora-mysql driver uses the RDS Data API and has no connection pool to hook into.
+    // checkDatabaseTimezone() warns when its session time_zone is not UTC.
+    if (!mysql || typeof mysql.createPool !== 'function') {
+        return;
+    }
+    const onConnection = (connection: any) => connection.query("SET time_zone = '+00:00'");
+    driver.mysql = Object.assign(Object.create(mysql), {
+        createPool: (...args: any[]) => {
+            const pool = mysql.createPool(...args);
+            pool.on('connection', onConnection);
+            return pool;
+        },
+        createPoolCluster: (...args: any[]) => {
+            const cluster = mysql.createPoolCluster(...args);
+            cluster.on?.('connection', onConnection);
+            return cluster;
+        },
+    });
+}
+
+/**
+ * TypeORM changes a column from `timestamp` to `timestamptz` by dropping and re-adding it,
+ * which deletes the stored dates. Refuse to synchronize such a schema.
+ */
+async function assertNoLegacyTimestampColumns(dataSource: DataSource) {
+    if (!isPostgresDatabase(dataSource.options.type)) {
+        return;
+    }
+    const queryRunner = dataSource.createQueryRunner();
+    try {
+        const columns = await findTimestampColumnsToMigrate(queryRunner);
+        if (columns.length) {
+            throw new Error(
+                `${columns.length} date columns (e.g. "${columns[0].table}"."${columns[0].column}") are ` +
+                    '"timestamp without time zone", but Vendure v4 uses "timestamptz". Synchronizing would ' +
+                    'drop and re-create them, which deletes their data. Run a migration which calls ' +
+                    'migrateTimestampColumnsToTimestamptz() first, or set ' +
+                    "entityOptions.timestampColumnType to 'timestamp' to keep the old column type.",
+            );
+        }
+    } finally {
+        await queryRunner.release();
     }
 }

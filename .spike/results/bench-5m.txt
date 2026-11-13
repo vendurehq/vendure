@@ -1,0 +1,8 @@
+rows: 5000000  postgres: 16.15 (Debian 16.15-1.pgdg13+2)
+table size: 578 MB
+A. session UTC, no USING (data was UTC)                        6187 ms  table rewritten: no   index rebuilt: yes  row1.createdAt=2020-01-01 00:00:37+00
+B. session Vienna, no USING (implicit cast, data was Vienna)    17758 ms  table rewritten: yes  index rebuilt: yes  row1.createdAt=2019-12-31 23:00:37+00
+C. USING col AT TIME ZONE 'Europe/Vienna'                     17009 ms  table rewritten: yes  index rebuilt: yes  row1.createdAt=2019-12-31 23:00:37+00
+D. USING helper CASE (earlier instant for the repeated hour)    14860 ms  table rewritten: yes  index rebuilt: yes  row1.createdAt=2019-12-31 23:00:37+00
+E. what TypeORM generates (DROP + ADD: data loss)                76 ms  table rewritten: no   index rebuilt: no   row1.createdAt=2020-01-01 00:00:37
+F. revert A (timestamptz -> timestamp, session UTC)            8193 ms  table rewritten: no   index rebuilt: yes  row1.createdAt=2020-01-01 00:00:37
