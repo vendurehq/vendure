@@ -2,13 +2,13 @@
 title: "ProductVariantService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/product-variant.service.ts" sourceLine="75" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/product-variant.service.ts" sourceLine="149" packageName="@vendure/core" />
 
 Contains methods relating to [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) entities.
 
 ```ts title="Signature"
 class ProductVariantService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, taxCategoryService: TaxCategoryService, facetValueService: FacetValueService, assetService: AssetService, translatableSaver: TranslatableSaver, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, globalSettingsService: GlobalSettingsService, stockMovementService: StockMovementService, stockLevelService: StockLevelService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, productPriceApplicator: ProductPriceApplicator, translator: TranslatorService, slugValidator: SlugValidator, channelEnabledChecker: ChannelEnabledChecker)
+    constructor(connection: TransactionalConnection, configService: ConfigService, taxCategoryService: TaxCategoryService, facetValueService: FacetValueService, assetService: AssetService, translatableSaver: TranslatableSaver, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, globalSettingsService: GlobalSettingsService, stockMovementService: StockMovementService, stockLevelService: StockLevelService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, productPriceApplicator: ProductPriceApplicator, translator: TranslatorService, slugValidator: SlugValidator, buyerIdentityService: BuyerIdentityService, channelEnabledChecker: ChannelEnabledChecker)
     findAll(ctx: RequestContext, options?: ListQueryOptions<ProductVariant>) => Promise<PaginatedList<Translated<ProductVariant>>>;
     findOne(ctx: RequestContext, productVariantId: ID, relations?: RelationPaths<ProductVariant>) => Promise<Translated<ProductVariant> | undefined>;
     findByIds(ctx: RequestContext, ids: ID[]) => Promise<Array<Translated<ProductVariant>>>;
@@ -29,6 +29,8 @@ class ProductVariantService {
     deleteProductVariantPrice(ctx: RequestContext, variantId: ID, channelId: ID, currencyCode: CurrencyCode) => ;
     softDelete(ctx: RequestContext, id: ID | ID[], checkChannel: boolean = true) => Promise<DeletionResponse>;
     hydratePriceFields(ctx: RequestContext, variant: ProductVariant, priceField: F) => Promise<ProductVariant[F]>;
+    calculateBuyerPrice(ctx: RequestContext, variant: ProductVariant, options: BuyerPriceOptions = {}) => Promise<BuyerPriceResult | undefined>;
+    calculateBuyerPriceForOrder(ctx: RequestContext, productVariant: ProductVariant, order: Order, options: BuyerPriceForOrderOptions) => Promise<PriceCalculationResult>;
     applyChannelPriceAndTax(variant: ProductVariant, ctx: RequestContext, order?: Order, throwIfNoPriceFound:  = false) => Promise<ProductVariant>;
     assignProductVariantsToChannel(ctx: RequestContext, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<ProductVariant>>>;
     removeProductVariantsFromChannel(ctx: RequestContext, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<ProductVariant>>>;
@@ -157,6 +159,45 @@ price-related fields which need to be populated at run-time using the `applyChan
 method.
 
 Is optimized to make as few DB calls as possible using caching based on the open request.
+### calculateBuyerPrice
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, options: <a href='/reference/typescript-api/services/buyer-price-options#buyerpriceoptions'>BuyerPriceOptions</a> = {}) => Promise<<a href='/reference/typescript-api/services/buyer-price-result#buyerpriceresult'>BuyerPriceResult</a> | undefined>`}  since="4.0.0"  />
+
+Calculates the unit price of the ProductVariant for a buyer, the given quantity and the given
+pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
+`priceWithTax` fields), and then runs the configured [ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy).
+The buyer is the `buyer` option, or else the Buyer of the active User from the
+[BuyerIdentityService](/reference/typescript-api/services/buyer-identity-service#buyeridentityservice).
+
+Returns `undefined` if the variant or its Product is not available in the active Channel (see
+[ChannelEnabledChecker](/reference/typescript-api/service-helpers/channel-enabled-checker#channelenabledchecker)). Then the strategy does not run. It also returns `undefined` if
+the strategy gives no price for this buyer. The result has the `metadata`
+of the strategy result. It is not a field of the GraphQL `BuyerPrice` type, but a field resolver
+of a plugin can read it from the parent object.
+
+The result is the base unit price of the buyer, not a guarantee of the final cart price. The tax
+rate comes from the tax zone of the active session, and the cart uses the tax zone of the Order.
+
+The strategy receives a copy of the variant and of the data, so the given objects do not change.
+Vendure does not cache the result: the strategy runs on each call.
+### calculateBuyerPriceForOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, options: <a href='/reference/typescript-api/services/buyer-price-for-order-options#buyerpricefororderoptions'>BuyerPriceForOrderOptions</a>) => Promise<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a>>`}  since="4.0.0"  />
+
+Calculates the unit price of an OrderLine with the configured [ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy),
+for a buyer of the Order. The [DefaultOrderItemPriceCalculationStrategy](/reference/typescript-api/orders/default-order-item-price-calculation-strategy#defaultorderitempricecalculationstrategy) uses this method.
+A custom [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy) that replaces the default calls it too, so that the
+cart and the Shop API `ProductVariant.buyerPrice` field use the same strategy and the same buyer.
+
+The `productVariant` must have the Channel price and tax applied, as the
+OrderItemPriceCalculationStrategy receives it. The strategy receives the `buyer` option, or else the
+Buyer of the Customer of the Order, and the OrderLine custom fields as the `data` argument. It
+receives a copy of the variant and a shallow copy of the custom fields, so the given objects do not
+change. The result includes the `metadata` of the strategy.
+
+If the strategy gives no price for this buyer, this method throws a [NoBuyerPriceError](/reference/typescript-api/errors/error-types#nobuyerpriceerror). Then
+Vendure does not add a new OrderLine, and an OrderLine that is already in the Order keeps its
+current price.
 ### applyChannelPriceAndTax
 
 <MemberInfo kind="method" type={`(variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>, throwIfNoPriceFound:  = false) => Promise<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>`}   />

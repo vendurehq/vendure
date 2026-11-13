@@ -95,13 +95,13 @@ orderOptions: {
 ```
 
 ```ts title="Signature"
-function removeLayer<S extends InjectableStrategy>(strategy: S, layer: StrategyLayerClass<S>): S
+function removeLayer<S extends InjectableStrategy, T extends S = S>(strategy: T, layer: StrategyLayerClass<S>): T
 ```
 Parameters
 
 ### strategy
 
-<MemberInfo kind="parameter" type={`S`} />
+<MemberInfo kind="parameter" type={`T`} />
 
 ### layer
 
@@ -109,7 +109,7 @@ Parameters
 
 ## setLayerPriority
 
-<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="145" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="148" packageName="@vendure/core" since="4.0.0" />
 
 Records a priority for a layer in the chain of the strategy. The recorded priority replaces the
 priority of the layer, and keeps the options that the plugin gave. Like [removeLayer](/reference/typescript-api/configuration/compose-strategy#removelayer), the
@@ -129,13 +129,13 @@ orderOptions: {
 ```
 
 ```ts title="Signature"
-function setLayerPriority<S extends InjectableStrategy>(strategy: S, layer: StrategyLayerClass<S>, priority: number): S
+function setLayerPriority<S extends InjectableStrategy, T extends S = S>(strategy: T, layer: StrategyLayerClass<S>, priority: number): T
 ```
 Parameters
 
 ### strategy
 
-<MemberInfo kind="parameter" type={`S`} />
+<MemberInfo kind="parameter" type={`T`} />
 
 ### layer
 
@@ -147,7 +147,7 @@ Parameters
 
 ## getBaseStrategy
 
-<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="176" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="179" packageName="@vendure/core" since="4.0.0" />
 
 Returns the base strategy of a composed strategy. If the strategy is not composed, returns the
 strategy. Use it in place of an `instanceof` check or a class name check on a configured strategy.

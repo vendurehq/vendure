@@ -1,0 +1,47 @@
+---
+title: "BuyerIdentityService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/buyer-identity.service.ts" sourceLine="30" packageName="@vendure/core" since="4.0.0" />
+
+Creates the [Buyer](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#buyer) that Vendure passes to the [ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy) in the
+`buyer` argument. A Buyer loads nothing until a strategy calls one of its methods.
+
+* `forCustomer()` gives the Buyer for a known Customer ID, for example the Customer of an Order.
+  `ProductVariantService.calculateBuyerPriceForOrder()` uses it with the Customer of the Order. In an
+  Admin draft order this is the Customer, not the Administrator, and in a guest Order it is the guest
+  Customer.
+* `forActiveUser()` gives the Buyer for the Customer of the active User, or no Customer for a guest
+  session. The Shop API `ProductVariant.buyerPrice` field uses it.
+
+The service loads each Customer once for each request, so a strategy can call the Buyer for each
+OrderLine without a query for each line. It gives only a Customer of the active Channel that is not
+deleted.
+
+```ts title="Signature"
+class BuyerIdentityService {
+    constructor(requestCache: RequestContextCacheService, customerService: CustomerService)
+    forCustomer(ctx: RequestContext, customerId: ID | null | undefined) => Buyer;
+    forActiveUser(ctx: RequestContext) => Buyer;
+}
+```
+
+<div className="members-wrapper">
+
+### forCustomer
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerId: <a href='/reference/typescript-api/common/id#id'>ID</a> | null | undefined) => <a href='/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#buyer'>Buyer</a>`}   />
+
+Returns the Buyer for the given Customer ID. Pass `undefined` or `null` for a buyer without a
+Customer. For a Customer that is deleted or not in the active Channel, `getCustomerId()` and
+`getCustomer()` both give `undefined`. So `getCustomerId()` loads the Customer too: one query
+for each Customer and request, shared with `getCustomer()`.
+### forActiveUser
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => <a href='/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#buyer'>Buyer</a>`}   />
+
+Returns the Buyer for the Customer of the active User. For a guest session, the Buyer has no
+Customer.
+
+
+</div>
