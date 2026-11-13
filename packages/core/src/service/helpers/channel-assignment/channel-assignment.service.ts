@@ -404,6 +404,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
                 dataProperties.add(column.propertyName);
             }
         }
+        // A many-to-many relation (a `list: true` relation custom field) has no column on the
+        // assignment table, only a junction table, but is still part of its embedded.
+        for (const relation of assignment.relations) {
+            if (relation.embeddedMetadata) {
+                dataProperties.add(relation.embeddedMetadata.propertyName);
+            }
+        }
         return {
             target: assignment.target as Type<ChannelAssignment>,
             entityType,

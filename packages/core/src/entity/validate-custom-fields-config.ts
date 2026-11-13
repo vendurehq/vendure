@@ -50,8 +50,6 @@ function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomF
     for (const field of channelScoped) {
         const unsupported = [
             isLocalizedCustomFieldType(field.type) && `type "${field.type}"`,
-            field.type === 'struct' && 'type "struct"',
-            field.type === 'relation' && field.list && '"list: true" relations',
             field.unique && '"unique: true"',
             field.secret && '"secret: true"',
         ].filter(Boolean);

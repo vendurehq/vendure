@@ -32,6 +32,9 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
         channelNote: string | null;
         channelFeaturedAsset: Asset | null;
         channelPriority: number;
+        channelTags: string[] | null;
+        channelSpecs: { label: string; rank: number } | null;
+        channelGallery: Asset[];
     }
     interface CustomStockLocationChannelFields {
         channelLabel: string | null;
@@ -115,6 +118,36 @@ const PRODUCT_PRIORITY = gql`
             customFields {
                 channelPriority
             }
+        }
+    }
+`;
+
+const LIST_FIELDS = `
+    id
+    customFields {
+        channelTags
+        channelSpecs {
+            label
+            rank
+        }
+        channelGallery {
+            id
+        }
+    }
+`;
+
+const PRODUCT_LIST_FIELDS = gql`
+    query ProductListFields($id: ID!) {
+        product(id: $id) {
+            ${LIST_FIELDS}
+        }
+    }
+`;
+
+const UPDATE_PRODUCT_LIST_FIELDS = gql`
+    mutation UpdateProductListFields($input: UpdateProductInput!) {
+        updateProduct(input: $input) {
+            ${LIST_FIELDS}
         }
     }
 `;
@@ -203,6 +236,36 @@ describe('Channel-scoped custom fields (#490)', () => {
                     },
                     { name: 'globalNote', type: 'string', nullable: true },
                     { name: 'channelPriority', type: 'int', channelScoped: true, defaultValue: 5 },
+                    { name: 'channelTags', type: 'string', list: true, channelScoped: true, nullable: true },
+                    {
+                        name: 'channelSpecs',
+                        type: 'struct',
+                        channelScoped: true,
+                        fields: [
+                            { name: 'label', type: 'string' },
+                            { name: 'rank', type: 'int' },
+                        ],
+                    },
+                    {
+                        name: 'channelGallery',
+                        type: 'relation',
+                        entity: Asset,
+                        list: true,
+                        channelScoped: true,
+                        nullable: true,
+                    },
+                ],
+                // The junction table of a list relation on an assignment entity has a long name:
+                // product_variant_channels_channel_custom_fields_channel_gallery_asset (68 chars)
+                ProductVariant: [
+                    {
+                        name: 'channelGallery',
+                        type: 'relation',
+                        entity: Asset,
+                        list: true,
+                        channelScoped: true,
+                        nullable: true,
+                    },
                 ],
                 StockLocation: [
                     { name: 'channelLabel', type: 'string', channelScoped: true, nullable: true },
@@ -296,6 +359,9 @@ describe('Channel-scoped custom fields (#490)', () => {
             { name: 'channelFeaturedAsset', channelScoped: true },
             { name: 'globalNote', channelScoped: false },
             { name: 'channelPriority', channelScoped: true },
+            { name: 'channelTags', channelScoped: true },
+            { name: 'channelSpecs', channelScoped: true },
+            { name: 'channelGallery', channelScoped: true },
         ];
         const { entityCustomFields, customFieldConfig } = globalSettings.serverConfig;
         expect(entityCustomFields.find((e: any) => e.entityName === 'Product').customFields).toEqual(
@@ -440,6 +506,117 @@ describe('Channel-scoped custom fields (#490)', () => {
         });
     });
 
+    it('list fields, struct fields and list relations hold a value per channel', async () => {
+        const read = async (token: string) => {
+            asChannel(token);
+            return (await adminClient.query(PRODUCT_LIST_FIELDS, { id: 'T_2' })).product.customFields;
+        };
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(UPDATE_PRODUCT_LIST_FIELDS, {
+            input: {
+                id: 'T_2',
+                customFields: {
+                    channelTags: ['a', 'b'],
+                    channelSpecs: { label: 'default', rank: 1 },
+                    channelGalleryIds: ['T_1', 'T_2'],
+                },
+            },
+        });
+        asChannel(CHANNEL_B_TOKEN);
+        await adminClient.query(UPDATE_PRODUCT_LIST_FIELDS, {
+            input: {
+                id: 'T_2',
+                customFields: {
+                    channelTags: ['b only'],
+                    channelSpecs: { label: 'B', rank: 2 },
+                    channelGalleryIds: ['T_3'],
+                },
+            },
+        });
+
+        const inDefault = {
+            channelTags: ['a', 'b'],
+            channelSpecs: { label: 'default', rank: 1 },
+            channelGallery: [{ id: 'T_1' }, { id: 'T_2' }],
+        };
+        expect(await read(E2E_DEFAULT_CHANNEL_TOKEN)).toEqual(inDefault);
+        expect(await read(CHANNEL_B_TOKEN)).toEqual({
+            channelTags: ['b only'],
+            channelSpecs: { label: 'B', rank: 2 },
+            channelGallery: [{ id: 'T_3' }],
+        });
+
+        const ctxB = await server.app
+            .get(RequestContextService)
+            .create({ apiType: 'admin', channelOrToken: CHANNEL_B_TOKEN });
+        const product = await server.app.get(ProductService).findOne(ctxB, 2);
+        const values = await product!.getChannelCustomFields(ctxB, { relations: ['channelGallery'] });
+        expect(values?.channelGallery.map(a => a.id)).toEqual([3]);
+
+        // The same on ProductVariant, whose junction table name is too long for Postgres and MySQL,
+        // so TypeORM shortens it
+        const variantGallery = gql`
+            query VariantGallery($id: ID!) {
+                productVariant(id: $id) {
+                    customFields {
+                        channelGallery {
+                            id
+                        }
+                    }
+                }
+            }
+        `;
+        asChannel(CHANNEL_B_TOKEN);
+        await adminClient.query(
+            gql`
+                mutation UpdateVariantGallery($input: [UpdateProductVariantInput!]!) {
+                    updateProductVariants(input: $input) {
+                        id
+                    }
+                }
+            `,
+            { input: [{ id: 'T_1', customFields: { channelGalleryIds: ['T_2', 'T_3'] } }] },
+        );
+        const { productVariant: variantInB } = await adminClient.query(variantGallery, { id: 'T_1' });
+        expect(variantInB.customFields.channelGallery).toEqual([{ id: 'T_2' }, { id: 'T_3' }]);
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { productVariant: variantInDefault } = await adminClient.query(variantGallery, { id: 'T_1' });
+        expect(variantInDefault.customFields.channelGallery).toEqual([]);
+
+        // Assigning to a new channel copies them, including the list relation
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(ASSIGN_PRODUCTS, { input: { channelId: channelCId, productIds: ['T_2'] } });
+        expect(await read(CHANNEL_C_TOKEN)).toEqual(inDefault);
+
+        // Removing it from the channel deletes the rows of the list relation's junction table too
+        const dataSource = server.app.get(TransactionalConnection).rawConnection;
+        const junction = dataSource
+            .getMetadata('ProductChannel')
+            .findRelationWithPropertyPath('customFields.channelGallery')!.junctionEntityMetadata!;
+        const channelColumn = junction.ownerColumns.find(
+            c => c.referencedColumn?.propertyName === 'channelId',
+        )!;
+        const productColumn = junction.ownerColumns.find(
+            c => c.referencedColumn?.propertyName === 'productId',
+        )!;
+        const galleryRowsInC = () =>
+            dataSource
+                .createQueryBuilder()
+                .select('*')
+                .from(junction.tableName, 'j')
+                .where(`j.${dataSource.driver.escape(channelColumn.databaseName)} = :channelId`, {
+                    channelId: Number(channelCId.replace('T_', '')),
+                })
+                .andWhere(`j.${dataSource.driver.escape(productColumn.databaseName)} = :productId`, {
+                    productId: 2,
+                })
+                .getRawMany();
+        expect(await galleryRowsInC()).toHaveLength(2);
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(REMOVE_PRODUCTS, { input: { channelId: channelCId, productIds: ['T_2'] } });
+        expect(await galleryRowsInC()).toEqual([]);
+    });
+
     it('createProduct writes channel-scoped values to the active channel only', async () => {
         asChannel(CHANNEL_B_TOKEN);
         const { createProduct } = await adminClient.query(
@@ -524,16 +701,22 @@ describe('Channel-scoped custom fields (#490)', () => {
             channelNote: 'default note',
             channelPriority: 5,
             channelFeaturedAssetId: 1,
+            channelTags: null,
+            channelSpecs: null,
         });
         expect(await inDefault!.getChannelCustomFields(ctxB)).toEqual({
             channelNote: 'B note',
             channelPriority: 5,
             channelFeaturedAssetId: null,
+            channelTags: null,
+            channelSpecs: null,
         });
         expect(await inDefault!.getChannelCustomFields(ctxDefault, { channelId: ctxB.channelId })).toEqual({
             channelNote: 'B note',
             channelPriority: 5,
             channelFeaturedAssetId: null,
+            channelTags: null,
+            channelSpecs: null,
         });
 
         // Relation fields on request

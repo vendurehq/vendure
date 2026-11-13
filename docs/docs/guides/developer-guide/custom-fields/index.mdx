@@ -895,9 +895,11 @@ How the values behave:
 
 Channel-scoped fields are supported on the ChannelAware entities, such as `Product`, `ProductVariant`,
 `Collection`, `Customer`, `Asset`, `Facet`, `FacetValue`, `Promotion`, `ShippingMethod`, `PaymentMethod` and
-`StockLocation`. The values are stored on the entity's row in its `channels` junction table (e.g. `ProductChannel`),
-so adding a field adds a column to that table. They cannot be combined with the localized types (`localeString`,
-`localeText`), `struct`, `list: true` relations, `unique` or `secret`. Vendure checks this when the server starts.
+`StockLocation`. Each field is a column of the entity's row in its `channels` junction table (e.g. `ProductChannel`),
+in the same way as an ordinary custom field is a column of the entity's own table, so they can be filtered and sorted
+like other custom fields. A `list: true` relation has a junction table of its own, as it does on any entity.
+They cannot be combined with the localized types (`localeString`, `localeText`), `unique` or `secret`. Vendure checks
+this when the server starts.
 
 In your TypeScript code, the values are not part of `entity.customFields`: see
 [Channel-scoped custom fields](#channel-scoped-custom-fields).
