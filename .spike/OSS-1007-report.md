@@ -171,8 +171,8 @@ Key files:
   * Results: 3/3 in UTC, Vienna, LA and Kolkata, and with PG server LA + Node Vienna (mixed source zones).
 * **Unit:** `check-database-timezone.spec.ts`, 5/5 in UTC and Vienna.
 * **Full core e2e on Postgres, `TZ=Europe/Vienna`, prototype `3a63b6acc`:** 2848 passed, 0 failed, 38 skipped. The two `migrate-*` specs initially errored because another project's Jaeger container holds port 17086 in this lane's range; they pass on a shifted port. `migrate-from-empty` also passes, so a fresh v4 schema generates cleanly with `timestamptz`.
-  * PENDING-PG2
-  * PENDING-MARIADB
+  * Rerun on the final prototype (`7fe402d5e`, adds the sync guard and MySQL pin): Postgres in `TZ=Europe/Vienna`: 2847 passed, 0 failed, 38 skipped. `migrate-product-option-groups` errored on port 17086 and passes 5/5 on a shifted port.
+  * Full core e2e on MariaDB, server `time_zone=Europe/Vienna`, `TZ=America/Los_Angeles`, final prototype: 2838 passed, 0 failed, 64 skipped. Of these, 2816 passed in the main run, and 22 passed when `migrate-product-option-groups` and `migrate-role-assignments` were rerun on a shifted port after the same port collision.
 * **Dashboard:** unit harness (15 tests × 4 browser zones) at `packages/dashboard/src/lib/__tz-spike__/`. Playwright was not run.
 * **Not tested:**
   * MySQL `aurora-mysql`
