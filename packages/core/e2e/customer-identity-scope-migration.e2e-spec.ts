@@ -48,7 +48,7 @@ import {
 const BRAND_A = { code: 'mig-brand-a', token: 'mig-brand-a-token' };
 const BRAND_B = { code: 'mig-brand-b', token: 'mig-brand-b-token' };
 
-describe('Customer identity scope migration (OSS-999)', () => {
+describe('Customer identity scope migration', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(mergeAuth(testConfig(), { requireVerification: false }), {
             // A list relation custom field, stored in a join table, to check that a split copies it.
