@@ -1,0 +1,77 @@
+
+ RUN  v4.1.12 /home/michael/.paseo/worktrees/2mxx465k/spike-oss-1007-timezones/packages/core
+
+
+ ❯ e2e/timezone.e2e-spec.ts (6 tests | 4 failed) 7275ms
+     × createdAt is the real instant of creation 28ms
+     × DateTime inputs round-trip as the same instant, also across DST fall-back 10ms
+     × a DateTime list filter on an explicit Date column finds the entity 4ms
+     × order createdAt, updatedAt and orderPlacedAt agree 357ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  e2e/timezone.e2e-spec.ts > Timezone handling (OSS-1007) > createdAt is the real instant of creation
+AssertionError: expected 1794570975735 to be greater than or equal to 1794574515718
+ ❯ e2e/timezone.e2e-spec.ts:131:27
+    129|         promotionIds.push(createPromotion.id);
+    130|         const createdAt = new Date(createPromotion.createdAt).getTime(…
+    131|         expect(createdAt).toBeGreaterThanOrEqual(before - MINUTE);
+       |                           ^
+    132|         expect(createdAt).toBeLessThanOrEqual(after + MINUTE);
+    133|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  e2e/timezone.e2e-spec.ts > Timezone handling (OSS-1007) > DateTime inputs round-trip as the same instant, also across DST fall-back
+AssertionError: expected '2026-10-25T00:30:00.000Z' to be '2026-10-25T01:30:00.000Z' // Object.is equality
+
+Expected: "2026-10-25T01:30:00.000Z"
+Received: "2026-10-25T00:30:00.000Z"
+
+ ❯ e2e/timezone.e2e-spec.ts:141:26
+    139|         const p = promotions.items[0];
+    140|         expect(p.startsAt).toBe(DST_FIRST);
+    141|         expect(p.endsAt).toBe(DST_SECOND);
+       |                          ^
+    142|         expect(p.customFields.validFrom).toBe(LA_SECOND);
+    143|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  e2e/timezone.e2e-spec.ts > Timezone handling (OSS-1007) > a DateTime list filter on an explicit Date column finds the entity
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ e2e/timezone.e2e-spec.ts:166:39
+    164|             },
+    165|         });
+    166|         expect(promotions.totalItems).toBe(1);
+       |                                       ^
+    167|     });
+    168|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  e2e/timezone.e2e-spec.ts > Timezone handling (OSS-1007) > order createdAt, updatedAt and orderPlacedAt agree
+AssertionError: createdAt=2026-11-13T11:56:15.941Z window 2026-11-13T12:56:15.930Z..2026-11-13T12:56:16.117Z: expected 1794570975941 to be greater than or equal to 1794574515930
+ ❯ e2e/timezone.e2e-spec.ts:181:132
+    179|         for (const field of ['createdAt', 'updatedAt', 'orderPlacedAt'…
+    180|             const t = new Date(o[field]).getTime();
+    181|             expect(t, `${field}=${o[field as string]} window ${new Dat…
+       |                                                                                                                                    ^
+    182|             expect(t, `${field}=${o[field as string]}`).toBeLessThanOr…
+    183|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  13:56:09
+   Duration  8.01s (transform 69ms, setup 0ms, import 657ms, tests 7.28s, environment 0ms)
+

@@ -1,0 +1,85 @@
+===== TZ SPIKE RESULTS (UTC, offset at 2026-01-01=0 / 2026-07-01=0) =====
+[UTC] D1 | 2026-03-29T00:30:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 3/29/2026
+[UTC] D1 | 2026-03-29T00:30:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 3/29/26, 12:30 AM
+[UTC] D1 | 2026-03-29T00:30:00.000Z history-entry-date full | March 29, 2026 at 12:30:00 AM
+[UTC] D1 | 2026-03-29T00:30:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 3/29/2026 / 12:30:00 AM UTC
+[UTC] D1 | 2026-03-29T01:00:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 3/29/2026
+[UTC] D1 | 2026-03-29T01:00:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 3/29/26, 1:00 AM
+[UTC] D1 | 2026-03-29T01:00:00.000Z history-entry-date full | March 29, 2026 at 1:00:00 AM
+[UTC] D1 | 2026-03-29T01:00:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 3/29/2026 / 1:00:00 AM UTC
+[UTC] D1 | 2026-10-25T01:00:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 10/25/2026
+[UTC] D1 | 2026-10-25T01:00:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 10/25/26, 1:00 AM
+[UTC] D1 | 2026-10-25T01:00:00.000Z history-entry-date full | October 25, 2026 at 1:00:00 AM
+[UTC] D1 | 2026-10-25T01:00:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 10/25/2026 / 1:00:00 AM UTC
+[UTC] D1 | 2026-03-08T10:00:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 3/8/2026
+[UTC] D1 | 2026-03-08T10:00:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 3/8/26, 10:00 AM
+[UTC] D1 | 2026-03-08T10:00:00.000Z history-entry-date full | March 8, 2026 at 10:00:00 AM
+[UTC] D1 | 2026-03-08T10:00:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 3/8/2026 / 10:00:00 AM UTC
+[UTC] D1 | 2026-07-15T23:30:00.000Z formatDate() default [page-layout:774, fulfillment:143, profile:222, api-keys_.$id:213, arg-summary:103] | 7/15/2026
+[UTC] D1 | 2026-07-15T23:30:00.000Z {dateStyle short,timeStyle short} [payment-details:196, struct-form-input:177] | 7/15/26, 11:30 PM
+[UTC] D1 | 2026-07-15T23:30:00.000Z history-entry-date full | July 15, 2026 at 11:30:00 PM
+[UTC] D1 | 2026-07-15T23:30:00.000Z DateTime cell (date-time.tsx) line1 {} / line2 timeStyle long | 7/15/2026 / 11:30:00 PM UTC
+[UTC] D2 | order 2026-03-28T23:00Z, now 2026-03-29T08:00Z | 9 hours ago
+[UTC] D2 | order 2026-03-27T09:00Z (47h ago) | 2 days ago
+[UTC] D3 | expected "Mar 14, 2025" / "3/14/25" | Mar 14, 2025 / 3/14/25
+[UTC] D4 | formatScalarArgValue(datetime, "2026-03-29T00:30:00.000Z") (string, never a Date) | 2026-03-29T00:30:00.000Z
+[UTC] D5 | new Date(v).toLocaleString() | 3/29/2026, 12:30:00 AM
+[UTC] I1 | pick 2026-03-29 (no value) -> sent | 2026-03-29T00:00:00.000Z
+[UTC] I1 |   then time input shows | 00:00
+[UTC] I2 | pick 2026-3-29 then type 02:30 -> sent | 2026-03-29T02:30:00.000Z (redisplays as 02:30)
+[UTC] I2 | pick 2026-10-25 then type 02:30 -> sent | 2026-10-25T02:30:00.000Z (redisplays as 02:30)
+[UTC] I2 | pick 2026-3-8 then type 02:30 -> sent | 2026-03-08T02:30:00.000Z (redisplays as 02:30)
+[UTC] I2 | pick 2026-11-1 then type 01:30 -> sent | 2026-11-01T01:30:00.000Z (redisplays as 01:30)
+[UTC] I3 | value 2026-10-25T01:30:00.000Z shown 01:30; re-click same day -> sent | 2026-10-25T01:30:00.000Z (delta 0 min)
+[UTC] I3 | value 2026-11-01T09:30:00.000Z shown 09:30; re-click same day -> sent | 2026-11-01T09:30:00.000Z (delta 0 min)
+[UTC] I3 | value 2026-03-29T00:30:00.000Z shown 00:30; re-click same day -> sent | 2026-03-29T00:30:00.000Z (delta 0 min)
+[UTC] I3 | value 2026-03-29T10:15:42.123Z shown 10:15; re-click same day -> sent | 2026-03-29T10:15:00.000Z (delta -0.70205 min)
+[UTC] I4 | value 2026-03-29T00:30:00.000Z -> trigger label / time input | Mar 29, 2026 / 00:30
+[UTC] I4 | value 2026-03-29T01:00:00.000Z -> trigger label / time input | Mar 29, 2026 / 01:00
+[UTC] I4 | value 2026-10-25T01:00:00.000Z -> trigger label / time input | Oct 25, 2026 / 01:00
+[UTC] I4 | value 2026-03-08T10:00:00.000Z -> trigger label / time input | Mar 8, 2026 / 10:00
+[UTC] I4 | value 2026-07-15T23:30:00.000Z -> trigger label / time input | Jul 15, 2026 / 23:30
+[UTC] F1 | eq 2026-03-29 | {"eq":"2026-03-29T00:00:00.000Z"}
+[UTC] F1 | before 2026-03-29 | {"before":"2026-03-29T00:00:00.000Z"}
+[UTC] F1 | after 2026-03-29 | {"after":"2026-03-29T00:00:00.000Z"}
+[UTC] F1 | between 2026-03-29..2026-03-29 | {"between":{"start":"2026-03-29T00:00:00.000Z","end":"2026-03-29T00:00:00.000Z"}}
+[UTC] F1 | between 2026-03-29..2026-03-30 | {"between":{"start":"2026-03-29T00:00:00.000Z","end":"2026-03-30T00:00:00.000Z"}}
+[UTC] F2 | stored UTC-day filter re-parsed and rebuilt | {"between":{"start":"2026-03-29T00:00:00.000Z","end":"2026-03-29T23:59:00.000Z"}}
+[UTC] F2 | badge shows (data-table-filter-badge.tsx:100) | 3/29/26 .. 3/29/26
+[UTC] W1 | now=2026-03-29T00:30:00.000Z default range sent | 2026-03-01T00:00:00.000Z .. 2026-03-29T23:59:59.999Z
+[UTC] W1 | now=2026-03-29T00:30:00.000Z preset today 2026-03-29..2026-03-29 sent | 2026-03-29T00:00:00.000Z .. 2026-03-29T23:59:59.999Z (24h)
+[UTC] W1 | now=2026-03-29T00:30:00.000Z preset this-week 2026-03-23..2026-03-29 sent | 2026-03-23T00:00:00.000Z .. 2026-03-29T23:59:59.999Z (168h)
+[UTC] W1 | now=2026-03-29T00:30:00.000Z preset last-month 2026-02-01..2026-02-28 sent | 2026-02-01T00:00:00.000Z .. 2026-02-28T23:59:59.999Z (672h)
+[UTC] W1 | now=2026-03-29T01:00:00.000Z default range sent | 2026-03-01T00:00:00.000Z .. 2026-03-29T23:59:59.999Z
+[UTC] W1 | now=2026-03-29T01:00:00.000Z preset today 2026-03-29..2026-03-29 sent | 2026-03-29T00:00:00.000Z .. 2026-03-29T23:59:59.999Z (24h)
+[UTC] W1 | now=2026-03-29T01:00:00.000Z preset this-week 2026-03-23..2026-03-29 sent | 2026-03-23T00:00:00.000Z .. 2026-03-29T23:59:59.999Z (168h)
+[UTC] W1 | now=2026-03-29T01:00:00.000Z preset last-month 2026-02-01..2026-02-28 sent | 2026-02-01T00:00:00.000Z .. 2026-02-28T23:59:59.999Z (672h)
+[UTC] W1 | now=2026-03-08T10:00:00.000Z default range sent | 2026-03-01T00:00:00.000Z .. 2026-03-08T23:59:59.999Z
+[UTC] W1 | now=2026-03-08T10:00:00.000Z preset today 2026-03-08..2026-03-08 sent | 2026-03-08T00:00:00.000Z .. 2026-03-08T23:59:59.999Z (24h)
+[UTC] W1 | now=2026-03-08T10:00:00.000Z preset this-week 2026-03-02..2026-03-08 sent | 2026-03-02T00:00:00.000Z .. 2026-03-08T23:59:59.999Z (168h)
+[UTC] W1 | now=2026-03-08T10:00:00.000Z preset last-month 2026-02-01..2026-02-28 sent | 2026-02-01T00:00:00.000Z .. 2026-02-28T23:59:59.999Z (672h)
+[UTC] W1 | now=2026-03-31T12:00:00.000Z default range sent | 2026-03-01T00:00:00.000Z .. 2026-03-31T23:59:59.999Z
+[UTC] W1 | now=2026-03-31T12:00:00.000Z preset today 2026-03-31..2026-03-31 sent | 2026-03-31T00:00:00.000Z .. 2026-03-31T23:59:59.999Z (24h)
+[UTC] W1 | now=2026-03-31T12:00:00.000Z preset this-week 2026-03-30..2026-04-05 sent | 2026-03-30T00:00:00.000Z .. 2026-04-05T23:59:59.999Z (168h)
+[UTC] W1 | now=2026-03-31T12:00:00.000Z preset last-month 2026-03-01..2026-03-31 sent | 2026-03-01T00:00:00.000Z .. 2026-03-31T23:59:59.999Z (744h)
+[UTC] W2 | pick 2026-03-29..2026-03-29: sent | {"startDate":"2026-03-29T00:00:00.000Z","endDate":"2026-03-29T23:59:59.999Z"}
+[UTC] W2 |   server queries orderPlacedAt | 2026-03-29T00:00:00.000Z .. 2026-03-29T23:59:59.999Z (1 buckets)
+[UTC] W2 |   buckets (UTC dateKey -> x-axis label shown) | 2026-03-29->"Mar 29"
+[UTC] W2 | pick 2026-03-01..2026-03-31: sent | {"startDate":"2026-03-01T00:00:00.000Z","endDate":"2026-03-31T23:59:59.999Z"}
+[UTC] W2 |   server queries orderPlacedAt | 2026-03-01T00:00:00.000Z .. 2026-03-31T23:59:59.999Z (31 buckets)
+[UTC] W2 |   buckets (UTC dateKey -> x-axis label shown) | 2026-03-01->"Mar 1", 2026-03-02->"Mar 2", ..., 2026-03-30->"Mar 30", 2026-03-31->"Mar 31"
+[UTC] W2 | pick 2026-10-25..2026-10-25: sent | {"startDate":"2026-10-25T00:00:00.000Z","endDate":"2026-10-25T23:59:59.999Z"}
+[UTC] W2 |   server queries orderPlacedAt | 2026-10-25T00:00:00.000Z .. 2026-10-25T23:59:59.999Z (1 buckets)
+[UTC] W2 |   buckets (UTC dateKey -> x-axis label shown) | 2026-10-25->"Oct 25"
+[UTC] W3 | range 2026-03-29..2026-03-29 rangeLength=1 | current sent 2026-03-29T00:00:00.000Z..2026-03-29T23:59:59.999Z | previous sent 2026-03-28T00:00:00.000Z..2026-03-28T23:59:59.999Z
+[UTC] W3 |   server(UTC) current/previous days | 2026-03-29 | 2026-03-28
+[UTC] W3 | range 2026-03-30..2026-03-30 rangeLength=1 | current sent 2026-03-30T00:00:00.000Z..2026-03-30T23:59:59.999Z | previous sent 2026-03-29T00:00:00.000Z..2026-03-29T23:59:59.999Z
+[UTC] W3 |   server(UTC) current/previous days | 2026-03-30 | 2026-03-29
+[UTC] W3 | range 2026-03-23..2026-03-29 rangeLength=7 | current sent 2026-03-23T00:00:00.000Z..2026-03-29T23:59:59.999Z | previous sent 2026-03-16T00:00:00.000Z..2026-03-22T23:59:59.999Z
+[UTC] W3 |   server(UTC) current/previous days | 2026-03-23,2026-03-24,2026-03-25,2026-03-26,2026-03-27,2026-03-28,2026-03-29 | 2026-03-16,2026-03-17,2026-03-18,2026-03-19,2026-03-20,2026-03-21,2026-03-22
+[UTC] W3 | range 2026-04-01..2026-04-30 rangeLength=30 | current sent 2026-04-01T00:00:00.000Z..2026-04-30T23:59:59.999Z | previous sent 2026-03-02T00:00:00.000Z..2026-03-31T23:59:59.999Z
+[UTC] W3 |   server(UTC) current/previous days | 2026-04-01,2026-04-02,2026-04-03,2026-04-04,2026-04-05,2026-04-06,2026-04-07,2026-04-08,2026-04-09,2026-04-10,2026-04-11,2026-04-12,2026-04-13,2026-04-14,2026-04-15,2026-04-16,2026-04-17,2026-04-18,2026-04-19,2026-04-20,2026-04-21,2026-04-22,2026-04-23,2026-04-24,2026-04-25,2026-04-26,2026-04-27,2026-04-28,2026-04-29,2026-04-30 | 2026-03-02,2026-03-03,2026-03-04,2026-03-05,2026-03-06,2026-03-07,2026-03-08,2026-03-09,2026-03-10,2026-03-11,2026-03-12,2026-03-13,2026-03-14,2026-03-15,2026-03-16,2026-03-17,2026-03-18,2026-03-19,2026-03-20,2026-03-21,2026-03-22,2026-03-23,2026-03-24,2026-03-25,2026-03-26,2026-03-27,2026-03-28,2026-03-29,2026-03-30,2026-03-31
+[UTC] V1 | value 2025-12-31T23:30:00.000Z (shown as Dec 31, 2025, 11:30 PM) | Date must be after 1/1/2026
+[UTC] V1 | value 2026-01-01T00:00:00.000Z (shown as Jan 1, 2026, 12:00 AM) | valid
+[UTC] V1 | value 2026-01-01T00:00:00.000Z (shown as Jan 1, 2026, 12:00 AM) | valid
+[UTC] V1 | min date as shown in message: new Date("2026-01-01").toLocaleDateString() | 1/1/2026
