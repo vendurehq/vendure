@@ -251,7 +251,7 @@ msgstr "これを有効にすると、商品カタログに入力された価格
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "ストアフロント"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5454,7 +5454,7 @@ msgstr "チャネルを追加"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "この顧客はデフォルトチャネルの顧客ベースに属します。別のストアフロントの顧客を作成するには、先にそのチャネルに切り替えてください。"
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

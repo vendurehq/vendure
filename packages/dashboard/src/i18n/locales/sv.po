@@ -251,7 +251,7 @@ msgstr "När detta är aktiverat kommer priserna i produktkatalogen inkludera sk
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "Butiker"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5454,7 +5454,7 @@ msgstr "Lägg till kanal"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "Den här kunden kommer att tillhöra kundbasen för standardkanalen. Byt först till rätt kanal för att skapa en kund för en annan butik."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

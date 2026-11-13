@@ -251,7 +251,7 @@ msgstr "Cuando esto está habilitado, los precios ingresados en el catálogo de 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "Tiendas"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5454,7 +5454,7 @@ msgstr "Añadir canal"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "Este cliente pertenecerá a la base de clientes del canal predeterminado. Para crear un cliente para otra tienda, cambie primero a ese canal."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

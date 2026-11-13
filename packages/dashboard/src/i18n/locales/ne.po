@@ -251,7 +251,7 @@ msgstr "यो सक्षम पारिएको बेला, उत्प�
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "स्टोरफ्रन्टहरू"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5454,7 +5454,7 @@ msgstr "च्यानल थप्नुहोस्"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "यो ग्राहक पूर्वनिर्धारित च्यानलको ग्राहक आधारमा पर्नेछ। अर्को स्टोरफ्रन्टका लागि ग्राहक सिर्जना गर्न, पहिले त्यो च्यानलमा स्विच गर्नुहोस्।"
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

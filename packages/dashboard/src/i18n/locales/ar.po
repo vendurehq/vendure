@@ -251,7 +251,7 @@ msgstr "عند تمكين هذا، ستكون الأسعار المدخلة في
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "واجهات المتجر"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5454,7 +5454,7 @@ msgstr "إضافة قناة"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "سينتمي هذا العميل إلى قاعدة عملاء القناة الافتراضية. لإنشاء عميل لواجهة متجر أخرى، انتقل إلى تلك القناة أولاً."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

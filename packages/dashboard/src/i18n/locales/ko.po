@@ -251,7 +251,7 @@ msgstr "이 옵션을 활성화하면 상품 카탈로그에 입력된 가격에
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "스토어프런트"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5413,7 +5413,7 @@ msgstr "채널 추가"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "이 고객은 기본 채널의 고객층에 속하게 됩니다. 다른 스토어프런트의 고객을 만들려면 먼저 해당 채널로 전환하세요."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

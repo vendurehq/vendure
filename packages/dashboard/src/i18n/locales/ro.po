@@ -243,7 +243,7 @@ msgstr "Când este activat, prețurile introduse în catalogul de produse vor in
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "Magazine"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5318,7 +5318,7 @@ msgstr "Adaugă canal"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "Acest client va aparține bazei de clienți a canalului implicit. Pentru a crea un client pentru alt magazin, comutați mai întâi la acel canal."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

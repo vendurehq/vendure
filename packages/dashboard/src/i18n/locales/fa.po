@@ -251,7 +251,7 @@ msgstr "وقتی این فعال باشد، قیمت‌های وارد شده د
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "ویترین‌های فروشگاه"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5454,7 +5454,7 @@ msgstr "افزودن کانال"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "این مشتری به پایگاه مشتریان کانال پیش‌فرض تعلق خواهد داشت. برای ایجاد مشتری برای فروشگاه دیگر، ابتدا به آن کانال بروید."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx

@@ -243,7 +243,7 @@ msgstr "Bu yoqilganda, mahsulot katalogidagi narxlar standart soliq hududi solig
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
-msgstr ""
+msgstr "Doʻkonlar"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order completed"
@@ -5318,7 +5318,7 @@ msgstr "Kanal qo'shish"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "This customer will belong to the default channel's customer base. To create a customer for another storefront, switch to that channel first."
-msgstr ""
+msgstr "Bu mijoz standart kanalning mijozlar bazasiga tegishli boʻladi. Boshqa doʻkon uchun mijoz yaratish uchun avval oʻsha kanalga oʻting."
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
