@@ -37,12 +37,14 @@ export class BuyerIdentityService {
     /**
      * @description
      * Returns the Buyer for the given Customer ID. Pass `undefined` or `null` for a buyer without a
-     * Customer. `getCustomerId()` of this Buyer runs no query.
+     * Customer. For a Customer that is deleted or not in the active Channel, `getCustomerId()` and
+     * `getCustomer()` both give `undefined`. So `getCustomerId()` loads the Customer too: one query
+     * for each Customer and request, shared with `getCustomer()`.
      */
     forCustomer(ctx: RequestContext, customerId: ID | null | undefined): Buyer {
         const id = customerId ?? undefined;
         return {
-            getCustomerId: () => Promise.resolve(id),
+            getCustomerId: async () => (await this.getCustomer(ctx, id))?.id,
             getCustomer: () => this.getCustomer(ctx, id),
         };
     }
