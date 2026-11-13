@@ -2,10 +2,11 @@ import { describe, expectTypeOf, it } from 'vitest';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Asset } from '../asset/asset.entity';
-import { ProductChannel } from '../channel-assignment/channel-assignment.entities';
-import { CustomProductChannelFields } from '../custom-entity-fields';
+import { CustomProductChannelFields, CustomStockLocationChannelFields } from '../custom-entity-fields';
+import { Product } from '../product/product.entity';
+import { StockLocation } from '../stock-location/stock-location.entity';
 
-import { Product } from './product.entity';
+import { ProductChannel } from './channel-assignment.entities';
 
 // Augmentations apply to the whole type-check program, so only CustomProductChannelFields, which
 // no other code constructs, is augmented here.
@@ -18,6 +19,7 @@ declare module '../custom-entity-fields' {
 
 declare const ctx: RequestContext;
 declare const product: Product;
+declare const stockLocation: StockLocation;
 
 // #490: channel-scoped custom fields are not on the entity, so the type system makes code read them
 // with getChannelCustomFields() rather than from `customFields`, where they would be undefined.
@@ -44,5 +46,11 @@ describe('channel-scoped custom fields of Product (#490)', () => {
 
     it('are typed on the assignment row', () => {
         expectTypeOf<ProductChannel['customFields']>().toEqualTypeOf<CustomProductChannelFields>();
+    });
+
+    it('are typed per entity on every ChannelAware entity with an assignment entity', () => {
+        expectTypeOf(stockLocation.getChannelCustomFields(ctx)).toEqualTypeOf<
+            Promise<CustomStockLocationChannelFields | undefined>
+        >();
     });
 });

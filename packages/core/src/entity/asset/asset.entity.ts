@@ -2,15 +2,20 @@ import { AssetType } from '@vendure/common/lib/generated-types';
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, Taggable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { Collection } from '../collection/collection.entity';
-import { CustomAssetFields } from '../custom-entity-fields';
-import { Product } from '../product/product.entity';
+import { CustomAssetChannelFields, CustomAssetFields } from '../custom-entity-fields';
 import { ProductVariant } from '../product-variant/product-variant.entity';
+import { Product } from '../product/product.entity';
 import { Tag } from '../tag/tag.entity';
 
 import { AssetTranslation } from './asset-translation.entity';
@@ -78,6 +83,25 @@ export class Asset extends VendureEntity implements Taggable, ChannelAware, HasC
 
     @Column(type => CustomAssetFields)
     customFields: CustomAssetFields;
+
+    /**
+     * @description
+     * Returns the values of the Asset's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the Asset is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomAssetChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomAssetChannelFields>,
+    ): Promise<CustomAssetChannelFields | undefined> {
+        return readChannelCustomFields(ctx, Asset, this, options);
+    }
 
     @OneToMany(type => AssetTranslation, translation => translation.base, { eager: true })
     translations: Array<Translation<Asset>>;

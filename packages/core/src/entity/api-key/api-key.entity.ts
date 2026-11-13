@@ -3,10 +3,15 @@ import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typ
 
 import { Channel } from '..';
 import { ApiType } from '../../api/common/get-api-type';
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, LocaleString, SoftDeletable, Translatable, Translation } from '../../common';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
-import { CustomApiKeyFields } from '../custom-entity-fields';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
+import { CustomApiKeyChannelFields, CustomApiKeyFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { User } from '../user/user.entity';
 
@@ -94,6 +99,25 @@ export class ApiKey
 
     @Column(type => CustomApiKeyFields)
     customFields: CustomApiKeyFields;
+
+    /**
+     * @description
+     * Returns the values of the ApiKey's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the ApiKey is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomApiKeyChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomApiKeyChannelFields>,
+    ): Promise<CustomApiKeyChannelFields | undefined> {
+        return readChannelCustomFields(ctx, ApiKey, this, options);
+    }
 
     name: LocaleString;
 }

@@ -15,8 +15,12 @@ import {
 } from '../../config/shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from '../../config/shipping-method/shipping-eligibility-checker';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomShippingMethodFields } from '../custom-entity-fields';
+import { CustomShippingMethodChannelFields, CustomShippingMethodFields } from '../custom-entity-fields';
 import { Order } from '../order/order.entity';
 
 import { ShippingMethodTranslation } from './shipping-method-translation.entity';
@@ -73,6 +77,25 @@ export class ShippingMethod
 
     @Column(type => CustomShippingMethodFields)
     customFields: CustomShippingMethodFields;
+
+    /**
+     * @description
+     * Returns the values of the ShippingMethod's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the ShippingMethod is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomShippingMethodChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomShippingMethodChannelFields>,
+    ): Promise<CustomShippingMethodChannelFields | undefined> {
+        return readChannelCustomFields(ctx, ShippingMethod, this, options);
+    }
 
     async apply(ctx: RequestContext, order: Order): Promise<ShippingCalculationResult | undefined> {
         const calculator = this.allCalculators[this.calculator.code];

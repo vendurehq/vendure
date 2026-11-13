@@ -1,11 +1,16 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware } from '../../common/types/common-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomStockLocationFields } from '../custom-entity-fields';
+import { CustomStockLocationChannelFields, CustomStockLocationFields } from '../custom-entity-fields';
 import { StockMovement } from '../stock-movement/stock-movement.entity';
 
 /**
@@ -32,6 +37,25 @@ export class StockLocation extends VendureEntity implements HasCustomFields, Cha
 
     @Column(type => CustomStockLocationFields)
     customFields: CustomStockLocationFields;
+
+    /**
+     * @description
+     * Returns the values of the StockLocation's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the StockLocation is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomStockLocationChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomStockLocationChannelFields>,
+    ): Promise<CustomStockLocationChannelFields | undefined> {
+        return readChannelCustomFields(ctx, StockLocation, this, options);
+    }
 
     @ManyToMany(type => Channel, channel => channel.stockLocations)
     // The junction table is owned by the channel assignment entity, which manages its schema.

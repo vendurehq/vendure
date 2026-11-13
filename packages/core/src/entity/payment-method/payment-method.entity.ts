@@ -2,12 +2,17 @@ import { ConfigurableOperation } from '@vendure/common/lib/generated-types';
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomPaymentMethodFields } from '../custom-entity-fields';
+import { CustomPaymentMethodChannelFields, CustomPaymentMethodFields } from '../custom-entity-fields';
 
 import { PaymentMethodTranslation } from './payment-method-translation.entity';
 
@@ -46,4 +51,23 @@ export class PaymentMethod extends VendureEntity implements Translatable, Channe
 
     @Column(type => CustomPaymentMethodFields)
     customFields: CustomPaymentMethodFields;
+
+    /**
+     * @description
+     * Returns the values of the PaymentMethod's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the PaymentMethod is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomPaymentMethodChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomPaymentMethodChannelFields>,
+    ): Promise<CustomPaymentMethodChannelFields | undefined> {
+        return readChannelCustomFields(ctx, PaymentMethod, this, options);
+    }
 }

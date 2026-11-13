@@ -9,11 +9,14 @@ import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types'
 import {
     Asset,
     ChannelAssignmentService,
+    EntityHydrator,
     FastImporterService,
     mergeConfig,
     Product,
     ProductService,
+    ProductVariantService,
     RequestContextService,
+    StockLocationService,
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
@@ -29,6 +32,9 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
         channelNote: string | null;
         channelFeaturedAsset: Asset | null;
         channelPriority: number;
+    }
+    interface CustomStockLocationChannelFields {
+        channelLabel: string | null;
     }
 }
 
@@ -588,6 +594,31 @@ describe('Channel-scoped custom fields (#490)', () => {
             input: { id: createStockLocation.id, customFields: { channelLabel: 'updated' } },
         });
         expect(updateStockLocation.customFields.channelLabel).toBe('updated');
+
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const stockLocation = await server.app
+            .get(StockLocationService)
+            .findOne(ctx, Number(createStockLocation.id.replace('T_', '')));
+        expect(await stockLocation!.getChannelCustomFields(ctx)).toEqual({ channelLabel: 'updated' });
+    });
+
+    it('EntityHydrator rejects channel-scoped custom fields and points to getChannelCustomFields()', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const hydrator = server.app.get(EntityHydrator);
+        const product = await server.app.get(ProductService).findOne(ctx, 1);
+        await expect(
+            hydrator.hydrate(ctx, product!, { relations: ['customFields.channelFeaturedAsset'] }),
+        ).rejects.toThrow(
+            'Cannot hydrate "customFields.channelFeaturedAsset": "channelFeaturedAsset" is a channel-scoped ' +
+                'custom field of Product',
+        );
+        // Also on a related entity
+        const variant = await server.app.get(ProductVariantService).findOne(ctx, 1);
+        await expect(
+            hydrator.hydrate(ctx, variant!, { relations: ['product.customFields.channelFeaturedAsset'] }),
+        ).rejects.toThrow(
+            "getChannelCustomFields(ctx, { relations: ['channelFeaturedAsset'] }) on the Product",
+        );
     });
 
     it('saves the values of a guest Customer created by setCustomerForOrder', async () => {

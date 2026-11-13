@@ -1,16 +1,21 @@
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomFacetValueFields } from '../custom-entity-fields';
+import { CustomFacetValueChannelFields, CustomFacetValueFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Facet } from '../facet/facet.entity';
-import { Product } from '../product/product.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
+import { Product } from '../product/product.entity';
 
 import { FacetValueTranslation } from './facet-value-translation.entity';
 
@@ -41,6 +46,25 @@ export class FacetValue extends VendureEntity implements Translatable, HasCustom
 
     @Column(type => CustomFacetValueFields)
     customFields: CustomFacetValueFields;
+
+    /**
+     * @description
+     * Returns the values of the FacetValue's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the FacetValue is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomFacetValueChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomFacetValueChannelFields>,
+    ): Promise<CustomFacetValueChannelFields | undefined> {
+        return readChannelCustomFields(ctx, FacetValue, this, options);
+    }
 
     @ManyToMany(type => Channel, channel => channel.facetValues)
     // The junction table is owned by the channel assignment entity, which manages its schema.

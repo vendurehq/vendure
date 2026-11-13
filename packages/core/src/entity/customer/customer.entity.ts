@@ -1,12 +1,17 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Address } from '../address/address.entity';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomCustomerFields } from '../custom-entity-fields';
+import { CustomCustomerChannelFields, CustomCustomerFields } from '../custom-entity-fields';
 import { CustomerGroup } from '../customer-group/customer-group.entity';
 import { Order } from '../order/order.entity';
 import { User } from '../user/user.entity';
@@ -57,6 +62,25 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
 
     @Column(type => CustomCustomerFields)
     customFields: CustomCustomerFields;
+
+    /**
+     * @description
+     * Returns the values of the Customer's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the Customer is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomCustomerChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomCustomerChannelFields>,
+    ): Promise<CustomCustomerChannelFields | undefined> {
+        return readChannelCustomFields(ctx, Customer, this, options);
+    }
 
     @ManyToMany(type => Channel, channel => channel.customers)
     // The junction table is owned by the channel assignment entity, which manages its schema.

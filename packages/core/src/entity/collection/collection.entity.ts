@@ -13,13 +13,18 @@ import {
     TreeParent,
 } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, Orderable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomCollectionFields } from '../custom-entity-fields';
+import { CustomCollectionChannelFields, CustomCollectionFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { ProductVariant } from '../product-variant/product-variant.entity';
 
@@ -80,6 +85,25 @@ export class Collection
 
     @Column(type => CustomCollectionFields)
     customFields: CustomCollectionFields;
+
+    /**
+     * @description
+     * Returns the values of the Collection's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the Collection is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomCollectionChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomCollectionChannelFields>,
+    ): Promise<CustomCollectionChannelFields | undefined> {
+        return readChannelCustomFields(ctx, Collection, this, options);
+    }
 
     @TreeChildren()
     children: Collection[];

@@ -312,13 +312,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
     ): Promise<Record<string, unknown>> {
         const meta = this.getMetadataByEntityName(entityName);
         const entityId = typeof entityOrId === 'object' ? entityOrId?.id : entityOrId;
-        const row: any =
+        const values =
             meta && entityOrId != null && entityId != null
-                ? await this.getAssignment(ctx, meta.entityType, entityOrId)
+                ? await this.getChannelCustomFields(ctx, meta.entityType, entityOrId)
                 : undefined;
         const result: Record<string, unknown> = {};
         for (const name of fieldNames) {
-            result[name] = row?.customFields?.[name] ?? null;
+            result[name] = values?.[name] ?? null;
         }
         return result;
     }

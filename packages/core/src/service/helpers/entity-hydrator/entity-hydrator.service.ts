@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { SelectQueryBuilder } from 'typeorm';
+import { EntityMetadata, SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError } from '../../../common/error/errors';
+import { ConfigService } from '../../../config/config.service';
+import { CustomFields } from '../../../config/custom-field/custom-field-types';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
@@ -78,6 +80,7 @@ export class EntityHydrator {
         private connection: TransactionalConnection,
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
+        private configService: ConfigService,
     ) {}
 
     /**
@@ -105,6 +108,7 @@ export class EntityHydrator {
         options: HydrateOptions<Entity>,
     ): Promise<Entity> {
         if (options.relations) {
+            this.assertNoChannelScopedCustomFields(target, options.relations as string[]);
             let missingRelations = this.getMissingRelations(target, options);
 
             if (options.applyProductVariantPrices === true) {
@@ -176,6 +180,40 @@ export class EntityHydrator {
             }
         }
         return target;
+    }
+
+    /**
+     * Channel-scoped custom fields are stored on the channel assignment row of the entity, not on the
+     * entity, so they cannot be hydrated. Without this check, TypeORM would fail with an error which
+     * does not say why.
+     */
+    private assertNoChannelScopedCustomFields(target: VendureEntity, relations: string[]) {
+        for (const path of relations) {
+            const segments = path.split('.');
+            if (!segments.includes('customFields')) {
+                continue;
+            }
+            let metadata: EntityMetadata | undefined = this.connection.rawConnection.entityMetadatas.find(
+                m => m.target === target.constructor,
+            );
+            for (let i = 0; i < segments.length - 1 && metadata; i++) {
+                if (segments[i] === 'customFields') {
+                    const entityName = metadata.name;
+                    const field = this.configService.customFields[entityName as keyof CustomFields]?.find(
+                        f => f.name === segments[i + 1],
+                    );
+                    if (field?.channelScoped) {
+                        throw new InternalServerError(
+                            `Cannot hydrate "${path}": "${field.name}" is a channel-scoped custom field of ` +
+                                `${entityName}, which is not stored on the entity. Read it with ` +
+                                `getChannelCustomFields(ctx, { relations: ['${field.name}'] }) on the ${entityName}.`,
+                        );
+                    }
+                    break;
+                }
+                metadata = metadata.findRelationWithPropertyPath(segments[i])?.inverseEntityMetadata;
+            }
+        }
     }
 
     private assignSettableProperties<Entity extends VendureEntity>(target: Entity, source: Entity) {

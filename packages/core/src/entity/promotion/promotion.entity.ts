@@ -18,8 +18,12 @@ import {
 } from '../../config/promotion/promotion-action';
 import { PromotionCondition, PromotionConditionState } from '../../config/promotion/promotion-condition';
 import { couponCodesMatch } from '../../service/helpers/utils/coupon-codes-match';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomPromotionFields } from '../custom-entity-fields';
+import { CustomPromotionChannelFields, CustomPromotionFields } from '../custom-entity-fields';
 import { OrderLine } from '../order-line/order-line.entity';
 import { Order } from '../order/order.entity';
 import { ShippingLine } from '../shipping-line/shipping-line.entity';
@@ -127,6 +131,25 @@ export class Promotion
 
     @Column(type => CustomPromotionFields)
     customFields: CustomPromotionFields;
+
+    /**
+     * @description
+     * Returns the values of the Promotion's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the Promotion is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomPromotionChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomPromotionChannelFields>,
+    ): Promise<CustomPromotionChannelFields | undefined> {
+        return readChannelCustomFields(ctx, Promotion, this, options);
+    }
 
     @Column('simple-json') conditions: ConfigurableOperation[];
 

@@ -9,6 +9,7 @@ import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { Calculated } from '../../common/calculated-decorator';
 import { InternalServerError } from '../../common/error/errors';
 import { ChannelAware } from '../../common/types/common-types';
@@ -16,8 +17,12 @@ import { getConfig } from '../../config/config-helpers';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { OrderState } from '../../service/helpers/order-state-machine/order-state';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomOrderFields } from '../custom-entity-fields';
+import { CustomOrderChannelFields, CustomOrderFields } from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
 import { EntityId } from '../entity-id.decorator';
 import { Fulfillment } from '../fulfillment/fulfillment.entity';
@@ -165,6 +170,25 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
 
     @Column(type => CustomOrderFields)
     customFields: CustomOrderFields;
+
+    /**
+     * @description
+     * Returns the values of the Order's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the Order is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomOrderChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomOrderChannelFields>,
+    ): Promise<CustomOrderChannelFields | undefined> {
+        return readChannelCustomFields(ctx, Order, this, options);
+    }
 
     @EntityId({ nullable: true })
     taxZoneId?: ID;

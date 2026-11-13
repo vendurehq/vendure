@@ -108,6 +108,10 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * - An entity which is not assigned to the active Channel reads `null`.
      * - Removing the entity from a Channel deletes its values in that Channel.
      *
+     * In TypeScript code, the values are not part of `entity.customFields`. Declare their types on the
+     * entity's `Custom<Entity>ChannelFields` interface (e.g. `CustomProductChannelFields`), and read
+     * them with the entity's `getChannelCustomFields(ctx)` method.
+     *
      * Not supported with localized types, `struct`, `list: true` relations, `unique` or `secret`.
      *
      * @since 4.0.0

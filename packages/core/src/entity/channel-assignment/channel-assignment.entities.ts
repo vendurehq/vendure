@@ -4,7 +4,23 @@ import { Column } from 'typeorm';
 import { ApiKey } from '../api-key/api-key.entity';
 import { Asset } from '../asset/asset.entity';
 import { Collection } from '../collection/collection.entity';
-import { CustomProductChannelFields } from '../custom-entity-fields';
+import {
+    CustomApiKeyChannelFields,
+    CustomAssetChannelFields,
+    CustomCollectionChannelFields,
+    CustomCustomerChannelFields,
+    CustomFacetChannelFields,
+    CustomFacetValueChannelFields,
+    CustomOrderChannelFields,
+    CustomPaymentMethodChannelFields,
+    CustomProductChannelFields,
+    CustomProductOptionChannelFields,
+    CustomProductOptionGroupChannelFields,
+    CustomProductVariantChannelFields,
+    CustomPromotionChannelFields,
+    CustomShippingMethodChannelFields,
+    CustomStockLocationChannelFields,
+} from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
 import { FacetValue } from '../facet-value/facet-value.entity';
 import { Facet } from '../facet/facet.entity';
@@ -39,6 +55,15 @@ import { ChannelAssignment, ChannelAssignmentEntity } from './channel-assignment
 export class AssetChannel extends ChannelAssignment {
     assetId: ID;
     asset: Asset;
+
+    /**
+     * @description
+     * The values of the Asset's `channelScoped` custom fields in this Channel. Only present if
+     * the Asset has channel-scoped custom fields. Read them with `asset.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomAssetChannelFields;
 }
 
 /**
@@ -57,6 +82,15 @@ export class AssetChannel extends ChannelAssignment {
 export class ApiKeyChannel extends ChannelAssignment {
     apiKeyId: ID;
     apiKey: ApiKey;
+
+    /**
+     * @description
+     * The values of the ApiKey's `channelScoped` custom fields in this Channel. Only present if
+     * the ApiKey has channel-scoped custom fields. Read them with `apiKey.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomApiKeyChannelFields;
 }
 
 /**
@@ -74,6 +108,15 @@ export class ApiKeyChannel extends ChannelAssignment {
 export class CollectionChannel extends ChannelAssignment {
     collectionId: ID;
     collection: Collection;
+
+    /**
+     * @description
+     * The values of the Collection's `channelScoped` custom fields in this Channel. Only present if
+     * the Collection has channel-scoped custom fields. Read them with `collection.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomCollectionChannelFields;
 }
 
 /**
@@ -91,6 +134,15 @@ export class CollectionChannel extends ChannelAssignment {
 export class CustomerChannel extends ChannelAssignment {
     customerId: ID;
     customer: Customer;
+
+    /**
+     * @description
+     * The values of the Customer's `channelScoped` custom fields in this Channel. Only present if
+     * the Customer has channel-scoped custom fields. Read them with `customer.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomCustomerChannelFields;
 }
 
 /**
@@ -108,6 +160,15 @@ export class CustomerChannel extends ChannelAssignment {
 export class FacetChannel extends ChannelAssignment {
     facetId: ID;
     facet: Facet;
+
+    /**
+     * @description
+     * The values of the Facet's `channelScoped` custom fields in this Channel. Only present if
+     * the Facet has channel-scoped custom fields. Read them with `facet.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomFacetChannelFields;
 }
 
 /**
@@ -125,6 +186,15 @@ export class FacetChannel extends ChannelAssignment {
 export class FacetValueChannel extends ChannelAssignment {
     facetValueId: ID;
     facetValue: FacetValue;
+
+    /**
+     * @description
+     * The values of the FacetValue's `channelScoped` custom fields in this Channel. Only present if
+     * the FacetValue has channel-scoped custom fields. Read them with `facetValue.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomFacetValueChannelFields;
 }
 
 /**
@@ -143,6 +213,15 @@ export class FacetValueChannel extends ChannelAssignment {
 export class OrderChannel extends ChannelAssignment {
     orderId: ID;
     order: Order;
+
+    /**
+     * @description
+     * The values of the Order's `channelScoped` custom fields in this Channel. Only present if
+     * the Order has channel-scoped custom fields. Read them with `order.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomOrderChannelFields;
 }
 
 /**
@@ -160,6 +239,15 @@ export class OrderChannel extends ChannelAssignment {
 export class PaymentMethodChannel extends ChannelAssignment {
     paymentMethodId: ID;
     paymentMethod: PaymentMethod;
+
+    /**
+     * @description
+     * The values of the PaymentMethod's `channelScoped` custom fields in this Channel. Only present if
+     * the PaymentMethod has channel-scoped custom fields. Read them with `paymentMethod.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomPaymentMethodChannelFields;
 }
 
 /**
@@ -214,6 +302,15 @@ export class ProductChannel extends ChannelAssignment {
 export class ProductOptionChannel extends ChannelAssignment {
     productOptionId: ID;
     productOption: ProductOption;
+
+    /**
+     * @description
+     * The values of the ProductOption's `channelScoped` custom fields in this Channel. Only present if
+     * the ProductOption has channel-scoped custom fields. Read them with `productOption.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomProductOptionChannelFields;
 }
 
 /**
@@ -231,6 +328,15 @@ export class ProductOptionChannel extends ChannelAssignment {
 export class ProductOptionGroupChannel extends ChannelAssignment {
     productOptionGroupId: ID;
     productOptionGroup: ProductOptionGroup;
+
+    /**
+     * @description
+     * The values of the ProductOptionGroup's `channelScoped` custom fields in this Channel. Only present if
+     * the ProductOptionGroup has channel-scoped custom fields. Read them with `productOptionGroup.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomProductOptionGroupChannelFields;
 }
 
 /**
@@ -259,6 +365,15 @@ export class ProductVariantChannel extends ChannelAssignment {
      */
     @Column({ default: true })
     enabled: boolean;
+
+    /**
+     * @description
+     * The values of the ProductVariant's `channelScoped` custom fields in this Channel. Only present if
+     * the ProductVariant has channel-scoped custom fields. Read them with `productVariant.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomProductVariantChannelFields;
 }
 
 /**
@@ -276,6 +391,15 @@ export class ProductVariantChannel extends ChannelAssignment {
 export class PromotionChannel extends ChannelAssignment {
     promotionId: ID;
     promotion: Promotion;
+
+    /**
+     * @description
+     * The values of the Promotion's `channelScoped` custom fields in this Channel. Only present if
+     * the Promotion has channel-scoped custom fields. Read them with `promotion.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomPromotionChannelFields;
 }
 
 /**
@@ -293,6 +417,15 @@ export class PromotionChannel extends ChannelAssignment {
 export class ShippingMethodChannel extends ChannelAssignment {
     shippingMethodId: ID;
     shippingMethod: ShippingMethod;
+
+    /**
+     * @description
+     * The values of the ShippingMethod's `channelScoped` custom fields in this Channel. Only present if
+     * the ShippingMethod has channel-scoped custom fields. Read them with `shippingMethod.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomShippingMethodChannelFields;
 }
 
 /**
@@ -310,4 +443,13 @@ export class ShippingMethodChannel extends ChannelAssignment {
 export class StockLocationChannel extends ChannelAssignment {
     stockLocationId: ID;
     stockLocation: StockLocation;
+
+    /**
+     * @description
+     * The values of the StockLocation's `channelScoped` custom fields in this Channel. Only present if
+     * the StockLocation has channel-scoped custom fields. Read them with `stockLocation.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomStockLocationChannelFields;
 }

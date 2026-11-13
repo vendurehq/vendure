@@ -1,12 +1,17 @@
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomProductOptionFields } from '../custom-entity-fields';
+import { CustomProductOptionChannelFields, CustomProductOptionFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { ProductOptionGroup } from '../product-option-group/product-option-group.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
@@ -58,4 +63,23 @@ export class ProductOption
 
     @Column(type => CustomProductOptionFields)
     customFields: CustomProductOptionFields;
+
+    /**
+     * @description
+     * Returns the values of the ProductOption's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the ProductOption is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomProductOptionChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomProductOptionChannelFields>,
+    ): Promise<CustomProductOptionChannelFields | undefined> {
+        return readChannelCustomFields(ctx, ProductOption, this, options);
+    }
 }
