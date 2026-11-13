@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
- * OSS-1007 / #1719 / #3409: timestamps must be correct instants through every layer,
+ * #1719 / #3409 / #1375: timestamps must be correct instants through every layer,
  * whatever the Node process TZ and the DB server/session timezone are.
  *
  * Run it under a non-UTC process timezone to see the Postgres discrepancies, e.g.
@@ -80,13 +80,13 @@ const GET_ORDERS = gql`
     }
 `;
 
-describe('Timezone handling (OSS-1007)', () => {
+describe('Timezone handling', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: { paymentMethodHandlers: [testSuccessfulPaymentMethod] },
-            // OSS1007_TS_TYPE=timestamp runs the pre-v4 column type on Postgres
+            // E2E_TIMESTAMP_COLUMN_TYPE=timestamp runs the pre-v4 column type on Postgres
             entityOptions: {
-                timestampColumnType: (process.env.OSS1007_TS_TYPE as 'timestamp' | undefined) ?? 'timestamptz',
+                timestampColumnType: (process.env.E2E_TIMESTAMP_COLUMN_TYPE as 'timestamp' | undefined) ?? 'timestamptz',
             },
             customFields: {
                 Promotion: [{ name: 'validFrom', type: 'datetime', nullable: true }],

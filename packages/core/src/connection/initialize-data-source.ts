@@ -3,6 +3,8 @@ import { DataSource, DataSourceOptions, EntityMetadata } from 'typeorm';
 import { getChannelAssignmentEntities } from '../entity/channel-assignment/channel-assignment-registry';
 import { findTimestampColumnsToMigrate } from '../migration-utils/v4_0_timestamptz';
 
+import { isMysqlDatabase, isPostgresDatabase, isUtcTimezone } from './timezone-utils';
+
 /**
  * @description
  * Creates and initializes a TypeORM DataSource, like `new DataSource(options).initialize()`, but
@@ -88,20 +90,21 @@ export function alignChannelAssignmentMetadata(dataSource: DataSource) {
 /**
  * MySQL and MariaDB fill `createdAt`/`updatedAt` with `CURRENT_TIMESTAMP` in the session
  * `time_zone`, while the driver writes all other dates in the TypeORM `timezone` option (Vendure
- * default `'Z'`). When the server `time_zone` is not UTC, the two disagree (OSS-1007). So when the
+ * default `'Z'`). When the server `time_zone` is not UTC, the two disagree (#1375). So when the
  * driver writes UTC, every new pooled connection sets its session `time_zone` to UTC too.
  */
 function pinMysqlSessionTimezone(dataSource: DataSource) {
-    const type = dataSource.options.type;
-    if (type !== 'mysql' && type !== 'mariadb') {
+    if (!isMysqlDatabase(dataSource.options.type)) {
         return;
     }
     const zone = (dataSource.options as { timezone?: string }).timezone ?? 'local';
-    if (zone !== 'Z' && zone !== '+00:00' && zone !== 'utc') {
+    if (!isUtcTimezone(zone)) {
         return;
     }
     const driver = dataSource.driver as any;
     const mysql = driver.mysql;
+    // The aurora-mysql driver uses the RDS Data API and has no connection pool to hook into.
+    // checkDatabaseTimezone() warns when its session time_zone is not UTC.
     if (!mysql || typeof mysql.createPool !== 'function') {
         return;
     }
@@ -125,7 +128,7 @@ function pinMysqlSessionTimezone(dataSource: DataSource) {
  * which deletes the stored dates. Refuse to synchronize such a schema.
  */
 async function assertNoLegacyTimestampColumns(dataSource: DataSource) {
-    if (dataSource.options.type !== 'postgres') {
+    if (!isPostgresDatabase(dataSource.options.type)) {
         return;
     }
     const queryRunner = dataSource.createQueryRunner();

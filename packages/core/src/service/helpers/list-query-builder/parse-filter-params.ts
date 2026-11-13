@@ -15,6 +15,7 @@ import {
     StringOperators,
 } from '../../../common/types/common-types';
 import { getDatabaseType, VendureDatabaseType } from '../../../connection/database-type';
+import { isPostgresDatabase } from '../../../connection/timezone-utils';
 import { VendureEntity } from '../../../entity/base/base.entity';
 
 import { escapeCalculatedColumnExpression, getColumnMetadata } from './connection-utils';
@@ -377,12 +378,12 @@ function buildWhereCondition(
  * See https://github.com/vendurehq/vendure/issues/251
  *
  * On Postgres the string carries an explicit `Z`. A `timestamptz` column would otherwise read a
- * zone-less literal in the session timezone (OSS-1007). A `timestamp` column ignores the zone,
+ * zone-less literal in the session timezone (#1719). A `timestamp` column ignores the zone,
  * so for it the result is unchanged.
  */
 function convertDate(input: Date | string | number, dbType: VendureDatabaseType): string | number {
     if (input instanceof Date) {
-        if (dbType === 'postgres') {
+        if (isPostgresDatabase(dbType)) {
             return input.toISOString();
         }
         return DateUtils.mixedDateToUtcDatetimeString(input);

@@ -3,12 +3,18 @@ import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 
 import { VendureConfig } from '../config/vendure-config';
 import { getDatabaseType } from '../connection/database-type';
+import { isPostgresDatabase } from '../connection/timezone-utils';
 
 /**
  * The column type each column had when it was first seen, so that the function can run several
  * times in one process (e.g. e2e tests bootstrapping servers with different configs).
  */
-const originalTypes = new WeakMap<ColumnMetadataArgs, ColumnMetadataArgs['options']['type']>();
+const originalTypes = new Map<ColumnMetadataArgs, ColumnMetadataArgs['options']['type']>();
+
+/**
+ * The columns (by declaring class and property) which the last call converted to `timestamptz`.
+ */
+const convertedColumns = new WeakMap<Function, Set<string>>();
 
 const DATE_MODES = new Set(['createDate', 'updateDate', 'deleteDate']);
 
@@ -22,14 +28,25 @@ const DATE_MODES = new Set(['createDate', 'updateDate', 'deleteDate']);
  *
  * Works on the TypeORM metadata args, so it must run before the DataSource is created. Entities
  * inherit columns from their parent classes (e.g. `VendureEntity.createdAt`), so the parents of the
- * given entities are included.
+ * given entities are included, and so are embedded classes such as custom fields.
+ *
+ * On other databases, any change made by an earlier call in the same process is undone.
  */
 export function setTimestampColumnTypes(config: VendureConfig, entities: Array<Function | string | any>) {
-    const dbType = getDatabaseType(config.dbConnectionOptions);
-    if (dbType !== 'postgres') {
+    // Undo the previous call, so that the result only depends on this config
+    for (const [column, original] of originalTypes) {
+        column.options.type = original;
+        if (typeof column.target === 'function') {
+            convertedColumns.delete(column.target);
+        }
+    }
+    if (!isPostgresDatabase(getDatabaseType(config.dbConnectionOptions))) {
         return;
     }
-    const targetType = config.entityOptions?.timestampColumnType ?? 'timestamptz';
+    if ((config.entityOptions?.timestampColumnType ?? 'timestamptz') !== 'timestamptz') {
+        return;
+    }
+    const storage = getMetadataArgsStorage();
     const targets = new Set<Function>();
     for (const entity of entities) {
         if (typeof entity !== 'function') {
@@ -42,7 +59,6 @@ export function setTimestampColumnTypes(config: VendureConfig, entities: Array<F
         }
     }
     // Embedded classes (e.g. the custom fields of an entity) hold columns too
-    const storage = getMetadataArgsStorage();
     let added = true;
     while (added) {
         added = false;
@@ -68,6 +84,19 @@ export function setTimestampColumnTypes(config: VendureConfig, entities: Array<F
         if (!isDateColumn) {
             continue;
         }
-        column.options.type = targetType === 'timestamptz' ? 'timestamptz' : original;
+        column.options.type = 'timestamptz';
+        const set = convertedColumns.get(column.target) ?? new Set<string>();
+        set.add(column.propertyName);
+        convertedColumns.set(column.target, set);
     }
+}
+
+/**
+ * @description
+ * Whether {@link setTimestampColumnTypes} converted this column to `timestamptz`, as opposed to a
+ * column which was declared `timestamptz` explicitly. Takes the `target` and `propertyName` of
+ * the TypeORM `ColumnMetadata`, which are those of the declaring class.
+ */
+export function isConvertedTimestampColumn(target: Function | string, propertyName: string): boolean {
+    return typeof target === 'function' && (convertedColumns.get(target)?.has(propertyName) ?? false);
 }

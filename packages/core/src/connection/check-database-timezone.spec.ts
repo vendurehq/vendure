@@ -10,13 +10,15 @@ function fakeDataSource(type: string, row: { tz: string; offset: number }, timez
     } as any;
 }
 
-const processIsUtc = ['UTC', 'Etc/UTC'].includes(Intl.DateTimeFormat().resolvedOptions().timeZone);
+const legacy = { entityOptions: { timestampColumnType: 'timestamp' } } as any;
 
 describe('checkDatabaseTimezone()', () => {
     it('postgres timestamptz: never warns', async () => {
         const warnings = await checkDatabaseTimezone(
             fakeDataSource('postgres', { tz: 'America/Los_Angeles', offset: -28800 }),
             { entityOptions: { timestampColumnType: 'timestamptz' } } as any,
+            'Europe/Vienna',
+            3600,
         );
         expect(warnings).toEqual([]);
     });
@@ -24,28 +26,77 @@ describe('checkDatabaseTimezone()', () => {
     it('postgres timestamp: warns about a non-UTC session', async () => {
         const warnings = await checkDatabaseTimezone(
             fakeDataSource('postgres', { tz: 'Europe/Vienna', offset: 3600 }),
-            { entityOptions: { timestampColumnType: 'timestamp' } } as any,
+            legacy,
+            'UTC',
+            0,
         );
-        expect(warnings.some(w => w.includes('session timezone is "Europe/Vienna"') && w.includes('1h off'))).toBe(true);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain('session timezone is "Europe/Vienna"');
+        expect(warnings[0]).toContain('1h off');
     });
 
     it('postgres timestamp: warns about a non-UTC process', async () => {
-        const warnings = await checkDatabaseTimezone(fakeDataSource('postgres', { tz: 'UTC', offset: 0 }), {
-            entityOptions: { timestampColumnType: 'timestamp' },
-        } as any);
-        expect(warnings.some(w => w.includes('Node.js process timezone'))).toBe(!processIsUtc);
+        const warnings = await checkDatabaseTimezone(
+            fakeDataSource('postgres', { tz: 'UTC', offset: 0 }),
+            legacy,
+            'Europe/Vienna',
+            3600,
+        );
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain('Node.js process timezone is "Europe/Vienna"');
+    });
+
+    it('postgres timestamp: no warning when process and session are UTC', async () => {
+        for (const zone of ['UTC', 'Etc/UTC', 'Etc/GMT']) {
+            const warnings = await checkDatabaseTimezone(
+                fakeDataSource('postgres', { tz: 'Etc/UTC', offset: 0 }),
+                legacy,
+                zone,
+                0,
+            );
+            expect(warnings).toEqual([]);
+        }
+    });
+
+    it('aurora-postgres is checked like postgres', async () => {
+        const warnings = await checkDatabaseTimezone(
+            fakeDataSource('aurora-postgres', { tz: 'UTC', offset: 0 }),
+            legacy,
+            'America/Los_Angeles',
+            -28800,
+        );
+        expect(warnings).toHaveLength(1);
     });
 
     it("mysql with timezone 'Z' and a non-UTC session time_zone: warns", async () => {
         const warnings = await checkDatabaseTimezone(
             fakeDataSource('mysql', { tz: 'Europe/Vienna', offset: 3600 }, 'Z'),
             {} as any,
+            'UTC',
+            0,
         );
-        expect(warnings.some(w => w.includes('1h off'))).toBe(true);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain('1h off');
     });
 
     it("mysql with timezone 'Z' and a UTC session: no warning", async () => {
-        const warnings = await checkDatabaseTimezone(fakeDataSource('mysql', { tz: '+00:00', offset: 0 }, 'Z'), {} as any);
+        const warnings = await checkDatabaseTimezone(
+            fakeDataSource('mysql', { tz: '+00:00', offset: 0 }, 'Z'),
+            {} as any,
+            'Europe/Vienna',
+            3600,
+        );
         expect(warnings).toEqual([]);
+    });
+
+    it("mysql with timezone 'local' in a non-UTC process: warns about local storage", async () => {
+        const warnings = await checkDatabaseTimezone(
+            fakeDataSource('mariadb', { tz: 'Europe/Vienna', offset: 3600 }, 'local'),
+            {} as any,
+            'Europe/Vienna',
+            3600,
+        );
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain('timezone is "local"');
     });
 });

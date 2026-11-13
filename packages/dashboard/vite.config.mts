@@ -56,6 +56,8 @@ export default ({ mode }: { mode: string }) => {
                             './e2e/**/*',
                             './plugin/**/*',
                             './vite/tests/**/*',
+                            // Timezone spike harness. It writes to /tmp, so it only runs with src/lib/__tz-spike__/vitest.tz-spike.config.mts
+                            './src/lib/__tz-spike__/**/*',
                             '**/node_modules/**/*',
                         ],
                     },
