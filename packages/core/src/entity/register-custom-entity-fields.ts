@@ -206,11 +206,14 @@ export function registerCustomFieldsForEntity(
                             onDelete,
                             onUpdate,
                             eager,
+                            nullable: nullable !== false,
                         })(instance, name);
                         JoinColumn()(instance, name);
                         // Expose the foreign key as an id property (e.g. "ownerId"), which maps
                         // to the same database column as the relation's join column.
-                        EntityId({ nullable: true })(instance, `${name}Id`);
+                        // The id column decides whether the shared column is nullable, so it must
+                        // agree with the relation.
+                        EntityId({ nullable: nullable !== false })(instance, `${name}Id`);
                         if (indexed) {
                             // TypeORM matches an index to a relation by its bare property name, which
                             // never matches a relation inside the customFields embedded.

@@ -470,8 +470,26 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         for (const inputVariable of inputVariables) {
             if (shouldApplyDefaults) {
                 this.applyDefaultsForEntity(typeName, inputVariable);
+                this.assertNonNullableRelationsGiven(typeName, inputVariable);
             }
             await this.validateInput(typeName, ctx, injector, inputVariable);
+        }
+    }
+
+    /**
+     * A non-nullable single relation has no column default, so a create input must give it a value.
+     * Without this check the insert would fail with a database constraint error.
+     */
+    private assertNonNullableRelationsGiven(typeName: string, variableValues: any) {
+        const entityName = this.getEntityNameFromInputType(typeName);
+        const customFieldConfig: CustomFieldConfig[] = this.configService.customFields[entityName] ?? [];
+        for (const config of customFieldConfig) {
+            if (config.type !== 'relation' || config.list || config.nullable !== false || config.internal) {
+                continue;
+            }
+            if (variableValues.customFields?.[getGraphQlInputName(config)] == null) {
+                throw new UserInputError('error.field-invalid-non-nullable', { name: config.name });
+            }
         }
     }
 
