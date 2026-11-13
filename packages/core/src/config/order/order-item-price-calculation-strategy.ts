@@ -31,6 +31,9 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * * when the Customer of an active Order or a draft Order changes, for example with setCustomerForOrder,
  *   setCustomerForDraftOrder, or a login that gives the guest Order to a Customer (on all order lines)
  *
+ * When the strategy throws a {@link NoBuyerPriceError} for an order line that is already in the Order, the line
+ * keeps its current price, except on a currency change of the Order. For a new order line, the error is thrown.
+ *
  * ### OrderItemPriceCalculationStrategy vs Promotions
  * Both the OrderItemPriceCalculationStrategy and Promotions can be used to alter the price paid for a product.
  *

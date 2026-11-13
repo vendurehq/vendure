@@ -34,12 +34,9 @@ export class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceC
         order: Order,
         quantity: number,
     ): Promise<PriceCalculationResult> {
-        return this.productVariantService.calculateBuyerPriceForOrder(
-            ctx,
-            productVariant,
-            order,
+        return this.productVariantService.calculateBuyerPriceForOrder(ctx, productVariant, order, {
             quantity,
             orderLineCustomFields,
-        );
+        });
     }
 }

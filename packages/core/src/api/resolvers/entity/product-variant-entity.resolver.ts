@@ -251,11 +251,9 @@ export class ProductVariantShopEntityResolver {
         // `customFields` exists when OrderLine custom fields are defined
         @Args() args: ProductVariantBuyerPriceArgs & { customFields?: Record<string, unknown> | null },
     ): Promise<BuyerPriceResult | undefined> {
-        return this.productVariantService.calculateBuyerPrice(
-            ctx,
-            productVariant,
-            args.quantity ?? 1,
-            args.customFields ?? undefined,
-        );
+        return this.productVariantService.calculateBuyerPrice(ctx, productVariant, {
+            quantity: args.quantity ?? 1,
+            data: args.customFields ?? undefined,
+        });
     }
 }

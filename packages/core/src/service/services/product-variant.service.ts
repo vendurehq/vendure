@@ -22,7 +22,7 @@ import { RequestContextCacheService } from '../../cache/request-context-cache.se
 import {
     EntityNotFoundError,
     ForbiddenError,
-    IllegalOperationError,
+    NoBuyerPriceError,
     UserInputError,
 } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
@@ -30,6 +30,7 @@ import { roundMoney } from '../../common/round-money';
 import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { idsAreEqual } from '../../common/utils';
+import { Buyer } from '../../config/catalog/product-variant-buyer-price-strategy';
 import { UpdatedProductVariantPrice } from '../../config/catalog/product-variant-price-update-strategy';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
@@ -74,9 +75,60 @@ import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
 
 /**
- * The message of the error that `calculateBuyerPriceForOrder()` throws when there is no price.
+ * @description
+ * The options of `ProductVariantService.calculateBuyerPrice()`.
+ *
+ * @docsCategory services
+ * @since 4.0.0
  */
-export const NO_BUYER_PRICE_ERROR_MESSAGE = 'error.no-buyer-price-for-product-variant';
+export interface BuyerPriceOptions {
+    /**
+     * @description
+     * A positive integer.
+     *
+     * @default 1
+     */
+    quantity?: number;
+    /**
+     * @description
+     * The pricing data, for example the values that the storefront passes as OrderLine custom fields
+     * to `addItemToOrder`. The strategy receives a copy.
+     */
+    data?: Record<string, unknown>;
+    /**
+     * @description
+     * Who the price is for. Defaults to the Buyer of the active User, see
+     * `BuyerIdentityService.forActiveUser()`.
+     */
+    buyer?: Buyer;
+}
+
+/**
+ * @description
+ * The options of `ProductVariantService.calculateBuyerPriceForOrder()`.
+ *
+ * @docsCategory services
+ * @since 4.0.0
+ */
+export interface BuyerPriceForOrderOptions {
+    /**
+     * @description
+     * The quantity of the OrderLine.
+     */
+    quantity: number;
+    /**
+     * @description
+     * The custom fields of the OrderLine. The strategy receives a shallow copy as the `data` argument.
+     */
+    orderLineCustomFields: { [key: string]: any };
+    /**
+     * @description
+     * Who the price is for. Defaults to the Buyer of the Customer of the Order, see
+     * `BuyerIdentityService.forCustomer()`. An {@link OrderItemPriceCalculationStrategy} can pass its
+     * own Buyer, for example the Customer of a company for a shared cart.
+     */
+    buyer?: Buyer;
+}
 
 /**
  * @description
@@ -872,10 +924,11 @@ export class ProductVariantService {
 
     /**
      * @description
-     * Calculates the unit price of the ProductVariant for the active buyer, the given quantity and the
-     * given pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
-     * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}
-     * with the Buyer of the active User, from the {@link BuyerIdentityService}.
+     * Calculates the unit price of the ProductVariant for a buyer, the given quantity and the given
+     * pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
+     * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}.
+     * The buyer is the `buyer` option, or else the Buyer of the active User from the
+     * {@link BuyerIdentityService}.
      *
      * Returns `undefined` if the variant or its Product is not available in the active Channel (see
      * {@link ChannelEnabledChecker}). Then the strategy does not run. It also returns `undefined` if
@@ -894,9 +947,9 @@ export class ProductVariantService {
     async calculateBuyerPrice(
         ctx: RequestContext,
         variant: ProductVariant,
-        quantity = 1,
-        data?: Record<string, unknown>,
+        options: BuyerPriceOptions = {},
     ): Promise<BuyerPriceResult | undefined> {
+        const { quantity = 1, data, buyer = this.buyerIdentityService.forActiveUser(ctx) } = options;
         if (!Number.isInteger(quantity) || quantity < 1) {
             throw new UserInputError('error.buyer-price-quantity-must-be-positive');
         }
@@ -908,7 +961,7 @@ export class ProductVariantService {
         const result = await productVariantBuyerPriceStrategy.calculateUnitPrice(
             ctx,
             new ProductVariant(hydratedVariant),
-            { quantity, data: structuredClone(data), buyer: this.buyerIdentityService.forActiveUser(ctx) },
+            { quantity, data: structuredClone(data), buyer },
         );
         if (!result) {
             return undefined;
@@ -925,18 +978,19 @@ export class ProductVariantService {
     /**
      * @description
      * Calculates the unit price of an OrderLine with the configured {@link ProductVariantBuyerPriceStrategy},
-     * for the Customer of the Order. The {@link DefaultOrderItemPriceCalculationStrategy} uses this method.
+     * for a buyer of the Order. The {@link DefaultOrderItemPriceCalculationStrategy} uses this method.
      * A custom {@link OrderItemPriceCalculationStrategy} that replaces the default calls it too, so that the
      * cart and the Shop API `ProductVariant.buyerPrice` field use the same strategy and the same buyer.
      *
      * The `productVariant` must have the Channel price and tax applied, as the
-     * OrderItemPriceCalculationStrategy receives it. The strategy receives the Buyer of the Customer of the
-     * Order, and the OrderLine custom fields as the `data` argument. It receives a copy of the variant and
-     * a shallow copy of the custom fields, so the given objects do not change. The result includes the
-     * `metadata` of the strategy.
+     * OrderItemPriceCalculationStrategy receives it. The strategy receives the `buyer` option, or else the
+     * Buyer of the Customer of the Order, and the OrderLine custom fields as the `data` argument. It
+     * receives a copy of the variant and a shallow copy of the custom fields, so the given objects do not
+     * change. The result includes the `metadata` of the strategy.
      *
-     * If the strategy gives no price for this buyer, this method throws an `IllegalOperationError`, so
-     * the item cannot be added at no price.
+     * If the strategy gives no price for this buyer, this method throws a {@link NoBuyerPriceError}. Then
+     * Vendure does not add a new OrderLine, and an OrderLine that is already in the Order keeps its
+     * current price.
      *
      * @since 4.0.0
      */
@@ -944,9 +998,13 @@ export class ProductVariantService {
         ctx: RequestContext,
         productVariant: ProductVariant,
         order: Order,
-        quantity: number,
-        orderLineCustomFields: { [key: string]: any },
+        options: BuyerPriceForOrderOptions,
     ): Promise<PriceCalculationResult> {
+        const {
+            quantity,
+            orderLineCustomFields,
+            buyer = this.buyerIdentityService.forCustomer(ctx, order.customerId),
+        } = options;
         const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
         const result = await productVariantBuyerPriceStrategy.calculateUnitPrice(
             ctx,
@@ -954,13 +1012,11 @@ export class ProductVariantService {
             {
                 quantity,
                 data: { ...orderLineCustomFields },
-                buyer: this.buyerIdentityService.forCustomer(ctx, order.customerId),
+                buyer,
             },
         );
         if (!result) {
-            throw new IllegalOperationError(NO_BUYER_PRICE_ERROR_MESSAGE, {
-                productVariantId: productVariant.id,
-            });
+            throw new NoBuyerPriceError(productVariant.id);
         }
         return result;
     }

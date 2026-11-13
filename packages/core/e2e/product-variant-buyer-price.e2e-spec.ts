@@ -1,3 +1,4 @@
+import { CurrencyCode } from '@vendure/common/lib/generated-types';
 import { mergeConfig } from '@vendure/core';
 import {
     createErrorResultGuard,
@@ -15,15 +16,22 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import {
     BOX_SIZE,
+    buyerOverride,
     FIXED_UNIT_PRICE,
     fixedPriceEmailAddresses,
+    noPriceSkus,
     noPriceSkusForFixedPriceCustomers,
     orderItemMetadata,
     TestBuyerPricePlugin,
 } from './fixtures/test-buyer-price-layer';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql, ResultOf } from './graphql/graphql-shop';
-import { attemptLoginDocument, getCustomerListDocument } from './graphql/shared-definitions';
+import {
+    attemptLoginDocument,
+    getCustomerListDocument,
+    updateChannelDocument,
+} from './graphql/shared-definitions';
+import { setCurrencyCodeForOrderDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 // The generated shop types declare no fields for OrderLineCustomFieldsInput.
@@ -66,6 +74,7 @@ const getTwiceBuyerPriceDocument = graphql(`
 const orderLinesFragment = graphql(`
     fragment BuyerPriceOrderLines on Order {
         lines {
+            id
             quantity
             unitPrice
             unitPriceWithTax
@@ -123,6 +132,21 @@ const setCustomerForOrderDocument = graphql(`
         }
     }
 `);
+
+const adjustOrderLineDocument = graphql(
+    `
+        mutation AdjustOrderLineForBuyerPrice($orderLineId: ID!, $quantity: Int!) {
+            adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
+                ...BuyerPriceOrderLines
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderLinesFragment],
+);
 
 const setShippingAddressDocument = graphql(`
     mutation SetShippingAddressForBuyerPrice($input: CreateAddressInput!) {
@@ -462,6 +486,93 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         });
     });
 
+    describe('a line that has a price, and then has no price', () => {
+        let lineId: string;
+
+        async function getLinePrices() {
+            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+            return activeOrder!.lines.map(l => [l.productVariant.id, l.quantity, l.unitPrice]);
+        }
+
+        beforeAll(async () => {
+            await shopClient.asAnonymousUser();
+            await addToCart(shopClient, channelPrices[0].id, 1);
+            lineId = (await addToCart(shopClient, channelPrices[3].id, 1)).id;
+            noPriceSkus.add(channelPrices[3].sku);
+        });
+
+        afterAll(() => {
+            noPriceSkus.clear();
+        });
+
+        it('keeps its price when the shipping address is set', async () => {
+            const { setOrderShippingAddress } = await shopClient.query(setShippingAddressDocument, {
+                input: { streetLine1: '1 Test Street', countryCode: 'GB' },
+            });
+
+            expect(setOrderShippingAddress).toEqual({ id: expect.any(String) });
+            expect(await getLinePrices()).toEqual([
+                [channelPrices[0].id, 1, channelPrices[0].price],
+                [channelPrices[3].id, 1, channelPrices[3].price],
+            ]);
+        });
+
+        it('keeps its price when its quantity changes', async () => {
+            const { adjustOrderLine } = await shopClient.query(adjustOrderLineDocument, {
+                orderLineId: lineId,
+                quantity: 2,
+            });
+
+            orderGuard.assertSuccess(adjustOrderLine);
+            expect(await getLinePrices()).toEqual([
+                [channelPrices[0].id, 1, channelPrices[0].price],
+                [channelPrices[3].id, 2, channelPrices[3].price],
+            ]);
+        });
+
+        it('keeps its price when the customer of the order changes, and the other lines get the new price', async () => {
+            const { setCustomerForOrder } = await shopClient.query(setCustomerForOrderDocument, {
+                input: { emailAddress: GUEST_EMAIL_ADDRESS, firstName: 'Guest', lastName: 'Buyer' },
+            });
+
+            expect(setCustomerForOrder).toEqual({ id: expect.any(String) });
+            expect(await getLinePrices()).toEqual([
+                [channelPrices[0].id, 1, FIXED_UNIT_PRICE],
+                [channelPrices[3].id, 2, channelPrices[3].price],
+            ]);
+        });
+
+        it('is not added as a new line', async () => {
+            const before = await getLinePrices();
+
+            // Other custom fields, so that the item does not go into the existing line
+            await expect(addToCart(shopClient, channelPrices[3].id, 1, { unitCode: 'BOX' })).rejects.toThrow(
+                'has no price for this buyer',
+            );
+
+            expect(await getLinePrices()).toEqual(before);
+        });
+
+        it('is not kept after a currency change, so the currency change fails', async () => {
+            const before = await getLinePrices();
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', availableCurrencyCodes: [CurrencyCode.USD, CurrencyCode.GBP] },
+            });
+            try {
+                // The current price is in the old currency
+                await expect(
+                    shopClient.query(setCurrencyCodeForOrderDocument, { currencyCode: CurrencyCode.GBP }),
+                ).rejects.toThrow('has no price for this buyer');
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', availableCurrencyCodes: [CurrencyCode.USD] },
+                });
+            }
+
+            expect(await getLinePrices()).toEqual(before);
+        });
+    });
+
     describe('a line that has no price for the new customer of the order', () => {
         beforeAll(() => {
             noPriceSkusForFixedPriceCustomers.add(channelPrices[3].sku);
@@ -471,23 +582,7 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
             noPriceSkusForFixedPriceCustomers.clear();
         });
 
-        it('is removed by setCustomerForOrder, and the other lines get the new price', async () => {
-            await shopClient.asAnonymousUser();
-            await addToCart(shopClient, channelPrices[0].id, 1);
-            await addToCart(shopClient, channelPrices[3].id, 1);
-
-            const { setCustomerForOrder } = await shopClient.query(setCustomerForOrderDocument, {
-                input: { emailAddress: GUEST_EMAIL_ADDRESS, firstName: 'Guest', lastName: 'Shopper' },
-            });
-            expect(setCustomerForOrder).toEqual({ id: expect.any(String) });
-
-            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
-            expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
-                [channelPrices[0].id, FIXED_UNIT_PRICE],
-            ]);
-        });
-
-        it('is removed when a login gives the guest order to the customer', async () => {
+        it('keeps its price when a login gives the guest order to the customer', async () => {
             await shopClient.asAnonymousUser();
             await addToCart(shopClient, channelPrices[0].id, 1);
             await addToCart(shopClient, channelPrices[3].id, 1);
@@ -501,31 +596,11 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
             const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
             expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
                 [channelPrices[0].id, FIXED_UNIT_PRICE],
+                [channelPrices[3].id, channelPrices[3].price],
             ]);
         });
 
-        it('is not merged into the existing order of the customer at login', async () => {
-            // The login customer has an active order from an earlier test
-            const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_2' });
-            const [withPrice, withoutPrice] = product!.variants;
-            noPriceSkusForFixedPriceCustomers.add(withoutPrice.sku);
-            await shopClient.asAnonymousUser();
-            await addToCart(shopClient, withPrice.id, 1);
-            await addToCart(shopClient, withoutPrice.id, 1);
-
-            await shopClient.query(attemptLoginDocument, {
-                username: loginCustomer.emailAddress,
-                password: 'test',
-            });
-
-            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
-            expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
-                [channelPrices[0].id, FIXED_UNIT_PRICE],
-                [withPrice.id, FIXED_UNIT_PRICE],
-            ]);
-        });
-
-        it('is removed by setCustomerForDraftOrder', async () => {
+        it('keeps its price in a draft order after setCustomerForDraftOrder', async () => {
             const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
             for (const variant of [channelPrices[0], channelPrices[3]]) {
                 await adminClient.query(addItemToDraftOrderDocument, {
@@ -541,9 +616,45 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
 
             expect(setCustomerForDraftOrder).toEqual({
                 id: createDraftOrder.id,
-                lines: [{ unitPrice: FIXED_UNIT_PRICE }],
+                lines: [{ unitPrice: FIXED_UNIT_PRICE }, { unitPrice: channelPrices[3].price }],
             });
         });
+
+        it('is not merged when a login merges the guest order into the order of the customer', async () => {
+            // The login customer has an active order from an earlier test. The guest line without
+            // a price is a new line in that order, so it is not added. The other guest line is merged.
+            const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_2' });
+            const [withPrice, withoutPrice] = product!.variants;
+            noPriceSkusForFixedPriceCustomers.add(withoutPrice.sku);
+            await shopClient.asAnonymousUser();
+            await addToCart(shopClient, withPrice.id, 1);
+            await addToCart(shopClient, withoutPrice.id, 1);
+
+            const { login } = await shopClient.query(attemptLoginDocument, {
+                username: loginCustomer.emailAddress,
+                password: 'test',
+            });
+            expect(login).toEqual(expect.objectContaining({ identifier: loginCustomer.emailAddress }));
+
+            const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
+            expect(activeOrder!.lines.map(l => [l.productVariant.id, l.unitPrice])).toEqual([
+                [channelPrices[0].id, FIXED_UNIT_PRICE],
+                [withPrice.id, FIXED_UNIT_PRICE],
+            ]);
+        });
+    });
+
+    it('prices an order line for the buyer that an order item layer passes', async () => {
+        await shopClient.asAnonymousUser();
+        // The layer runs on the server, where the ID has no "T_" prefix
+        buyerOverride.customerId = Number(fixedPriceCustomer.id.replace('T_', ''));
+        try {
+            const line = await addToCart(shopClient, channelPrices[0].id, 1);
+
+            expect(line.unitPrice).toBe(FIXED_UNIT_PRICE);
+        } finally {
+            buyerOverride.customerId = undefined;
+        }
     });
 
     it('uses the customer of the order in an Admin draft order', async () => {

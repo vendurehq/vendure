@@ -1,13 +1,17 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { ID } from '@vendure/common/lib/shared-types';
 import {
+    BuyerIdentityService,
     BuyerPriceResult,
     composeStrategy,
+    Injector,
     OrderItemPriceCalculationStrategy,
     PluginCommonModule,
     PriceCalculationResult,
     ProductVariant,
     ProductVariantBuyerPriceArgs,
     ProductVariantBuyerPriceStrategy,
+    ProductVariantService,
     RequestContext,
     roundMoney,
     StrategyLayer,
@@ -28,13 +32,22 @@ export const fixedPriceEmailAddresses = new Set<string>();
 /** The SKUs of the variants that have no price for the Customers of {@link fixedPriceEmailAddresses}. */
 export const noPriceSkusForFixedPriceCustomers = new Set<string>();
 
+/** The SKUs of the variants that have no price for any buyer. */
+export const noPriceSkus = new Set<string>();
+
+/**
+ * When set, {@link BuyerOverrideLayer} prices each OrderLine for this Customer and not for the Customer
+ * of the Order, as for a shared cart that gets the price of a company.
+ */
+export const buyerOverride: { customerId?: ID } = {};
+
 /** The metadata that {@link MetadataRecordingLayer} reads from the result of the inner strategy. */
 export const orderItemMetadata: Array<Record<string, unknown> | undefined> = [];
 
 /**
  * A layer over the {@link ProductVariantBuyerPriceStrategy}:
  *
- * * no price when the pricing data has `unitCode: 'NONE'`,
+ * * no price for the variants of {@link noPriceSkus}, and when the pricing data has `unitCode: 'NONE'`,
  * * a fixed unit price for some Customers, and no price for some variants for these Customers,
  * * 20% off for a quantity of 10 or more,
  * * the price of {@link BOX_SIZE} units when the pricing data has `unitCode: 'BOX'`. In the cart, the
@@ -50,7 +63,7 @@ export class TestBuyerPriceLayer extends StrategyLayer.passThrough<ProductVarian
         productVariant: ProductVariant,
         args: ProductVariantBuyerPriceArgs,
     ): Promise<PriceCalculationResult | undefined> {
-        if (args.data?.unitCode === 'NONE') {
+        if (noPriceSkus.has(productVariant.sku) || args.data?.unitCode === 'NONE') {
             return undefined;
         }
         const result = await this.inner.calculateUnitPrice(ctx, productVariant, args);
@@ -96,6 +109,35 @@ export class MetadataRecordingLayer extends StrategyLayer.passThrough<OrderItemP
     }
 }
 
+/**
+ * A layer over the {@link OrderItemPriceCalculationStrategy} that passes its own Buyer to
+ * `ProductVariantService.calculateBuyerPriceForOrder()` when {@link buyerOverride} is set.
+ */
+export class BuyerOverrideLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
+    static priority = 200;
+    private productVariantService: ProductVariantService;
+    private buyerIdentityService: BuyerIdentityService;
+
+    init(injector: Injector) {
+        this.productVariantService = injector.get(ProductVariantService);
+        this.buyerIdentityService = injector.get(BuyerIdentityService);
+    }
+
+    async calculateUnitPrice(
+        ...args: Parameters<OrderItemPriceCalculationStrategy['calculateUnitPrice']>
+    ): Promise<PriceCalculationResult> {
+        const [ctx, productVariant, orderLineCustomFields, order, quantity] = args;
+        if (buyerOverride.customerId == null) {
+            return this.inner.calculateUnitPrice(...args);
+        }
+        return this.productVariantService.calculateBuyerPriceForOrder(ctx, productVariant, order, {
+            quantity,
+            orderLineCustomFields,
+            buyer: this.buyerIdentityService.forCustomer(ctx, buyerOverride.customerId),
+        });
+    }
+}
+
 /** Adds a field to the `BuyerPrice` type that reads the metadata of the strategy result. */
 @Resolver('BuyerPrice')
 export class BuyerPriceRuleResolver {
@@ -123,6 +165,7 @@ export class BuyerPriceRuleResolver {
         );
         config.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
             MetadataRecordingLayer,
+            BuyerOverrideLayer,
             config.orderOptions.orderItemPriceCalculationStrategy,
         );
         return config;

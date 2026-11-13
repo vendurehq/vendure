@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { RequestContext } from '../../api/common/request-context';
+import { NoBuyerPriceError } from '../../common/error/errors';
 import { Injector } from '../../common/injector';
 import { PriceCalculationResult } from '../../common/types/common-types';
 import { Order } from '../../entity/order/order.entity';
@@ -105,6 +106,6 @@ describe('DefaultOrderItemPriceCalculationStrategy', () => {
     it('throws when the buyer price strategy gives no price', async () => {
         const { result } = await calculate(false, {}, undefined);
 
-        await expect(result).rejects.toThrow('error.no-buyer-price-for-product-variant');
+        await expect(result).rejects.toBeInstanceOf(NoBuyerPriceError);
     });
 });

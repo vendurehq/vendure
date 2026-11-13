@@ -53,8 +53,8 @@ import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
 import {
     EntityNotFoundError,
-    IllegalOperationError,
     InternalServerError,
+    NoBuyerPriceError,
     UserInputError,
 } from '../../common/error/errors';
 import {
@@ -85,7 +85,7 @@ import {
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
-import { ListQueryOptions } from '../../common/types/common-types';
+import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
@@ -149,7 +149,7 @@ import { FulfillmentService } from './fulfillment.service';
 import { HistoryService } from './history.service';
 import { PaymentMethodService } from './payment-method.service';
 import { PaymentService } from './payment.service';
-import { NO_BUYER_PRICE_ERROR_MESSAGE, ProductVariantService } from './product-variant.service';
+import { ProductVariantService } from './product-variant.service';
 import { PromotionService } from './promotion.service';
 import { StockLevelService } from './stock-level.service';
 
@@ -640,8 +640,6 @@ export class OrderService implements OnApplicationBootstrap {
         const newCurrencyCtx = ctx.copy();
         (newCurrencyCtx as any)._currencyCode = currencyCode;
 
-        order.currencyCode = currencyCode;
-
         await this.historyService.createHistoryEntryForOrder({
             ctx,
             orderId: order.id,
@@ -652,6 +650,8 @@ export class OrderService implements OnApplicationBootstrap {
             },
         });
 
+        // applyPriceAdjustments() sets the new currency code. It must see the change, so that a line
+        // with no price in the new currency does not keep its price in the old currency.
         const updatedOrder = await this.applyPriceAdjustments(newCurrencyCtx, order, order.lines, relations);
         await this.eventBus.publish(new OrderEvent(ctx, updatedOrder, 'updated'));
         return updatedOrder;
@@ -2346,10 +2346,18 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 if (order && linesToInsert) {
                     const orderId = order.id;
-                    // A guest line that has no price for the Customer is not merged
-                    const linesWithPrice = await this.getItemsWithBuyerPrice(txCtx, order, linesToInsert);
-                    const result = await this.addItemsToOrder(txCtx, orderId, linesWithPrice);
-                    order = result.order;
+                    for (const line of linesToInsert) {
+                        try {
+                            // Nested savepoint, so that a line which is not added leaves nothing behind
+                            const result = await this.connection.withTransaction(txCtx, innerCtx =>
+                                this.addItemsToOrder(innerCtx, orderId, [line]),
+                            );
+                            order = result.order;
+                        } catch (e: unknown) {
+                            // A guest line that has no price for the Customer is not merged
+                            if (!(e instanceof NoBuyerPriceError)) throw e;
+                        }
+                    }
                 }
                 if (order && linesToModify) {
                     const orderId = order.id;
@@ -2394,96 +2402,17 @@ export class OrderService implements OnApplicationBootstrap {
     /**
      * The unit price of an OrderLine can depend on the Customer, for example with a custom
      * ProductVariantBuyerPriceStrategy. So when the Customer of an active or draft Order changes,
-     * the price of each line is calculated again. A line that has no price for the new Customer is
-     * removed, so that the change of the Customer does not fail. A placed Order keeps its prices.
+     * the price of each line is calculated again. A placed Order keeps its prices.
      */
     private async applyPriceAdjustmentsForNewCustomer(ctx: RequestContext, order: Order): Promise<Order> {
         if (!order.active && order.state !== 'Draft') {
             return order;
         }
-        let fullOrder = await this.getOrderOrThrow(ctx, order.id);
+        const fullOrder = await this.getOrderOrThrow(ctx, order.id);
         if (!fullOrder.lines.length) {
             return order;
         }
-        const linesWithoutPrice = await this.getLinesWithoutBuyerPrice(ctx, fullOrder);
-        if (linesWithoutPrice.length) {
-            const result = await this.removeItemsFromOrder(
-                ctx,
-                order.id,
-                linesWithoutPrice.map(line => line.id),
-            );
-            if (isGraphQlErrorResult(result)) {
-                // The lines cannot be removed in this state, so the Order keeps its prices
-                return order;
-            }
-            fullOrder = await this.getOrderOrThrow(ctx, order.id);
-        }
         return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
-    }
-
-    private async getLinesWithoutBuyerPrice(ctx: RequestContext, order: Order): Promise<OrderLine[]> {
-        const lines: OrderLine[] = [];
-        for (const line of order.lines) {
-            if (
-                !(await this.hasBuyerPrice(ctx, order, line.productVariant, line.customFields, line.quantity))
-            ) {
-                lines.push(line);
-            }
-        }
-        return lines;
-    }
-
-    /**
-     * Returns the items to merge into the Order of the Customer that have a price for the Customer.
-     */
-    private async getItemsWithBuyerPrice<
-        T extends { productVariantId: ID; quantity: number; customFields?: any },
-    >(ctx: RequestContext, order: Order, items: T[]): Promise<T[]> {
-        const itemsWithPrice: T[] = [];
-        for (const item of items) {
-            const variant = await this.connection.getRepository(ctx, ProductVariant).findOne({
-                where: { id: item.productVariantId },
-                relations: { productVariantPrices: true, taxCategory: true },
-            });
-            // addItemsToOrder() handles a variant that does not exist
-            if (
-                !variant ||
-                (await this.hasBuyerPrice(ctx, order, variant, item.customFields, item.quantity))
-            ) {
-                itemsWithPrice.push(item);
-            }
-        }
-        return itemsWithPrice;
-    }
-
-    /**
-     * Returns false if the configured OrderItemPriceCalculationStrategy gives no price for the Customer of
-     * the Order, with the error of ProductVariantService.calculateBuyerPriceForOrder().
-     */
-    private async hasBuyerPrice(
-        ctx: RequestContext,
-        order: Order,
-        productVariant: ProductVariant,
-        customFields: { [key: string]: any } | undefined,
-        quantity: number,
-    ): Promise<boolean> {
-        const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
-        const variant = await this.productVariantService.applyChannelPriceAndTax(productVariant, ctx, order);
-        try {
-            await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                ctx,
-                variant,
-                customFields || {},
-                order,
-                quantity,
-            );
-            return true;
-        } catch (e) {
-            if (e instanceof IllegalOperationError && e.message === NO_BUYER_PRICE_ERROR_MESSAGE) {
-                return false;
-            }
-            throw e;
-        }
     }
 
     private async getOrderOrThrow(
@@ -2610,7 +2539,8 @@ export class OrderService implements OnApplicationBootstrap {
         // When changing the Order's currencyCode (on account of passing
         // a different currencyCode into the RequestContext), we need to make sure
         // to update all existing OrderLines to use prices in this new currency.
-        if (ctx.currencyCode !== order.currencyCode) {
+        const currencyChanged = ctx.currencyCode !== order.currencyCode;
+        if (currencyChanged) {
             updatedOrderLines = order.lines;
             order.currencyCode = ctx.currencyCode;
         }
@@ -2624,13 +2554,28 @@ export class OrderService implements OnApplicationBootstrap {
                     ctx,
                     order,
                 );
-                let priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                    ctx,
-                    variant,
-                    updatedOrderLine.customFields || {},
-                    order,
-                    updatedOrderLine.quantity,
-                );
+                let priceResult: PriceCalculationResult;
+                try {
+                    priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+                        ctx,
+                        variant,
+                        updatedOrderLine.customFields || {},
+                        order,
+                        updatedOrderLine.quantity,
+                    );
+                } catch (e) {
+                    // A line that already has a price keeps it when there is no price for the
+                    // buyer now. A new line has no `initialListPrice` yet, so it is not added.
+                    // After a currency change, the current price is in the old currency.
+                    if (
+                        e instanceof NoBuyerPriceError &&
+                        updatedOrderLine.initialListPrice != null &&
+                        !currencyChanged
+                    ) {
+                        continue;
+                    }
+                    throw e;
+                }
                 const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
                 if (initialListPrice !== priceResult.price) {
                     priceResult = await changedPriceHandlingStrategy.handlePriceChange(

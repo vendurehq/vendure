@@ -39,7 +39,9 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * ### The buyer
  *
  * The `buyer` argument tells the strategy who the price is for. In the cart it gives the Customer of
- * the Order, and for the `buyerPrice` field the Customer of the active User. It loads nothing until the
+ * the Order, and for the `buyerPrice` field the Customer of the active User. A caller can pass its own
+ * Buyer to `ProductVariantService.calculateBuyerPriceForOrder()` and `calculateBuyerPrice()`, for
+ * example an order item layer that prices a shared cart for a company. It loads nothing until the
  * strategy calls it. A strategy that caches its results must include the buyer in the cache key.
  *
  * ### Pricing data
@@ -63,7 +65,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * A custom OrderItemPriceCalculationStrategy that replaces the default must call
  * `ProductVariantService.calculateBuyerPriceForOrder()`. This passes the Customer of the Order as the
- * buyer and the OrderLine custom fields as the data. Otherwise the cart does not use this strategy. Prefer to add
+ * buyer, or the `buyer` option, and the OrderLine custom fields as the data. Otherwise the cart does not
+ * use this strategy. Prefer to add
  * your logic as a {@link StrategyLayer} over the default OrderItemPriceCalculationStrategy. A layer that
  * needs pricing data in a different shape changes the custom fields that it passes to `inner`.
  *
@@ -78,10 +81,17 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * The strategy returns `undefined` when there is no price for this buyer, for example for "price on
  * request" or "log in to see prices". The `buyerPrice` field then gives `null`. In the cart,
- * `ProductVariantService.calculateBuyerPriceForOrder()` throws an error, so the item is not added at
- * no price. When the Customer of an active or draft Order changes, Vendure removes each OrderLine that
- * has no price for the new Customer. A login does not merge a guest line without a price into the
- * active Order of the Customer.
+ * `ProductVariantService.calculateBuyerPriceForOrder()` throws a {@link NoBuyerPriceError}. Then:
+ *
+ * * A new OrderLine is not added.
+ * * An OrderLine that is already in the Order keeps its current price, for example when the Customer
+ *   of the Order changes, an address is set, or the quantity changes.
+ * * A currency change of the Order fails, because the current price is in the old currency.
+ * * A login that merges the guest Order into the active Order of the Customer leaves out a guest line
+ *   that has no price. The other guest lines are merged.
+ *
+ * A project that needs a stricter rule, for example to remove the line or to block the checkout, does
+ * it in its own OrderItemPriceCalculationStrategy or {@link OrderProcess}.
  *
  * The result can carry `metadata`, for example the price rule that applied. An outer layer over the
  * OrderItemPriceCalculationStrategy can read it from the result of `inner`, and a plugin can read it
@@ -156,7 +166,9 @@ export interface ProductVariantBuyerPriceArgs {
 export interface Buyer {
     /**
      * @description
-     * Returns the ID of the Customer, or `undefined` for a buyer without a Customer.
+     * Returns the ID of the Customer, or `undefined` for a buyer without a Customer. The
+     * {@link BuyerIdentityService} also gives `undefined` for a Customer that is deleted or not in the
+     * active Channel, as `getCustomer()` does.
      */
     getCustomerId(): Promise<ID | undefined>;
     /**
