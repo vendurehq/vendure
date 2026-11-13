@@ -12,16 +12,25 @@ import {
     FastImporterService,
     mergeConfig,
     Product,
+    ProductService,
     RequestContextService,
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+
+declare module '@vendure/core/dist/entity/custom-entity-fields' {
+    interface CustomProductChannelFields {
+        channelNote: string | null;
+        channelFeaturedAsset: Asset | null;
+        channelPriority: number;
+    }
+}
 
 const CHANNEL_B_TOKEN = 'cf_channel_b_token';
 const CHANNEL_C_TOKEN = 'cf_channel_c_token';
@@ -491,6 +500,60 @@ describe('Channel-scoped custom fields (#490)', () => {
         );
         expect(await priority(CHANNEL_B_TOKEN, createProduct.id)).toBe(5);
         expect(await priority(E2E_DEFAULT_CHANNEL_TOKEN, createProduct.id)).toBe(5);
+    });
+
+    it('product.getChannelCustomFields(ctx) reads the values of the ctx channel', async () => {
+        const requestContextService = server.app.get(RequestContextService);
+        const productService = server.app.get(ProductService);
+        const ctxDefault = await requestContextService.create({ apiType: 'admin' });
+        const ctxB = await requestContextService.create({
+            apiType: 'admin',
+            channelOrToken: CHANNEL_B_TOKEN,
+        });
+
+        // A translated entity from a service, as plugin code would get it
+        const inDefault = await productService.findOne(ctxDefault, 1);
+        // Like ordinary relation custom fields, the foreign key is exposed as `<name>Id`
+        expect(await inDefault!.getChannelCustomFields(ctxDefault)).toEqual({
+            channelNote: 'default note',
+            channelPriority: 5,
+            channelFeaturedAssetId: 1,
+        });
+        expect(await inDefault!.getChannelCustomFields(ctxB)).toEqual({
+            channelNote: 'B note',
+            channelPriority: 5,
+            channelFeaturedAssetId: null,
+        });
+        expect(await inDefault!.getChannelCustomFields(ctxDefault, { channelId: ctxB.channelId })).toEqual({
+            channelNote: 'B note',
+            channelPriority: 5,
+            channelFeaturedAssetId: null,
+        });
+
+        // Relation fields on request
+        const withAsset = await inDefault!.getChannelCustomFields(ctxDefault, {
+            relations: ['channelFeaturedAsset'],
+        });
+        expect(withAsset?.channelFeaturedAsset).toEqual(expect.objectContaining({ id: 1 }));
+        await expect(
+            inDefault!.getChannelCustomFields(ctxDefault, { relations: ['channelNote'] as any }),
+        ).rejects.toThrow('is not a channel-scoped relation custom field');
+
+        // Not assigned to channel B
+        const notInB = await productService.findOne(ctxDefault, 3);
+        expect(await notInB!.getChannelCustomFields(ctxB)).toBeUndefined();
+
+        // Reads made in the same tick share one query
+        const products = await productService.findByIds(ctxB, [1, 2]);
+        const getAssignments = vi.spyOn(server.app.get(ChannelAssignmentService), 'getAssignments');
+        try {
+            const values = await Promise.all(products.map(p => p.getChannelCustomFields(ctxB)));
+            const notesById = Object.fromEntries(products.map((p, i) => [p.id, values[i]?.channelNote]));
+            expect(notesById).toEqual({ 1: 'B note', 2: 'B note 2' });
+            expect(getAssignments).toHaveBeenCalledTimes(1);
+        } finally {
+            getAssignments.mockRestore();
+        }
     });
 
     it('reads null for an entity which is not assigned to the Channel', async () => {

@@ -1,13 +1,18 @@
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomProductFields } from '../custom-entity-fields';
+import { CustomProductChannelFields, CustomProductFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { FacetValue } from '../facet-value/facet-value.entity';
 import { ProductOptionGroup } from '../product-option-group/product-option-group.entity';
@@ -75,4 +80,29 @@ export class Product
 
     @Column(type => CustomProductFields)
     customFields: CustomProductFields;
+
+    /**
+     * @description
+     * Returns the values of the Product's `channelScoped` custom fields in the active Channel of
+     * the RequestContext (or `options.channelId`), or `undefined` if the Product is not assigned to
+     * that Channel. They are not part of `customFields`, since they have a value per Channel.
+     * Declare their types on {@link CustomProductChannelFields}.
+     *
+     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
+     * are batched into one query.
+     *
+     * @example
+     * ```ts
+     * const channelFields = await product.getChannelCustomFields(ctx);
+     * const note = channelFields?.channelNote;
+     * ```
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomProductChannelFields>,
+    ): Promise<CustomProductChannelFields | undefined> {
+        return readChannelCustomFields(ctx, Product, this, options);
+    }
 }

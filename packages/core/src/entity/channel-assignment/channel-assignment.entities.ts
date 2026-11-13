@@ -4,6 +4,7 @@ import { Column } from 'typeorm';
 import { ApiKey } from '../api-key/api-key.entity';
 import { Asset } from '../asset/asset.entity';
 import { Collection } from '../collection/collection.entity';
+import { CustomProductChannelFields } from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
 import { FacetValue } from '../facet-value/facet-value.entity';
 import { Facet } from '../facet/facet.entity';
@@ -187,6 +188,15 @@ export class ProductChannel extends ChannelAssignment {
      */
     @Column({ default: true })
     enabled: boolean;
+
+    /**
+     * @description
+     * The values of the Product's `channelScoped` custom fields in this Channel. Only present if
+     * the Product has channel-scoped custom fields. Read them with `product.getChannelCustomFields()`.
+     *
+     * @since 4.0.0
+     */
+    customFields: CustomProductChannelFields;
 }
 
 /**

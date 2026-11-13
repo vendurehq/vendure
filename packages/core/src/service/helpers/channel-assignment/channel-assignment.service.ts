@@ -14,6 +14,10 @@ import {
     ChannelAssignmentEntityOptions,
     getChannelAssignmentEntities,
 } from '../../../entity/channel-assignment/channel-assignment-registry';
+import {
+    ChannelCustomFieldsOptions,
+    setChannelCustomFieldsReader,
+} from '../../../entity/channel-assignment/channel-custom-fields';
 
 /**
  * Describes how a ChannelAware entity's channel assignment rows are stored.
@@ -75,6 +79,8 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
      */
     onApplicationBootstrap() {
         validateChannelAssignmentMetadata(this.connection.rawConnection.entityMetadatas);
+        // Serves `getChannelCustomFields()` on entities such as Product
+        setChannelCustomFieldsReader(this);
     }
 
     /**
@@ -315,6 +321,46 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             result[name] = row?.customFields?.[name] ?? null;
         }
         return result;
+    }
+
+    /**
+     * @description
+     * Returns the values of the entity's `channelScoped` custom fields in a Channel (the active
+     * Channel by default), or `undefined` if the entity is not assigned to that Channel. Relation
+     * fields are only set if they are listed in `options.relations`.
+     *
+     * Entities expose this as a typed method, e.g. `product.getChannelCustomFields(ctx)`.
+     * Reads without relations are batched, and reuse a row loaded by a ListQueryBuilder list with
+     * the `loadChannelAssignment` option.
+     */
+    async getChannelCustomFields(
+        ctx: RequestContext,
+        entityType: AnyEntity,
+        entityOrId: ID | { id: ID },
+        options: ChannelCustomFieldsOptions<any> = {},
+    ): Promise<Record<string, unknown> | undefined> {
+        const meta = this.getMetadataOrThrow(entityType);
+        const channelId = options.channelId ?? ctx.channelId;
+        const relations = (options.relations ?? []).map(name => `customFields.${name}`);
+        const unknownRelations = relations.filter(path => !meta.dataRelations.includes(path));
+        if (unknownRelations.length) {
+            throw new InternalServerError(
+                `${unknownRelations.map(p => `"${p}"`).join(', ')} of ${entityType.name} ` +
+                    'is not a channel-scoped relation custom field',
+            );
+        }
+        let row: any;
+        if (!relations.length) {
+            row = await this.getAssignment(ctx, entityType, entityOrId, channelId);
+        } else {
+            const entityId = typeof entityOrId === 'object' ? entityOrId.id : entityOrId;
+            row = await this.connection.getRepository(ctx, meta.target).findOne({
+                where: { [meta.entityIdProperty]: entityId, channelId },
+                relations: findOptionsArrayToObject(relations),
+            });
+        }
+        // A copy, so that changing it does not change a row loaded with a list
+        return row ? { ...row.customFields } : undefined;
     }
 
     /**

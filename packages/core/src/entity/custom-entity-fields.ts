@@ -23,6 +23,15 @@ export class CustomPaymentMethodFields {}
 export class CustomPaymentMethodFieldsTranslation {}
 export class CustomProductFields {}
 export class CustomProductFieldsTranslation {}
+/**
+ * @description
+ * The type of a Product's `channelScoped` custom fields. Declare them here rather than on
+ * `CustomProductFields`, since their values are not on the Product entity: read them with
+ * `product.getChannelCustomFields(ctx)`.
+ *
+ * @since 4.0.0
+ */
+export class CustomProductChannelFields {}
 export class CustomProductOptionFields {}
 export class CustomProductOptionFieldsTranslation {}
 export class CustomProductOptionGroupFields {}
