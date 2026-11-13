@@ -34,6 +34,9 @@ import {
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
+// `input` is a list type. GraphQL input coercion accepts a single object where a list is expected.
+const asList = <T>(input: T) => input as unknown as T[];
+
 class TestProductVariantPriceUpdateStrategy implements ProductVariantPriceUpdateStrategy {
     static syncAcrossChannels = false;
     static onCreatedSpy = vi.fn();
@@ -149,7 +152,7 @@ describe('Product prices', () => {
         'updating ProductVariant with price in unavailable currency throws',
         assertThrowsWithMessage(async () => {
             await adminClient.query(updateProductVariantsDocument, {
-                input: {
+                input: asList({
                     id: multiPriceVariant.id,
                     prices: [
                         {
@@ -157,21 +160,21 @@ describe('Product prices', () => {
                             price: 100000,
                         },
                     ],
-                },
+                }),
             });
         }, 'The currency "JPY" is not available in the current Channel'),
     );
 
     it('updates ProductVariant with multiple prices', async () => {
         await adminClient.query(updateProductVariantsDocument, {
-            input: {
+            input: asList({
                 id: multiPriceVariant.id,
                 prices: [
                     { currencyCode: CurrencyCode.USD, price: 1200 },
                     { currencyCode: CurrencyCode.GBP, price: 900 },
                     { currencyCode: CurrencyCode.EUR, price: 1100 },
                 ],
-            },
+            }),
         });
 
         const { product } = await adminClient.query(getProductWithVariantsDocument, {
@@ -187,10 +190,10 @@ describe('Product prices', () => {
 
     it('deletes a price in a non-default currency', async () => {
         await adminClient.query(updateProductVariantsDocument, {
-            input: {
+            input: asList({
                 id: multiPriceVariant.id,
                 prices: [{ currencyCode: CurrencyCode.EUR, price: 1100, delete: true }],
-            },
+            }),
         });
 
         const { product } = await adminClient.query(getProductWithVariantsDocument, {
@@ -410,10 +413,10 @@ describe('Product prices', () => {
                 },
             });
             await adminClient.query(updateProductVariantsDocument, {
-                input: {
+                input: asList({
                     id: multiPriceVariant.id,
                     prices: [{ currencyCode: CurrencyCode.MYR, price: 5500 }],
-                },
+                }),
             });
 
             expect(onCreatedSpy).toHaveBeenCalledTimes(1);
@@ -456,7 +459,7 @@ describe('Product prices', () => {
             onUpdatedSpy.mockClear();
 
             await adminClient.query(updateProductVariantsDocument, {
-                input: {
+                input: asList({
                     id: multiPriceVariant.id,
                     prices: [
                         {
@@ -464,7 +467,7 @@ describe('Product prices', () => {
                             price: 4242,
                         },
                     ],
-                },
+                }),
             });
 
             expect(onUpdatedSpy).toHaveBeenCalledTimes(1);
@@ -541,7 +544,7 @@ describe('Product prices', () => {
             onDeletedSpy.mockClear();
 
             const result = await adminClient.query(updateProductVariantsDocument, {
-                input: {
+                input: asList({
                     id: multiPriceVariant.id,
                     prices: [
                         {
@@ -550,7 +553,7 @@ describe('Product prices', () => {
                             delete: true,
                         },
                     ],
-                },
+                }),
             });
 
             expect(result.updateProductVariants[0]?.prices).toEqual([

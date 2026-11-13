@@ -17,7 +17,8 @@ const RESOURCE_METADATA_URL = 'https://shop.example.com/.well-known/oauth-protec
 function createController(authenticationError: Error) {
     const failuresRecorded: Array<string | undefined> = [];
     const headers: Record<string, string> = {};
-    const controller = Object.create(McpTransportController.prototype) as McpTransportController & {
+    // The method is private on the class, so the type does not intersect with `McpTransportController`.
+    const controller = Object.create(McpTransportController.prototype) as unknown as {
         authenticateBearerToken(
             token: string,
             toolset: 'admin' | 'shop',

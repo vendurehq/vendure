@@ -530,7 +530,7 @@ describe('ShippingMethod resolver', () => {
                     defaultTaxZoneId: 'T_1',
                 },
             });
-            channelId = createChannel.id;
+            channelId = (createChannel as { id: string }).id;
 
             // Create a shipping method and assign it to the new channel
             const { createShippingMethod } = await adminClient.query(createShippingMethodDocument, {
@@ -585,10 +585,10 @@ describe('ShippingMethod resolver', () => {
 
                 // Verify shipping line is present and totals include shipping
                 const { activeOrder: orderBefore } = await shopClient.query(getActiveOrderDocument);
-                expect(orderBefore.shippingLines).toHaveLength(1);
-                expect(orderBefore.shippingLines[0].shippingMethod.id).toBe(shippingMethodId);
-                expect(orderBefore.shipping).toBe(500);
-                expect(orderBefore.total).toBe(Number(orderBefore.subTotal) + 500);
+                expect(orderBefore!.shippingLines).toHaveLength(1);
+                expect(orderBefore!.shippingLines[0].shippingMethod.id).toBe(shippingMethodId);
+                expect(orderBefore!.shipping).toBe(500);
+                expect(orderBefore!.total).toBe(Number(orderBefore!.subTotal) + 500);
 
                 // Remove the shipping method from the channel
                 await adminClient.query(removeShippingMethodsFromChannelDocument, {
@@ -600,11 +600,11 @@ describe('ShippingMethod resolver', () => {
 
                 // Verify the shipping line has been removed and totals recalculated
                 const { activeOrder: orderAfter } = await shopClient.query(getActiveOrderDocument);
-                expect(orderAfter.shippingLines).toHaveLength(0);
-                expect(orderAfter.shipping).toBe(0);
-                expect(orderAfter.shippingWithTax).toBe(0);
-                expect(orderAfter.total).toBe(orderAfter.subTotal);
-                expect(orderAfter.totalWithTax).toBe(orderAfter.subTotalWithTax);
+                expect(orderAfter!.shippingLines).toHaveLength(0);
+                expect(orderAfter!.shipping).toBe(0);
+                expect(orderAfter!.shippingWithTax).toBe(0);
+                expect(orderAfter!.total).toBe(orderAfter!.subTotal);
+                expect(orderAfter!.totalWithTax).toBe(orderAfter!.subTotalWithTax);
             } finally {
                 shopClient.setChannelToken('e2e-default-channel');
             }
@@ -677,11 +677,11 @@ describe('ShippingMethod resolver', () => {
                 // Verify the historical order still resolves the shipping method
                 adminClient.setChannelToken('shipping-test-channel-token');
                 const { order } = await adminClient.query(getOrderDocument, {
-                    id: completedOrder.id,
+                    id: (completedOrder as { id: string }).id,
                 });
-                expect(order.shippingLines).toHaveLength(1);
-                expect(order.shippingLines[0].shippingMethod.id).toBe(shippingMethodId);
-                expect(order.shippingLines[0].shippingMethod.name).toBe('Channel Test Method');
+                expect(order!.shippingLines).toHaveLength(1);
+                expect(order!.shippingLines[0].shippingMethod.id).toBe(shippingMethodId);
+                expect(order!.shippingLines[0].shippingMethod.name).toBe('Channel Test Method');
             } finally {
                 shopClient.setChannelToken('e2e-default-channel');
                 adminClient.setChannelToken('e2e-default-channel');
@@ -731,7 +731,7 @@ describe('ShippingMethod resolver', () => {
                     defaultTaxZoneId: 'T_1',
                 },
             });
-            gbpChannelId = gbpChannel.id;
+            gbpChannelId = (gbpChannel as { id: string }).id;
 
             const { createChannel: secondChannel } = await adminClient.query(createChannelDocument, {
                 input: {
@@ -744,7 +744,7 @@ describe('ShippingMethod resolver', () => {
                     defaultTaxZoneId: 'T_1',
                 },
             });
-            secondChannelId = secondChannel.id;
+            secondChannelId = (secondChannel as { id: string }).id;
 
             const { createShippingMethod: multiMethod } = await adminClient.query(
                 createShippingMethodDocument,

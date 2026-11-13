@@ -12,6 +12,9 @@ import { FragmentOf, graphql } from './graphql/graphql-shop';
 import { createAdministratorDocument, createRoleDocument } from './graphql/shared-definitions';
 import { fixPostgresTimezone } from './utils/fix-pg-timezone';
 
+// The generated shop types declare no fields for OrderLineCustomFieldsInput.
+const customFieldsInput = (input: Record<string, unknown>) => input as never;
+
 const orderWithCustomFieldsFragment = graphql(`
     fragment OrderWithCustomFields on Order {
         id
@@ -336,7 +339,11 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_1',
                 quantity: 1,
-                customFields: { stringField: 'test value', intField: 42, booleanField: true },
+                customFields: customFieldsInput({
+                    stringField: 'test value',
+                    intField: 42,
+                    booleanField: true,
+                }),
             });
             orderGuard.assertSuccess(addItemToOrder);
 
@@ -354,7 +361,7 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_2',
                 quantity: 1,
-                customFields: { relationFieldId: 'T_1' },
+                customFields: customFieldsInput({ relationFieldId: 'T_1' }),
             });
             orderGuard.assertSuccess(addItemToOrder);
 
@@ -368,12 +375,12 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_3',
                 quantity: 1,
-                customFields: {
+                customFields: customFieldsInput({
                     stringField: 'initial value',
                     intField: 100,
                     booleanField: false,
                     nullableField: 'not null',
-                },
+                }),
             });
             orderGuard.assertSuccess(addItemToOrder);
             const orderLineId = addItemToOrder.lines[0].id;
@@ -381,14 +388,14 @@ describe('OrderLine Custom Fields', () => {
             const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                 orderLineId,
                 quantity: 2,
-                customFields: {
+                customFields: customFieldsInput({
                     stringField: 'updated value',
-                },
+                }),
             });
             orderGuard.assertSuccess(adjustOrderLine);
 
             const updatedLine = adjustOrderLine.lines.find(line => line.id === orderLineId);
-            expect(updatedLine.customFields).toEqual({
+            expect(updatedLine?.customFields).toEqual({
                 stringField: 'updated value', // updated
                 intField: 100, // preserved
                 booleanField: false, // preserved
@@ -403,12 +410,12 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_4',
                 quantity: 1,
-                customFields: {
+                customFields: customFieldsInput({
                     stringField: 'initial value',
                     intField: 100,
                     booleanField: false,
                     nullableField: 'not null',
-                },
+                }),
             });
             orderGuard.assertSuccess(addItemToOrder);
             const orderLineId = addItemToOrder.lines[0].id;
@@ -416,15 +423,15 @@ describe('OrderLine Custom Fields', () => {
             const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                 orderLineId,
                 quantity: 2,
-                customFields: {
+                customFields: customFieldsInput({
                     intField: 200,
                     booleanField: true,
-                },
+                }),
             });
             orderGuard.assertSuccess(adjustOrderLine);
 
             const updatedLine = adjustOrderLine.lines.find(line => line.id === orderLineId);
-            expect(updatedLine.customFields).toEqual({
+            expect(updatedLine?.customFields).toEqual({
                 stringField: 'initial value', // preserved
                 intField: 200, // updated
                 booleanField: true, // updated
@@ -439,12 +446,12 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_1',
                 quantity: 1,
-                customFields: {
+                customFields: customFieldsInput({
                     stringField: 'initial value',
                     intField: 100,
                     booleanField: false,
                     nullableField: 'not null',
-                },
+                }),
             });
             orderGuard.assertSuccess(addItemToOrder);
             const orderLineId = addItemToOrder.lines[0].id;
@@ -452,14 +459,14 @@ describe('OrderLine Custom Fields', () => {
             const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                 orderLineId,
                 quantity: 2,
-                customFields: {
+                customFields: customFieldsInput({
                     nullableField: null,
-                },
+                }),
             });
             orderGuard.assertSuccess(adjustOrderLine);
 
             const updatedLine = adjustOrderLine.lines.find(line => line.id === orderLineId);
-            expect(updatedLine.customFields).toEqual({
+            expect(updatedLine?.customFields).toEqual({
                 stringField: 'initial value', // preserved
                 intField: 100, // preserved
                 booleanField: false, // preserved
@@ -474,12 +481,12 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_2',
                 quantity: 1,
-                customFields: {
+                customFields: customFieldsInput({
                     stringField: 'initial value',
                     intField: 100,
                     booleanField: false,
                     nullableField: 'not null',
-                },
+                }),
             });
             orderGuard.assertSuccess(addItemToOrder);
             const orderLineId = addItemToOrder.lines[0].id;
@@ -487,14 +494,14 @@ describe('OrderLine Custom Fields', () => {
             const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                 orderLineId,
                 quantity: 2,
-                customFields: {
+                customFields: customFieldsInput({
                     relationFieldId: 'T_1',
-                },
+                }),
             });
             orderGuard.assertSuccess(adjustOrderLine);
 
             const updatedLine = adjustOrderLine.lines.find(line => line.id === orderLineId);
-            expect(updatedLine.customFields).toEqual({
+            expect(updatedLine?.customFields).toEqual({
                 stringField: 'initial value', // preserved
                 intField: 100, // preserved
                 booleanField: false, // preserved
@@ -512,13 +519,13 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_3',
                 quantity: 1,
-                customFields: {
+                customFields: customFieldsInput({
                     stringField: 'initial value',
                     intField: 100,
                     booleanField: false,
                     nullableField: 'not null',
                     relationFieldId: 'T_1',
-                },
+                }),
             });
             orderGuard.assertSuccess(addItemToOrder);
             const orderLineId = addItemToOrder.lines[0].id;
@@ -526,14 +533,14 @@ describe('OrderLine Custom Fields', () => {
             const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                 orderLineId,
                 quantity: 2,
-                customFields: {
+                customFields: customFieldsInput({
                     relationFieldId: null,
-                },
+                }),
             });
             orderGuard.assertSuccess(adjustOrderLine);
 
             const updatedLine = adjustOrderLine.lines.find(line => line.id === orderLineId);
-            expect(updatedLine.customFields).toEqual({
+            expect(updatedLine?.customFields).toEqual({
                 stringField: 'initial value', // preserved
                 intField: 100, // preserved
                 booleanField: false, // preserved
@@ -557,7 +564,7 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId,
                 quantity: 1,
-                customFields: { defaultedField: 'explicit value' },
+                customFields: customFieldsInput({ defaultedField: 'explicit value' }),
             });
             orderGuard.assertSuccess(addItemToOrder);
             return addItemToOrder.lines[0].id;
@@ -568,7 +575,7 @@ describe('OrderLine Custom Fields', () => {
         it('applies the default to an addItemToOrder selected through an inline fragment', async () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderInlineFragmentDocument, {
                 productVariantId: 'T_1',
-                customFields: { defaultedField: null },
+                customFields: customFieldsInput({ defaultedField: null }),
             });
             orderGuard.assertSuccess(addItemToOrder);
 
@@ -582,9 +589,9 @@ describe('OrderLine Custom Fields', () => {
                 adjustOrderLineThenAddItemToOrderDocument,
                 {
                     orderLineId: adjustedLineId,
-                    adjustCustomFields: {},
+                    adjustCustomFields: customFieldsInput({}),
                     productVariantId: 'T_2',
-                    addCustomFields: { defaultedField: null },
+                    addCustomFields: customFieldsInput({ defaultedField: null }),
                 },
             );
             orderGuard.assertSuccess(adjustOrderLine);
@@ -600,9 +607,9 @@ describe('OrderLine Custom Fields', () => {
                 addItemToOrderThenAdjustOrderLineDocument,
                 {
                     orderLineId: adjustedLineId,
-                    adjustCustomFields: { defaultedField: null },
+                    adjustCustomFields: customFieldsInput({ defaultedField: null }),
                     productVariantId: 'T_2',
-                    addCustomFields: {},
+                    addCustomFields: customFieldsInput({}),
                 },
             );
             orderGuard.assertSuccess(addItemToOrder);
@@ -868,7 +875,7 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_4',
                 quantity: 1,
-                customFields: {},
+                customFields: customFieldsInput({}),
             });
             orderGuard.assertSuccess(addItemToOrder);
 
@@ -887,7 +894,7 @@ describe('OrderLine Custom Fields', () => {
             const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_1',
                 quantity: 1,
-                customFields: { stringField: 'will be preserved', intField: 999 },
+                customFields: customFieldsInput({ stringField: 'will be preserved', intField: 999 }),
             });
             orderGuard.assertSuccess(addItemToOrder);
 
@@ -896,12 +903,12 @@ describe('OrderLine Custom Fields', () => {
             const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                 orderLineId: lineId,
                 quantity: 2,
-                customFields: {},
+                customFields: customFieldsInput({}),
             });
             orderGuard.assertSuccess(adjustOrderLine);
 
             const updatedLine = adjustOrderLine.lines.find(line => line.id === lineId);
-            expect(updatedLine.customFields).toEqual({
+            expect(updatedLine?.customFields).toEqual({
                 stringField: 'will be preserved', // preserved when empty object passed
                 intField: 999, // preserved when empty object passed
                 booleanField: null, // default value for unset fields

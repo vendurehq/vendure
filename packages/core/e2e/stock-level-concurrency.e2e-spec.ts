@@ -529,11 +529,11 @@ describe('StockLevelService concurrency', () => {
             const firstTransaction = connection.withTransaction(
                 await requestContextService.create({ apiType: 'admin' }),
                 async txCtx => {
-                    firstResult = await orderService.modifyOrder(txCtx, {
+                    firstResult = (await orderService.modifyOrder(txCtx, {
                         dryRun: false,
                         orderId: rawOrderIds[0],
                         adjustOrderLines: [{ orderLineId: orderLineIds[0], quantity: 2 }],
-                    });
+                    })) as typeof firstResult;
                     firstModified.resolve();
                     await firstMayCommit.promise;
                 },
@@ -544,11 +544,11 @@ describe('StockLevelService concurrency', () => {
             let secondError: Error | undefined;
             const secondTransaction = connection
                 .withTransaction(await requestContextService.create({ apiType: 'admin' }), async txCtx => {
-                    secondResult = await orderService.modifyOrder(txCtx, {
+                    secondResult = (await orderService.modifyOrder(txCtx, {
                         dryRun: false,
                         orderId: rawOrderIds[1],
                         adjustOrderLines: [{ orderLineId: orderLineIds[1], quantity: 2 }],
-                    });
+                    })) as typeof secondResult;
                 })
                 .catch((e: Error) => {
                     secondError = e;

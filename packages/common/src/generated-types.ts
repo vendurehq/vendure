@@ -380,12 +380,22 @@ export type AssignProductOptionGroupsToChannelInput = {
 
 export type AssignProductVariantsToChannelInput = {
   channelId: Scalars['ID']['input'];
+  /**
+   * Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+   * the value from the active Channel, and already assigned ones are left unchanged.
+   */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   priceFactor?: InputMaybe<Scalars['Float']['input']>;
   productVariantIds: Array<Scalars['ID']['input']>;
 };
 
 export type AssignProductsToChannelInput = {
   channelId: Scalars['ID']['input'];
+  /**
+   * Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+   * the value from the active Channel, and already assigned ones are left unchanged.
+   */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   priceFactor?: InputMaybe<Scalars['Float']['input']>;
   productIds: Array<Scalars['ID']['input']>;
 };
@@ -1037,6 +1047,8 @@ export type CreateProductInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. Defaults to `true`. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   translations: Array<ProductTranslationInput>;
@@ -1060,6 +1072,8 @@ export type CreateProductVariantInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. Defaults to `true`. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   optionIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -5116,6 +5130,11 @@ export type Product = Node & {
   customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   enabled: Scalars['Boolean']['output'];
+  /**
+   * Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel: Scalars['Boolean']['output'];
   facetValues: Array<FacetValue>;
   featuredAsset?: Maybe<Asset>;
   id: Scalars['ID']['output'];
@@ -5142,6 +5161,11 @@ export type ProductFilterParameter = {
   createdAt?: InputMaybe<DateOperators>;
   description?: InputMaybe<StringOperators>;
   enabled?: InputMaybe<BooleanOperators>;
+  /**
+   * Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel?: InputMaybe<BooleanOperators>;
   facetValueId?: InputMaybe<IdOperators>;
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
@@ -5369,6 +5393,11 @@ export type ProductVariant = Node & {
   currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
   enabled: Scalars['Boolean']['output'];
+  /**
+   * Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel: Scalars['Boolean']['output'];
   facetValues: Array<FacetValue>;
   featuredAsset?: Maybe<Asset>;
   id: Scalars['ID']['output'];
@@ -5408,6 +5437,11 @@ export type ProductVariantFilterParameter = {
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   enabled?: InputMaybe<BooleanOperators>;
+  /**
+   * Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel?: InputMaybe<BooleanOperators>;
   facetValueId?: InputMaybe<IdOperators>;
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
@@ -7498,6 +7532,8 @@ export type UpdateProductInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. If not set, it is left unchanged. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
@@ -7522,6 +7558,8 @@ export type UpdateProductVariantInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. If not set, it is left unchanged. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];

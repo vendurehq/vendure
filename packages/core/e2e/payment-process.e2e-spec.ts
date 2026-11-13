@@ -22,8 +22,8 @@ import type { FragmentOf as ShopFragmentOf } from './graphql/graphql-shop';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { type orderFragment, orderWithLinesFragment, type paymentFragment } from './graphql/fragments-admin';
-import { type FragmentOf, graphql } from './graphql/graphql-admin';
+import { type orderFragment, orderWithLinesFragment } from './graphql/fragments-admin';
+import { type FragmentOf, graphql, type ResultOf } from './graphql/graphql-admin';
 import {
     adminTransitionToStateDocument,
     getOrderDocument,
@@ -132,9 +132,11 @@ describe('Payment process', () => {
     const orderWithLinesGuard: ErrorResultGuard<FragmentOf<typeof orderWithLinesFragment>> =
         createErrorResultGuard(input => !!input.total);
 
-    const paymentGuard: ErrorResultGuard<FragmentOf<typeof paymentFragment>> = createErrorResultGuard(
-        input => !!input.id,
-    );
+    type PaymentSuccessResult = Exclude<
+        ResultOf<typeof transitionPaymentToStateDocument>['transitionPaymentToState'],
+        { errorCode: string }
+    >;
+    const paymentGuard: ErrorResultGuard<PaymentSuccessResult> = createErrorResultGuard(input => !!input.id);
 
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {

@@ -18,7 +18,7 @@ interface RecordingLogger extends Logger {
 }
 
 function createRecordingLogger(): RecordingLogger {
-    const logger = { errors: [], warns: [] };
+    const logger: Pick<RecordingLogger, 'errors' | 'warns'> = { errors: [], warns: [] };
     return {
         ...logger,
         info: () => undefined,
@@ -217,7 +217,9 @@ describe('#5086 compiler source root', () => {
                 ]);
                 // Loading through the alias proves the remapped baseUrl resolved
                 // '@plugins/foo' to its nested emit location.
-                expect(result.vendureConfig.pluginName).toBe('foo-plugin');
+                expect((result.vendureConfig as unknown as Record<string, unknown>).pluginName).toBe(
+                    'foo-plugin',
+                );
                 expectNoEscapeSymptom(logger);
             } finally {
                 await removeDirs(outputRoot ?? '', root);

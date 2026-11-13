@@ -39,7 +39,10 @@ function GrantStatusBadge({ status }: { status: Grant['status'] }) {
     }
     if (status === 'expired') {
         return (
-            <Badge variant="secondary">
+            <Badge
+                // @ts-expect-error `secondary` is not a Badge variant in @vendure-io/ui v2. Not changed here, so the rendering stays the same.
+                variant="secondary"
+            >
                 <Trans>Expired</Trans>
             </Badge>
         );

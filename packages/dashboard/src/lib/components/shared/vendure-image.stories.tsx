@@ -61,7 +61,7 @@ const meta = {
 } satisfies Meta<typeof VendureImage>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<typeof VendureImage>;
 
 export const Playground: Story = {
     args: {

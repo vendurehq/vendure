@@ -5,10 +5,10 @@ import gql from 'graphql-tag';
 const FooScalar = new GraphQLScalarType({
     name: 'FooScalar',
     description: 'A test scalar',
-    serialize(value) {
+    serialize(value: any) {
         return value.toString() + '-foo';
     },
-    parseValue(value) {
+    parseValue(value: any) {
         return value.toString().split('-foo')[0];
     },
 });

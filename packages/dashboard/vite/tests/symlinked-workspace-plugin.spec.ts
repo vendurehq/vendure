@@ -60,7 +60,7 @@ describe('detecting dashboard in workspace-symlinked packages', () => {
         expect(plugin?.pluginPath).toBe(sourcePlugin);
 
         // The entry resolves (as the metadata plugin does) to a real source file.
-        const resolvedEntry = resolve(join(workspacePkg, 'src'), plugin.dashboardEntryPath);
+        const resolvedEntry = resolve(join(workspacePkg, 'src'), plugin?.dashboardEntryPath as string);
         expect(existsSync(resolvedEntry)).toBe(true);
     });
 

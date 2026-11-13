@@ -231,7 +231,8 @@ function generateCustomFieldResolvers(
                 ? await channelAssignmentService.getCustomFieldValues(
                       internal_getRequestContext(context.req),
                       entityName,
-                      source.id,
+                      // The entity, so that a row loaded by its list's channel assignment join is reused
+                      source,
                       channelScopedFieldNames,
                   )
                 : {};

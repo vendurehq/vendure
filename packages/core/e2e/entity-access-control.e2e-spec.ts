@@ -182,7 +182,7 @@ class TestEntityAccessControlStrategy extends DefaultEntityAccessControlStrategy
         entityType: new (...args: any[]) => T,
         ctx: RequestContext,
     ): void {
-        if (entityType !== Product) {
+        if ((entityType as unknown) !== Product) {
             return;
         }
 

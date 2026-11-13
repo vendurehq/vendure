@@ -1,4 +1,4 @@
-import { mergeConfig } from '@vendure/core';
+import { mergeConfig, MiddlewareHandler } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { json } from 'express';
 import gql from 'graphql-tag';
@@ -20,7 +20,7 @@ describe('route-scoped beforeListen middleware (#5028)', () => {
         apiOptions: {
             middleware: [
                 {
-                    handler: json({ limit: '10mb' }),
+                    handler: json({ limit: '10mb' }) as MiddlewareHandler,
                     route: '/admin-api',
                     beforeListen: true,
                 },

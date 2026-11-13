@@ -40,7 +40,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { testSuccessfulPaymentMethod, twoStagePaymentMethod } from './fixtures/test-payment-methods';
 import { fulfillmentFragment, variantWithStockFragment } from './graphql/fragments-admin';
-import { FragmentOf, graphql } from './graphql/graphql-admin';
+import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import { graphql as graphqlShop } from './graphql/graphql-shop';
 import {
     cancelOrderDocument,
@@ -151,6 +151,18 @@ describe('Stock control', () => {
     const fulfillmentGuard: ErrorResultGuard<FulfillmentFragment> = createErrorResultGuard(
         input => !!input.state,
     );
+
+    const addItemGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof addItemToOrderDocument>['addItemToOrder'], { errorCode: string }>
+    > = createErrorResultGuard(input => !!input.lines);
+
+    const adjustOrderLineGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof adjustItemQuantityDocument>['adjustOrderLine'], { errorCode: string }>
+    > = createErrorResultGuard(input => !!input.lines);
+
+    const createFulfillmentGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof createFulfillmentDocument>['addFulfillmentToOrder'], { errorCode: string }>
+    > = createErrorResultGuard(input => !!input.state);
 
     async function getProductWithStockMovement(productId: string) {
         const { product } = await adminClient.query(getStockMovementDocument, {
@@ -680,7 +692,7 @@ describe('Stock control', () => {
                 quantity: 1,
             });
 
-            orderGuard.assertErrorResult(addItemToOrder);
+            addItemGuard.assertErrorResult(addItemToOrder);
 
             expect(addItemToOrder.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
             expect(addItemToOrder.message).toBe('No items were added to the order due to insufficient stock');
@@ -695,7 +707,7 @@ describe('Stock control', () => {
                 quantity: 5,
             });
 
-            orderGuard.assertErrorResult(addItemToOrder);
+            addItemGuard.assertErrorResult(addItemToOrder);
 
             expect(addItemToOrder.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
             expect(addItemToOrder.message).toBe(
@@ -742,7 +754,7 @@ describe('Stock control', () => {
                 quantity: 2,
             });
 
-            orderGuard.assertErrorResult(addItemToOrder);
+            addItemGuard.assertErrorResult(addItemToOrder);
 
             expect(addItemToOrder.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
             expect(addItemToOrder.message).toBe(
@@ -843,7 +855,7 @@ describe('Stock control', () => {
                 },
             });
 
-            fulfillmentGuard.assertErrorResult(addFulfillmentToOrder);
+            createFulfillmentGuard.assertErrorResult(addFulfillmentToOrder);
 
             expect(addFulfillmentToOrder.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ON_HAND_ERROR);
             expect(addFulfillmentToOrder.message).toBe(
@@ -1054,7 +1066,7 @@ describe('Stock control', () => {
                     productVariantId: variant5Id,
                     quantity: 1,
                 });
-                orderGuard.assertErrorResult(addItemToOrder);
+                addItemGuard.assertErrorResult(addItemToOrder);
 
                 expect(addItemToOrder.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
                 expect(addItemToOrder.message).toBe(
@@ -1077,7 +1089,7 @@ describe('Stock control', () => {
                     productVariantId: variant5Id,
                     quantity: 1,
                 });
-                orderGuard.assertErrorResult(addItemToOrder);
+                addItemGuard.assertErrorResult(addItemToOrder);
 
                 expect(addItemToOrder.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
                 expect(addItemToOrder.message).toBe(
@@ -1100,7 +1112,7 @@ describe('Stock control', () => {
                     quantity: 1,
                 });
 
-                orderGuard.assertErrorResult(add2);
+                addItemGuard.assertErrorResult(add2);
 
                 expect(add2.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
                 expect(add2.message).toBe('No items were added to the order due to insufficient stock');
@@ -1142,7 +1154,7 @@ describe('Stock control', () => {
                     orderLineId: add1.lines[0].id,
                     quantity: 2,
                 });
-                orderGuard.assertErrorResult(add2);
+                adjustOrderLineGuard.assertErrorResult(add2);
 
                 expect(add2.errorCode).toBe(ErrorCode.INSUFFICIENT_STOCK_ERROR);
 

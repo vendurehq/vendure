@@ -42,7 +42,7 @@ const mockConfigServiceWithLocaleText = {
         ],
         ProductVariant: [],
     },
-} as ConfigService;
+} as unknown as ConfigService;
 
 describe('ImportParser', () => {
     beforeAll(async () => {

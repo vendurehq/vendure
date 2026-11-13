@@ -46,12 +46,7 @@
             "scope:plugin"
         ],
         "targets": {
-            "ci": {
-                "executor": "nx:noop",
-                "dependsOn": [
-                    "build"
-                ]
-            }
+            "ci": {}
         }
     }
 }

@@ -325,6 +325,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "添加付款"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Expand"
 msgstr "展开"
@@ -1103,6 +1107,10 @@ msgstr "订单行已删除"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Same as in <0/>"
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "内容:"
@@ -1142,6 +1150,10 @@ msgstr "客户"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Metadata returned by the payment handler."
 msgstr "支付处理程序返回的元数据。"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Hide it in {channel} without affecting other channels."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1978,6 +1990,11 @@ msgstr "地址已成功更新"
 msgid "Created"
 msgstr "已创建"
 
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "正在加载地址..."
@@ -2135,6 +2152,10 @@ msgstr "未进行修改"
 #~ msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Enabled, but hidden in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Default shipping zone"
 msgstr "默认配送区域"
@@ -2193,6 +2214,8 @@ msgstr "客户组"
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Disabled"
 msgstr "已禁用"
 
@@ -3188,6 +3211,7 @@ msgstr "管理全局视图"
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
+#: src/lib/components/shared/channel-availability.tsx
 #: src/lib/components/shared/channel-code-label.tsx
 msgid "Default channel"
 msgstr "默认渠道"
@@ -3379,6 +3403,10 @@ msgstr "选择一个角色"
 msgid "Order cancelled"
 msgstr "订单已取消"
 
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Available in {channelName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Discount"
 msgstr "折扣"
@@ -3453,6 +3481,10 @@ msgstr "电话号码"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "New customer"
 msgstr "新客户"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Visible in this channel"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -4401,6 +4433,10 @@ msgstr "新商品"
 msgid "Failed for: {failedCodes}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "When enabled, a product is available in the shop of every channel where it is not hidden"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Manage Tags"
 msgstr "管理标签"
@@ -4486,6 +4522,11 @@ msgstr "未运行"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
 msgstr "已分配"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_products/products_.$id.tsx
+msgid "Availability"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -4871,6 +4912,10 @@ msgstr "完成退款失败"
 msgid "Stock level"
 msgstr "库存水平"
 
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Visibility in the new channels"
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Add item"
 msgstr "添加项目"
@@ -5046,6 +5091,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Password updated"
 msgstr "密码已更新"
+
+#: src/lib/hooks/use-channel-availability-option.tsx
+msgid "Visible"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "does not contain"
@@ -6013,6 +6062,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
+#: src/lib/components/shared/channel-availability.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Enabled"
 msgstr "已启用"
 
@@ -6565,6 +6616,8 @@ msgstr "默认语言"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Status"
 msgstr "状态"
 
@@ -7077,6 +7130,10 @@ msgstr "这些更改不需要支付或退款。"
 msgid "All possible variant combinations already exist."
 msgstr "所有可能的变体组合均已存在。"
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "Hidden in this channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {确定要取消 {cancellableCount} 个任务吗？此操作无法撤销。} other {确定要取消 {cancellableCount} 个任务吗？此操作无法撤销。}}"
@@ -7182,6 +7239,10 @@ msgstr "计算器"
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
 msgstr "从渠道中移除选项组失败: {message}"
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Disabled in every channel. This setting applies once it is enabled."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -7343,6 +7404,10 @@ msgstr "每页行数"
 #. placeholder {0}: formatCurrency(capacity, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
+#: src/lib/components/shared/channel-availability.tsx
+msgid "Disabled in every channel"
 msgstr ""
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx

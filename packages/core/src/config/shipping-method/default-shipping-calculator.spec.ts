@@ -7,6 +7,7 @@ import { ShippingMethod } from '../../entity/shipping-method/shipping-method.ent
 import { createRequestContext } from '../../testing/order-test-utils';
 
 import { defaultShippingCalculator, TaxSetting } from './default-shipping-calculator';
+import { ShippingCalculationResult } from './shipping-calculator';
 
 /**
  * Unit tests for the `default-shipping-calculator`.
@@ -34,7 +35,7 @@ function calculate(ctx: RequestContext, args: ConfigArg[]) {
         undefined as unknown as Order,
         args,
         undefined as unknown as ShippingMethod,
-    );
+    ) as ShippingCalculationResult;
 }
 
 describe('defaultShippingCalculator', () => {

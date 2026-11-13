@@ -45,7 +45,6 @@ import {
     updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import {
-    activeOrderCustomerDocument,
     addItemToOrderDocument,
     addItemToOrderWithCustomFieldsDocument,
     addMultipleItemsToOrderWithCustomFieldsDocument,
@@ -77,12 +76,14 @@ import {
     transitionToStateDocument,
     unsetBillingAddressDocument,
     unsetShippingAddressDocument,
-    updatedOrderFragment,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 type CreateAddressInput = VariablesOf<typeof setShippingAddressDocument>['input'];
 type CreateShippingMethodInput = VariablesOf<typeof createShippingMethodDocument>['input'];
+
+// The generated shop types declare no fields for OrderLineCustomFieldsInput.
+const customFieldsInput = (input: Record<string, unknown>) => input as never;
 
 describe('Shop orders', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
@@ -120,7 +121,10 @@ describe('Shop orders', () => {
         }),
     );
 
-    type OrderSuccessResult = FragmentOf<typeof updatedOrderFragment>;
+    type OrderSuccessResult = Exclude<
+        ResultOf<typeof addItemToOrderDocument>['addItemToOrder'],
+        { errorCode: string }
+    >;
     const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(
         input => !!input.lines,
     );
@@ -138,15 +142,39 @@ describe('Shop orders', () => {
         input => input.identifier != null,
     );
 
-    type ActiveOrderCustomerFragment = FragmentOf<typeof activeOrderCustomerDocument>;
+    type ActiveOrderCustomerFragment = Exclude<
+        ResultOf<typeof setCustomerDocument>['setCustomerForOrder'],
+        { errorCode: string }
+    >;
     const setCustomerForOrderGuard: ErrorResultGuard<ActiveOrderCustomerFragment> = createErrorResultGuard(
         input => 'lines' in input && !!input.lines,
     );
 
-    type TestOrderFragmentType = FragmentOf<typeof testOrderFragment>;
+    type TestOrderFragmentType = Exclude<
+        ResultOf<typeof adjustItemQuantityDocument>['adjustOrderLine'],
+        { errorCode: string }
+    >;
     const testOrderGuard: ErrorResultGuard<TestOrderFragmentType> = createErrorResultGuard(
         input => !!input.lines,
     );
+
+    const addPaymentGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof addPaymentDocument>['addPaymentToOrder'], { errorCode: string }>
+    > = createErrorResultGuard(input => !!input.lines);
+
+    const addItemWithCustomFieldsGuard: ErrorResultGuard<
+        Exclude<
+            ResultOf<typeof addItemToOrderWithCustomFieldsDocument>['addItemToOrder'],
+            { errorCode: string }
+        >
+    > = createErrorResultGuard(input => !!input.lines);
+
+    const adjustWithCustomFieldsGuard: ErrorResultGuard<
+        Extract<
+            ResultOf<typeof adjustOrderLineWithCustomFieldsDocument>['adjustOrderLine'],
+            { lines: unknown }
+        >
+    > = createErrorResultGuard(input => !!input.lines);
 
     beforeAll(async () => {
         await server.init({
@@ -265,9 +293,9 @@ describe('Shop orders', () => {
                     await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                         productVariantId: 'T_2',
                         quantity: 1,
-                        customFields: {
+                        customFields: customFieldsInput({
                             privateField: 'oh no!', // Testing that private fields are rejected
-                        },
+                        }),
                     });
                     fail('Should have thrown');
                 } catch (e: any) {
@@ -281,9 +309,9 @@ describe('Shop orders', () => {
                     {
                         productVariantId: 'T_2',
                         quantity: 1,
-                        customFields: {
+                        customFields: customFieldsInput({
                             notes: 'note1',
-                        },
+                        }),
                     },
                 );
                 orderResultGuard.assertSuccess(add1);
@@ -295,9 +323,9 @@ describe('Shop orders', () => {
                     {
                         productVariantId: 'T_2',
                         quantity: 1,
-                        customFields: {
+                        customFields: customFieldsInput({
                             notes: 'note1',
-                        },
+                        }),
                     },
                 );
                 orderResultGuard.assertSuccess(add2);
@@ -315,9 +343,9 @@ describe('Shop orders', () => {
                     {
                         productVariantId: 'T_3',
                         quantity: 1,
-                        customFields: {
+                        customFields: customFieldsInput({
                             notes: 'note2',
-                        },
+                        }),
                     },
                 );
                 orderResultGuard.assertSuccess(add1);
@@ -329,9 +357,9 @@ describe('Shop orders', () => {
                     {
                         productVariantId: 'T_3',
                         quantity: 1,
-                        customFields: {
+                        customFields: customFieldsInput({
                             notes: 'note3',
-                        },
+                        }),
                     },
                 );
                 orderResultGuard.assertSuccess(add2);
@@ -363,11 +391,11 @@ describe('Shop orders', () => {
                 const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                     orderLineId: add1.lines[1].id,
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         notes: 'updated notes',
-                    },
+                    }),
                 });
-                orderResultGuard.assertSuccess(adjustOrderLine);
+                adjustWithCustomFieldsGuard.assertSuccess(adjustOrderLine);
                 expect(adjustOrderLine.lines[1].customFields).toEqual({
                     lineImage: null,
                     lineImages: [],
@@ -421,9 +449,9 @@ describe('Shop orders', () => {
                 const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                     productVariantId: 'T_3',
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImageId: 'T_1',
-                    },
+                    }),
                 });
 
                 orderResultGuard.assertSuccess(addItemToOrder);
@@ -440,9 +468,9 @@ describe('Shop orders', () => {
                 const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                     productVariantId: 'T_3',
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImageId: 'T_1',
-                    },
+                    }),
                 });
 
                 orderResultGuard.assertSuccess(addItemToOrder);
@@ -459,9 +487,9 @@ describe('Shop orders', () => {
                 const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                     productVariantId: 'T_3',
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImageId: 'T_2',
-                    },
+                    }),
                 });
 
                 orderResultGuard.assertSuccess(addItemToOrder);
@@ -480,11 +508,11 @@ describe('Shop orders', () => {
                 const { adjustOrderLine } = await shopClient.query(adjustOrderLineWithCustomFieldsDocument, {
                     orderLineId: activeOrder.lines[2].id,
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImageId: 'T_1',
-                    },
+                    }),
                 });
-                orderResultGuard.assertSuccess(adjustOrderLine);
+                adjustWithCustomFieldsGuard.assertSuccess(adjustOrderLine);
 
                 expect(adjustOrderLine.lines[2].customFields.lineImage).toEqual({ id: 'T_1' });
 
@@ -503,9 +531,9 @@ describe('Shop orders', () => {
                 const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                     productVariantId: 'T_3',
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImagesIds: ['T_1', 'T_2'],
-                    },
+                    }),
                 });
 
                 orderResultGuard.assertSuccess(addItemToOrder);
@@ -523,9 +551,9 @@ describe('Shop orders', () => {
                 const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                     productVariantId: 'T_3',
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImagesIds: ['T_1', 'T_2'],
-                    },
+                    }),
                 });
 
                 orderResultGuard.assertSuccess(addItemToOrder);
@@ -544,9 +572,9 @@ describe('Shop orders', () => {
                 const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                     productVariantId: 'T_3',
                     quantity: 1,
-                    customFields: {
+                    customFields: customFieldsInput({
                         lineImagesIds: ['T_1'],
-                    },
+                    }),
                 });
 
                 orderResultGuard.assertSuccess(addItemToOrder);
@@ -670,9 +698,9 @@ describe('Shop orders', () => {
             const { addItemToOrder: add1 } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: variantId,
                 quantity: 9,
-                customFields: {
+                customFields: customFieldsInput({
                     notes: 'abc',
-                },
+                }),
             });
 
             orderResultGuard.assertSuccess(add1);
@@ -684,12 +712,12 @@ describe('Shop orders', () => {
             const { addItemToOrder: add2 } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: variantId,
                 quantity: 2,
-                customFields: {
+                customFields: customFieldsInput({
                     notes: 'def',
-                },
+                }),
             });
 
-            orderResultGuard.assertErrorResult(add2);
+            addItemWithCustomFieldsGuard.assertErrorResult(add2);
 
             expect(add2.errorCode).toBe('INSUFFICIENT_STOCK_ERROR');
             expect(add2.message).toBe('Only 1 item was added to the order due to insufficient stock');
@@ -729,9 +757,9 @@ describe('Shop orders', () => {
             const { addItemToOrder: add1 } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: variantId,
                 quantity: 5,
-                customFields: {
+                customFields: customFieldsInput({
                     notes: 'abc',
-                },
+                }),
             });
 
             orderResultGuard.assertSuccess(add1);
@@ -743,9 +771,9 @@ describe('Shop orders', () => {
             const { addItemToOrder: add2 } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: variantId,
                 quantity: 5,
-                customFields: {
+                customFields: customFieldsInput({
                     notes: 'def',
-                },
+                }),
             });
 
             orderResultGuard.assertSuccess(add2);
@@ -800,9 +828,9 @@ describe('Shop orders', () => {
             const { addItemToOrder: add1 } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: variantId,
                 quantity: 5,
-                customFields: {
+                customFields: customFieldsInput({
                     notes: 'abc',
-                },
+                }),
             });
 
             orderResultGuard.assertSuccess(add1);
@@ -814,9 +842,9 @@ describe('Shop orders', () => {
             const { addItemToOrder: add2 } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: variantId,
                 quantity: 5,
-                customFields: {
+                customFields: customFieldsInput({
                     notes: 'def',
-                },
+                }),
             });
 
             orderResultGuard.assertSuccess(add2);
@@ -1527,7 +1555,7 @@ describe('Shop orders', () => {
                     },
                 });
 
-                testOrderGuard.assertErrorResult(addPaymentToOrder);
+                addPaymentGuard.assertErrorResult(addPaymentToOrder);
                 expect(addPaymentToOrder.message).toBe(
                     'A Payment may only be added when Order is in "ArrangingPayment" state',
                 );
@@ -1617,7 +1645,7 @@ describe('Shop orders', () => {
                         },
                     },
                 });
-                testOrderGuard.assertErrorResult(addPaymentToOrder);
+                addPaymentGuard.assertErrorResult(addPaymentToOrder);
 
                 expect(addPaymentToOrder.message).toBe('The payment was declined');
                 expect(addPaymentToOrder.errorCode).toBe(ErrorCode.PAYMENT_DECLINED_ERROR);
@@ -1645,7 +1673,7 @@ describe('Shop orders', () => {
                     },
                 });
 
-                testOrderGuard.assertErrorResult(addPaymentToOrder);
+                addPaymentGuard.assertErrorResult(addPaymentToOrder);
                 expect(addPaymentToOrder.message).toBe('The payment failed');
                 expect(addPaymentToOrder.errorCode).toBe(ErrorCode.PAYMENT_FAILED_ERROR);
                 expect((addPaymentToOrder as any).paymentErrorMessage).toBe('Something went horribly wrong');

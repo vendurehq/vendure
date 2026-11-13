@@ -36,6 +36,7 @@ import { EventBus } from '../../event-bus/event-bus';
 import { ProductChannelEvent } from '../../event-bus/events/product-channel-event';
 import { ProductEvent } from '../../event-bus/events/product-event';
 import { ProductOptionGroupChangeEvent } from '../../event-bus/events/product-option-group-change-event';
+import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channel-enabled-checker';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { SlugValidator } from '../helpers/slug-validator/slug-validator';
@@ -74,6 +75,7 @@ export class ProductService {
         private translator: TranslatorService,
         private productOptionGroupService: ProductOptionGroupService,
         private roleService: RoleService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async findAll(
@@ -115,6 +117,8 @@ export class ProductService {
                 where: { deletedAt: IsNull() },
                 ctx,
                 customPropertyMap,
+                // For the Admin API `enabledInChannel` field of each item
+                loadChannelAssignment: ctx.apiType === 'admin',
             })
             .getManyAndCount()
             .then(async ([products, totalItems]) => {
@@ -207,38 +211,8 @@ export class ProductService {
         slug: string,
         relations?: RelationPaths<Product>,
     ): Promise<Translated<Product> | undefined> {
-        const qb = this.connection.getRepository(ctx, Product).createQueryBuilder('product');
-        const translationQb = this.connection
-            .getRepository(ctx, ProductTranslation)
-            .createQueryBuilder('_product_translation')
-            .select('_product_translation.baseId')
-            .andWhere('_product_translation.slug = :slug', { slug });
-
-        qb.leftJoin('product.translations', 'translation')
-            .leftJoin('product.channels', 'channel')
-            .andWhere('product.deletedAt IS NULL')
-            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
-            .andWhere('product.id IN (' + translationQb.getQuery() + ')')
-            .setParameters(translationQb.getParameters())
-            .select('product.id', 'id')
-            .addSelect(
-                `CASE translation.languageCode WHEN :userLang THEN 2 WHEN :defaultLang THEN 1 ELSE 0 END`,
-                'sort_order',
-            )
-            .setParameters({
-                userLang: ctx.languageCode,
-                defaultLang: ctx.channel.defaultLanguageCode,
-            })
-            .orderBy('sort_order', 'DESC');
-        // We use getRawOne here to simply get the ID as efficiently as possible,
-        // which we then pass to the regular findOne() method which will handle
-        // all the joins etc.
-        const result = await qb.getRawOne();
-        if (result) {
-            return this.findOne(ctx, result.id, relations);
-        } else {
-            return undefined;
-        }
+        const id = await this.slugValidator.resolveSlug(ctx, ProductTranslation, slug);
+        return id != null ? this.findOne(ctx, id, relations) : undefined;
     }
 
     async create(ctx: RequestContext, input: CreateProductInput): Promise<Translated<Product>> {
@@ -258,6 +232,7 @@ export class ProductService {
         });
         await this.customFieldRelationService.updateRelations(ctx, Product, input, product);
         await this.assetService.updateEntityAssets(ctx, product, input);
+        await this.channelEnabledChecker.updateEnabledInChannel(ctx, Product, product.id, input);
         await this.eventBus.publish(new ProductEvent(ctx, product, 'created', input));
 
         return assertFound(this.findOne(ctx, product.id));
@@ -289,6 +264,7 @@ export class ProductService {
             },
         });
         await this.customFieldRelationService.updateRelations(ctx, Product, input, updatedProduct);
+        await this.channelEnabledChecker.updateEnabledInChannel(ctx, Product, updatedProduct.id, input);
         await this.eventBus.publish(new ProductEvent(ctx, updatedProduct, 'updated', input));
 
         return assertFound(this.findOne(ctx, updatedProduct.id));
@@ -359,8 +335,21 @@ export class ProductService {
             return [];
         }
         const productIds = unique(productsWithVariants.map(p => p.id));
+        await this.slugValidator.assertNoConflictsInChannel(
+            ctx,
+            ProductTranslation,
+            productIds,
+            input.channelId,
+        );
         await Promise.all(
             productIds.map(id => this.channelService.assignToChannels(ctx, Product, id, [input.channelId])),
+        );
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            Product,
+            productIds,
+            input,
+            input.channelId,
         );
         await this.productVariantService.assignProductVariantsToChannel(ctx, {
             productVariantIds: ([] as ID[]).concat(
@@ -368,6 +357,7 @@ export class ProductService {
             ),
             channelId: input.channelId,
             priceFactor: input.priceFactor,
+            enabledInChannel: input.enabledInChannel,
         });
         const assetIds: ID[] = unique(
             ([] as ID[]).concat(...productsWithVariants.map(p => p.assets.map(a => a.assetId))),

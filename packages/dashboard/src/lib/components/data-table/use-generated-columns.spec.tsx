@@ -101,7 +101,7 @@ describe('useGeneratedColumns display component precedence', () => {
             pageId,
             blockId: BLOCK_ID,
             field: 'price',
-            component: ({ value }) => <span>{`value:${value as number}`}</span>,
+            component: ({ value }: { value: unknown }) => <span>{`value:${value as number}`}</span>,
         });
 
         expect(renderColumnCell(pageId, 'price')).toBe(`<span>value:${PRICE}</span>`);

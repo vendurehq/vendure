@@ -85,14 +85,14 @@ function build(
         get: vi.fn((_ctx: unknown, key: string) => Promise.resolve(store[key])),
         set: vi.fn((_ctx: unknown, key: string, value: unknown) => {
             store[key] = value;
-            return Promise.resolve({ key, result: true });
+            return Promise.resolve<{ key: string; result: boolean; error?: string }>({ key, result: true });
         }),
     };
     const rateLimiter = {
         checkRateLimit: vi.fn((): Promise<McpRateLimitExceeded | undefined> => Promise.resolve(undefined)),
     };
     const toolCallLog = {
-        logToolCall: vi.fn(() => Promise.resolve(undefined)),
+        logToolCall: vi.fn((_entry: Record<string, unknown>) => Promise.resolve(undefined)),
     };
     const sessionService = {
         getSessionFromToken: vi.fn((_token: string) => Promise.resolve(undefined as unknown)),
@@ -390,7 +390,7 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
             expect(tool.wireJsonSchema.properties?.confirm).toBeDefined();
-            expect(DELETE_JSON.properties?.confirm).toBeUndefined();
+            expect((DELETE_JSON.properties as Record<string, unknown>).confirm).toBeUndefined();
 
             const preview = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x',

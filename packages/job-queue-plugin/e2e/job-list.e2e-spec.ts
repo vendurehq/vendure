@@ -192,7 +192,7 @@ describe('BullMQ job list query', () => {
         return id.replace(/^T_/, '');
     }
 
-    function requireJobId(job: { id?: string | number }): string {
+    function requireJobId(job: { id?: string | number | null }): string {
         if (job.id == null) {
             throw new Error('Expected job to have an id');
         }

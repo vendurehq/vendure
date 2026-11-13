@@ -5,6 +5,7 @@ import { RequestContext } from '../../api/common/request-context';
 import { UserInputError } from '../../common/error/errors';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 
+import { SlugValidator } from './slug-validator/slug-validator';
 import { SlugService } from './slug.service';
 
 /**
@@ -43,6 +44,7 @@ export class EntitySlugService {
     constructor(
         private slugService: SlugService,
         private connection: TransactionalConnection,
+        private slugValidator: SlugValidator,
     ) {}
 
     /**
@@ -68,8 +70,25 @@ export class EntitySlugService {
             return baseSlug;
         }
 
-        const { entityMetadata, resolvedColumnName, isTranslationEntity, ownerRelationColumnName } =
-            this.findEntityWithField(entityName, fieldName);
+        const {
+            entityMetadata,
+            resolvedColumnName,
+            isTranslationEntity,
+            ownerRelationColumnName,
+            ownerRelationPropertyName,
+            ownerIsChannelAware,
+        } = this.findEntityWithField(entityName, fieldName);
+
+        // Translated slugs of channel-aware entities (Product, Collection) are unique per
+        // channel, so the suggestion must use the same scope as the SlugValidator.
+        let channelScope: { relation: string; channelIds: Array<string | number> } | undefined;
+        // The SlugValidator scopes through the `base` relation, which every core translation uses.
+        if (isTranslationEntity && ownerIsChannelAware && ownerRelationPropertyName === 'base') {
+            const scope = await this.slugValidator.getScope(ctx, entityMetadata.target as any, entityId);
+            if (scope !== 'global') {
+                channelScope = { relation: ownerRelationPropertyName, channelIds: scope };
+            }
+        }
 
         const repository = this.connection.getRepository(ctx, entityMetadata.target);
         let slug = baseSlug;
@@ -82,7 +101,16 @@ export class EntitySlugService {
                   ? { columnName: 'id', value: entityId }
                   : undefined;
 
-        while (await this.fieldValueExists(ctx, repository, resolvedColumnName, slug, exclusionConfig)) {
+        while (
+            await this.fieldValueExists(
+                ctx,
+                repository,
+                resolvedColumnName,
+                slug,
+                exclusionConfig,
+                channelScope,
+            )
+        ) {
             slug = `${baseSlug}-${counter}`;
             counter++;
         }
@@ -108,6 +136,8 @@ export class EntitySlugService {
         resolvedColumnName: string;
         isTranslationEntity: boolean;
         ownerRelationColumnName?: string;
+        ownerRelationPropertyName?: string;
+        ownerIsChannelAware?: boolean;
     } {
         // First, try to find the base entity
         const entityMetadata = this.connection.rawConnection.entityMetadatas.find(
@@ -165,6 +195,8 @@ export class EntitySlugService {
                 resolvedColumnName: translationColumn.databaseName,
                 isTranslationEntity: true,
                 ownerRelationColumnName: ownerColumnName,
+                ownerRelationPropertyName: ownerRelation?.propertyName,
+                ownerIsChannelAware: entityMetadata.relations.some(r => r.propertyName === 'channels'),
             };
         }
 
@@ -180,10 +212,19 @@ export class EntitySlugService {
         resolvedColumnName: string,
         value: string,
         exclusionConfig?: { columnName: string; value: string | number },
+        channelScope?: { relation: string; channelIds: Array<string | number> },
     ): Promise<boolean> {
         const qb = repository
             .createQueryBuilder('entity')
             .where(`entity.${resolvedColumnName} = :value`, { value });
+
+        if (channelScope) {
+            qb.innerJoin(`entity.${channelScope.relation}`, '_owner')
+                .innerJoin('_owner.channels', '_channel')
+                .andWhere('_channel.id IN (:...scopeChannelIds)', {
+                    scopeChannelIds: channelScope.channelIds,
+                });
+        }
 
         if (exclusionConfig) {
             qb.andWhere(`entity.${exclusionConfig.columnName} != :excludeValue`, {

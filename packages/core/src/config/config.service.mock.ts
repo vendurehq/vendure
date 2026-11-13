@@ -9,6 +9,9 @@ import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-or
 import { OrderOptions } from './vendure-config';
 
 export class MockConfigService implements MockClass<ConfigService> {
+    // The mock does not set these. They are declared so that the class satisfies `MockClass<ConfigService>`.
+    declare schedulerOptions: ConfigService['schedulerOptions'];
+    declare settingsStoreFields: ConfigService['settingsStoreFields'];
     apiOptions = {
         channelTokenKey: 'vendure-token',
         adminApiPath: 'admin-api',

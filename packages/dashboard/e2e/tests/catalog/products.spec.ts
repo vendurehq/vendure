@@ -48,9 +48,9 @@ test.describe('Product detail features', () => {
 
         // Enabled switch lives in the action bar, not in a sidebar field
         await expect(page.getByTestId('product-enabled-switch')).toBeVisible();
-        await expect(
-            page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ })).toHaveCount(
+            0,
+        );
 
         // Facet Values block
         await expect(
@@ -335,10 +335,9 @@ async function cleanupVariantEditorProduct(
     optionGroupId: string,
 ) {
     await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
-    await client.gql(
-        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
-        { id: optionGroupId },
-    );
+    await client.gql(`mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`, {
+        id: optionGroupId,
+    });
 }
 
 // The Manage variants page is now an inline editor: every option cell renders as an
@@ -351,10 +350,7 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(
-            client,
-            unique,
-        );
+        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(client, unique);
 
         try {
             const variantId = await createVariantEditorVariant(
@@ -409,8 +405,10 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId, largeOptionId } =
-            await createVariantEditorProduct(client, unique);
+        const { productId, optionGroupId, smallOptionId, largeOptionId } = await createVariantEditorProduct(
+            client,
+            unique,
+        );
 
         try {
             const smallVariantId = await createVariantEditorVariant(
@@ -505,8 +503,14 @@ test.describe('Manage variants inline editing', () => {
                         code: `size-${unique}`,
                         translations: [{ languageCode: 'en', name: 'Size' }],
                         options: [
-                            { code: `small-${unique}`, translations: [{ languageCode: 'en', name: 'Small' }] },
-                            { code: `large-${unique}`, translations: [{ languageCode: 'en', name: 'Large' }] },
+                            {
+                                code: `small-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Small' }],
+                            },
+                            {
+                                code: `large-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Large' }],
+                            },
                         ],
                     },
                 },
@@ -1033,3 +1037,77 @@ for (const productCount of [0, 1, 2]) {
         }
     });
 }
+
+// #3777 — per-channel enabled: the Availability block, next to the global Enabled switch
+test.describe('per-channel enabled on the product detail page', () => {
+    test.describe.configure({ mode: 'serial' });
+    // The Availability block is only shown when there is more than one channel
+    const channelCode = `e2e-enabled-product-${Date.now()}`;
+    let channelId = '';
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        channelId = (await client.createChannel(channelCode)).id;
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('hides and shows the product in the active channel, leaving the global value', async ({ page }) => {
+        await navigateToLaptopProduct(page);
+        const productId = page.url().split('/products/')[1].split(/[/?#]/)[0];
+        const availability = page.getByTestId('channel-availability');
+        const visibleSwitch = availability.getByRole('switch', { name: 'Visible in this channel' });
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const readValues = async () =>
+            (
+                await client.gql(`query ($id: ID!) { product(id: $id) { enabled enabledInChannel } }`, {
+                    id: productId,
+                })
+            ).product;
+        const save = () =>
+            Promise.all([
+                page.waitForResponse(
+                    response =>
+                        response.url().includes('/admin-api') &&
+                        response.request().postData()?.includes('UpdateProduct') === true &&
+                        response.status() === 200,
+                ),
+                page.getByRole('button', { name: 'Update' }).click(),
+            ]);
+
+        await expect(visibleSwitch).toBeChecked();
+        try {
+            await visibleSwitch.click();
+            await expect(visibleSwitch).not.toBeChecked();
+            await save();
+            expect(await readValues()).toEqual({ enabled: true, enabledInChannel: false });
+
+            await page.reload();
+            await expect(visibleSwitch).not.toBeChecked();
+
+            // The global switch is the master switch: when it is off, the help text says so
+            await page.getByTestId('product-enabled-switch').getByRole('switch').click();
+            await expect(availability).toContainText('Disabled in every channel');
+            await page.getByTestId('product-enabled-switch').getByRole('switch').click();
+
+            await visibleSwitch.click();
+            await save();
+            expect(await readValues()).toEqual({ enabled: true, enabledInChannel: true });
+        } finally {
+            await client.gql(
+                `mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`,
+                { input: { id: productId, enabledInChannel: true } },
+            );
+        }
+    });
+});

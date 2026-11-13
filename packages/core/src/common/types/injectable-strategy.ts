@@ -23,11 +23,11 @@ export interface InjectableStrategy {
      * }
      * ```
      */
-    init?: (injector: Injector) => void | Promise<void>;
+    init?(injector: Injector): void | Promise<void>;
 
     /**
      * @description
      * Defines teardown logic to be run before application shutdown.
      */
-    destroy?: () => void | Promise<void>;
+    destroy?(): void | Promise<void>;
 }

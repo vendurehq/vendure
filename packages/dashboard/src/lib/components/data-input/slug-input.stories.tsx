@@ -1,6 +1,8 @@
+import type { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { FormProvider, useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { SlugInput } from './slug-input.js';
 
 const meta = {
@@ -64,7 +66,7 @@ export const AutoGenerating: Story = {
                     <div>
                         <label className="text-sm font-medium mb-2 block">Slug (auto-generated)</label>
                         <SlugInput
-                            {...form.register('slug')}
+                            {...asField(form.register('slug'))}
                             value={form.watch('slug')}
                             onChange={value => form.setValue('slug', value)}
                             entityName="Product"
@@ -105,7 +107,7 @@ export const WithExistingValue: Story = {
                     <div>
                         <label className="text-sm font-medium mb-2 block">Slug (with existing value)</label>
                         <SlugInput
-                            {...form.register('slug')}
+                            {...asField(form.register('slug'))}
                             value={form.watch('slug')}
                             onChange={value => form.setValue('slug', value)}
                             entityName="Product"
@@ -149,7 +151,7 @@ export const ManualEditing: Story = {
                             Slug (click Edit to customize)
                         </label>
                         <SlugInput
-                            {...form.register('slug')}
+                            {...asField(form.register('slug'))}
                             value={form.watch('slug')}
                             onChange={value => form.setValue('slug', value)}
                             entityName="Product"
@@ -181,7 +183,7 @@ export const StartInEditableMode: Story = {
                     <div>
                         <label className="text-sm font-medium mb-2 block">Channel Code</label>
                         <SlugInput
-                            {...form.register('code')}
+                            {...asField(form.register('code'))}
                             value={form.watch('code')}
                             onChange={value => form.setValue('code', value)}
                             entityName="Channel"
@@ -213,13 +215,13 @@ export const Readonly: Story = {
                     <div>
                         <label className="text-sm font-medium mb-2 block">Readonly Slug</label>
                         <SlugInput
-                            {...form.register('slug')}
+                            {...asField(form.register('slug'))}
                             value={form.watch('slug')}
                             onChange={value => form.setValue('slug', value)}
                             entityName="Product"
                             fieldName="slug"
                             watchFieldName="name"
-                            fieldDef={{ readonly: true }}
+                            fieldDef={{ readonly: true } as ConfigurableFieldDef}
                         />
                     </div>
                     <div className="text-sm text-muted-foreground">

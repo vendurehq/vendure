@@ -11,7 +11,7 @@ const meta = {
 } satisfies Meta<typeof AspectRatio>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<typeof AspectRatio>;
 
 export const Playground: Story = {
     render: () => (

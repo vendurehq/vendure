@@ -1,0 +1,24 @@
+---
+title: "UseChannelAvailabilityOption"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-channel-availability-option.tsx" sourceLine="30" packageName="@vendure/dashboard" since="4.0.0" />
+
+The per-channel visibility option of the assign-to-channel dialogs of Products and
+ProductVariants: keep the visibility they have in the active Channel (the default), or make them
+visible or hidden in the new Channels. Pass `channelAvailabilityField` to the dialog's
+additional fields and `enabledInChannel` to the mutation input.
+
+`enabledInChannel` is `undefined` for the default, which leaves it out of the mutation input so
+that the server copies the value from the active Channel; `true` for visible; and `false` for
+hidden. `channelAvailabilityField` is `null` when there is only one Channel.
+
+*Example*
+
+```tsx
+const { enabledInChannel, channelAvailabilityField } = useChannelAvailabilityOption();
+```
+
+```ts title="Signature"
+function useChannelAvailabilityOption(): void
+```

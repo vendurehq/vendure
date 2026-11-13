@@ -18,6 +18,7 @@ import {
     E2E_DEFAULT_CHANNEL_TOKEN,
     ErrorResultGuard,
 } from '@vendure/testing';
+import { fail } from 'assert';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -68,7 +69,9 @@ describe('Collection resolver', () => {
     );
 
     // Guard for collection query results
-    type CollectionResult = NonNullable<ResultOf<typeof getCollectionProductVariantsDocument>['collection']>;
+    type CollectionResult =
+        | NonNullable<ResultOf<typeof getCollectionProductVariantsDocument>['collection']>
+        | NonNullable<ResultOf<typeof getCollectionDocument>['collection']>;
     const collectionResultGuard: ErrorResultGuard<CollectionResult> = createErrorResultGuard(
         input => !!input,
     );
@@ -2184,7 +2187,7 @@ describe('Collection resolver', () => {
                     ],
                 },
             });
-            const { createProductVariants: nameMatchVariants } = await adminClient.query(
+            const { createProductVariants: createdNameMatchVariants } = await adminClient.query(
                 createProductVariantsDocument,
                 {
                     input: [
@@ -2199,6 +2202,9 @@ describe('Collection resolver', () => {
                     ],
                 },
             );
+            const nameMatchVariants = createdNameMatchVariants as Array<
+                NonNullable<(typeof createdNameMatchVariants)[number]>
+            >;
 
             // Two products, since a Product cannot have two variants with no options.
             const { createProduct: orMatchProductA } = await adminClient.query(createProductDocument, {
@@ -2225,7 +2231,7 @@ describe('Collection resolver', () => {
                     ],
                 },
             });
-            const { createProductVariants: orMatchVariants } = await adminClient.query(
+            const { createProductVariants: createdOrMatchVariants } = await adminClient.query(
                 createProductVariantsDocument,
                 {
                     input: [
@@ -2248,6 +2254,9 @@ describe('Collection resolver', () => {
                     ],
                 },
             );
+            const orMatchVariants = createdOrMatchVariants as Array<
+                NonNullable<(typeof createdOrMatchVariants)[number]>
+            >;
 
             // These only match via the OR-ed productId filter; multiple translations triggered the bug.
             await adminClient.query(updateProductVariantsDocument, {
@@ -2387,8 +2396,8 @@ describe('Collection resolver', () => {
          * statements are captured and re-run because the row count is what grows when an
          * unwanted relation is joined, and it is not visible in the GraphQL response.
          *
-         * Only the statements carrying the `lqb__channel` alias are counted. That alias is
-         * added by the Channel scoping join, so it selects the list query's own statements
+         * Only the statements carrying an `lqb__channel` alias are counted (`lqb__channelAssignment`
+         * for a Collection). That alias is added by the Channel scoping join, so it selects the list query's own statements
          * and leaves out session lookups and any job queue activity, whose number varies
          * between runs. The test asserts a non-zero row count, so this narrowing fails
          * loudly rather than silently measuring nothing if that alias is ever renamed.

@@ -7,6 +7,8 @@
     "moduleResolution": "nodenext",
     "resolveJsonModule": false,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
     "plugins": [],
     "declaration": true,
     "outDir": "./dist/vite"

@@ -415,6 +415,7 @@ describe('getFieldsFromDocumentNode', () => {
             }
         `);
 
+        // @ts-expect-error path goes through an array field, which the path type does not allow
         const fields = getFieldsFromDocumentNode(doc, ['product', 'variants', 'prices']);
         expect(fields).toEqual([
             {
@@ -445,6 +446,7 @@ describe('getFieldsFromDocumentNode', () => {
             }
         `);
 
+        // @ts-expect-error the test passes a path that does not exist on purpose
         expect(() => getFieldsFromDocumentNode(doc, ['product', 'nonExistentField'])).toThrow(
             'Field "nonExistentField" not found at path product.nonExistentField',
         );
@@ -459,6 +461,7 @@ describe('getFieldsFromDocumentNode', () => {
             }
         `);
 
+        // @ts-expect-error the test passes a path that does not exist on purpose
         expect(() => getFieldsFromDocumentNode(doc, ['nonExistentProduct'])).toThrow(
             'Field "nonExistentProduct" not found at path nonExistentProduct',
         );
@@ -473,6 +476,7 @@ describe('getFieldsFromDocumentNode', () => {
             }
         `);
 
+        // @ts-expect-error the test passes a path that continues past a scalar on purpose
         expect(() => getFieldsFromDocumentNode(doc, ['product', 'id', 'something'])).toThrow(
             'Field "id" has no selection set but path continues',
         );
@@ -489,6 +493,7 @@ describe('getFieldsFromDocumentNode', () => {
         `);
 
         // Test with a path that leads to a field with no selection set
+        // @ts-expect-error the test passes a path that continues past a scalar on purpose
         expect(() => getFieldsFromDocumentNode(doc, ['product', 'id', 'something'])).toThrow(
             'Field "id" has no selection set but path continues',
         );

@@ -16,6 +16,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
     render: () => (
+        // @ts-expect-error stale story: Base UI ToggleGroup has `multiple`, not `type`
         <ToggleGroup type="multiple">
             <ToggleGroupItem value="bold" aria-label="Toggle bold">
                 <Bold className="h-4 w-4" />

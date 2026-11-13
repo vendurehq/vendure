@@ -72,6 +72,9 @@ export async function generatePlatformPromotionSnapshot(
     }
 }
 
+// bun runs this script as an ES module. The package is CommonJS for the type-check.
+// @ts-expect-error TS1470: `import.meta` is not allowed in CommonJS output.
 if ((import.meta as { main?: boolean }).main) {
+    // @ts-expect-error TS1309: top-level `await` is not allowed in CommonJS output.
     await generatePlatformPromotionSnapshot(process.argv[2] ?? DEFAULT_SOURCE);
 }

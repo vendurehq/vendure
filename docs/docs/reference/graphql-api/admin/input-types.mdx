@@ -510,12 +510,18 @@ generated: true
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     Float: '/reference/graphql-api/admin/object-types#float',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
   }}
 >
 {`input AssignProductVariantsToChannelInput {
   productVariantIds: [ID!]!
   channelId: ID!
   priceFactor: Float
+  """
+  Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+  the value from the active Channel, and already assigned ones are left unchanged.
+  """
+  enabledInChannel: Boolean
 }`}
 </GraphQLDoc>
 
@@ -529,12 +535,18 @@ generated: true
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     Float: '/reference/graphql-api/admin/object-types#float',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
   }}
 >
 {`input AssignProductsToChannelInput {
   productIds: [ID!]!
   channelId: ID!
   priceFactor: Float
+  """
+  Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+  the value from the active Channel, and already assigned ones are left unchanged.
+  """
+  enabledInChannel: Boolean
 }`}
 </GraphQLDoc>
 
@@ -1425,6 +1437,8 @@ input CreateApiKeyInput {
 {`input CreateProductInput {
   featuredAssetId: ID
   enabled: Boolean
+  """Sets whether it is enabled in the active Channel. Defaults to \`true\`."""
+  enabledInChannel: Boolean
   assetIds: [ID!]
   facetValueIds: [ID!]
   translations: [ProductTranslationInput!]!
@@ -1499,6 +1513,8 @@ input CreateApiKeyInput {
 {`input CreateProductVariantInput {
   productId: ID!
   enabled: Boolean
+  """Sets whether it is enabled in the active Channel. Defaults to \`true\`."""
+  enabledInChannel: Boolean
   translations: [ProductVariantTranslationInput!]!
   facetValueIds: [ID!]
   sku: String!
@@ -2945,8 +2961,8 @@ input NumberOperators {
   typeLinks={{
     IDOperators: '/reference/graphql-api/admin/input-types#idoperators',
     StringOperators: '/reference/graphql-api/admin/input-types#stringoperators',
-    DateOperators: '/reference/graphql-api/admin/input-types#dateoperators',
     BooleanOperators: '/reference/graphql-api/admin/input-types#booleanoperators',
+    DateOperators: '/reference/graphql-api/admin/input-types#dateoperators',
     ProductFilterParameter: '/reference/graphql-api/admin/input-types#productfilterparameter',
   }}
 >
@@ -2954,6 +2970,11 @@ input NumberOperators {
   facetValueId: IDOperators
   sku: StringOperators
   optionGroupId: IDOperators
+  """
+  Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+  also enabled globally (\`enabled\`).
+  """
+  enabledInChannel: BooleanOperators
   id: IDOperators
   createdAt: DateOperators
   updatedAt: DateOperators
@@ -3258,6 +3279,11 @@ input NumberOperators {
 {`input ProductVariantFilterParameter {
   facetValueId: IDOperators
   enabled: BooleanOperators
+  """
+  Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+  also enabled globally (\`enabled\`).
+  """
+  enabledInChannel: BooleanOperators
   trackInventory: StringOperators
   stockOnHand: NumberOperators
   stockAllocated: NumberOperators
@@ -5278,6 +5304,8 @@ input UpdateAddressInput {
 {`input UpdateProductInput {
   id: ID!
   enabled: Boolean
+  """Sets whether it is enabled in the active Channel. If not set, it is left unchanged."""
+  enabledInChannel: Boolean
   featuredAssetId: ID
   assetIds: [ID!]
   facetValueIds: [ID!]
@@ -5353,6 +5381,8 @@ input UpdateAddressInput {
 {`input UpdateProductVariantInput {
   id: ID!
   enabled: Boolean
+  """Sets whether it is enabled in the active Channel. If not set, it is left unchanged."""
+  enabledInChannel: Boolean
   translations: [ProductVariantTranslationInput!]
   facetValueIds: [ID!]
   optionIds: [ID!]

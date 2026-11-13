@@ -6,6 +6,7 @@ import type { ChannelAssignment } from '../../../entity/channel-assignment/chann
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { InternalServerError } from '../../../common/error/errors';
+import { idsAreEqual } from '../../../common/utils';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
@@ -34,6 +35,14 @@ export interface ChannelAssignmentMetadata {
 }
 
 type AnyEntity = Type<any>;
+
+/**
+ * The property under which the ListQueryBuilder loads the assignment row of the Channel a list is
+ * scoped to (the `loadChannelAssignment` option). Not a column, nor part of the GraphQL schema.
+ *
+ * @internal
+ */
+export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
 
 /**
  * @description
@@ -85,13 +94,24 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
      * Returns the assignment row of the entity in the given Channel (defaults to the active
      * Channel), or `undefined` if the entity is not assigned to that Channel. Calls made in the
      * same tick are batched into one query.
+     *
+     * If an entity is passed which was loaded by a ListQueryBuilder list with the
+     * `loadChannelAssignment` option, scoped to the same Channel, the row loaded with it is
+     * returned without a query.
      */
     getAssignment<T extends ChannelAssignment>(
         ctx: RequestContext,
         entityType: AnyEntity,
-        entityId: ID,
+        entityOrId: ID | { id: ID },
         channelId: ID = ctx.channelId,
     ): Promise<T | undefined> {
+        if (typeof entityOrId === 'object') {
+            const loaded = this.getLoadedAssignment<T>(entityOrId, channelId);
+            if (loaded) {
+                return Promise.resolve(loaded);
+            }
+        }
+        const entityId = typeof entityOrId === 'object' ? entityOrId.id : entityOrId;
         const batch = this.getBatch(ctx, entityType, channelId);
         const key = String(entityId);
         let promise = batch.pending.get(key);
@@ -273,16 +293,23 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
      * Returns the values of the entity's channel-scoped custom fields in the active Channel. A field
      * is `null` if the entity is not assigned to the Channel or the value is not set. Relation fields
      * are resolved separately, by the GraphQL relation resolver.
+     *
+     * Like {@link ChannelAssignmentService.getAssignment}, if an entity is passed which a
+     * ListQueryBuilder list loaded with the `loadChannelAssignment` option, its row is used without
+     * a query.
      */
     async getCustomFieldValues(
         ctx: RequestContext,
         entityName: string,
-        entityId: ID | undefined,
+        entityOrId: ID | { id: ID } | undefined,
         fieldNames: string[],
     ): Promise<Record<string, unknown>> {
         const meta = this.getMetadataByEntityName(entityName);
+        const entityId = typeof entityOrId === 'object' ? entityOrId?.id : entityOrId;
         const row: any =
-            meta && entityId != null ? await this.getAssignment(ctx, meta.entityType, entityId) : undefined;
+            meta && entityOrId != null && entityId != null
+                ? await this.getAssignment(ctx, meta.entityType, entityOrId)
+                : undefined;
         const result: Record<string, unknown> = {};
         for (const name of fieldNames) {
             result[name] = row?.customFields?.[name] ?? null;
@@ -292,7 +319,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
 
     /**
      * @description
-     * Like {@link getMetadata}, looked up by entity name, e.g. `'Product'`.
+     * Like {@link ChannelAssignmentService.getMetadata}, looked up by entity name, e.g. `'Product'`.
      */
     getMetadataByEntityName(entityName: string): ChannelAssignmentMetadata | undefined {
         const dataSource = this.connection.rawConnection;
@@ -301,7 +328,12 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             : undefined;
     }
 
-    private getMetadataOrThrow(entityType: AnyEntity): ChannelAssignmentMetadata {
+    /**
+     * @description
+     * Like {@link ChannelAssignmentService.getMetadata}, but throws if the entity has no channel
+     * assignment entity.
+     */
+    getMetadataOrThrow(entityType: AnyEntity): ChannelAssignmentMetadata {
         const meta = this.getMetadata(entityType);
         if (!meta) {
             throw new InternalServerError(`${entityType.name} has no channel assignment entity`);
@@ -333,6 +365,16 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             dataProperties: Array.from(dataProperties),
             dataRelations: assignment.relations.filter(r => r.embeddedMetadata).map(r => r.propertyPath),
         };
+    }
+
+    /**
+     * @description
+     * Returns the assignment row loaded onto the entity by a ListQueryBuilder list with the
+     * `loadChannelAssignment` option, if it is the row of the given Channel.
+     */
+    getLoadedAssignment<T extends ChannelAssignment>(entity: object, channelId: ID): T | undefined {
+        const loaded: T | undefined = (entity as any)[LOADED_CHANNEL_ASSIGNMENT_PROPERTY];
+        return loaded && idsAreEqual(loaded.channelId, channelId) ? loaded : undefined;
     }
 
     private getBatch(ctx: RequestContext, entityType: AnyEntity, channelId: ID): Batch {

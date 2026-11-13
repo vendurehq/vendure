@@ -210,8 +210,9 @@ export class PgNotifyJobQueueStrategy extends SqlJobQueueStrategy {
         this.stopping.clear();
         this.pendingWakes.clear();
         this.retries.clear();
-        this.txConnection = injector.get(TransactionalConnection);
-        this.dataSource = this.txConnection.rawConnection;
+        const txConnection = injector.get(TransactionalConnection);
+        this.txConnection = txConnection;
+        this.dataSource = txConnection.rawConnection;
         this.notifySupported = getDatabaseType(this.dataSource) === 'postgres';
         if (!this.notifySupported) {
             Logger.warn(

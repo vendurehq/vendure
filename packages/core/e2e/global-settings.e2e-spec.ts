@@ -7,7 +7,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { globalSettingsFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import { getGlobalSettingsDocument, updateGlobalSettingsDocument } from './graphql/shared-definitions';
 
 describe('GlobalSettings resolver', () => {
@@ -21,8 +21,9 @@ describe('GlobalSettings resolver', () => {
     });
     let globalSettings: FragmentOf<typeof globalSettingsFragment>;
 
-    const globalSettingsGuard: ErrorResultGuard<FragmentOf<typeof globalSettingsFragment>> =
-        createErrorResultGuard(input => !!input.availableLanguages);
+    const globalSettingsGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof updateGlobalSettingsDocument>['updateGlobalSettings'], { errorCode: unknown }>
+    > = createErrorResultGuard(input => !!input.availableLanguages);
 
     beforeAll(async () => {
         await server.init({

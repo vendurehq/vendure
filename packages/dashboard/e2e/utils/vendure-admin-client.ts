@@ -28,10 +28,17 @@ export class VendureAdminClient {
         }
     }
 
-    async gql(query: string, variables?: Record<string, unknown>) {
+    /**
+     * @param channelToken - runs the operation in that Channel (the `vendure-token` header);
+     * defaults to the default Channel.
+     */
+    async gql(query: string, variables?: Record<string, unknown>, channelToken?: string) {
         if (!this.authToken) throw new Error('Call login() first');
         const response = await this.page.request.post(ADMIN_API, {
-            headers: { Authorization: `Bearer ${this.authToken}` },
+            headers: {
+                Authorization: `Bearer ${this.authToken}`,
+                ...(channelToken ? { 'vendure-token': channelToken } : {}),
+            },
             data: { query, variables },
         });
         const newToken = response.headers()['vendure-auth-token'];
@@ -41,5 +48,36 @@ export class VendureAdminClient {
             throw new Error(`GraphQL error: ${String(json.errors[0].message)}`);
         }
         return json.data;
+    }
+
+    /** Creates a Channel whose token is its code, using the seeded "Europe" zone. */
+    async createChannel(code: string): Promise<{ id: string; token: string }> {
+        const { zones } = await this.gql(
+            `query { zones(options: { filter: { name: { eq: "Europe" } } }) { items { id } } }`,
+        );
+        const zoneId = zones.items[0].id as string;
+        const { createChannel } = await this.gql(
+            `mutation ($input: CreateChannelInput!) {
+                createChannel(input: $input) { ... on Channel { id token } ... on ErrorResult { message } }
+            }`,
+            {
+                input: {
+                    code,
+                    token: code,
+                    defaultLanguageCode: 'en',
+                    pricesIncludeTax: false,
+                    defaultCurrencyCode: 'USD',
+                    availableCurrencyCodes: ['USD'],
+                    defaultTaxZoneId: zoneId,
+                    defaultShippingZoneId: zoneId,
+                },
+            },
+        );
+        if (!createChannel.id) throw new Error(`createChannel failed: ${String(createChannel.message)}`);
+        return createChannel;
+    }
+
+    async deleteChannel(id: string) {
+        await this.gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, { id });
     }
 }

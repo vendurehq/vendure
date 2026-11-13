@@ -119,9 +119,9 @@ describe('Duplicating entities', () => {
         }),
     );
 
-    const duplicateEntityGuard: ErrorResultGuard<{ newEntityId: string }> = createErrorResultGuard(
-        result => !!result.newEntityId,
-    );
+    const duplicateEntityGuard: ErrorResultGuard<
+        Exclude<ResultOf<typeof duplicateEntityDocument>['duplicateEntity'], { errorCode: unknown }>
+    > = createErrorResultGuard(result => !!result.newEntityId);
 
     const createChannelGuard: ErrorResultGuard<FragmentOf<typeof channelFragment>> = createErrorResultGuard(
         result => !!result.id,

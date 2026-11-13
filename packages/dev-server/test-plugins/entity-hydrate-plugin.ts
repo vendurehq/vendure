@@ -26,7 +26,7 @@ class TestResolver {
     async hydrateTest(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
         const product = await this.connection.getRepository(ctx, Product).findOne({
             where: { id: args.id },
-            relations: ['featuredAsset'],
+            relations: { featuredAsset: true },
         });
         await this.entityHydrator.hydrate(ctx, product!, {
             relations: ['facetValues.facet', 'customFields.thumb'],

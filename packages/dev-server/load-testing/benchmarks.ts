@@ -13,7 +13,7 @@ import { populate } from '@vendure/core/cli/populate';
 import { ParsedProductWithVariants } from '@vendure/core/src/index';
 import { clearAllTables } from '@vendure/testing';
 import { spawn } from 'child_process';
-import program from 'commander';
+import { program } from 'commander';
 import path from 'path';
 import ProgressBar from 'progress';
 

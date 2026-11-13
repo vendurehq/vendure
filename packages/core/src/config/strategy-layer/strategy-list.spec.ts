@@ -9,16 +9,16 @@ import { addStrategyToList, removeStrategyFromList } from './strategy-list';
 import { RemovedStrategyListEntry, sortStrategyList } from './strategy-list-entries';
 
 class FirstStrategy implements ActiveOrderStrategy {
-    readonly name = 'first';
+    readonly name: string = 'first';
     determineActiveOrder() {
         return Promise.resolve(undefined);
     }
 }
 class SecondStrategy extends FirstStrategy {
-    readonly name = 'second';
+    readonly name: string = 'second';
 }
 class ThirdStrategy extends FirstStrategy {
-    readonly name = 'third';
+    readonly name: string = 'third';
 }
 
 const names = (list: ActiveOrderStrategy[]) =>
@@ -92,7 +92,7 @@ describe('sortStrategyList()', () => {
 describe('removeStrategyFromList()', () => {
     it('adds a removal record that is a valid entry and finds no order', async () => {
         const list = removeStrategyFromList(new FirstStrategy(), FirstStrategy);
-        const marker = list[1];
+        const marker: ActiveOrderStrategy<any> = list[1];
         expect(marker).toBeInstanceOf(RemovedStrategyListEntry);
         await expect(marker.determineActiveOrder(RequestContext.empty(), {})).resolves.toBeUndefined();
         expect(marker.createActiveOrder).toBeUndefined();

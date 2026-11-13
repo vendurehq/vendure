@@ -1,0 +1,31 @@
+---
+title: "FindSlugConflicts"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_slug_conflicts.ts" sourceLine="47" packageName="@vendure/core" since="4.0.0" />
+
+Lists the slugs that break the v4 rule that a Product or Collection slug is unique per
+language in each channel the entity belongs to. This helper only reads: v4 does not change
+the schema for this rule, and no data has to change for the server to start.
+
+Before v4 the slug check only looked at the active channel, and assigning to a channel
+did not check slugs at all, so an existing database can hold such duplicates. A lookup by
+a duplicated slug returns one of the matches. In v4 the choice is deterministic (see
+`SlugValidator.resolveSlug()`), but it is still worth renaming the duplicates.
+
+Call it from a migration's `up()` to log the conflicts, or from a script:
+
+```ts
+const conflicts = await findSlugConflicts(queryRunner);
+console.log(formatSlugConflicts(conflicts));
+```
+
+```ts title="Signature"
+function findSlugConflicts(queryRunner: QueryRunner): Promise<SlugConflict[]>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+

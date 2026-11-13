@@ -1,3 +1,5 @@
+// Adds the `session` property to the Express `Request` type.
+import type {} from 'cookie-session';
 import { Request, Response } from 'express';
 import ms from 'ms';
 

@@ -24,6 +24,7 @@ describe('ExternalAuthenticationService', () => {
             undefined as any,
             administratorService as AdministratorService,
             undefined as any,
+            undefined as any,
         );
     }
 

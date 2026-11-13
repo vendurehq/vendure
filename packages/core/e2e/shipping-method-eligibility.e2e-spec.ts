@@ -23,7 +23,6 @@ import {
     removeItemFromOrderDocument,
     setShippingAddressDocument,
     setShippingMethodDocument,
-    testOrderFragment,
     updatedOrderFragment,
 } from './graphql/shop-definitions';
 
@@ -90,7 +89,10 @@ describe('ShippingMethod eligibility', () => {
         input => !!input.lines,
     );
 
-    type TestOrderFragmentType = FragmentOf<typeof testOrderFragment>;
+    type TestOrderFragmentType = Exclude<
+        ResultOf<typeof setShippingMethodDocument>['setOrderShippingMethod'],
+        { errorCode: string }
+    >;
     const testOrderGuard: ErrorResultGuard<TestOrderFragmentType> = createErrorResultGuard(
         input => !!input.lines,
     );

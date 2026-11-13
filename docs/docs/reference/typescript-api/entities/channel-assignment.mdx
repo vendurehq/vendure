@@ -1,0 +1,50 @@
+---
+title: "ChannelAssignment"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.ts" sourceLine="35" packageName="@vendure/core" since="4.0.0" />
+
+The base class of a channel assignment entity: one row per (entity, Channel), recording that the
+entity is assigned to the Channel, plus any data that belongs to the entity *in that Channel*.
+
+Every [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware) entity has a `channels` many-to-many relation. Its junction table
+(e.g. `product_channels_channel`) is owned by a channel assignment entity (e.g. `ProductChannel`),
+so per-channel columns can be added to the junction table without a separate table. The
+`channels` relation stays as it is, so all the ChannelAware machinery
+(`ChannelService.assignToChannels()`, `findOneInChannel()`, the ListQueryBuilder `channelId`
+option) keeps working.
+
+Subclasses are declared with the [ChannelAssignmentEntity](/reference/typescript-api/entities/channel-assignment-entity#channelassignmententity) decorator, and the owning
+entity's relation must be declared with `@JoinTable({ synchronize: false })`, since the
+assignment entity manages the table's schema.
+
+Per-channel columns should be nullable or have a default. `ChannelService.assignToChannels()`
+copies them from an existing assignment of the entity, but assignments created in other ways
+(`ChannelService.assignToCurrentChannel()`, saving `entity.channels`, the FastImporterService)
+start with the column defaults.
+
+Relations are only supported inside the `customFields` of an assignment entity.
+
+```ts title="Signature"
+class ChannelAssignment {
+    constructor(input?: DeepPartial<ChannelAssignment>)
+    channelId: ID;
+    channel: Channel;
+}
+```
+
+<div className="members-wrapper">
+
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### channel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`}   />
+
+
+
+
+</div>

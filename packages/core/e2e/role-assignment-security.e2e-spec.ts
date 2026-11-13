@@ -1179,7 +1179,11 @@ describe('RoleAssignment security matrix (OSS-792)', () => {
 
         it('shop schema does not expose assignments or hashes', async () => {
             const r = await attempt(async () => {
-                const res = await shopClient.query(shopIntrospectDocument);
+                // The generated types resolve `__type` to `{}`.
+                const res = (await shopClient.query(shopIntrospectDocument)) as Record<
+                    'user' | 'customer',
+                    { fields?: Array<{ name: string }> } | null
+                >;
                 const userFields = (res.user?.fields ?? []).map(f => f.name);
                 const customerFields = (res.customer?.fields ?? []).map(f => f.name);
                 const bad = [...userFields, ...customerFields].filter(f =>

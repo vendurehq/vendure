@@ -2,7 +2,33 @@
 title: "DefaultSlugStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/entity/default-slug-strategy.ts" sourceLine="25" packageName="@vendure/core" since="3.5.0" />
+## DefaultSlugStrategyOptions
+
+<GenerationInfo sourceFile="packages/core/src/config/entity/default-slug-strategy.ts" sourceLine="13" packageName="@vendure/core" since="4.0.0" />
+
+Options for the [DefaultSlugStrategy](/reference/typescript-api/configuration/default-slug-strategy#defaultslugstrategy).
+
+```ts title="Signature"
+interface DefaultSlugStrategyOptions {
+    uniqueness?: SlugUniquenessScope;
+}
+```
+
+<div className="members-wrapper">
+
+### uniqueness
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configuration/slug-strategy#sluguniquenessscope'>SlugUniquenessScope</a>`} default={`'channel'`}   />
+
+The scope within which Product and Collection slugs must be unique. Use `'global'` when a
+single storefront shows several channels' products, such as a marketplace built on the
+default channel.
+
+
+</div>
+## DefaultSlugStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/entity/default-slug-strategy.ts" sourceLine="53" packageName="@vendure/core" since="3.5.0" />
 
 The default strategy for generating slugs. This strategy:
 - Converts to lowercase
@@ -20,8 +46,18 @@ strategy.generate(ctx, { value: "Café Français" }); // "cafe-francais"
 strategy.generate(ctx, { value: "100% Natural" }); // "100-natural"
 ```
 
+Slugs are unique per channel by default. To make them unique across all channels:
+
+```ts
+entityOptions: {
+  slugStrategy: new DefaultSlugStrategy({ uniqueness: 'global' }),
+},
+```
+
 ```ts title="Signature"
 class DefaultSlugStrategy implements SlugStrategy {
+    constructor(options: DefaultSlugStrategyOptions = {})
+    getUniquenessScope() => SlugUniquenessScope;
     generate(ctx: RequestContext, params: SlugGenerateParams) => string;
 }
 ```
@@ -30,6 +66,11 @@ class DefaultSlugStrategy implements SlugStrategy {
 
 
 <div className="members-wrapper">
+
+### getUniquenessScope
+
+<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/configuration/slug-strategy#sluguniquenessscope'>SlugUniquenessScope</a>`}   />
+
 
 ### generate
 

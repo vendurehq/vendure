@@ -38,7 +38,11 @@ import { sortById } from './utils/test-order-utils';
  */
 class DelegateMergeStrategy implements OrderMergeStrategy {
     static activeStrategy: OrderMergeStrategy = new MergeOrdersStrategy();
-    merge(ctx: RequestContext, guestOrder: Order, existingOrder: Order): MergedOrderLine[] {
+    merge(
+        ctx: RequestContext,
+        guestOrder: Order,
+        existingOrder: Order,
+    ): MergedOrderLine[] | Promise<MergedOrderLine[]> {
         return DelegateMergeStrategy.activeStrategy.merge(ctx, guestOrder, existingOrder);
     }
 }

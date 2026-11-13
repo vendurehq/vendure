@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 
 import { getValidBackgroundColor } from './common';
+import { ImageTransformParameters } from './config/image-transform-strategy';
 import { PresetOnlyStrategy } from './config/preset-only-strategy';
 import { Dimensions, Point, resizeToFocalPoint, transformImage } from './transform-image';
 
@@ -187,7 +188,7 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             input: baseInput,
             availablePresets: presets,
             req: {} as any,
-        });
+        }) as ImageTransformParameters;
         expect(result.backgroundColor).toBeUndefined();
     });
 
@@ -200,7 +201,7 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             input: baseInput,
             availablePresets: presets,
             req: {} as any,
-        });
+        }) as ImageTransformParameters;
         expect(result.backgroundColor).toBe('#ffffff');
     });
 
@@ -213,7 +214,7 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             input: baseInput,
             availablePresets: presets,
             req: {} as any,
-        });
+        }) as ImageTransformParameters;
         expect(result.backgroundColor).toBe('#ffffff');
     });
 
@@ -226,7 +227,7 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             input: baseInput,
             availablePresets: presets,
             req: {} as any,
-        });
+        }) as ImageTransformParameters;
         expect(result.backgroundColor).toBeUndefined();
     });
 
@@ -239,7 +240,7 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             input: { ...baseInput, backgroundColor: '#ffffff' },
             availablePresets: presets,
             req: {} as any,
-        });
+        }) as ImageTransformParameters;
         expect(result.backgroundColor).toBe('#ffffff');
     });
 
@@ -252,7 +253,7 @@ describe('PresetOnlyStrategy permittedBackgroundColors', () => {
             input: { ...baseInput, backgroundColor: '#ffffff' },
             availablePresets: presets,
             req: {} as any,
-        });
+        }) as ImageTransformParameters;
         expect(result.backgroundColor).toBe('#ffffff');
     });
 });

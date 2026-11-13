@@ -74,6 +74,9 @@ import {
 } from './graphql/shop-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment, sortById } from './utils/test-order-utils';
 
+// The generated shop types declare no fields for OrderLineCustomFieldsInput.
+const customFieldsInput = (input: Record<string, unknown>) => input as never;
+
 const addItemToOrderWithCustomFieldsDocument = graphql(`
     mutation AddItemToOrder(
         $productVariantId: ID!
@@ -354,8 +357,13 @@ describe('Order modification', () => {
     const orderGuard: ErrorResultGuard<OrderFragment> = createErrorResultGuard(input => !!input.id);
 
     type OrderWithModificationsFragment = FragmentOf<typeof orderWithModificationsFragment>;
-    const orderWithModificationsGuard: ErrorResultGuard<OrderWithModificationsFragment> =
-        createErrorResultGuard(input => !!input.id);
+    type ModifyOrderSuccessResult = Exclude<
+        ResultOf<typeof modifyOrderDocument>['modifyOrder'],
+        { errorCode: string }
+    >;
+    const orderWithModificationsGuard: ErrorResultGuard<ModifyOrderSuccessResult> = createErrorResultGuard(
+        input => !!input.id,
+    );
 
     type CanceledOrderFragment = FragmentOf<typeof canceledOrderFragment>;
     const canceledOrderGuard: ErrorResultGuard<CanceledOrderFragment> = createErrorResultGuard(
@@ -467,9 +475,9 @@ describe('Order modification', () => {
         await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
             productVariantId: 'T_1',
             quantity: 1,
-            customFields: {
+            customFields: customFieldsInput({
                 color: 'green',
-            },
+            }),
         });
         await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
             productVariantId: 'T_4',

@@ -15,6 +15,7 @@ export const productVariantListDocument = graphql(
                     name
                     sku
                     enabled
+                    enabledInChannel
                     currencyCode
                     price
                     priceWithTax
@@ -73,6 +74,7 @@ export const productVariantDetailDocument = graphql(
                     }
                 }
                 enabled
+                enabledInChannel
                 featuredAsset {
                     ...Asset
                 }

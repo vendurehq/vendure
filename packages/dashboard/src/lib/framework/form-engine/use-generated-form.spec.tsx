@@ -1,3 +1,4 @@
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { act, createElement, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
@@ -49,7 +50,7 @@ vi.mock('../document-introspection/get-document-structure.js', async importOrigi
 }));
 
 // The document is only read through the mocked `getOperationVariablesFields` above.
-const createDocument = {} as any;
+const createDocument = {} as TypedDocumentNode<any, { input: any }>;
 
 const customFieldConfig = [{ name: 'defaultMinStock', type: 'int', nullable: false }] as any;
 

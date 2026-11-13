@@ -106,6 +106,13 @@ describe('Promotions applied to Orders', () => {
     const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(
         input => !!input.lines,
     );
+    type ApplyCouponSuccessResult = Exclude<
+        ResultOf<typeof applyCouponCodeDocument>['applyCouponCode'],
+        { errorCode: string }
+    >;
+    const applyCouponResultGuard: ErrorResultGuard<ApplyCouponSuccessResult> = createErrorResultGuard(
+        input => !!input.lines,
+    );
 
     type PromotionFragment = FragmentOf<typeof promotionFragment>;
     type ChannelFragment = FragmentOf<typeof channelFragment>;
@@ -179,7 +186,7 @@ describe('Promotions applied to Orders', () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: 'bad code',
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
+            applyCouponResultGuard.assertErrorResult(applyCouponCode);
             expect(applyCouponCode.message).toBe('Coupon code "bad code" is not valid');
             expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_INVALID_ERROR);
         });
@@ -188,7 +195,7 @@ describe('Promotions applied to Orders', () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: EXPIRED_COUPON_CODE,
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
+            applyCouponResultGuard.assertErrorResult(applyCouponCode);
             expect(applyCouponCode.message).toBe(`Coupon code "${EXPIRED_COUPON_CODE}" has expired`);
             expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_EXPIRED_ERROR);
         });
@@ -481,7 +488,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: OTHER_CHANNEL_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
                 expect(applyCouponCode.errorCode).toEqual('COUPON_CODE_INVALID_ERROR');
             });
         });
@@ -611,13 +618,15 @@ describe('Promotions applied to Orders', () => {
             const promotion = await createPromotion({
                 enabled: true,
                 name: 'Contains products, minimum 0',
-                conditions: [{
-                    code: containsProducts.code,
-                    arguments: [
-                        { name: 'minimum', value: '0' },
-                        { name: 'productVariantIds', value: JSON.stringify([item5000.id]) },
-                    ],
-                }],
+                conditions: [
+                    {
+                        code: containsProducts.code,
+                        arguments: [
+                            { name: 'minimum', value: '0' },
+                            { name: 'productVariantIds', value: JSON.stringify([item5000.id]) },
+                        ],
+                    },
+                ],
                 actions: [freeOrderAction],
             });
             // add an item that is NOT in productVariantIds
@@ -637,13 +646,15 @@ describe('Promotions applied to Orders', () => {
             const promotion = await createPromotion({
                 enabled: true,
                 name: 'Facets, minimum 0',
-                conditions: [{
-                    code: hasFacetValues.code,
-                    arguments: [
-                        { name: 'minimum', value: '0' },
-                        { name: 'facets', value: `["${saleFacetValue.id}"]` },
-                    ],
-                }],
+                conditions: [
+                    {
+                        code: hasFacetValues.code,
+                        arguments: [
+                            { name: 'minimum', value: '0' },
+                            { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                        ],
+                    },
+                ],
                 actions: [freeOrderAction],
             });
             // add an item WITHOUT the Sale facet
@@ -1599,7 +1610,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
 
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
@@ -1685,7 +1696,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
                 );
@@ -1817,7 +1828,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
 
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
@@ -1873,7 +1884,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
                 );
@@ -1994,16 +2005,18 @@ describe('Promotions applied to Orders', () => {
                     // by revalidation receive a CouponRemovedDuringCheckoutError instead
                     // of being silently charged the new (higher) total — see the
                     // explanatory comment in OrderService.addPaymentToOrder.
-                    const results = await Promise.all(
+                    // The helper is typed to return only the Order, but the runtime result can also be an error.
+                    const results: unknown[] = await Promise.all(
                         clients.map(client => addPaymentToOrder(client, testSuccessfulPaymentMethod)),
                     );
 
                     // Discriminate by __typename rather than duck-typing on field shape:
                     // a future schema change that, say, adds errorCode-shaped fields to
                     // Order would silently break a duck-typed filter.
-                    const orderResults = results.filter(
-                        (r: any) => r.__typename === 'Order',
-                    ) as Array<{ couponCodes: string[]; totalWithTax: number }>;
+                    const orderResults = results.filter((r: any) => r.__typename === 'Order') as Array<{
+                        couponCodes: string[];
+                        totalWithTax: number;
+                    }>;
                     const errorResults = results.filter(
                         (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
                     ) as Array<{
@@ -2051,9 +2064,8 @@ describe('Promotions applied to Orders', () => {
                         const errorClientIdx = results.findIndex(
                             (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
                         );
-                        const { activeOrder: postOrder } = await clients[errorClientIdx].query(
-                            getActiveOrderDocument,
-                        );
+                        const { activeOrder: postOrder } =
+                            await clients[errorClientIdx].query(getActiveOrderDocument);
                         expectedNewTotal = postOrder!.totalWithTax;
                         // The strip must have increased the total — otherwise the error
                         // should never have been returned.

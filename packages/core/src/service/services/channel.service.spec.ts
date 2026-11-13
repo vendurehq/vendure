@@ -110,6 +110,7 @@ describe('ChannelService cache', () => {
             {} as any,
             { removeAllAssignmentsOnChannel: vi.fn() } as any,
             { deleteRolesOwnedByChannel: vi.fn() } as any,
+            undefined as any,
         );
     });
 

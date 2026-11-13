@@ -22,6 +22,6 @@ describe('getDatabaseType()', () => {
     // `sqlite` is declared by some TypeORM versions and not others, but a project may be
     // configured with it either way, so it has to survive the round trip.
     it('preserves the sqlite driver name', () => {
-        expect(getDatabaseType({ type: 'sqlite' } as DataSourceOptions)).toBe('sqlite');
+        expect(getDatabaseType({ type: 'sqlite' } as unknown as DataSourceOptions)).toBe('sqlite');
     });
 });

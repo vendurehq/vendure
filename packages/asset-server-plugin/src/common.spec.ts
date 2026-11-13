@@ -14,7 +14,7 @@ describe('getAssetUrlPrefixFn', () => {
             },
             protocol: 'http',
             get: (header: string) => (header === 'host' ? '127.0.0.1:4145' : undefined),
-        } as Request;
+        } as unknown as Request;
 
         expect(getPrefix(request, 'avatar.webp')).toBe('https://puebla.vendure.localhost/assets/');
     });

@@ -17,7 +17,8 @@ describe('getSearchForAssetView', () => {
     it('removes the persisted page size when switching views', () => {
         const search = stripDefaultAssetSearchParams({
             search: { viewMode: 'grid', perPage: 48 },
-            next: currentSearch => parseAssetSearch(getSearchForAssetView(currentSearch, 'list')),
+            next: currentSearch =>
+                parseAssetSearch(getSearchForAssetView(currentSearch as Record<string, unknown>, 'list')),
         });
 
         expect(search).toEqual({ viewMode: 'list' });

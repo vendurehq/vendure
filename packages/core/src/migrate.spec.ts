@@ -22,7 +22,7 @@ class ComposedMigrationEntity extends VendureEntity {
     value: string;
 }
 
-@VendurePlugin({ entities: [ComposedMigrationEntity] })
+@VendurePlugin({ entities: [ComposedMigrationEntity as any] })
 class MigrationEntityPlugin {}
 
 @VendurePlugin({ plugins: [MigrationEntityPlugin] })

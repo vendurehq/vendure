@@ -1,0 +1,107 @@
+---
+title: "ChannelAssignmentService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-assignment/channel-assignment.service.ts" sourceLine="61" packageName="@vendure/core" since="4.0.0" />
+
+Reads and writes the channel assignment rows of [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware) entities: one row per
+(entity, Channel), holding the data which belongs to the entity in that Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
+
+This service is generic: it works for any ChannelAware entity which has a channel assignment
+entity declared with [ChannelAssignmentEntity](/reference/typescript-api/entities/channel-assignment-entity#channelassignmententity).
+
+Reads of single rows made in the same tick are batched into one query per entity type and
+Channel, so GraphQL field resolvers can read per-channel data without N+1 queries. Results are
+not cached, so a read always sees the current rows.
+
+```ts title="Signature"
+class ChannelAssignmentService implements OnApplicationBootstrap {
+    constructor(connection: TransactionalConnection, requestContextCache: RequestContextCacheService)
+    onApplicationBootstrap() => ;
+    getMetadata(entityType: AnyEntity) => ChannelAssignmentMetadata | undefined;
+    getAssignment(ctx: RequestContext, entityType: AnyEntity, entityOrId: ID | { id: ID }, channelId: ID = ctx.channelId) => Promise<T | undefined>;
+    getAssignments(ctx: RequestContext, entityType: AnyEntity, entityIds: ID[], channelId: ID = ctx.channelId) => Promise<Map<string, T>>;
+    getAssignmentsByChannel(ctx: RequestContext, entityType: AnyEntity, entityIds: ID[]) => Promise<Map<string, Map<string, T>>>;
+    update(ctx: RequestContext, entityType: AnyEntity, entityIds: ID[], channelIds: ID[], values: Partial<Omit<T, 'channelId' | 'channel'>>) => Promise<void>;
+    assertWritable(entityType: AnyEntity, values: object) => ChannelAssignmentMetadata;
+    copyAssignment(ctx: RequestContext, entityType: AnyEntity, entityId: ID, fromChannelId: ID, toChannelIds: ID[]) => Promise<void>;
+    getMetadataOrThrow(entityType: AnyEntity) => ChannelAssignmentMetadata;
+    getLoadedAssignment(entity: object, channelId: ID) => T | undefined;
+}
+```
+* Implements: OnApplicationBootstrap
+
+
+
+<div className="members-wrapper">
+
+### onApplicationBootstrap
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### getMetadata
+
+<MemberInfo kind="method" type={`(entityType: AnyEntity) => ChannelAssignmentMetadata | undefined`}   />
+
+Returns how the channel assignment rows of the given entity type are stored, or `undefined` if
+the entity has no channel assignment entity.
+### getAssignment
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityOrId: <a href='/reference/typescript-api/common/id#id'>ID</a> | { id: <a href='/reference/typescript-api/common/id#id'>ID</a> }, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> = ctx.channelId) => Promise<T | undefined>`}   />
+
+Returns the assignment row of the entity in the given Channel (defaults to the active
+Channel), or `undefined` if the entity is not assigned to that Channel. Calls made in the
+same tick are batched into one query.
+
+If an entity is passed which was loaded by a ListQueryBuilder list with the
+`loadChannelAssignment` option, scoped to the same Channel, the row loaded with it is
+returned without a query.
+### getAssignments
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> = ctx.channelId) => Promise<Map<string, T>>`}   />
+
+Returns the assignment rows of the given entities in one Channel, keyed by entity id.
+### getAssignmentsByChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<Map<string, Map<string, T>>>`}   />
+
+Returns the assignment rows of the given entities in every Channel they are assigned to,
+keyed by entity id and then Channel id. Used e.g. by search indexers.
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], values: Partial<Omit<T, 'channelId' | 'channel'>>) => Promise<void>`}   />
+
+Updates the data columns of existing assignment rows. Never assigns an entity to a Channel.
+Throws if `values` contains anything but per-channel data properties (see
+`assertWritable`).
+### assertWritable
+
+<MemberInfo kind="method" type={`(entityType: AnyEntity, values: object) => ChannelAssignmentMetadata`}   />
+
+Throws unless every key of `values` is a per-channel data property of the entity's channel
+assignment entity. The key columns (entity id, Channel id) define the assignment itself and
+are changed via `ChannelService.assignToChannels()` / `removeFromChannels()`.
+### copyAssignment
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, fromChannelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, toChannelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<void>`}   />
+
+Copies the data columns of the entity's assignment row in `fromChannelId` to its rows in
+`toChannelIds`. Called by `ChannelService.assignToChannels()` so that an entity newly assigned
+to a Channel starts with the data it has in a Channel it was already assigned to.
+### getMetadataOrThrow
+
+<MemberInfo kind="method" type={`(entityType: AnyEntity) => ChannelAssignmentMetadata`}   />
+
+Like `ChannelAssignmentService.getMetadata`, but throws if the entity has no channel
+assignment entity.
+### getLoadedAssignment
+
+<MemberInfo kind="method" type={`(entity: object, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => T | undefined`}   />
+
+Returns the assignment row loaded onto the entity by a ListQueryBuilder list with the
+`loadChannelAssignment` option, if it is the row of the given Channel.
+
+
+</div>

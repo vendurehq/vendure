@@ -7,5 +7,5 @@
     "sourceMap": true,
     "allowJs": true
   },
-  "exclude": ["dist/**/*"]
+  "exclude": ["dist/**/*", "src/**/templates/**/*"]
 }

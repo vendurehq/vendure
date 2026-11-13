@@ -2,13 +2,13 @@
 title: "OrderService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="155" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="157" packageName="@vendure/core" />
 
 Contains methods relating to [Order](/reference/typescript-api/entities/order#order) entities.
 
 ```ts title="Signature"
 class OrderService implements OnApplicationBootstrap {
-    constructor(connection: TransactionalConnection, configService: ConfigService, productVariantService: ProductVariantService, customerService: CustomerService, countryService: CountryService, orderCalculator: OrderCalculator, shippingCalculator: ShippingCalculator, orderStateMachine: OrderStateMachine, orderMerger: OrderMerger, paymentService: PaymentService, paymentMethodService: PaymentMethodService, fulfillmentService: FulfillmentService, listQueryBuilder: ListQueryBuilder, refundStateMachine: RefundStateMachine, historyService: HistoryService, promotionService: PromotionService, eventBus: EventBus, channelService: ChannelService, orderModifier: OrderModifier, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, translator: TranslatorService, stockLevelService: StockLevelService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, productVariantService: ProductVariantService, customerService: CustomerService, countryService: CountryService, orderCalculator: OrderCalculator, shippingCalculator: ShippingCalculator, orderStateMachine: OrderStateMachine, orderMerger: OrderMerger, paymentService: PaymentService, paymentMethodService: PaymentMethodService, fulfillmentService: FulfillmentService, listQueryBuilder: ListQueryBuilder, refundStateMachine: RefundStateMachine, historyService: HistoryService, promotionService: PromotionService, eventBus: EventBus, channelService: ChannelService, orderModifier: OrderModifier, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, translator: TranslatorService, stockLevelService: StockLevelService, channelEnabledChecker: ChannelEnabledChecker)
     getOrderProcessStates() => OrderProcessState[];
     findAll(ctx: RequestContext, options?: OrderListOptions, relations?: RelationPaths<Order>) => Promise<PaginatedList<Order>>;
     findOne(ctx: RequestContext, orderId: ID, relations?: RelationPaths<Order>) => Promise<Order | undefined>;

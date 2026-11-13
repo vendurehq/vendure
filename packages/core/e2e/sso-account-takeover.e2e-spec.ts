@@ -21,8 +21,8 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { TestSSOStrategyShop } from './fixtures/test-authentication-strategies';
-import { currentUserFragment, customerFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { customerFragment } from './graphql/fragments-admin';
+import { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
     authenticateDocument,
@@ -39,6 +39,9 @@ import {
     verifyEmailDocument,
 } from './graphql/shop-definitions';
 
+// `test_sso_strategy_shop` is a test-only authentication strategy, so it is not in the generated types.
+const ssoInput = (input: object) => input as never;
+
 // GHSA-wr5h-x3x6-4h23 — an unauthenticated attacker must not be able to take over an SSO-only account
 // (external auth, no native password) by "registering" a native password against the victim's email
 // and then logging in natively. The planted credential must only ever become usable once whoever
@@ -49,7 +52,7 @@ import {
 // below relies on event delivery, which is unreliable when several unrelated test servers are created
 // and torn down within a single file.
 
-type CurrentUserFragmentType = FragmentOf<typeof currentUserFragment>;
+type CurrentUserFragmentType = Exclude<ResultOf<typeof attemptLoginDocument>['login'], { errorCode: string }>;
 const currentUserGuard: ErrorResultGuard<CurrentUserFragmentType> = createErrorResultGuard(
     input => input.identifier != null,
 );
@@ -104,7 +107,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
 
         // Create the victim as an SSO-only account: verified external identity, no native password.
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: victimEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: victimEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         await shopClient.asAnonymousUser();
@@ -148,7 +151,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
             const oracleEmail = `sso-oracle-victim-${suffix}@test.com`;
             await shopClient.asAnonymousUser();
             const { authenticate } = await shopClient.query(authenticateDocument, {
-                input: { test_sso_strategy_shop: { email: oracleEmail } },
+                input: ssoInput({ test_sso_strategy_shop: { email: oracleEmail } }),
             });
             currentUserGuard.assertSuccess(authenticate);
             await shopClient.asAnonymousUser();
@@ -333,7 +336,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
 
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: victimEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: victimEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         expect(authenticate.identifier).toBe(victimEmail);
@@ -464,7 +467,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
         const gatePassword = 'gate-password-123';
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: gateEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: gateEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
 
@@ -505,7 +508,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
         const stalePassword = 'stale-token-password-123';
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: staleEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: staleEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         await shopClient.asAnonymousUser();
@@ -592,7 +595,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
     async function seedUnverifiedNativeCredentialOnSsoAccount() {
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: carveOutEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: carveOutEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         await shopClient.asAnonymousUser();
@@ -613,7 +616,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
 
     async function expectSsoLoginStillWorks() {
         const { authenticate: ssoLogin } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: carveOutEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: carveOutEmail } }),
         });
         currentUserGuard.assertSuccess(ssoLogin);
         expect(ssoLogin.identifier).toBe(carveOutEmail);
@@ -663,7 +666,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
         const unverifiedEmail = `sso-unverified-victim-${suffix}@test.com`;
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: unverifiedEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: unverifiedEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         await shopClient.asAnonymousUser();
@@ -725,7 +728,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
         const resetOwnerPassword = 'reset-owner-password-789';
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: resetEmail } },
+            input: ssoInput({ test_sso_strategy_shop: { email: resetEmail } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         await shopClient.asAnonymousUser();
@@ -776,7 +779,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
     async function createSsoAccount(emailAddress: string): Promise<string> {
         await shopClient.asAnonymousUser();
         const { authenticate } = await shopClient.query(authenticateDocument, {
-            input: { test_sso_strategy_shop: { email: emailAddress } },
+            input: ssoInput({ test_sso_strategy_shop: { email: emailAddress } }),
         });
         currentUserGuard.assertSuccess(authenticate);
         await shopClient.asAnonymousUser();
