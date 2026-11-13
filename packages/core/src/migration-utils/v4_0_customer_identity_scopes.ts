@@ -118,8 +118,8 @@ type PlannedSplit = {
  *   password reset and email change tokens are not copied: they stay with the original. The Channel
  *   memberships and Orders of that scope move to the copy, and sessions whose active Order moved
  *   lose it. Every copy is also joined to the default Channel, so that it is listed there in the
- *   Admin API. History entries stay on the original. Plugin data is not copied: use
- *   `onCustomerSplit`.
+ *   Admin API. History entries stay on the original. Custom fields are copied, including list
+ *   relation custom fields stored in join tables. Plugin data is not copied: use `onCustomerSplit`.
  *
  * Splitting needs auto-increment ids, and refuses to run when Customer, User or Address has a
  * unique custom field, because the copy would break the constraint. Both are checked before
@@ -386,6 +386,7 @@ async function copyCustomer(
     let copyUserId: string | null = null;
     if (customer.userId != null) {
         copyUserId = await sql.copyRow('user', customer.userId, {});
+        await sql.copyListCustomFields(User, customer.userId, copyUserId);
         const methods: Array<{ id: any }> = await sql.query(
             `SELECT ${sql.c('id')} FROM ${sql.t('authentication_method')} WHERE ${sql.c('userId')} = ${sql.p(1)}`,
             [customer.userId],
@@ -403,12 +404,14 @@ async function copyCustomer(
         }
     }
     const copyId = await sql.copyRow('customer', customerId, { identityScope: scope, userId: copyUserId });
+    await sql.copyListCustomFields(Customer, customerId, copyId);
     const addresses: Array<{ id: any }> = await sql.query(
         `SELECT ${sql.c('id')} FROM ${sql.t('address')} WHERE ${sql.c('customerId')} = ${sql.p(1)}`,
         [customerId],
     );
     for (const a of addresses) {
-        await sql.copyRow('address', a.id, { customerId: copyId });
+        const copyAddressId = await sql.copyRow('address', a.id, { customerId: copyId });
+        await sql.copyListCustomFields(Address, a.id, copyAddressId);
     }
     const groups: Array<{ customerGroupId: any }> = await sql.query(
         `SELECT ${sql.c('customerGroupId')} FROM ${sql.t('customer_groups_customer_group')}
@@ -456,6 +459,33 @@ class Sql {
 
     query(query: string, parameters?: any[]): Promise<any> {
         return this.queryRunner.query(query, parameters);
+    }
+
+    /**
+     * List relation custom fields are stored in join tables rather than columns of the row, so
+     * `copyRow` does not copy them. This copies the join rows of every list relation custom field
+     * of the entity from one row to another.
+     */
+    async copyListCustomFields(
+        entity: typeof Customer | typeof User | typeof Address,
+        fromId: any,
+        toId: any,
+    ) {
+        const metadata = this.queryRunner.connection.getMetadata(entity);
+        const junctions = metadata.manyToManyRelations
+            .filter(r => r.isOwning && r.propertyPath.startsWith('customFields.'))
+            .map(r => r.junctionEntityMetadata)
+            .filter(junction => junction !== undefined);
+        for (const junction of junctions) {
+            const owner = junction.ownerColumns[0].databaseName;
+            const inverse = junction.inverseColumns[0].databaseName;
+            const table = this.queryRunner.connection.driver.escape(junction.tableName);
+            await this.query(
+                `INSERT INTO ${table} (${this.c(owner)}, ${this.c(inverse)})
+                 SELECT ${this.p(1)}, ${this.c(inverse)} FROM ${table} WHERE ${this.c(owner)} = ${this.p(2)}`,
+                [toId, fromId],
+            );
+        }
     }
 
     async updateScope(customerIds: string[], scope: string) {

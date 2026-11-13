@@ -8,12 +8,14 @@ import {
     GlobalIdentityScopeStrategy,
     IdentityScopeService,
     IdentityScopeStrategy,
+    mergeConfig,
     migrateCustomerIdentityScopes,
     RequestContext,
     TransactionalConnection,
     UserService,
 } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -48,10 +50,15 @@ const BRAND_B = { code: 'mig-brand-b', token: 'mig-brand-b-token' };
 
 describe('Customer identity scope migration (OSS-999)', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
-        mergeAuth(testConfig(), { requireVerification: false }),
+        mergeConfig(mergeAuth(testConfig(), { requireVerification: false }), {
+            // A list relation custom field, stored in a join table, to check that a split copies it.
+            customFields: {
+                Customer: [{ name: 'favouriteChannels', type: 'relation', entity: Channel, list: true }],
+            },
+        }),
     );
     const channelIds: Record<string, string> = {};
-    let shared: { emailAddress: string };
+    let shared: { id: string; emailAddress: string };
     let storefront: { emailAddress: string };
     let defaultOnly: { emailAddress: string };
 
@@ -112,6 +119,45 @@ describe('Customer identity scope migration (OSS-999)', () => {
         await shopClient.query(registerAccountDocument, {
             input: { emailAddress: 'only-b@test.com', password: 'test', firstName: 'Only', lastName: 'B' },
         });
+
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        // A draft order an administrator created on the default Channel for the brand B customer.
+        // Draft orders are not storefront use, so they must not split the customer.
+        const { customers: onlyB } = await adminClient.query(getCustomerListDocument, {
+            options: { filter: { emailAddress: { eq: 'only-b@test.com' } } },
+        });
+        const { createDraftOrder } = await adminClient.query(gql`
+            mutation {
+                createDraftOrder {
+                    id
+                }
+            }
+        `);
+        await adminClient.query(
+            gql`
+                mutation ($orderId: ID!, $customerId: ID!) {
+                    setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId) {
+                        ... on Order {
+                            id
+                        }
+                    }
+                }
+            `,
+            { orderId: createDraftOrder.id, customerId: onlyB.items[0].id },
+        );
+        // The shared customer's list relation custom field.
+        await adminClient.query(
+            gql`
+                mutation ($id: ID!, $channelIds: [ID!]) {
+                    updateCustomer(input: { id: $id, customFields: { favouriteChannelsIds: $channelIds } }) {
+                        ... on Customer {
+                            id
+                        }
+                    }
+                }
+            `,
+            { id: shared.id, channelIds: [channelIds[BRAND_A.code], channelIds[BRAND_B.code]] },
+        );
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -252,6 +298,38 @@ describe('Customer identity scope migration (OSS-999)', () => {
                 .map(r => r.identityScope)
                 .sort(),
         ).toEqual(['channel:1', `channel:${idOf(BRAND_A)}`].sort());
+    });
+
+    it('a draft order on the default Channel does not split a customer', async () => {
+        const onlyB = (await customerRows()).filter(r => r.emailAddress === 'only-b@test.com');
+        expect(new Set(onlyB.map(r => r.identityScope))).toEqual(new Set([`channel:${idOf(BRAND_B)}`]));
+    });
+
+    it('the split copies list relation custom fields', async () => {
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { customers } = await adminClient.query(
+            gql`
+                query ($email: String!) {
+                    customers(options: { filter: { emailAddress: { eq: $email } } }) {
+                        items {
+                            id
+                            customFields {
+                                favouriteChannels {
+                                    code
+                                }
+                            }
+                        }
+                    }
+                }
+            `,
+            { email: shared.emailAddress },
+        );
+        expect(customers.items.length).toBe(2);
+        for (const customer of customers.items) {
+            expect(customer.customFields.favouriteChannels.map((c: any) => c.code).sort()).toEqual(
+                [BRAND_A.code, BRAND_B.code].sort(),
+            );
+        }
     });
 
     it('the split copies addresses and logins, but not pending tokens', async () => {
