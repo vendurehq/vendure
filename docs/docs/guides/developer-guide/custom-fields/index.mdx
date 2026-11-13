@@ -338,6 +338,11 @@ const channelFields = await product.getChannelCustomFields(ctx, {
 Calls made in the same tick are batched into one query, so calling `getChannelCustomFields()` for each item of a
 list does not cause a query per item.
 
+Code which does not run in a request for one Channel, such as a search plugin which indexes each Channel
+separately, should read the values of the Channel it is indexing: either with a `RequestContext` for that
+Channel, or by passing its id as `channelId`. For example, a search index of Products per Channel would
+include `(await product.getChannelCustomFields(ctx, { channelId: channel.id }))?.channelNote` for each Channel.
+
 The `EntityHydrator` does not hydrate channel-scoped fields. It throws an error which points to
 `getChannelCustomFields()`.
 

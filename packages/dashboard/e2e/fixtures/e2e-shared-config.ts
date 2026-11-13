@@ -59,6 +59,14 @@ export const e2eCustomFields: CustomFields = {
             type: 'datetime',
             label: [{ languageCode: LanguageCode.en, value: 'Release Date' }],
         },
+        // #490 — a separate value per channel
+        {
+            name: 'channelNote',
+            type: 'string',
+            nullable: true,
+            channelScoped: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Channel Note' }],
+        },
         {
             name: 'additionalInfo',
             type: 'text',

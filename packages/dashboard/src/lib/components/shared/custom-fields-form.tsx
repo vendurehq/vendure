@@ -1,5 +1,6 @@
 import { CustomFieldListInput } from '@/vdb/components/data-input/custom-field-list-input.js';
 import { StructFormInput } from '@/vdb/components/data-input/struct-form-input.js';
+import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
@@ -10,7 +11,7 @@ import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { getLocaleFallbackPlaceholder } from '@/vdb/utils/get-locale-fallback-placeholder.js';
 import { customFieldConfigFragment } from '@/vdb/providers/server-config.js';
-import { useLingui } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ResultOf } from 'gql.tada';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -388,12 +389,25 @@ function CustomFieldFormItem({
     children,
 }: Readonly<CustomFieldFormItemProps>) {
     const fieldId = `field-${fieldPath}`;
+    const { activeChannel, channels } = useChannel();
+    // A channel-scoped custom field holds a separate value in each channel, and the form shows and
+    // saves the active channel's value. Only worth saying when there is more than one channel.
+    const showChannelScopedHint =
+        'channelScoped' in fieldDef && fieldDef.channelScoped === true && channels.length > 1;
     return (
         <Field data-invalid={fieldState?.invalid || undefined}>
             <FieldLabel htmlFor={fieldId}>{getTranslation(fieldDef.label) ?? fieldDef.name}</FieldLabel>
             {children}
             {getTranslation(fieldDef.description) && (
                 <FieldDescription>{getTranslation(fieldDef.description)}</FieldDescription>
+            )}
+            {showChannelScopedHint && (
+                <FieldDescription data-testid="channel-scoped-hint">
+                    <Trans>
+                        Applies to <ChannelCodeLabel code={activeChannel?.code} /> only. Each channel has its
+                        own value.
+                    </Trans>
+                </FieldDescription>
             )}
             {fieldState?.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>

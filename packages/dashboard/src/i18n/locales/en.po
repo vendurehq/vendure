@@ -1374,6 +1374,10 @@ msgstr "Appearance"
 msgid "Scope"
 msgstr "Scope"
 
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Applies to <0/> only. Each channel has its own value."
+msgstr "Applies to <0/> only. Each channel has its own value."
+
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Add condition"
 msgstr "Add condition"
