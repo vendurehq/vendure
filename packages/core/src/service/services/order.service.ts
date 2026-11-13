@@ -51,7 +51,12 @@ import { RequestContextCacheService } from '../../cache/request-context-cache.se
 import { LocalizedStringArray } from '../../common/configurable-operation';
 import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
+import {
+    EntityNotFoundError,
+    InternalServerError,
+    NoBuyerPriceError,
+    UserInputError,
+} from '../../common/error/errors';
 import {
     CancelPaymentError,
     EmptyOrderLineSelectionError,
@@ -127,6 +132,7 @@ import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
+import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
 import {
@@ -635,8 +641,6 @@ export class OrderService implements OnApplicationBootstrap {
         const newCurrencyCtx = ctx.copy();
         (newCurrencyCtx as any)._currencyCode = currencyCode;
 
-        order.currencyCode = currencyCode;
-
         await this.historyService.createHistoryEntryForOrder({
             ctx,
             orderId: order.id,
@@ -647,6 +651,8 @@ export class OrderService implements OnApplicationBootstrap {
             },
         });
 
+        // applyPriceAdjustments() sets the new currency code. It must see the change, so that a line
+        // with no price in the new currency does not keep its price in the old currency.
         const updatedOrder = await this.applyPriceAdjustments(newCurrencyCtx, order, order.lines, relations);
         await this.eventBus.publish(new OrderEvent(ctx, updatedOrder, 'updated'));
         return updatedOrder;
@@ -2135,9 +2141,12 @@ export class OrderService implements OnApplicationBootstrap {
             orderIdOrOrder instanceof Order
                 ? orderIdOrOrder
                 : await this.getOrderOrThrow(ctx, orderIdOrOrder);
+        const customerChanged = !idsAreEqual(order.customerId ?? order.customer?.id, customer.id);
         order.customer = customer;
         await this.connection.getRepository(ctx, Order).save(order, { reload: false });
-        let updatedOrder = order;
+        let updatedOrder = customerChanged
+            ? await this.applyPriceAdjustmentsForNewCustomer(ctx, order)
+            : order;
         // Check that any applied couponCodes are still valid now that
         // we know the Customer.
         if (order.active && order.couponCodes) {
@@ -2338,8 +2347,18 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 if (order && linesToInsert) {
                     const orderId = order.id;
-                    const result = await this.addItemsToOrder(txCtx, orderId, linesToInsert);
-                    order = result.order;
+                    for (const line of linesToInsert) {
+                        try {
+                            // Nested savepoint, so that a line which is not added leaves nothing behind
+                            const result = await this.connection.withTransaction(txCtx, innerCtx =>
+                                this.addItemsToOrder(innerCtx, orderId, [line]),
+                            );
+                            order = result.order;
+                        } catch (e: unknown) {
+                            // A guest line that has no price for the Customer is not merged
+                            if (!(e instanceof NoBuyerPriceError)) throw e;
+                        }
+                    }
                 }
                 if (order && linesToModify) {
                     const orderId = order.id;
@@ -2363,8 +2382,12 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 const customer = await this.customerService.findOneByUserId(txCtx, user.id);
                 if (order && customer) {
+                    const customerChanged = !idsAreEqual(order.customerId, customer.id);
                     order.customer = customer;
                     await this.connection.getRepository(txCtx, Order).save(order, { reload: false });
+                    if (customerChanged) {
+                        order = await this.applyPriceAdjustmentsForNewCustomer(txCtx, order);
+                    }
                 }
                 return order;
             });
@@ -2375,6 +2398,22 @@ export class OrderService implements OnApplicationBootstrap {
             Logger.error(`Failed to merge orders: ${error.message}`, undefined, error.stack);
             return existingOrder;
         }
+    }
+
+    /**
+     * The unit price of an OrderLine can depend on the Customer, for example with a custom
+     * ProductVariantBuyerPriceStrategy. So when the Customer of an active or draft Order changes,
+     * the price of each line is calculated again. A placed Order keeps its prices.
+     */
+    private async applyPriceAdjustmentsForNewCustomer(ctx: RequestContext, order: Order): Promise<Order> {
+        if (!order.active && order.state !== 'Draft') {
+            return order;
+        }
+        const fullOrder = await this.getOrderOrThrow(ctx, order.id);
+        if (!fullOrder.lines.length) {
+            return order;
+        }
+        return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
     }
 
     private async getOrderOrThrow(
@@ -2501,7 +2540,8 @@ export class OrderService implements OnApplicationBootstrap {
         // When changing the Order's currencyCode (on account of passing
         // a different currencyCode into the RequestContext), we need to make sure
         // to update all existing OrderLines to use prices in this new currency.
-        if (ctx.currencyCode !== order.currencyCode) {
+        const currencyChanged = ctx.currencyCode !== order.currencyCode;
+        if (currencyChanged) {
             updatedOrderLines = order.lines;
             order.currencyCode = ctx.currencyCode;
         }
@@ -2515,13 +2555,19 @@ export class OrderService implements OnApplicationBootstrap {
                     ctx,
                     order,
                 );
-                let priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+                let priceResult = await calculateOrderLineUnitPrice(
                     ctx,
-                    variant,
-                    updatedOrderLine.customFields || {},
+                    orderItemPriceCalculationStrategy,
                     order,
-                    updatedOrderLine.quantity,
+                    updatedOrderLine,
+                    variant,
+                    // A new line has no `initialListPrice` yet
+                    { isNewLine: updatedOrderLine.initialListPrice == null, currencyChanged },
                 );
+                if (!priceResult) {
+                    // No price for the buyer now: the line keeps its current price
+                    continue;
+                }
                 const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
                 if (initialListPrice !== priceResult.price) {
                     priceResult = await changedPriceHandlingStrategy.handlePriceChange(

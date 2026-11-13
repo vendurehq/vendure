@@ -166,14 +166,24 @@ export type PaymentMetadata = {
 
 /**
  * @description
- * The result of the price calculation from the {@link ProductVariantPriceCalculationStrategy} or the
- * {@link OrderItemPriceCalculationStrategy}.
+ * The result of the price calculation from the {@link ProductVariantPriceCalculationStrategy}, the
+ * {@link ProductVariantBuyerPriceStrategy} or the {@link OrderItemPriceCalculationStrategy}.
  *
  * @docsCategory Common
  */
 export type PriceCalculationResult = {
     price: number;
     priceIncludesTax: boolean;
+    /**
+     * @description
+     * Optional data about the calculation, for example the price rule that applied. Vendure does not
+     * save it. The {@link DefaultOrderItemPriceCalculationStrategy} returns the metadata of the
+     * {@link ProductVariantBuyerPriceStrategy}, so an outer layer can read it, for example to write it
+     * to the OrderLine custom fields.
+     *
+     * @since 4.0.0
+     */
+    metadata?: Record<string, unknown>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type

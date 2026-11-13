@@ -45,6 +45,24 @@ export class IllegalOperationError extends I18nError {
 
 /**
  * @description
+ * This error is thrown when the {@link ProductVariantBuyerPriceStrategy} gives no price for the buyer of
+ * an OrderLine, see `ProductVariantService.calculateBuyerPriceForOrder()`. A new OrderLine with no price
+ * is not added. An OrderLine that is already in the Order keeps its current price.
+ *
+ * It is an {@link IllegalOperationError}, so the GraphQL error code is `ILLEGAL_OPERATION`.
+ *
+ * @docsCategory errors
+ * @docsPage Error Types
+ * @since 4.0.0
+ */
+export class NoBuyerPriceError extends IllegalOperationError {
+    constructor(productVariantId: ID) {
+        super('error.no-buyer-price-for-product-variant', { productVariantId });
+    }
+}
+
+/**
+ * @description
  * This error should be thrown when the user's authentication credentials do not match.
  *
  * @docsCategory errors

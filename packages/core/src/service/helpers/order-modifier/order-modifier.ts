@@ -67,6 +67,7 @@ import { CustomFieldRelationService } from '../custom-field-relation/custom-fiel
 import { OrderCalculator } from '../order-calculator/order-calculator';
 import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../translator/translator.service';
+import { calculateOrderLineUnitPrice } from '../utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
@@ -423,6 +424,7 @@ export class OrderModifier {
             return new NoChangesSpecifiedError();
         }
         const { orderItemsLimit } = this.configService.orderOptions;
+        const existingOrderLineIds = new Set(order.lines.map(line => String(line.id)));
         let currentItemsCount = summate(order.lines, 'quantity');
         const updatedOrderLineIds: ID[] = [];
         const refundInputArray = Array.isArray(input.refunds)
@@ -668,13 +670,21 @@ export class OrderModifier {
                 ctx,
                 order,
             );
-            const priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+            const priceResult = await calculateOrderLineUnitPrice(
                 ctx,
-                variant,
-                orderLine.customFields || {},
+                orderItemPriceCalculationStrategy,
                 order,
-                orderLine.quantity,
+                orderLine,
+                variant,
+                {
+                    isNewLine: !existingOrderLineIds.has(String(orderLine.id)),
+                    currencyChanged: ctx.currencyCode !== order.currencyCode,
+                },
             );
+            if (!priceResult) {
+                // No price for the buyer now: the line keeps its current price
+                continue;
+            }
             orderLine.listPrice = priceResult.price;
             orderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
         }

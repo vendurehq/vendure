@@ -64,6 +64,7 @@ export * from './services/search.service';
 export * from './services/seller.service';
 export * from './services/session.service';
 export * from './services/shipping-method.service';
+export * from './services/buyer-identity.service';
 export * from './services/stock-level.service';
 export * from './services/stock-location.service';
 export * from './services/stock-movement.service';

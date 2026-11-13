@@ -164,6 +164,15 @@ export type BooleanStructFieldConfig = StructField & {
   ui?: Maybe<Scalars['JSON']['output']>;
 };
 
+/** The unit price of a ProductVariant for the active Customer */
+export type BuyerPrice = {
+  __typename?: 'BuyerPrice';
+  /** The price of a single unit, excluding tax */
+  price: Scalars['Money']['output'];
+  /** The price of a single unit, including tax */
+  priceWithTax: Scalars['Money']['output'];
+};
+
 export type Channel = Node & {
   __typename?: 'Channel';
   availableCurrencyCodes: Array<CurrencyCode>;
@@ -2903,6 +2912,23 @@ export type ProductTranslation = {
 export type ProductVariant = Node & {
   __typename?: 'ProductVariant';
   assets: Array<Asset>;
+  /**
+   * The unit price that the configured ProductVariantBuyerPriceStrategy calculates for the
+   * active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
+   * price of the Channel, this is the price that the default cart pricing starts from. No Order
+   * is needed. It is `null` when the strategy gives no price for this buyer, for example for a
+   * price on request. It is also `null` when the variant or its Product is not available in the
+   * active Channel, for example for the variant of an OrderLine that was disabled later.
+   *
+   * When OrderLine custom fields are defined, the field also has a `customFields` argument, with
+   * the same input type as `addItemToOrder`. To get the same price as the cart, pass the same
+   * values that you pass as `customFields` to `addItemToOrder`.
+   *
+   * This is the base unit price of the buyer, not a guarantee of the final cart price. For
+   * example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
+   * of the Order.
+   */
+  buyerPrice?: Maybe<BuyerPrice>;
   createdAt: Scalars['DateTime']['output'];
   currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -2922,6 +2948,11 @@ export type ProductVariant = Node & {
   taxRateApplied: TaxRate;
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ProductVariantBuyerPriceArgs = {
+  quantity?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ProductVariantFilterParameter = {

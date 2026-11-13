@@ -26,6 +26,7 @@ import { CollectionFilter } from './catalog/collection-filter';
 import { ProductVariantPriceCalculationStrategy } from './catalog/product-variant-price-calculation-strategy';
 import { ProductVariantPriceSelectionStrategy } from './catalog/product-variant-price-selection-strategy';
 import { ProductVariantPriceUpdateStrategy } from './catalog/product-variant-price-update-strategy';
+import { ProductVariantBuyerPriceStrategy } from './catalog/product-variant-buyer-price-strategy';
 import { StockDisplayStrategy } from './catalog/stock-display-strategy';
 import { StockLocationStrategy } from './catalog/stock-location-strategy';
 import { CustomFields } from './custom-field/custom-field-types';
@@ -921,6 +922,16 @@ export interface CatalogOptions {
      * @since 2.2.0
      */
     productVariantPriceUpdateStrategy?: ProductVariantPriceUpdateStrategy;
+    /**
+     * @description
+     * Defines the strategy that calculates the unit price of a ProductVariant for a buyer and a
+     * quantity. The default OrderItemPriceCalculationStrategy uses it for the price of each OrderLine,
+     * and the Shop API `ProductVariant.buyerPrice` field uses it without an Order.
+     *
+     * @default DefaultProductVariantBuyerPriceStrategy
+     * @since 4.0.0
+     */
+    productVariantBuyerPriceStrategy?: ProductVariantBuyerPriceStrategy;
     /**
      * @description
      * Defines how the `ProductVariant.stockLevel` value is obtained. It is usually not desirable
