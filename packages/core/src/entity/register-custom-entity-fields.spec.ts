@@ -63,6 +63,7 @@ describe('registerCustomEntityFields() relation options', () => {
             onDelete: 'SET NULL',
             onUpdate: 'CASCADE',
             eager: true,
+            nullable: true,
         });
     });
 
@@ -122,6 +123,7 @@ describe('registerCustomEntityFields() relation options', () => {
             onDelete: undefined,
             onUpdate: undefined,
             eager: undefined,
+            nullable: true,
         });
     });
 

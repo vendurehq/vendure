@@ -158,7 +158,9 @@ function assertNoLocalizedFields(entityName: string, customFields: CustomFieldCo
 function assetNonNullablesHaveDefaults(entityName: string, customFields: CustomFieldConfig[]): string[] {
     const errors: string[] = [];
     for (const field of customFields) {
-        if (field.nullable === false && field.defaultValue === undefined) {
+        // A relation has no column default. A non-nullable relation must be given a value instead,
+        // which the GraphQL APIs check on create (see CustomFieldProcessingInterceptor).
+        if (field.nullable === false && field.defaultValue === undefined && field.type !== 'relation') {
             errors.push(
                 `${entityName} entity custom field "${field.name}" is non-nullable and must have a defaultValue`,
             );
