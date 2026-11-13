@@ -84,7 +84,7 @@ The strategy returns `undefined` when there is no price for the buyer, for examp
 - The `buyerPrice` field gives `null`.
 - In the cart, `ProductVariantService.calculateBuyerPriceForOrder()` throws a `NoBuyerPriceError`. It is an `IllegalOperationError`, so the GraphQL error code is `ILLEGAL_OPERATION`.
 - A new order line with no price is not added.
-- A line that is already in the order keeps its current price. Vendure calculates the lines again when the customer of the order changes, when an address is set, when the quantity of a line changes, and when the `OrderRecalculationStrategy` asks for it. A price that goes away does not make these operations fail.
+- A line that is already in the order keeps its current price. Vendure calculates the lines again when the customer of the order changes, when an address is set, when the quantity of a line changes, when the `OrderRecalculationStrategy` asks for it, and when an administrator modifies a placed order with `modifyOrder`. A price that goes away does not make these operations fail.
 - A currency change of the order fails, because the current price of the line is in the old currency.
 - When the customer already has an active order, a login merges the guest order into it. Vendure merges the guest lines that have a price for the customer, and leaves out a line that has no price.
 

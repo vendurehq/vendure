@@ -85,7 +85,7 @@ import {
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
-import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
+import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
@@ -132,6 +132,7 @@ import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
+import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
 import {
@@ -2554,27 +2555,18 @@ export class OrderService implements OnApplicationBootstrap {
                     ctx,
                     order,
                 );
-                let priceResult: PriceCalculationResult;
-                try {
-                    priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                        ctx,
-                        variant,
-                        updatedOrderLine.customFields || {},
-                        order,
-                        updatedOrderLine.quantity,
-                    );
-                } catch (e) {
-                    // A line that already has a price keeps it when there is no price for the
-                    // buyer now. A new line has no `initialListPrice` yet, so it is not added.
-                    // After a currency change, the current price is in the old currency.
-                    if (
-                        e instanceof NoBuyerPriceError &&
-                        updatedOrderLine.initialListPrice != null &&
-                        !currencyChanged
-                    ) {
-                        continue;
-                    }
-                    throw e;
+                let priceResult = await calculateOrderLineUnitPrice(
+                    ctx,
+                    orderItemPriceCalculationStrategy,
+                    order,
+                    updatedOrderLine,
+                    variant,
+                    // A new line has no `initialListPrice` yet
+                    { isNewLine: updatedOrderLine.initialListPrice == null, currencyChanged },
+                );
+                if (!priceResult) {
+                    // No price for the buyer now: the line keeps its current price
+                    continue;
                 }
                 const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
                 if (initialListPrice !== priceResult.price) {

@@ -27,6 +27,8 @@ import {
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql, ResultOf } from './graphql/graphql-shop';
 import {
+    addManualPaymentDocument,
+    adminTransitionToStateDocument,
     attemptLoginDocument,
     getCustomerListDocument,
     updateChannelDocument,
@@ -193,6 +195,59 @@ const addItemToDraftOrderDocument = adminGraphql(`
             ... on Order {
                 lines {
                     unitPrice
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const setDraftOrderShippingDocument = adminGraphql(`
+    mutation SetDraftOrderShippingForBuyerPrice(
+        $orderId: ID!
+        $input: CreateAddressInput!
+        $shippingMethodId: ID!
+    ) {
+        setDraftOrderShippingAddress(orderId: $orderId, input: $input) {
+            id
+        }
+        setDraftOrderShippingMethod(orderId: $orderId, shippingMethodId: $shippingMethodId) {
+            ... on Order {
+                id
+            }
+        }
+    }
+`);
+
+const getOrderLinesDocument = adminGraphql(`
+    query GetOrderLinesForBuyerPrice($id: ID!) {
+        order(id: $id) {
+            state
+            lines {
+                id
+                quantity
+                unitPrice
+                productVariant {
+                    id
+                }
+            }
+        }
+    }
+`);
+
+const modifyOrderDocument = adminGraphql(`
+    mutation ModifyOrderForBuyerPrice($input: ModifyOrderInput!) {
+        modifyOrder(input: $input) {
+            ... on Order {
+                lines {
+                    quantity
+                    unitPrice
+                    productVariant {
+                        id
+                    }
                 }
             }
             ... on ErrorResult {
@@ -655,6 +710,105 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         } finally {
             buyerOverride.customerId = undefined;
         }
+    });
+
+    describe('modifyOrder', () => {
+        let orderId: string;
+        let lineWithoutPriceId: string;
+
+        beforeAll(async () => {
+            // A placed order in the Modifying state, made from a draft order with a manual payment
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            orderId = createDraftOrder.id;
+            await adminClient.query(setCustomerForDraftOrderDocument, {
+                orderId,
+                customerId: fixedPriceCustomer.id,
+            });
+            for (const variant of [channelPrices[0], channelPrices[1]]) {
+                await adminClient.query(addItemToDraftOrderDocument, {
+                    orderId,
+                    input: { productVariantId: variant.id, quantity: 1 },
+                });
+            }
+            await adminClient.query(setDraftOrderShippingDocument, {
+                orderId,
+                input: { streetLine1: '1 Test Street', countryCode: 'GB' },
+                shippingMethodId: 'T_1',
+            });
+            await adminClient.query(adminTransitionToStateDocument, {
+                id: orderId,
+                state: 'ArrangingPayment',
+            });
+            await adminClient.query(addManualPaymentDocument, {
+                input: { orderId, method: 'manual', metadata: {}, transactionId: 'buyer-price' },
+            });
+            await adminClient.query(adminTransitionToStateDocument, { id: orderId, state: 'Modifying' });
+            const { order } = await adminClient.query(getOrderLinesDocument, { id: orderId });
+            expect(order!.state).toBe('Modifying');
+            lineWithoutPriceId = order!.lines.find(l => l.productVariant.id === channelPrices[1].id)!.id;
+            noPriceSkus.add(channelPrices[1].sku);
+        });
+
+        afterAll(() => {
+            noPriceSkus.clear();
+        });
+
+        it('keeps the price of a line that is already in the order', async () => {
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    orderId,
+                    dryRun: true,
+                    adjustOrderLines: [{ orderLineId: lineWithoutPriceId, quantity: 2 }],
+                },
+            });
+
+            expect(modifyOrder).toEqual({
+                lines: [
+                    { quantity: 1, unitPrice: FIXED_UNIT_PRICE, productVariant: { id: channelPrices[0].id } },
+                    { quantity: 2, unitPrice: FIXED_UNIT_PRICE, productVariant: { id: channelPrices[1].id } },
+                ],
+            });
+        });
+
+        it('rejects a new line that has no price', async () => {
+            noPriceSkus.add(channelPrices[2].sku);
+
+            await expect(
+                adminClient.query(modifyOrderDocument, {
+                    input: {
+                        orderId,
+                        dryRun: true,
+                        addItems: [{ productVariantId: channelPrices[2].id, quantity: 1 }],
+                    },
+                }),
+            ).rejects.toThrow('has no price for this buyer');
+        });
+
+        it('fails for a line that has no price after a currency change', async () => {
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', availableCurrencyCodes: [CurrencyCode.USD, CurrencyCode.GBP] },
+            });
+            try {
+                // The current price of the line is in the currency of the order
+                await expect(
+                    adminClient.query(
+                        modifyOrderDocument,
+                        {
+                            input: {
+                                orderId,
+                                dryRun: true,
+                                adjustOrderLines: [{ orderLineId: lineWithoutPriceId, quantity: 2 }],
+                            },
+                        },
+                        { currencyCode: CurrencyCode.GBP },
+                    ),
+                ).rejects.toThrow('has no price for this buyer');
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', availableCurrencyCodes: [CurrencyCode.USD] },
+                });
+            }
+        });
     });
 
     it('uses the customer of the order in an Admin draft order', async () => {

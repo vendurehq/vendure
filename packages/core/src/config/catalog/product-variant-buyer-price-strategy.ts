@@ -85,7 +85,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * * A new OrderLine is not added.
  * * An OrderLine that is already in the Order keeps its current price, for example when the Customer
- *   of the Order changes, an address is set, or the quantity changes.
+ *   of the Order changes, an address is set, the quantity changes, or an administrator modifies a
+ *   placed Order.
  * * A currency change of the Order fails, because the current price is in the old currency.
  * * A login that merges the guest Order into the active Order of the Customer leaves out a guest line
  *   that has no price. The other guest lines are merged.
