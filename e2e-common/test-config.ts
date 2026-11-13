@@ -58,14 +58,14 @@ export const testConfig = () => {
     });
 };
 
-const CORE_BASE_PORT = 3010;
+const CORE_BASE_PORT = 17010;
 /** Core has the most e2e specs. Its range ends at 3199. */
 const CORE_PORTS = 190;
 /**
  * The other packages get ports from here. The ports are far from the ports of the services in
  * `docker-compose.yml`, and below the ephemeral port range of Linux and macOS.
  */
-const PACKAGE_BASE_PORT = 20000;
+const PACKAGE_BASE_PORT = 17210;
 const PORTS_PER_PACKAGE = 50;
 
 /**
