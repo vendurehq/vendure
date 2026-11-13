@@ -96,11 +96,16 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value in the active
      * Channel.
      *
-     * - A value which is not set in a Channel reads `null`. There is no fallback to another
-     *   Channel's value or to `defaultValue`.
+     * - There is no fallback between Channels: each Channel has its own value, which is never
+     *   read from another Channel, such as the default Channel.
+     * - A `defaultValue` is the column default of the assignment row, as for an ordinary custom
+     *   field, so each Channel starts with it, except when an assignment copies existing values
+     *   (see below). Without a `defaultValue`, a value which is not set reads `null`.
      * - When the entity is assigned to another Channel with `ChannelService.assignToChannels()`,
-     *   the new Channel starts with the values of an existing assignment: the active Channel's if
-     *   the entity is assigned to it, otherwise the default Channel's, otherwise any.
+     *   the new Channel starts with a copy of the values of an existing assignment: the active
+     *   Channel's if the entity is assigned to it, otherwise the default Channel's, otherwise any.
+     *   Later changes in one Channel are not copied to the other.
+     * - An entity which is not assigned to the active Channel reads `null`.
      * - Removing the entity from a Channel deletes its values in that Channel.
      *
      * Not supported with localized types, `struct`, `list: true` relations, `unique` or `secret`.

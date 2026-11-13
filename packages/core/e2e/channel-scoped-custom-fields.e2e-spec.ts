@@ -94,6 +94,16 @@ const SHOP_PRODUCT = gql`
     }
 `;
 
+const PRODUCT_PRIORITY = gql`
+    query ProductPriority($id: ID!) {
+        product(id: $id) {
+            customFields {
+                channelPriority
+            }
+        }
+    }
+`;
+
 const REMOVE_PRODUCTS = gql`
     mutation RemoveProducts($input: RemoveProductsFromChannelInput!) {
         removeProductsFromChannel(input: $input) {
@@ -177,6 +187,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                         nullable: true,
                     },
                     { name: 'globalNote', type: 'string', nullable: true },
+                    { name: 'channelPriority', type: 'int', channelScoped: true, defaultValue: 5 },
                 ],
                 StockLocation: [
                     { name: 'channelLabel', type: 'string', channelScoped: true, nullable: true },
@@ -401,6 +412,45 @@ describe('Channel-scoped custom fields (#490)', () => {
             globalNote: 'g',
             channelFeaturedAsset: null,
         });
+    });
+
+    it('a defaultValue is the initial value in each channel, with no fallback between channels', async () => {
+        const priority = async (token: string, id: string) => {
+            asChannel(token);
+            const { product } = await adminClient.query(PRODUCT_PRIORITY, { id });
+            return product.customFields.channelPriority;
+        };
+        // Assignment rows which existed before any write get the column default
+        expect(await priority(E2E_DEFAULT_CHANNEL_TOKEN, 'T_2')).toBe(5);
+        expect(await priority(CHANNEL_B_TOKEN, 'T_2')).toBe(5);
+
+        asChannel(CHANNEL_B_TOKEN);
+        await adminClient.query(UPDATE_PRODUCT, {
+            input: { id: 'T_2', customFields: { channelPriority: 9 } },
+        });
+        expect(await priority(CHANNEL_B_TOKEN, 'T_2')).toBe(9);
+        expect(await priority(E2E_DEFAULT_CHANNEL_TOKEN, 'T_2')).toBe(5);
+
+        // A new entity gets the default in every channel it is created in
+        asChannel(CHANNEL_B_TOKEN);
+        const { createProduct } = await adminClient.query(
+            gql`
+                mutation CreateProduct($input: CreateProductInput!) {
+                    createProduct(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    translations: [
+                        { languageCode: LanguageCode.en, name: 'Prio', slug: 'prio', description: '' },
+                    ],
+                },
+            },
+        );
+        expect(await priority(CHANNEL_B_TOKEN, createProduct.id)).toBe(5);
+        expect(await priority(E2E_DEFAULT_CHANNEL_TOKEN, createProduct.id)).toBe(5);
     });
 
     it('reads null for an entity which is not assigned to the Channel', async () => {
