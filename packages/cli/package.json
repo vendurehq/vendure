@@ -1,6 +1,6 @@
 {
     "name": "@vendure/cli",
-    "version": "3.8.1",
+    "version": "3.8.2",
     "description": "A modern, headless ecommerce framework",
     "repository": {
         "type": "git",
@@ -42,7 +42,7 @@
     ],
     "dependencies": {
         "@clack/prompts": "^0.7.0",
-        "@vendure/common": "3.8.1",
+        "@vendure/common": "3.8.2",
         "change-case": "^4.1.2",
         "chokidar": "^3.6.0",
         "commander": "^14.0.1",
@@ -58,8 +58,8 @@
         "typescript": "5.8.2"
     },
     "devDependencies": {
-        "@vendure/core": "3.8.1",
-        "@vendure/testing": "3.8.1",
+        "@vendure/core": "3.8.2",
+        "@vendure/testing": "3.8.2",
         "cross-env": "^7.0.3",
         "graphql": "^16.11.0"
     },

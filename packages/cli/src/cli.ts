@@ -13,13 +13,12 @@ import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
-    findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
-    listInactiveCliPlugins,
     pluginsCommandFor,
     resolveCliPlugins,
     ResolveCliPluginsOptions,
 } from './shared/resolve-cli-plugins.js';
+import { PluginFailureStep, unknownCommandHelp } from './shared/unknown-command-help.js';
 
 async function main(): Promise<void> {
     const program = new Command();
@@ -74,6 +73,10 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
+    // Enabled packages whose commands are missing for a reason already printed.
+    const unavailablePackages = new Map<string, PluginFailureStep>(
+        failures.map(failure => [failure.packageName, 'load']),
+    );
     for (const failure of failures) {
         writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
     }
@@ -82,6 +85,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
             registry.applyPlugin(plugin);
         } catch (e) {
             const reason = e instanceof Error ? e.message : String(e);
+            unavailablePackages.set(packageName, 'register');
             writePluginSkipped(packageName, 'Failed to register CLI plugin', reason, scope);
         }
     }
@@ -93,7 +97,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';
-        writeUnknownCommandHelp(unknown, pluginOptions);
+        for (const line of unknownCommandHelp(unknown, pluginOptions, unavailablePackages)) {
+            process.stderr.write(`${line}\n`);
+        }
         process.exit(1);
     });
 
@@ -172,36 +178,6 @@ function maybeWriteInactivePluginsHint(argv: string[], options: ResolveCliPlugin
 
     const noun = inactive.length === 1 ? 'package provides' : 'packages provide';
     process.stderr.write(`${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`);
-}
-
-function writeUnknownCommandHelp(commandName: string, options: ResolveCliPluginsOptions): void {
-    process.stderr.write(`Unknown command "${commandName}".\n`);
-
-    const provider = findInactivePluginProvidingCommand(commandName, options);
-    if (provider) {
-        process.stderr.write(
-            `It is provided by ${provider.packageName}, which is installed but not enabled.\n`,
-        );
-        process.stderr.write(
-            `Enable it with: ${pluginsCommandFor('add', provider.packageName, provider.scope)}\n`,
-        );
-        return;
-    }
-
-    const inactive = listInactiveCliPlugins(options);
-    if (inactive.length === 1) {
-        const [only] = inactive;
-        process.stderr.write(
-            `It may be provided by ${only.packageName}, which is installed but not enabled.\n`,
-        );
-        process.stderr.write(`Enable it with: ${pluginsCommandFor('add', only.packageName, only.scope)}\n`);
-        return;
-    }
-    if (inactive.length > 1) {
-        process.stderr.write(
-            `${inactive.length} packages provide CLI commands but are not enabled. Run "vendure plugins" to review them.\n`,
-        );
-    }
 }
 
 void main().catch((e: unknown) => {

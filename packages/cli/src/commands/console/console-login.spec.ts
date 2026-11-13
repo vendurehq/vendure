@@ -363,7 +363,7 @@ describe('console link command line login', () => {
 
         expect(run.exitCode).toBe(1);
         expect(run.messages.join('\n')).toContain(
-            'WorkOS did not scope the login to Acme. The stored login is now scoped to Other.',
+            'The authentication service did not scope the login to Acme. The stored login is now scoped to Other.',
         );
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
         // The old refresh token is spent. Keeping the new pair keeps the login usable.
@@ -532,6 +532,120 @@ describe('console link command line login', () => {
         expect(sessions).toEqual([undefined]);
         expect(run.urls()).toEqual([]);
         expect(run.messages.join('\n')).toContain('No CLI login for Acme is stored on this machine');
+    });
+
+    // CLO-1244 — a stored login that renewal refuses is not a missing login
+    it('says the stored session expired, not that no login is stored, when renewal refuses it', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['not-signed-in']);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).toContain(
+            'Your Vendure CLI session for Acme has expired or was revoked, so plugin setup runs without a ' +
+                'Console session. Run `vendure auth login` to sign in again.',
+        );
+    });
+
+    // CLO-1244
+    it('says the stored session needs a new sign-in when renewal asks for one', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'sso_required' }, 400) },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['not-signed-in']);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).toContain(
+            'Your Vendure CLI session for Acme can no longer be renewed: The authentication service requires ' +
+                'you to sign in again (sso_required). Run `vendure auth login`.\n' +
+                'Plugin setup runs without a Console session.',
+        );
+        // The login is kept: only a refused refresh token removes it.
+        expect(readStoredAuth({ env: run.env })?.refreshToken).toBe(STORED_REFRESH_TOKEN);
+    });
+
+    // CLO-1244
+    it('says the renewal could not finish, and keeps the login, when the authentication service is down', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => new Response('', { status: 503 }) },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['sign-in-failed']);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).not.toContain('Could not sign in to Vendure Console');
+        expect(output).toContain(
+            'Could not renew your Vendure CLI session for Acme: Could not renew the CLI session. ' +
+                'The authentication service answered HTTP 503.\n' +
+                'The stored login is kept. Try again later. Plugin setup runs without a Console session.',
+        );
+        expect(readStoredAuth({ env: run.env })?.refreshToken).toBe(STORED_REFRESH_TOKEN);
+    });
+
+    // CLO-1244
+    it('says the stored session expired before signing in again for an interactive repair', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(run.messages.join('\n')).toContain(
+            'Your Vendure CLI session for Acme has expired or was revoked. Signing in again.',
+        );
+        expect(sessions[0]?.accessToken).toBeTruthy();
+        expect(sessions[0]?.accessToken).toBe(readStoredAuth({ env: run.env })?.accessToken);
+    });
+
+    // CLO-1244 — a refusal that keeps the login must not trigger a second renewal before signing in again
+    it('signs in again without renewing a second time after a refusal that keeps the login', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        let refreshes = 0;
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: {
+                refresh: () => {
+                    refreshes++;
+                    return refreshes === 1
+                        ? jsonResponse({ error: 'sso_required' }, 400)
+                        : new Response('', { status: 503 });
+                },
+            },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(refreshes).toBe(1);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions[0]?.accessToken).toBeTruthy();
     });
 
     it("signs in to the manifest's account for an interactive repair without a matching login", async () => {
@@ -721,6 +835,25 @@ describe('console link --non-interactive --console-project', () => {
         expect(run.openedUrls).toEqual([]);
         expect(run.messages.join('\n')).toContain('--non-interactive does not sign in');
         expect(run.messages.join('\n')).toContain('Run vendure auth login in a terminal');
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
+    // CLO-1244
+    it('says the stored session expired, not that no login is stored, when renewal refuses it', async () => {
+        const run = await runLink({
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+            options: { nonInteractive: true, consoleProject: 'storefront' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).toContain(
+            'Your Vendure CLI session for https://api.vendure.io has expired or was revoked, ' +
+                'and --non-interactive does not sign in.',
+        );
+        expect(output).toContain('Run vendure auth login in a terminal');
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
     });
 

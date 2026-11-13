@@ -5,6 +5,7 @@ import { getCiConfiguration, getQuickStartConfiguration } from './gather-user-re
 import { getPackageManagerInfo, registerTemplateHelpers } from './helpers.js';
 
 const DOCKER_FALLBACK_PROMPT = 'We could not automatically start Docker. How should we proceed?';
+const DOCKER_NOT_RESPONDING_PROMPT = 'Docker is not responding. How should we proceed?';
 
 const { findAvailablePortMock, isDockerAvailableMock, selectMock, cancelMock, CANCELLED } = vi.hoisted(
     () => ({
@@ -103,5 +104,30 @@ describe('getQuickStartConfiguration', () => {
         expect(outcome).toBe('process.exit');
         expect(cancelMock).toHaveBeenCalledWith('Setup cancelled.');
         expect(exit).toHaveBeenCalledWith(0);
+    });
+
+    // CLO-1224 - an unresponsive daemon gets its own wording and the same SQLite fallback.
+    it('asks how to proceed when Docker is not responding, then re-checks after a restart', async () => {
+        isDockerAvailableMock
+            .mockResolvedValueOnce({ result: 'not-responding' })
+            .mockResolvedValueOnce({ result: 'running' });
+        selectMock.mockImplementation(async (options: { message: string }) =>
+            options.message === DOCKER_NOT_RESPONDING_PROMPT ? false : 'none',
+        );
+        registerTemplateHelpers(getPackageManagerInfo('npm'));
+
+        const responses = await getQuickStartConfiguration('my-vendure-app', 'npm', 3000);
+
+        const dockerPrompt = selectMock.mock.calls[0][0] as {
+            message: string;
+            options: Array<{ label: string }>;
+        };
+        expect(dockerPrompt.message).toBe(DOCKER_NOT_RESPONDING_PROMPT);
+        expect(dockerPrompt.options.map(option => option.label)).toEqual([
+            `Let's use SQLite as the database`,
+            'I have restarted Docker',
+        ]);
+        expect(isDockerAvailableMock).toHaveBeenCalledTimes(2);
+        expect(responses.dbType).toBe('postgres');
     });
 });

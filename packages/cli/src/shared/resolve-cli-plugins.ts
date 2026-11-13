@@ -459,22 +459,65 @@ export function listInactiveCliPluginPackages(options: ResolveCliPluginsOptions 
 /**
  * As {@link listInactiveCliPluginPackages}, keeping the scope each package was
  * found in so a hint can name the command that would enable it.
+ *
+ * A package enabled in any scope is active, even though the other scope lists
+ * it as not enabled. A package installed in both scopes and enabled in neither
+ * is listed once, from the project, because the project's copy is the one that
+ * would be loaded.
  */
 export function listInactiveCliPlugins(options: ResolveCliPluginsOptions = {}): DiscoveredCliPlugin[] {
-    return discoverCliPlugins(options).filter(plugin => plugin.status === 'not-enabled');
+    const byPackage = new Map<string, DiscoveredCliPlugin>();
+    for (const plugin of inactiveCopies(discoverCliPlugins(options))) {
+        // Copies are in scope order, global first, so a project copy replaces a global one.
+        byPackage.set(plugin.packageName, plugin);
+    }
+    return [...byPackage.values()];
 }
 
 /**
  * Finds an inactive plugin package that declares it provides `commandName`
  * via `vendure.cliCommands`. Does not load plugin code.
+ *
+ * Every inactive copy is searched, since enabling either would provide the
+ * command. A project copy that declares it is preferred.
  */
 export function findInactivePluginProvidingCommand(
     commandName: string,
     options: ResolveCliPluginsOptions = {},
 ): DiscoveredCliPlugin | undefined {
-    return discoverCliPlugins(options).find(
-        plugin => plugin.status === 'not-enabled' && plugin.declaredCommands?.includes(commandName),
+    return inactiveCopies(discoverCliPlugins(options))
+        .filter(plugin => plugin.declaredCommands?.includes(commandName))
+        .pop();
+}
+
+/**
+ * Finds an enabled plugin package that declares `commandName` via
+ * `vendure.cliCommands`, for when that command was still not registered.
+ * Only the copy startup loads is considered: the project's, when both scopes
+ * enable the package. Does not load plugin code.
+ */
+export function findEnabledPluginDeclaringCommand(
+    commandName: string,
+    options: ResolveCliPluginsOptions = {},
+): DiscoveredCliPlugin | undefined {
+    const loadedCopies = new Map<string, DiscoveredCliPlugin>();
+    for (const plugin of discoverCliPlugins(options)) {
+        if (plugin.status !== 'not-enabled') {
+            loadedCopies.set(plugin.packageName, plugin);
+        }
+    }
+    return [...loadedCopies.values()].find(plugin => plugin.declaredCommands?.includes(commandName));
+}
+
+/**
+ * Every not-enabled copy of a package that no scope enables. A package enabled
+ * in any scope is active, even though the other scope lists it as not enabled.
+ */
+function inactiveCopies(discovered: DiscoveredCliPlugin[]): DiscoveredCliPlugin[] {
+    const active = new Set(
+        discovered.filter(plugin => plugin.status !== 'not-enabled').map(plugin => plugin.packageName),
     );
+    return discovered.filter(plugin => plugin.status === 'not-enabled' && !active.has(plugin.packageName));
 }
 
 export function listDirectDependencyNames(pkg: PackageJsonLike): string[] {

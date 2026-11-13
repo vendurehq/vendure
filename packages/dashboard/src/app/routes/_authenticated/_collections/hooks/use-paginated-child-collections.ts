@@ -1,4 +1,5 @@
-import { useQueries } from '@tanstack/react-query';
+import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 export interface ChildCollectionsPage<T> {
@@ -32,7 +33,34 @@ export function usePaginatedChildCollections<T>({
     );
     const [nextPageToFetch, setNextPageToFetch] = useState<Record<string, number>>({});
 
-    const childQueryKey = (parentId: string, page: number) => [queryKeyPrefix, parentId, 'page', page];
+    const queryClient = useQueryClient();
+    const {
+        settings: { contentLanguage },
+    } = useUserSettings();
+    // The query key uses `childrenLanguage`, which follows `contentLanguage` one render later.
+    // The api client reads the content language from localStorage, and UserSettingsProvider
+    // writes it there in its own effect. Delaying the key change makes the refetch start after
+    // that write. Removing the old queries stops a cached entry from an earlier language being
+    // served again when the user switches back.
+    const [childrenLanguage, setChildrenLanguage] = useState(contentLanguage);
+
+    const childQueryKey = (parentId: string, page: number) => [
+        queryKeyPrefix,
+        parentId,
+        'page',
+        page,
+        childrenLanguage,
+    ];
+
+    useEffect(() => {
+        if (contentLanguage === childrenLanguage) {
+            return;
+        }
+        queryClient.removeQueries({ queryKey: [queryKeyPrefix] });
+        setChildrenLanguage(contentLanguage);
+        setAccumulatedChildren({});
+        setNextPageToFetch({});
+    }, [contentLanguage]);
 
     // NOTE: queryFn must be pure (no setState side effects). With the global
     // `keepPreviousData`, a re-mounted component is served the cached data on its

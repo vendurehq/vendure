@@ -54,6 +54,28 @@ export const SOCKET_TIMEOUT_MS = 2_000;
  */
 export const PG_READY_MAX_ATTEMPTS = 120;
 export const PG_READY_POLL_INTERVAL_MS = 500;
+/**
+ * Upper limit on the whole readiness wait. It sits above the attempt budget, because each
+ * `pg_isready` call also takes time, so a slow but healthy first start is not cut short.
+ */
+export const PG_READY_TIMEOUT_MS = 120_000;
+
+/**
+ * Budgets for calls to the Docker CLI. A daemon that is up answers in well under a
+ * second, but an unresponsive one (e.g. Docker Desktop's VM stuck on a full disk)
+ * makes every `docker` call hang with no error, so each call needs its own limit.
+ */
+export const DOCKER_PROBE_TIMEOUT_MS = 10_000;
+/** Total time to wait for the daemon after trying to start Docker. */
+export const DOCKER_START_WAIT_MS = 60_000;
+/** Pause between daemon checks while waiting for Docker to start. */
+export const DOCKER_START_POLL_INTERVAL_MS = 1_000;
+/** `docker compose up` may pull the postgres image first, which is slow on some networks. */
+export const DOCKER_COMPOSE_TIMEOUT_MS = 5 * 60_000;
+/** Short Docker calls: listing and removing old containers, and each `pg_isready` check. */
+export const DOCKER_COMMAND_TIMEOUT_MS = 10_000;
+/** `docker stop` waits up to 10 seconds for a container to exit before it kills it. */
+export const DOCKER_STOP_TIMEOUT_MS = 30_000;
 
 // Timing constants (milliseconds)
 export const SCAFFOLD_DELAY_MS = 500;

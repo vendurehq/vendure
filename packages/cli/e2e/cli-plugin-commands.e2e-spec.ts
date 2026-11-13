@@ -362,6 +362,9 @@ describe('CLI plugin collisions', () => {
             const rival = await project.runCliCommand(['rival'], { expectError: true });
             expect(rival.exitCode).toBe(1);
             expect(rival.stderr).toContain('Unknown command "rival"');
+            // An enabled plugin is never called "not enabled".
+            expect(rival.stderr).toContain('is enabled but did not register "rival". It failed to register');
+            expect(rival.stderr).not.toContain('not enabled');
         } finally {
             project.cleanup();
         }

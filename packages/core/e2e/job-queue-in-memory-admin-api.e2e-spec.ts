@@ -81,14 +81,17 @@ const getJobsByIdDocument = graphql(`
     }
 `);
 
-// #5439: Admin API job lookups on the default InMemoryJobQueueStrategy (no job queue plugin)
-describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
+// Job queue on the default InMemoryJobQueueStrategy (no job queue plugin).
+// #5439: Admin API job lookups. #5292: `updates()` sees progress changes because the finders return
+// copies of the stored jobs.
+describe('JobQueue with InMemoryJobQueueStrategy', () => {
     const activeConfig = testConfig();
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(activeConfig, {
             plugins: [PluginWithJobQueue, MailQueuePlugin],
         }),
     );
+    const baseUrl = `http://localhost:${activeConfig.apiOptions.port}/run-job`;
     let runningJobId: string;
 
     beforeAll(async () => {
@@ -99,7 +102,7 @@ describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
         });
         await adminClient.asSuperAdmin();
 
-        await adminClient.fetch(`http://localhost:${activeConfig.apiOptions.port}/run-job`);
+        await adminClient.fetch(baseUrl);
         await pollUntil(async () => {
             const { jobs } = await adminClient.query(getRunningJobsDocument, {
                 options: { filter: { queueName: { eq: 'test' }, state: { eq: JobState.RUNNING } } },
@@ -173,5 +176,13 @@ describe('JobQueue Admin API with InMemoryJobQueueStrategy', () => {
         expect(serialized).not.toContain('e2e-secret-in-memory-reset-token');
         expect(serialized).not.toContain('e2e-secret-in-memory-password-hash');
         expect(serialized).not.toContain('e2e-secret-in-memory-content');
+    });
+
+    it('updates() emits until the job completes', async () => {
+        const response = await adminClient.fetch(`${baseUrl}/subscribe-all-updates`);
+        const result = JSON.parse(await response.text());
+        expect(result.updateCount).toBeGreaterThanOrEqual(3);
+        expect(result.finalState).toBe(JobState.COMPLETED);
+        expect(result.finalResult).toBe('completed');
     });
 });

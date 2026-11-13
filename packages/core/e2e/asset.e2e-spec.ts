@@ -1,4 +1,9 @@
-import { DeletionResult, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
+import {
+    DeletionResult,
+    LanguageCode,
+    LogicalOperator,
+    SortOrder,
+} from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import { Asset, AssetService, ChannelService, mergeConfig, RequestContextService } from '@vendure/core';
@@ -12,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { ResultOf } from './graphql/graphql-admin';
+import { graphql, ResultOf } from './graphql/graphql-admin';
 import {
     createAssetsDocument,
     deleteAssetDocument,
@@ -667,6 +672,49 @@ describe('Asset resolver', () => {
             const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
             const persisted = await assetService.findOne(ctx, result.id, ['channels']);
             expect(persisted?.channels.map(c => c.id)).toEqual([defaultChannel.id]);
+        });
+    });
+
+    // createAssets with translations and no custom fields returns the translated Asset.
+    describe('createAssets with translations', () => {
+        const createAssetsWithTranslationsDocument = graphql(`
+            mutation CreateAssetsWithTranslations($input: [CreateAssetInput!]!) {
+                createAssets(input: $input) {
+                    ... on Asset {
+                        id
+                        name
+                        languageCode
+                        translations {
+                            languageCode
+                            name
+                        }
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `);
+
+        it('returns the translated name and languageCode', async () => {
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsWithTranslationsDocument,
+                filePaths: [path.join(__dirname, 'fixtures/assets/pps1.jpg')],
+                mapVariables: filePaths => ({
+                    input: filePaths.map(() => ({
+                        file: null,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Translated name' }],
+                    })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toMatchObject({
+                name: 'Translated name',
+                languageCode: LanguageCode.en,
+                translations: [{ languageCode: LanguageCode.en, name: 'Translated name' }],
+            });
         });
     });
 });

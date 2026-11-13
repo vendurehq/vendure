@@ -86,6 +86,9 @@ export function translateEntity<T extends Translatable & VendureEntity>(
             if (!translated.customFields) {
                 translated.customFields = {};
             }
+            if (value == null) {
+                continue;
+            }
             const customFields = value as Record<string, any>;
             let needsFallback = false;
             for (const cfValue of Object.values(customFields)) {

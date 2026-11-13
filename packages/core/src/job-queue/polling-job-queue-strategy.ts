@@ -97,6 +97,8 @@ class ActiveQueue<Data extends JobData<Data> = object> {
     private timer: any;
     private running = false;
     private activeJobs: Array<Job<Data>> = [];
+    private claimingNext = false;
+    private forceStopped = false;
 
     private errorNotifier$ = new Subject<[string, string]>();
     private queueStopped$ = new Subject<typeof STOP_SIGNAL>();
@@ -136,13 +138,28 @@ class ActiveQueue<Data extends JobData<Data> = object> {
             Logger.debug(stack);
         });
         this.running = true;
+        this.forceStopped = false;
         const runNextJobs = async () => {
             let idle = false;
             try {
                 const runningJobsCount = this.activeJobs.length;
                 idle = runningJobsCount < this.concurrency;
                 for (let i = runningJobsCount; i < this.concurrency; i++) {
-                    const nextJob = await this.jobQueueStrategy.next(this.queueName);
+                    // Don't claim further jobs once stop() has been called, otherwise
+                    // shutdown would have to wait for each of them as well.
+                    if (!this.running) {
+                        break;
+                    }
+                    // next() may already mark the job as RUNNING in the store (the SQL strategy
+                    // does), so shutdown must also wait for an in-flight claim. Otherwise it can
+                    // close the connection and leave the job RUNNING with no worker.
+                    this.claimingNext = true;
+                    let nextJob: Job<Data> | undefined;
+                    try {
+                        nextJob = await this.jobQueueStrategy.next(this.queueName);
+                    } finally {
+                        this.claimingNext = false;
+                    }
                     if (nextJob) {
                         idle = false;
                         // Track the job as active before awaiting the initial status update,
@@ -150,11 +167,21 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                         // that races this update. If the update throws, remove it again so the
                         // concurrency slot isn't wedged.
                         this.activeJobs.push(nextJob);
+                        if (this.forceStopped) {
+                            await this.deferForceStoppedJob(nextJob);
+                            break;
+                        }
                         try {
                             await this.jobQueueStrategy.update(nextJob);
                         } catch (err) {
                             this.removeJobFromActive(nextJob);
                             throw err;
+                        }
+                        // Check synchronously, with no await between here and subscribing to
+                        // queueStopped$ below, so a forced stop cannot slip in between the two.
+                        if (this.forceStopped) {
+                            await this.deferForceStoppedJob(nextJob);
+                            break;
                         }
                         const onProgress = (job: Job) => this.jobQueueStrategy.update(job);
                         nextJob.on('progress', onProgress);
@@ -243,7 +270,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                 const timedOut =
                     stopActiveQueueTimeout === undefined ? false : now - start > stopActiveQueueTimeout;
 
-                if (this.activeJobs.length === 0) {
+                if (this.activeJobs.length === 0 && !this.claimingNext) {
                     clearTimeout(timeout);
                     resolve();
                     return;
@@ -252,9 +279,11 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                 if (timedOut) {
                     Logger.warn(
                         `Timed out (${stopActiveQueueTimeout}ms) waiting for ` +
-                            `${this.activeJobs.length} active jobs in queue "${this.queueName}" ` +
-                            `to complete. Forcing stop...`,
+                            `${this.activeJobs.length} active jobs ` +
+                            `${this.claimingNext ? '(and a job being claimed) ' : ''}` +
+                            `in queue "${this.queueName}" to complete. Forcing stop...`,
                     );
+                    this.forceStopped = true;
                     this.queueStopped$.next(STOP_SIGNAL);
                     clearTimeout(timeout);
                     resolve();
@@ -274,6 +303,15 @@ class ActiveQueue<Data extends JobData<Data> = object> {
             };
             void pollActiveJobs();
         });
+    }
+
+    /**
+     * A job whose claim or initial update was still in flight when the graceful shutdown
+     * timed out has missed STOP_SIGNAL, so it must not be started. Return it to PENDING instead.
+     */
+    private async deferForceStoppedJob(job: Job<Data>): Promise<void> {
+        job.defer();
+        await this.onFailOrComplete(job);
     }
 
     private async onFailOrComplete(job: Job<Data>) {

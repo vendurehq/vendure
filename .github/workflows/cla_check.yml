@@ -1,0 +1,115 @@
+name: CLA check
+
+# Checks that everyone who has to sign the Contributor License Agreement for a pull request has
+# signed it, records new signatures, and reports the result as a commit status on the pull
+# request's head commit. The rules are in scripts/cla/cla.mjs:
+#
+# - The PR author must sign, unless the PR author is a bot.
+# - Every other commit author with a GitHub account must sign. Back-merges (a release branch or a
+#   merge/* branch of the same repository as head) are the exception: their commits were checked
+#   in the pull requests that brought them into a release branch.
+# - Commits by AI agents, bots and GitHub web-flow, and commits whose author email is linked to
+#   no GitHub account, are covered by the PR author's signature.
+#
+# Signatures for every Vendure repository are stored in license/signatures/version1/cla.json on
+# the master branch of vendurehq/vendure. Other repositories call this workflow with
+# `uses: vendurehq/vendure/.github/workflows/cla_check.yml@master` and `secrets: inherit`.
+#
+# SECURITY: callers run this on pull_request_target, which has write access to the base
+# repository. This workflow must never check out, install, or build the pull request head. It
+# checks out its own scripts from vendurehq/vendure master, and reads the pull request's commits
+# and comments as data through the GitHub API.
+#
+# The result is a commit status, so a signature posted as a comment updates the status on the
+# head commit straight away. A check run would stay attached to the run that failed until the
+# workflow is re-run.
+on:
+    workflow_call:
+        inputs:
+            status-context:
+                description: The name of the commit status.
+                type: string
+                default: cla
+            post-comment:
+                description: Whether to keep a comment on the pull request listing who still has to sign.
+                type: boolean
+                default: true
+        secrets:
+            CI_BOT_APP_ID:
+                required: true
+            CI_BOT_APP_PRIVATE_KEY:
+                required: true
+
+permissions: {}
+
+jobs:
+    check:
+        name: check CLA signatures
+        # A loose filter, so that no runner starts for unrelated comments. contains() is
+        # case-insensitive. The script matches the sign phrase with any whitespace.
+        if: >-
+            github.event_name == 'pull_request_target' ||
+            (github.event.issue.pull_request &&
+             (contains(github.event.comment.body, 'CLA') || contains(github.event.comment.body, 'recheck')))
+        runs-on: ubuntu-latest
+        # One run at a time per pull request. GitHub keeps only the newest queued run, so every
+        # run reads all of the pull request's sign comments. Runs for different pull requests can
+        # still write the signatures file at the same time; scripts/cla/run.mjs retries on a
+        # conflict.
+        concurrency:
+            group: cla-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+            cancel-in-progress: false
+        permissions:
+            contents: read
+        steps:
+            - name: Generate CI Bot Token
+              id: app-token
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              with:
+                  app-id: ${{ secrets.CI_BOT_APP_ID }}
+                  private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+                  owner: vendurehq
+                  # The repository of the pull request, plus vendure for the signatures file.
+                  repositories: ${{ github.event.repository.name == 'vendure' && 'vendure' || format('vendure,{0}', github.event.repository.name) }}
+                  # contents: write is for appending to the signatures file.
+                  # pull-requests: write is for reading the pull request and its commits, and
+                  # for the comment.
+                  # statuses: write is for the commit status.
+                  permission-contents: write
+                  permission-pull-requests: write
+                  permission-statuses: write
+
+            - name: Check out trusted workflow code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  # Always vendurehq/vendure master, also when another repository calls this
+                  # workflow. Never the pull request head.
+                  repository: vendurehq/vendure
+                  ref: master
+                  sparse-checkout: .github/workflows/scripts/cla
+                  path: cla-check
+                  persist-credentials: false
+
+            - name: Test CLA rules
+              run: node --test cla-check/.github/workflows/scripts/cla/cla.test.mjs cla-check/.github/workflows/scripts/cla/run.test.mjs
+
+            - name: Check signatures
+              uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  github-token: ${{ steps.app-token.outputs.token }}
+                  script: |
+                      const { run } = await import(`${process.env.GITHUB_WORKSPACE}/cla-check/.github/workflows/scripts/cla/run.mjs`);
+                      await run({
+                          github,
+                          context,
+                          core,
+                          options: {
+                              signaturesRepo: 'vendurehq/vendure',
+                              signaturesPath: 'license/signatures/version1/cla.json',
+                              signaturesBranch: 'master',
+                              documentUrl: 'https://github.com/vendurehq/vendure/blob/master/license/CLA.md',
+                              statusContext: ${{ toJSON(inputs.status-context) }},
+                              postComment: ${{ inputs.post-comment }},
+                              botLogin: ${{ toJSON(format('{0}[bot]', steps.app-token.outputs.app-slug)) }},
+                          },
+                      });

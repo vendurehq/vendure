@@ -10,7 +10,7 @@ import { graphql } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { useLingui } from '@lingui/react/macro';
+import { Plural, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ComponentType } from 'react';
 
@@ -174,13 +174,12 @@ export function getJsonSummary(value: unknown): JsonSummary {
 }
 
 function JsonSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
-    const { t } = useLingui();
     const summary = getJsonSummary(value);
     if (summary.type === 'items') {
-        return <>{summary.count === 1 ? t`1 item` : t`${summary.count} items`}</>;
+        return <Plural value={summary.count} one="# item" other="# items" />;
     }
     if (summary.type === 'properties') {
-        return <>{summary.count === 1 ? t`1 property` : t`${summary.count} properties`}</>;
+        return <Plural value={summary.count} one="# property" other="# properties" />;
     }
     return <>{summary.value}</>;
 }
