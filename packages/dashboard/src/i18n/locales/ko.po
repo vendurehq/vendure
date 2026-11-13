@@ -145,6 +145,10 @@ msgstr "전역 설정 업데이트 실패"
 msgid "Successfully fulfilled order"
 msgstr "주문이 이행되었습니다"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr "기본 통화는 이 목록에서 선택됩니다."
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "{0} 선택"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1251,6 +1259,10 @@ msgstr "예약된 작업이 실행됩니다"
 msgid "New stock location"
 msgstr "새 재고 위치"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1400,8 +1412,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "활성화하면 프로모션이 상점에서 사용 가능합니다"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "추적 시 상품 변형 재고 수준이 판매 시 자동으로 조정됩니다. 이 설정은 개별 상품 변형으로 재정의할 수 있습니다."
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "추적 시 상품 변형 재고 수준이 판매 시 자동으로 조정됩니다. 이 설정은 개별 상품 변형으로 재정의할 수 있습니다."
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1475,8 +1487,8 @@ msgid "Regenerate slug from source field"
 msgstr "원본 필드에서 슬러그 재생성"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "전역 설정에서 상속"
+#~ msgid "Inherit from global settings"
+#~ msgstr "전역 설정에서 상속"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1609,6 +1621,10 @@ msgstr "결제 방법"
 msgid "Stock"
 msgstr "재고"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr ""
@@ -1657,6 +1673,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "주문에 항목이 추가되었습니다"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2410,6 +2430,10 @@ msgstr "{count, plural, other {{count}개 재고 위치 삭제 실패}}"
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "코드"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3854,6 +3878,8 @@ msgstr "전역 언어가 구성되지 않았습니다"
 msgid "Removing {0} item(s)"
 msgstr "{0}개 항목 제거 중"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5693,6 +5719,10 @@ msgstr "사용 가능한 통화 목록에서 기본 통화를 선택해야 합�
 msgid "Manage tags"
 msgstr "태그 관리"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "주문에서 쿠폰 코드가 제거되었습니다"
@@ -5855,6 +5885,10 @@ msgstr "잘못된 상품"
 msgid "Summary of modifications"
 msgstr "수정 요약"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -5968,6 +6002,8 @@ msgstr "주문의 주소 설정 실패: {0}"
 msgid "State"
 msgstr "상태"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6631,7 +6667,7 @@ msgstr "선택한 상태로 전환"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "{formattedDiff}의 추가 결제가 필요합니다."
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "기본적으로 재고 추적"
 
@@ -6680,8 +6716,8 @@ msgid "Customer not found"
 msgstr "고객을 찾을 수 없습니다"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7441,8 +7477,8 @@ msgid "Successfully created tax rate"
 msgstr "세율이 생성되었습니다"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

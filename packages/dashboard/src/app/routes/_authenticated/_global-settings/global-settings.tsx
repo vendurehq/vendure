@@ -3,11 +3,12 @@ import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { LanguageSelector } from '@/vdb/components/shared/language-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -15,14 +16,13 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { schemaLanguageCodes as globalLanguageCodes } from '@/vdb/graphql/schema-enums.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { globalSettingsDocument, updateGlobalSettingsDocument } from './global-settings.graphql.js';
-import { schemaLanguageCodes as globalLanguageCodes } from '@/vdb/graphql/schema-enums.js';
 
 const pageId = 'global-settings';
 
@@ -60,7 +60,6 @@ function GlobalSettingsPage() {
             return {
                 id: entity.id,
                 availableLanguages: entity.availableLanguages,
-                trackInventory: entity.trackInventory,
                 outOfStockThreshold: entity.outOfStockThreshold,
                 customFields: entity.customFields,
             };
@@ -94,7 +93,10 @@ function GlobalSettingsPage() {
                 <Trans>Global Settings</Trans>
             </PageTitle>
             <PageActionBar>
-                <ActionBarItem itemId="save-button" requiresPermission={['UpdateSettings', 'UpdateGlobalSettings']}>
+                <ActionBarItem
+                    itemId="save-button"
+                    requiresPermission={['UpdateSettings', 'UpdateGlobalSettings']}
+                >
                     <Button
                         type="submit"
                         disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
@@ -137,20 +139,6 @@ function GlobalSettingsPage() {
                                 </Trans>
                             }
                             render={({ field }) => <NumberInput {...field} />}
-                        />
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="trackInventory"
-                            label={<Trans>Track inventory by default</Trans>}
-                            description={
-                                <Trans>
-                                    When tracked, product variant stock levels will be automatically adjusted
-                                    when sold. This setting can be overridden by individual product variants.
-                                </Trans>
-                            }
-                            render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            )}
                         />
                     </DetailFormGrid>
                 </PageBlock>

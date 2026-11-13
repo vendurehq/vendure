@@ -145,6 +145,10 @@ msgstr "グローバル設定の更新に失敗しました"
 msgid "Successfully fulfilled order"
 msgstr "注文をフルフィルメントしました"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr "デフォルト通貨はこのリストから選択されます。"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "{0}を選択"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1259,6 +1267,10 @@ msgstr "スケジュールされたタスクが実行されます"
 msgid "New stock location"
 msgstr "新しい在庫ロケーション"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1408,8 +1420,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "有効にすると、プロモーションがショップで利用可能になります"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "追跡すると、商品バリエーションの在庫レベルは販売時に自動的に調整されます。この設定は個々の商品バリエーションで上書きできます。"
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "追跡すると、商品バリエーションの在庫レベルは販売時に自動的に調整されます。この設定は個々の商品バリエーションで上書きできます。"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1483,8 +1495,8 @@ msgid "Regenerate slug from source field"
 msgstr "ソースフィールドからスラッグを再生成"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "グローバル設定から継承"
+#~ msgid "Inherit from global settings"
+#~ msgstr "グローバル設定から継承"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1617,6 +1629,10 @@ msgstr "支払い方法"
 msgid "Stock"
 msgstr "在庫"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "この期間の売上はありません"
@@ -1665,6 +1681,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "注文にアイテムを追加しました"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2424,6 +2444,10 @@ msgstr "{count, plural, other {{count}件の在庫ロケーションを削除で
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "コード"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3872,6 +3896,8 @@ msgstr "グローバル言語が設定されていません"
 msgid "Removing {0} item(s)"
 msgstr "{0}個のアイテムを削除中"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5738,6 +5764,10 @@ msgstr "利用可能な通貨のリストからデフォルト通貨を選択す
 msgid "Manage tags"
 msgstr "タグを管理"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "クーポンコードが注文から削除されました"
@@ -5900,6 +5930,10 @@ msgstr "誤った商品"
 msgid "Summary of modifications"
 msgstr "変更の概要"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -6013,6 +6047,8 @@ msgstr "注文の住所の設定に失敗しました: {0}"
 msgid "State"
 msgstr "状態"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6695,7 +6731,7 @@ msgstr "選択した状態に遷移"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "{formattedDiff}の追加支払いが必要です。"
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "デフォルトで在庫を追跡"
 
@@ -6744,8 +6780,8 @@ msgid "Customer not found"
 msgstr "顧客が見つかりません"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7517,8 +7553,8 @@ msgid "Successfully created tax rate"
 msgstr "税率を作成しました"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

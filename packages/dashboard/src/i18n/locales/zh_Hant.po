@@ -145,6 +145,10 @@ msgstr "更新全域設定失敗"
 msgid "Successfully fulfilled order"
 msgstr "已成功履行訂單"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr ""
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "選取 {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1259,6 +1267,10 @@ msgstr "將執行排程任務"
 msgid "New stock location"
 msgstr "新增庫存位置"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1408,8 +1420,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "啟用後，促銷在商店中可用"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "追蹤後，商品變體庫存水準將在售出時自動調整。此設定可由各個商品變體覆寫。"
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "追蹤後，商品變體庫存水準將在售出時自動調整。此設定可由各個商品變體覆寫。"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1483,8 +1495,8 @@ msgid "Regenerate slug from source field"
 msgstr "從來源欄位重新產生 slug"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "從全域設定繼承"
+#~ msgid "Inherit from global settings"
+#~ msgstr "從全域設定繼承"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1617,6 +1629,10 @@ msgstr "付款方式"
 msgid "Stock"
 msgstr "庫存"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "此期間內沒有銷售"
@@ -1665,6 +1681,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "項目已新增至訂單"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2424,6 +2444,10 @@ msgstr "{count, plural, other {無法刪除 {count} 個庫存地點}}"
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "代碼"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3872,6 +3896,8 @@ msgstr "未設定全域語言"
 msgid "Removing {0} item(s)"
 msgstr "正在移除 {0} 個項目"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5738,6 +5764,10 @@ msgstr ""
 msgid "Manage tags"
 msgstr "管理標籤"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "優惠券代碼已從訂單中移除"
@@ -5900,6 +5930,10 @@ msgstr "發錯商品"
 msgid "Summary of modifications"
 msgstr "修改摘要"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -6013,6 +6047,8 @@ msgstr "設定訂單地址失敗：{0}"
 msgid "State"
 msgstr "狀態"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6695,7 +6731,7 @@ msgstr "轉換到選定狀態"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "需要額外付款 {formattedDiff}。"
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "預設追蹤庫存"
 
@@ -6744,8 +6780,8 @@ msgid "Customer not found"
 msgstr "找不到客戶"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7517,8 +7553,8 @@ msgid "Successfully created tax rate"
 msgstr "已成功建立稅率"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

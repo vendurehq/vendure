@@ -84,6 +84,7 @@ import {
     ProductVariantEntityResolver,
     ProductVariantShopEntityResolver,
 } from './resolvers/entity/product-variant-entity.resolver';
+import { StockLevelAdminEntityResolver } from './resolvers/entity/stock-level-entity.resolver';
 import { RefundEntityResolver } from './resolvers/entity/refund-entity.resolver';
 import { RefundLineEntityResolver } from './resolvers/entity/refund-line-entity.resolver';
 import { RoleAssignmentEntityResolver } from './resolvers/entity/role-assignment-entity.resolver';
@@ -189,6 +190,7 @@ export const adminEntityResolvers = [
     ProductVariantAdminEntityResolver,
     ProductAdminEntityResolver,
     ProductOptionGroupAdminEntityResolver,
+    StockLevelAdminEntityResolver,
     JobEntityResolver,
 ];
 

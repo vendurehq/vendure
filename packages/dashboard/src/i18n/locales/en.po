@@ -145,6 +145,10 @@ msgstr "Failed to update global settings"
 msgid "Successfully fulfilled order"
 msgstr "Successfully fulfilled order"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr "Inherit from variant"
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr "The default currency is chosen from this list."
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "Select {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr "Inherit from channel"
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1259,6 +1267,10 @@ msgstr "Scheduled task will be executed"
 msgid "New stock location"
 msgstr "New stock location"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr "Inherit from variant (Track)"
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1408,8 +1420,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "When enabled, a promotion is available in the shop"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1483,8 +1495,8 @@ msgid "Regenerate slug from source field"
 msgstr "Regenerate slug from source field"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "Inherit from global settings"
+#~ msgid "Inherit from global settings"
+#~ msgstr "Inherit from global settings"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1617,6 +1629,10 @@ msgstr "Payment Methods"
 msgid "Stock"
 msgstr "Stock"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr "Inherit from channel (Track)"
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "No sales for this period"
@@ -1665,6 +1681,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "Item added to order"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr "Inherit from channel (Do not track)"
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2424,6 +2444,10 @@ msgstr "{count, plural, one {Failed to delete {count} stock location} other {Fai
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "Code"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3872,6 +3896,8 @@ msgstr "No global languages configured"
 msgid "Removing {0} item(s)"
 msgstr "Removing {0} item(s)"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5738,6 +5764,10 @@ msgstr "You must select a default currency from the list of available currencies
 msgid "Manage tags"
 msgstr "Manage tags"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr "Inherit from variant (Do not track)"
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "Coupon code removed from order"
@@ -5900,6 +5930,10 @@ msgstr "Wrong item shipped"
 msgid "Summary of modifications"
 msgstr "Summary of modifications"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr "Track inventory at this location"
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -6013,6 +6047,8 @@ msgstr "Failed to set address for order: {0}"
 msgid "State"
 msgstr "State"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6695,7 +6731,7 @@ msgstr "Transition to selected state"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "An additional payment of {formattedDiff} will be required."
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "Track inventory by default"
 
@@ -6744,8 +6780,8 @@ msgid "Customer not found"
 msgstr "Customer not found"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr "Inherit from global settings (Track)"
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr "Inherit from global settings (Track)"
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7517,8 +7553,8 @@ msgid "Successfully created tax rate"
 msgstr "Successfully created tax rate"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr "Inherit from global settings (Do not track)"
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr "Inherit from global settings (Do not track)"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

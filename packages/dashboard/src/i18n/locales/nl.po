@@ -145,6 +145,10 @@ msgstr "Globale instellingen bijwerken mislukt"
 msgid "Successfully fulfilled order"
 msgstr "Bestelling succesvol afgehandeld"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr ""
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "Selecteer {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1263,6 +1271,10 @@ msgstr "Geplande taak wordt uitgevoerd"
 msgid "New stock location"
 msgstr "Nieuwe voorraadlocatie"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1412,8 +1424,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "Wanneer ingeschakeld, is een promotie beschikbaar in de winkel"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "Wanneer gevolgd, worden de voorraadniveaus van productvarianten automatisch aangepast bij verkoop. Deze instelling kan worden overschreven door individuele productvarianten."
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "Wanneer gevolgd, worden de voorraadniveaus van productvarianten automatisch aangepast bij verkoop. Deze instelling kan worden overschreven door individuele productvarianten."
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1487,8 +1499,8 @@ msgid "Regenerate slug from source field"
 msgstr "Slug opnieuw genereren vanuit bronveld"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "Overnemen van globale instellingen"
+#~ msgid "Inherit from global settings"
+#~ msgstr "Overnemen van globale instellingen"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1621,6 +1633,10 @@ msgstr "Betaalmethoden"
 msgid "Stock"
 msgstr "Voorraad"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "Geen verkopen in deze periode"
@@ -1669,6 +1685,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "Item toegevoegd aan bestelling"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2422,6 +2442,10 @@ msgstr "{count, plural, one {Kan {count} voorraadlocatie niet verwijderen} other
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "Code"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3866,6 +3890,8 @@ msgstr "Geen globale talen geconfigureerd"
 msgid "Removing {0} item(s)"
 msgstr "{0} item(s) verwijderen"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5729,6 +5755,10 @@ msgstr ""
 msgid "Manage tags"
 msgstr "Tags beheren"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "Couponcode verwijderd van bestelling"
@@ -5891,6 +5921,10 @@ msgstr "Verkeerd artikel"
 msgid "Summary of modifications"
 msgstr "Samenvatting van wijzigingen"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -6004,6 +6038,8 @@ msgstr "Instellen van adres voor bestelling mislukt: {0}"
 msgid "State"
 msgstr "Status"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6690,7 +6726,7 @@ msgstr "Overgaan naar geselecteerde status"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "Een extra betaling van {formattedDiff} is vereist."
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "Voorraad standaard volgen"
 
@@ -6739,8 +6775,8 @@ msgid "Customer not found"
 msgstr "Klant niet gevonden"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7512,8 +7548,8 @@ msgid "Successfully created tax rate"
 msgstr "Belastingtarief succesvol aangemaakt"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

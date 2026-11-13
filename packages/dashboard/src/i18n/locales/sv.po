@@ -145,6 +145,10 @@ msgstr "Misslyckades att uppdatera globala inställningar"
 msgid "Successfully fulfilled order"
 msgstr "Beställning levererad"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr ""
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "Välj {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1259,6 +1267,10 @@ msgstr "Schemalagd uppgift kommer köras"
 msgid "New stock location"
 msgstr "Ny lagerplats"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1408,8 +1420,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "När aktiverad är kampanjen tillgänglig i butiken"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "När spårad kommer produktvariantens lagernivåer justeras automatiskt vid försäljning. Denna inställning kan åsidosättas av enskilda produktvarianter."
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "När spårad kommer produktvariantens lagernivåer justeras automatiskt vid försäljning. Denna inställning kan åsidosättas av enskilda produktvarianter."
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1483,8 +1495,8 @@ msgid "Regenerate slug from source field"
 msgstr "Regenerera slug från källfält"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "Ärv från globala inställningar"
+#~ msgid "Inherit from global settings"
+#~ msgstr "Ärv från globala inställningar"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1617,6 +1629,10 @@ msgstr "Betalningsmetoder"
 msgid "Stock"
 msgstr "Lager"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "Ingen försäljning under denna period"
@@ -1665,6 +1681,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "Artikel tillagd i beställning"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2424,6 +2444,10 @@ msgstr "{count, plural, one {Det gick inte att ta bort {count} lagerplats} other
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "Kod"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3872,6 +3896,8 @@ msgstr "Inga globala språk konfigurerade"
 msgid "Removing {0} item(s)"
 msgstr "Tar bort {0} artikel/artiklar"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5738,6 +5764,10 @@ msgstr ""
 msgid "Manage tags"
 msgstr "Hantera taggar"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "Kupongkod borttagen från beställning"
@@ -5900,6 +5930,10 @@ msgstr "Fel vara"
 msgid "Summary of modifications"
 msgstr "Sammanfattning av ändringar"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -6013,6 +6047,8 @@ msgstr "Kunde inte ange adress för beställningen: {0}"
 msgid "State"
 msgstr "Tillstånd"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6695,7 +6731,7 @@ msgstr "Övergå till vald status"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "En ytterligare betalning på {formattedDiff} kommer krävas."
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "Spåra lager som standard"
 
@@ -6744,8 +6780,8 @@ msgid "Customer not found"
 msgstr "Kund hittades inte"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7517,8 +7553,8 @@ msgid "Successfully created tax rate"
 msgstr "Skattesats skapad"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

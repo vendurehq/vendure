@@ -32,11 +32,6 @@ describe('GlobalSettings resolver', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
-        await adminClient.query(updateGlobalSettingsDocument, {
-            input: {
-                trackInventory: false,
-            },
-        });
         const result = await adminClient.query(getGlobalSettingsDocument);
         globalSettings = result.globalSettings;
     }, TEST_SETUP_TIMEOUT_MS);
@@ -48,7 +43,6 @@ describe('GlobalSettings resolver', () => {
     describe('globalSettings query', () => {
         it('includes basic settings', () => {
             expect(globalSettings.availableLanguages).toEqual([LanguageCode.en]);
-            expect(globalSettings.trackInventory).toBe(false);
         });
 
         it('includes orderProcess', () => {
@@ -98,13 +92,11 @@ describe('GlobalSettings resolver', () => {
             const { updateGlobalSettings } = await adminClient.query(updateGlobalSettingsDocument, {
                 input: {
                     availableLanguages: [LanguageCode.en, LanguageCode.zh],
-                    trackInventory: true,
                 },
             });
             globalSettingsGuard.assertSuccess(updateGlobalSettings);
 
             expect(updateGlobalSettings.availableLanguages).toEqual([LanguageCode.en, LanguageCode.zh]);
-            expect(updateGlobalSettings.trackInventory).toBe(true);
         });
     });
 });

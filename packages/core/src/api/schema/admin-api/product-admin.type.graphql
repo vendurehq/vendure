@@ -20,6 +20,12 @@ type ProductVariant implements Node {
     """
     enabledInChannel: Boolean!
     trackInventory: GlobalFlag!
+    """
+    Whether stock limits apply to this ProductVariant in the active Channel: false when any
+    StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+    sold and fulfilled without limit.
+    """
+    tracksInventory: Boolean!
     stockOnHand: Int! @deprecated(reason: "use stockLevels")
     stockAllocated: Int! @deprecated(reason: "use stockLevels")
     outOfStockThreshold: Int!

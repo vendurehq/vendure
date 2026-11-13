@@ -71,8 +71,8 @@ const mockInjector = {
     },
 } as any;
 
-const channel1 = new Channel({ id: 1 });
-const channel2 = new Channel({ id: 2 });
+const channel1 = new Channel({ id: 1, trackInventory: true });
+const channel2 = new Channel({ id: 2, trackInventory: true });
 
 function contextForChannel(channel: Channel): RequestContext {
     return new RequestContext({
@@ -97,6 +97,12 @@ const stockLevel = new StockLevel({
 });
 
 const stockLocation = new StockLocation({ id: 1 });
+
+/**
+ * Passed to `getAvailableStock()` as core does. Without it the strategy loads the variant with
+ * `getEntityOrThrow`, which would show up in the StockLocation load counts asserted below.
+ */
+const variant = new ProductVariant({ id: 1, trackInventory: GlobalFlag.INHERIT });
 
 /** Lets the async `subscribe` handlers (cache deletes) settle. */
 function flushEventHandlers() {
@@ -127,8 +133,8 @@ describe('MultiChannelStockLocationStrategy', () => {
     });
 
     it('caches the channel ids of a StockLocation after the first lookup', async () => {
-        const first = await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
-        const second = await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        const first = await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel], variant);
+        const second = await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel], variant);
 
         expect(first.stockOnHand).toBe(100);
         expect(second.stockOnHand).toBe(100);
@@ -147,7 +153,12 @@ describe('MultiChannelStockLocationStrategy', () => {
         );
 
         const results = await Promise.all(
-            stockLevels.map(level => strategy.getAvailableStock(ctxChannel1, level.productVariantId, [level])),
+            stockLevels.map(level =>
+                strategy.getAvailableStock(ctxChannel1, level.productVariantId, [level], {
+                    id: level.productVariantId,
+                    trackInventory: GlobalFlag.INHERIT,
+                }),
+            ),
         );
 
         expect(results.map(r => r.stockOnHand)).toEqual([100, 100, 100, 100, 100]);
@@ -155,17 +166,17 @@ describe('MultiChannelStockLocationStrategy', () => {
     });
 
     it('loads a StockLocation once per request, not once per request-scoped read', async () => {
-        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel], variant);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
 
         // A different RequestContext still finds the value in the cross-request cache
-        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
+        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel], variant);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
     });
 
     it('invalidates the cache when a StockLocation is updated', async () => {
         // Cache the channel ids while the location belongs to channel1 only
-        const stale = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
+        const stale = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel], variant);
         expect(stale.stockOnHand).toBe(0);
 
         channelsInDb = [channel1, channel2];
@@ -174,12 +185,12 @@ describe('MultiChannelStockLocationStrategy', () => {
 
         // Invalidation clears the cross-request cache, so the read that observes it belongs
         // to a later request and therefore a new RequestContext.
-        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel]);
+        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel], variant);
         expect(fresh.stockOnHand).toBe(100);
     });
 
     it('does not invalidate the cache when a StockLocation is created', async () => {
-        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel], variant);
 
         eventStream.next(new StockLocationEvent(ctxChannel1, stockLocation, 'created'));
         await flushEventHandlers();
@@ -187,33 +198,33 @@ describe('MultiChannelStockLocationStrategy', () => {
         // Read through a new context, as the positive invalidation tests do: reusing
         // ctxChannel1 would be answered by the request-scoped cache and never reach the
         // cross-request cache this test is about.
-        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
+        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel], variant);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
     });
 
     it('invalidates the cache when a StockLocation is assigned to a Channel', async () => {
         // Cache the channel ids before the location is assigned to channel2
-        const stale = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
+        const stale = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel], variant);
         expect(stale.stockOnHand).toBe(0);
 
         channelsInDb = [channel1, channel2];
         eventStream.next(new ChangeChannelEvent(ctxChannel1, stockLocation, [2], 'assigned', StockLocation));
         await flushEventHandlers();
 
-        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel]);
+        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel], variant);
         expect(fresh.stockOnHand).toBe(100);
     });
 
     it('invalidates the cache when a StockLocation is removed from a Channel', async () => {
         channelsInDb = [channel1, channel2];
-        const beforeRemoval = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
+        const beforeRemoval = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel], variant);
         expect(beforeRemoval.stockOnHand).toBe(100);
 
         channelsInDb = [channel1];
         eventStream.next(new ChangeChannelEvent(ctxChannel1, stockLocation, [2], 'removed', StockLocation));
         await flushEventHandlers();
 
-        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel]);
+        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel], variant);
         expect(fresh.stockOnHand).toBe(0);
     });
 
@@ -230,23 +241,23 @@ describe('MultiChannelStockLocationStrategy', () => {
     });
 
     it('does not invalidate the cache on ChangeChannelEvents for other entity types', async () => {
-        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel], variant);
 
         eventStream.next(
             new ChangeChannelEvent(ctxChannel1, new Product({ id: 1 }) as any, [2], 'assigned', Product),
         );
         await flushEventHandlers();
 
-        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
+        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel], variant);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
     });
 
     // GHSA-8ghm-q833-cmgp: only a tracked variant's stock figures decide the allocation, so only
     // a tracked variant's StockLevels are locked.
     describe('forAllocation()', () => {
-        function setUpAllocation(trackInventory: GlobalFlag) {
-            const unlockedFind = vi.fn(() => Promise.resolve([stockLevel]));
-            const lockedRead = vi.fn(() => Promise.resolve([stockLevel]));
+        function setUpAllocation(trackInventory: GlobalFlag, levels: StockLevel[] = [stockLevel]) {
+            const unlockedFind = vi.fn(() => Promise.resolve(levels));
+            const lockedRead = vi.fn(() => Promise.resolve(levels));
             (strategy as any).connection = {
                 getEntityOrThrow: (_ctx: any, entity: any) =>
                     Promise.resolve(
@@ -261,7 +272,7 @@ describe('MultiChannelStockLocationStrategy', () => {
                 getRepository: () => ({ find: unlockedFind }),
             };
             (strategy as any).globalSettingsService = {
-                getSettings: () => Promise.resolve({ trackInventory: true, outOfStockThreshold: 0 }),
+                getSettings: () => Promise.resolve({ outOfStockThreshold: 0 }),
             };
             (strategy as any).stockLevelService = { getLockedStockLevelsForVariant: lockedRead };
             return { unlockedFind, lockedRead };
@@ -274,9 +285,13 @@ describe('MultiChannelStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctxChannel1, [stockLocation], orderLine, 3);
 
+            // The unlocked read decides whether any row is tracked, then the lock is taken.
+            expect(unlockedFind).toHaveBeenCalledTimes(1);
             expect(lockedRead).toHaveBeenCalledTimes(1);
-            expect(unlockedFind).not.toHaveBeenCalled();
-            expect(result).toEqual([{ location: stockLocation, quantity: 3 }]);
+            expect(unlockedFind.mock.invocationCallOrder[0]).toBeLessThan(
+                lockedRead.mock.invocationCallOrder[0],
+            );
+            expect(result).toEqual([{ location: stockLocation, quantity: 3, tracked: true }]);
         });
 
         it('reads the StockLevels without a lock for an untracked variant', async () => {
@@ -286,7 +301,42 @@ describe('MultiChannelStockLocationStrategy', () => {
 
             expect(lockedRead).not.toHaveBeenCalled();
             expect(unlockedFind).toHaveBeenCalledTimes(1);
-            expect(result).toEqual([{ location: stockLocation, quantity: 3 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 3, tracked: false }]);
+        });
+
+        it('allocates tracked stock first, then the overflow at a StockLevel which does not track inventory', async () => {
+            channelsInDb = [channel1];
+            const untrackedLocation = new StockLocation({ id: 2 });
+            setUpAllocation(GlobalFlag.TRUE, [
+                new StockLevel({
+                    id: 1,
+                    stockLocationId: 1,
+                    productVariantId: 1,
+                    stockOnHand: 2,
+                    stockAllocated: 0,
+                }),
+                new StockLevel({
+                    id: 2,
+                    stockLocationId: 2,
+                    productVariantId: 1,
+                    stockOnHand: 0,
+                    stockAllocated: 0,
+                    trackInventory: GlobalFlag.FALSE,
+                }),
+            ]);
+
+            // The untracked location comes first, but tracked stock is still used before it.
+            const result = await strategy.forAllocation(
+                ctxChannel1,
+                [untrackedLocation, stockLocation],
+                orderLine,
+                5,
+            );
+
+            expect(result).toEqual([
+                { location: stockLocation, quantity: 2, tracked: true },
+                { location: untrackedLocation, quantity: 3, tracked: false },
+            ]);
         });
     });
 });

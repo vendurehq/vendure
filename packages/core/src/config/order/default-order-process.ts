@@ -12,6 +12,7 @@ import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { OrderPlacedEvent } from '../../event-bus/events/order-placed-event';
 import { OrderState } from '../../service/helpers/order-state-machine/order-state';
+import { getOrderChannelContext } from '../../service/helpers/utils/order-channel-context';
 import {
     orderItemsAreDelivered,
     orderItemsArePartiallyDelivered,
@@ -168,6 +169,7 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
     let eventBus: import('../../event-bus/index').EventBus;
     let stockMovementService: import('../../service/index').StockMovementService;
     let stockLevelService: import('../../service/index').StockLevelService;
+    let channelService: import('../../service/services/channel.service').ChannelService;
     let historyService: import('../../service/index').HistoryService;
     let orderSplitter: import('../../service/index').OrderSplitter;
     let orderService: import('../../service/index').OrderService;
@@ -251,12 +253,14 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
                 m => m.ProductVariantService,
             );
             const OrderService = await import('../../service/index.js').then(m => m.OrderService);
+            const ChannelService = await import('../../service/index.js').then(m => m.ChannelService);
             connection = injector.get(TransactionalConnection);
             productVariantService = injector.get(ProductVariantService);
             configService = injector.get(ConfigService);
             eventBus = injector.get(EventBus);
             stockMovementService = injector.get(StockMovementService);
             stockLevelService = injector.get(StockLevelService);
+            channelService = injector.get(ChannelService);
             historyService = injector.get(HistoryService);
             orderSplitter = injector.get(OrderSplitter);
             orderService = injector.get(OrderService);
@@ -369,16 +373,20 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
                         toState,
                         order,
                     );
+                    // Judged in the Order's Channel, not the Channel of whoever transitions it.
+                    // The lock is taken in the same Channel, so it covers exactly the variants
+                    // the check below treats as tracked.
+                    const stockCtx = await getOrderChannelContext(ctx, connection, channelService, order.id);
                     if (lockStockLevels) {
                         await stockLevelService.lockStockLevelsForVariants(
-                            ctx,
+                            stockCtx,
                             order.lines.map(line => line.productVariantId),
                         );
                     }
                     const variantsWithInsufficientSaleableStock: ProductVariant[] = [];
                     for (const line of order.lines) {
                         const availableStock = await productVariantService.getSaleableStockLevel(
-                            ctx,
+                            stockCtx,
                             line.productVariant,
                             { lockStockLevels },
                         );

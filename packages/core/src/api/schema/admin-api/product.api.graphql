@@ -140,7 +140,12 @@ input CreateProductVariantOptionInput {
 
 input StockLevelInput {
     stockLocationId: ID!
-    stockOnHand: Int!
+    """
+    Omit to leave the stock on hand unchanged, e.g. when only changing `trackInventory`.
+    Required before v4.0.
+    """
+    stockOnHand: Int
+    trackInventory: GlobalFlag
 }
 
 

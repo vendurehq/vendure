@@ -5,8 +5,8 @@ import { filter } from 'rxjs/operators';
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
 import { Injector } from '../../common/injector';
-import { ProductVariant } from '../../entity/index';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
 import { ChangeChannelEvent, EventBus, StockLocationEvent } from '../../event-bus/index';
@@ -79,25 +79,27 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         ctx: RequestContext,
         productVariantId: ID,
         stockLevels: StockLevel[],
+        productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>,
     ): Promise<AvailableStock> {
-        let stockOnHand = 0;
-        let stockAllocated = 0;
+        const variant = productVariant ?? (await this.getVariant(ctx, productVariantId));
+        const applicable: StockLevel[] = [];
         for (const stockLevel of stockLevels) {
-            const applies = await this.stockLevelAppliesToActiveChannel(ctx, stockLevel);
-            if (applies) {
-                stockOnHand += stockLevel.stockOnHand;
-                stockAllocated += stockLevel.stockAllocated;
+            if (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel)) {
+                applicable.push(stockLevel);
             }
         }
-        return { stockOnHand, stockAllocated };
+        return this.sumStockLevels(ctx, variant, applicable);
     }
 
     /**
      * @description
-     * This method takes into account whether the stock location is applicable to the active channel.
-     * It furthermore respects the `trackInventory` and `outOfStockThreshold` settings of the ProductVariant,
-     * in order to allocate stock only from locations which are relevant to the active channel and which
-     * have sufficient stock available.
+     * Allocates from the active Channel's StockLocations, in their order: first from tracked
+     * StockLevels, each giving at most `stockOnHand - stockAllocated - outOfStockThreshold`, then
+     * whatever is still needed from the first untracked StockLevel. Tracked StockLevels are read
+     * under a write lock, so concurrent allocations of the same variant cannot both take the same
+     * units.
+     *
+     * @since 4.0.0 - Tracking is resolved per StockLevel; tracked stock is used before untracked
      */
     async forAllocation(
         ctx: RequestContext,
@@ -105,50 +107,31 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const variant = await this.connection.getEntityOrThrow(
-            ctx,
-            ProductVariant,
-            orderLine.productVariantId,
-            { loadEagerRelations: false },
-        );
-        let totalAllocated = 0;
-        const locations: LocationWithQuantity[] = [];
-        const { inventoryNotTracked, effectiveOutOfStockThreshold } = await this.getVariantStockSettings(
-            ctx,
-            variant,
-        );
-        // Only a tracked variant's figures decide how much is allocated, so only those need the lock.
-        let stockLevels: StockLevel[];
-        if (inventoryNotTracked) {
-            stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
-                where: { productVariantId: orderLine.productVariantId },
-                loadEagerRelations: false,
-            });
-        } else {
-            const stockLevelService = await this.getStockLevelService();
-            stockLevels = await stockLevelService.getLockedStockLevelsForVariant(
-                ctx,
-                orderLine.productVariantId,
-            );
-        }
-        for (const stockLocation of stockLocations) {
-            const stockLevel = stockLevels.find(sl => sl.stockLocationId === stockLocation.id);
-            if (stockLevel && (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
-                const quantityAvailable = inventoryNotTracked
-                    ? Number.MAX_SAFE_INTEGER
-                    : stockLevel.stockOnHand - stockLevel.stockAllocated - effectiveOutOfStockThreshold;
-                if (quantityAvailable > 0) {
-                    const quantityToAllocate = Math.min(quantity, quantityAvailable);
-                    locations.push({
-                        location: stockLocation,
-                        quantity: quantityToAllocate,
-                    });
-                    totalAllocated += quantityToAllocate;
-                }
+        const variant = await this.getVariant(ctx, orderLine.productVariantId);
+        const { effectiveOutOfStockThreshold } = await this.getVariantStockSettings(ctx, variant);
+        const levels = await this.getStockLevelsForAllocation(ctx, variant);
+        const inScope: Array<{ level: StockLevel; location: StockLocation; tracked: boolean }> = [];
+        for (const entry of this.orderLevelsByLocation(levels, stockLocations)) {
+            if (await this.stockLevelAppliesToActiveChannel(ctx, entry.level)) {
+                inScope.push(entry);
             }
-            if (totalAllocated >= quantity) {
+        }
+        const locations: LocationWithQuantity[] = [];
+        let remaining = quantity;
+        for (const { level, location } of inScope.filter(e => e.tracked)) {
+            if (remaining <= 0) {
                 break;
             }
+            const quantityAvailable = level.stockOnHand - level.stockAllocated - effectiveOutOfStockThreshold;
+            const take = Math.min(remaining, quantityAvailable);
+            if (take > 0) {
+                locations.push({ location, quantity: take, tracked: true });
+                remaining -= take;
+            }
+        }
+        const untracked = inScope.find(e => !e.tracked);
+        if (remaining > 0 && untracked) {
+            locations.push({ location: untracked.location, quantity: remaining, tracked: false });
         }
         return locations;
     }

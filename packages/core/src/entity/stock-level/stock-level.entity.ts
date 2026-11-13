@@ -1,3 +1,4 @@
+import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
@@ -41,6 +42,17 @@ export class StockLevel extends VendureEntity implements HasCustomFields {
 
     @Column()
     stockAllocated: number;
+
+    /**
+     * @description
+     * Whether inventory is tracked for this ProductVariant at this StockLocation.
+     * `INHERIT` defers to {@link ProductVariant}`.trackInventory`, which in turn defers to
+     * {@link Channel}`.trackInventory`. See {@link resolveTrackInventory}.
+     *
+     * @since 4.0.0
+     */
+    @Column({ type: 'varchar', default: GlobalFlag.INHERIT })
+    trackInventory: GlobalFlag;
 
     @Column(type => CustomStockLevelFields)
     customFields: CustomStockLevelFields;

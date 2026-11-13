@@ -25,7 +25,7 @@ import { StockLevelService } from './stock-level.service';
  * See GHSA-8ghm-q833-cmgp.
  */
 describe('StockLevelService locking and atomic updates', () => {
-    const ctx = {} as RequestContext;
+    let ctx: RequestContext;
 
     let capturedIncrements: Array<{ conditions: any; property: string; value: number }>;
     let capturedSaves: any[];
@@ -35,12 +35,26 @@ describe('StockLevelService locking and atomic updates', () => {
     let capturedUpdates: Array<{ criteria: any; partial: any }>;
     let updateAffected: number;
     let variants: ProductVariant[];
-    let globalTrackInventory: boolean;
+    /** The StockLevels which `getTrackedVariantIds` reads to find per-location overrides. */
+    let trackingStockLevels: StockLevel[];
+    let channelTrackInventory: boolean;
+
+    /** Tracking defaults to the Channel of the RequestContext, so it is built per test. */
+    function contextWithChannelTracking(trackInventory: boolean): RequestContext {
+        return {
+            channel: new Channel({ id: 1, trackInventory }),
+            channelId: 1,
+        } as RequestContext;
+    }
 
     function createRepository() {
         return {
             findOne: vi.fn(() => Promise.resolve(findOneResult)),
-            find: vi.fn(() => Promise.resolve(findResult)),
+            // `getTrackedVariantIds` reads the StockLevels with `loadEagerRelations: false`, the
+            // unlocked fallback without it, so the fallback tests keep returning `findResult`.
+            find: vi.fn((options?: any) =>
+                Promise.resolve(options?.loadEagerRelations === false ? trackingStockLevels : findResult),
+            ),
             save: vi.fn((entity: any) => {
                 capturedSaves.push(entity);
                 return Promise.resolve(entity);
@@ -67,15 +81,12 @@ describe('StockLevelService locking and atomic updates', () => {
         const configService: any = {
             catalogOptions: { stockLocationStrategy: new DefaultStockLocationStrategy() },
         };
-        const globalSettingsService: any = {
-            getSettings: () => Promise.resolve({ trackInventory: globalTrackInventory }),
-        };
         return new StockLevelService(
             connection,
             {} as any,
             configService,
             new RequestContextCacheService(),
-            globalSettingsService,
+            {} as any,
         );
     }
 
@@ -85,7 +96,9 @@ describe('StockLevelService locking and atomic updates', () => {
         capturedUpdates = [];
         updateAffected = 0;
         variants = [];
-        globalTrackInventory = true;
+        trackingStockLevels = [];
+        channelTrackInventory = true;
+        ctx = contextWithChannelTracking(channelTrackInventory);
         findResult = [];
         findOneResult = new StockLevel({ id: 42, stockOnHand: 10, stockAllocated: 3 });
         selectQueryBuilder = {
@@ -183,7 +196,7 @@ describe('StockLevelService locking and atomic updates', () => {
             const result = await createService().getAvailableStock(ctx, 1);
 
             expect(selectQueryBuilder.setLock).not.toHaveBeenCalled();
-            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2 });
+            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2, hasUntrackedStock: false });
         });
 
         it('takes a write lock in a fixed row order when asked to', async () => {
@@ -193,7 +206,7 @@ describe('StockLevelService locking and atomic updates', () => {
 
             expect(selectQueryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
             expect(selectQueryBuilder.orderBy).toHaveBeenCalledWith('stockLevel.id', 'ASC');
-            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2 });
+            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2, hasUntrackedStock: false });
         });
 
         it('warns and falls back to an unlocked read on drivers without row locks', async () => {
@@ -205,7 +218,7 @@ describe('StockLevelService locking and atomic updates', () => {
             try {
                 const result = await createService().getAvailableStock(ctx, 1, { lockStockLevels: true });
 
-                expect(result).toEqual({ stockOnHand: 4, stockAllocated: 1 });
+                expect(result).toEqual({ stockOnHand: 4, stockAllocated: 1, hasUntrackedStock: false });
                 expect(warnSpy).toHaveBeenCalledTimes(1);
                 expect(warnSpy.mock.calls[0][0]).toContain('does not support row locking');
             } finally {
@@ -239,7 +252,7 @@ describe('StockLevelService locking and atomic updates', () => {
             try {
                 const result = await createService().getAvailableStock(ctx, 1, { lockStockLevels: true });
 
-                expect(result).toEqual({ stockOnHand: 6, stockAllocated: 2 });
+                expect(result).toEqual({ stockOnHand: 6, stockAllocated: 2, hasUntrackedStock: false });
                 expect(warnSpy).toHaveBeenCalledTimes(1);
                 expect(warnSpy.mock.calls[0][0]).toContain('no transaction is in progress');
             } finally {
@@ -276,7 +289,7 @@ describe('StockLevelService locking and atomic updates', () => {
         });
 
         it('does not lock variants which do not track inventory', async () => {
-            globalTrackInventory = false;
+            ctx = contextWithChannelTracking(false);
             variants = [
                 new ProductVariant({ id: 1, trackInventory: GlobalFlag.TRUE }),
                 new ProductVariant({ id: 2, trackInventory: GlobalFlag.FALSE }),
@@ -290,8 +303,8 @@ describe('StockLevelService locking and atomic updates', () => {
             ).toEqual([1]);
         });
 
-        it('locks variants which inherit inventory tracking when it is on globally', async () => {
-            globalTrackInventory = true;
+        it("locks variants which inherit inventory tracking when the Channel's trackInventory is on", async () => {
+            ctx = contextWithChannelTracking(true);
             variants = [
                 new ProductVariant({ id: 2, trackInventory: GlobalFlag.FALSE }),
                 new ProductVariant({ id: 3, trackInventory: GlobalFlag.INHERIT }),
@@ -304,8 +317,31 @@ describe('StockLevelService locking and atomic updates', () => {
             ).toEqual([3]);
         });
 
+        it('locks an untracked variant whose only tracked signal is a StockLevel set to TRUE', async () => {
+            ctx = contextWithChannelTracking(false);
+            variants = [
+                new ProductVariant({ id: 1, trackInventory: GlobalFlag.FALSE }),
+                new ProductVariant({ id: 2, trackInventory: GlobalFlag.INHERIT }),
+                new ProductVariant({ id: 3, trackInventory: GlobalFlag.FALSE }),
+            ];
+            trackingStockLevels = [
+                new StockLevel({ id: 1, productVariantId: 1, trackInventory: GlobalFlag.INHERIT }),
+                new StockLevel({ id: 2, productVariantId: 2, trackInventory: GlobalFlag.TRUE }),
+                new StockLevel({ id: 3, productVariantId: 3, trackInventory: GlobalFlag.FALSE }),
+            ];
+
+            const service = createService();
+            expect(await service.getTrackedVariantIds(ctx, [1, 2, 3])).toEqual([2]);
+
+            await service.lockStockLevelsForVariants(ctx, [1, 2, 3]);
+
+            expect(
+                selectQueryBuilder.where.mock.calls.map((call: any[]) => call[1].productVariantId),
+            ).toEqual([2]);
+        });
+
         it('locks variants which do not track inventory when asked to include them', async () => {
-            globalTrackInventory = false;
+            ctx = contextWithChannelTracking(false);
             variants = [
                 new ProductVariant({ id: 1, trackInventory: GlobalFlag.TRUE }),
                 new ProductVariant({ id: 2, trackInventory: GlobalFlag.FALSE }),
@@ -343,7 +379,7 @@ describe('StockLevelService locking and atomic updates', () => {
                 {} as any,
                 { catalogOptions: { stockLocationStrategy: new DefaultStockLocationStrategy() } } as any,
                 new RequestContextCacheService(),
-                { getSettings: () => Promise.resolve({ trackInventory: true }) } as any,
+                {} as any,
             );
 
             await service.lockStockLevelsForVariants(ctx, [1, 2], { includeUntrackedVariants: true });
@@ -359,6 +395,16 @@ describe('StockLevelService locking and atomic updates', () => {
             });
 
             expect(ids).toEqual([10, 9, 2]);
+        });
+
+        it("resolves an INHERIT variant against the Channel's trackInventory", async () => {
+            findResult = [new StockLevel({ id: 1, productVariantId: 1, stockOnHand: 10, stockAllocated: 2 })];
+            variants = [new ProductVariant({ id: 1, trackInventory: GlobalFlag.INHERIT })];
+            ctx = contextWithChannelTracking(false);
+
+            const result = await createService().getAvailableStock(ctx, 1);
+
+            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2, hasUntrackedStock: true });
         });
 
         it('rethrows errors which are not about locking support', async () => {
@@ -475,27 +521,37 @@ function createQueryBuilder() {
     return queryBuilder;
 }
 
+/** Batches the `trackInventory` of the variants whose stock is read, alongside the StockLevels. */
+const variantFind = vi.fn(({ where }: any) => {
+    const requestedIds: Array<string | number> = where.id._value;
+    return Promise.resolve(
+        requestedIds.map(id => new ProductVariant({ id, trackInventory: GlobalFlag.INHERIT })),
+    );
+});
+
 const mockConnection = {
-    getRepository: () => ({ find, createQueryBuilder }),
+    getRepository: (_ctx: RequestContext, entity: unknown) =>
+        entity === ProductVariant ? { find: variantFind } : { find, createQueryBuilder },
 } as any;
 
 // Sums the levels it is given, as DefaultStockLocationStrategy does, so the assertions are
-// about which rows reach the strategy rather than about channel filtering.
+// about which rows reach the strategy rather than about channel filtering or tracking.
+const strategyGetAvailableStock = vi.fn(
+    (ctx: RequestContext, productVariantId: any, stockLevels: StockLevel[], productVariant?: any) => ({
+        stockOnHand: stockLevels.reduce((sum, sl) => sum + sl.stockOnHand, 0),
+        stockAllocated: stockLevels.reduce((sum, sl) => sum + sl.stockAllocated, 0),
+    }),
+);
 const mockConfigService = {
     catalogOptions: {
-        stockLocationStrategy: {
-            getAvailableStock: (ctx: RequestContext, productVariantId: any, stockLevels: StockLevel[]) => ({
-                stockOnHand: stockLevels.reduce((sum, sl) => sum + sl.stockOnHand, 0),
-                stockAllocated: stockLevels.reduce((sum, sl) => sum + sl.stockAllocated, 0),
-            }),
-        },
+        stockLocationStrategy: { getAvailableStock: strategyGetAvailableStock },
     },
 } as any;
 
 function newCtx(channelId = 1): RequestContext {
     return new RequestContext({
         apiType: 'shop',
-        channel: new Channel({ id: channelId }),
+        channel: new Channel({ id: channelId, trackInventory: true }),
         authorizedAsOwnerOnly: false,
         isAuthorized: true,
         session: {} as any,
@@ -508,6 +564,8 @@ describe('StockLevelService', () => {
 
     beforeEach(() => {
         find.mockClear();
+        variantFind.mockClear();
+        strategyGetAvailableStock.mockClear();
         queryBuilderReads.length = 0;
         ctx = newCtx();
         service = new StockLevelService(
@@ -524,6 +582,7 @@ describe('StockLevelService', () => {
             const results = await Promise.all([1, 2, 3, 4, 5].map(id => service.getAvailableStock(ctx, id)));
 
             expect(find).toHaveBeenCalledTimes(1);
+            expect(variantFind).toHaveBeenCalledTimes(1);
             expect(results.map(r => r.stockOnHand)).toEqual([10, 20, 30, 40, 50]);
             expect(results.map(r => r.stockAllocated)).toEqual([1, 1, 1, 1, 1]);
         });
@@ -537,6 +596,7 @@ describe('StockLevelService', () => {
             ]);
 
             expect(find).toHaveBeenCalledTimes(1);
+            expect(variantFind).toHaveBeenCalledTimes(1);
             expect(first).toEqual(second);
         });
 
@@ -546,17 +606,37 @@ describe('StockLevelService', () => {
             expect(result).toEqual({ stockOnHand: 0, stockAllocated: 0 });
         });
 
+        it('passes the batched trackInventory of the variant to the StockLocationStrategy', async () => {
+            await service.getAvailableStock(ctx, 1);
+
+            expect(strategyGetAvailableStock.mock.calls[0][3]).toMatchObject({
+                id: 1,
+                trackInventory: GlobalFlag.INHERIT,
+            });
+        });
+
+        it('does not load the variant when the caller passes one with its trackInventory', async () => {
+            const productVariant = { id: 1, trackInventory: GlobalFlag.FALSE };
+
+            await service.getAvailableStock(ctx, 1, { productVariant });
+
+            expect(variantFind).not.toHaveBeenCalled();
+            expect(strategyGetAvailableStock.mock.calls[0][3]).toBe(productVariant);
+        });
+
         it('re-reads on a later tick, so stock changed within a request is not stale', async () => {
             await service.getAvailableStock(ctx, 1);
             await service.getAvailableStock(ctx, 1);
 
             expect(find).toHaveBeenCalledTimes(2);
+            expect(variantFind).toHaveBeenCalledTimes(2);
         });
 
         it('does not share a batch across RequestContexts', async () => {
             await Promise.all([service.getAvailableStock(ctx, 1), service.getAvailableStock(newCtx(), 2)]);
 
             expect(find).toHaveBeenCalledTimes(2);
+            expect(variantFind).toHaveBeenCalledTimes(2);
         });
     });
 

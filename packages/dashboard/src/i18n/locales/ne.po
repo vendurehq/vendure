@@ -145,6 +145,10 @@ msgstr "ग्लोबल सेटिङहरू अपडेट गर्न
 msgid "Successfully fulfilled order"
 msgstr "अर्डर सफलतापूर्वक पूरा गरियो"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -201,6 +205,10 @@ msgstr ""
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "{0} चयन गर्नुहोस्"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1259,6 +1267,10 @@ msgstr "अनुसूचित कार्य कार्यान्वय�
 msgid "New stock location"
 msgstr "नयाँ स्टक स्थान"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1408,8 +1420,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "सक्षम पारिएको बेला, प्रमोशन पसलमा उपलब्ध हुन्छ"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "ट्र्याक गर्दा, उत्पादन भेरियन्ट स्टक स्तरहरू बिक्री हुँदा स्वचालित रूपमा समायोजन गरिनेछ। यो सेटिङ व्यक्तिगत उत्पादन भेरियन्टहरूद्वारा ओभरराइड गर्न सकिन्छ।"
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "ट्र्याक गर्दा, उत्पादन भेरियन्ट स्टक स्तरहरू बिक्री हुँदा स्वचालित रूपमा समायोजन गरिनेछ। यो सेटिङ व्यक्तिगत उत्पादन भेरियन्टहरूद्वारा ओभरराइड गर्न सकिन्छ।"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1483,8 +1495,8 @@ msgid "Regenerate slug from source field"
 msgstr "स्रोत फिल्डबाट स्लग पुन: उत्पन्न गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "ग्लोबल सेटिङहरूबाट विरासतमा प्राप्त गर्नुहोस्"
+#~ msgid "Inherit from global settings"
+#~ msgstr "ग्लोबल सेटिङहरूबाट विरासतमा प्राप्त गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1617,6 +1629,10 @@ msgstr "भुक्तानी विधिहरू"
 msgid "Stock"
 msgstr "स्टक"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "यस अवधिमा कुनै बिक्री छैन"
@@ -1665,6 +1681,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "अर्डरमा वस्तु थपियो"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2424,6 +2444,10 @@ msgstr "{count, plural, one {{count} स्टक स्थान मेट्�
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "कोड"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3872,6 +3896,8 @@ msgstr "कुनै ग्लोबल भाषाहरू कन्फिग
 msgid "Removing {0} item(s)"
 msgstr "{0} वस्तु(हरू) हटाउँदै"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5738,6 +5764,10 @@ msgstr ""
 msgid "Manage tags"
 msgstr "ट्यागहरू व्यवस्थापन गर्नुहोस्"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "अर्डरबाट कुपन कोड हटाइएको"
@@ -5900,6 +5930,10 @@ msgstr "गलत सामान"
 msgid "Summary of modifications"
 msgstr "परिमार्जनहरूको सारांश"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -6013,6 +6047,8 @@ msgstr "अर्डरका लागि ठेगाना सेट गर�
 msgid "State"
 msgstr "अवस्था"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6695,7 +6731,7 @@ msgstr "चयन गरिएको स्थितिमा संक्रम
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "{formattedDiff} को थप भुक्तानी आवश्यक हुनेछ।"
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "पूर्वनिर्धारित रूपमा सूची ट्र्याक गर्नुहोस्"
 
@@ -6744,8 +6780,8 @@ msgid "Customer not found"
 msgstr "ग्राहक फेला परेन"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7517,8 +7553,8 @@ msgid "Successfully created tax rate"
 msgstr "कर दर सफलतापूर्वक सिर्जना गरियो"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

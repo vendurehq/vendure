@@ -118,6 +118,45 @@ test.describe('Channels CRUD', () => {
         await dp.expectSuccessToast(/Successfully updated channel/);
     });
 
+    // #2908 — the inventory tracking default is set per Channel
+    test('should toggle track inventory for the channel and persist', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.clickEntity('e2e-test-channel');
+        await expect(page).toHaveURL(/\/channels\/[^/]+$/);
+        await page.waitForLoadState('networkidle');
+
+        const trackSwitch = () =>
+            page
+                .locator('[data-slot="field"]')
+                .filter({
+                    has: page
+                        .locator('[data-slot="field-label"]')
+                        .getByText('Track inventory by default', { exact: true }),
+                })
+                .getByRole('switch');
+        await expect(trackSwitch()).toBeVisible({ timeout: 10_000 });
+        const wasChecked = await trackSwitch().isChecked();
+
+        const dp = detailPage(page);
+        await trackSwitch().click();
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated channel/);
+
+        await page.reload();
+        await page.waitForLoadState('networkidle');
+        if (wasChecked) {
+            await expect(trackSwitch()).not.toBeChecked({ timeout: 10_000 });
+        } else {
+            await expect(trackSwitch()).toBeChecked({ timeout: 10_000 });
+        }
+
+        await trackSwitch().click();
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated channel/);
+    });
+
     // #4995 — the Appearance PageBlock must be a direct PageLayout child or it is silently omitted.
     test('should update the channel color from the appearance card', async ({ page }) => {
         let channelColors: Record<string, string> = {};
@@ -322,8 +361,7 @@ test.describe('Channel required-field validation', () => {
 
     // Select popups are portalled to the document, and several of them are mounted at once on
     // this form, so scope option queries to the one that is actually open.
-    const openSelect = (page: Page) =>
-        page.locator('[data-slot="select-content"]').filter({ visible: true });
+    const openSelect = (page: Page) => page.locator('[data-slot="select-content"]').filter({ visible: true });
 
     // A DS v2 multi-select shows its value as chips, not as text inside the input, so assertions
     // about what is selected have to read the chip rather than the form item as a whole.
@@ -460,7 +498,9 @@ test.describe('Channel required-field validation', () => {
 
         // ...one of which becomes the default...
         await dp.formItem('Default currency').getByRole('combobox').click();
-        await openSelect(page).getByRole('option', { name: /US Dollar/ }).click();
+        await openSelect(page)
+            .getByRole('option', { name: /US Dollar/ })
+            .click();
         await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
 
         // ...and is then taken back off the available list via its chip.

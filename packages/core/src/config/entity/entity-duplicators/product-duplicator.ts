@@ -137,6 +137,7 @@ export const productDuplicator = new EntityDuplicator({
                     stockLevels: variant.stockLevels.map(stockLevel => ({
                         stockLocationId: stockLevel.stockLocationId,
                         stockOnHand: stockLevel.stockOnHand,
+                        trackInventory: stockLevel.trackInventory,
                     })),
                     customFields: variant.customFields,
                 };

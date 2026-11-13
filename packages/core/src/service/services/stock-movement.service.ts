@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-    GlobalFlag,
     OrderLineInput,
     StockLevelInput,
     StockMovementListOptions,
@@ -11,6 +10,7 @@ import { In } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
 import { idsAreEqual } from '../../common/utils';
+import { LocationWithQuantity } from '../../config/catalog/stock-location-strategy';
 import { Logger } from '../../config/logger/vendure-logger';
 import { ShippingCalculator } from '../../config/shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from '../../config/shipping-method/shipping-eligibility-checker';
@@ -19,6 +19,7 @@ import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ShippingMethod } from '../../entity/shipping-method/shipping-method.entity';
+import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { Allocation } from '../../entity/stock-movement/allocation.entity';
 import { Cancellation } from '../../entity/stock-movement/cancellation.entity';
 import { Release } from '../../entity/stock-movement/release.entity';
@@ -29,8 +30,10 @@ import { EventBus } from '../../event-bus/event-bus';
 import { StockMovementEvent } from '../../event-bus/events/stock-movement-event';
 import { StockShortfall, StockShortfallEvent } from '../../event-bus/events/stock-shortfall-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { getOrderChannelContext } from '../helpers/utils/order-channel-context';
+import { OrderLineStockLedger } from '../helpers/utils/order-line-stock-ledger';
 
-import { GlobalSettingsService } from './global-settings.service';
+import { ChannelService } from './channel.service';
 import { StockLevelService } from './stock-level.service';
 import { StockLocationService } from './stock-location.service';
 
@@ -52,7 +55,7 @@ export class StockMovementService {
     constructor(
         private connection: TransactionalConnection,
         private listQueryBuilder: ListQueryBuilder,
-        private globalSettingsService: GlobalSettingsService,
+        private channelService: ChannelService,
         private stockLevelService: StockLevelService,
         private eventBus: EventBus,
         private stockLocationService: StockLocationService,
@@ -145,6 +148,18 @@ export class StockMovementService {
                     );
                     stockOnHandByLocation.set(locationKey, created.stockOnHand);
                 }
+                if (input.trackInventory != null) {
+                    await this.connection
+                        .getRepository(txCtx, StockLevel)
+                        .update(
+                            { productVariantId, stockLocationId: input.stockLocationId },
+                            { trackInventory: input.trackInventory },
+                        );
+                }
+                if (input.stockOnHand == null) {
+                    // Only the tracking setting changes; there is no stock to adjust.
+                    continue;
+                }
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const oldStockLevel = stockOnHandByLocation.get(locationKey)!;
                 const newStockLevel = input.stockOnHand;
@@ -155,6 +170,8 @@ export class StockMovementService {
                 stockOnHandByLocation.set(locationKey, newStockLevel);
                 const adjustment = await this.connection.getRepository(txCtx, StockAdjustment).save(
                     new StockAdjustment({
+                        // An adjustment always changes stockOnHand, whatever the tracking setting.
+                        tracked: true,
                         quantity: delta,
                         stockLocation: { id: input.stockLocationId },
                         productVariant: { id: productVariantId },
@@ -211,8 +228,7 @@ export class StockMovementService {
             // fulfillment's lines in one call. Shortfalls are therefore grouped by the Order the
             // shortfalling line belongs to, so each StockShortfallEvent references the right Order.
             const shortfallsByOrder = new Map<ID, { order: Order; shortfalls: StockShortfall[] }>();
-            const globalTrackInventory = (await this.globalSettingsService.getSettings(txCtx)).trackInventory;
-
+            const orderContexts = new Map<string, RequestContext>();
             const orderLinesToAllocate = await Promise.all(
                 lines.map(async ({ orderLineId, quantity }) => ({
                     orderLine: await this.connection.getEntityOrThrow(txCtx, OrderLine, orderLineId, {
@@ -221,28 +237,45 @@ export class StockMovementService {
                     quantity,
                 })),
             );
-            await this.stockLevelService.lockStockLevelsForVariants(
-                txCtx,
-                orderLinesToAllocate.map(({ orderLine }) => orderLine.productVariantId),
-            );
+            // Lock the variants which are tracked in the Channel of the Order they are allocated
+            // for, which need not be the Channel of whoever triggered the allocation. One sorted
+            // lock call for the whole batch keeps the shared lock order.
+            const trackedVariantIds: ID[] = [];
+            for (const { orderLine } of orderLinesToAllocate) {
+                const orderCtx = await this.getOrderContext(txCtx, orderLine.order.id, orderContexts);
+                trackedVariantIds.push(
+                    ...(await this.stockLevelService.getTrackedVariantIds(orderCtx, [
+                        orderLine.productVariantId,
+                    ])),
+                );
+            }
+            await this.stockLevelService.lockStockLevelsForVariants(txCtx, trackedVariantIds, {
+                includeUntrackedVariants: true,
+            });
 
             for (const { orderLine, quantity } of orderLinesToAllocate) {
+                // Stock decisions follow the Order's Channel, not the Channel of whoever triggered
+                // the allocation (e.g. an Administrator adding a payment from the default Channel).
+                const orderCtx = await this.getOrderContext(txCtx, orderLine.order.id, orderContexts);
                 const productVariant = await this.connection.getEntityOrThrow(
-                    txCtx,
+                    orderCtx,
                     ProductVariant,
                     orderLine.productVariantId,
                     { includeSoftDeleted: true },
                 );
                 const allocationLocations = await this.stockLocationService.getAllocationLocations(
-                    txCtx,
+                    orderCtx,
                     orderLine,
                     quantity,
                 );
-                const trackInventory = this.trackInventoryForVariant(productVariant, globalTrackInventory);
                 const allocatedForLine = allocationLocations.reduce((sum, l) => sum + l.quantity, 0);
-                // A variant which does not track inventory has no stock to fall short of, even
-                // when it has no StockLevel in the Channel's locations and so gets no allocation.
-                if (trackInventory && allocatedForLine < quantity) {
+                // Stock can only fall short if none of the StockLevels the Order's Channel can
+                // allocate from is untracked. Resolved per StockLevel, so a StockLevel set to TRUE
+                // on an otherwise untracked variant still reports its shortfall.
+                if (
+                    allocatedForLine < quantity &&
+                    !(await this.stockLevelService.hasUntrackedStock(orderCtx, productVariant))
+                ) {
                     const shortfall: StockShortfall = {
                         productVariantId: orderLine.productVariantId,
                         orderLineId: orderLine.id,
@@ -260,17 +293,29 @@ export class StockMovementService {
                     }
                 }
                 for (const allocationLocation of allocationLocations) {
+                    // Recorded on the Allocation, so that the Release or Sale which later consumes
+                    // it does the opposite of what was done here, even if `trackInventory` has
+                    // changed in the meantime. The strategy's own decision is used when it gives
+                    // one, so the record matches the cap it applied.
+                    const tracked =
+                        allocationLocation.tracked ??
+                        (await this.stockLevelService.isInventoryTrackedAtLocation(
+                            orderCtx,
+                            productVariant,
+                            allocationLocation.location.id,
+                        ));
                     const allocation = new Allocation({
                         productVariant: new ProductVariant({ id: orderLine.productVariantId }),
                         stockLocation: allocationLocation.location,
                         quantity: allocationLocation.quantity,
                         orderLine,
+                        tracked,
                     });
                     allocations.push(allocation);
 
-                    if (trackInventory) {
+                    if (tracked) {
                         await this.stockLevelService.updateStockAllocatedForLocation(
-                            txCtx,
+                            orderCtx,
                             orderLine.productVariantId,
                             allocationLocation.location.id,
                             allocationLocation.quantity,
@@ -309,51 +354,70 @@ export class StockMovementService {
      */
     async createSalesForOrder(ctx: RequestContext, lines: OrderLineInput[]): Promise<Sale[]> {
         const sales: Sale[] = [];
-        const globalTrackInventory = (await this.globalSettingsService.getSettings(ctx)).trackInventory;
         const orderLines = await this.connection
             .getRepository(ctx, OrderLine)
-            .find({ where: { id: In(lines.map(line => line.orderLineId)) } });
+            .find({ where: { id: In(lines.map(line => line.orderLineId)) }, relations: { order: true } });
+        const orderContexts = new Map<string, RequestContext>();
+        const ledgerCache = new Map<string, OrderLineStockLedger>();
+        // Untracked variants are locked too: what these movements change follows the tracked
+        // state recorded on earlier movements, which can differ from the current setting.
         await this.stockLevelService.lockStockLevelsForVariants(
             ctx,
             orderLines.map(line => line.productVariantId),
+            { includeUntrackedVariants: true },
         );
         for (const lineRow of lines) {
             const orderLine = orderLines.find(line => idsAreEqual(line.id, lineRow.orderLineId));
             if (!orderLine) {
                 continue;
             }
+            const orderCtx = await this.getOrderContext(ctx, orderLine.order.id, orderContexts);
             const productVariant = await this.connection.getEntityOrThrow(
-                ctx,
+                orderCtx,
                 ProductVariant,
                 orderLine.productVariantId,
                 { includeSoftDeleted: true },
             );
             const saleLocations = await this.stockLocationService.getSaleLocations(
-                ctx,
+                orderCtx,
                 orderLine,
                 lineRow.quantity,
             );
             for (const saleLocation of saleLocations) {
-                const sale = new Sale({
+                const trackedQuantity = await this.getTrackedQuantity(
+                    orderCtx,
+                    orderLine.id,
                     productVariant,
-                    quantity: lineRow.quantity * -1,
-                    orderLine,
-                    stockLocation: saleLocation.location,
-                });
-                sales.push(sale);
-
-                if (this.trackInventoryForVariant(productVariant, globalTrackInventory)) {
+                    saleLocation,
+                    'allocated',
+                    ledgerCache,
+                );
+                for (const [quantity, tracked] of this.splitByTracked(
+                    saleLocation.quantity,
+                    trackedQuantity,
+                )) {
+                    sales.push(
+                        new Sale({
+                            productVariant,
+                            quantity: -quantity,
+                            orderLine,
+                            stockLocation: saleLocation.location,
+                            tracked,
+                        }),
+                    );
+                }
+                if (trackedQuantity > 0) {
                     await this.stockLevelService.updateStockAllocatedForLocation(
-                        ctx,
+                        orderCtx,
                         orderLine.productVariantId,
                         saleLocation.location.id,
-                        -saleLocation.quantity,
+                        -trackedQuantity,
                     );
                     await this.stockLevelService.updateStockOnHandForLocation(
-                        ctx,
+                        orderCtx,
                         orderLine.productVariantId,
                         saleLocation.location.id,
-                        -saleLocation.quantity,
+                        -trackedQuantity,
                     );
                 }
             }
@@ -379,41 +443,60 @@ export class StockMovementService {
             where: {
                 id: In(lineInputs.map(l => l.orderLineId)),
             },
-            relations: { productVariant: true },
+            relations: { productVariant: true, order: true },
         });
+        const orderContexts = new Map<string, RequestContext>();
+        const ledgerCache = new Map<string, OrderLineStockLedger>();
 
+        // Untracked variants are locked too: what these movements change follows the tracked
+        // state recorded on earlier movements, which can differ from the current setting.
         await this.stockLevelService.lockStockLevelsForVariants(
             ctx,
             orderLines.map(line => line.productVariantId),
+            { includeUntrackedVariants: true },
         );
 
         const cancellations: Cancellation[] = [];
-        const globalTrackInventory = (await this.globalSettingsService.getSettings(ctx)).trackInventory;
         for (const orderLine of orderLines) {
             const lineInput = lineInputs.find(l => idsAreEqual(l.orderLineId, orderLine.id));
             if (!lineInput) {
                 continue;
             }
+            const orderCtx = await this.getOrderContext(ctx, orderLine.order.id, orderContexts);
             const cancellationLocations = await this.stockLocationService.getCancellationLocations(
-                ctx,
+                orderCtx,
                 orderLine,
                 lineInput.quantity,
             );
             for (const cancellationLocation of cancellationLocations) {
-                const cancellation = new Cancellation({
-                    productVariant: orderLine.productVariant,
-                    quantity: lineInput.quantity,
-                    orderLine,
-                    stockLocation: cancellationLocation.location,
-                });
-                cancellations.push(cancellation);
-
-                if (this.trackInventoryForVariant(orderLine.productVariant, globalTrackInventory)) {
+                const trackedQuantity = await this.getTrackedQuantity(
+                    orderCtx,
+                    orderLine.id,
+                    orderLine.productVariant,
+                    cancellationLocation,
+                    'sold',
+                    ledgerCache,
+                );
+                for (const [quantity, tracked] of this.splitByTracked(
+                    cancellationLocation.quantity,
+                    trackedQuantity,
+                )) {
+                    cancellations.push(
+                        new Cancellation({
+                            productVariant: orderLine.productVariant,
+                            quantity,
+                            orderLine,
+                            stockLocation: cancellationLocation.location,
+                            tracked,
+                        }),
+                    );
+                }
+                if (trackedQuantity > 0) {
                     await this.stockLevelService.updateStockOnHandForLocation(
-                        ctx,
+                        orderCtx,
                         orderLine.productVariantId,
                         cancellationLocation.location.id,
-                        cancellationLocation.quantity,
+                        trackedQuantity,
                     );
                 }
             }
@@ -435,38 +518,57 @@ export class StockMovementService {
         const releases: Release[] = [];
         const orderLines = await this.connection.getRepository(ctx, OrderLine).find({
             where: { id: In(lineInputs.map(l => l.orderLineId)) },
-            relations: { productVariant: true },
+            relations: { productVariant: true, order: true },
         });
+        const orderContexts = new Map<string, RequestContext>();
+        const ledgerCache = new Map<string, OrderLineStockLedger>();
+        // Untracked variants are locked too: what these movements change follows the tracked
+        // state recorded on earlier movements, which can differ from the current setting.
         await this.stockLevelService.lockStockLevelsForVariants(
             ctx,
             orderLines.map(line => line.productVariantId),
+            { includeUntrackedVariants: true },
         );
-        const globalTrackInventory = (await this.globalSettingsService.getSettings(ctx)).trackInventory;
-        const variantsMap = new Map<ID, ProductVariant>();
         for (const orderLine of orderLines) {
             const lineInput = lineInputs.find(l => idsAreEqual(l.orderLineId, orderLine.id));
             if (!lineInput) {
                 continue;
             }
+            const orderCtx = await this.getOrderContext(ctx, orderLine.order.id, orderContexts);
             const releaseLocations = await this.stockLocationService.getReleaseLocations(
-                ctx,
+                orderCtx,
                 orderLine,
                 lineInput.quantity,
             );
             for (const releaseLocation of releaseLocations) {
-                const release = new Release({
-                    productVariant: orderLine.productVariant,
-                    quantity: lineInput.quantity,
-                    orderLine,
-                    stockLocation: releaseLocation.location,
-                });
-                releases.push(release);
-                if (this.trackInventoryForVariant(orderLine.productVariant, globalTrackInventory)) {
+                const trackedQuantity = await this.getTrackedQuantity(
+                    orderCtx,
+                    orderLine.id,
+                    orderLine.productVariant,
+                    releaseLocation,
+                    'allocated',
+                    ledgerCache,
+                );
+                for (const [quantity, tracked] of this.splitByTracked(
+                    releaseLocation.quantity,
+                    trackedQuantity,
+                )) {
+                    releases.push(
+                        new Release({
+                            productVariant: orderLine.productVariant,
+                            quantity,
+                            orderLine,
+                            stockLocation: releaseLocation.location,
+                            tracked,
+                        }),
+                    );
+                }
+                if (trackedQuantity > 0) {
                     await this.stockLevelService.updateStockAllocatedForLocation(
-                        ctx,
+                        orderCtx,
                         orderLine.productVariantId,
                         releaseLocation.location.id,
-                        -releaseLocation.quantity,
+                        -trackedQuantity,
                     );
                 }
             }
@@ -478,10 +580,168 @@ export class StockMovementService {
         return savedReleases;
     }
 
-    private trackInventoryForVariant(variant: ProductVariant, globalTrackInventory: boolean): boolean {
-        return (
-            variant.trackInventory === GlobalFlag.TRUE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && globalTrackInventory)
-        );
+    /**
+     * @description
+     * Reverses Sales when a Fulfillment is cancelled: the units go back on hand and are allocated
+     * to the OrderLine again, so that it can be fulfilled again. For each StockLocation, a
+     * {@link Cancellation} and an {@link Allocation} are created with the same `tracked` state as
+     * the Sales they reverse. Only units whose Sale deducted stockOnHand change the figures, so
+     * the stock figures come out exactly as they were before the Fulfillment, whatever
+     * `trackInventory` is now.
+     *
+     * Before v4.0, the default FulfillmentProcess called `createCancellationsForOrderLines()`
+     * then `createAllocationsForOrderLines()`, which re-resolved tracking and re-ran the
+     * StockLocationStrategy (capping the re-allocation by available stock).
+     *
+     * @since 4.0.0
+     */
+    async reverseSalesForOrderLines(
+        ctx: RequestContext,
+        lineInputs: OrderLineInput[],
+    ): Promise<{ cancellations: Cancellation[]; allocations: Allocation[] }> {
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const orderLines = await this.connection.getRepository(txCtx, OrderLine).find({
+                where: { id: In(lineInputs.map(l => l.orderLineId)) },
+                relations: { productVariant: true, order: true },
+            });
+            await this.stockLevelService.lockStockLevelsForVariants(
+                txCtx,
+                orderLines.map(line => line.productVariantId),
+                { includeUntrackedVariants: true },
+            );
+            const orderContexts = new Map<string, RequestContext>();
+            const ledgerCache = new Map<string, OrderLineStockLedger>();
+            const cancellations: Cancellation[] = [];
+            const allocations: Allocation[] = [];
+            for (const orderLine of orderLines) {
+                const lineInput = lineInputs.find(l => idsAreEqual(l.orderLineId, orderLine.id));
+                if (!lineInput) {
+                    continue;
+                }
+                const orderCtx = await this.getOrderContext(txCtx, orderLine.order.id, orderContexts);
+                const locations = await this.stockLocationService.getCancellationLocations(
+                    orderCtx,
+                    orderLine,
+                    lineInput.quantity,
+                );
+                for (const entry of locations) {
+                    const { location, quantity: locationQuantity } = entry;
+                    const trackedQuantity = await this.getTrackedQuantity(
+                        orderCtx,
+                        orderLine.id,
+                        orderLine.productVariant,
+                        entry,
+                        'sold',
+                        ledgerCache,
+                    );
+                    for (const [quantity, tracked] of this.splitByTracked(
+                        locationQuantity,
+                        trackedQuantity,
+                    )) {
+                        cancellations.push(
+                            new Cancellation({
+                                productVariant: orderLine.productVariant,
+                                quantity,
+                                orderLine,
+                                stockLocation: location,
+                                tracked,
+                            }),
+                        );
+                        allocations.push(
+                            new Allocation({
+                                productVariant: new ProductVariant({ id: orderLine.productVariantId }),
+                                quantity,
+                                orderLine,
+                                stockLocation: location,
+                                tracked,
+                            }),
+                        );
+                    }
+                    if (trackedQuantity > 0) {
+                        await this.stockLevelService.updateStockOnHandForLocation(
+                            orderCtx,
+                            orderLine.productVariantId,
+                            location.id,
+                            trackedQuantity,
+                        );
+                        await this.stockLevelService.updateStockAllocatedForLocation(
+                            orderCtx,
+                            orderLine.productVariantId,
+                            location.id,
+                            trackedQuantity,
+                        );
+                    }
+                }
+            }
+            const savedCancellations = await this.connection
+                .getRepository(txCtx, Cancellation)
+                .save(cancellations);
+            const savedAllocations = await this.connection.getRepository(txCtx, Allocation).save(allocations);
+            if (savedCancellations.length) {
+                await this.eventBus.publish(new StockMovementEvent(txCtx, savedCancellations));
+            }
+            if (savedAllocations.length) {
+                await this.eventBus.publish(new StockMovementEvent(txCtx, savedAllocations));
+            }
+            return { cancellations: savedCancellations, allocations: savedAllocations };
+        });
+    }
+
+    private async getOrderContext(
+        ctx: RequestContext,
+        orderId: ID,
+        cache: Map<string, RequestContext>,
+    ): Promise<RequestContext> {
+        const key = String(orderId);
+        let orderCtx = cache.get(key);
+        if (!orderCtx) {
+            orderCtx = await getOrderChannelContext(ctx, this.connection, this.channelService, orderId);
+            cache.set(key, orderCtx);
+        }
+        return orderCtx;
+    }
+
+    /**
+     * How much of a release, sale or cancellation at one location is tracked inventory, i.e.
+     * changes the StockLevel figures. The StockLocationStrategy's base implementation says so on
+     * each part it returns (from the {@link OrderLineStockLedger}). A strategy which overrides
+     * `forRelease`, `forSale` or `forCancellation` without setting `tracked` is covered by
+     * reading the same ledger here.
+     */
+    private async getTrackedQuantity(
+        ctx: RequestContext,
+        orderLineId: ID,
+        productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>,
+        part: LocationWithQuantity,
+        mode: 'allocated' | 'sold',
+        cache: Map<string, OrderLineStockLedger>,
+    ): Promise<number> {
+        if (part.tracked !== undefined) {
+            return part.tracked ? part.quantity : 0;
+        }
+        const key = String(orderLineId);
+        let ledger = cache.get(key);
+        if (!ledger) {
+            ledger = await OrderLineStockLedger.load(ctx, this.connection, orderLineId);
+            cache.set(key, ledger);
+        }
+        const legacyTracked = ledger.hasLegacyRows(part.location.id)
+            ? await this.stockLevelService.isInventoryTrackedAtLocation(ctx, productVariant, part.location.id)
+            : false;
+        return Math.min(part.quantity, ledger.outstanding(part.location.id, mode, legacyTracked).tracked);
+    }
+
+    /**
+     * Splits a movement quantity into its tracked and untracked parts, omitting an empty part.
+     */
+    private splitByTracked(total: number, trackedQuantity: number): Array<[number, boolean]> {
+        const parts: Array<[number, boolean]> = [];
+        if (trackedQuantity > 0) {
+            parts.push([trackedQuantity, true]);
+        }
+        if (total - trackedQuantity > 0) {
+            parts.push([total - trackedQuantity, false]);
+        }
+        return parts;
     }
 }

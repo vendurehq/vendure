@@ -14,7 +14,6 @@ import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Label } from '@/vdb/components/ui/label.js';
 import { api } from '@/vdb/graphql/api.js';
-import { graphql } from '@/vdb/graphql/graphql.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
@@ -55,22 +54,6 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
         staleTime: 1000 * 60 * 60 * 5,
     });
 
-    // Get global settings for inventory tracking
-    const { data: globalSettingsData } = useQuery({
-        queryKey: ['globalSettings'],
-        queryFn: () =>
-            api.query(
-                graphql(`
-                    query GetGlobalSettings {
-                        globalSettings {
-                            trackInventory
-                        }
-                    }
-                `),
-            ),
-        staleTime: 1000 * 60 * 60 * 5,
-    });
-
     const fulfillOrderMutation = useMutation({
         mutationFn: api.mutate(fulfillOrderDocument),
         onSuccess: (result: any) => {
@@ -102,11 +85,9 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
 
     // Initialize fulfillment quantities when dialog opens
     const initializeFulfillmentQuantities = () => {
-        if (!globalSettingsData?.globalSettings) return;
-
         const quantities: { [lineId: string]: FulfillmentQuantity } = {};
         order.lines.forEach(line => {
-            const fulfillCount = getFulfillableCount(line, globalSettingsData.globalSettings.trackInventory);
+            const fulfillCount = getFulfillableCount(line);
             quantities[line.id] = { fulfillCount, max: fulfillCount };
         });
         setFulfillmentQuantities(quantities);
@@ -128,13 +109,12 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
         }
     };
 
-    const getFulfillableCount = (line: Order['lines'][number], globalTrackInventory: boolean): number => {
-        const { trackInventory, stockOnHand } = line.productVariant;
-        const effectiveTrackInventory =
-            trackInventory === 'INHERIT' ? globalTrackInventory : trackInventory === 'TRUE';
-
+    const getFulfillableCount = (line: Order['lines'][number]): number => {
+        // `tracksInventory` is resolved by the server (StockLevel, then variant, then Channel), so
+        // the dialog does not re-implement that resolution.
+        const { tracksInventory, stockOnHand } = line.productVariant;
         const unfulfilledCount = getUnfulfilledCount(line);
-        return effectiveTrackInventory ? Math.min(unfulfilledCount, stockOnHand) : unfulfilledCount;
+        return tracksInventory ? Math.min(unfulfilledCount, stockOnHand) : unfulfilledCount;
     };
 
     const getUnfulfilledCount = (line: Order['lines'][number]): number => {

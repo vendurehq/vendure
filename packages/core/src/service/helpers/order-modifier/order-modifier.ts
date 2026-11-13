@@ -56,6 +56,7 @@ import { Surcharge } from '../../../entity/surcharge/surcharge.entity';
 import { OrderEvent } from '../../../event-bus';
 import { EventBus } from '../../../event-bus/event-bus';
 import { OrderLineEvent } from '../../../event-bus/events/order-line-event';
+import { ChannelService } from '../../services/channel.service';
 import { CountryService } from '../../services/country.service';
 import { HistoryService } from '../../services/history.service';
 import { PaymentService } from '../../services/payment.service';
@@ -69,6 +70,7 @@ import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
+import { getOrderChannelContext } from '../utils/order-channel-context';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
 
@@ -103,6 +105,7 @@ export class OrderModifier {
         private historyService: HistoryService,
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
+        private channelService: ChannelService,
     ) {}
 
     /**
@@ -343,12 +346,15 @@ export class OrderModifier {
             }
         }
         // Cancellations and releases touch different sets of variants, so lock their union once,
-        // in the shared order, rather than letting each call lock its own set.
+        // in the shared order, rather than letting each call lock its own set. Untracked variants
+        // are locked too: what these movements change follows the tracked state recorded on the
+        // earlier movements, which can differ from the current setting.
         await this.stockLevelService.lockStockLevelsForVariants(
             ctx,
             [...fulfilledLines, ...allocatedLines]
                 .map(line => fullOrder.lines.find(l => idsAreEqual(l.id, line.orderLineId))?.productVariantId)
                 .filter((id): id is ID => id != null),
+            { includeUntrackedVariants: true },
         );
         await this.stockMovementService.createCancellationsForOrderLines(ctx, fulfilledLines);
         await this.stockMovementService.createReleasesForOrderLines(ctx, allocatedLines);
@@ -441,7 +447,10 @@ export class OrderModifier {
             reason: refund.reason || input.note,
         }));
 
-        await this.lockStockLevelsForModification(ctx, order, input);
+        // Saleable stock is judged in the Order's Channel, not the Administrator's, and the lock is
+        // taken in the same Channel so it covers the variants the check treats as tracked.
+        const stockCtx = await getOrderChannelContext(ctx, this.connection, this.channelService, order.id);
+        await this.lockStockLevelsForModification(stockCtx, order, input);
 
         for (const row of input.addItems ?? []) {
             const { productVariantId, quantity } = row;
@@ -454,7 +463,7 @@ export class OrderModifier {
             // The allocation in updateOrderLineQuantity runs in this transaction, so the check
             // re-reads the rows locked by lockStockLevelsForModification() above.
             const correctedQuantity = await this.constrainQuantityToSaleable(
-                ctx,
+                stockCtx,
                 orderLine.productVariant,
                 quantity,
                 0,
@@ -493,7 +502,7 @@ export class OrderModifier {
             if (initialLineQuantity < quantity) {
                 // See the comment on the addItems loop above.
                 const additionalQuantity = await this.constrainQuantityToSaleable(
-                    ctx,
+                    stockCtx,
                     orderLine.productVariant,
                     quantity - initialLineQuantity,
                     0,

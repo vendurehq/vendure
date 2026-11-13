@@ -145,6 +145,10 @@ msgstr "Global sozlamalarni yangilab bo'lmadi"
 msgid "Successfully fulfilled order"
 msgstr "Buyurtma muvaffaqiyatli bajarildi"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant"
+msgstr ""
+
 #. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
 msgid "Are you sure you want to delete {0} {entityName}?"
@@ -197,6 +201,10 @@ msgstr ""
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Select {0}"
 msgstr "{0} ni tanlang"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel"
+msgstr ""
 
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
@@ -1231,6 +1239,10 @@ msgstr "Rejalashtirilgan vazifa bajariladi"
 msgid "New stock location"
 msgstr "Yangi zaxira joylashuvi"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Track)"
+msgstr ""
+
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Select row"
@@ -1376,8 +1388,8 @@ msgid "When enabled, a promotion is available in the shop"
 msgstr "Yoqilganda, aksiya do'konda mavjud bo'ladi"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
-msgstr "Kuzatilganda, mahsulot varianti zaxira darajalari sotuvda avtomatik o'zgaradi. Bu sozlamani alohida mahsulot variantlari bekor qilishi mumkin."
+#~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
+#~ msgstr "Kuzatilganda, mahsulot varianti zaxira darajalari sotuvda avtomatik o'zgaradi. Bu sozlamani alohida mahsulot variantlari bekor qilishi mumkin."
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Shipping method set for order"
@@ -1451,8 +1463,8 @@ msgid "Regenerate slug from source field"
 msgstr "Manba maydonidan Slugni qayta yaratish"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings"
-msgstr "Global sozlamalardan meros olish"
+#~ msgid "Inherit from global settings"
+#~ msgstr "Global sozlamalardan meros olish"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Search facets..."
@@ -1581,6 +1593,10 @@ msgstr "To'lov usullari"
 msgid "Stock"
 msgstr "Zaxira"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Track)"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/top-products-widget/index.tsx
 msgid "No sales for this period"
 msgstr "Bu davrda sotuvlar yo'q"
@@ -1625,6 +1641,10 @@ msgstr "{buttonText}"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Item added to order"
 msgstr "Element buyurtmaga qo'shildi"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from channel (Do not track)"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
@@ -2357,6 +2377,10 @@ msgstr "{count, plural, one {{count} ta ombor joylashuvini o'chirib bo'lmadi} ot
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Code"
 msgstr "Kod"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "When tracked, stock levels are adjusted as products are sold in this channel. Product variants and individual stock levels can override this."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
@@ -3780,6 +3804,8 @@ msgstr "Hech qanday global til sozlanmagan"
 msgid "Removing {0} item(s)"
 msgstr "{0} element olib tashlanmoqda"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Track"
@@ -5590,6 +5616,10 @@ msgstr ""
 msgid "Manage tags"
 msgstr "Teglarni boshqarish"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Inherit from variant (Do not track)"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code removed from order"
 msgstr "Buyurtmadan kupon kodi olib tashlandi"
@@ -5748,6 +5778,10 @@ msgstr "Noto'g'ri mahsulot"
 msgid "Summary of modifications"
 msgstr "O'zgartirishlar xulosasi"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Track inventory at this location"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/login/reset-password-form.tsx
@@ -5861,6 +5895,8 @@ msgstr "Buyurtma uchun manzilni o'rnatib bo'lmadi: {0}"
 msgid "State"
 msgstr "Holat"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Do not track"
@@ -6511,7 +6547,7 @@ msgstr "Tanlangan holatga o'tkazish"
 msgid "An additional payment of {formattedDiff} will be required."
 msgstr "{formattedDiff} miqdorida qo'shimcha to'lov talab qilinadi."
 
-#: src/app/routes/_authenticated/_global-settings/global-settings.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Track inventory by default"
 msgstr "Standart bo'yicha omborni kuzatish"
 
@@ -6560,8 +6596,8 @@ msgid "Customer not found"
 msgstr "Mijoz topilmadi"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Track)"
+#~ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx
@@ -7313,8 +7349,8 @@ msgid "Successfully created tax rate"
 msgstr "Soliq stavkasi muvaffaqiyatli yaratildi"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Inherit from global settings (Do not track)"
-msgstr ""
+#~ msgid "Inherit from global settings (Do not track)"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 msgid "Remove option group {name}"

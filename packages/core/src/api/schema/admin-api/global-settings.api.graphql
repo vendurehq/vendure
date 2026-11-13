@@ -8,7 +8,6 @@ type Mutation {
 
 input UpdateGlobalSettingsInput {
     availableLanguages: [LanguageCode!]
-    trackInventory: Boolean
     outOfStockThreshold: Int
 }
 
