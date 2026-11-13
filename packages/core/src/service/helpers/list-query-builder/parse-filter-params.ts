@@ -267,12 +267,12 @@ function buildWhereCondition(
         case 'eq':
             return {
                 clause: `${fieldName} = :arg${argIndex}`,
-                parameters: { [`arg${argIndex}`]: convertDate(operand) },
+                parameters: { [`arg${argIndex}`]: convertDate(operand, dbType) },
             };
         case 'notEq':
             return {
                 clause: `${fieldName} != :arg${argIndex}`,
-                parameters: { [`arg${argIndex}`]: convertDate(operand) },
+                parameters: { [`arg${argIndex}`]: convertDate(operand, dbType) },
             };
         case 'inList':
         case 'contains': {
@@ -332,13 +332,13 @@ function buildWhereCondition(
         case 'before':
             return {
                 clause: `${fieldName} < :arg${argIndex}`,
-                parameters: { [`arg${argIndex}`]: convertDate(operand) },
+                parameters: { [`arg${argIndex}`]: convertDate(operand, dbType) },
             };
         case 'gt':
         case 'after':
             return {
                 clause: `${fieldName} > :arg${argIndex}`,
-                parameters: { [`arg${argIndex}`]: convertDate(operand) },
+                parameters: { [`arg${argIndex}`]: convertDate(operand, dbType) },
             };
         case 'lte':
             return {
@@ -354,8 +354,8 @@ function buildWhereCondition(
             return {
                 clause: `${fieldName} BETWEEN :arg${argIndex}_a AND :arg${argIndex}_b`,
                 parameters: {
-                    [`arg${argIndex}_a`]: convertDate(operand.start),
-                    [`arg${argIndex}_b`]: convertDate(operand.end),
+                    [`arg${argIndex}_a`]: convertDate(operand.start, dbType),
+                    [`arg${argIndex}_b`]: convertDate(operand.end, dbType),
                 },
             };
         case 'isNull':
@@ -375,9 +375,16 @@ function buildWhereCondition(
 /**
  * Converts a JS Date object to a string format recognized by all DB engines.
  * See https://github.com/vendurehq/vendure/issues/251
+ *
+ * On Postgres the string carries an explicit `Z`. A `timestamptz` column would otherwise read a
+ * zone-less literal in the session timezone (OSS-1007). A `timestamp` column ignores the zone,
+ * so for it the result is unchanged.
  */
-function convertDate(input: Date | string | number): string | number {
+function convertDate(input: Date | string | number, dbType: VendureDatabaseType): string | number {
     if (input instanceof Date) {
+        if (dbType === 'postgres') {
+            return input.toISOString();
+        }
         return DateUtils.mixedDateToUtcDatetimeString(input);
     }
     return input;

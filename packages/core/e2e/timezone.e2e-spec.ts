@@ -84,6 +84,10 @@ describe('Timezone handling (OSS-1007)', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: { paymentMethodHandlers: [testSuccessfulPaymentMethod] },
+            // OSS1007_TS_TYPE=timestamp runs the pre-v4 column type on Postgres
+            entityOptions: {
+                timestampColumnType: (process.env.OSS1007_TS_TYPE as 'timestamp' | undefined) ?? 'timestamptz',
+            },
             customFields: {
                 Promotion: [{ name: 'validFrom', type: 'datetime', nullable: true }],
             },

@@ -1330,6 +1330,31 @@ export interface EntityOptions {
      * @default DefaultSlugStrategy
      */
     slugStrategy?: SlugStrategy;
+    /**
+     * @description
+     * **Postgres only.** The column type used for every date-time column: the `createdAt`,
+     * `updatedAt` and `deletedAt` columns, every column whose TypeScript type is `Date`
+     * (for example `Order.orderPlacedAt`), and custom fields of type `datetime`. This
+     * applies to the built-in entities and to plugin entities.
+     *
+     * - `'timestamptz'` (`timestamp with time zone`) stores an absolute instant. The value
+     *   does not depend on the `TZ` of the Node.js process or on the timezone of the
+     *   Postgres server or session.
+     * - `'timestamp'` (`timestamp without time zone`) is the pre-v4 behaviour. node-postgres
+     *   writes and reads these columns in the local time of the Node.js process, and column
+     *   defaults such as `now()` use the session timezone. Values are only correct when the
+     *   process, the server and the session all use the same timezone, and are ambiguous
+     *   during the repeated hour when daylight saving time ends.
+     *
+     * Columns declared with an explicit string type such as `type: 'timestamp'` are not changed.
+     *
+     * Changing this setting on an existing database needs a migration. See the
+     * `migrateTimestampColumnsToTimestamptz()` helper.
+     *
+     * @since 4.0.0
+     * @default 'timestamptz'
+     */
+    timestampColumnType?: 'timestamptz' | 'timestamp';
 }
 
 /**

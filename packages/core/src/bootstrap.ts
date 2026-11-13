@@ -36,6 +36,8 @@ import {
 } from './entity/register-custom-entity-fields';
 import { registerTranslationEntityUniqueConstraints } from './entity/register-translation-unique-constraints';
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
+import { checkDatabaseTimezone } from './connection/check-database-timezone';
+import { setTimestampColumnTypes } from './entity/set-timestamp-column-types';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
 import { patchTypeOrmDeepValue } from './entity/typeorm-deep-value-fix';
@@ -260,6 +262,7 @@ export async function bootstrap(
     await app.listen(port, hostname || '');
     app.enableShutdownHooks();
     logWelcomeMessage(config);
+    await checkDatabaseTimezone(app.get<DataSource>(getConnectionToken()), config);
     logStartupBanner('server');
     await app.get(EventBus).publish(new BootstrappedEvent());
     return app;
@@ -312,6 +315,7 @@ export async function bootstrapWorker(
     workerApp.useLogger(new Logger());
     workerApp.enableShutdownHooks();
     await validateDbTablesForWorker(workerApp);
+    await checkDatabaseTimezone(workerApp.get<DataSource>(getConnectionToken()), config);
     Logger.info('Vendure Worker is ready');
     logStartupBanner('worker');
     await workerApp.get(EventBus).publish(new BootstrappedEvent());
@@ -364,6 +368,7 @@ export async function preBootstrapConfig(
         throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
     }
     registerCustomEntityFields(config);
+    setTimestampColumnTypes(config, entities);
     registerTranslationEntityUniqueConstraints(entities);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
