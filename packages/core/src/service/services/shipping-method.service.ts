@@ -166,36 +166,38 @@ export class ShippingMethodService {
             input: omit(input, ['checker', 'calculator']),
             entityType: ShippingMethod,
             translationType: ShippingMethodTranslation,
+            // Set everything in the one partial save. A second save of the returned object would
+            // write `null` to every nullable column the input left out, because TypeORM sets them
+            // on the object after the first save. https://github.com/vendurehq/vendure/issues/5763
+            beforeSave: sm => {
+                if (input.checker) {
+                    sm.checker = this.configArgService.parseInput(
+                        'ShippingEligibilityChecker',
+                        input.checker,
+                        shippingMethod.checker ?? undefined,
+                    );
+                }
+                if (input.calculator) {
+                    sm.calculator = this.configArgService.parseInput(
+                        'ShippingCalculator',
+                        input.calculator,
+                        shippingMethod.calculator ?? undefined,
+                    );
+                }
+                if (input.fulfillmentHandler) {
+                    sm.fulfillmentHandlerCode = this.ensureValidFulfillmentHandlerCode(
+                        sm.code ?? shippingMethod.code,
+                        input.fulfillmentHandler,
+                    );
+                }
+            },
         });
-        if (input.checker) {
-            updatedShippingMethod.checker = this.configArgService.parseInput(
-                'ShippingEligibilityChecker',
-                input.checker,
-                shippingMethod.checker ?? undefined,
-            );
-        }
-        if (input.calculator) {
-            updatedShippingMethod.calculator = this.configArgService.parseInput(
-                'ShippingCalculator',
-                input.calculator,
-                shippingMethod.calculator ?? undefined,
-            );
-        }
-        if (input.fulfillmentHandler) {
-            updatedShippingMethod.fulfillmentHandlerCode = this.ensureValidFulfillmentHandlerCode(
-                updatedShippingMethod.code,
-                input.fulfillmentHandler,
-            );
-        }
         await this.customFieldRelationService.updateRelations(
             ctx,
             ShippingMethod,
             input,
             updatedShippingMethod,
         );
-        await this.connection
-            .getRepository(ctx, ShippingMethod)
-            .save(updatedShippingMethod, { reload: false });
         await this.eventBus.publish(new ShippingMethodEvent(ctx, updatedShippingMethod, 'updated', input));
         return assertFound(this.findOne(ctx, shippingMethod.id));
     }

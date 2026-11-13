@@ -1629,6 +1629,20 @@ describe('Custom field relations', () => {
                 expect(updateShippingMethod.customFields.primitive).toBe('test');
             });
 
+            // https://github.com/vendurehq/vendure/issues/5763
+            it('a partial updateShippingMethod keeps the custom fields it does not name', async () => {
+                const { updateShippingMethod } = await adminClient.query(gql`
+                    mutation {
+                        updateShippingMethod(input: { id: "${shippingMethodId}", translations: [] }) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                assertCustomFieldIds(updateShippingMethod.customFields, 'T_3', ['T_3', 'T_4']);
+                expect(updateShippingMethod.customFields.primitive).toBe('test');
+            });
+
             it('shop eligibleShippingMethods (ShippingMethodQuote)', async () => {
                 const { eligibleShippingMethods } = await shopClient.query(gql`
                     query {
@@ -1708,6 +1722,20 @@ describe('Custom field relations', () => {
                     }
                 `);
                 expect(updatePaymentMethod.customFields.single).toEqual({ id: 'T_3' });
+                expect(updatePaymentMethod.customFields.primitive).toBe('test');
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5763
+            it('a partial updatePaymentMethod keeps the custom fields it does not name', async () => {
+                const { updatePaymentMethod } = await adminClient.query(gql`
+                    mutation {
+                        updatePaymentMethod(input: { id: "${paymentMethodId}", enabled: true }) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                assertCustomFieldIds(updatePaymentMethod.customFields, 'T_3', ['T_3', 'T_4']);
                 expect(updatePaymentMethod.customFields.primitive).toBe('test');
             });
 
