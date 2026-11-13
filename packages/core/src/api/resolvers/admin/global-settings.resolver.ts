@@ -106,7 +106,7 @@ export class GlobalSettingsResolver {
             exposedCustomFieldConfig[entityType as keyof CustomFields] = customFields
                 // Do not expose custom fields marked as "internal".
                 ?.filter(c => !c.internal)
-                .map(c => ({ ...c, list: !!c.list as any }))
+                .map(c => ({ ...c, list: !!c.list as any, channelScoped: !!c.channelScoped }))
                 .map((c: any) => {
                     // In the VendureConfig, the relation entity is specified
                     // as the class, but the GraphQL API exposes it as a string.
@@ -133,7 +133,7 @@ export class GlobalSettingsResolver {
                 const customFieldsConfig = customFields
                     // Do not expose custom fields marked as "internal" or hidden from the dashboard.
                     .filter(c => !c.internal && (c as any).ui?.dashboard !== false)
-                    .map(c => ({ ...c, list: !!c.list as any }))
+                    .map(c => ({ ...c, list: !!c.list as any, channelScoped: !!c.channelScoped }))
                     .map(c => {
                         const { requiresPermission, deprecated } = c;
                         const result: any = { ...c };

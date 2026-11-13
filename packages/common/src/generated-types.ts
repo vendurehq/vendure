@@ -436,6 +436,7 @@ export type AuthenticationResult = CurrentUser | InvalidCredentialsError;
 
 export type BooleanCustomFieldConfig = CustomField & {
   __typename?: 'BooleanCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -1517,6 +1518,7 @@ export type CurrentUserChannel = {
 };
 
 export type CustomField = {
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -1726,6 +1728,7 @@ export type DateRange = {
  */
 export type DateTimeCustomFieldConfig = CustomField & {
   __typename?: 'DateTimeCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -2091,6 +2094,7 @@ export type FacetValueTranslationInput = {
 
 export type FloatCustomFieldConfig = CustomField & {
   __typename?: 'FloatCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -2315,6 +2319,7 @@ export type InsufficientStockOnHandError = ErrorResult & {
 
 export type IntCustomFieldConfig = CustomField & {
   __typename?: 'IntCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -2796,6 +2801,7 @@ export type LanguageNotAvailableError = ErrorResult & {
 
 export type LocaleStringCustomFieldConfig = CustomField & {
   __typename?: 'LocaleStringCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -2815,6 +2821,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
 
 export type LocaleTextCustomFieldConfig = CustomField & {
   __typename?: 'LocaleTextCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -6312,6 +6319,7 @@ export type RegionTranslation = {
 
 export type RelationCustomFieldConfig = CustomField & {
   __typename?: 'RelationCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -6992,6 +7000,7 @@ export enum StockMovementType {
 
 export type StringCustomFieldConfig = CustomField & {
   __typename?: 'StringCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -7048,6 +7057,7 @@ export type StringStructFieldConfig = StructField & {
 
 export type StructCustomFieldConfig = CustomField & {
   __typename?: 'StructCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;
@@ -7284,6 +7294,7 @@ export type TestShippingMethodResult = {
 
 export type TextCustomFieldConfig = CustomField & {
   __typename?: 'TextCustomFieldConfig';
+  channelScoped?: Maybe<Scalars['Boolean']['output']>;
   deprecated?: Maybe<Scalars['Boolean']['output']>;
   deprecationReason?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Array<LocalizedString>>;

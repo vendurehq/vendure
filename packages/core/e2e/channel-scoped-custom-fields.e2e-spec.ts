@@ -249,6 +249,46 @@ describe('Channel-scoped custom fields (#490)', () => {
         expect(columns('FacetChannel').some(c => c.startsWith('customFields'))).toBe(false);
     });
 
+    it('exposes channelScoped in the custom field config', async () => {
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { globalSettings } = await adminClient.query(gql`
+            query {
+                globalSettings {
+                    serverConfig {
+                        entityCustomFields {
+                            entityName
+                            customFields {
+                                ... on CustomField {
+                                    name
+                                    channelScoped
+                                }
+                            }
+                        }
+                        customFieldConfig {
+                            Product {
+                                ... on CustomField {
+                                    name
+                                    channelScoped
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `);
+        const expected = [
+            { name: 'channelNote', channelScoped: true },
+            { name: 'channelFeaturedAsset', channelScoped: true },
+            { name: 'globalNote', channelScoped: false },
+            { name: 'channelPriority', channelScoped: true },
+        ];
+        const { entityCustomFields, customFieldConfig } = globalSettings.serverConfig;
+        expect(entityCustomFields.find((e: any) => e.entityName === 'Product').customFields).toEqual(
+            expected,
+        );
+        expect(customFieldConfig.Product).toEqual(expected);
+    });
+
     it('schema sync finds no difference between the entities and the database', async () => {
         // On MySQL/MariaDB a varchar column on an assignment row used to be rebuilt on every sync
         const dataSource = server.app.get(TransactionalConnection).rawConnection;

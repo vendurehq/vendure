@@ -12,6 +12,7 @@ interface CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
+    channelScoped: Boolean
 }
 
 type StringCustomFieldConfig implements CustomField {
@@ -31,6 +32,7 @@ type StringCustomFieldConfig implements CustomField {
     pattern: String
     options: [StringFieldOption!]
     ui: JSON
+    channelScoped: Boolean
 }
 
 type StringFieldOption {
@@ -54,6 +56,7 @@ type LocaleStringCustomFieldConfig implements CustomField {
     deprecationReason: String
     pattern: String
     ui: JSON
+    channelScoped: Boolean
 }
 type IntCustomFieldConfig implements CustomField {
     name: String!
@@ -72,6 +75,7 @@ type IntCustomFieldConfig implements CustomField {
     max: Int
     step: Int
     ui: JSON
+    channelScoped: Boolean
 }
 type FloatCustomFieldConfig implements CustomField {
     name: String!
@@ -90,6 +94,7 @@ type FloatCustomFieldConfig implements CustomField {
     max: Float
     step: Float
     ui: JSON
+    channelScoped: Boolean
 }
 type BooleanCustomFieldConfig implements CustomField {
     name: String!
@@ -105,6 +110,7 @@ type BooleanCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
+    channelScoped: Boolean
 }
 """
 Expects the same validation formats as the `<input type="datetime-local">` HTML element.
@@ -127,6 +133,7 @@ type DateTimeCustomFieldConfig implements CustomField {
     max: String
     step: Int
     ui: JSON
+    channelScoped: Boolean
 }
 
 type RelationCustomFieldConfig implements CustomField {
@@ -145,6 +152,7 @@ type RelationCustomFieldConfig implements CustomField {
     entity: String!
     scalarFields: [String!]!
     ui: JSON
+    channelScoped: Boolean
 }
 
 type TextCustomFieldConfig implements CustomField {
@@ -161,6 +169,7 @@ type TextCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
+    channelScoped: Boolean
 }
 
 type LocaleTextCustomFieldConfig implements CustomField {
@@ -177,6 +186,7 @@ type LocaleTextCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
+    channelScoped: Boolean
 }
 
 interface StructField {
@@ -278,6 +288,7 @@ type StructCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
+    channelScoped: Boolean
 }
 
 type LocalizedString {
