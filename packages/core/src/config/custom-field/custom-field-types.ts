@@ -112,7 +112,10 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * entity's `Custom<Entity>ChannelFields` interface (e.g. `CustomProductChannelFields`), and read
      * them with the entity's `getChannelCustomFields(ctx)` method.
      *
-     * Not supported with localized types, `unique` or `secret`.
+     * A `unique` channel-scoped field is unique within each Channel: the same value can be used in
+     * different Channels.
+     *
+     * Not supported with the localized types (`localeString`, `localeText`).
      *
      * @since 4.0.0
      * @default false

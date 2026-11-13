@@ -306,7 +306,7 @@ describe('validateCustomFieldsConfig()', () => {
             ]);
         });
 
-        it('accepts struct fields, list fields and list relations', () => {
+        it('accepts struct fields, list fields, list relations, unique and secret fields', () => {
             const config: CustomFields = {
                 Product: [
                     {
@@ -316,6 +316,8 @@ describe('validateCustomFieldsConfig()', () => {
                         channelScoped: true,
                     },
                     { name: 'tags', type: 'string', list: true, channelScoped: true },
+                    { name: 'uniqueValue', type: 'string', unique: true, channelScoped: true },
+                    { name: 'hidden', type: 'string', secret: true, channelScoped: true },
                     {
                         name: 'many',
                         type: 'relation',
@@ -330,16 +332,10 @@ describe('validateCustomFieldsConfig()', () => {
 
         it('rejects the field types and options which are not supported', () => {
             const config: CustomFields = {
-                Product: [
-                    { name: 'localized', type: 'localeString', channelScoped: true },
-                    { name: 'uniqueValue', type: 'string', unique: true, channelScoped: true },
-                    { name: 'hidden', type: 'string', secret: true, channelScoped: true },
-                ],
+                Product: [{ name: 'localized', type: 'localeString', channelScoped: true }],
             };
             expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
                 'Product entity custom field "localized" has "channelScoped: true", which does not support type "localeString"',
-                'Product entity custom field "uniqueValue" has "channelScoped: true", which does not support "unique: true"',
-                'Product entity custom field "hidden" has "channelScoped: true", which does not support "secret: true"',
             ]);
         });
     });

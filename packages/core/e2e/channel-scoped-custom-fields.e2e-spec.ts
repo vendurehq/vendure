@@ -6,9 +6,11 @@
  * active Channel. The tests run in order and share the state they set up.
  */
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
     Asset,
     ChannelAssignmentService,
+    DefaultEncryptionStrategy,
     EntityHydrator,
     FastImporterService,
     mergeConfig,
@@ -33,6 +35,8 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
         channelFeaturedAsset: Asset | null;
         channelPriority: number;
         channelTags: string[] | null;
+        channelSku: string | null;
+        channelApiKey: string | null;
         channelSpecs: { label: string; rank: number } | null;
         channelGallery: Asset[];
     }
@@ -224,6 +228,9 @@ const CUSTOMER_BY_EMAIL = gql`
 describe('Channel-scoped custom fields (#490)', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
+            systemOptions: {
+                encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'channel-scoped-test-key' }),
+            },
             customFields: {
                 Product: [
                     { name: 'channelNote', type: 'string', channelScoped: true, nullable: true },
@@ -237,6 +244,14 @@ describe('Channel-scoped custom fields (#490)', () => {
                     { name: 'globalNote', type: 'string', nullable: true },
                     { name: 'channelPriority', type: 'int', channelScoped: true, defaultValue: 5 },
                     { name: 'channelTags', type: 'string', list: true, channelScoped: true, nullable: true },
+                    { name: 'channelSku', type: 'string', unique: true, channelScoped: true, nullable: true },
+                    {
+                        name: 'channelApiKey',
+                        type: 'string',
+                        secret: true,
+                        channelScoped: true,
+                        nullable: true,
+                    },
                     {
                         name: 'channelSpecs',
                         type: 'struct',
@@ -360,6 +375,8 @@ describe('Channel-scoped custom fields (#490)', () => {
             { name: 'globalNote', channelScoped: false },
             { name: 'channelPriority', channelScoped: true },
             { name: 'channelTags', channelScoped: true },
+            { name: 'channelSku', channelScoped: true },
+            { name: 'channelApiKey', channelScoped: true },
             { name: 'channelSpecs', channelScoped: true },
             { name: 'channelGallery', channelScoped: true },
         ];
@@ -617,6 +634,98 @@ describe('Channel-scoped custom fields (#490)', () => {
         expect(await galleryRowsInC()).toEqual([]);
     });
 
+    it('a unique field is unique within each channel', async () => {
+        const setSku = (id: string, sku: string) =>
+            adminClient.query(
+                gql`
+                    mutation SetSku($input: UpdateProductInput!) {
+                        updateProduct(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { id, customFields: { channelSku: sku } } },
+            );
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await setSku('T_1', 'SKU-1');
+        await expect(setSku('T_2', 'SKU-1')).rejects.toThrow();
+        // The same value in another channel
+        asChannel(CHANNEL_B_TOKEN);
+        await setSku('T_1', 'SKU-1');
+        await expect(setSku('T_2', 'SKU-1')).rejects.toThrow();
+        await setSku('T_2', 'SKU-2');
+
+        const index = server.app
+            .get(TransactionalConnection)
+            .rawConnection.getMetadata('ProductChannel')
+            .indices.find(i => i.columns.some(c => c.propertyPath === 'customFields.channelSku'));
+        expect(index?.isUnique).toBe(true);
+        expect(index?.columns.map(c => c.propertyPath)).toEqual(['channelId', 'customFields.channelSku']);
+    });
+
+    it('a secret field is encrypted on the row, redacted without ReadSecret, and kept on a placeholder', async () => {
+        const query = gql`
+            query ProductApiKey($id: ID!) {
+                product(id: $id) {
+                    customFields {
+                        channelApiKey
+                    }
+                }
+            }
+        `;
+        const setKey = (key: string) =>
+            adminClient.query(
+                gql`
+                    mutation SetApiKey($input: UpdateProductInput!) {
+                        updateProduct(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { id: 'T_1', customFields: { channelApiKey: key } } },
+            );
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await setKey('key in default');
+        asChannel(CHANNEL_B_TOKEN);
+        await setKey('key in B');
+
+        // The SuperAdmin has the ReadSecret permission
+        expect((await adminClient.query(query, { id: 'T_1' })).product.customFields.channelApiKey).toBe(
+            'key in B',
+        );
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        expect((await adminClient.query(query, { id: 'T_1' })).product.customFields.channelApiKey).toBe(
+            'key in default',
+        );
+
+        // Stored encrypted on the ProductChannel row
+        const dataSource = server.app.get(TransactionalConnection).rawConnection;
+        const column = dataSource
+            .getMetadata('ProductChannel')
+            .findColumnWithPropertyPath('customFields.channelApiKey')!;
+        const [row] = await dataSource
+            .createQueryBuilder()
+            .select(`pc.${dataSource.driver.escape(column.databaseName)}`, 'value')
+            .from('product_channels_channel', 'pc')
+            .where(
+                `pc.${dataSource.driver.escape('productId')} = 1 AND pc.${dataSource.driver.escape('channelId')} = 1`,
+            )
+            .getRawMany();
+        expect(row.value).toBeTruthy();
+        expect(row.value).not.toContain('key in default');
+
+        // The Shop API has no ReadSecret permission
+        asChannel(CHANNEL_B_TOKEN);
+        const { product: inShop } = await shopClient.query(query, { id: 'T_1' });
+        expect(inShop.customFields.channelApiKey).toBe(REDACTED_SECRET_PLACEHOLDER);
+
+        // Saving the placeholder back keeps the stored value of that channel
+        await setKey(REDACTED_SECRET_PLACEHOLDER);
+        expect((await adminClient.query(query, { id: 'T_1' })).product.customFields.channelApiKey).toBe(
+            'key in B',
+        );
+    });
+
     it('createProduct writes channel-scoped values to the active channel only', async () => {
         asChannel(CHANNEL_B_TOKEN);
         const { createProduct } = await adminClient.query(
@@ -702,6 +811,9 @@ describe('Channel-scoped custom fields (#490)', () => {
             channelPriority: 5,
             channelFeaturedAssetId: 1,
             channelTags: null,
+            channelSku: 'SKU-1',
+            // Decrypted: getChannelCustomFields() is for server-side code, like entity.customFields
+            channelApiKey: 'key in default',
             channelSpecs: null,
         });
         expect(await inDefault!.getChannelCustomFields(ctxB)).toEqual({
@@ -709,6 +821,8 @@ describe('Channel-scoped custom fields (#490)', () => {
             channelPriority: 5,
             channelFeaturedAssetId: null,
             channelTags: null,
+            channelSku: 'SKU-1',
+            channelApiKey: 'key in B',
             channelSpecs: null,
         });
         expect(await inDefault!.getChannelCustomFields(ctxDefault, { channelId: ctxB.channelId })).toEqual({
@@ -716,6 +830,8 @@ describe('Channel-scoped custom fields (#490)', () => {
             channelPriority: 5,
             channelFeaturedAssetId: null,
             channelTags: null,
+            channelSku: 'SKU-1',
+            channelApiKey: 'key in B',
             channelSpecs: null,
         });
 

@@ -235,7 +235,9 @@ export function registerCustomFieldsForEntity(
                         default: getDefault(customField, dbEngine),
                         name,
                         nullable: nullable === false ? false : true,
-                        unique: customField.unique ?? false,
+                        // A channel-scoped field is unique within each Channel, by an index which
+                        // also covers the Channel (see registerChannelScopedCustomFields)
+                        unique: !channelScoped && (customField.unique ?? false),
                     };
                     if ((customField.type === 'string' || customField.type === 'localeString') && !list) {
                         const length = customField.length || 255;
@@ -293,7 +295,11 @@ export function registerCustomFieldsForEntity(
                         );
                     }
                     Column(options)(instance, name);
-                    if ((dbEngine === 'mysql' || dbEngine === 'mariadb') && customField.unique === true) {
+                    if (
+                        (dbEngine === 'mysql' || dbEngine === 'mariadb') &&
+                        customField.unique === true &&
+                        !channelScoped
+                    ) {
                         // The MySQL driver seems to work differently and will only apply a unique
                         // constraint if an index is defined on the column. For postgres/sqlite it is
                         // sufficient to add the `unique: true` property to the column options.
@@ -504,6 +510,23 @@ function registerChannelScopedCustomFields(config: VendureConfig, entityName: st
     const customFieldsClass = embedded?.type();
     if (customFieldsClass && typeof customFieldsClass !== 'string') {
         registerCustomFieldsForEntity(config, entityName, customFieldsClass as any, false, true);
+    }
+    // A `unique` channel-scoped field is unique within each Channel: the same value can be used
+    // in another Channel, so the unique index covers the Channel as well as the value.
+    for (const field of channelScoped) {
+        if (field.unique !== true || field.type === 'relation') {
+            continue;
+        }
+        const columns = ['channelId', `customFields.${field.name}`];
+        const alreadyRegistered = metadataArgsStorage.indices.some(
+            index =>
+                index.target === assignmentEntity &&
+                Array.isArray(index.columns) &&
+                index.columns.join() === columns.join(),
+        );
+        if (!alreadyRegistered) {
+            Index(columns, { unique: true })(assignmentEntity);
+        }
     }
 }
 
