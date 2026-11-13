@@ -27,11 +27,11 @@ type CustomerGroupList implements PaginatedList {
 input CustomerGroupListOptions
 
 input CreateCustomerGroupInput {
-    name: String!
+    name: String! @nonBlank
     customerIds: [ID!]
 }
 
 input UpdateCustomerGroupInput {
     id: ID!
-    name: String
+    name: String @nonBlank
 }

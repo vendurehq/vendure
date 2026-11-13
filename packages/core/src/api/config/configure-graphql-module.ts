@@ -1,7 +1,7 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { DynamicModule } from '@nestjs/common';
 import { GraphQLModule, GraphQLTypesLoader } from '@nestjs/graphql';
-import { GraphQLSchema, printSchema, ValidationContext } from 'graphql';
+import { GraphQLSchema, ValidationContext } from 'graphql';
 
 import { ConfigModule } from '../../config/config.module';
 import { ConfigService } from '../../config/config.service';
@@ -17,6 +17,7 @@ import { TranslateErrorsPlugin } from '../middleware/translate-errors-plugin';
 
 import { generateResolvers } from './generate-resolvers';
 import { getFinalVendureSchema, isUsingDefaultEntityIdStrategy } from './get-final-vendure-schema';
+import { printSchemaWithDirectives } from './print-schema-with-directives';
 
 export interface GraphQLApiOptions {
     apiType: 'shop' | 'admin';
@@ -98,7 +99,8 @@ async function createGraphQLOptions(
 
     return {
         path: '/' + options.apiPath,
-        typeDefs: printSchema(builtSchema),
+        // Keeps `@nonBlank` on input fields, which the InputValidationInterceptor reads.
+        typeDefs: printSchemaWithDirectives(builtSchema),
         include: [options.resolverModule],
         inheritResolversFromInterfaces: true,
         fieldResolverEnhancers: ['guards'],

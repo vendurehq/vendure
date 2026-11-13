@@ -94,8 +94,8 @@ input ProductVariantFilterParameter {
 input ProductTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
-    slug: String
+    name: String @nonBlank
+    slug: String @nonBlank
     description: String
 }
 
@@ -123,13 +123,13 @@ input UpdateProductInput {
 input ProductVariantTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input ProductOptionTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateProductVariantOptionInput {
@@ -166,7 +166,7 @@ input CreateProductVariantInput {
     enabledInChannel: Boolean
     translations: [ProductVariantTranslationInput!]!
     facetValueIds: [ID!]
-    sku: String!
+    sku: String! @nonBlank
     price: Money
     prices: [CreateProductVariantPriceInput]
     taxCategoryId: ID
@@ -188,7 +188,7 @@ input UpdateProductVariantInput {
     translations: [ProductVariantTranslationInput!]
     facetValueIds: [ID!]
     optionIds: [ID!]
-    sku: String
+    sku: String @nonBlank
     taxCategoryId: ID
     """
     Sets the price for the ProductVariant in the Channel's default currency

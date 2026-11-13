@@ -18,14 +18,14 @@ type Mutation {
 input RoleListOptions
 
 input CreateRoleInput {
-    code: String!
+    code: String! @nonBlank
     description: String!
     permissions: [Permission!]!
 }
 
 input UpdateRoleInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     description: String
     permissions: [Permission!]
 }

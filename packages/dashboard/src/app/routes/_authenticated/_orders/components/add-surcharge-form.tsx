@@ -22,7 +22,7 @@ type ModifyOrderInput = VariablesOf<typeof modifyOrderDocument>['input'];
 type SurchargeInput = NonNullable<ModifyOrderInput['surcharges']>[number];
 
 const surchargeFormSchema = z.object({
-    description: z.string().min(1),
+    description: z.string().regex(/\S/),
     sku: z.string().optional(),
     price: z.string().refine(val => !Number.isNaN(Number(val)) && Number(val) > 0, {
         message: 'Price must be a positive number',
