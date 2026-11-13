@@ -1,0 +1,74 @@
+---
+title: "IdentityScopeService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/identity-scope/identity-scope.service.ts" sourceLine="31" packageName="@vendure/core" since="4.0.0" />
+
+Resolves customer identity scopes using the configured [IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy).
+Use this service rather than calling the strategy directly: it always hands the strategy the
+same loaded Channel (its columns, including `sellerId` and custom fields), so every caller gets
+the same scope for the same Channel.
+
+```ts title="Signature"
+class IdentityScopeService implements OnApplicationBootstrap {
+    constructor(configService: ConfigService, moduleRef: ModuleRef, connection: TransactionalConnection, processContext: ProcessContext)
+    onApplicationBootstrap() => ;
+    getScopeForChannel(channel: Channel) => Promise<string>;
+    getScopeForLoadedChannel(channel: Channel) => Promise<string>;
+    getActiveScope(ctx: RequestContext) => Promise<string>;
+    getChannelsInScope(identityScope: string) => Promise<Channel[]>;
+    isGlobal() => boolean;
+    isCustomerInChannelScope(customer: Pick<Customer, 'identityScope'>, channel: Channel) => ;
+}
+```
+* Implements: OnApplicationBootstrap
+
+
+
+<div className="members-wrapper">
+
+### onApplicationBootstrap
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### getScopeForChannel
+
+<MemberInfo kind="method" type={`(channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => Promise<string>`}   />
+
+The identity scope of the given Channel. The Channel may be partially loaded (for example a
+Customer's `channels` relation): it is loaded first, so the strategy always sees the same
+Channel.
+### getScopeForLoadedChannel
+
+<MemberInfo kind="method" type={`(channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => Promise<string>`}   />
+
+The identity scope of a Channel which is already fully loaded, such as one about to be
+saved. Validates the key the strategy returns.
+### getActiveScope
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<string>`}   />
+
+The identity scope of the active Channel. Every lookup of a Customer or customer User by
+email address is limited to this scope.
+### getChannelsInScope
+
+<MemberInfo kind="method" type={`(identityScope: string) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]>`}   />
+
+The Channels whose identity scope is the given one, that is, the Channels whose customer
+base a Customer in that scope belongs to.
+### isGlobal
+
+<MemberInfo kind="method" type={`() => boolean`}   />
+
+Whether every Channel shares one customer base, as with the default
+[GlobalIdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#globalidentityscopestrategy).
+### isCustomerInChannelScope
+
+<MemberInfo kind="method" type={`(customer: Pick<<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>, 'identityScope'>, channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => `}   />
+
+Whether the Customer belongs to the identity scope of the given Channel, and so may act on
+it in the Shop API.
+
+
+</div>

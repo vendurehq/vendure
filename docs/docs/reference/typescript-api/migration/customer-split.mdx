@@ -1,0 +1,55 @@
+---
+title: "CustomerSplit"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_customer_identity_scopes.ts" sourceLine="24" packageName="@vendure/core" since="4.0.0" />
+
+Passed to the `onCustomerSplit` option of [migrateCustomerIdentityScopes](/reference/typescript-api/migration/migrate-customer-identity-scopes#migratecustomeridentityscopes) for each copy it
+creates, so that plugin data belonging to the Customer or User can be copied or moved too.
+
+```ts title="Signature"
+interface CustomerSplit {
+    originalCustomerId: string;
+    copyCustomerId: string;
+    originalUserId: string | null;
+    copyUserId: string | null;
+    identityScope: string;
+    movedOrderIds: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### originalCustomerId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### copyCustomerId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### originalUserId
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+
+### copyUserId
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+
+### identityScope
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### movedOrderIds
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+
+
+</div>

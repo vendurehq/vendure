@@ -1,0 +1,48 @@
+---
+title: "CustomerIdentityScopeMigrationResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_customer_identity_scopes.ts" sourceLine="76" packageName="@vendure/core" since="4.0.0" />
+
+The result of [migrateCustomerIdentityScopes](/reference/typescript-api/migration/migrate-customer-identity-scopes#migratecustomeridentityscopes).
+
+```ts title="Signature"
+interface CustomerIdentityScopeMigrationResult {
+    assigned: number;
+    withoutChannel: number;
+    split: number;
+    copiesCreated: number;
+    duplicateEmails: Array<{ identityScope: string; emailAddress: string; customerIds: string[] }>;
+}
+```
+
+<div className="members-wrapper">
+
+### assigned
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### withoutChannel
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### split
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### copiesCreated
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### duplicateEmails
+
+<MemberInfo kind="property" type={`Array<{ identityScope: string; emailAddress: string; customerIds: string[] }>`}   />
+
+
+
+
+</div>

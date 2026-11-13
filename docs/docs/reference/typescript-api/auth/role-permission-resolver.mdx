@@ -2,7 +2,7 @@
 title: "RolePermissionResolver"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/role-permission-resolver/role-permission-resolver.ts" sourceLine="74" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/role-permission-resolver/role-permission-resolver.ts" sourceLine="75" packageName="@vendure/core" since="4.0.0" />
 
 Resolves a User's effective per-channel permissions from [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) rows.
 This is the single source of truth for permission resolution, used by the session cache,
@@ -24,7 +24,7 @@ Two cases are special-cased rather than materialized per channel:
 
 ```ts title="Signature"
 class RolePermissionResolver {
-    constructor(connection: TransactionalConnection, configService: ConfigService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, identityScopeService: IdentityScopeService)
     resolvePermissions(userId: ID, ctx?: RequestContext) => Promise<ResolvedUserPermissions>;
     expandGlobalPermissions(resolved: ResolvedUserPermissions, ctx?: RequestContext) => Promise<UserChannelPermissions[]>;
 }

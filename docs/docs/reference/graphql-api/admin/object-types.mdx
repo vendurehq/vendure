@@ -1252,9 +1252,10 @@ type CustomFields {
     CustomerGroup: '/reference/graphql-api/admin/object-types#customergroup',
     HistoryEntryList: '/reference/graphql-api/admin/object-types#historyentrylist',
     HistoryEntryListOptions: '/reference/graphql-api/admin/input-types#historyentrylistoptions',
+    String: '/reference/graphql-api/admin/object-types#string',
+    Channel: '/reference/graphql-api/admin/object-types#channel',
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
-    String: '/reference/graphql-api/admin/object-types#string',
     Address: '/reference/graphql-api/admin/object-types#address',
     OrderList: '/reference/graphql-api/admin/object-types#orderlist',
     OrderListOptions: '/reference/graphql-api/admin/input-types#orderlistoptions',
@@ -1265,6 +1266,10 @@ type CustomFields {
 {`type Customer {
   groups: [CustomerGroup!]!
   history(options: HistoryEntryListOptions): HistoryEntryList!
+  """The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0"""
+  identityScope: String!
+  """The Channels in this Customer's identity scope, that is, the storefronts this Customer belongs to. Only Channels the active administrator has permissions on are listed. Since 4.0.0"""
+  identityScopeChannels: [Channel!]!
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -4854,6 +4859,7 @@ type SellerTranslation {
     String: '/reference/graphql-api/admin/object-types#string',
     PermissionDefinition: '/reference/graphql-api/admin/object-types#permissiondefinition',
     Int: '/reference/graphql-api/admin/object-types#int',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
     CustomFields: '/reference/graphql-api/admin/object-types#customfields',
     EntityCustomFields: '/reference/graphql-api/admin/object-types#entitycustomfields',
   }}
@@ -4863,6 +4869,8 @@ type SellerTranslation {
   permittedAssetTypes: [String!]!
   permissions: [PermissionDefinition!]!
   moneyStrategyPrecision: Int!
+  """Whether every Channel shares one customer base, as with the default GlobalIdentityScopeStrategy. Since 4.0.0"""
+  customerIdentityIsGlobal: Boolean!
   """
   This field is deprecated in v2.2 in favor of the entityCustomFields field,
   which allows custom fields to be defined on user-supplies entities.

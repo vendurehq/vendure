@@ -2,13 +2,13 @@
 title: "ChannelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="66" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="68" packageName="@vendure/core" />
 
 Contains methods relating to [Channel](/reference/typescript-api/entities/channel#channel) entities.
 
 ```ts title="Signature"
 class ChannelService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, roleAssignmentService: RoleAssignmentService, roleService: RoleService, channelAssignmentService: ChannelAssignmentService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, roleAssignmentService: RoleAssignmentService, roleService: RoleService, channelAssignmentService: ChannelAssignmentService, identityScopeService: IdentityScopeService)
     assignToCurrentChannel(entity: T, ctx: RequestContext) => Promise<T>;
     assignToChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[], assignmentData?: Record<string, unknown>) => Promise<T>;
     removeFromChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T | undefined>;

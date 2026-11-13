@@ -45,6 +45,12 @@ Many entities are channel-aware, meaning that they can be associated with multip
 - [`ShippingMethod`](/reference/typescript-api/entities/shipping-method/)
 - [`StockLocation`](/reference/typescript-api/entities/stock-location/)
 
+## Channels & Customers
+
+By default, all Channels share one customer base: a Customer who registers on one Channel can log in on any
+other. To give Channels separate customer bases, for example one per brand, configure an `IdentityScopeStrategy`.
+See [Separate customer bases per Channel](/core-concepts/customers/#separate-customer-bases-per-channel).
+
 ## Channels & Sellers
 
 Each channel is also assigned a single [`Seller`](/reference/typescript-api/entities/seller/). This entity is used to represent

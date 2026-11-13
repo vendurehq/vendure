@@ -1792,6 +1792,8 @@ input CreateApiKeyInput {
 >
 {`input CustomerFilterParameter {
   postalCode: StringOperators
+  """The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0"""
+  identityScope: StringOperators
   id: IDOperators
   createdAt: DateOperators
   updatedAt: DateOperators
@@ -1916,6 +1918,8 @@ input CreateApiKeyInput {
   }}
 >
 {`input CustomerSortParameter {
+  """The identity scope this Customer belongs to. An email address identifies one Customer per scope. Since 4.0.0"""
+  identityScope: SortOrder
   id: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder

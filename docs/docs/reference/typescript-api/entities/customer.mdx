@@ -2,7 +2,7 @@
 title: "Customer"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/customer/customer.entity.ts" sourceLine="22" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/customer/customer.entity.ts" sourceLine="23" packageName="@vendure/core" />
 
 This entity represents a customer of the store, typically an individual person. A Customer can be
 a guest, in which case it has no associated [User](/reference/typescript-api/entities/user#user). Customers with registered account will
@@ -21,6 +21,8 @@ class Customer extends VendureEntity implements ChannelAware, HasCustomFields, S
     phoneNumber: string;
     @Column()
     emailAddress: string;
+    @Column({ length: 255, default: GLOBAL_IDENTITY_SCOPE })
+    identityScope: string;
     @ManyToMany(type => CustomerGroup, group => group.customers)
     @JoinTable()
     groups: CustomerGroup[];
@@ -78,6 +80,14 @@ class Customer extends VendureEntity implements ChannelAware, HasCustomFields, S
 <MemberInfo kind="property" type={`string`}   />
 
 
+### identityScope
+
+<MemberInfo kind="property" type={`string`}  since="4.0.0"  />
+
+The identity scope this Customer belongs to, as returned by the configured
+[IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy) for the Channel it was created on. An email address
+identifies at most one Customer within a scope. With the default
+[GlobalIdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#globalidentityscopestrategy) every Customer is in the `global` scope.
 ### groups
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>[]`}   />

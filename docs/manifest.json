@@ -1055,6 +1055,11 @@
                   "lastModified": "2026-11-06T13:46:30Z"
                 },
                 {
+                  "title": "IdentityScopeStrategy",
+                  "slug": "identity-scope-strategy",
+                  "file": "docs/reference/typescript-api/auth/identity-scope-strategy.mdx"
+                },
+                {
                   "title": "InMemorySessionCacheStrategy",
                   "slug": "in-memory-session-cache-strategy",
                   "file": "docs/reference/typescript-api/auth/in-memory-session-cache-strategy.mdx",
@@ -2535,6 +2540,21 @@
               "file": "docs/reference/typescript-api/migration/index.mdx",
               "children": [
                 {
+                  "title": "CustomerIdentityScopeMigrationOptions",
+                  "slug": "customer-identity-scope-migration-options",
+                  "file": "docs/reference/typescript-api/migration/customer-identity-scope-migration-options.mdx"
+                },
+                {
+                  "title": "CustomerIdentityScopeMigrationResult",
+                  "slug": "customer-identity-scope-migration-result",
+                  "file": "docs/reference/typescript-api/migration/customer-identity-scope-migration-result.mdx"
+                },
+                {
+                  "title": "CustomerSplit",
+                  "slug": "customer-split",
+                  "file": "docs/reference/typescript-api/migration/customer-split.mdx"
+                },
+                {
                   "title": "DeduplicateTranslations",
                   "slug": "deduplicate-translations",
                   "file": "docs/reference/typescript-api/migration/deduplicate-translations.mdx",
@@ -2563,6 +2583,11 @@
                   "slug": "migrate-asset-translation-data",
                   "file": "docs/reference/typescript-api/migration/migrate-asset-translation-data.mdx",
                   "lastModified": "2026-08-13T14:40:56+02:00"
+                },
+                {
+                  "title": "MigrateCustomerIdentityScopes",
+                  "slug": "migrate-customer-identity-scopes",
+                  "file": "docs/reference/typescript-api/migration/migrate-customer-identity-scopes.mdx"
                 },
                 {
                   "title": "MigrateProductOptionGroupData",
@@ -3321,6 +3346,11 @@
                   "slug": "history-service",
                   "file": "docs/reference/typescript-api/services/history-service.mdx",
                   "lastModified": "2026-11-05T14:55:16Z"
+                },
+                {
+                  "title": "IdentityScopeService",
+                  "slug": "identity-scope-service",
+                  "file": "docs/reference/typescript-api/services/identity-scope-service.mdx"
                 },
                 {
                   "title": "InitializerService",

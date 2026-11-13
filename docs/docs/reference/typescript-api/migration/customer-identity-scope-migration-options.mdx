@@ -1,0 +1,42 @@
+---
+title: "CustomerIdentityScopeMigrationOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_customer_identity_scopes.ts" sourceLine="41" packageName="@vendure/core" since="4.0.0" />
+
+Options for [migrateCustomerIdentityScopes](/reference/typescript-api/migration/migrate-customer-identity-scopes#migratecustomeridentityscopes).
+
+```ts title="Signature"
+interface CustomerIdentityScopeMigrationOptions {
+    defaultChannelIsStorefront?: boolean;
+    dryRun?: boolean;
+    onCustomerSplit?: (queryRunner: QueryRunner, split: CustomerSplit) => Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### defaultChannelIsStorefront
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+Pre-v4 versions join every Customer to the default Channel, so that membership does not show
+whether the Customer used the default Channel as a storefront. When `true`, the default
+Channel counts as one of the Customer's storefronts if the Customer has an Order placed on
+the default Channel only. Draft Orders, which administrators create, do not count. Set it to
+`false` if the default Channel is not a storefront.
+### dryRun
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Works out and returns what would change, without writing anything.
+### onCustomerSplit
+
+<MemberInfo kind="property" type={`(queryRunner: QueryRunner, split: <a href='/reference/typescript-api/migration/customer-split#customersplit'>CustomerSplit</a>) => Promise<void>`}   />
+
+Called for each copy created by a split, inside the migration's transaction. Use it to copy
+or move data that plugins keep for the Customer or User, such as wishlists, loyalty
+accounts or payment provider customer ids. The helper only copies core data.
+
+
+</div>

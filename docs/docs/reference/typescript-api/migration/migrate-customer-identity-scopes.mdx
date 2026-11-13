@@ -1,0 +1,54 @@
+---
+title: "MigrateCustomerIdentityScopes"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_customer_identity_scopes.ts" sourceLine="136" packageName="@vendure/core" since="4.0.0" />
+
+Moves existing Customers into the identity scopes of a non-global [IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy).
+Pass the same strategy instance as in your config, so that the migration and the server derive
+scopes the same way.
+
+Before v4 a Customer is shared by every Channel it has joined. For each Customer this helper
+works out the scopes of the Channels it uses. Pre-v4 versions joined every Customer to the
+default Channel, so that membership only counts if it is the Customer's only one, or if
+`defaultChannelIsStorefront` is on and the Customer has a non-draft Order placed on the default
+Channel only.
+
+- **One scope**: the Customer is given that scope. No other data changes.
+- **No Channel**: the Customer is given the default Channel's scope.
+- **Several scopes**: the Customer is split. The original keeps the scope that holds most of
+  its Orders (ties go to the lowest Channel id). For each other scope a copy is created, with a
+  copy of the User and its authentication methods (so the same password and external logins
+  keep working there), the Addresses and the CustomerGroup memberships. Pending verification,
+  password reset and email change tokens are not copied: they stay with the original. The Channel
+  memberships and Orders of that scope move to the copy, and sessions whose active Order moved
+  lose it. Every copy is also joined to the default Channel, so that it is listed there in the
+  Admin API. History entries stay on the original. Custom fields are copied, including list
+  relation custom fields stored in join tables. Plugin data is not copied: use `onCustomerSplit`.
+
+Splitting needs auto-increment ids, and refuses to run when Customer, User or Address has a
+unique custom field, because the copy would break the constraint. Both are checked before
+anything is written.
+
+Run it with `dryRun: true` first to see what it will do. Then run it in a migration after the
+`customer.identityScope` column has been created. Sessions cached before the migration are
+treated as logged out until they expire from the session cache (`sessionCacheTTL`). It is
+idempotent only for unsplit Customers, so run it once.
+
+```ts title="Signature"
+function migrateCustomerIdentityScopes(queryRunner: QueryRunner, strategy: Pick<IdentityScopeStrategy, 'getIdentityScope'>, options: CustomerIdentityScopeMigrationOptions = {}): Promise<CustomerIdentityScopeMigrationResult>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+
+### strategy
+
+<MemberInfo kind="parameter" type={`Pick<<a href='/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy'>IdentityScopeStrategy</a>, 'getIdentityScope'>`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/migration/customer-identity-scope-migration-options#customeridentityscopemigrationoptions'>CustomerIdentityScopeMigrationOptions</a>`} />
+
