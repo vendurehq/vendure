@@ -1,20 +1,26 @@
 import { schemaCurrencyCodes } from '@/vdb/graphql/schema-enums.js';
 
+export {
+    LS_KEY_SELECTED_CHANNEL_TOKEN,
+    LS_KEY_SESSION_TOKEN,
+    LS_KEY_SHIPPING_TEST_ADDRESS,
+    LS_KEY_SHIPPING_TEST_ORDER,
+    LS_KEY_USER_SETTINGS,
+    SETTINGS_STORE_KEY_USER_SETTINGS,
+} from './storage-keys.js';
+
 export const NEW_ENTITY_PATH = 'new';
 // Must match the literal passed to createFileRoute() in src/app/routes/_authenticated.tsx.
 export const AUTHENTICATED_ROUTE_PREFIX = '/_authenticated';
 export const DEFAULT_CHANNEL_CODE = '__default_channel__';
 export const SUPER_ADMIN_ROLE_CODE = '__super_admin_role__';
-export const CUSTOMER_ROLE_CODE = '__customer_role__';
-
 /**
- * Local storage keys
+ * @deprecated The Customer role was removed in v4.0.0 — customer permissions are derived
+ * from channel membership (`Authenticated` on every member Channel). This constant will
+ * be removed in the next major version.
  */
-export const LS_KEY_SESSION_TOKEN = 'vendure-session-token';
-export const LS_KEY_USER_SETTINGS = 'vendure-user-settings';
-export const LS_KEY_SELECTED_CHANNEL_TOKEN = 'vendure-selected-channel-token';
-export const LS_KEY_SHIPPING_TEST_ORDER = 'vendure-shipping-test-order';
-export const LS_KEY_SHIPPING_TEST_ADDRESS = 'vendure-shipping-test-address';
+export const CUSTOMER_ROLE_CODE = '__customer_role__';
+export const ROLE_EDITOR_ROLE_CODE = '__role_editor_role__';
 
 /**
  * @description

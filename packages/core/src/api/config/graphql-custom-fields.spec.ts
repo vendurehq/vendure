@@ -1,4 +1,4 @@
-import { printSchema } from 'graphql';
+import { GraphQLObjectType, GraphQLSchema, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 
 import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
@@ -213,6 +213,57 @@ describe('addGraphQLCustomFields()', () => {
         expect(printSchema(result)).toMatchSnapshot();
     });
 
+    // https://github.com/vendurehq/vendure/issues/2031
+    it('adds relation id fields for non-list relation custom fields', () => {
+        const input = `
+                    type Product {
+                        id: ID
+                    }
+
+                    type Asset {
+                        id: ID
+                    }
+
+                    input ProductSortParameter {
+                        id: SortOrder
+                    }
+
+                    input ProductFilterParameter {
+                        id: IDOperators
+                    }
+
+                    enum SortOrder {
+                        ASC
+                        DESC
+                    }
+
+                    input IDOperators {
+                        eq: String
+                    }
+                `;
+        const customFieldConfig: CustomFields = {
+            Product: [
+                { name: 'owner', type: 'relation', entity: class {} as any, graphQLType: 'Asset' },
+                {
+                    name: 'featured',
+                    type: 'relation',
+                    entity: class {} as any,
+                    graphQLType: 'Asset',
+                    list: true,
+                },
+                {
+                    name: 'legacyOwner',
+                    type: 'relation',
+                    entity: class {} as any,
+                    graphQLType: 'Asset',
+                    deprecated: 'use owner instead',
+                },
+            ],
+        };
+        const result = addGraphQLCustomFields(input, customFieldConfig, false);
+        expect(printSchema(result)).toMatchSnapshot();
+    });
+
     it('publicOnly = true', () => {
         const input = `
                  type Product {
@@ -300,6 +351,45 @@ describe('addOrderLineCustomFieldsInput()', () => {
         ];
         const result = addOrderLineCustomFieldsInput(input, customFieldConfig, false);
         expect(printSchema(result)).toMatchSnapshot();
+    });
+
+    const buyerPriceInput = `
+        type ProductVariant {
+            id: ID!
+            buyerPrice(quantity: Int = 1): Int!
+        }
+        type Query {
+            productVariant: ProductVariant
+        }
+        type Mutation {
+            addItemToOrder(id: ID!, quantity: Int!): Boolean
+        }
+    `;
+
+    function getBuyerPriceArgs(schema: GraphQLSchema) {
+        const type = schema.getType('ProductVariant') as GraphQLObjectType;
+        return type.getFields().buyerPrice.args.map(a => `${a.name}: ${a.type.toString()}`);
+    }
+
+    it('adds a customFields argument to ProductVariant.buyerPrice', () => {
+        const customFieldConfig: CustomFieldConfig[] = [{ name: 'unitCode', type: 'string' }];
+        const result = addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true);
+        expect(getBuyerPriceArgs(result)).toEqual([
+            'quantity: Int',
+            'customFields: OrderLineCustomFieldsInput',
+        ]);
+    });
+
+    it('does not add a customFields argument to ProductVariant.buyerPrice without public OrderLine custom fields', () => {
+        const customFieldConfig: CustomFieldConfig[] = [
+            { name: 'internalCode', type: 'string', public: false },
+        ];
+        expect(getBuyerPriceArgs(addOrderLineCustomFieldsInput(buyerPriceInput, [], true))).toEqual([
+            'quantity: Int',
+        ]);
+        expect(
+            getBuyerPriceArgs(addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true)),
+        ).toEqual(['quantity: Int']);
     });
 });
 

@@ -2,7 +2,7 @@
 title: "EmailEventHandler"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/email-plugin/src/handler/event-handler.ts" sourceLine="150" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/handler/event-handler.ts" sourceLine="151" packageName="@vendure/email-plugin" />
 
 The EmailEventHandler defines how the EmailPlugin will respond to a given event.
 
@@ -135,6 +135,7 @@ class EmailEventHandler<T extends string = string, Event extends EventWithContex
     constructor(listener: EmailEventListener<T>, event: Type<Event>)
     filter(filterFn: (event: Event) => boolean) => EmailEventHandler<T, Event>;
     setRecipient(setRecipientFn: (event: Event) => string) => EmailEventHandler<T, Event>;
+    setPlainTextBody(setPlainTextBodyFn: SetPlainTextBodyFn<Event>) => EmailEventHandler<T, Event>;
     setLanguageCode(setLanguageCodeFn: (event: Event) => LanguageCode | undefined) => EmailEventHandler<T, Event>;
     setTemplateVars(templateVarsFn: SetTemplateVarsFn<Event>) => EmailEventHandler<T, Event>;
     setSubject(defaultSubject: string | SetSubjectFn<Event>) => EmailEventHandler<T, Event>;
@@ -165,6 +166,12 @@ A function which defines how the recipient email address should be extracted fro
 The recipient can be a plain email address: `'foobar@example.com'`
 Or with a formatted name (includes unicode support): `'Ноде Майлер <foobar@example.com>'`
 Or a comma-separated list of addresses: `'foobar@example.com, "Ноде Майлер" <bar@example.com>'`
+### setPlainTextBody
+
+<MemberInfo kind="method" type={`(setPlainTextBodyFn: <a href='/reference/core-plugins/email-plugin/email-plugin-types#setplaintextbodyfn'>SetPlainTextBodyFn</a><Event>) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}  since="3.8.0"  />
+
+A function which defines the plain-text body of the email, used by clients which do not
+render HTML. If not defined, the email is sent without a plain-text part.
 ### setLanguageCode
 
 <MemberInfo kind="method" type={`(setLanguageCodeFn: (event: Event) => <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a> | undefined) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}  since="1.8.0"  />

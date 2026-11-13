@@ -1,0 +1,77 @@
+---
+title: "McpLoggingOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="256" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Controls how MCP tool calls are logged and retained. Every call that runs a tool is recorded as
+an [McpToolCallLog](/reference/core-plugins/mcp-plugin/mcp-tool-call-log#mcptoolcalllog) row and published as an `McpToolCallEvent`. Calls refused before the
+tool runs, such as an unknown or switched-off tool, invalid arguments, a missing permission, or
+a rate limit, leave no row and no event. So does the confirmation preview of a destructive tool.
+
+```ts title="Signature"
+interface McpLoggingOptions {
+    ttlDays?: number;
+    capture?: McpLogCapture;
+    redact?: McpLogRedactFn;
+    maxBodyBytes?: number;
+    retentionSchedule?: McpRetentionSchedule;
+    captureClientIp?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### ttlDays
+
+<MemberInfo kind="property" type={`number`} default={`30 (days)`}   />
+
+How many days to retain tool-call logs. Must be non-negative. Set to `0` to retain all logs.
+### capture
+
+<MemberInfo kind="property" type={`McpLogCapture`} default={`'metadata'`}   />
+
+How much of each tool call is stored on its log row. `metadata` stores the tool name, the
+actor, the status, the duration and the related IDs. `full` also stores the call's `input`
+and `output`, which may hold personal data. Supply `redact` to sanitize those, and see
+`maxBodyBytes` for the size cap applied to each.
+### redact
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-log-redact-fn#mcplogredactfn'>McpLogRedactFn</a>`}   />
+
+Function that rewrites a call's `input` and `output` before they are stored. Runs only
+when `capture` is `'full'`. If it throws, the call is still recorded, both bodies are
+stored as `null`, and a warning is logged.
+
+*Example*
+
+```ts
+redact: ({ input, output }) => ({
+  input,
+  output: { ...output, customer: undefined }
+})
+```
+### maxBodyBytes
+
+<MemberInfo kind="property" type={`number`} default={`64000`}   />
+
+The largest `input` or `output` body stored on a log row, in bytes, measured after redaction
+and JSON serialization. Applies only when `capture` is `'full'`. A larger body is replaced
+with a marker recording the reason and the real size, so the audit row is still written. The
+default fits within the 65,535-byte limit of a MySQL `TEXT` column.
+### retentionSchedule
+
+<MemberInfo kind="property" type={`McpRetentionSchedule`} default={`cron => cron.everyDayAt(2, 30)`}   />
+
+Schedule for the cleanup job that deletes expired tool-call logs. Accepts a cron
+expression string, or a function that builds one.
+### captureClientIp
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Whether each tool-call log row stores the caller's IP address. Off by default because an
+IP address is personal data. Behind a reverse proxy, enable Vendure's `trustProxy` so the
+stored address is the caller's rather than the proxy's.
+
+
+</div>

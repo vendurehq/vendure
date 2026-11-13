@@ -1,7 +1,7 @@
 import { log } from '@clack/prompts';
 import pc from 'picocolors';
 
-import { CheckStatus, DoctorReport } from '../types';
+import { CheckStatus, DoctorReport } from '../types.js';
 
 const STATUS_LABELS: Record<CheckStatus, string> = {
     pass: pc.green('pass'),

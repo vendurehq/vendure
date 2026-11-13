@@ -2,6 +2,8 @@ import { LanguageCode } from '@vendure/common/lib/generated-types';
 
 import { ConfigArgDef } from '../../common/configurable-operation';
 import { UserInputError } from '../../common/error/errors';
+import { getDataSource } from '../../connection/get-data-source';
+import { ProductVariantTranslation } from '../../entity/product-variant/product-variant-translation.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 
 import { CollectionFilter } from './collection-filter';
@@ -77,14 +79,15 @@ export const facetValueCollectionFilter = new CollectionFilter({
             const safeIdsConcat = ids.join('_').replace(/-/g, '_');
             const idsName = `ids_${safeIdsConcat}`;
             const countName = `count_${safeIdsConcat}`;
-            const productFacetValues = qb.connection
+            const dataSource = getDataSource(qb);
+            const productFacetValues = dataSource
                 .createQueryBuilder(ProductVariant, 'product_variant')
                 .select('product_variant.id', 'variant_id')
                 .addSelect('facet_value.id', 'facet_value_id')
                 .leftJoin('product_variant.facetValues', 'facet_value')
                 .where(`facet_value.id IN (:...${idsName})`);
 
-            const variantFacetValues = qb.connection
+            const variantFacetValues = dataSource
                 .createQueryBuilder(ProductVariant, 'product_variant')
                 .select('product_variant.id', 'variant_id')
                 .addSelect('facet_value.id', 'facet_value_id')
@@ -92,7 +95,7 @@ export const facetValueCollectionFilter = new CollectionFilter({
                 .leftJoin('product.facetValues', 'facet_value')
                 .where(`facet_value.id IN (:...${idsName})`);
 
-            const union = qb.connection
+            const union = dataSource
                 .createQueryBuilder()
                 .select('union_table.variant_id')
                 .from(
@@ -102,7 +105,7 @@ export const facetValueCollectionFilter = new CollectionFilter({
                 .groupBy('variant_id')
                 .having(`COUNT(*) >= :${countName}`);
 
-            const variantIds = qb.connection
+            const variantIds = dataSource
                 .createQueryBuilder()
                 .select('variant_ids_table.variant_id')
                 .from(`(${union.getQuery()})`, 'variant_ids_table');
@@ -147,40 +150,31 @@ export const variantNameCollectionFilter = new CollectionFilter({
     code: 'variant-name-filter',
     description: [{ languageCode: LanguageCode.en, value: 'Filter by product variant name' }],
     apply: (qb, args) => {
-        let translationAlias = 'variant_name_filter_translation';
         const termName = randomSuffix('term');
-        const translationsJoin = qb.expressionMap.joinAttributes.find(
-            ja => ja.entityOrProperty === 'productVariant.translations',
-        );
-        if (!translationsJoin) {
-            qb.leftJoin('productVariant.translations', translationAlias);
-        } else {
-            translationAlias = translationsJoin.alias.name;
-        }
-        const LIKE = qb.connection.options.type === 'postgres' ? 'ILIKE' : 'LIKE';
-        let clause: string;
+        const LIKE = getDataSource(qb).options.type === 'postgres' ? 'ILIKE' : 'LIKE';
+        let comparisonOperator: string;
         let params: Record<string, string>;
         switch (args.operator) {
             case 'contains':
-                clause = `${translationAlias}.name ${LIKE} :${termName}`;
+                comparisonOperator = LIKE;
                 params = {
                     [termName]: `%${args.term}%`,
                 };
                 break;
             case 'doesNotContain':
-                clause = `${translationAlias}.name NOT ${LIKE} :${termName}`;
+                comparisonOperator = `NOT ${LIKE}`;
                 params = {
                     [termName]: `%${args.term}%`,
                 };
                 break;
             case 'startsWith':
-                clause = `${translationAlias}.name ${LIKE} :${termName}`;
+                comparisonOperator = LIKE;
                 params = {
                     [termName]: `${args.term}%`,
                 };
                 break;
             case 'endsWith':
-                clause = `${translationAlias}.name ${LIKE} :${termName}`;
+                comparisonOperator = LIKE;
                 params = {
                     [termName]: `%${args.term}`,
                 };
@@ -188,6 +182,14 @@ export const variantNameCollectionFilter = new CollectionFilter({
             default:
                 throw new UserInputError(`${args.operator} is not a valid operator`);
         }
+        // Correlated EXISTS subquery instead of a join, so it cannot multiply outer rows.
+        const translationAlias = randomSuffix('variant_name_filter_translation');
+        const matchingTranslationExists = getDataSource(qb)
+            .createQueryBuilder(ProductVariantTranslation, translationAlias)
+            .select('1')
+            .where(`${translationAlias}.base = productVariant.id`)
+            .andWhere(`${translationAlias}.name ${comparisonOperator} :${termName}`);
+        const clause = `EXISTS (${matchingTranslationExists.getQuery()})`;
         if (args.combineWithAnd === false) {
             return qb.orWhere(clause, params);
         } else {

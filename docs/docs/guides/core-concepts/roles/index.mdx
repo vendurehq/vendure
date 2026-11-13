@@ -1,7 +1,7 @@
 ---
 title: "Roles"
 metaTitle: "Role-Based Access Control (RBAC) in Vendure"
-metaDescription: "How Vendure uses roles to group permissions and control administrator access, including built-in roles, custom roles, and channel-scoped roles for multi-tenant setups."
+metaDescription: "How Vendure uses roles to group permissions and control administrator access, including built-in roles, custom roles, and granting roles per channel for multi-tenant setups."
 ---
 
 Roles are the foundation of Vendure's **role-based access control (RBAC)** system. A Role is a named
@@ -10,9 +10,10 @@ is allowed to perform.
 
 ## How roles work
 
-Each [`Administrator`](/reference/typescript-api/entities/administrator/) is assigned one or more Roles.
-When an administrator makes a request to the Admin API, Vendure checks whether their combined roles include
-the permission required for that operation. If not, the request is denied.
+Each [`Administrator`](/reference/typescript-api/entities/administrator/) is granted one or more Roles,
+each on a specific Channel. When an administrator makes a request to the Admin API, Vendure checks whether
+the roles they hold on the active Channel include the permission required for that operation. If not, the
+request is denied.
 
 ![Administrators and Roles](../auth/admin-role.webp)
 
@@ -28,9 +29,12 @@ Vendure creates two special roles automatically. These roles cannot be modified 
   administrator created during server initialization. It grants unrestricted access to all operations
   across all channels.
 
-- **Customer** — assigned to every registered customer. This role carries the minimum permissions
-  required for a customer to manage their own account, such as viewing their order history and
-  updating their profile.
+- **RoleEditor** — carries the `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions.
+  An administrator can create, edit or delete a role only when they hold RoleEditor on every Channel
+  where that role is granted. It is not granted to anyone by default.
+
+Customers do not hold a role. A registered customer gets the `Authenticated` permission on each Channel
+they are a member of, which lets them manage their own account and view their order history.
 
 ## Custom roles
 
@@ -45,22 +49,26 @@ Processor" (order and fulfillment permissions), or "Marketing Lead" (promotion a
 permissions). The granularity of Vendure's permission system means you can tailor roles precisely
 to each team member's responsibilities.
 
-## Channel-scoped roles
+## Roles and Channels
 
-Roles can optionally be **scoped to one or more Channels**. This is a powerful feature for multi-tenant
-and multi-vendor setups where different administrators should only have access to specific parts of the
-system.
+A role is not tied to any Channel. Instead, each grant of a role to an administrator names the Channel
+it applies to. This record is a [`RoleAssignment`](/reference/typescript-api/entities/role-assignment/):
+a user, a role and a Channel.
 
-For example, in a marketplace scenario, a seller's administrator might have a "Seller Product Manager"
-role that is scoped only to that seller's channel. They can manage products within their channel but
-have no visibility into other channels or the default channel.
+This lets multi-tenant and multi-vendor setups share one set of role definitions. For example, in a
+marketplace every seller's administrator can be granted the same "Product Manager" role, each on their
+own seller's Channel. They can manage products within their Channel but have no access to other
+Channels or the default Channel.
 
-A single administrator can have a mix of channel-scoped and global roles, providing flexible access
-control that scales with the complexity of your business.
+An administrator can hold different roles on different Channels, and the same role on several Channels.
+SuperAdmin is the exception: it is granted once and applies on every Channel, including Channels
+created later.
 
 ## Role assignment
 
-Roles are assigned to administrators through the Admin API or the admin interface. Changes take effect
+Roles are granted to administrators per Channel through the Admin API (`assignRolesToUser` and
+`removeRolesFromUser`) or the admin interface. You can grant or revoke a role on a Channel only when you
+hold every permission of that role on that Channel. Changes take effect
 on the administrator's next authenticated request — there is no need to invalidate sessions.
 
 ## Further reading

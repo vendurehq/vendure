@@ -23,7 +23,8 @@ class ShippingMethod extends VendureEntity implements ChannelAware, SoftDeletabl
     @Column()
     fulfillmentHandlerCode: string;
     @ManyToMany(type => Channel, channel => channel.shippingMethods)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
     @OneToMany(type => ShippingMethodTranslation, translation => translation.base, { eager: true })
     translations: Array<Translation<ShippingMethod>>;

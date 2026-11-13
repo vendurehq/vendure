@@ -1,0 +1,16 @@
+{
+    "$schema": "https://json-schema.org/schema",
+    "$id": "VendurePluginPackage",
+    "title": "Creates a Vendure plugin package",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The folder name of the package, for example `foo-plugin`. The package is `@vendure/<name>`.",
+            "pattern": "^[a-z][a-z0-9-]*-plugin$",
+            "$default": { "$source": "argv", "index": 0 },
+            "x-prompt": "What is the folder name of the package, for example foo-plugin?"
+        }
+    },
+    "required": ["name"]
+}

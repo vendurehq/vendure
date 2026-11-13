@@ -1,0 +1,34 @@
+---
+title: "StockLevelLockOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="63" packageName="@vendure/core" since="3.7.4" />
+
+Options which control which [StockLevel](/reference/typescript-api/entities/stock-level#stocklevel) rows
+`StockLevelService.lockStockLevelsForVariants` locks.
+
+```ts title="Signature"
+interface StockLevelLockOptions {
+    includeUntrackedVariants?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### includeUntrackedVariants
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+When `true`, ProductVariants which do not track inventory are locked as well.
+
+Leave it `false` when the lock protects a saleable stock check, as the order paths do:
+an untracked variant has no stock to check, so locking it would only make concurrent
+checkouts of that variant wait for each other.
+
+Set it to `true` when the transaction derives what it writes from the current
+`stockOnHand`, as an absolute stock adjustment does. That read-then-write needs the lock
+whether or not the variant tracks inventory, because an admin can set the `stockOnHand` of
+an untracked variant just the same.
+
+
+</div>

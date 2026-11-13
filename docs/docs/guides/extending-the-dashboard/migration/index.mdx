@@ -1,25 +1,29 @@
 ---
 title: Migrating from Admin UI
 metaTitle: "Migrating from Angular Admin UI to the Vendure Dashboard"
-metaDescription: "Step-by-step guide to migrate your Angular Admin UI extensions to the new React-based Vendure Dashboard, including AI-assisted migration and manual approaches."
+metaDescription: "Step-by-step guide to migrate legacy Vendure v3 Angular Admin UI extensions to the React-based Vendure Dashboard, including AI-assisted migration and manual approaches."
 order: 1
 ---
 
-If you have existing extensions to the legacy Angular-based Admin UI, you will want to migrate to the new Dashboard to enjoy
-an improved developer experience, many more customization options, and ongoing support from the Vendure team.
+The legacy Angular-based Admin UI (`@vendure/admin-ui`, `@vendure/admin-ui-plugin` and `@vendure/ui-devkit`) was
+removed in Vendure v4. If you have existing Admin UI extensions written for Vendure v3 or earlier, you need to migrate
+them to the Dashboard as part of upgrading to v4.
+
+This guide shows how each kind of legacy Admin UI extension maps to its Dashboard equivalent. In the examples below,
+"Old (Angular)" refers to legacy v3 code which will no longer run in v4, and "New (React Dashboard)" shows the code
+you should replace it with.
+
+Before you begin, follow the instructions to [set up the Dashboard](/extending-the-dashboard/getting-started/#installation--setup).
+Once your extensions are migrated, remove the `AdminUiPlugin` from your config, delete the old Angular extension code
+(including the `ui` / `AdminUiExtension` definitions on your plugins) and uninstall the `@vendure/admin-ui-plugin`
+and `@vendure/ui-devkit` packages.
 
 :::warning
-The Angular Admin UI will not be maintained after **July 2026**. Until then, we will continue patching critical bugs and security issues. 
-Community contributions will always be merged and released.
+The `AdminUiPlugin` added a `metricSummary` query to the Admin API, along with the `MetricSummary`,
+`MetricSummaryEntry`, `MetricSummaryInput`, `MetricType` and `MetricInterval` types, which are removed in v4. If
+your own code or a third-party client calls `metricSummary`, switch to the `dashboardMetricSummary` query from the
+`DashboardPlugin`. Its input takes a `startDate` and an `endDate` instead of an `interval`.
 :::
-
-## Running In Parallel
-
-A recommended approach to migrating is to run both the Admin UI _and_ the new Dashboard in parallel. This allows you to start building
-new features right away with the new Dashboard while maintaining access to existing features that have not yet been migrated.
-
-To do so, follow the instructions to [set up the Dashboard](/extending-the-dashboard/getting-started/#installation--setup).
-Both plugins can now be used simultaneously without any special configuration.
 
 ## AI-Assisted Migration
 
@@ -54,7 +58,7 @@ Then paste the following prompt in full:
 <div style={{ width: '100%', height: '500px', overflow: 'auto', marginBottom: '20px' }}>
 
 {/* Note: the following code block should not be edited. It is auto-generated from the files in the
-     `.claude/skills/vendure-dashboard-migration` dir, by running the npm script `generate-migration-prompt` from
+     `skills/vendure-dashboard-migration` dir, by running the npm script `generate-migration-prompt` from
      the `./docs` dir. */}
 ````md
 ## Instructions
@@ -1556,22 +1560,20 @@ The full prompt is quite large, so it can make sense to first clear the current 
 e.g. with `/clear` in Claude Code or `/new` in Codex CLI
 :::
 
-### Claude Skills
+### Agent Skills
 
-If you use Claude Code, you can use [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) to set
-up a specialized skill for migrating plugins. This has the advantage that you do not need to continually paste in the full prompt,
-and it can also be potentially more token-efficient.
+If you use an AI coding agent with [Agent Skills](https://agentskills.io), you can set up a specialized skill for migrating plugins.
+This has the advantage that you do not need to continually paste in the full prompt, and it can also be potentially more token-efficient.
 
-To set up a the skill, run this from the root of your project:
+To set up the skill, run this from the root of your project:
 
 ```
-npx degit vendure-ecommerce/vendure/.claude/skills#minor .claude/skills
+npx skills add vendurehq/vendure --skill vendure-dashboard-migration
 ```
 
-This command uses [degit](https://github.com/Rich-Harris/degit) to copy over the vendure-dashboard-migration skill to 
-your local `./claude/skills` directory.
+This installs the `vendure-dashboard-migration` skill from the Vendure repository into your selected agent's skills directory.
 
-You can then have Claude Code use the skill with a prompt like:
+You can then have your coding agent use the skill with a prompt like:
 
 ```
 Use the vendure-dashboard-migration skill to migrate 
@@ -1596,9 +1598,9 @@ things like:
 ## Manual Migration
 
 If you would rather do a full manual migration, you should first follow the [Dashboard Getting Started guide](/extending-the-dashboard/getting-started/)
-and the [Extending the Dashboard guide](http://localhost:3001/extending-the-dashboard/extending-overview/).
+and the [Extending the Dashboard guide](/extending-the-dashboard/extending-overview/).
 
-The remainder of this document details specific features, and how they are now implemented in the new Dashboard.
+The remainder of this document details specific features, and how they are implemented in the Dashboard.
 
 ### Forms
 
@@ -1896,5 +1898,3 @@ defineDashboardExtension({
     ],
 });
 ```
-
-

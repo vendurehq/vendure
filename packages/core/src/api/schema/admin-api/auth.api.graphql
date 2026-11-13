@@ -13,10 +13,70 @@ type Mutation {
     "Authenticates the user using a named authentication strategy"
     authenticate(input: AuthenticationInput!, rememberMe: Boolean): AuthenticationResult!
     logout: Success!
+    """
+    Requests a password reset email to be sent to the Administrator with the given email address. To
+    prevent leaking information about which email addresses exist, the mutation resolves to `Success`
+    even if no Administrator with that email address was found.
+    """
+    requestPasswordReset(emailAddress: String!): RequestPasswordResetResult
+    """
+    Resets an Administrator's password based on the provided token, which is obtained via the email
+    sent as a result of the `requestPasswordReset` mutation. Upon success, the Administrator will be
+    signed in.
+    """
+    resetPassword(token: String!, password: String!): ResetPasswordResult!
 }
 
 # Populated at run-time
 input AuthenticationInput
 
+"""
+Returned if the token used to reset an Administrator's password is either
+invalid or does not match any expected tokens.
+"""
+type PasswordResetTokenInvalidError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the token used to reset an Administrator's password is valid, but has
+expired according to the `verificationTokenDuration` setting in the AuthOptions.
+"""
+type PasswordResetTokenExpiredError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+# The three password error types below are also declared in the shop API, in
+# shop-api/shop-error-results.graphql. GraphQL resolves an ErrorResult by its `__typename`, so the
+# services return one set of classes to both APIs and the two declarations must stay identical.
+
+"Returned when attempting to register or verify a customer account without a password, when one is required."
+type MissingPasswordError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to register or verify a customer account where the given password fails password validation."
+type PasswordValidationError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    validationErrorMessage: String!
+}
+
+"Returned when attempting to verify a customer account with a password, when a password has already been set."
+type PasswordAlreadySetError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
 union NativeAuthenticationResult = CurrentUser | InvalidCredentialsError | NativeAuthStrategyError
 union AuthenticationResult = CurrentUser | InvalidCredentialsError
+union RequestPasswordResetResult = Success | NativeAuthStrategyError
+union ResetPasswordResult =
+    | CurrentUser
+    | PasswordResetTokenInvalidError
+    | PasswordResetTokenExpiredError
+    | PasswordValidationError
+    | NativeAuthStrategyError

@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
+import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
-import { UnverifiedExternalEmailError } from '../../../common/error/errors';
+import { EntityNotFoundError, UnverifiedExternalEmailError } from '../../../common/error/errors';
+import { isEmailAddressLike, normalizeEmailAddress } from '../../../common/utils';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Administrator } from '../../../entity/administrator/administrator.entity';
 import { ExternalAuthenticationMethod } from '../../../entity/authentication-method/external-authentication-method.entity';
@@ -13,7 +15,9 @@ import { AdministratorService } from '../../services/administrator.service';
 import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
 import { HistoryService } from '../../services/history.service';
+import { RoleAssignmentService } from '../../services/role-assignment.service';
 import { RoleService } from '../../services/role.service';
+import { StoredMediaUpload } from '../stored-media/stored-media.service';
 
 /**
  * @description
@@ -26,11 +30,12 @@ import { RoleService } from '../../services/role.service';
 export class ExternalAuthenticationService {
     constructor(
         private connection: TransactionalConnection,
-        private roleService: RoleService,
+        private roleAssignmentService: RoleAssignmentService,
         private historyService: HistoryService,
         private customerService: CustomerService,
         private administratorService: AdministratorService,
         private channelService: ChannelService,
+        private roleService: RoleService,
     ) {}
 
     /**
@@ -108,10 +113,23 @@ export class ExternalAuthenticationService {
         },
     ): Promise<User> {
         let user: User;
+        const emailAddress = normalizeEmailAddress(config.emailAddress);
 
-        const existingUser = await this.findExistingCustomerUserByEmailAddress(ctx, config.emailAddress);
+        const existingUser = await this.findExistingCustomerUserByEmailAddress(ctx, emailAddress);
 
         if (existingUser) {
+            const isAlreadyLinked = existingUser.authenticationMethods.some(
+                method =>
+                    method instanceof ExternalAuthenticationMethod &&
+                    method.strategy === config.strategy &&
+                    method.externalIdentifier === config.externalIdentifier,
+            );
+            if (isAlreadyLinked) {
+                // The strategy did not find the User because its Customer is not in the current
+                // Channel yet. This external identity is linked to the User already, so there is
+                // nothing to create or verify.
+                return existingUser;
+            }
             // SECURITY: only link a newly-presented external identity to a pre-existing account when the
             // external provider has verified ownership of the email address. Without this check, an attacker
             // who presents a victim's (unverified) email via an external provider that does not validate email
@@ -121,10 +139,10 @@ export class ExternalAuthenticationService {
             }
             user = existingUser;
         } else {
-            const customerRole = await this.roleService.getCustomerRole(ctx);
+            // Customer permissions derive from the Customer's channel
+            // memberships at permission-resolution time — no role bookkeeping needed.
             user = new User({
-                identifier: config.emailAddress,
-                roles: [customerRole],
+                identifier: emailAddress,
                 verified: config.verified || false,
                 authenticationMethods: [],
             });
@@ -140,19 +158,22 @@ export class ExternalAuthenticationService {
         const savedUser = await this.connection.getRepository(ctx, User).save(user);
 
         let customer: Customer;
-        const existingCustomer = await this.customerService.findOneByUserId(ctx, savedUser.id);
+        // The existing Customer may be in another Channel. It is not assigned to the current Channel
+        // here: CustomerChannelAssignmentService does that on the next request, if the
+        // CustomerChannelAssignmentStrategy allows it.
+        const existingCustomer = await this.customerService.findOneByUserId(ctx, savedUser.id, false);
         if (existingCustomer) {
             customer = existingCustomer;
         } else {
             customer = new Customer({
-                emailAddress: config.emailAddress,
+                emailAddress,
                 firstName: config.firstName,
                 lastName: config.lastName,
                 user: savedUser,
             });
+            await this.channelService.assignToCurrentChannel(customer, ctx);
+            await this.connection.getRepository(ctx, Customer).save(customer);
         }
-        await this.channelService.assignToCurrentChannel(customer, ctx);
-        await this.connection.getRepository(ctx, Customer).save(customer);
 
         await this.historyService.createHistoryEntryForCustomer({
             customerId: customer.id,
@@ -192,12 +213,27 @@ export class ExternalAuthenticationService {
             emailAddress?: string;
             firstName?: string;
             lastName?: string;
-            roles: Role[];
+            /**
+             * Roles to grant. A Role owned by a Channel other than the default one is granted on
+             * that Channel; a shared Role on the active Channel, which the client chooses with
+             * the vendure-token header. To name the Channel, use roleAssignments.
+             *
+             * @deprecated since 4.0.0, use roleAssignments
+             */
+            roles?: Role[];
+            /**
+             * The Roles to grant, each on the given Channel. The Role must be assignable there:
+             * a shared Role on any Channel, any other Role on its owner only.
+             *
+             * @since 4.0.0
+             */
+            roleAssignments?: Array<{ role: Role; channelId: ID }>;
+            /** An optional provider profile image to use as the Administrator avatar. */
+            avatar?: Promise<StoredMediaUpload> | StoredMediaUpload;
         },
     ) {
         const newUser = new User({
             identifier: config.identifier,
-            roles: config.roles,
             verified: true,
         });
 
@@ -210,6 +246,21 @@ export class ExternalAuthenticationService {
 
         newUser.authenticationMethods = [authMethod];
         const savedUser = await this.connection.getRepository(ctx, User).save(newUser);
+        // The strategy has already decided which Roles this User gets and there is no actor
+        // whose grant rights could apply, so the write goes through the unauthorized
+        // primitive, which still enforces Role ownership. The active Channel comes from the
+        // client, so it is used only for shared Roles.
+        const pairs = [
+            ...(config.roleAssignments ?? []).map(({ role, channelId }) => ({ roleId: role.id, channelId })),
+        ];
+        for (const role of config.roles ?? []) {
+            const channelId =
+                role.channelId != null && !(await this.roleService.isSharedRole(ctx, role))
+                    ? role.channelId
+                    : ctx.channelId;
+            pairs.push({ roleId: role.id, channelId });
+        }
+        await this.roleAssignmentService.createAssignments(ctx, savedUser.id, pairs);
 
         const administrator = await this.connection.getRepository(ctx, Administrator).save(
             new Administrator({
@@ -220,7 +271,50 @@ export class ExternalAuthenticationService {
             }),
         );
 
+        if (config.avatar) {
+            // The request is still anonymous at this point, so the visibility-scoped setAvatar()
+            // would not find the Administrator which has just been created above.
+            await this.administratorService.setAvatarWithoutVisibilityCheck(
+                ctx,
+                administrator.id,
+                config.avatar,
+            );
+        }
+
         return savedUser;
+    }
+
+    /**
+     * @description
+     * Sets or removes the avatar belonging to an externally-authenticated Administrator.
+     * This allows an authentication strategy to synchronize a provider profile image without
+     * needing to look up the Administrator or manage the underlying system Asset.
+     *
+     * @example
+     * ```ts
+     * import { Readable } from 'stream';
+     *
+     * const response = await fetch(googleProfile.picture);
+     * const image = Buffer.from(await response.arrayBuffer());
+     * await externalAuthenticationService.setAdministratorAvatar(ctx, user.id, {
+     *     filename: `${googleProfile.sub}.jpg`,
+     *     mimetype: response.headers.get('content-type') ?? 'image/jpeg',
+     *     createReadStream: () => Readable.from([image]),
+     * });
+     * ```
+     */
+    async setAdministratorAvatar(
+        ctx: RequestContext,
+        userId: ID,
+        avatar: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const administrator = await this.administratorService.findOneByUserId(ctx, userId);
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', userId);
+        }
+        // An authentication strategy calls this while the request is still anonymous, which the
+        // visibility rule applied by setAvatar() would reject.
+        return this.administratorService.setAvatarWithoutVisibilityCheck(ctx, administrator.id, avatar);
     }
 
     async findUser(
@@ -241,15 +335,36 @@ export class ExternalAuthenticationService {
     }
 
     private async findExistingCustomerUserByEmailAddress(ctx: RequestContext, emailAddress: string) {
-        const customer = await this.connection
+        // Prefer a Customer in the current Channel, as several Customers can have the same email
+        // address in different case. See #5559
+        return (
+            (await this.findCustomerUserByEmailAddress(ctx, emailAddress, ctx.channelId)) ??
+            this.findCustomerUserByEmailAddress(ctx, emailAddress)
+        );
+    }
+
+    private async findCustomerUserByEmailAddress(ctx: RequestContext, emailAddress: string, channelId?: ID) {
+        const qb = this.connection
             .getRepository(ctx, Customer)
             .createQueryBuilder('customer')
-            .leftJoinAndSelect('customer.user', 'user')
+            // A guest Customer has no User, so it must not hide a registered account.
+            .innerJoinAndSelect('customer.user', 'user')
             .leftJoin('customer.channels', 'channel')
             .leftJoinAndSelect('user.authenticationMethods', 'authMethod')
-            .andWhere('customer.emailAddress = :emailAddress', { emailAddress })
             .andWhere('user.deletedAt IS NULL')
-            .getOne();
+            // Use the oldest of several matching Customers, so that the result does not depend
+            // on the database.
+            .orderBy('customer.createdAt', 'ASC');
+        if (channelId) {
+            qb.andWhere('channel.id = :channelId', { channelId });
+        }
+        // The email address is already normalized. Compare case-insensitively, so that a Customer
+        // whose email address was saved with capital letters is also found. See #5559
+        const column = isEmailAddressLike(emailAddress)
+            ? 'LOWER(customer.emailAddress)'
+            : 'customer.emailAddress';
+        qb.andWhere(`${column} = :emailAddress`, { emailAddress });
+        const customer = await qb.getOne();
 
         return customer?.user;
     }

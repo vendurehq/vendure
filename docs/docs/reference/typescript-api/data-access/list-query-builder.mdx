@@ -4,7 +4,7 @@ generated: true
 ---
 ## ListQueryBuilder
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/list-query-builder/list-query-builder.ts" sourceLine="207" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/list-query-builder/list-query-builder.ts" sourceLine="240" packageName="@vendure/core" />
 
 This helper class is used when fetching entities the database from queries which return a [PaginatedList](/reference/typescript-api/common/paginated-list#paginatedlist) type.
 These queries all follow the same format:
@@ -74,7 +74,7 @@ export class BlogPostService {
 
 ```ts title="Signature"
 class ListQueryBuilder implements OnApplicationBootstrap {
-    constructor(connection: TransactionalConnection, configService: ConfigService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, channelAssignmentService: ChannelAssignmentService)
     filterObjectHasProperty(filterObject: FP | NullOptionals<FP> | null | undefined, property: keyof FP) => boolean;
     build(entity: Type<T>, options: ListQueryOptions<T> = {}, extendedOptions: ExtendedListQueryOptions<T> = {}) => SelectQueryBuilder<T>;
 }
@@ -107,7 +107,7 @@ to join that relation.
 </div>
 ## ExtendedListQueryOptions
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/list-query-builder/list-query-builder.ts" sourceLine="48" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/list-query-builder/list-query-builder.ts" sourceLine="70" packageName="@vendure/core" />
 
 Options which can be passed to the ListQueryBuilder's `build()` method.
 
@@ -121,6 +121,7 @@ type ExtendedListQueryOptions<T extends VendureEntity> = {
     ctx?: RequestContext;
     customPropertyMap?: { [name: string]: string };
     ignoreQueryLimits?: boolean;
+    loadChannelAssignment?: boolean;
 }
 ```
 
@@ -224,6 +225,14 @@ query {
 When set to `true`, the configured `shopListQueryLimit` and `adminListQueryLimit` values will be ignored,
 allowing unlimited results to be returned. Use caution when exposing an unlimited list query to the public,
 as it could become a vector for a denial of service attack if an attacker requests a very large list.
+### loadChannelAssignment
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}  since="4.0.0"  />
+
+When the list is scoped to a Channel (`channelId`) and the entity has a channel assignment
+entity (see [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment)), loads the assignment row of that Channel onto each
+entity. [ChannelAssignmentService](/reference/typescript-api/services/channel-assignment-service#channelassignmentservice)`.getAssignment()` then returns it without a further
+query, e.g. for a field resolver of per-channel data on each item of the list.
 
 
 </div>

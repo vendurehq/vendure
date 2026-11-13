@@ -1,0 +1,172 @@
+---
+title: "ComposeStrategy"
+generated: true
+---
+## composeStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="44" packageName="@vendure/core" since="4.0.0" />
+
+Adds layers to a strategy and returns a strategy of the same type. The layers are sorted by
+their priority. A layer with a lower number gets the call first. The order of the arguments has no
+effect.
+
+If the strategy is already composed, the layers are added to its chain. A layer class that is
+already in the chain is not added again, and its options and priority do not change. Because the
+project config is merged before the `configuration` functions of the plugins run, the options and
+the priority that the project config gives a layer win.
+
+Do not keep a reference to the returned strategy. A later call that changes the chain returns
+a new object.
+
+*Example*
+
+```ts
+@VendurePlugin({
+    configuration: config => {
+        config.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
+            MinimumPriceLayer.with({ minimum: 100 }),
+            config.orderOptions.orderItemPriceCalculationStrategy,
+        );
+        return config;
+    },
+})
+export class MinimumPricePlugin {}
+```
+
+```ts title="Signature"
+function composeStrategy<S extends InjectableStrategy>(layersAndStrategy: [...Array<StrategyLayerType<S>>, S]): S
+```
+Parameters
+
+### layersAndStrategy
+
+<MemberInfo kind="parameter" type={`[...Array<<a href='/reference/typescript-api/configuration/strategy-layer#strategylayertype'>StrategyLayerType</a><S>>, S]`} />
+
+## replaceBase
+
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="81" packageName="@vendure/core" since="4.0.0" />
+
+Replaces the base strategy of a composed strategy and keeps its layers. If the strategy is not
+composed, returns `base`.
+
+Use this function when a plugin changes the base strategy of an option, so that the layers of
+other plugins and of the project config stay in the chain.
+
+*Example*
+
+```ts
+config.catalogOptions.stockLocationStrategy = replaceBase(
+    config.catalogOptions.stockLocationStrategy,
+    new MultiChannelStockLocationStrategy(),
+);
+```
+
+```ts title="Signature"
+function replaceBase<S extends InjectableStrategy>(strategy: S, base: S): S
+```
+Parameters
+
+### strategy
+
+<MemberInfo kind="parameter" type={`S`} />
+
+### base
+
+<MemberInfo kind="parameter" type={`S`} />
+
+## removeLayer
+
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="114" packageName="@vendure/core" since="4.0.0" />
+
+Records that a layer must not be in the chain of the strategy. The record stays with the chain,
+so the removal also applies to a layer that a plugin adds later. Thus a project can remove the
+layer of a plugin in the project config.
+
+*Example*
+
+```ts
+// vendure-config.ts
+orderOptions: {
+    orderItemPriceCalculationStrategy: removeLayer(
+        new DefaultOrderItemPriceCalculationStrategy(),
+        MinimumPriceLayer,
+    ),
+},
+```
+
+```ts title="Signature"
+function removeLayer<S extends InjectableStrategy, T extends S = S>(strategy: T, layer: StrategyLayerClass<S>): T
+```
+Parameters
+
+### strategy
+
+<MemberInfo kind="parameter" type={`T`} />
+
+### layer
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/configuration/strategy-layer#strategylayerclass'>StrategyLayerClass</a><S>`} />
+
+## setLayerPriority
+
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="148" packageName="@vendure/core" since="4.0.0" />
+
+Records a priority for a layer in the chain of the strategy. The recorded priority replaces the
+priority of the layer, and keeps the options that the plugin gave. Like [removeLayer](/reference/typescript-api/configuration/compose-strategy#removelayer), the
+record also applies to a layer that a plugin adds later. It does not add the layer.
+
+*Example*
+
+```ts
+// vendure-config.ts
+orderOptions: {
+    orderItemPriceCalculationStrategy: setLayerPriority(
+        new DefaultOrderItemPriceCalculationStrategy(),
+        MinimumPriceLayer,
+        250,
+    ),
+},
+```
+
+```ts title="Signature"
+function setLayerPriority<S extends InjectableStrategy, T extends S = S>(strategy: T, layer: StrategyLayerClass<S>, priority: number): T
+```
+Parameters
+
+### strategy
+
+<MemberInfo kind="parameter" type={`T`} />
+
+### layer
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/configuration/strategy-layer#strategylayerclass'>StrategyLayerClass</a><S>`} />
+
+### priority
+
+<MemberInfo kind="parameter" type={`number`} />
+
+## getBaseStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/strategy-layer/compose-strategy.ts" sourceLine="179" packageName="@vendure/core" since="4.0.0" />
+
+Returns the base strategy of a composed strategy. If the strategy is not composed, returns the
+strategy. Use it in place of an `instanceof` check or a class name check on a configured strategy.
+
+*Example*
+
+```ts
+const jobQueueStrategy = getBaseStrategy(configService.jobQueueOptions.jobQueueStrategy);
+if (jobQueueStrategy instanceof InMemoryJobQueueStrategy) {
+    // ...
+}
+```
+
+```ts title="Signature"
+function getBaseStrategy<S>(strategy: S): S
+```
+Parameters
+
+### strategy
+
+<MemberInfo kind="parameter" type={`S`} />
+

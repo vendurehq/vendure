@@ -48,6 +48,7 @@ export const productDuplicator = new EntityDuplicator({
     },
     async duplicate({ ctx, id, args }) {
         const product = await connection.getEntityOrThrow(ctx, Product, id, {
+            channelId: ctx.channelId,
             relations: {
                 featuredAsset: true,
                 assets: true,
@@ -85,6 +86,10 @@ export const productDuplicator = new EntityDuplicator({
                 where: {
                     productId: id,
                     deletedAt: IsNull(),
+                    // A Product can be assigned to a channel without all of its variants
+                    // being assigned too, so the variants are scoped to the active channel
+                    // as well as the parent Product.
+                    channels: { id: ctx.channelId },
                 },
                 relations: {
                     options: {
@@ -98,12 +103,14 @@ export const productDuplicator = new EntityDuplicator({
                     taxCategory: true,
                 },
             });
+            // Share option groups with the duplicated product instead of copying them
             if (product.optionGroups?.length) {
                 for (const optionGroup of product.optionGroups) {
                     await productService.addOptionGroupToProduct(ctx, duplicatedProduct.id, optionGroup.id);
                 }
             }
             const variantInput: CreateProductVariantInput[] = productVariants.map((variant, i) => {
+                // Since we share option groups, variants reference the same option IDs
                 const optionIds = variant.options.map(o => o.id);
                 const price =
                     variant.productVariantPrices.find(p => idsAreEqual(p.channelId, ctx.channelId))?.price ??

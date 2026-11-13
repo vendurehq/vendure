@@ -2,7 +2,7 @@
 title: "ShippingMethodService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/shipping-method.service.ts" sourceLine="45" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/shipping-method.service.ts" sourceLine="46" packageName="@vendure/core" />
 
 Contains methods relating to [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) entities.
 
@@ -10,7 +10,7 @@ Contains methods relating to [ShippingMethod](/reference/typescript-api/entities
 class ShippingMethodService {
     constructor(connection: TransactionalConnection, configService: ConfigService, roleService: RoleService, listQueryBuilder: ListQueryBuilder, channelService: ChannelService, configArgService: ConfigArgService, translatableSaver: TranslatableSaver, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translator: TranslatorService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<ShippingMethod>, relations: RelationPaths<ShippingMethod> = []) => Promise<PaginatedList<Translated<ShippingMethod>>>;
-    findOne(ctx: RequestContext, shippingMethodId: ID, includeDeleted:  = false, relations: RelationPaths<ShippingMethod> = []) => Promise<Translated<ShippingMethod> | undefined>;
+    findOne(ctx: RequestContext, shippingMethodId: ID, includeDeleted:  = false, relations: RelationPaths<ShippingMethod> = [], filterOnChannel:  = true) => Promise<Translated<ShippingMethod> | undefined>;
     create(ctx: RequestContext, input: CreateShippingMethodInput) => Promise<Translated<ShippingMethod>>;
     update(ctx: RequestContext, input: UpdateShippingMethodInput) => Promise<Translated<ShippingMethod>>;
     softDelete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
@@ -32,7 +32,7 @@ class ShippingMethodService {
 
 ### findOne
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, shippingMethodId: <a href='/reference/typescript-api/common/id#id'>ID</a>, includeDeleted:  = false, relations: RelationPaths<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> = []) => Promise<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> | undefined>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, shippingMethodId: <a href='/reference/typescript-api/common/id#id'>ID</a>, includeDeleted:  = false, relations: RelationPaths<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> = [], filterOnChannel:  = true) => Promise<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> | undefined>`}   />
 
 
 ### create

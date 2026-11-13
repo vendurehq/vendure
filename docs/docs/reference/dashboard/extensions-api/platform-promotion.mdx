@@ -1,0 +1,127 @@
+---
+title: "PlatformPromotion"
+generated: true
+---
+## setPlatformGrantedCapabilities
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/platform-promotion/platform-granted-capabilities.ts" sourceLine="45" packageName="@vendure/dashboard" since="3.9.0" />
+
+Reports the Vendure Platform capability keys that the current license grants. The
+Dashboard shows a locked item for each promoted Platform capability that is not in
+this set. The License Guard Dashboard extension calls this function. Each call
+replaces the earlier set.
+
+The Dashboard applies these rules:
+
+- The Vendure config has no `LicenseGuardPlugin`: the granted set is empty, and the
+  Dashboard shows all locked items on the first render.
+- The Vendure config has the `LicenseGuardPlugin` and this function was called: the
+  Dashboard uses the reported set.
+- The Vendure config has the `LicenseGuardPlugin` and this function was not called
+  (yet): the Dashboard shows no locked items.
+
+Call it before the first render if you can, for example at the top level of the
+extension entry file, or from a `customProviders` component that loads the grants.
+
+*Example*
+
+```ts
+import { defineDashboardExtension, setPlatformGrantedCapabilities } from '@vendure/dashboard';
+
+setPlatformGrantedCapabilities(['org.accounts', 'quote.requests']);
+
+defineDashboardExtension({});
+```
+
+```ts title="Signature"
+function setPlatformGrantedCapabilities(capabilities: readonly string[]): void
+```
+Parameters
+
+### capabilities
+
+<MemberInfo kind="parameter" type={`readonly string[]`} />
+
+## PlatformPromotionState
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-platform-promotion.ts" sourceLine="25" packageName="@vendure/dashboard" since="3.9.0" />
+
+The data that the Dashboard needs to show locked Vendure Platform items. It is
+returned by [usePlatformPromotion](/reference/dashboard/extensions-api/platform-promotion#useplatformpromotion).
+
+```ts title="Signature"
+interface PlatformPromotionState {
+    promotion: DashboardPromotionV1;
+    capabilities: ReadonlyMap<string, DashboardPromotionCapabilityV1>;
+    licenseGuardConfigured: boolean;
+    grantedCapabilities: ReadonlySet<string>;
+    hideAll: boolean;
+    isLocked: (capability: string) => boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### promotion
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/extensions-api/platform-promotion#dashboardpromotionv1'>DashboardPromotionV1</a>`}   />
+
+The Platform catalog data, read at build time. If the build could not fetch it,
+this is the snapshot that ships with `@vendure/common`.
+### capabilities
+
+<MemberInfo kind="property" type={`ReadonlyMap<string, <a href='/reference/typescript-api/extensions-api/platform-promotion#dashboardpromotioncapabilityv1'>DashboardPromotionCapabilityV1</a>>`}   />
+
+`promotion.capabilities`, keyed by capability key.
+### licenseGuardConfigured
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+`true` when the Vendure config contains the `LicenseGuardPlugin`.
+### grantedCapabilities
+
+<MemberInfo kind="property" type={`ReadonlySet<string>`}   />
+
+The capability keys that the license grants. Empty when License Guard is not configured.
+### hideAll
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+`true` when the Dashboard must show no locked items: Platform promotion is turned off
+in the build, or License Guard is configured but it did not report a granted set.
+### isLocked
+
+<MemberInfo kind="property" type={`(capability: string) => boolean`}   />
+
+Returns `true` when the Dashboard shows the locked item for the capability:
+`hideAll` is `false` and the capability is not granted.
+
+
+</div>
+## getPlatformPromotion
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-platform-promotion.ts" sourceLine="91" packageName="@vendure/dashboard" since="3.9.0" />
+
+Returns the current [PlatformPromotionState](/reference/dashboard/extensions-api/platform-promotion#platformpromotionstate) outside of React.
+Use [usePlatformPromotion](/reference/dashboard/extensions-api/platform-promotion#useplatformpromotion) in components.
+
+```ts title="Signature"
+function getPlatformPromotion(): PlatformPromotionState
+```
+## usePlatformPromotion
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-platform-promotion.ts" sourceLine="115" packageName="@vendure/dashboard" since="3.9.0" />
+
+Returns the [PlatformPromotionState](/reference/dashboard/extensions-api/platform-promotion#platformpromotionstate). The component renders again when
+[setPlatformGrantedCapabilities](/reference/dashboard/extensions-api/platform-promotion#setplatformgrantedcapabilities) reports a new granted set.
+
+*Example*
+
+```tsx
+const { promotion, isLocked } = usePlatformPromotion();
+const lockedNavItems = promotion.navItems.filter(item => item.promoted && isLocked(item.capability));
+```
+
+```ts title="Signature"
+function usePlatformPromotion(): PlatformPromotionState
+```

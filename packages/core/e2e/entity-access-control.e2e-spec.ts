@@ -164,7 +164,7 @@ class TestEntityAccessControlStrategy extends DefaultEntityAccessControlStrategy
         // role-based category access, or call an external permissions API.
         const products = await this.connection.rawConnection.getRepository(Product).find({
             where: { id: LessThanOrEqual(5) },
-            select: ['id'],
+            select: { id: true },
         });
         this.allowedProductIds.set(
             ctx,
@@ -182,7 +182,7 @@ class TestEntityAccessControlStrategy extends DefaultEntityAccessControlStrategy
         entityType: new (...args: any[]) => T,
         ctx: RequestContext,
     ): void {
-        if (entityType !== Product) {
+        if ((entityType as unknown) !== Product) {
             return;
         }
 
@@ -257,7 +257,6 @@ describe('EntityAccessControlStrategy', () => {
             // Create a role with read permissions for catalog
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
-                    channelIds: ['T_1'],
                     code: 'restricted-role',
                     description: 'A restricted role for testing entity access control',
                     permissions: [Permission.ReadCatalog, Permission.ReadProduct],
@@ -435,7 +434,6 @@ describe('EntityAccessControlStrategy', () => {
             // Create a role with NO catalog permissions
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
-                    channelIds: ['T_1'],
                     code: 'no-catalog-role',
                     description: 'A role with no catalog permissions',
                     permissions: [],

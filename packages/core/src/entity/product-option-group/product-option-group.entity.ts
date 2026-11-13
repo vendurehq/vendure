@@ -40,11 +40,16 @@ export class ProductOptionGroup
     @OneToMany(type => ProductOption, option => option.group)
     options: ProductOption[];
 
-    @ManyToMany(type => Product, product => product.optionGroups)
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(type => Product, product => product.optionGroups, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     products: Product[];
 
     @ManyToMany(type => Channel, channel => channel.productOptionGroups)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @Column(type => CustomProductOptionGroupFields)

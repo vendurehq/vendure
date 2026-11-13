@@ -8,9 +8,12 @@ import { JobQueueModule } from '../job-queue/job-queue.module';
 import { SchedulerModule } from '../scheduler/scheduler.module';
 
 import { ActiveOrderService } from './helpers/active-order/active-order.service';
+import { ChannelAssignmentService } from './helpers/channel-assignment/channel-assignment.service';
+import { ChannelEnabledChecker } from './helpers/channel-enabled-checker/channel-enabled-checker';
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
 import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
+import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { EntityDuplicatorService } from './helpers/entity-duplicator/entity-duplicator.service';
 import { EntityHydrator } from './helpers/entity-hydrator/entity-hydrator.service';
 import { EntitySlugService } from './helpers/entity-slug.service';
@@ -29,10 +32,12 @@ import { PaymentStateMachine } from './helpers/payment-state-machine/payment-sta
 import { ProductPriceApplicator } from './helpers/product-price-applicator/product-price-applicator';
 import { RefundStateMachine } from './helpers/refund-state-machine/refund-state-machine';
 import { RequestContextService } from './helpers/request-context/request-context.service';
+import { RolePermissionResolver } from './helpers/role-permission-resolver/role-permission-resolver';
 import { SettingsStoreService } from './helpers/settings-store/settings-store.service';
 import { ShippingCalculator } from './helpers/shipping-calculator/shipping-calculator';
 import { SlugValidator } from './helpers/slug-validator/slug-validator';
 import { SlugService } from './helpers/slug.service';
+import { StoredMediaService } from './helpers/stored-media/stored-media.service';
 import { TranslatableSaver } from './helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from './helpers/translator/translator.service';
 import { VerificationTokenGenerator } from './helpers/verification-token-generator/verification-token-generator';
@@ -60,11 +65,14 @@ import { ProductOptionService } from './services/product-option.service';
 import { ProductVariantService } from './services/product-variant.service';
 import { ProductService } from './services/product.service';
 import { PromotionService } from './services/promotion.service';
+import { ProvinceService } from './services/province.service';
+import { RoleAssignmentService } from './services/role-assignment.service';
 import { RoleService } from './services/role.service';
 import { SearchService } from './services/search.service';
 import { SellerService } from './services/seller.service';
 import { SessionService } from './services/session.service';
 import { ShippingMethodService } from './services/shipping-method.service';
+import { BuyerIdentityService } from './services/buyer-identity.service';
 import { StockLevelService } from './services/stock-level.service';
 import { StockLocationService } from './services/stock-location.service';
 import { StockMovementService } from './services/stock-movement.service';
@@ -99,11 +107,14 @@ const services = [
     ProductService,
     ProductVariantService,
     PromotionService,
+    ProvinceService,
+    RoleAssignmentService,
     RoleService,
     SearchService,
     SellerService,
     SessionService,
     ShippingMethodService,
+    BuyerIdentityService,
     SlugService,
     StockLevelService,
     StockLocationService,
@@ -138,11 +149,16 @@ const helpers = [
     ProductPriceApplicator,
     EntityHydrator,
     RequestContextService,
+    RolePermissionResolver,
     CustomerChannelAssignmentService,
+    ChannelAssignmentService,
+    ChannelEnabledChecker,
     TranslatorService,
     EntityDuplicatorService,
     FacetValueChecker,
     SettingsStoreService,
+    EncryptionKeyVerifierService,
+    StoredMediaService,
 ];
 
 /**

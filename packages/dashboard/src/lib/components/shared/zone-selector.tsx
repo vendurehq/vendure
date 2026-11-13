@@ -31,7 +31,6 @@ export interface ZoneSelectorProps {
 export function ZoneSelector({ value, onChange }: Readonly<ZoneSelectorProps>) {
     const { data, isLoading, isPending } = useQuery({
         queryKey: ['zones'],
-        staleTime: 1000 * 60 * 5,
         queryFn: () =>
             api.query(zonesDocument, {
                 options: {

@@ -1,14 +1,15 @@
 import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
-import type { MigrationResult } from './migration-operations';
+import type { MigrationResult } from './migration-operations.js';
 
-import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
 import {
     generateMigrationOperation,
     revertMigrationOperation,
     runMigrationsOperation,
-} from './migration-operations';
+} from './migration-operations.js';
 
 const cancelledMessage = 'Migrate cancelled.';
 const migrateExamples = ['vendure migrate -g my-migration', 'vendure migrate -r', 'vendure migrate --revert'];
@@ -22,6 +23,8 @@ export interface MigrateOptions {
     run?: boolean;
     revert?: boolean;
     outputDir?: string;
+    /** Generate a baseline migration by diffing against an empty shadow database */
+    fromEmpty?: boolean;
     /** Specify the path to a custom Vendure config file */
     config?: string;
 }
@@ -53,7 +56,13 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         log.info(
             'Run one of: vendure migrate --generate <name>, vendure migrate --run, or vendure migrate --revert.',
         );
-        process.exit(1);
+        exitCliCommand(1);
+        return;
+    }
+
+    if (options.fromEmpty && !options.generate) {
+        log.error('The --from-empty flag can only be used together with --generate <name>.');
+        exitCliCommand(1);
         return;
     }
 
@@ -65,6 +74,7 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await generateMigrationOperation({
                 name: options.generate,
                 outputDir: options.outputDir,
+                fromEmpty: options.fromEmpty,
                 config: options.config,
             });
         } else if (options.run) {
@@ -73,8 +83,9 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await revertMigrationOperation(options.config);
         }
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exit(1);
+        exitCliCommand(1);
         return;
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
@@ -84,10 +95,15 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         return;
     }
     if (result.success) {
-        log.success(result.message);
+        // A warning is not a success, even though the exit code stays 0.
+        if (result.hasWarnings) {
+            log.warn(result.message);
+        } else {
+            log.success(result.message);
+        }
     } else {
         log.error(result.message);
-        process.exit(1);
+        exitCliCommand(1);
     }
 }
 
@@ -113,26 +129,27 @@ async function handleInteractiveMode(configFile?: string) {
 
     if (isCancel(action)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
         if (action === 'generate') {
-            const { generateMigrationCommand } = await import('./generate-migration/generate-migration');
+            const { generateMigrationCommand } = await import('./generate-migration/generate-migration.js');
             await generateMigrationCommand.run({ configFile });
         }
         if (action === 'run') {
-            const { runMigrationCommand } = await import('./run-migration/run-migration');
+            const { runMigrationCommand } = await import('./run-migration/run-migration.js');
             await runMigrationCommand.run({ configFile });
         }
         if (action === 'revert') {
-            const { revertMigrationCommand } = await import('./revert-migration/revert-migration');
+            const { revertMigrationCommand } = await import('./revert-migration/revert-migration.js');
             await revertMigrationCommand.run({ configFile });
         }
         outro('✅ Done!');
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exitCode = 1;
+        exitCliCommand(1);
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }

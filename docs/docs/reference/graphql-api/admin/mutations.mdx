@@ -348,10 +348,34 @@ type Mutation {
     Administrator: '/reference/graphql-api/admin/object-types#administrator',
     ID: '/reference/graphql-api/admin/object-types#id',
   }}
+  deprecated="Use assignRolesToUser instead. assignRoleToAdministrator assigns the Role on the active Channel only."
 >
 {`"""Assign a Role to an Administrator"""
 type Mutation {
   assignRoleToAdministrator(administratorId: ID!, roleId: ID!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="assignrolestouser"></a>
+
+## assignRolesToUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignRolesToUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    AssignRolesToUserInput: '/reference/graphql-api/admin/input-types#assignrolestouserinput',
+  }}
+>
+{`"""
+Grants the User each Role on the given Channel. The active user must hold every permission
+of the Role on that Channel, be able to grant every assignment the User already holds, and
+have UpdateAdministrator (UpdateApiKey for an ApiKey's User) on each Channel involved.
+A SuperAdmin grant applies on every Channel.
+"""
+type Mutation {
+  assignRolesToUser(input: AssignRolesToUserInput!): User!
 }`}
 </GraphQLDoc>
 
@@ -784,7 +808,12 @@ type Mutation {
     CreateProductVariantInput: '/reference/graphql-api/admin/input-types#createproductvariantinput',
   }}
 >
-{`"""Create a set of ProductVariants based on the OptionGroups assigned to the given Product"""
+{`"""
+Creates ProductVariants for the given Product. Each input must name exactly one option from
+each OptionGroup assigned to the Product. A create is rejected if another variant of the
+Product already holds the same combination of options. A Product with no OptionGroups may
+hold any number of variants.
+"""
 type Mutation {
   createProductVariants(input: [CreateProductVariantInput!]!): [ProductVariant]!
 }`}
@@ -2241,6 +2270,28 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="removerolesfromuser"></a>
+
+## removeRolesFromUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeRolesFromUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    RemoveRolesFromUserInput: '/reference/graphql-api/admin/input-types#removerolesfromuserinput',
+  }}
+>
+{`"""
+Revokes each Role on the given Channel from the User, under the same rules as
+assignRolesToUser. Revoking SuperAdmin removes it on every Channel; the sole SuperAdmin
+cannot lose it.
+"""
+type Mutation {
+  removeRolesFromUser(input: RemoveRolesFromUserInput!): User!
+}`}
+</GraphQLDoc>
+
 <a name="removesettledjobs"></a>
 
 ## removeSettledJobs
@@ -2296,6 +2347,79 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="requestcustomerpasswordreset"></a>
+
+## requestCustomerPasswordReset
+
+<GraphQLDoc
+  type="mutation"
+  typeName="requestCustomerPasswordReset"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Requests a password reset email to be sent to the Customer, the same as the Customer calling
+\`requestPasswordReset\` from the Shop API: it sets a reset token and publishes a
+\`PasswordResetEvent\`, which the EmailPlugin uses to send the email. The event carries the
+administrator's RequestContext, so the email uses the administrator's language.
+
+When \`authOptions.requireVerification\` is on, a Customer who has not verified their account is
+marked as verified when they complete the reset. No \`AccountVerifiedEvent\` is published.
+
+Throws for a Customer with no User (a guest checkout), and for a User with no native
+authentication method, since neither has a native credential to reset.
+"""
+type Mutation {
+  requestCustomerPasswordReset(id: ID!): Success!
+}`}
+</GraphQLDoc>
+
+<a name="requestpasswordreset"></a>
+
+## requestPasswordReset
+
+<GraphQLDoc
+  type="mutation"
+  typeName="requestPasswordReset"
+  typeLinks={{
+    RequestPasswordResetResult: '/reference/graphql-api/admin/object-types#requestpasswordresetresult',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Requests a password reset email to be sent to the Administrator with the given email address. To
+prevent leaking information about which email addresses exist, the mutation resolves to \`Success\`
+even if no Administrator with that email address was found.
+"""
+type Mutation {
+  requestPasswordReset(emailAddress: String!): RequestPasswordResetResult
+}`}
+</GraphQLDoc>
+
+<a name="resetpassword"></a>
+
+## resetPassword
+
+<GraphQLDoc
+  type="mutation"
+  typeName="resetPassword"
+  typeLinks={{
+    ResetPasswordResult: '/reference/graphql-api/admin/object-types#resetpasswordresult',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Resets an Administrator's password based on the provided token, which is obtained via the email
+sent as a result of the \`requestPasswordReset\` mutation. Upon success, the Administrator will be
+signed in.
+"""
+type Mutation {
+  resetPassword(token: String!, password: String!): ResetPasswordResult!
+}`}
+</GraphQLDoc>
+
 <a name="rotateapikey"></a>
 
 ## rotateApiKey
@@ -2348,6 +2472,24 @@ type Mutation {
 >
 {`type Mutation {
   runScheduledTask(id: String!): Success!
+}`}
+</GraphQLDoc>
+
+<a name="setactiveadministratoravatar"></a>
+
+## setActiveAdministratorAvatar
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setActiveAdministratorAvatar"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    Upload: '/reference/graphql-api/admin/object-types#upload',
+  }}
+>
+{`"""Upload, replace or remove the active Administrator's profile picture"""
+type Mutation {
+  setActiveAdministratorAvatar(file: Upload): Administrator!
 }`}
 </GraphQLDoc>
 
@@ -3242,5 +3384,36 @@ type Mutation {
 {`"""Update an existing Zone"""
 type Mutation {
   updateZone(input: UpdateZoneInput!): Zone!
+}`}
+</GraphQLDoc>
+
+<a name="verifycustomeraccount"></a>
+
+## verifyCustomerAccount
+
+<GraphQLDoc
+  type="mutation"
+  typeName="verifyCustomerAccount"
+  typeLinks={{
+    VerifyCustomerAccountResult: '/reference/graphql-api/admin/object-types#verifycustomeraccountresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Manually mark a Customer's email address as verified, without the Customer having to use a
+verification email.
+
+A Customer with no password set (as created by \`createCustomer\` without one) cannot log in.
+Omitting \`password\` for such a Customer returns a \`MissingPasswordError\`. Passing one for a
+Customer who already has a password returns a \`PasswordAlreadySetError\`.
+
+Two failures are outside the result union, because they describe a Customer the caller should
+not have picked rather than a password they should correct: a Customer with no User at all (a
+guest checkout), and a User whose only credential is external, which a password cannot be
+stored on. Both throw.
+"""
+type Mutation {
+  verifyCustomerAccount(id: ID!, password: String): VerifyCustomerAccountResult!
 }`}
 </GraphQLDoc>

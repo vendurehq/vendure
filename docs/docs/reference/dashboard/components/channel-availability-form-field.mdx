@@ -1,0 +1,20 @@
+---
+title: "ChannelAvailabilityFormField"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/channel-availability.tsx" sourceLine="121" packageName="@vendure/dashboard" since="4.0.0" />
+
+A [ChannelAvailabilityControl](/reference/dashboard/components/channel-availability-control#channelavailabilitycontrol) bound to the `enabledInChannel` field of a Product or
+ProductVariant detail form, following its `enabled` field. The form must have both fields.
+Meant as the content of an "Availability" side block, shown only when there is more than one
+Channel.
+
+```ts title="Signature"
+function ChannelAvailabilityFormField<T extends FieldValues>(props: Readonly<{ control: Control<T> }>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{ control: Control<T> }>`} />
+

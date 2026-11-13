@@ -6,12 +6,15 @@ import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { cn } from '@/vdb/lib/utils.js';
+import { z, type ZodObject } from '@/vdb/lib/zod.js';
+import { i18n } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import { Edit, Lock, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { get, useFormContext, useWatch } from 'react-hook-form';
 
 const slugForEntityDocument = graphql(`
     query SlugForEntity($input: SlugForEntityInput!) {
@@ -56,6 +59,58 @@ function resolveWatchFieldPath(
     return watchFieldName;
 }
 
+/**
+ * @description
+ * Returns `schema` with the generated `code` field required.
+ *
+ * SlugInput only generates a value for a new record, and the value arrives after the debounced
+ * lookup returns. Pages pass this to `extendSchema` while creating, so the form stays invalid — and
+ * the Create button disabled — until the value arrives. Nothing is generated for an existing
+ * record, so pages pass `undefined` there rather than blocking edits.
+ *
+ * @example
+ * ```ts
+ * extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
+ * ```
+ *
+ * @docsCategory form-components
+ * @docsPage SlugInput
+ * @since 3.8.0
+ */
+export function requireGeneratedCode(schema: ZodObject<any>) {
+    return schema.extend({ code: z.string().min(1, { message: i18n._(msg`This field is required`) }) });
+}
+
+/**
+ * @description
+ * Returns `schema` with the generated `slug` required on each translation row that has a name.
+ * The rows seeded for the channel's other languages have no name, so they still pass.
+ *
+ * Used the same way as {@link requireGeneratedCode}, on pages whose slug lives on the translations.
+ *
+ * @example
+ * ```ts
+ * extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
+ * ```
+ *
+ * @docsCategory form-components
+ * @docsPage SlugInput
+ * @since 3.8.0
+ */
+export function requireGeneratedSlug(schema: ZodObject<any>) {
+    return schema.superRefine((values, ctx) => {
+        for (const [index, translation] of (values.translations ?? []).entries()) {
+            if (translation?.name?.trim() && !translation.slug?.trim()) {
+                ctx.addIssue({
+                    code: 'custom',
+                    path: ['translations', index, 'slug'],
+                    message: i18n._(msg`This field is required`),
+                });
+            }
+        }
+    });
+}
+
 export interface SlugInputProps extends DashboardFormComponentProps {
     /**
      * @description
@@ -97,9 +152,15 @@ export interface SlugInputProps extends DashboardFormComponentProps {
  * @description
  * A component for generating and displaying slugs based on a watched field.
  * The component watches a source field for changes, debounces the input,
- * and generates a unique slug via the Admin API. The slug is only auto-generated
- * when it's empty. For existing slugs, a regenerate button allows manual regeneration.
+ * and generates a unique slug via the Admin API. The slug is auto-generated while the
+ * field's form default value is empty, which covers creating an entity and adding a new
+ * language to an existing one. A field whose default value is already set keeps it when
+ * the watched field changes; a regenerate button allows manual regeneration.
  * The input is readonly by default but can be made editable with a toggle button.
+ *
+ * The form must therefore hold the loaded entity in its default values, for example via
+ * `useForm({ values })` or `reset()`. If the entity is loaded with `setValue()`, or the form
+ * has no default values, an existing slug is overwritten when the watched field changes.
  *
  * @example
  * ```tsx
@@ -170,7 +231,10 @@ export function SlugInput({
 
     const watchFieldState = form.getFieldState(actualWatchFieldName);
     const debouncedWatchedValue = useDebounce(watchedValue, 500);
-    const shouldAutoGenerate = isReadonly && !entityId && watchFieldState.isDirty;
+    // Generate while the field has no saved value: on create, or for a language added to an
+    // existing entity. A field that already has one keeps it when the watched field changes.
+    const hasSavedSlug = !!get(form.formState.defaultValues, name);
+    const shouldAutoGenerate = isReadonly && !hasSavedSlug && watchFieldState.isDirty;
     const queryKey = ['slugForEntity', entityName, fieldName, debouncedWatchedValue, entityId];
     const enabled = !!debouncedWatchedValue && shouldAutoGenerate;
     const {

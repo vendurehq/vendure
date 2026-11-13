@@ -1,20 +1,23 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
+import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Role } from '../../../entity/role/role.entity';
-import { RoleService } from '../../../service/services/role.service';
 import { RequestContext } from '../../common/request-context';
 import { Ctx } from '../../decorators/request-context.decorator';
 
 @Resolver('Role')
 export class RoleEntityResolver {
-    constructor(private roleService: RoleService) {}
+    constructor(private connection: TransactionalConnection) {}
 
     @ResolveField()
-    async channels(@Ctx() ctx: RequestContext, @Parent() role: Role): Promise<Channel[]> {
-        if (role.channels) {
-            return role.channels;
+    async channel(@Ctx() ctx: RequestContext, @Parent() role: Role): Promise<Channel | null> {
+        if (role.channel) {
+            return role.channel;
         }
-        return this.roleService.getChannelsForRole(ctx, role.id);
+        if (role.channelId == null) {
+            return null;
+        }
+        return this.connection.getEntityOrThrow(ctx, Channel, role.channelId);
     }
 }

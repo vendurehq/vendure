@@ -76,11 +76,7 @@ export const Playground: Story = {
                 header: 'Stock',
                 cell: ({ row }) => {
                     const stock = row.original.stock;
-                    return (
-                        <Badge variant={stock > 50 ? 'default' : stock > 20 ? 'secondary' : 'destructive'}>
-                            {stock}
-                        </Badge>
-                    );
+                    return <Badge variant={stock > 20 ? 'default' : 'destructive'}>{stock}</Badge>;
                 },
             },
             {
@@ -90,17 +86,7 @@ export const Playground: Story = {
                 cell: ({ row }) => {
                     const status = row.original.status;
                     return (
-                        <Badge
-                            variant={
-                                status === 'active'
-                                    ? 'default'
-                                    : status === 'inactive'
-                                      ? 'secondary'
-                                      : 'outline'
-                            }
-                        >
-                            {status}
-                        </Badge>
+                        <Badge variant={status === 'discontinued' ? 'outline' : 'default'}>{status}</Badge>
                     );
                 },
             },
@@ -147,10 +133,12 @@ export const Playground: Story = {
         // Apply column filters
         filters.forEach(filter => {
             if (filter.id === 'status' && Array.isArray(filter.value)) {
-                filteredData = filteredData.filter(item => filter.value.includes(item.status));
+                filteredData = filteredData.filter(item => (filter.value as unknown[]).includes(item.status));
             }
             if (filter.id === 'category' && Array.isArray(filter.value)) {
-                filteredData = filteredData.filter(item => filter.value.includes(item.category));
+                filteredData = filteredData.filter(item =>
+                    (filter.value as unknown[]).includes(item.category),
+                );
             }
         });
 
@@ -175,6 +163,7 @@ export const Playground: Story = {
                     <PageLayout>
                         <FullWidthPageBlock blockId="test-block">
                             <DataTable
+                                enableViews
                                 columns={columns}
                                 data={paginatedData}
                                 totalItems={totalItems}
@@ -223,6 +212,7 @@ export const Playground: Story = {
                                 bulkActions={[
                                     {
                                         label: 'Delete selected',
+                                        // @ts-expect-error stale story: bulk actions are `{ component }` objects, not `{ label, icon, onClick }`
                                         icon: 'trash',
                                         onClick: (selectedItems: Product[]) => {
                                             console.log('Delete selected:', selectedItems);
@@ -230,6 +220,7 @@ export const Playground: Story = {
                                     },
                                     {
                                         label: 'Export selected',
+                                        // @ts-expect-error stale story: bulk actions are `{ component }` objects, not `{ label, icon, onClick }`
                                         icon: 'download',
                                         onClick: (selectedItems: Product[]) => {
                                             console.log('Export selected:', selectedItems);

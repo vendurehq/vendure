@@ -1,0 +1,34 @@
+---
+title: "ChannelAssignmentEntity"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.ts" sourceLine="71" packageName="@vendure/core" since="4.0.0" />
+
+Declares a channel assignment entity for a [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware) entity. It defines the composite
+primary key, the relations to the entity and to the Channel, and the indexes, all matching the
+junction table TypeORM creates for the entity's `channels` many-to-many relation.
+
+```ts
+@ChannelAssignmentEntity({
+    entity: () => Product,
+    entityProperty: 'product',
+    tableName: 'product_channels_channel',
+})
+export class ProductChannel extends ChannelAssignment {
+    productId: ID;
+    product: Product;
+
+    @Column({ type: Boolean, nullable: true, default: null })
+    enabled: boolean | null;
+}
+```
+
+```ts title="Signature"
+function ChannelAssignmentEntity(options: ChannelAssignmentEntityOptions): void
+```
+Parameters
+
+### options
+
+<MemberInfo kind="parameter" type={`ChannelAssignmentEntityOptions`} />
+

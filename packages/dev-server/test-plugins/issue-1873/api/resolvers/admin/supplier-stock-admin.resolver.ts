@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Args, Query, Mutation, Resolver } from '@nestjs/graphql';
-import type { PaginatedList } from '@vendure/core';
+import type { ImportProgress, PaginatedList } from '@vendure/core';
 import {
   Logger,
   Ctx,
@@ -53,9 +53,9 @@ export class SupplierStockAdminResolver {
     const productsCsvPath = path.join(assetsDir, '/data-sources/products.csv');
     const productData = await fs.readFileSync(productsCsvPath, 'utf-8');
 
-    const importResult = await this.importer
+    const importResult = (await this.importer
       .parseAndImport(productData, ctx, true)
-      .toPromise();
+      .toPromise()) as ImportProgress;
 
     if (importResult.errors && importResult.errors.length) {
       const errorFile = path.join(process.cwd(), 'vendure-import-error.log');

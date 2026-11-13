@@ -12,6 +12,7 @@ logic of your application.
 Plugins in Vendure allow one to:
 
 - Modify the VendureConfig object, such as defining custom fields on existing entities.
+- Change the result of a configured strategy with a [strategy layer](/guides/developer-guide/strategies-configurable-operations/#changing-a-configured-strategy-with-layers).
 - Extend the GraphQL APIs, including modifying existing types and adding completely new queries and mutations.
 - Define new database entities and interact directly with the database.
 - Interact with external systems that you need to integrate with.
@@ -111,6 +112,34 @@ If you have code that should only run either in the server context or worker con
 you can inject the [ProcessContext provider](/reference/typescript-api/common/process-context/).
 :::
 
+A plugin can implement these hooks directly, rather than only on the providers it defines:
+
+```ts title="src/plugins/my-plugin/my.plugin.ts"
+import { OnApplicationBootstrap } from '@nestjs/common';
+import { PluginCommonModule, ProcessContext, VendurePlugin } from '@vendure/core';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+})
+export class MyPlugin implements OnApplicationBootstrap {
+    constructor(private processContext: ProcessContext) {}
+
+    async onApplicationBootstrap() {
+        // Without this guard the work below would run twice: once in the
+        // server and once in the worker.
+        if (this.processContext.isWorker) {
+            return;
+        }
+        // Do something on the server only
+    }
+}
+```
+
+If that startup work needs to call Vendure's services, it will need a `RequestContext`, which
+outside of the request-response cycle you create yourself — see
+[Creating a RequestContext](/guides/developer-guide/stand-alone-scripts/#creating-a-requestcontext),
+including how to give it a user so that permission checks pass.
+
 ### Configure
 
 Another hook that is not strictly a lifecycle hook, but which can be useful to know is the [`configure` method](https://docs.nestjs.com/middleware#applying-middleware) which is
@@ -195,7 +224,7 @@ import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 export class WishlistPlugin {}
 ```
 
-The `PluginCommonModule` will be required in all plugins that you create. It contains the common services that are exposed by Vendure Core, allowing you to inject them into your plugin's services and resolvers.
+The `PluginCommonModule` will be required in all plugins that you create. It contains the common services that are exposed by the Vendure Framework, allowing you to inject them into your plugin's services and resolvers.
 
 ### Step 2: Define an entity
 
@@ -477,7 +506,7 @@ export const shopApiExtensions = gql`
 
 :::note
 
-The `graphql-tag` package is a dependency of the Vendure core package. Depending on the package manager you are using, you may need to install it separately with `yarn add graphql-tag` or `npm install graphql-tag`.
+The `graphql-tag` package is a dependency of the `@vendure/core` package. Depending on the package manager you are using, you may need to install it separately with `yarn add graphql-tag` or `npm install graphql-tag`.
 
 :::
 
@@ -582,7 +611,7 @@ More information about resolvers can be found in the [NestJS docs](https://docs.
 
 ### Step 7: Specify compatibility
 
-Since Vendure v2.0.0, it is possible for a plugin to specify which versions of Vendure core it is compatible with. This is especially important if the plugin is intended to be made publicly available via npm or another package registry.
+Since Vendure v2.0.0, it is possible for a plugin to specify which versions of the Vendure Framework it is compatible with. This is especially important if the plugin is intended to be made publicly available via npm or another package registry.
 
 The compatibility is specified via the `compatibility` property in the plugin metadata:
 
@@ -594,7 +623,7 @@ The compatibility is specified via the `compatibility` property in the plugin me
 export class WishlistPlugin {}
 ```
 
-The value of this property is a [semver range](https://docs.npmjs.com/about-semantic-versioning) which specifies the range of compatible versions. In this case, we are saying that this plugin is compatible with any version of Vendure core which is `>= 2.0.0 < 3.0.0`.
+The value of this property is a [semver range](https://docs.npmjs.com/about-semantic-versioning) which specifies the range of compatible versions. In this case, we are saying that this plugin is compatible with any version of the Vendure Framework which is `>= 2.0.0 < 3.0.0`.
 
 ### Step 8: Add the plugin to the VendureConfig
 

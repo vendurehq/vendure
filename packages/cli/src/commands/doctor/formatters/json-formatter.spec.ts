@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { DoctorReport } from '../types';
-import { formatJsonReport } from './json-formatter';
+import { DoctorReport } from '../types.js';
+import { formatJsonReport } from './json-formatter.js';
 
 describe('json-formatter', () => {
     it('outputs valid JSON to stdout', () => {

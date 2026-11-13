@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { TextInput } from './text-input.js';
 
 const meta = {
@@ -39,7 +40,7 @@ export const Playground: Story = {
     render: args => {
         const { register } = useForm();
         const field = register('text');
-        return <TextInput {...field} {...args} />;
+        return <TextInput {...asField(field)} {...args} />;
     },
 };
 
@@ -47,6 +48,6 @@ export const LongText: Story = {
     render: () => {
         const { register } = useForm();
         const field = register('longText');
-        return <TextInput {...field} />;
+        return <TextInput {...asField(field)} />;
     },
 };

@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -6,7 +6,9 @@ import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatab
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -14,7 +16,6 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -44,7 +45,7 @@ export const Route = createFileRoute('/_authenticated/_facets/facets_/$facetId/v
             return breadcrumb;
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function FacetValueDetailPage() {
@@ -58,6 +59,7 @@ function FacetValueDetailPage() {
         queryDocument: facetValueDetailDocument,
         createDocument: createFacetValueDocument,
         updateDocument: updateFacetValueDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
@@ -112,17 +114,6 @@ function FacetValueDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                {entity?.facet && (
-                    <PageBlock column="side" blockId="facet-info">
-                        <div className="space-y-2">
-                            <div className="text-sm font-medium">
-                                <Trans>Facet</Trans>
-                            </div>
-                            <div className="text-sm text-muted-foreground">{entity?.facet.name}</div>
-                            <div className="text-xs text-muted-foreground">{entity?.facet.code}</div>
-                        </div>
-                    </PageBlock>
-                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper

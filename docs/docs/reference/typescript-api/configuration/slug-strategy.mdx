@@ -2,7 +2,63 @@
 title: "SlugStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/entity/slug-strategy.ts" sourceLine="44" packageName="@vendure/core" since="3.5.0" />
+## SlugUniquenessScope
+
+<GenerationInfo sourceFile="packages/core/src/config/entity/slug-strategy.ts" sourceLine="44" packageName="@vendure/core" since="4.0.0" />
+
+The scope within which a slug must be unique (per language).
+
+- `'channel'`: unique in each channel the entity belongs to. The default channel holds every
+  entity, so it only counts for entities that belong to no other channel.
+- `'global'`: unique across all channels.
+
+The scope is checked when a slug is saved and when an entity is assigned to a channel. It is
+not checked when an entity is removed from a channel or a channel is deleted. So with
+`'channel'`, two entities from different channels can both end up only in the default
+channel with the same slug. Lookups by that slug then return the oldest entity.
+`findSlugConflicts()` lists such duplicates. Run it before switching an existing database
+to `'global'` as well, since slugs that are saved unchanged are not checked again.
+
+```ts title="Signature"
+type SlugUniquenessScope = 'channel' | 'global'
+```
+## SlugUniquenessScopeParams
+
+<GenerationInfo sourceFile="packages/core/src/config/entity/slug-strategy.ts" sourceLine="54" packageName="@vendure/core" since="4.0.0" />
+
+Parameters for [SlugStrategy](/reference/typescript-api/configuration/slug-strategy#slugstrategy)`.getUniquenessScope()`.
+
+```ts title="Signature"
+interface SlugUniquenessScopeParams {
+    entityName: string;
+    entityId?: ID;
+    channelIds: ID[];
+}
+```
+
+<div className="members-wrapper">
+
+### entityName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### entityId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### channelIds
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>[]`}   />
+
+
+
+
+</div>
+## SlugStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/entity/slug-strategy.ts" sourceLine="91" packageName="@vendure/core" since="3.5.0" />
 
 Defines the strategy for generating slugs from input strings.
 Slugs are URL-friendly versions of text that are commonly used for
@@ -24,6 +80,10 @@ export class CustomSlugStrategy implements SlugStrategy {
 ```ts title="Signature"
 interface SlugStrategy extends InjectableStrategy {
     generate(ctx: RequestContext, params: SlugGenerateParams): string | Promise<string>;
+    getUniquenessScope?(
+        ctx: RequestContext,
+        params: SlugUniquenessScopeParams,
+    ): SlugUniquenessScope | Promise<SlugUniquenessScope>;
 }
 ```
 * Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
@@ -37,6 +97,16 @@ interface SlugStrategy extends InjectableStrategy {
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, params: SlugGenerateParams) => string | Promise<string>`}   />
 
 Generates a slug from the input string.
+### getUniquenessScope
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, params: <a href='/reference/typescript-api/configuration/slug-strategy#sluguniquenessscopeparams'>SlugUniquenessScopeParams</a>) => <a href='/reference/typescript-api/configuration/slug-strategy#sluguniquenessscope'>SlugUniquenessScope</a> | Promise<<a href='/reference/typescript-api/configuration/slug-strategy#sluguniquenessscope'>SlugUniquenessScope</a>>`}  since="4.0.0"  />
+
+Returns the scope within which a Product or Collection slug must be unique. It is used
+when a slug is validated on create and update, when an entity is assigned to a channel,
+and by the `slugForEntity` query, so that the dashboard suggestions agree with the
+validation. It does not affect how the slug text is generated.
+
+If not implemented, the scope is `'channel'`.
 
 
 </div>

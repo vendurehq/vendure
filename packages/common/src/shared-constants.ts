@@ -1,6 +1,6 @@
 /*
  * This file contains constants which are shared between more than one sub-module
- * e.g. values required by both the server and admin-ui.
+ * e.g. values required by both the server and the Dashboard.
  */
 export const API_PORT = 3000;
 export const ADMIN_API_PATH = 'admin-api';
@@ -10,13 +10,54 @@ export const SUPER_ADMIN_ROLE_CODE = '__super_admin_role__';
 export const SUPER_ADMIN_ROLE_DESCRIPTION = 'SuperAdmin';
 export const SUPER_ADMIN_USER_IDENTIFIER = 'superadmin';
 export const SUPER_ADMIN_USER_PASSWORD = 'superadmin';
+/**
+ * @deprecated The Customer role was removed in v4.0.0 — customer permissions are derived
+ * from channel membership (`Authenticated` on every member Channel). This constant will
+ * be removed in the next major version.
+ */
 export const CUSTOMER_ROLE_CODE = '__customer_role__';
+/**
+ * @deprecated The Customer role was removed in v4.0.0 — customer permissions are derived
+ * from channel membership (`Authenticated` on every member Channel). This constant will
+ * be removed in the next major version.
+ */
 export const CUSTOMER_ROLE_DESCRIPTION = 'Customer';
+export const ROLE_EDITOR_ROLE_CODE = '__role_editor_role__';
+export const ROLE_EDITOR_ROLE_DESCRIPTION = 'RoleEditor';
 export const ROOT_COLLECTION_NAME = '__root_collection__';
 export const DEFAULT_AUTH_TOKEN_HEADER_KEY = 'vendure-auth-token';
 export const DEFAULT_APIKEY_HEADER_KEY = 'vendure-api-key';
 export const DEFAULT_COOKIE_NAME = 'session';
 export const DEFAULT_CHANNEL_TOKEN_KEY = 'vendure-token';
+export const DEFAULT_REFUND_DESTINATION_CODE = 'default';
+
+/**
+ * The placeholder returned by the API in place of a `secret` field or config arg value which the
+ * current user is not permitted to read. When this exact value is submitted back on an update, it is
+ * interpreted as "leave the stored value unchanged". It is deliberately long and namespaced so that
+ * it cannot collide with a genuine secret value.
+ */
+export const REDACTED_SECRET_PLACEHOLDER = '__vendure_secret_unchanged_v1__';
+
+/**
+ * The version-independent prefix of {@link REDACTED_SECRET_PLACEHOLDER}. Used to detect a placeholder
+ * produced by a different Vendure version so that it can be rejected rather than silently written over
+ * a stored secret.
+ */
+export const SECRET_PLACEHOLDER_PREFIX = '__vendure_secret_unchanged_';
+
+/**
+ * Returns `true` if the value looks like a redaction placeholder but is not the current
+ * {@link REDACTED_SECRET_PLACEHOLDER} — i.e. a placeholder from a different Vendure version. Such a
+ * value must not be treated as a real secret to store.
+ */
+export function isForeignSecretPlaceholder(value: unknown): boolean {
+    return (
+        typeof value === 'string' &&
+        value.startsWith(SECRET_PLACEHOLDER_PREFIX) &&
+        value !== REDACTED_SECRET_PLACEHOLDER
+    );
+}
 
 // An environment variable which is set when the @vendure/create
 // script is run. Can be used to modify normal behaviour

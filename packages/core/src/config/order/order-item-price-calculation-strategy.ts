@@ -9,6 +9,13 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * The OrderItemPriceCalculationStrategy defines the listPrice of an OrderLine when adding an item to an Order. By default the
  * {@link DefaultOrderItemPriceCalculationStrategy} is used.
  *
+ * The default strategy returns the price of the {@link ProductVariantBuyerPriceStrategy} for the Customer of the Order.
+ * For catalog pricing that depends on the ProductVariant, the buyer, the quantity and the OrderLine custom fields, use
+ * the ProductVariantBuyerPriceStrategy instead. Then the Shop API `ProductVariant.buyerPrice` field gives the same
+ * base unit price. Keep logic here that needs the Order, or that writes data to the OrderLine. A custom strategy that
+ * replaces the default calls `ProductVariantService.calculateBuyerPriceForOrder()`, so that the cart still uses the
+ * ProductVariantBuyerPriceStrategy.
+ *
  * :::info
  *
  * This is configured via the `orderOptions.orderItemPriceCalculationStrategy` property of
@@ -21,6 +28,12 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * * adjustOrderLine  (only on the adjusted order line)
  * * setOrderShippingAddress (on all order lines)
  * * setOrderBillingAddress (on all order lines)
+ * * when the Customer of an active Order or a draft Order changes, for example with setCustomerForOrder,
+ *   setCustomerForDraftOrder, or a login that gives the guest Order to a Customer (on all order lines)
+ *
+ * When the strategy throws a {@link NoBuyerPriceError} for an order line that is already in the Order, the line
+ * keeps its current price, except on a currency change of the Order. This also applies to `modifyOrder`. For a new
+ * order line, the error is thrown.
  *
  * ### OrderItemPriceCalculationStrategy vs Promotions
  * Both the OrderItemPriceCalculationStrategy and Promotions can be used to alter the price paid for a product.
@@ -53,7 +66,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * * A product-configurator where e.g. various finishes, colors, and materials can be selected and stored
  *   as OrderLine custom fields (see [the Custom Fields guide](/developer-guide/custom-fields/).
  * * Price lists or bulk pricing, where different price bands are stored e.g. in a customField on the ProductVariant, and this
- *   is used to calculate the price based on the current quantity.
+ *   is used to calculate the price based on the current quantity. Since v4.0.0, prefer the
+ *   {@link ProductVariantBuyerPriceStrategy} for this, so that the storefront can show the same price.
  *
  * @docsCategory Orders
  */

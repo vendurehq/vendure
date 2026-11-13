@@ -1,0 +1,35 @@
+---
+title: "UseWidgetConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-widget-config.ts" sourceLine="40" packageName="@vendure/dashboard" since="3.8.0" />
+
+Reads and persists the configuration for the current Insights widget instance.
+
+The returned config is the widget definition's `defaultConfig` merged with any
+per-instance overrides. The returned setter merges a partial update into the config and
+hands it to the Insights page, which decides where it is written: outside edit mode it
+is persisted immediately (independent of the "Save Layout" action) so config changes
+such as a selected chart data type survive a page reload; while the layout is being
+edited it is held in draft state and committed together with the layout on "Save Layout".
+
+Must be used within an Insights page widget rendered by the dashboard.
+
+*Example*
+
+```tsx
+type MyConfig = { dataType: 'count' | 'total' };
+
+export function MyWidget() {
+    const [config, setConfig] = useWidgetConfig<MyConfig>();
+    return (
+        <button onClick={() => setConfig({ dataType: 'total' })}>
+            {config.dataType}
+        </button>
+    );
+}
+```
+
+```ts title="Signature"
+function useWidgetConfig<T extends Record<string, unknown>>(): [T, (update: Partial<T>) => void]
+```

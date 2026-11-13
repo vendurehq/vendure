@@ -1,13 +1,12 @@
-import { log } from '@clack/prompts';
 import fs from 'fs-extra';
 import path from 'node:path';
 import { Directory, Node, Project, ProjectOptions, ScriptKind, SourceFile } from 'ts-morph';
 
-import { defaultManipulationSettings } from '../constants';
-import { EntityRef } from '../shared/entity-ref';
-import { PackageJson } from '../shared/package-json-ref';
+import { defaultManipulationSettings } from '../constants.js';
+import { EntityRef } from '../shared/entity-ref.js';
+import { PackageJson } from '../shared/package-json-ref.js';
 
-import { detectMonorepoStructure, findTsConfigInDir } from './monorepo-utils';
+import { detectMonorepoStructure, findTsConfigInDir } from './monorepo-utils.js';
 
 export function selectTsConfigFile() {
     const tsConfigFiles = fs.readdirSync(process.cwd()).filter(f => /^tsconfig.*\.json$/.test(f));
@@ -181,17 +180,12 @@ export function getRelativeImportPath(locations: {
 
 export function createFile(project: Project, templatePath: string, filePath: string) {
     const template = fs.readFileSync(templatePath, 'utf-8');
-    try {
-        const file = project.createSourceFile(filePath, template, {
-            overwrite: true,
-            scriptKind: ScriptKind.TS,
-        });
-        project.resolveSourceFileDependencies();
-        return file;
-    } catch (e: any) {
-        log.error(e.message);
-        process.exit(1);
-    }
+    const file = project.createSourceFile(filePath, template, {
+        overwrite: true,
+        scriptKind: ScriptKind.TS,
+    });
+    project.resolveSourceFileDependencies();
+    return file;
 }
 
 function convertPathToRelativeImport(filePath: string): string {

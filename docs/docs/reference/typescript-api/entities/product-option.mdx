@@ -20,10 +20,14 @@ class ProductOption extends VendureEntity implements Translatable, HasCustomFiel
     group: ProductOptionGroup;
     @EntityId()
     groupId: ID;
-    @ManyToMany(type => ProductVariant, variant => variant.options)
+    @ManyToMany(type => ProductVariant, variant => variant.options, {
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION',
+    })
     productVariants: ProductVariant[];
     @ManyToMany(type => Channel, channel => channel.productOptions)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
     @Column(type => CustomProductOptionFields)
     customFields: CustomProductOptionFields;

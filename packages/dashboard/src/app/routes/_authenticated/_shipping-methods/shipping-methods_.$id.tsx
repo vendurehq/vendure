@@ -44,7 +44,7 @@ export const Route = createFileRoute('/_authenticated/_shipping-methods/shipping
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ShippingMethodDetailPage() {

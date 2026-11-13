@@ -23,10 +23,11 @@ import {
     ProductVariant,
     RequestContext,
     ShippingCalculator,
+    StockLevelService,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -39,15 +40,17 @@ import {
     testSuccessfulPaymentMethod,
 } from './fixtures/test-payment-methods';
 import {
+    canceledOrderFragment,
     orderFragment,
     orderWithLinesFragment,
     orderWithModificationsFragment,
 } from './graphql/fragments-admin';
-import { graphql as adminGraphql, FragmentOf } from './graphql/graphql-admin';
+import { graphql as adminGraphql, FragmentOf, ResultOf } from './graphql/graphql-admin';
 import { graphql, VariablesOf } from './graphql/graphql-shop';
 import {
     addManualPaymentToOrderDocument,
     adminTransitionToStateDocument,
+    cancelOrderDocument,
     createFulfillmentDocument,
     createPromotionDocument,
     createShippingMethodDocument,
@@ -71,6 +74,9 @@ import {
 } from './graphql/shop-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment, sortById } from './utils/test-order-utils';
 
+// The generated shop types declare no fields for OrderLineCustomFieldsInput.
+const customFieldsInput = (input: Record<string, unknown>) => input as never;
+
 const addItemToOrderWithCustomFieldsDocument = graphql(`
     mutation AddItemToOrder(
         $productVariantId: ID!
@@ -84,6 +90,30 @@ const addItemToOrderWithCustomFieldsDocument = graphql(`
         ) {
             ... on Order {
                 id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const modifyOrderWithLineCustomFieldsDocument = adminGraphql(`
+    mutation ModifyOrderWithLineCustomFields($input: ModifyOrderInput!) {
+        modifyOrder(input: $input) {
+            ... on Order {
+                id
+                lines {
+                    id
+                    productVariant {
+                        id
+                    }
+                    customFields {
+                        defaultedField
+                        readonlyField
+                    }
+                }
             }
             ... on ErrorResult {
                 errorCode
@@ -202,6 +232,42 @@ const modifyOrderForTestDocument = adminGraphql(`
     }
 `);
 
+// The shared OrderWithLines fragment omits the per-line discounts read by the Admin dashboard.
+const getOrderWithLineDiscountsDocument = adminGraphql(`
+    query GetOrderWithLineDiscounts($id: ID!) {
+        order(id: $id) {
+            id
+            state
+            totalWithTax
+            discounts {
+                adjustmentSource
+                amount
+                amountWithTax
+            }
+            lines {
+                id
+                quantity
+                orderPlacedQuantity
+                unitPriceWithTax
+                linePriceWithTax
+                discountedUnitPriceWithTax
+                discountedLinePriceWithTax
+                proratedUnitPriceWithTax
+                proratedLinePriceWithTax
+                productVariant {
+                    id
+                }
+                discounts {
+                    adjustmentSource
+                    type
+                    amount
+                    amountWithTax
+                }
+            }
+        }
+    }
+`);
+
 export class TestOrderItemPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
     calculateUnitPrice(
         ctx: RequestContext,
@@ -273,7 +339,12 @@ describe('Order modification', () => {
             },
             customFields: {
                 Order: [{ name: 'points', type: 'int', defaultValue: 0 }],
-                OrderLine: [{ name: 'color', type: 'string', nullable: true }],
+                OrderLine: [
+                    { name: 'color', type: 'string', nullable: true },
+                    { name: 'defaultedField', type: 'string', nullable: true, defaultValue: 'default value' },
+                    { name: 'validatedField', type: 'string', nullable: true, pattern: '^[a-z]+$' },
+                    { name: 'readonlyField', type: 'string', readonly: true, defaultValue: 'readonly value' },
+                ],
             },
         }),
     );
@@ -286,8 +357,18 @@ describe('Order modification', () => {
     const orderGuard: ErrorResultGuard<OrderFragment> = createErrorResultGuard(input => !!input.id);
 
     type OrderWithModificationsFragment = FragmentOf<typeof orderWithModificationsFragment>;
-    const orderWithModificationsGuard: ErrorResultGuard<OrderWithModificationsFragment> =
-        createErrorResultGuard(input => !!input.id);
+    type ModifyOrderSuccessResult = Exclude<
+        ResultOf<typeof modifyOrderDocument>['modifyOrder'],
+        { errorCode: string }
+    >;
+    const orderWithModificationsGuard: ErrorResultGuard<ModifyOrderSuccessResult> = createErrorResultGuard(
+        input => !!input.id,
+    );
+
+    type CanceledOrderFragment = FragmentOf<typeof canceledOrderFragment>;
+    const canceledOrderGuard: ErrorResultGuard<CanceledOrderFragment> = createErrorResultGuard(
+        input => !!input.lines,
+    );
 
     // Type aliases for fragment types
     type OrderWithLinesFragment = FragmentOf<typeof orderWithLinesFragment>;
@@ -394,9 +475,9 @@ describe('Order modification', () => {
         await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
             productVariantId: 'T_1',
             quantity: 1,
-            customFields: {
+            customFields: customFieldsInput({
                 color: 'green',
-            },
+            }),
         });
         await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
             productVariantId: 'T_4',
@@ -818,6 +899,38 @@ describe('Order modification', () => {
                 },
             ]);
             await assertOrderIsUnchanged(order!);
+        });
+
+        // GHSA-8ghm-q833-cmgp: a dry run allocates in the same transaction before rolling back, so
+        // it must take its stock locks up front in the shared order, like a wet run.
+        it('locks the stock of every added variant up front, in ascending id order', async () => {
+            const stockLevelService = server.app.get(StockLevelService);
+            const lockedIds: string[] = [];
+            const lockStockLevels = stockLevelService.getLockedStockLevelsForVariant.bind(stockLevelService);
+            const lockSpy = vi
+                .spyOn(stockLevelService, 'getLockedStockLevelsForVariant')
+                .mockImplementation((ctx, productVariantId) => {
+                    lockedIds.push(String(productVariantId));
+                    return lockStockLevels(ctx, productVariantId);
+                });
+            try {
+                const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                    input: {
+                        dryRun: true,
+                        orderId,
+                        addItems: [
+                            { productVariantId: 'T_3', quantity: 1 },
+                            { productVariantId: 'T_1', quantity: 1 },
+                        ],
+                    },
+                });
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                // The first two locks are the up-front ones; the per-line checks follow in line order.
+                expect(lockedIds.slice(0, 2)).toEqual(['1', '3']);
+            } finally {
+                lockSpy.mockRestore();
+            }
         });
 
         it('does not add a history entry', async () => {
@@ -1308,7 +1421,9 @@ describe('Order modification', () => {
             orderWithModificationsGuard.assertSuccess(addManualPaymentToOrder);
 
             expect(addManualPaymentToOrder.payments?.length).toBe(2);
-            expect(omit(addManualPaymentToOrder.payments![1], ['id'])).toEqual({
+            // Payments are not returned in a guaranteed order, so identify the new one by transactionId
+            const manualPayment = addManualPaymentToOrder.payments!.find(p => p.transactionId === 'ABC123')!;
+            expect(omit(manualPayment, ['id'])).toEqual({
                 transactionId: 'ABC123',
                 state: 'Settled',
                 amount: 300,
@@ -1320,9 +1435,7 @@ describe('Order modification', () => {
                 refunds: [],
             });
             expect(addManualPaymentToOrder.modifications[0].isSettled).toBe(true);
-            expect(addManualPaymentToOrder.modifications[0].payment?.id).toBe(
-                addManualPaymentToOrder.payments![1].id,
-            );
+            expect(addManualPaymentToOrder.modifications[0].payment?.id).toBe(manualPayment.id);
         });
 
         it('transition back to original state', async () => {
@@ -1407,6 +1520,7 @@ describe('Order modification', () => {
     describe('refunds for multiple payments', () => {
         let orderId2: string;
         let orderLineId: string;
+        let originalPaymentId: string;
         let additionalPaymentId: string;
 
         beforeAll(async () => {
@@ -1459,7 +1573,10 @@ describe('Order modification', () => {
                 },
             });
             orderWithModificationsGuard.assertSuccess(addManualPaymentToOrder);
-            additionalPaymentId = addManualPaymentToOrder.payments![1].id!;
+            // Payments are not returned in a guaranteed order, so identify them by transactionId
+            const payments = addManualPaymentToOrder.payments!;
+            additionalPaymentId = payments.find(p => p.transactionId === 'ABC123')!.id;
+            originalPaymentId = payments.find(p => p.id !== additionalPaymentId)!.id;
 
             const transitionOrderToState2 = await adminTransitionOrderToState(orderId2, 'PaymentSettled');
             orderGuard.assertSuccess(transitionOrderToState2);
@@ -1534,10 +1651,10 @@ describe('Order modification', () => {
             // the refund being calculated, so the individual OrderItem had only 1/2 the full order discount
             // applied to it (300). Now, the pro-ration is applied to the single remaining item and therefore the
             // entire discount of 600 gets moved over to the remaining item.
-            expect(modifyOrder?.payments?.find(p => p.id !== additionalPaymentId)?.refunds).toEqual([
+            expect(modifyOrder?.payments?.find(p => p.id === originalPaymentId)?.refunds).toEqual([
                 {
                     id: 'T_6',
-                    paymentId: 'T_15',
+                    paymentId: originalPaymentId,
                     state: 'Pending',
                     total: 600,
                     reason: 'test 2',
@@ -2471,6 +2588,569 @@ describe('Order modification', () => {
             expect(addManualPaymentToOrder.modifications.length).toBe(2);
             expect(addManualPaymentToOrder.modifications[0].isSettled).toBe(true);
             expect(addManualPaymentToOrder.modifications[1].isSettled).toBe(true);
+        });
+    });
+
+    // #5097 — a line added by a modification keeps an orderPlacedQuantity of 0, so cancelling
+    // the order left both quantities at 0 and the prorated discount amount became NaN.
+    describe('cancelling an order with a line added by a modification', () => {
+        const CODE_HALF_PRICE = 'HALF_PRICE';
+
+        it('order with discounts can still be read after cancellation', async () => {
+            await adminClient.query(createPromotionDocument, {
+                input: {
+                    enabled: true,
+                    couponCode: CODE_HALF_PRICE,
+                    conditions: [
+                        {
+                            code: minimumOrderAmount.code,
+                            arguments: [
+                                { name: 'amount', value: '0' },
+                                { name: 'taxInclusive', value: 'false' },
+                            ],
+                        },
+                    ],
+                    actions: [
+                        {
+                            code: orderPercentageDiscount.code,
+                            arguments: [{ name: 'discount', value: '50' }],
+                        },
+                    ],
+                    translations: [{ languageCode: LanguageCode.en, name: 'half price' }],
+                },
+            });
+
+            // 1. Place an order with an order-level promotion applied
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            } as AddItemInput);
+            await shopClient.query(applyCouponCodeDocument, { couponCode: CODE_HALF_PRICE });
+            await proceedToArrangingPayment(shopClient);
+            const placedOrder = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(placedOrder);
+
+            // 2. Add a new line via a modification, so that it has an orderPlacedQuantity of 0
+            const modifyingOrder = await adminTransitionOrderToState(placedOrder.id, 'Modifying');
+            orderGuard.assertSuccess(modifyingOrder);
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: placedOrder.id,
+                    addItems: [{ productVariantId: 'T_2', quantity: 1 }],
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+            // 3. Settle the additional payment and return the order to its original state
+            const arrangingAdditionalPayment = await adminTransitionOrderToState(
+                placedOrder.id,
+                'ArrangingAdditionalPayment',
+            );
+            orderGuard.assertSuccess(arrangingAdditionalPayment);
+            const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentToOrderDocument, {
+                input: {
+                    orderId: placedOrder.id,
+                    method: 'test',
+                    transactionId: 'CANCEL_MODIFIED_123',
+                    metadata: {},
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(addManualPaymentToOrder);
+            const settledOrder = await adminTransitionOrderToState(placedOrder.id, 'PaymentSettled');
+            orderGuard.assertSuccess(settledOrder);
+
+            const addedLine = addManualPaymentToOrder.lines.find(l => l.orderPlacedQuantity === 0);
+            expect(addedLine).toBeDefined();
+
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId: placedOrder.id, reason: 'no longer wanted' },
+            });
+            canceledOrderGuard.assertSuccess(cancelOrder);
+            expect(cancelOrder.state).toBe('Cancelled');
+
+            // 4. Read the order back as the Admin dashboard does
+            const { order } = await adminClient.query(getOrderWithLineDiscountsDocument, {
+                id: placedOrder.id,
+            });
+
+            const cancelledAddedLine = order!.lines.find(l => l.id === addedLine!.id)!;
+            expect(cancelledAddedLine.quantity).toBe(0);
+            expect(cancelledAddedLine.orderPlacedQuantity).toBe(0);
+            for (const discount of cancelledAddedLine.discounts) {
+                expect(discount.amount).not.toBeNaN();
+                expect(discount.amountWithTax).not.toBeNaN();
+            }
+            for (const discount of order!.discounts) {
+                expect(discount.amount).not.toBeNaN();
+                expect(discount.amountWithTax).not.toBeNaN();
+            }
+        });
+    });
+
+    describe('reducing OrderLine quantity below orderPlacedQuantity keeps the discount ratio (#5127)', () => {
+        const createdPromotionIds: string[] = [];
+
+        async function createItemPromotion(couponCode: string, name: string) {
+            const { createPromotion } = await adminClient.query(createPromotionDocument, {
+                input: {
+                    couponCode,
+                    enabled: true,
+                    conditions: [],
+                    actions: [
+                        {
+                            code: productsPercentageDiscount.code,
+                            arguments: [
+                                { name: 'discount', value: '50' },
+                                { name: 'productVariantIds', value: JSON.stringify(['T_1']) },
+                            ],
+                        },
+                    ],
+                    translations: [{ languageCode: LanguageCode.en, name }],
+                },
+            });
+            createdPromotionIds.push((createPromotion as any).id);
+        }
+
+        async function createOrderPromotion(couponCode: string, name: string) {
+            const { createPromotion } = await adminClient.query(createPromotionDocument, {
+                input: {
+                    couponCode,
+                    enabled: true,
+                    conditions: [],
+                    actions: [
+                        {
+                            code: orderFixedDiscount.code,
+                            arguments: [{ name: 'discount', value: '500' }],
+                        },
+                    ],
+                    translations: [{ languageCode: LanguageCode.en, name }],
+                },
+            });
+            createdPromotionIds.push((createPromotion as any).id);
+        }
+
+        afterAll(async () => {
+            for (const id of createdPromotionIds) {
+                await adminClient.query(deletePromotionDocument, { id });
+            }
+        });
+
+        async function getOrderLines(orderId: string) {
+            const { order } = await adminClient.query(getOrderWithLineDiscountsDocument, { id: orderId });
+            return order!.lines;
+        }
+
+        type LineWithDiscounts = Awaited<ReturnType<typeof getOrderLines>>[number];
+
+        async function getLinesByVariant(orderId: string) {
+            const lines = await getOrderLines(orderId);
+            return new Map<string, LineWithDiscounts>(lines.map(line => [line.productVariant.id, line]));
+        }
+
+        const itemShareOf = (line: LineWithDiscounts) =>
+            summate(
+                line.discounts.filter(d => d.type === 'PROMOTION'),
+                'amountWithTax',
+            );
+
+        const orderLevelShareOf = (line: LineWithDiscounts) =>
+            summate(
+                line.discounts.filter(d => d.type === 'DISTRIBUTED_ORDER_PROMOTION'),
+                'amountWithTax',
+            );
+
+        it('modifyOrder: reducing quantity via order modification keeps the 50% discount', async () => {
+            await createItemPromotion('HALF_5127_MODIFY', '50% off T_1 (#5127 modify)');
+
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 20,
+            } as any);
+            await shopClient.query(applyCouponCodeDocument, { couponCode: 'HALF_5127_MODIFY' });
+            await proceedToArrangingPayment(shopClient);
+            const placedOrder = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(placedOrder);
+
+            const placedLine = placedOrder.lines[0];
+            const placedUnitPriceWithTax = placedLine.unitPriceWithTax;
+            expect(placedLine.discountedUnitPriceWithTax).toBe(placedUnitPriceWithTax / 2);
+
+            const transitionOrderToState = await adminTransitionOrderToState(placedOrder.id, 'Modifying');
+            orderGuard.assertSuccess(transitionOrderToState);
+
+            // Reduce the quantity from 20 down to 2, well below the orderPlacedQuantity of 20.
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: placedOrder.id,
+                    adjustOrderLines: [{ orderLineId: placedLine.id, quantity: 2 }],
+                    refund: {
+                        paymentId: placedOrder.payments![0].id,
+                        reason: 'reduced quantity (#5127)',
+                    },
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+            const modifiedLine = modifyOrder.lines.find(l => l.id === placedLine.id)!;
+            expect(modifiedLine.quantity).toBe(2);
+            expect(modifiedLine.orderPlacedQuantity).toBe(20);
+            // Pinned to `placedUnitPriceWithTax`, captured before the modification, rather than to
+            // `modifiedLine`'s own fields.
+            expect(modifiedLine.linePriceWithTax).toBe(placedUnitPriceWithTax * 2);
+            expect(modifiedLine.discountedLinePriceWithTax).toBe(placedUnitPriceWithTax);
+        });
+
+        it('cancelOrder: partially cancelling a line keeps the 50% discount ratio on the remaining units', async () => {
+            await createItemPromotion('HALF_5127_CANCEL', '50% off T_1 (#5127 cancel)');
+
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 20,
+            } as any);
+            await shopClient.query(applyCouponCodeDocument, { couponCode: 'HALF_5127_CANCEL' });
+            await proceedToArrangingPayment(shopClient);
+            const placedOrder = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(placedOrder);
+
+            const placedLine = placedOrder.lines[0];
+            const unitPriceWithTax = placedLine.unitPriceWithTax;
+
+            // Cancel 18 of the 20 units, going through `OrderModifier.cancelOrderByOrderLines()` - a
+            // path which, unlike `modifyOrder`, does *not* recalculate promotions from scratch.
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId: placedOrder.id,
+                    lines: [{ orderLineId: placedLine.id, quantity: 18 }],
+                    reason: 'partial cancellation (#5127)',
+                },
+            });
+            canceledOrderGuard.assertSuccess(cancelOrder);
+
+            const { order } = await adminClient.query(getOrderWithLineDiscountsDocument, {
+                id: placedOrder.id,
+            });
+            const remainingLine = order!.lines.find(l => l.id === placedLine.id)!;
+
+            expect(remainingLine.quantity).toBe(2);
+            expect(remainingLine.orderPlacedQuantity).toBe(20);
+            // The remaining 2 units should still carry the full 50% discount: half of their combined
+            // list price, i.e. exactly one unit's price.
+            expect(remainingLine.proratedLinePriceWithTax).toBe(unitPriceWithTax);
+            expect(remainingLine.discounts.length).toBe(1);
+            expect(remainingLine.discounts[0].amountWithTax).toBe(-unitPriceWithTax);
+        });
+
+        // DefaultOrderLineDiscountDistributionStrategy.getWeight() reads
+        // line.proratedLinePriceWithTax, so an order-level DISTRIBUTED_ORDER_PROMOTION's split
+        // across lines depends on the very value this fix changes for a reduced line. These two
+        // tests put an item-level PROMOTION and an order-level DISTRIBUTED_ORDER_PROMOTION on the
+        // same order, then reduce the discounted line's quantity, to guard the split against
+        // corruption from that interaction.
+        it('modifyOrder: order-level discount split survives reducing one line of a multi-line order', async () => {
+            await createItemPromotion('ITEM_5127_COMBO_MODIFY', '50% off T_1 (#5127 combo modify)');
+            await createOrderPromotion('ORDER_5127_COMBO_MODIFY', '$5 off order (#5127 combo modify)');
+
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 20,
+            } as any);
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_4',
+                quantity: 1,
+            } as any);
+            await shopClient.query(applyCouponCodeDocument, { couponCode: 'ITEM_5127_COMBO_MODIFY' });
+            await shopClient.query(applyCouponCodeDocument, { couponCode: 'ORDER_5127_COMBO_MODIFY' });
+            await proceedToArrangingPayment(shopClient);
+            const placedOrder = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(placedOrder);
+
+            const placedDiscountedLine = placedOrder.lines.find(l => l.productVariant.id === 'T_1')!;
+            const placedOtherLine = placedOrder.lines.find(l => l.productVariant.id === 'T_4')!;
+            const placedUnitPriceWithTax = placedDiscountedLine.unitPriceWithTax;
+            const placedLines = await getLinesByVariant(placedOrder.id);
+
+            const transitionOrderToState = await adminTransitionOrderToState(placedOrder.id, 'Modifying');
+            orderGuard.assertSuccess(transitionOrderToState);
+
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: placedOrder.id,
+                    adjustOrderLines: [{ orderLineId: placedDiscountedLine.id, quantity: 2 }],
+                    refund: {
+                        paymentId: placedOrder.payments![0].id,
+                        reason: 'reduced quantity (#5127 combo modify)',
+                    },
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+            const modifiedDiscountedLine = modifyOrder.lines.find(l => l.id === placedDiscountedLine.id)!;
+            const modifiedOtherLine = modifyOrder.lines.find(l => l.id === placedOtherLine.id)!;
+
+            // The item-level 50% discount on the reduced line survives, independently of the
+            // order-level discount below.
+            expect(modifiedDiscountedLine.discountedLinePriceWithTax).toBe(placedUnitPriceWithTax);
+            expect(modifiedOtherLine.discountedLinePriceWithTax).toBe(placedOtherLine.unitPriceWithTax);
+
+            // The order-level $5 discount is still split across both lines. `modifyOrder` runs a
+            // full recalculation, which redistributes it by weight, so the reduced line's much
+            // smaller weight can only move share towards the untouched line - it must not leave
+            // either line without one.
+            const modifiedLines = await getLinesByVariant(placedOrder.id);
+            expect(orderLevelShareOf(modifiedLines.get('T_1')!)).toBeLessThan(0);
+            expect(orderLevelShareOf(modifiedLines.get('T_4')!)).toBeLessThanOrEqual(
+                orderLevelShareOf(placedLines.get('T_4')!),
+            );
+        });
+
+        it('cancelOrder: order-level discount split survives partially cancelling one line of a multi-line order', async () => {
+            await createItemPromotion('ITEM_5127_COMBO_CANCEL', '50% off T_1 (#5127 combo cancel)');
+            await createOrderPromotion('ORDER_5127_COMBO_CANCEL', '$5 off order (#5127 combo cancel)');
+
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 20,
+            } as any);
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_4',
+                quantity: 1,
+            } as any);
+            await shopClient.query(applyCouponCodeDocument, { couponCode: 'ITEM_5127_COMBO_CANCEL' });
+            await shopClient.query(applyCouponCodeDocument, { couponCode: 'ORDER_5127_COMBO_CANCEL' });
+            await proceedToArrangingPayment(shopClient);
+            const placedOrder = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(placedOrder);
+
+            const placedDiscountedLine = placedOrder.lines.find(l => l.productVariant.id === 'T_1')!;
+            const unitPriceWithTax = placedDiscountedLine.unitPriceWithTax;
+            const placedLines = await getLinesByVariant(placedOrder.id);
+
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId: placedOrder.id,
+                    lines: [{ orderLineId: placedDiscountedLine.id, quantity: 18 }],
+                    reason: 'partial cancellation (#5127 combo cancel)',
+                },
+            });
+            canceledOrderGuard.assertSuccess(cancelOrder);
+
+            const remainingLines = await getLinesByVariant(placedOrder.id);
+            const remainingDiscountedLine = remainingLines.get('T_1')!;
+
+            expect(remainingDiscountedLine.quantity).toBe(2);
+            expect(remainingDiscountedLine.orderPlacedQuantity).toBe(20);
+
+            // The item-level 50% discount on the remaining 2 units still equals half their
+            // combined list price, independently of the order-level discount split below.
+            expect(itemShareOf(remainingDiscountedLine)).toBe(-unitPriceWithTax);
+
+            // A partial cancellation does not redistribute the order-level discount, so the
+            // reduced line keeps the per-unit share it was assigned at placement, and the
+            // untouched line keeps its share in full. The per-unit rate itself is exact, but
+            // `orderLevelShareOf` is a line total rounded to the nearest minor unit, so scale the
+            // placement rate by the reduced quantity and round the same way rather than comparing
+            // two already-rounded per-unit values, which can differ by a fraction of a cent.
+            const placedDiscountedShareLine = placedLines.get('T_1')!;
+            const expectedRemainingShare = Math.round(
+                (orderLevelShareOf(placedDiscountedShareLine) / placedDiscountedShareLine.quantity) *
+                    remainingDiscountedLine.quantity,
+            );
+            expect(orderLevelShareOf(remainingDiscountedLine)).toBe(expectedRemainingShare);
+            expect(orderLevelShareOf(remainingLines.get('T_4')!)).toBe(
+                orderLevelShareOf(placedLines.get('T_4')!),
+            );
+        });
+    });
+
+    // #5513 — modifyOrder nests OrderLineCustomFieldsInput in AddItemInput and OrderLineInput
+    describe('OrderLine custom field defaults and validation', () => {
+        type ModifiedOrder = ResultOf<typeof modifyOrderWithLineCustomFieldsDocument>['modifyOrder'];
+
+        async function modifyOrder(input: Record<string, any>) {
+            const result = await adminClient.query(modifyOrderWithLineCustomFieldsDocument, {
+                input: { dryRun: false, ...input } as any,
+            });
+            const order = result.modifyOrder as Extract<ModifiedOrder, { lines: unknown }>;
+            if (!order.lines) {
+                throw new Error(`modifyOrder failed: ${JSON.stringify(result.modifyOrder)}`);
+            }
+            return order;
+        }
+
+        it('applies the default to a null field in addItems', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                addItems: [{ productVariantId: 'T_2', quantity: 1, customFields: { defaultedField: null } }],
+            });
+
+            const addedLine = modified.lines.find(line => line.productVariant.id === 'T_2');
+            expect(addedLine?.customFields.defaultedField).toBe('default value');
+        });
+
+        it('keeps a null field null in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                {
+                    productVariantId: 'T_1',
+                    quantity: 1,
+                    customFields: { defaultedField: 'explicit value' },
+                } as any,
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                adjustOrderLines: [
+                    { orderLineId: order.lines[0].id, quantity: 2, customFields: { defaultedField: null } },
+                ],
+            });
+
+            const adjustedLine = modified.lines.find(line => line.id === order.lines[0].id);
+            expect(adjustedLine?.customFields.defaultedField).toBeNull();
+        });
+
+        it('rejects an invalid value in addItems', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    addItems: [
+                        {
+                            productVariantId: 'T_2',
+                            quantity: 1,
+                            customFields: { validatedField: 'Not Valid' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('does not match the pattern');
+        });
+
+        it('rejects an invalid value in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    adjustOrderLines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 2,
+                            customFields: { validatedField: 'Not Valid' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('does not match the pattern');
+        });
+
+        // The Dashboard sends every OrderLine custom field for an added line, each set to null.
+        it('accepts the whole customFields object of an added line, readonly field included', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                addItems: [
+                    {
+                        productVariantId: 'T_2',
+                        quantity: 2,
+                        customFields: {
+                            color: null,
+                            defaultedField: null,
+                            validatedField: null,
+                            readonlyField: null,
+                        },
+                    },
+                ],
+            });
+
+            const addedLine = modified.lines.find(line => line.productVariant.id === 'T_2');
+            expect(addedLine?.customFields).toEqual({
+                defaultedField: 'default value',
+                readonlyField: 'readonly value',
+            });
+        });
+
+        // The Dashboard sends a line's whole customFields object back when it changes the quantity.
+        it('accepts an unchanged readonly field in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                adjustOrderLines: [
+                    {
+                        orderLineId: order.lines[0].id,
+                        quantity: 2,
+                        customFields: {
+                            color: null,
+                            defaultedField: 'default value',
+                            validatedField: null,
+                            readonlyField: 'readonly value',
+                        },
+                    },
+                ],
+            });
+
+            const adjustedLine = modified.lines.find(line => line.id === order.lines[0].id);
+            expect(adjustedLine?.customFields.readonlyField).toBe('readonly value');
+        });
+
+        // cancelOrder ignores the custom fields of its OrderLineInput lines, so the interceptor does not
+        // validate them.
+        it('accepts a stale readonly field in cancelOrder lines', async () => {
+            const order = await createOrderAndCheckout([{ productVariantId: 'T_1', quantity: 2 }]);
+
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId: order.id,
+                    lines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 1,
+                            customFields: { readonlyField: 'stale value' },
+                        } as any,
+                    ],
+                },
+            });
+
+            canceledOrderGuard.assertSuccess(cancelOrder);
+            expect(cancelOrder.lines[0].quantity).toBe(1);
+        });
+
+        it('rejects a changed readonly field in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    adjustOrderLines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 2,
+                            customFields: { readonlyField: 'changed value' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('The custom field "readonlyField" is readonly');
         });
     });
 

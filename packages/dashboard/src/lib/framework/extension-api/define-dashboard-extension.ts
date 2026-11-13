@@ -1,4 +1,10 @@
-import { getNavMenuConfig, setNavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
+import { getPlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
+import {
+    getNavMenuConfig,
+    setNavMenuConfig,
+    validateNavigationShortcuts,
+} from '../nav-menu/nav-menu-extensions.js';
+import { registerLockedNavigation } from '../platform-promotion/register-locked-navigation.js';
 import { globalRegistry } from '../registry/global-registry.js';
 
 import { registerDashboardCustomProviders } from './custom-providers.js';
@@ -9,11 +15,12 @@ import {
     registerDetailFormExtensions,
     registerFormComponentExtensions,
     registerHistoryEntryComponents,
+    registerInsightsExtensions,
     registerLayoutExtensions,
     registerLoginExtensions,
     registerNavigationExtensions,
+    registerRefundDestinationExtensions,
     registerToolbarExtensions,
-    registerWidgetExtensions,
 } from './logic/index.js';
 
 globalRegistry.register('extensionSourceChangeCallbacks', new Set<() => void>());
@@ -41,7 +48,6 @@ export function executeDashboardExtensionCallbacks() {
             if (result && typeof result === 'object' && Array.isArray(result.sections)) {
                 config = result;
             } else {
-                // eslint-disable-next-line no-console
                 console.warn(
                     `A navSections modifier function returned an invalid result. ` +
                         `Expected an object with a "sections" array. The modifier will be skipped. ` +
@@ -50,6 +56,19 @@ export function executeDashboardExtensionCallbacks() {
             }
         }
         setNavMenuConfig(config);
+    }
+
+    // Locked Platform nav items and pages fill the places that no installed plugin took.
+    registerLockedNavigation(getPlatformPromotion().promotion);
+
+    const shortcutValidation = validateNavigationShortcuts(getNavMenuConfig());
+    setNavMenuConfig(shortcutValidation.config);
+    if (shortcutValidation.errors.length) {
+        const message = shortcutValidation.errors.join('\n');
+        if (import.meta.env.DEV) {
+            throw new Error(message);
+        }
+        console.error(message);
     }
 }
 
@@ -70,6 +89,7 @@ export function executeDashboardExtensionCallbacks() {
  * - Login
  * - Custom history entries
  * - Toolbar items
+ * - Refund destinations
  *
  * @example
  * ```tsx
@@ -86,6 +106,7 @@ export function executeDashboardExtensionCallbacks() {
  *     login: {},
  *     historyEntries: [],
  *     toolbarItems: [],
+ *     refundDestinations: [],
  * });
  * ```
  *
@@ -106,8 +127,8 @@ export function defineDashboardExtension(extension: DashboardExtension) {
         // Register layout extensions (action bar items and page blocks)
         registerLayoutExtensions(extension.actionBarItems, extension.pageBlocks);
 
-        // Register widget extensions
-        registerWidgetExtensions(extension.widgets);
+        // Register insights extensions; deprecated top-level `widgets` is merged with `insights.widgets`.
+        registerInsightsExtensions(extension.insights, extension.widgets);
 
         // Register form component extensions for custom fields and configurable operation arguments
         registerFormComponentExtensions(extension.customFormComponents);
@@ -126,6 +147,9 @@ export function defineDashboardExtension(extension: DashboardExtension) {
 
         // Register custom history entry components
         registerHistoryEntryComponents(extension.historyEntries);
+
+        // Register refund destination presentation extensions
+        registerRefundDestinationExtensions(extension.refundDestinations);
 
         // Register dashboard custom providers
         registerDashboardCustomProviders(extension.customProviders);

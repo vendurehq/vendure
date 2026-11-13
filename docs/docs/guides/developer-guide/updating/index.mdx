@@ -4,7 +4,7 @@ metaTitle: "Updating Vendure - Versioning Policy and Upgrade Steps"
 metaDescription: "Safely update your Vendure installation to newer versions. Covers the versioning policy, breaking change expectations, and the recommended upgrade workflow."
 ---
 
-This guide provides guidance for updating the Vendure core framework to a newer version.
+This guide provides guidance for updating the Vendure Framework to a newer version.
 
 ## How to update
 
@@ -27,6 +27,55 @@ to the latest. All the Vendure packages have the same version, and are all relea
 ```
 
 Then run `npm install` or `yarn install` depending on which package manager you prefer.
+
+## Upgrading to v4: Node.js and build tooling
+
+Vendure v4 raises the minimum Node.js version and moves the Dashboard's build tooling to Vite 8, which bundles with [Rolldown](https://rolldown.rs/). Apart from updating the `@vendure/...` packages, make the following changes to your project.
+
+### Node.js 22.12 or newer
+
+Vendure v4 requires Node.js `>=22.12.0`. Node.js v20 reached end-of-life on 30 April 2026 and is no longer supported.
+
+### Vite 8
+
+`@vendure/dashboard` declares `vite` as a peer dependency (`^8.0.0`), so your project's own `vite` dependency drives the Dashboard build. Projects created with `@vendure/create` before v4 list `vite` at `^7`. Update it:
+
+```diff
+{
+  "devDependencies": {
+-    "vite": "^7.3.1",
++    "vite": "^8.3.5",
+  }
+}
+```
+
+If your `vite.config.mts` uses `__dirname`, use `import.meta.dirname` instead. Vite 8 warns about `__dirname`, because its planned native config loader does not support it:
+
+```diff title="vite.config.mts"
+ export default defineConfig({
+     build: {
+-        outDir: join(__dirname, 'dist/dashboard'),
++        outDir: join(import.meta.dirname, 'dist/dashboard'),
+     },
+     // ...
+ });
+```
+
+If your Vite config adds `@vitejs/plugin-react` itself, update it to v6. Version 6 no longer accepts a `babel` option; Babel plugins go through [`@rolldown/plugin-babel`](https://www.npmjs.com/package/@rolldown/plugin-babel) instead. Options under `build.rollupOptions` are now `build.rolldownOptions`.
+
+The Dashboard compiles Lingui macros (in its own source and in your Dashboard extensions) with Babel. In v3 a file that Babel failed to compile was logged and skipped. In v4 the error fails the build, with the file and location of the problem.
+
+### Testing with Vitest
+
+If you test your plugins with Vitest, update to Vitest 4, which is the first version that supports Vite 8. See the [Vitest 4 migration guide](https://vitest.dev/guide/migration) for its other changes.
+
+If you use `unplugin-swc` to compile decorators in your tests, update it to v2:
+
+```bash
+npm install --save-dev vitest@^4 unplugin-swc@^2
+```
+
+Older `unplugin-swc` versions only turn off esbuild, which Vite 8 no longer uses. Vite's own Oxc transform then compiles your TypeScript before SWC does, so SWC options such as `useDefineForClassFields: false` are no longer reliably applied. See the [Testing guide](/developer-guide/testing/) for a complete configuration.
 
 ## Versioning Policy & Breaking changes
 

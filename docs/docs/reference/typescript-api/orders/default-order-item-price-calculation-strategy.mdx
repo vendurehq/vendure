@@ -2,14 +2,21 @@
 title: "DefaultOrderItemPriceCalculationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/order/default-order-item-price-calculation-strategy.ts" sourceLine="14" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/order/default-order-item-price-calculation-strategy.ts" sourceLine="23" packageName="@vendure/core" />
 
-The default [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy), which simply passes through the price of
-the ProductVariant without performing any calculations
+The default [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy). It returns the unit price that the configured
+[ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy) calculates for the Customer of the Order, with the OrderLine
+custom fields as the pricing data. With the [DefaultProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#defaultproductvariantbuyerpricestrategy), this is
+the price of the ProductVariant. The result includes the `metadata` of the buyer price strategy, so an
+outer layer can read it from the result of `inner`.
+
+It uses `ProductVariantService.calculateBuyerPriceForOrder()`, so it must be initialized with `init()`
+before use. Vendure does this for the configured strategy.
 
 ```ts title="Signature"
 class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
-    calculateUnitPrice(ctx: RequestContext, productVariant: ProductVariant) => PriceCalculationResult | Promise<PriceCalculationResult>;
+    init(injector: Injector) => ;
+    calculateUnitPrice(ctx: RequestContext, productVariant: ProductVariant, orderLineCustomFields: { [key: string]: any }, order: Order, quantity: number) => Promise<PriceCalculationResult>;
 }
 ```
 * Implements: [`OrderItemPriceCalculationStrategy`](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy)
@@ -18,9 +25,14 @@ class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceCalculat
 
 <div className="members-wrapper">
 
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
 ### calculateUnitPrice
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => <a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a> | Promise<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, orderLineCustomFields: { [key: string]: any }, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, quantity: number) => Promise<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a>>`}   />
 
 
 

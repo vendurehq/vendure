@@ -1218,6 +1218,43 @@ export const getProductVariantFacetValuesDocument = graphql(`
     }
 `);
 
+export const getProductsWithOptionsDocument = graphql(`
+    query GetProductsWithOptions($options: ProductListOptions) {
+        products(options: $options) {
+            totalItems
+            items {
+                id
+                name
+                enabled
+            }
+        }
+    }
+`);
+
+export const getCollectionsWithOptionsDocument = graphql(`
+    query GetCollectionsWithOptions($options: CollectionListOptions) {
+        collections(options: $options) {
+            totalItems
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getFacetsWithOptionsDocument = graphql(`
+    query GetFacetsWithOptions($options: FacetListOptions) {
+        facets(options: $options) {
+            totalItems
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
 export const getProductsTake3Document = graphql(`
     query GetProductsTake3 {
         products(options: { take: 3 }) {

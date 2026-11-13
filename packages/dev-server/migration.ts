@@ -13,8 +13,8 @@ program
 program
     .command('run')
     .description('Run all pending migrations')
-    .action(() => {
-        return runMigrations(devConfig);
+    .action(async () => {
+        await runMigrations(devConfig);
     });
 
 program

@@ -7,6 +7,7 @@ import { ConfigService } from '../config/config.service';
 import { TypeOrmLogger } from '../config/logger/typeorm-logger';
 
 import { CustomFieldsValidationSubscriber } from './custom-fields-validation-subscriber';
+import { initializeDataSource } from './initialize-data-source';
 import { TransactionSubscriber } from './transaction-subscriber';
 import { TransactionWrapper } from './transaction-wrapper';
 import { TransactionalConnection } from './transactional-connection';
@@ -47,6 +48,13 @@ export class ConnectionModule {
                     };
                 },
                 inject: [ConfigService],
+                // See preferChannelAssignmentMetadata()
+                dataSourceFactory: async options => {
+                    if (!options) {
+                        throw new Error('No dbConnectionOptions');
+                    }
+                    return initializeDataSource(options);
+                },
             });
         }
         return {

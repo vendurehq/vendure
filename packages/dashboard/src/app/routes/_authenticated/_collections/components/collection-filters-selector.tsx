@@ -1,6 +1,7 @@
 import { ConfigurableOperationMultiSelector } from '@/vdb/components/shared/configurable-operation-multi-selector.js';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 import { getCollectionFiltersQueryOptions } from '../collections.graphql.js';
+import { useLingui } from '@lingui/react/macro';
 
 export interface CollectionFiltersSelectorProps {
     value: ConfigurableOperationInputType[];
@@ -13,6 +14,7 @@ export function CollectionFiltersSelector({
     onChange,
     onValidityChange,
 }: Readonly<CollectionFiltersSelectorProps>) {
+    const { t } = useLingui();
     return (
         <div className="mt-4">
             <ConfigurableOperationMultiSelector
@@ -21,7 +23,7 @@ export function CollectionFiltersSelector({
                 queryOptions={getCollectionFiltersQueryOptions}
                 queryKey="getCollectionFilters"
                 dataPath="collectionFilters"
-                buttonText="Add collection filter"
+                buttonText={t`Add collection filter`}
                 showEnhancedDropdown={false}
                 onValidityChange={onValidityChange}
             />

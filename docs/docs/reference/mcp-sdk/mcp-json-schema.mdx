@@ -1,0 +1,44 @@
+---
+title: "McpJsonSchema"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="16" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+A JSON Schema for a tool's input or output. Only object types are described here;
+any other JSON Schema keywords can be added via the index signature.
+
+```ts title="Signature"
+interface McpJsonSchema {
+    type: 'object';
+    properties?: Record<string, unknown>;
+    required?: string[];
+    [key: string]: unknown;
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`'object'`}   />
+
+
+### properties
+
+<MemberInfo kind="property" type={`Record<string, unknown>`}   />
+
+
+### required
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+### [index]
+
+<MemberInfo kind="property" type={`unknown`}   />
+
+Room for any other JSON Schema keyword, such as `additionalProperties`. Schemas are
+compiled as JSON Schema 2020-12, so leave out `$schema`.
+
+
+</div>

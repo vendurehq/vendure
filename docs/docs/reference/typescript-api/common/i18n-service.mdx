@@ -4,17 +4,18 @@ generated: true
 ---
 ## I18nService
 
-<GenerationInfo sourceFile="packages/core/src/i18n/i18n.service.ts" sourceLine="44" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/i18n/i18n.service.ts" sourceLine="51" packageName="@vendure/core" />
 
 
 
 ```ts title="Signature"
-class I18nService implements OnModuleInit {
+class I18nService implements OnModuleInit, ConfigurableOperationTranslator {
     addTranslationFile(langKey: string, filePath: string) => void;
     addTranslation(langKey: string, resources: VendureTranslationResources | any) => void;
+    getConfigurableOperationTranslation(languageCode: string, keyPath: string[]) => string | undefined;
 }
 ```
-* Implements: OnModuleInit
+* Implements: OnModuleInit, [`ConfigurableOperationTranslator`](/reference/typescript-api/configurable-operation-def/configurable-operation-translator#configurableoperationtranslator)
 
 
 
@@ -30,12 +31,24 @@ Add a I18n translation by json file
 <MemberInfo kind="method" type={`(langKey: string, resources: <a href='/reference/typescript-api/common/i18n-service#venduretranslationresources'>VendureTranslationResources</a> | any) => void`}   />
 
 Add a I18n translation (key-value) resource
+### getConfigurableOperationTranslation
+
+<MemberInfo kind="method" type={`(languageCode: string, keyPath: string[]) => string | undefined`}  since="3.8.0"  />
+
+Returns the string stored at the given path within the `configurableOperation` namespace of
+the catalog for `languageCode`, or `undefined` if there is no entry there.
+
+The resource is read straight out of the store rather than via `t()`, for two reasons. The
+values contain `{ argName }` placeholders which the Admin UI interpolates with the live
+argument values, so they must reach the client untouched by ICU formatting. And the keys may
+contain dots — a plugin is free to use a code such as `acme.shipping.handler` — which
+i18next would otherwise treat as path separators.
 
 
 </div>
 ## VendureTranslationResources
 
-<GenerationInfo sourceFile="packages/core/src/i18n/i18n.service.ts" sourceLine="24" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/i18n/i18n.service.ts" sourceLine="25" packageName="@vendure/core" />
 
 I18n resources used for translations
 
@@ -44,6 +57,7 @@ interface VendureTranslationResources {
     error: any;
     errorResult: any;
     message: any;
+    configurableOperation?: any;
 }
 ```
 
@@ -60,6 +74,11 @@ interface VendureTranslationResources {
 
 
 ### message
+
+<MemberInfo kind="property" type={`any`}   />
+
+
+### configurableOperation
 
 <MemberInfo kind="property" type={`any`}   />
 

@@ -14,19 +14,16 @@ fi
 
 echo "Publishing to Verdaccio @ $VERDACCIO"
 
-cd ../packages/admin-ui-plugin && npm publish -reg $VERDACCIO &&\
-cd ../asset-server-plugin && npm publish -reg $VERDACCIO &&\
+cd ../packages/asset-server-plugin && npm publish -reg $VERDACCIO &&\
 cd ../common && npm publish -reg $VERDACCIO &&\
 cd ../core && npm publish -reg $VERDACCIO &&\
 cd ../create && npm publish -reg $VERDACCIO &&\
 cd ../email-plugin && npm publish -reg $VERDACCIO &&\
 cd ../testing && npm publish -reg $VERDACCIO &&\
-cd ../ui-devkit && npm publish -reg $VERDACCIO &&\
 cd ../job-queue-plugin && npm publish -reg $VERDACCIO &&\
 cd ../cli && npm publish -reg $VERDACCIO &&\
 cd ../harden-plugin && npm publish -reg $VERDACCIO &&\
 cd ../dashboard && npm publish -reg $VERDACCIO &&\
 cd ../telemetry-plugin && npm publish -reg $VERDACCIO &&\
 cd ../graphiql-plugin && npm publish -reg $VERDACCIO &&\
-cd ../docs && npm publish -reg $VERDACCIO &&\
-cd ../admin-ui/package && npm publish -reg $VERDACCIO
+cd ../docs && npm publish -reg $VERDACCIO

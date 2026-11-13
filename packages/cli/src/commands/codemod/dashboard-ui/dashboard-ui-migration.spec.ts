@@ -2,11 +2,11 @@ import { log } from '@clack/prompts';
 import { Project, QuoteKind, ScriptKind } from 'ts-morph';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { transformAccordionProps } from './transforms/accordion-props';
-import { transformAsChildToRender } from './transforms/as-child-to-render';
-import { transformFormComponents } from './transforms/form-components';
-import { transformImportConsolidation } from './transforms/import-consolidation';
-import { transformSelectItemsProp } from './transforms/select-items-prop';
+import { transformAccordionProps } from './transforms/accordion-props.js';
+import { transformAsChildToRender } from './transforms/as-child-to-render.js';
+import { transformFormComponents } from './transforms/form-components.js';
+import { transformImportConsolidation } from './transforms/import-consolidation.js';
+import { transformSelectItemsProp } from './transforms/select-items-prop.js';
 
 vi.mock('@clack/prompts', () => ({
     log: {

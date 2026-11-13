@@ -127,6 +127,9 @@ export class ActiveOrderService {
                 }
             }
         }
+        if (order) {
+            order = await this.orderService.applyPriceAdjustmentsIfStale(ctx, order);
+        }
         return order || undefined;
     }
 }

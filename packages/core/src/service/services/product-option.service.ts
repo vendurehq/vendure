@@ -98,7 +98,9 @@ export class ProductOptionService {
         const productOptionGroup =
             group instanceof ProductOptionGroup
                 ? group
-                : await this.connection.getEntityOrThrow(ctx, ProductOptionGroup, group);
+                : await this.connection.getEntityOrThrow(ctx, ProductOptionGroup, group, {
+                      channelId: ctx.channelId,
+                  });
         const option = await this.translatableSaver.create({
             ctx,
             input,
@@ -143,7 +145,9 @@ export class ProductOptionService {
      * - If the ProductOption is not used by any ProductVariant at all, it will be hard-deleted.
      */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
-        const productOption = await this.connection.getEntityOrThrow(ctx, ProductOption, id);
+        const productOption = await this.connection.getEntityOrThrow(ctx, ProductOption, id, {
+            channelId: ctx.channelId,
+        });
         const deletedProductOption = new ProductOption(productOption);
         const inUseByActiveVariants = await this.isInUse(ctx, productOption, 'active');
         if (0 < inUseByActiveVariants) {

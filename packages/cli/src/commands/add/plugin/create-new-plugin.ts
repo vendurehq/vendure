@@ -1,23 +1,25 @@
 import { cancel, intro, isCancel, log, select, spinner, text } from '@clack/prompts';
-import { constantCase, kebabCase, pascalCase } from '../../../utilities/case-utils';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import path from 'path';
 import { Project, SourceFile } from 'ts-morph';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { addImportsToFile, createFile, getPluginClasses } from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils';
-import { addApiExtensionCommand } from '../api-extension/add-api-extension';
-import { addCodegenCommand } from '../codegen/add-codegen';
-import { addDashboardCommand } from '../dashboard/add-dashboard';
-import { addEntityCommand } from '../entity/add-entity';
-import { addJobQueueCommand } from '../job-queue/add-job-queue';
-import { addServiceCommand } from '../service/add-service';
 
-import { GeneratePluginOptions, NewPluginTemplateContext } from './types';
+import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { addImportsToFile, createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
+import { constantCase, kebabCase, pascalCase } from '../../../utilities/case-utils.js';
+import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils.js';
+import { addApiExtensionCommand } from '../api-extension/add-api-extension.js';
+import { addCodegenCommand } from '../codegen/add-codegen.js';
+import { addDashboardCommand } from '../dashboard/add-dashboard.js';
+import { addEntityCommand } from '../entity/add-entity.js';
+import { addJobQueueCommand } from '../job-queue/add-job-queue.js';
+import { addServiceCommand } from '../service/add-service.js';
+
+import { GeneratePluginOptions, NewPluginTemplateContext } from './types.js';
 
 export const createNewPluginCommand = new CliCommand({
     id: 'create-new-plugin',
@@ -57,7 +59,7 @@ export async function createNewPlugin(
 
         if (isCancel(name)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         } else {
             options.name = name;
         }
@@ -85,7 +87,7 @@ export async function createNewPlugin(
 
         if (isCancel(confirmation)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         options.pluginDir = confirmation;
     }
@@ -150,6 +152,7 @@ export async function createNewPlugin(
                     sourceFile.organizeImports();
                 }
             } catch (e: any) {
+                rethrowCliCommandExit(e);
                 log.error(`Error adding feature "${command.id}"`);
                 log.error(e.stack);
             }
@@ -180,7 +183,7 @@ export async function generatePlugin(
 
     const pluginFile = createFile(
         project,
-        path.join(__dirname, 'templates/plugin.template.ts'),
+        path.join(import.meta.dirname, 'templates/plugin.template.ts'),
         path.join(options.pluginDir, kebabCase(nameWithoutPlugin) + '.plugin.ts'),
     );
     const pluginClass = pluginFile.getClass('TemplatePlugin');
@@ -193,13 +196,13 @@ export async function generatePlugin(
 
     const typesFile = createFile(
         project,
-        path.join(__dirname, 'templates/types.template.ts'),
+        path.join(import.meta.dirname, 'templates/types.template.ts'),
         path.join(options.pluginDir, 'types.ts'),
     );
 
     const constantsFile = createFile(
         project,
-        path.join(__dirname, 'templates/constants.template.ts'),
+        path.join(import.meta.dirname, 'templates/constants.template.ts'),
         path.join(options.pluginDir, 'constants.ts'),
     );
     constantsFile

@@ -53,7 +53,7 @@
                     authStatus.innerHTML = authenticated ? `logged in` : `not logged in`;
                     if (authenticated) {
                         if (-1 < window.location.search.indexOf('loginToVendure')) {
-                            loginToAdminUi();
+                            loginToDashboard();
                         }
                         logoutButton.classList.remove('hidden');
                     } else {
@@ -66,7 +66,7 @@
 
                     loginButton.addEventListener('click', () => {
                         if (authenticated) {
-                            loginToAdminUi();
+                            loginToDashboard();
                         } else {
                             keycloak.login({
                                 redirectUri: window.location.href + '?loginToVendure=true',
@@ -78,7 +78,7 @@
                     alert('failed to initialize');
                 });
 
-            function loginToAdminUi() {
+            function loginToDashboard() {
                 return graphQlQuery(
                     /* GraphQL */ `
                         mutation Authenticate($token: String!) {
@@ -99,7 +99,7 @@
                         console.log(result);
                         if (result.data?.authenticate.id) {
                             // successfully authenticated
-                            window.location.replace('http://localhost:4200/admin');
+                            window.location.replace('http://localhost:3000/dashboard');
                         }
                     })
                     .catch(err => {

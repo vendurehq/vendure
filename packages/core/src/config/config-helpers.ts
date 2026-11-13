@@ -5,12 +5,34 @@ import { PartialVendureConfig, RuntimeVendureConfig } from './vendure-config';
 
 let activeConfig: RuntimeVendureConfig;
 const defaultConfigPath = path.join(__dirname, 'default-config');
+
+// The default config is loaded lazily to avoid circular-import issues, and cached here so that
+// both the async (`import()`) and sync (`require()`) loaders return the same instance. The async
+// loader is the reliable one under bundler/test runtimes (e.g. vitest hooks dynamic import but not
+// the extensionless `require()`), so any code path that has already loaded the config asynchronously
+// leaves the cache populated for the synchronous callers.
+let cachedDefaultConfig: RuntimeVendureConfig | undefined;
+
+async function loadDefaultConfig(): Promise<RuntimeVendureConfig> {
+    if (!cachedDefaultConfig) {
+        cachedDefaultConfig = (await import(defaultConfigPath)).defaultConfig;
+    }
+    return cachedDefaultConfig as RuntimeVendureConfig;
+}
+
+function loadDefaultConfigSync(): RuntimeVendureConfig {
+    if (!cachedDefaultConfig) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        cachedDefaultConfig = require(defaultConfigPath).defaultConfig;
+    }
+    return cachedDefaultConfig as RuntimeVendureConfig;
+}
+
 /**
  * Reset the activeConfig object back to the initial default state.
  */
 export function resetConfig() {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    activeConfig = require(defaultConfigPath).defaultConfig;
+    activeConfig = loadDefaultConfigSync();
 }
 
 /**
@@ -19,7 +41,7 @@ export function resetConfig() {
  */
 export async function setConfig(userConfig: PartialVendureConfig) {
     if (!activeConfig) {
-        activeConfig = (await import(defaultConfigPath)).defaultConfig;
+        activeConfig = await loadDefaultConfig();
     }
     activeConfig = mergeConfig(activeConfig, userConfig);
 }
@@ -30,7 +52,7 @@ export async function setConfig(userConfig: PartialVendureConfig) {
  */
 export async function ensureConfigLoaded() {
     if (!activeConfig) {
-        activeConfig = (await import(defaultConfigPath)).defaultConfig;
+        activeConfig = await loadDefaultConfig();
     }
 }
 
@@ -42,8 +64,7 @@ export async function ensureConfigLoaded() {
 export function getConfig(): Readonly<RuntimeVendureConfig> {
     if (!activeConfig) {
         try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            activeConfig = require(defaultConfigPath).defaultConfig;
+            activeConfig = loadDefaultConfigSync();
         } catch (e: any) {
             // eslint-disable-next-line no-console
             console.log(

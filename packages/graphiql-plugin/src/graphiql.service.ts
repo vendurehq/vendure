@@ -26,24 +26,11 @@ export class GraphiQLService {
     }
 
     /**
-     * Create a fully-qualified API URL
+     * The API path relative to the site root. The page uses it as-is, so the browser sends its
+     * requests to the server that served the page. `apiOptions.hostname` is the address the
+     * server listens on (e.g. `0.0.0.0` in Docker), not one a browser can reach, so it is not used.
      */
     private createApiUrl(apiPath: string): string {
-        // Get API host and port from the config
-        const apiHost = this.configService.apiOptions.hostname || '';
-        const apiPort = this.configService.apiOptions.port || '';
-
-        const host = apiHost || '';
-        const port = apiPort ? `:${apiPort}` : '';
-        const pathUrl = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-
-        // If the host is specified, create a fully-qualified URL
-        if (host) {
-            const protocol = host.startsWith('https') ? '' : 'http://';
-            return `${protocol}${host}${port}${pathUrl}`;
-        }
-
-        // Otherwise use a relative URL
-        return pathUrl;
+        return apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
     }
 }

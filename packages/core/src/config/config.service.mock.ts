@@ -1,13 +1,17 @@
-/* eslint-disable @typescript-eslint/ban-types */
-import { vi, Mock } from 'vitest';
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+import { Mock, vi } from 'vitest';
 
-import { VendureEntity } from '../entity/base/base.entity';
 import { MockClass } from '../testing/testing-types';
 
 import { ConfigService } from './config.service';
-import { EntityIdStrategy, PrimaryKeyType } from './entity/entity-id-strategy';
+import { EntityIdStrategy } from './entity/entity-id-strategy';
+import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-order-line-discount-distribution-strategy';
+import { OrderOptions } from './vendure-config';
 
 export class MockConfigService implements MockClass<ConfigService> {
+    // The mock does not set these. They are declared so that the class satisfies `MockClass<ConfigService>`.
+    declare schedulerOptions: ConfigService['schedulerOptions'];
+    declare settingsStoreFields: ConfigService['settingsStoreFields'];
     apiOptions = {
         channelTokenKey: 'vendure-token',
         adminApiPath: 'admin-api',
@@ -44,7 +48,9 @@ export class MockConfigService implements MockClass<ConfigService> {
     taxOptions: {};
     emailOptions: {};
     importExportOptions: {};
-    orderOptions = {};
+    orderOptions: Partial<OrderOptions> = {
+        orderLineDiscountDistributionStrategy: new DefaultOrderLineDiscountDistributionStrategy(),
+    };
     customFields = {};
 
     plugins = [];

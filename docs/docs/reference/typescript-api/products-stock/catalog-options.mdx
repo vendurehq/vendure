@@ -2,7 +2,7 @@
 title: "CatalogOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="774" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="890" packageName="@vendure/core" />
 
 Options related to products and collections.
 
@@ -12,6 +12,7 @@ interface CatalogOptions {
     productVariantPriceSelectionStrategy?: ProductVariantPriceSelectionStrategy;
     productVariantPriceCalculationStrategy?: ProductVariantPriceCalculationStrategy;
     productVariantPriceUpdateStrategy?: ProductVariantPriceUpdateStrategy;
+    productVariantBuyerPriceStrategy?: ProductVariantBuyerPriceStrategy;
     stockDisplayStrategy?: StockDisplayStrategy;
     stockLocationStrategy?: StockLocationStrategy;
 }
@@ -43,6 +44,13 @@ on the Channel settings and active tax Zone.
 Defines the strategy which determines what happens to a ProductVariant's prices
 when one of the prices gets updated. For instance, this can be used to synchronize
 prices across multiple Channels.
+### productVariantBuyerPriceStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy'>ProductVariantBuyerPriceStrategy</a>`} default={`<a href='/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#defaultproductvariantbuyerpricestrategy'>DefaultProductVariantBuyerPriceStrategy</a>`}  since="4.0.0"  />
+
+Defines the strategy that calculates the unit price of a ProductVariant for a buyer and a
+quantity. The default OrderItemPriceCalculationStrategy uses it for the price of each OrderLine,
+and the Shop API `ProductVariant.buyerPrice` field uses it without an Order.
 ### stockDisplayStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/products-stock/stock-display-strategy#stockdisplaystrategy'>StockDisplayStrategy</a>`} default={`<a href='/reference/typescript-api/products-stock/default-stock-display-strategy#defaultstockdisplaystrategy'>DefaultStockDisplayStrategy</a>`}   />

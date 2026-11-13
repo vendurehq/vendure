@@ -1,5 +1,4 @@
 import { CacheService, EventBus, JobQueue, JobQueueService } from '@vendure/core';
-import { stringify } from 'javascript-stringify';
 
 import { registerMethodHooks } from '../service/method-hooks.service';
 
@@ -58,11 +57,12 @@ export const defaultMethodHooks = [
         add: {
             pre: ({ args: [data, options], span, instance }) => {
                 span.setAttribute('job.queueName', instance.name);
+                // Only the key names are recorded. Job data can hold credentials, such as the
+                // password reset tokens in EmailPlugin `templateVars`,
+                // which must not reach the trace backend.
                 span.setAttribute(
                     'job.data',
-                    stringify(data, null, 2, {
-                        maxDepth: 3,
-                    }) ?? '',
+                    JSON.stringify(data && typeof data === 'object' ? Object.keys(data) : []),
                 );
                 span.setAttribute('job.retries', options?.retries ?? 0);
             },

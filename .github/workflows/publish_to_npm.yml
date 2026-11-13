@@ -39,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+    permissions:
+      contents: read
     steps:
       - name: Determine publish matrix
         id: set-matrix
@@ -66,12 +68,16 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
+      # Both nightly jobs publish new versions of the same packages. npm rejects
+      # a publish with E409 while it is still processing a previous publish of
+      # the same package, so the jobs must not run concurrently.
+      max-parallel: 1
       matrix:
         type: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.type == 'minor-nightly' && 'minor' || matrix.type == 'master-nightly' && 'master' || '' }}
           fetch-depth: ${{ matrix.type == 'release' && 1 || 0 }}
@@ -91,7 +97,7 @@ jobs:
 
       - name: Setup Node.js
         if: matrix.type == 'release' || steps.commit_check.outputs.should_publish == 'true'
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
@@ -104,7 +110,7 @@ jobs:
         if: matrix.type == 'release' || steps.commit_check.outputs.should_publish == 'true'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.10'
+          bun-version: '1.4.4'
 
       - name: Install dependencies
         if: matrix.type == 'release' || steps.commit_check.outputs.should_publish == 'true'
@@ -129,20 +135,20 @@ jobs:
       - name: Version packages (master-nightly)
         if: matrix.type == 'master-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          CURRENT_VERSION=$(node -p "require('./lerna.json').version")
+          CURRENT_VERSION=$(node -p "require('./packages/core/package.json').version")
           IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
           PATCH=$((VERSION_PARTS[2] + 1))
           NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${PATCH}-master-${{ steps.date.outputs.date }}"
-          bunx lerna version $NEW_VERSION --no-git-tag-version --yes --no-push --force-publish
+          bun run release:version "$NEW_VERSION" --skip-git
 
       - name: Version packages (minor-nightly)
         if: matrix.type == 'minor-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          CURRENT_VERSION=$(node -p "require('./lerna.json').version")
+          CURRENT_VERSION=$(node -p "require('./packages/core/package.json').version")
           IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
           MINOR=$((VERSION_PARTS[1] + 1))
           NEW_VERSION="${VERSION_PARTS[0]}.${MINOR}.0-minor-${{ steps.date.outputs.date }}"
-          bunx lerna version $NEW_VERSION --no-git-tag-version --yes --no-push --force-publish
+          bun run release:version "$NEW_VERSION" --skip-git
 
       - name: Commit version changes
         if: matrix.type != 'release' && steps.commit_check.outputs.should_publish == 'true'
@@ -151,10 +157,9 @@ jobs:
           git commit -m "chore: Bump version for ${{ matrix.type }} pre-release"
 
       # Publish to npm with appropriate dist-tag.
-      # Note: we do not use `lerna publish` because at the time of writing, it fails to publish
-      # using the Trusted Publishing workflow for some reason.
-      # We use a custom script to handle publishConfig.directory for packages like @vendure/admin-ui
-      # that need to publish from a nested directory.
+      # Each step runs npm in every package that is not private, so that Trusted Publishing and
+      # `npm stage publish` work. The script honours `publishConfig.directory` in case a package
+      # needs to publish from a nested directory.
       #
       # Release publishes use `npm stage publish` — the version lands in npm's staging area and
       # requires manual maintainer approval (with 2FA) before going live on the public registry.
@@ -166,17 +171,46 @@ jobs:
       - name: Publish to NPM (release)
         if: matrix.type == 'release'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm stage publish --access public'
+          for dir in $(node .github/workflows/scripts/public-package-dirs.js); do
+            (
+              cd "$dir"
+              publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'")
+              cd "$publish_dir"
+              npm stage publish --access public
+            )
+          done
 
+      # No bail: a failure in one package must not skip publishing the rest —
+      # downstream consumers expect ALL packages to exist at a given nightly
+      # version. The retry loop handles transient registry errors (e.g. E409
+      # while npm is still processing an earlier publish of the same package).
       - name: Publish to NPM (master-nightly)
         if: matrix.type == 'master-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public --tag master'
+          failed=0
+          for dir in $(node .github/workflows/scripts/public-package-dirs.js); do
+            (
+              cd "$dir"
+              publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'")
+              cd "$publish_dir"
+              for i in 1 2 3; do npm publish --access public --tag master && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done
+            ) || failed=1
+          done
+          exit $failed
 
       - name: Publish to NPM (minor-nightly)
         if: matrix.type == 'minor-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public --tag minor'
+          failed=0
+          for dir in $(node .github/workflows/scripts/public-package-dirs.js); do
+            (
+              cd "$dir"
+              publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'")
+              cd "$publish_dir"
+              for i in 1 2 3; do npm publish --access public --tag minor && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done
+            ) || failed=1
+          done
+          exit $failed
 
       - name: Skip publish (no new commits)
         if: matrix.type != 'release' && steps.commit_check.outputs.should_publish == 'false'

@@ -1,3 +1,4 @@
+import { VendureConfig } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -12,7 +13,7 @@ import { graphql } from './graphql/graphql-admin';
  * https://github.com/vendurehq/vendure/issues/3266
  */
 
-const customConfig = {
+const customConfig: Required<VendureConfig> = {
     ...testConfig(),
     customFields: {
         Product: [

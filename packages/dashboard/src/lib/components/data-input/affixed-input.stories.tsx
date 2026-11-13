@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { AffixedInput } from './affixed-input.js';
 
 const meta = {
@@ -56,7 +57,7 @@ export const Playground: Story = {
     render: args => {
         const { register } = useForm();
         const field = register('amount');
-        return <AffixedInput {...field} {...args} />;
+        return <AffixedInput {...asField(field)} {...args} />;
     },
 };
 
@@ -64,7 +65,13 @@ export const WithIconPrefix: Story = {
     render: () => {
         const { register } = useForm();
         const field = register('email');
-        return <AffixedInput {...field} prefix={<Mail className="w-4 h-4" />} placeholder="Enter email" />;
+        return (
+            <AffixedInput
+                {...asField(field)}
+                prefix={<Mail className="w-4 h-4" />}
+                placeholder="Enter email"
+            />
+        );
     },
 };
 
@@ -72,7 +79,7 @@ export const WithSuffix: Story = {
     render: () => {
         const { register } = useForm();
         const field = register('percentage');
-        return <AffixedInput {...field} type="number" suffix="%" placeholder="Enter percentage" />;
+        return <AffixedInput {...asField(field)} type="number" suffix="%" placeholder="Enter percentage" />;
     },
 };
 
@@ -80,7 +87,7 @@ export const Disabled: Story = {
     render: () => {
         const { register } = useForm();
         const field = register('website');
-        return <AffixedInput {...field} prefix="https://" suffix=".com" disabled />;
+        return <AffixedInput {...asField(field)} prefix="https://" suffix=".com" disabled />;
     },
 };
 
@@ -88,6 +95,6 @@ export const NumberWithSteps: Story = {
     render: () => {
         const { register } = useForm();
         const field = register('weight');
-        return <AffixedInput {...field} type="number" suffix="kg" step="0.1" min="0" max="100" />;
+        return <AffixedInput {...asField(field)} type="number" suffix="kg" step="0.1" min="0" max="100" />;
     },
 };

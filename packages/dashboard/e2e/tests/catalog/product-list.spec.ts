@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 test.describe('Product List', () => {
     const listPage = (page: import('@playwright/test').Page) =>
@@ -46,6 +47,43 @@ test.describe('Product List', () => {
         await expect(lp.newButton).toBeVisible();
     });
 
+    // "Rebuild search index" moved from an inline action-bar button into the action bar's overflow (⋮) menu
+    test('should rebuild the search index from the action bar overflow menu', async ({ page }) => {
+        // The DefaultSearchPlugin (which provides the `reindex` mutation) is not loaded in the
+        // e2e backend, so stub the mutation to a success response to exercise the UI wiring.
+        await page.route('**/admin-api**', async route => {
+            const body = route.request().postData() ?? '';
+            if (body.includes('reindex')) {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ data: { reindex: { id: 'reindex-job-1' } } }),
+                });
+            } else {
+                await route.fallback();
+            }
+        });
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+
+        // Open the action bar overflow (⋮) dropdown
+        const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+        await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+        await actionBarEllipsis.click();
+
+        // The menu should contain the "Rebuild search index" item
+        const menu = page.locator('[data-slot="dropdown-menu-content"]');
+        await expect(menu).toBeVisible();
+        const rebuildItem = menu.getByText('Rebuild search index');
+        await expect(rebuildItem).toBeVisible();
+
+        // Trigger it and expect the success toast
+        await rebuildItem.click();
+        await lp.expectSuccessToast('Search index rebuild started');
+    });
+
     // #4393 — product list should default to sorting by updatedAt descending
     test('should apply descending updatedAt sort by default', async ({ page }) => {
         const lp = listPage(page);
@@ -64,10 +102,11 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Click the "Facet values" filter button in the toolbar
+            // Launch the "Facet values" filter from the unified Filter menu
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
             await expect(facetFilterButton).toBeVisible();
-            await facetFilterButton.click();
 
             // The popover should open showing facets in browse mode
             const popover = page.locator('[data-slot="popover-content"]');
@@ -111,9 +150,10 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Open facet filter and select a value
+            // Launch the facet filter from the unified Filter menu and select a value
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -145,12 +185,14 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialRowCount = await lp.getRows().count();
 
-            // Open facet filter and select a value
+            // Launch the facet filter from the unified Filter menu and select a value
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -178,9 +220,9 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Open the facet filter
-            const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
+            // Launch the facet filter from the unified Filter menu
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -203,8 +245,8 @@ test.describe('Product List', () => {
         await lp.goto();
         await lp.expectLoaded();
 
-        // The column settings trigger is the gear icon (Settings2) in the data table toolbar.
-        // We exclude sidebar buttons (which also use Settings2) via :not([data-sidebar]).
+        // The column settings live in the table settings menu (the ⋮ trigger
+        // in the data table header).
         const columnSettingsTrigger = page.getByTestId('dt-column-settings-trigger');
         await columnSettingsTrigger.click();
 
@@ -270,6 +312,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
             expect(initialCount).toBeLessThanOrEqual(10);
@@ -315,6 +358,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
@@ -353,10 +397,52 @@ test.describe('Product List', () => {
             ).toBeVisible();
         });
 
+        // #5272 — verifies that product search and column filters combine with AND semantics
+        test('should keep column filters applied when a search term is entered', async ({ page }) => {
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+
+            const initialCount = await lp.getRows().count();
+
+            // Filter down to the 3 products with "Camera" in the name
+            await lp.openAddFilterMenu();
+            const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
+            await dropdown.getByRole('menuitem', { name: /name/i }).click();
+
+            const dialog = page.locator('[role="dialog"]');
+            await dialog.getByPlaceholder('Enter filter value...').fill('Camera');
+            const filterResponse = page.waitForResponse(
+                resp => resp.url().includes('/admin-api') && resp.status() === 200,
+            );
+            await dialog.getByRole('button', { name: 'Apply filter' }).click();
+            await filterResponse;
+            await lp.expectRowCount(3);
+
+            // Searching within that filter must AND the two, not OR them
+            await lp.search('Lens');
+            await lp.expectRowCount(1);
+            await expect(lp.getRows().filter({ hasText: 'Camera Lens' })).toHaveCount(1);
+            await expect(lp.getRows().filter({ hasText: 'Instant Camera' })).toHaveCount(0);
+
+            // Clearing the search must restore the filtered set
+            await lp.clearSearch();
+            await lp.expectRowCount(3);
+
+            // Clearing the filter must restore the initial set
+            const clearResponse = page.waitForResponse(
+                resp => resp.url().includes('/admin-api') && resp.status() === 200,
+            );
+            await page.getByRole('button', { name: 'Clear all' }).click();
+            await clearResponse;
+            await lp.expectRowCount(initialCount);
+        });
+
         test('should clear an applied filter via the clear all button', async ({ page }) => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
@@ -385,13 +471,14 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
             // Open the add filter menu and select "enabled" column
             await lp.openAddFilterMenu();
             const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
-            await dropdown.getByRole('menuitem', { name: /enabled/i }).click();
+            await dropdown.getByRole('menuitem', { name: 'Enabled', exact: true }).click();
 
             // The filter dialog should open with boolean filter controls
             const dialog = page.locator('[role="dialog"]');
@@ -411,5 +498,124 @@ test.describe('Product List', () => {
             await page.getByRole('button', { name: 'Clear all' }).click();
             await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
         });
+    });
+});
+
+// #3777 — per-channel enabled: the Status column and filter, and the visibility option in the
+// assign-to-channel dialog
+test.describe('per-channel enabled in the product list', () => {
+    test.describe.configure({ mode: 'serial' });
+    // The Status column, the filter and the dialog option are only shown with more than one channel
+    const channelCode = `e2e-enabled-list-${Date.now()}`;
+    let channelId = '';
+    let keyboardId = '';
+
+    const listPage = (page: import('@playwright/test').Page) =>
+        new BaseListPage(page, { path: '/products', title: 'Products', newButtonLabel: 'New Product' });
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        channelId = (await client.createChannel(channelCode)).id;
+        const { products } = await client.gql(
+            `query { products(options: { filter: { name: { eq: "Clacky Keyboard" } } }) { items { id } } }`,
+        );
+        keyboardId = products.items[0].id;
+        // Hidden in the default channel only
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: keyboardId, enabledInChannel: false },
+        });
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: keyboardId, enabledInChannel: true },
+        });
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('shows the status in this channel in the Status column', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        // One column combines the global and the per-channel value
+        await expect(page.getByRole('columnheader', { name: 'Status', exact: true })).toBeVisible();
+        await expect(page.getByRole('columnheader', { name: /in this channel/i })).toHaveCount(0);
+        await lp.search('Clacky Keyboard');
+        const keyboardRow = lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first();
+        await expect(keyboardRow).toContainText('Hidden');
+    });
+
+    test('filters on the status in this channel', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.openAddFilterMenu();
+        await page.getByRole('menuitem', { name: 'Status', exact: true }).click();
+        const filteredRequest = page.waitForRequest(req => {
+            const body = (req.postData() ?? '').replace(/\s/g, '');
+            return (
+                req.url().includes('/admin-api') &&
+                body.includes('{"enabled":{"eq":true}},{"enabledInChannel":{"eq":false}}')
+            );
+        });
+        await page.getByRole('option', { name: 'Hidden in this channel' }).click();
+        await filteredRequest;
+        await page.keyboard.press('Escape');
+        try {
+            // Other suites running in parallel may hide further products in this channel, so
+            // check that the keyboard is listed and that every listed product is hidden here
+            await expect(lp.getRows().filter({ hasText: 'Clacky Keyboard' })).toHaveCount(1);
+            for (const row of await lp.getRows().all()) {
+                await expect(row).toContainText('Hidden');
+            }
+            await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+        } finally {
+            // Column filters are saved in the user settings, which other tests share
+            await page.getByText('Clear all', { exact: true }).click();
+            await expect(page.getByText('Clear all', { exact: true })).toHaveCount(0);
+        }
+    });
+
+    test('assigns products to a channel, hidden there', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.search('Clacky Keyboard');
+        await lp.getRows().filter({ hasText: 'Clacky Keyboard' }).first().getByRole('checkbox').click();
+        await page.getByRole('button', { name: /Actions/i }).click();
+        await page.locator('[role="menu"]').getByText('Assign to channel', { exact: true }).click();
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await dialog.getByRole('combobox').first().click();
+        await page.getByRole('option', { name: channelCode }).click();
+        await page.keyboard.press('Escape');
+        const visibility = dialog.getByTestId('assign-channel-availability');
+        // By default the products keep the visibility they have in the active channel
+        await expect(visibility.getByRole('radio', { name: 'Same as in Default channel' })).toBeChecked();
+        await visibility.getByRole('radio', { name: 'Hidden', exact: true }).click();
+        await dialog.getByRole('button', { name: 'Assign', exact: true }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasNotText: /error|fail/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { product } = await client.gql(
+            `query ($id: ID!) { product(id: $id) { enabledInChannel } }`,
+            { id: keyboardId },
+            channelCode,
+        );
+        expect(product.enabledInChannel).toBe(false);
     });
 });

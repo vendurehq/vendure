@@ -2,8 +2,10 @@ import { lingui } from '@lingui/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
 
+import { dashboardBundleExternals } from './vite/lib-externals.js';
+import { linguiBabelPlugin } from './vite/vite-plugin-lingui-babel.js';
 import { themeVariablesPlugin } from './vite/vite-plugin-theme.js';
 
 /**
@@ -30,8 +32,14 @@ export default defineConfig({
     plugins: [
         themeVariablesPlugin({}),
         tailwindcss(),
-        react({ babel: { plugins: ['@lingui/babel-plugin-lingui-macro'] } }),
+        // Compiles the Lingui macros before @vitejs/plugin-react, which does not run Babel.
+        linguiBabelPlugin(),
+        react(),
         lingui(),
+        // Marks the externals and rewrites bundled CommonJS `require()` calls of them
+        // (e.g. use-sync-external-store's `require('react')`) into ESM imports. Without it
+        // they stay runtime `require()` calls, which throw in the browser.
+        esmExternalRequirePlugin({ external: dashboardBundleExternals }),
     ],
     resolve: {
         alias: {
@@ -57,24 +65,10 @@ export default defineConfig({
             formats: ['es'],
             fileName: name => `${name}.js`,
         },
-        rollupOptions: {
-            external: [
-                // React core (peer deps in user projects)
-                'react',
-                'react-dom',
-                'react-dom/client',
-                'react/jsx-runtime',
-                'react/jsx-dev-runtime',
-                // Lingui (we'll deal with macros separately; keep core as external for now)
-                /^@lingui\//,
-                // Virtual modules — resolved by the consumer's vendureDashboardPlugin
-                /^virtual:/,
-                // @vendure/common is a peer of every Vendure plugin
-                /^@vendure\/common(\/|$)/,
-                // The dashboard's own subpath exports
-                '@vendure/dashboard/plugin',
-                '@vendure/dashboard/vite',
-            ],
+        rolldownOptions: {
+            // The externals are declared through esmExternalRequirePlugin above. The list is the
+            // single source of truth shared with the duplication audit
+            // (vite/tests/bundle-singleton.spec.ts). See vite/lib-externals.ts.
             output: {
                 // Predictable entry names so index.html can reference them
                 entryFileNames: '[name].js',

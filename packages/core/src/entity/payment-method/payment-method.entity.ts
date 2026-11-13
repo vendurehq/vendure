@@ -40,7 +40,8 @@ export class PaymentMethod extends VendureEntity implements Translatable, Channe
     @Column('simple-json') handler: ConfigurableOperation;
 
     @ManyToMany(type => Channel, channel => channel.paymentMethods)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @Column(type => CustomPaymentMethodFields)

@@ -121,10 +121,16 @@ describe('Job queue per-queue concurrency', () => {
         }
         await Promise.all(jobPromises);
 
-        // Wait for all jobs to complete (5 jobs * 100ms each / concurrency + buffer)
-        // slow-queue: 5 jobs / 1 concurrency = 500ms
-        // fast-queue: 5 jobs / 3 concurrency = ~200ms
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait for all jobs to complete. The polling job queue strategy
+        // (pollInterval 50ms) gives no timing guarantees on slow CI runners,
+        // so poll the processed counts instead of sleeping a fixed interval.
+        const allJobsProcessed = () =>
+            ConcurrencyTestPlugin.processedJobs.filter(j => j.startsWith('slow-')).length === 5 &&
+            ConcurrencyTestPlugin.processedJobs.filter(j => j.startsWith('fast-')).length === 5;
+        const deadline = Date.now() + 10_000;
+        while (!allJobsProcessed() && Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
 
         // Verify slow queue never exceeded concurrency of 1
         expect(ConcurrencyTestPlugin.slowQueueMaxConcurrent).toBe(1);

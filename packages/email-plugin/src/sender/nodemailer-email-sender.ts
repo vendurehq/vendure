@@ -41,11 +41,20 @@ export class NodemailerEmailSender implements EmailSender {
     private _sendMailTransport: Mail | undefined;
     private _sesTransport: Mail | undefined;
     private isNew(transport: Mail, options: EmailTransportOptions) {
+        // The transport keeps a reference to the options it was created from. SES options
+        // hold an AWS SDK client, which cannot be serialized, so check identity first.
+        if (transport.options === options) {
+            return false;
+        }
         try {
             return JSON.stringify(transport?.options) !== JSON.stringify(options);
         } catch (error: any) {
-            Logger.error(format(error.message), loggerCtx);
-            return false;
+            Logger.debug(
+                `Could not compare transport options, recreating the transport: ${String(error.message)}`,
+                loggerCtx,
+            );
+            // Treat unserializable options as changed to avoid routing mail through a stale transport.
+            return true;
         }
     }
     async send(email: EmailDetails, options: EmailTransportOptions) {
@@ -112,6 +121,7 @@ export class NodemailerEmailSender implements EmailSender {
             from: email.from,
             to: email.recipient,
             subject: email.subject,
+            text: email.text,
             html: email.body,
             attachments: email.attachments,
             cc: email.cc,
@@ -127,6 +137,7 @@ export class NodemailerEmailSender implements EmailSender {
             recipient: email.recipient,
             subject: email.subject,
             body: email.body,
+            text: email.text,
             cc: email.cc,
             bcc: email.bcc,
             replyTo: email.replyTo,
@@ -139,19 +150,9 @@ export class NodemailerEmailSender implements EmailSender {
             streamTransport: true,
             buffer: true,
         });
+        // With `buffer: true`, nodemailer returns the raw message as a Buffer, not a stream
         const result = await this.sendMail(email, transporter);
-        await this.writeStreamToFile(pathWithoutExt + '.txt', result);
-    }
-
-    private async writeStreamToFile(filePath: string, info: StreamTransportInfo): Promise<void> {
-        const writeStream = fs.createWriteStream(filePath);
-        return new Promise<void>((resolve, reject) => {
-            writeStream.on('open', () => {
-                info.message.pipe(writeStream);
-                writeStream.on('close', resolve);
-                writeStream.on('error', reject);
-            });
-        });
+        await fs.writeFile(pathWithoutExt + '.txt', result.message);
     }
 
     /**

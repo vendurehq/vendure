@@ -12,8 +12,9 @@ import { KeycloakAuthenticationStrategy } from './keycloak-authentication-strate
  * Assumes that KeyCloak is running on port 9000, with a realm configured named "myrealm"
  * and a client named "vendure".
  *
- * Add the plugin to the VendureConfig and set the Admin UI `loginUrl` option to
- * "http://localhost:3000/keycloak-login".
+ * Add the plugin to the VendureConfig and open "http://localhost:3000/keycloak-login" to log in.
+ * The Dashboard has no option to replace its login page with an external URL, so this page is
+ * opened directly.
  *
  * Video demo of this: https://youtu.be/Tj4kwjNd2nM
  */

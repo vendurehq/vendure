@@ -3,16 +3,22 @@ import {
     AuthenticationResult,
     MutationAuthenticateArgs,
     MutationLoginArgs,
+    MutationRequestPasswordResetArgs,
+    MutationResetPasswordArgs,
     NativeAuthenticationResult,
     Permission,
+    RequestPasswordResetResult,
+    ResetPasswordResult,
     Success,
 } from '@vendure/common/lib/generated-types';
 import { Request, Response } from 'express';
 
+import { isGraphQlErrorResult } from '../../../common/error/error-result';
 import { NativeAuthStrategyError } from '../../../common/error/generated-graphql-admin-errors';
 import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentication-strategy';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { RolePermissionResolver } from '../../../service/helpers/role-permission-resolver/role-permission-resolver';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
@@ -31,8 +37,16 @@ export class AuthResolver extends BaseAuthResolver {
         configService: ConfigService,
         administratorService: AdministratorService,
         apiKeyService: ApiKeyService,
+        rolePermissionResolver: RolePermissionResolver,
     ) {
-        super(authService, userService, administratorService, configService, apiKeyService);
+        super(
+            authService,
+            userService,
+            administratorService,
+            configService,
+            apiKeyService,
+            rolePermissionResolver,
+        );
     }
 
     @Transaction()
@@ -72,6 +86,61 @@ export class AuthResolver extends BaseAuthResolver {
         @Context('res') res: Response,
     ): Promise<Success> {
         return super.logout(ctx, req, res);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.Public)
+    async requestPasswordReset(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationRequestPasswordResetArgs,
+    ): Promise<RequestPasswordResetResult> {
+        const nativeAuthStrategyError = this.requireNativeAuthStrategy();
+        if (nativeAuthStrategyError) {
+            return nativeAuthStrategyError;
+        }
+        await this.administratorService.requestPasswordReset(ctx, args.emailAddress);
+        return { success: true };
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.Public)
+    async resetPassword(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationResetPasswordArgs,
+        @Context('req') req: Request,
+        @Context('res') res: Response,
+    ): Promise<ResetPasswordResult> {
+        const nativeAuthStrategyError = this.requireNativeAuthStrategy();
+        if (nativeAuthStrategyError) {
+            return nativeAuthStrategyError;
+        }
+        const { token, password } = args;
+        const resetResult = await this.administratorService.resetPassword(ctx, token, password);
+        if (isGraphQlErrorResult(resetResult)) {
+            return resetResult;
+        }
+        const authResult = await super.authenticateAndCreateSession(
+            ctx,
+            {
+                input: {
+                    [NATIVE_AUTH_STRATEGY_NAME]: {
+                        username: resetResult.identifier,
+                        password,
+                    },
+                },
+            },
+            req,
+            res,
+        );
+        if (isGraphQlErrorResult(authResult)) {
+            // This code path should never be reached, since the password has just
+            // been successfully reset for a known Administrator. Throw it so that
+            // we have some record of the error if it somehow occurs.
+            throw authResult;
+        }
+        return authResult;
     }
 
     @Query()

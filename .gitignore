@@ -9,7 +9,8 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .env
-lerna-debug.log
+.nx/cache
+.nx/workspace-data
 dist
 e2e/__data__/*
 docs/resources/_gen/*
@@ -389,7 +390,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-__admin-ui/
 
 # Vendure telemetry installation ID
 .vendure/
@@ -397,3 +397,13 @@ __admin-ui/
 # Bun is the canonical package manager; package-lock.json is only generated
 # locally (e.g. for the dependency-tracker script) and must not be committed.
 package-lock.json
+
+# Agentic engineering
+plans/
+
+# Scratch files produced by the translation tooling
+missing-translations.txt
+translations.txt
+
+# Lockfile snapshot taken by scripts/typeorm/use-version.mjs
+bun.lock.typeorm-profile-backup

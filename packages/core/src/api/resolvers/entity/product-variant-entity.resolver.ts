@@ -1,4 +1,5 @@
 import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { ProductVariantBuyerPriceArgs } from '@vendure/common/lib/generated-shop-types';
 import {
     CurrencyCode,
     ProductVariantPrice,
@@ -11,11 +12,13 @@ import { RequestContextCacheService } from '../../../cache/request-context-cache
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { Asset, Channel, FacetValue, Product, ProductOption, StockLevel, TaxRate } from '../../../entity';
+import { ProductVariantChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { StockMovement } from '../../../entity/stock-movement/stock-movement.entity';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { AssetService } from '../../../service/services/asset.service';
-import { ProductVariantService } from '../../../service/services/product-variant.service';
+import { BuyerPriceResult, ProductVariantService } from '../../../service/services/product-variant.service';
 import { StockLevelService } from '../../../service/services/stock-level.service';
 import { StockMovementService } from '../../../service/services/stock-movement.service';
 import { ApiType } from '../../common/get-api-type';
@@ -159,7 +162,25 @@ export class ProductVariantAdminEntityResolver {
         private productVariantService: ProductVariantService,
         private stockMovementService: StockMovementService,
         private stockLevelService: StockLevelService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
+
+    /**
+     * The per-channel `enabled` value in the active Channel, from the ProductVariantChannel row. `false` if
+     * it is not assigned to the active Channel.
+     */
+    @ResolveField()
+    async enabledInChannel(
+        @Ctx() ctx: RequestContext,
+        @Parent() productVariant: ProductVariant,
+    ): Promise<boolean> {
+        const assignment = await this.channelAssignmentService.getAssignment<ProductVariantChannel>(
+            ctx,
+            ProductVariant,
+            productVariant,
+        );
+        return assignment?.enabled ?? false;
+    }
 
     @ResolveField()
     async stockMovements(
@@ -216,5 +237,23 @@ export class ProductVariantAdminEntityResolver {
             );
         }
         return this.productVariantService.getProductVariantPrices(ctx, productVariant.id);
+    }
+}
+
+@Resolver('ProductVariant')
+export class ProductVariantShopEntityResolver {
+    constructor(private productVariantService: ProductVariantService) {}
+
+    @ResolveField()
+    async buyerPrice(
+        @Ctx() ctx: RequestContext,
+        @Parent() productVariant: ProductVariant,
+        // `customFields` exists when OrderLine custom fields are defined
+        @Args() args: ProductVariantBuyerPriceArgs & { customFields?: Record<string, unknown> | null },
+    ): Promise<BuyerPriceResult | undefined> {
+        return this.productVariantService.calculateBuyerPrice(ctx, productVariant, {
+            quantity: args.quantity ?? 1,
+            data: args.customFields ?? undefined,
+        });
     }
 }

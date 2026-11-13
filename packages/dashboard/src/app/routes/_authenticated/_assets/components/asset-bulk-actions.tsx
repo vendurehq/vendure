@@ -1,22 +1,19 @@
-import { useMutation } from '@tanstack/react-query';
 import { TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js';
+import { PaginatedListDataTableKey } from '@/vdb/components/shared/paginated-list-data-table.js';
+import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-table.js';
 import { api } from '@/vdb/graphql/api.js';
 import { AssetFragment } from '@/vdb/graphql/fragments.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteAssetsDocument } from '../assets.graphql.js';
 
-export const DeleteAssetsBulkAction = ({
-    selection,
-    refetch,
-}: {
-    selection: AssetFragment[];
-    refetch: () => void;
-}) => {
+export const DeleteAssetsBulkAction: BulkActionComponent<AssetFragment> = ({ selection, table }) => {
     const { t } = useLingui();
+    const queryClient = useQueryClient();
     const selectionLength = selection.length;
     const { mutate } = useMutation({
         mutationFn: api.mutate(deleteAssetsDocument),
@@ -27,7 +24,9 @@ export const DeleteAssetsBulkAction = ({
                 const message = result.deleteAssets.message;
                 toast.error(t`Failed to delete assets: ${message}`);
             }
-            refetch();
+            table.resetRowSelection();
+            queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
+            queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
         },
         onError: () => {
             toast.error(`Failed to delete ${selectionLength} assets`);

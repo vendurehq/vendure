@@ -45,7 +45,7 @@ export const Route = createFileRoute('/_authenticated/_promotions/promotions_/$i
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function PromotionDetailPage() {
@@ -211,7 +211,7 @@ function PromotionDetailPage() {
                             name="perCustomerUsageLimit"
                             label={<Trans>Per customer usage limit</Trans>}
                             render={({ field }) => (
-                                <NumberInput {...field} value={field.value ?? ''} min={0} max={1000} />
+                                <NumberInput {...field} value={field.value ?? ''} min={0} />
                             )}
                         />
                         <FormFieldWrapper
@@ -219,7 +219,7 @@ function PromotionDetailPage() {
                             name="usageLimit"
                             label={<Trans>Usage limit</Trans>}
                             render={({ field }) => (
-                                <NumberInput {...field} value={field.value ?? ''} min={0} max={1000} />
+                                <NumberInput {...field} value={field.value ?? ''} min={0} />
                             )}
                         />
                     </DetailFormGrid>

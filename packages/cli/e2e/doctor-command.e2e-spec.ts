@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CliTestProject, createTestProject } from './cli-test-utils';
+import { CliTestProject, createTestProject } from './cli-test-utils.js';
 
 describe('CLI Doctor Command E2E', () => {
     let testProject: CliTestProject;
@@ -137,7 +137,7 @@ describe('CLI Doctor Command E2E', () => {
             testProject = createTestProject('doctor-no-modules');
 
             // The default test project doesn't run npm install,
-            // so node_modules won't exist
+            // so node_modules won't exist and no packages are resolvable
             const result = await testProject.runCliCommand(
                 ['doctor', '--check', 'dependencies', '--format', 'json'],
                 { expectError: true },

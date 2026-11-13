@@ -7,6 +7,23 @@ import { Asset } from './asset/asset.entity';
 import { AuthenticationMethod } from './authentication-method/authentication-method.entity';
 import { ExternalAuthenticationMethod } from './authentication-method/external-authentication-method.entity';
 import { NativeAuthenticationMethod } from './authentication-method/native-authentication-method.entity';
+import {
+    ApiKeyChannel,
+    AssetChannel,
+    CollectionChannel,
+    CustomerChannel,
+    FacetChannel,
+    FacetValueChannel,
+    OrderChannel,
+    PaymentMethodChannel,
+    ProductChannel,
+    ProductOptionChannel,
+    ProductOptionGroupChannel,
+    ProductVariantChannel,
+    PromotionChannel,
+    ShippingMethodChannel,
+    StockLocationChannel,
+} from './channel-assignment/channel-assignment.entities';
 import { Channel } from './channel/channel.entity';
 import { CollectionAsset } from './collection/collection-asset.entity';
 import { CollectionTranslation } from './collection/collection-translation.entity';
@@ -50,7 +67,9 @@ import { Country } from './region/country.entity';
 import { Province } from './region/province.entity';
 import { RegionTranslation } from './region/region-translation.entity';
 import { Region } from './region/region.entity';
+import { RoleAssignment } from './role-assignment/role-assignment.entity';
 import { Role } from './role/role.entity';
+import { SellerTranslation } from './seller/seller-translation.entity';
 import { Seller } from './seller/seller.entity';
 import { AnonymousSession } from './session/anonymous-session.entity';
 import { AuthenticatedSession } from './session/authenticated-session.entity';
@@ -126,6 +145,21 @@ export const coreEntitiesMap = {
     ProductVariant,
     ProductVariantAsset,
     ProductVariantPrice,
+    AssetChannel,
+    ApiKeyChannel,
+    CollectionChannel,
+    CustomerChannel,
+    FacetChannel,
+    FacetValueChannel,
+    OrderChannel,
+    PaymentMethodChannel,
+    ProductChannel,
+    ProductOptionChannel,
+    ProductOptionGroupChannel,
+    ProductVariantChannel,
+    PromotionChannel,
+    ShippingMethodChannel,
+    StockLocationChannel,
     ProductVariantTranslation,
     Promotion,
     PromotionTranslation,
@@ -136,6 +170,7 @@ export const coreEntitiesMap = {
     RegionTranslation,
     Release,
     Role,
+    RoleAssignment,
     Sale,
     Session,
     SettingsStoreEntry,
@@ -152,5 +187,6 @@ export const coreEntitiesMap = {
     TaxRate,
     User,
     Seller,
+    SellerTranslation,
     Zone,
 };

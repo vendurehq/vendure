@@ -1,7 +1,22 @@
+import { Permission } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
+import { ApiType } from '../../api/common/get-api-type';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
-import { UserChannelPermissions } from '../../service/helpers/utils/get-user-channels-permissions';
+
+/**
+ * @description
+ * The permissions of a user on a specific Channel.
+ *
+ * @docsCategory auth
+ * @docsPage SessionCacheStrategy
+ */
+export interface UserChannelPermissions {
+    id: ID;
+    token: string;
+    code: string;
+    permissions: Permission[];
+}
 
 /**
  * @description
@@ -16,6 +31,15 @@ export type CachedSessionUser = {
     identifier: string;
     verified: boolean;
     channelPermissions: UserChannelPermissions[];
+    /**
+     * @description
+     * Permissions the user holds on every Channel, including Channels created after this
+     * session was cached. Populated for SuperAdmin users, whose effective permissions are
+     * derived at check time rather than fanned out per Channel.
+     *
+     * @since 4.0.0
+     */
+    globalPermissions?: Permission[];
 };
 
 /**
@@ -41,6 +65,15 @@ export type CachedSession = {
     authenticationStrategy?: string;
     user?: CachedSessionUser;
     activeChannelId?: ID;
+    /**
+     * @description
+     * The API on which this session was created. Used by the AuthGuard to reject a session which is
+     * replayed against the Admin API. Undefined for anonymous sessions and for sessions created
+     * before this field existed.
+     *
+     * @since 3.8.0
+     */
+    apiType?: ApiType;
 };
 
 /**

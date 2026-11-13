@@ -1,3 +1,5 @@
+import { toBcp47Tag } from '@/vdb/lib/utils.js';
+
 import { useUserSettings } from './use-user-settings.js';
 
 const rtlLanguageCodes = ['ar', 'he', 'fa', 'ur', 'ps'];
@@ -26,11 +28,9 @@ const rtlLanguageCodes = ['ar', 'he', 'fa', 'ur', 'ps'];
  */
 export function useDisplayLocale() {
     const { settings } = useUserSettings();
-    const language = settings.displayLanguage.replace(/[_-]/, '-');
+    const language = toBcp47Tag(settings.displayLanguage);
     const locale = settings.displayLocale;
-    const bcp47Tag = language.match(/[_-]/)
-        ? language.replace(/[_-]/, '-')
-        : [language, locale].filter(x => !!x).join('-');
+    const bcp47Tag = language.includes('-') ? language : [language, locale].filter(x => !!x).join('-');
     const humanReadableLanguageAndLocale = new Intl.DisplayNames([bcp47Tag], { type: 'language' }).of(
         bcp47Tag,
     );

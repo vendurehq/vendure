@@ -1,0 +1,292 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { CacheService } from '@vendure/core';
+import { McpToolset } from '@vendure/mcp-sdk';
+import { createHash } from 'node:crypto';
+
+import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_CACHE_PREFIX, RATE_LIMIT_WINDOW_MS } from '../constants';
+import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
+
+import { ipBucketKey } from './ip-bucket-key';
+
+interface RateLimitCheck {
+    key: string;
+    rpm: number;
+    scope: string;
+}
+
+interface BucketState {
+    count: number;
+    resetAt: number;
+}
+
+export interface McpRateLimitExceeded {
+    message: string;
+    retryAfterSeconds: number;
+    scope: string;
+}
+
+export interface RateLimitInput {
+    executionContext: McpExecutionContext;
+    endpoint: McpToolset;
+    /** What the request is metered as: a tool name, or a JSON-RPC method name at the handshake. */
+    subject: string;
+}
+
+@Injectable()
+export class McpRateLimiterService {
+    /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
+    private readonly inFlightIncrements = new Map<string, Promise<void>>();
+
+    constructor(
+        private readonly cacheService: CacheService,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
+    ) {}
+
+    // A refused request stays charged, like other fixed-window limiters.
+    async checkRateLimit(input: RateLimitInput): Promise<McpRateLimitExceeded | undefined> {
+        return this.runChecks(this.buildRateLimitChecks(input), input.subject);
+    }
+
+    // Kept separate from the standard request checks, which run later, to avoid double charging.
+    async checkAnonymousIpRateLimit(
+        endpoint: McpToolset,
+        clientIp?: string,
+    ): Promise<McpRateLimitExceeded | undefined> {
+        const check = this.buildAnonymousIpCheck(endpoint, ipBucketKey(clientIp));
+        if (!check) {
+            return undefined;
+        }
+        return this.runChecks([check], 'MCP request');
+    }
+
+    /** Meters the OAuth endpoints per IP; they have no session or user to key on. */
+    async checkOauthIpRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
+        const check = this.buildOauthIpCheck(ipBucketKey(clientIp));
+        if (!check) {
+            return undefined;
+        }
+        return this.runChecks([check], 'MCP OAuth request');
+    }
+
+    // Only failed attempts count; once the limit is hit, every request from the IP is blocked until the window resets.
+    async checkBearerAuthFailureRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
+        const check = this.buildBearerAuthFailureCheck(ipBucketKey(clientIp));
+        if (!check) {
+            return undefined;
+        }
+        const now = Date.now();
+        const state = await this.getBucketState(check.key);
+        if (state && state.count > check.rpm) {
+            // Keep counting refused attempts, so the cache entry stays alive while the flood lasts.
+            await this.incrementBucket(check.key, now);
+            return this.exceededDetails('MCP request', check.scope, state.resetAt, now);
+        }
+        return undefined;
+    }
+
+    async recordBearerAuthFailure(clientIp?: string): Promise<void> {
+        const check = this.buildBearerAuthFailureCheck(ipBucketKey(clientIp));
+        if (!check) {
+            return;
+        }
+        await this.incrementBucket(check.key, Date.now());
+    }
+
+    private async runChecks(
+        checks: RateLimitCheck[],
+        subject: string,
+    ): Promise<McpRateLimitExceeded | undefined> {
+        if (checks.length === 0) {
+            return undefined;
+        }
+        const now = Date.now();
+        const results = await Promise.all(
+            checks.map(async check => ({ check, state: await this.incrementBucket(check.key, now) })),
+        );
+        const exceeded = results.find(({ check, state }) => state.count > check.rpm);
+        if (exceeded) {
+            return this.exceededDetails(subject, exceeded.check.scope, exceeded.state.resetAt, now);
+        }
+        return undefined;
+    }
+
+    private exceededDetails(
+        subject: string,
+        scope: string,
+        resetAt: number,
+        now: number,
+    ): McpRateLimitExceeded {
+        // Capped to one window, so a clock difference between instances can't advertise a wait longer than that.
+        const windowSeconds = RATE_LIMIT_WINDOW_MS / 1000;
+        const retryAfterSeconds = Math.min(windowSeconds, Math.max(1, Math.ceil((resetAt - now) / 1000)));
+        return {
+            message: `Rate limit exceeded for ${subject} (${scope}). Retry after ${retryAfterSeconds} seconds.`,
+            retryAfterSeconds,
+            scope,
+        };
+    }
+
+    private buildRateLimitChecks(input: RateLimitInput): RateLimitCheck[] {
+        const checks: RateLimitCheck[] = [
+            ...this.buildSharedBucketChecks(input),
+            ...this.buildPerToolChecks(input),
+        ];
+        // De-dupe by key so a bucket is never double-counted within one request.
+        return [...new Map(checks.map(check => [check.key, check])).values()];
+    }
+
+    private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
+        const checks: RateLimitCheck[] = [];
+        const endpoint = input.endpoint;
+        const rateLimits = this.options.rateLimits;
+        const perSessionRpm = this.resolveRpm(rateLimits.perSession);
+        if (perSessionRpm > 0) {
+            checks.push({
+                key: `session:${endpoint}:${this.sessionOrIpKey(input.executionContext)}`,
+                rpm: perSessionRpm,
+                scope: 'session',
+            });
+        }
+        const userKey = this.userKey(input.executionContext);
+        const perUserRpm = this.resolveRpm(rateLimits.perUser);
+        if (userKey && perUserRpm > 0) {
+            checks.push({
+                key: `user:${endpoint}:${userKey}`,
+                rpm: perUserRpm,
+                scope: 'user',
+            });
+        }
+        const clientKey = this.clientKey(input.executionContext);
+        const perClientRpm = this.resolveRpm(rateLimits.perClient);
+        if (clientKey && perClientRpm > 0) {
+            checks.push({
+                key: `client:${endpoint}:${clientKey}`,
+                rpm: perClientRpm,
+                scope: 'OAuth client',
+            });
+        }
+        return checks;
+    }
+
+    /** The per-minute limit of a rate-limit option: 0 when the option is off or unset. */
+    private resolveRpm(option: { rpm: number } | false | undefined): number {
+        return option === false ? 0 : (option?.rpm ?? 0);
+    }
+
+    private buildAnonymousIpCheck(endpoint: McpToolset, ipKey: string): RateLimitCheck | undefined {
+        const rpm = this.resolveRpm(this.options.rateLimits.anonymousIp);
+        if (endpoint !== 'shop' || rpm <= 0) {
+            return undefined;
+        }
+        return { key: `anonymous-ip:${endpoint}:${ipKey}`, rpm, scope: 'anonymous IP' };
+    }
+
+    private buildOauthIpCheck(ipKey: string): RateLimitCheck | undefined {
+        const rpm = this.resolveRpm(this.options.rateLimits.oauthIp);
+        if (rpm <= 0) {
+            return undefined;
+        }
+        return { key: `oauth-ip:${ipKey}`, rpm, scope: 'OAuth IP' };
+    }
+
+    // Governed by the same `oauthIp` option as the OAuth surface's bucket, since both meter an unauthenticated address.
+    private buildBearerAuthFailureCheck(ipKey: string): RateLimitCheck | undefined {
+        const rpm = this.resolveRpm(this.options.rateLimits.oauthIp);
+        if (rpm <= 0) {
+            return undefined;
+        }
+        return { key: `auth-failure:${ipKey}`, rpm, scope: 'authentication failures' };
+    }
+
+    /** The bucket for `input.subject`, keyed by actor+session (see {@link perToolBucketKey}). */
+    private buildPerToolChecks(input: RateLimitInput): RateLimitCheck[] {
+        const rpm = this.resolveRpm(this.options.rateLimits.perTool[input.subject]);
+        if (rpm <= 0) {
+            return [];
+        }
+        return [
+            {
+                key: `tool:${input.endpoint}:${this.perToolBucketKey(input.executionContext)}:${input.subject}`,
+                rpm,
+                scope: `tool:${input.subject}`,
+            },
+        ];
+    }
+
+    private async getBucketState(key: string): Promise<BucketState | undefined> {
+        return this.cacheService.get<BucketState>(this.cacheKey(key));
+    }
+
+    private incrementBucket(key: string, now: number): Promise<BucketState> {
+        const run = async (): Promise<BucketState> => {
+            const state = await this.getBucketState(key);
+            const next: BucketState = state
+                ? { count: state.count + 1, resetAt: state.resetAt }
+                : { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
+            await this.cacheService.set(this.cacheKey(key), next, {
+                ttl: Math.max(1000, next.resetAt - now),
+            });
+            return next;
+        };
+        const previous = this.inFlightIncrements.get(key) ?? Promise.resolve();
+        const result = previous.then(run, run);
+        const tail = result.then(
+            () => undefined,
+            () => undefined,
+        );
+        this.inFlightIncrements.set(key, tail);
+        void tail.then(() => {
+            // Only clear the entry if no later increment has replaced it.
+            if (this.inFlightIncrements.get(key) === tail) {
+                this.inFlightIncrements.delete(key);
+            }
+        });
+        return result;
+    }
+
+    private sessionKey(executionContext: McpExecutionContext): string {
+        const sessionToken = executionContext.ctx.session?.token;
+        if (sessionToken) {
+            return `vendure:${this.hash(sessionToken)}`;
+        }
+        if (executionContext.grant?.id != null) {
+            return `mcp:${executionContext.grant.id}`;
+        }
+        // An in-process caller with no session shares this one bucket; there is nothing here to tell them apart.
+        return 'none';
+    }
+
+    private sessionOrIpKey(executionContext: McpExecutionContext): string {
+        if (executionContext.grant == null && executionContext.clientIp != null) {
+            return `anonymous-ip:${ipBucketKey(executionContext.clientIp)}`;
+        }
+        return this.sessionKey(executionContext);
+    }
+
+    private userKey(executionContext: McpExecutionContext): string | undefined {
+        const userId = executionContext.ctx.activeUserId;
+        return userId != null ? String(userId) : undefined;
+    }
+
+    private clientKey(executionContext: McpExecutionContext): string | undefined {
+        return executionContext.grant?.oauthClientId != null
+            ? `oauth:${executionContext.grant.oauthClientId}`
+            : undefined;
+    }
+
+    // Client alone would collapse all its users under one bucket, so session is folded in for fairness.
+    private perToolBucketKey(executionContext: McpExecutionContext): string {
+        const clientKey = this.clientKey(executionContext);
+        return clientKey
+            ? `client:${clientKey}:session:${this.sessionKey(executionContext)}`
+            : this.sessionOrIpKey(executionContext);
+    }
+
+    private cacheKey(key: string): string {
+        return `${RATE_LIMIT_CACHE_PREFIX}:${this.hash(key)}`;
+    }
+
+    private hash(value: string): string {
+        return createHash('sha256').update(value).digest('base64url');
+    }
+}

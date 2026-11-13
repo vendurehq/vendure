@@ -15,9 +15,14 @@ export const productVariantListDocument = graphql(
                     name
                     sku
                     enabled
+                    enabledInChannel
                     currencyCode
                     price
                     priceWithTax
+                    product {
+                        id
+                        name
+                    }
                     stockLevels {
                         id
                         stockOnHand
@@ -49,8 +54,27 @@ export const productVariantDetailDocument = graphql(
                 product {
                     id
                     name
+                    optionGroups {
+                        id
+                        code
+                        name
+                        options {
+                            id
+                            code
+                            name
+                        }
+                    }
+                    variants {
+                        id
+                        name
+                        sku
+                        options {
+                            id
+                        }
+                    }
                 }
                 enabled
+                enabledInChannel
                 featuredAsset {
                     ...Asset
                 }
@@ -113,6 +137,33 @@ export const productVariantDetailDocument = graphql(
     `,
     [assetFragment, productVariantPriceFragment],
 );
+
+export const productVariantGlobalSettingsDocument = graphql(`
+    query ProductVariantGlobalStockSettings {
+        globalSettings {
+            id
+            trackInventory
+            outOfStockThreshold
+        }
+    }
+`);
+
+export const createProductOptionDocument = graphql(`
+    mutation CreateProductVariantOption($input: CreateProductOptionInput!) {
+        createProductOption(input: $input) {
+            id
+            code
+            name
+            groupId
+        }
+    }
+`);
+
+export const productOptionSlugForEntityDocument = graphql(`
+    query ProductOptionSlugForEntity($input: SlugForEntityInput!) {
+        slugForEntity(input: $input)
+    }
+`);
 
 export const createProductVariantDocument = graphql(`
     mutation CreateProductVariant($input: [CreateProductVariantInput!]!) {

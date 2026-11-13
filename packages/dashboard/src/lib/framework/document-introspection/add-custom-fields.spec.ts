@@ -1,4 +1,4 @@
-import { CustomFieldConfig, CustomFields } from '@vendure/common/lib/generated-types';
+import { CustomFieldConfig, CustomFields, StructFieldConfig } from '@vendure/common/lib/generated-types';
 import { graphql } from 'gql.tada';
 import { DocumentNode, FieldNode, FragmentDefinitionNode, Kind, print } from 'graphql';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -311,18 +311,18 @@ describe('addCustomFields()', () => {
             expect(printed).toContain('alternativeAsset {');
 
             // Should NOT add customFields to Asset fragment (only used in nested context)
-            const fragmentMatch = printed.match(/fragment Asset on Asset\s*\{[^}]*\}/s);
+            const fragmentMatch = printed.match(/fragment Asset on Asset\s*\{[^}]*\}/);
             expect(fragmentMatch).toBeTruthy();
             expect(fragmentMatch![0]).not.toContain('customFields');
             expect(fragmentMatch![0]).not.toContain('assetCustomField1');
 
             // Should NOT add customFields to children (nested Collection entities)
-            const childrenMatch = printed.match(/children\s*\{[^}]+\}/s);
+            const childrenMatch = printed.match(/children\s*\{[^}]+\}/);
             expect(childrenMatch).toBeTruthy();
             expect(childrenMatch![0]).not.toContain('customFields');
 
             // Should NOT add customFields to breadcrumbs
-            const breadcrumbsMatch = printed.match(/breadcrumbs\s*\{[^}]+\}/s);
+            const breadcrumbsMatch = printed.match(/breadcrumbs\s*\{[^}]+\}/);
             expect(breadcrumbsMatch).toBeTruthy();
             expect(breadcrumbsMatch![0]).not.toContain('customFields');
         });
@@ -374,8 +374,8 @@ describe('addCustomFields()', () => {
             expect(printed).toContain('alternativeAsset {');
 
             // Should NOT add customFields to nested Collection entities (children, breadcrumbs)
-            const childrenMatch = printed.match(/children\s*\{[^}]+\}/s);
-            const breadcrumbsMatch = printed.match(/breadcrumbs\s*\{[^}]+\}/s);
+            const childrenMatch = printed.match(/children\s*\{[^}]+\}/);
+            const breadcrumbsMatch = printed.match(/breadcrumbs\s*\{[^}]+\}/);
 
             expect(childrenMatch).toBeTruthy();
             expect(breadcrumbsMatch).toBeTruthy();
@@ -383,7 +383,7 @@ describe('addCustomFields()', () => {
             expect(breadcrumbsMatch![0]).not.toContain('customFields');
 
             // Should NOT add customFields to nested Asset entity (featuredAsset)
-            const featuredAssetMatch = printed.match(/featuredAsset\s*\{[^}]+\}/s);
+            const featuredAssetMatch = printed.match(/featuredAsset\s*\{[^}]+\}/);
             expect(featuredAssetMatch).toBeTruthy();
             expect(featuredAssetMatch![0]).not.toContain('customFields');
             expect(featuredAssetMatch![0]).not.toContain('assetCustomField1');
@@ -438,10 +438,10 @@ describe('addCustomFields()', () => {
             expect(printed).toContain('productCustomField');
 
             // Should NOT add customFields to Asset fragment (only used in nested contexts)
-            expect(printed).not.toMatch(/fragment Asset on Asset\s*\{[^}]*customFields/s);
+            expect(printed).not.toMatch(/fragment Asset on Asset\s*\{[^}]*customFields/);
 
             // Should NOT add customFields to nested ProductVariant entities
-            const variantsMatch = printed.match(/variants\s*\{[^}]+\}/s);
+            const variantsMatch = printed.match(/variants\s*\{[^}]+\}/);
             expect(variantsMatch).toBeTruthy();
             expect(variantsMatch![0]).not.toContain('customFields');
             expect(variantsMatch![0]).not.toContain('variantCustomField');
@@ -486,7 +486,7 @@ describe('addCustomFields()', () => {
             expect(printed).toContain('productCustomField');
 
             // Should NOT add customFields to featuredAsset (nested entity)
-            const featuredAssetMatch = printed.match(/featuredAsset\s*\{[^}]+\}/s);
+            const featuredAssetMatch = printed.match(/featuredAsset\s*\{[^}]+\}/);
             expect(featuredAssetMatch).toBeTruthy();
             expect(featuredAssetMatch![0]).not.toContain('customFields');
         });
@@ -542,11 +542,11 @@ describe('addCustomFields()', () => {
             expect(printed).toContain('orderCustomField');
 
             // Should NOT add customFields to any nested entities
-            expect(printed).not.toMatch(/customer\s*\{[^}]*customFields/s);
-            expect(printed).not.toMatch(/addresses\s*\{[^}]*customFields/s);
-            expect(printed).not.toMatch(/country\s*\{[^}]*customFields/s);
-            expect(printed).not.toMatch(/productVariant\s*\{[^}]*customFields/s);
-            expect(printed).not.toMatch(/product\s*\{[^}]*customFields/s);
+            expect(printed).not.toMatch(/customer\s*\{[^}]*customFields/);
+            expect(printed).not.toMatch(/addresses\s*\{[^}]*customFields/);
+            expect(printed).not.toMatch(/country\s*\{[^}]*customFields/);
+            expect(printed).not.toMatch(/productVariant\s*\{[^}]*customFields/);
+            expect(printed).not.toMatch(/product\s*\{[^}]*customFields/);
         });
     });
 
@@ -1150,7 +1150,7 @@ describe('addCustomFieldsToFragment()', () => {
                         { name: 'width', type: 'int' },
                         { name: 'height', type: 'int' },
                         { name: 'depth', type: 'int' },
-                    ],
+                    ] as StructFieldConfig[],
                 },
             ]);
 
@@ -1198,7 +1198,7 @@ describe('addCustomFieldsToFragment()', () => {
             const printed = print(result);
             // Should add localized fields to translations
             expect(printed).toContain('translations {');
-            expect(printed).toMatch(/translations\s*\{[^}]*customFields/s);
+            expect(printed).toMatch(/translations\s*\{[^}]*customFields/);
 
             const fragmentDef = result.definitions[0] as FragmentDefinitionNode;
             const translationsField = fragmentDef.selectionSet.selections.find(

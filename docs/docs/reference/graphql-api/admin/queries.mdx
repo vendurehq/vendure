@@ -600,24 +600,6 @@ type Query {
 }`}
 </GraphQLDoc>
 
-<a name="metricsummary"></a>
-
-## metricSummary
-
-<GraphQLDoc
-  type="query"
-  typeName="metricSummary"
-  typeLinks={{
-    MetricSummary: '/reference/graphql-api/admin/object-types#metricsummary',
-    MetricSummaryInput: '/reference/graphql-api/admin/input-types#metricsummaryinput',
-  }}
->
-{`"""Get metrics for the given interval and metric types."""
-type Query {
-  metricSummary(input: MetricSummaryInput): [MetricSummary!]!
-}`}
-</GraphQLDoc>
-
 <a name="order"></a>
 
 ## order
@@ -996,6 +978,28 @@ type Query {
 }`}
 </GraphQLDoc>
 
+<a name="refunddestinations"></a>
+
+## refundDestinations
+
+<GraphQLDoc
+  type="query"
+  typeName="refundDestinations"
+  typeLinks={{
+    RefundDestination: '/reference/graphql-api/admin/object-types#refunddestination',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Returns the available refund destinations for the given order.
+This includes the default destination (original payment method) plus
+any custom destinations registered via RefundDestinationStrategy.
+"""
+type Query {
+  refundDestinations(orderId: ID!): [RefundDestination!]!
+}`}
+</GraphQLDoc>
+
 <a name="role"></a>
 
 ## role
@@ -1010,6 +1014,27 @@ type Query {
 >
 {`type Query {
   role(id: ID!): Role
+}`}
+</GraphQLDoc>
+
+<a name="roleassignments"></a>
+
+## roleAssignments
+
+<GraphQLDoc
+  type="query"
+  typeName="roleAssignments"
+  typeLinks={{
+    RoleAssignmentList: '/reference/graphql-api/admin/object-types#roleassignmentlist',
+    RoleAssignmentListOptions: '/reference/graphql-api/admin/input-types#roleassignmentlistoptions',
+  }}
+>
+{`"""
+Get a paginated list of the RoleAssignments of the Users the active user may manage: those
+whose every assignment the active user could grant.
+"""
+type Query {
+  roleAssignments(options: RoleAssignmentListOptions): RoleAssignmentList!
 }`}
 </GraphQLDoc>
 

@@ -64,6 +64,26 @@ class AdministratorEvent extends VendureEntityEvent<Administrator, Administrator
 
 
 </div>
+## AdministratorPasswordResetEvent
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/administrator-password-reset-event.ts" sourceLine="14" packageName="@vendure/core" since="3.8.0" />
+
+This event is fired when an Administrator requests a password reset email.
+
+```ts title="Signature"
+class AdministratorPasswordResetEvent extends VendureEvent {
+    constructor(ctx: RequestContext, administrator: Administrator, user: User)
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
 ## ApiKeyEvent
 
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/api-key-event.ts" sourceLine="18" packageName="@vendure/core" since="3.6.0" />
@@ -1064,16 +1084,30 @@ class RefundStateTransitionEvent extends VendureEvent {
 
 
 </div>
-## RoleChangeEvent
+## RoleAssignmentEvent
 
-<GenerationInfo sourceFile="packages/core/src/event-bus/events/role-change-event.ts" sourceLine="16" packageName="@vendure/core" since="1.4" />
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/role-assignment-event.ts" sourceLine="30" packageName="@vendure/core" since="4.0.0" />
 
-This event is fired whenever one [Role](/reference/typescript-api/entities/role#role) is assigned or removed from a user.
-The property `roleIds` only contains the removed or assigned role ids.
+This event is fired whenever [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) rows of a [User](/reference/typescript-api/entities/user#user) change, i.e. when
+a Role is granted to or revoked from the User on a specific Channel. The `assignments` property
+contains only the `(roleId, channelId)` pairs which were added (`'assigned'`) or removed
+(`'removed'`) by the write; unchanged pairs are not included. A write which changes nothing
+emits no event.
+
+The event is keyed on the User rather than the Administrator, so it also covers API-key Users
+and Administrators created via external authentication. It is emitted for grants made by an
+actor or an authentication strategy (`assignRolesToUser` / `removeRolesFromUser`, the
+`roleAssignments` and deprecated `roleIds` inputs of the administrator and API-key mutations,
+SSO administrator creation, the bootstrap SuperAdmin seed). Deleting an Administrator, an API
+key or a Channel emits `'removed'` for the rows it removes. Rows written by
+[migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) are not reported.
+
+This event replaces the `RoleChangeEvent` removed in v4.0.0, which was keyed on the
+Administrator and could not express the Channel a Role was granted on.
 
 ```ts title="Signature"
-class RoleChangeEvent extends VendureEvent {
-    constructor(ctx: RequestContext, admin: Administrator, roleIds: ID[], type: 'assigned' | 'removed')
+class RoleAssignmentEvent extends VendureEvent {
+    constructor(ctx: RequestContext, user: User, assignments: RoleAssignmentInput[], type: 'assigned' | 'removed')
 }
 ```
 * Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
@@ -1210,6 +1244,74 @@ class StockMovementEvent extends VendureEvent {
 
 <MemberInfo kind="property" type={`StockMovementType`}   />
 
+
+
+
+</div>
+## StockShortfall
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/stock-shortfall-event.ts" sourceLine="16" packageName="@vendure/core" since="3.7.4" />
+
+Describes a single order line whose requested quantity could not be fully allocated
+from available stock.
+
+```ts title="Signature"
+interface StockShortfall {
+    productVariantId: ID;
+    orderLineId: ID;
+    requested: number;
+    allocated: number;
+}
+```
+
+<div className="members-wrapper">
+
+### productVariantId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### orderLineId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### requested
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### allocated
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+
+
+</div>
+## StockShortfallEvent
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/stock-shortfall-event.ts" sourceLine="38" packageName="@vendure/core" since="3.7.4" />
+
+This event is fired when stock allocation for an Order cannot fully satisfy the requested
+quantities — i.e. the available stock was depleted (e.g. by concurrent orders) between the time
+the cart passed the checkout stock check and the time stock was actually allocated. Because the
+payment may already have been captured, allocation is capped to the available quantity rather than
+failing, and this event is published so that plugins can react (refund, backorder, notify).
+
+The `order` carries only its own columns: no relations (lines, customer, payments) are loaded.
+Fetch them via the [OrderService](/reference/typescript-api/services/order-service#orderservice) if needed.
+
+```ts title="Signature"
+class StockShortfallEvent extends VendureEvent {
+    constructor(ctx: RequestContext, order: Order, shortfalls: StockShortfall[])
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
 
 
 

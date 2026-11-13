@@ -12,11 +12,151 @@ When an item is added to an order, Vendure resolves its price through the follow
 
 1. **ProductVariantPrice** — The base price stored in the database. Each [`ProductVariant`](/reference/typescript-api/entities/product-variant/) has one or more [`ProductVariantPrice`](/reference/typescript-api/entities/product-variant-price/) records, scoped by channel and currency.
 2. **ProductVariantPriceSelectionStrategy** — Selects which `ProductVariantPrice` to use when multiple prices exist for the active channel and currency.
-3. **OrderItemPriceCalculationStrategy** — Determines the unit price and whether it includes tax. This is the main extension point for custom pricing logic such as customer-specific pricing, tiered pricing, or time-based deals.
-4. **Promotions** — Any active [promotions](/core-concepts/promotions/) that apply order-level or item-level discounts are calculated and applied as adjustments.
-5. **Tax calculation** — The applicable tax rate is determined (based on [tax category, zone, and strategy](/core-concepts/taxes/)) and applied to produce the final tax-inclusive price.
+3. **ProductVariantBuyerPriceStrategy** — Determines the base unit price for the buyer, the quantity and the pricing data, and whether it includes tax. This is the main extension point for custom pricing logic such as customer-specific pricing, tiered pricing, or time-based deals. See [The buyer price](#the-buyer-price).
+4. **OrderItemPriceCalculationStrategy** — Determines the unit price of the order line. The default uses the buyer price. Use it for logic that needs the order or the order line.
+5. **Promotions** — Any active [promotions](/core-concepts/promotions/) that apply order-level or item-level discounts are calculated and applied as adjustments.
+6. **Tax calculation** — The applicable tax rate is determined (based on [tax category, zone, and strategy](/core-concepts/taxes/)) and applied to produce the final tax-inclusive price.
 
 The result of this pipeline is exposed in the GraphQL API as a pair of fields on every taxable price: a **base** field and a **WithTax** field. For example, an `OrderLine` exposes `linePrice` and `linePriceWithTax`, and the `Order` itself exposes `subTotal` / `subTotalWithTax`, `total` / `totalWithTax`, and so on.
+
+## The buyer price
+
+`ProductVariant.price` and `priceWithTax` give the price of the channel. The base price of a buyer can depend on more: the customer, the quantity, or pricing input such as a packaging unit. The [`ProductVariantBuyerPriceStrategy`](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy/) calculates this unit price. It receives the variant with the channel price applied, the quantity, the buyer, and optional pricing `data`. It has no order.
+
+Vendure uses the strategy in two places:
+
+- In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order. When the customer of an active order or a draft order changes, Vendure calculates the price of each line again.
+- In the Shop API, the `ProductVariant.buyerPrice` field calls it for the active customer. If the variant or its product is not available in the active channel, the field gives `null` and the strategy does not run. This can occur for the variant of an order line that was disabled after it was added.
+
+```graphql
+query {
+    product(slug: "laptop") {
+        variants {
+            id
+            price
+            priceWithTax
+            buyerPrice(quantity: 10, customFields: { unitCode: "BOX" }) {
+                price
+                priceWithTax
+            }
+        }
+    }
+}
+```
+
+The `customFields` argument exists when order line custom fields are defined. It has the same input type as the `customFields` argument of `addItemToOrder`.
+
+`buyerPrice` is the base unit price of the buyer. It is not a guarantee of the final price in the cart. The cart can give a different price, also in the same tax zone, because of:
+
+- logic in a custom `OrderItemPriceCalculationStrategy` that uses the order,
+- a guest order: the session has no customer, but the order has a guest customer,
+- the tax zone of the order, which can come from the shipping address,
+- a custom [`TaxLineCalculationStrategy`](/reference/typescript-api/tax/tax-line-calculation-strategy/).
+
+Search results do not have a buyer price. `SearchResult.price` and `priceWithTax` give the channel price, so a product list built on the `search` query shows the channel price.
+
+### The buyer
+
+The `buyer` argument tells the strategy who the price is for. It has two methods, `getCustomerId()` and `getCustomer()`. It loads nothing until the strategy calls one of them, so the default strategy runs no extra database query. For a customer that is deleted or not in the active channel, both methods give `undefined`.
+
+- In the cart, the buyer is the customer of the order. In an Admin draft order, this is the customer of the order, not the administrator. In a guest order, it is the guest customer.
+- For the `buyerPrice` field, the buyer is the customer of the active user. For a guest session, the buyer has no customer.
+
+The [`BuyerIdentityService`](/reference/typescript-api/services/buyer-identity-service/) creates the buyer with `forCustomer()` or `forActiveUser()`. It loads each customer once for each request, so a strategy can call the buyer for each order line. `getCustomerId()` of a buyer from `forCustomer()` loads the customer too, with the same query as `getCustomer()`. If your strategy caches its results, include the customer ID in the cache key.
+
+A caller can pass its own buyer in the `buyer` option of `ProductVariantService.calculateBuyerPriceForOrder()` and `calculateBuyerPrice()`. For example, a `StrategyLayer` over the `OrderItemPriceCalculationStrategy` can price a shared cart for the company, and not for the member who checks out.
+
+### Pricing data
+
+`data` is pricing input that your strategy defines, for example the code of a packaging unit. Vendure does not validate or interpret it.
+
+- In the cart, `data` is a copy of the order line custom fields that the `OrderItemPriceCalculationStrategy` chain passes down.
+- For the `buyerPrice` field, `data` is a copy of the `customFields` argument.
+
+To get the same price in both places, the storefront passes the same values to `buyerPrice(customFields: ...)` that it passes as `customFields` to `addItemToOrder`.
+
+The custom fields of a saved order line can differ from the raw input. They can contain default values, other custom fields, and relation entities in place of IDs. So your strategy reads only the fields that it needs, and checks them.
+
+### No price
+
+The strategy returns `undefined` when there is no price for the buyer, for example for "price on request" or "log in to see prices". Then:
+
+- The `buyerPrice` field gives `null`.
+- In the cart, `ProductVariantService.calculateBuyerPriceForOrder()` throws a `NoBuyerPriceError`. It is an `IllegalOperationError`, so the GraphQL error code is `ILLEGAL_OPERATION`.
+- A new order line with no price is not added.
+- A line that is already in the order keeps its current price. Vendure calculates the lines again when the customer of the order changes, when an address is set, when the quantity of a line changes, when the `OrderRecalculationStrategy` asks for it, and when an administrator modifies a placed order with `modifyOrder`. A price that goes away does not make these operations fail.
+- A currency change of the order fails, because the current price of the line is in the old currency.
+- When the customer already has an active order, a login merges the guest order into it. Vendure merges the guest lines that have a price for the customer, and leaves out a line that has no price.
+
+A project that needs a stricter rule, for example to remove the line or to block the checkout, does it in its own `OrderItemPriceCalculationStrategy` or `OrderProcess`.
+
+### Metadata
+
+The result of the strategy can have `metadata`, for example the price rule that applied. Vendure does not save it.
+
+- The default `OrderItemPriceCalculationStrategy` returns the result with its `metadata`. A `StrategyLayer` over the order item strategy can read it from the result of `inner`, for example to write the rule to the order line custom fields.
+- `ProductVariantService.calculateBuyerPrice()` returns an object with the `metadata`. It is not a field of the `BuyerPrice` GraphQL type. A plugin can extend `BuyerPrice` with its own fields, and read the metadata in their field resolvers from the parent object.
+
+### Example
+
+This plugin gives the price of six units for the packaging unit `BOX`, in the storefront and in the cart:
+
+```ts title="src/plugins/packaging-units/packaging-unit.plugin.ts"
+import {
+    composeStrategy,
+    PriceCalculationResult,
+    ProductVariant,
+    ProductVariantBuyerPriceArgs,
+    ProductVariantBuyerPriceStrategy,
+    RequestContext,
+    StrategyLayer,
+    VendurePlugin,
+} from '@vendure/core';
+
+const UNIT_SIZES: Record<string, number> = { BOX: 6 };
+
+export class PackagingUnitPriceLayer extends StrategyLayer.passThrough<ProductVariantBuyerPriceStrategy>() {
+    static priority = 100;
+
+    async calculateUnitPrice(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        args: ProductVariantBuyerPriceArgs,
+    ): Promise<PriceCalculationResult> {
+        const result = await this.inner.calculateUnitPrice(ctx, productVariant, args);
+        const unitCode = args.data?.unitCode;
+        const size = typeof unitCode === 'string' ? UNIT_SIZES[unitCode] : undefined;
+        return size ? { ...result, price: result.price * size } : result;
+    }
+}
+
+@VendurePlugin({
+    configuration: config => {
+        config.customFields.OrderLine.push({ name: 'unitCode', type: 'string' });
+        config.catalogOptions.productVariantBuyerPriceStrategy = composeStrategy(
+            PackagingUnitPriceLayer,
+            config.catalogOptions.productVariantBuyerPriceStrategy,
+        );
+        return config;
+    },
+})
+export class PackagingUnitPlugin {}
+```
+
+The storefront then sends `buyerPrice(quantity: 2, customFields: { unitCode: "BOX" })` and `addItemToOrder(..., customFields: { unitCode: "BOX" })`.
+
+If your pricing data has a different shape than the custom fields, add a `StrategyLayer` over the `OrderItemPriceCalculationStrategy` that changes the custom fields it passes to `inner`.
+
+Things to know:
+
+- Vendure does not cache the result. The `buyerPrice` field runs the strategy once for each variant that requests the field. If your strategy is slow, for example because it calls an external system, it must cache the results itself.
+- In code, use `ProductVariantService.calculateBuyerPrice()` for the active buyer (or the `buyer` option), and `ProductVariantService.calculateBuyerPriceForOrder()` for an order line.
+
+### Buyer price or order item price?
+
+The `OrderItemPriceCalculationStrategy` gives the price of an order line, and it has the order. Use it only for logic that needs the order, or that writes data to the order line. Put catalog pricing that depends on the variant, the buyer, the quantity and the pricing data in the buyer price strategy.
+
+A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `ProductVariantService.calculateBuyerPriceForOrder()`. This method passes the customer of the order as the buyer (or the `buyer` option), the order line custom fields as `data`, and a copy of the variant. It also throws the error for no price. If the custom strategy does not call it, the cart ignores the buyer price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a buyer price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`.
 
 ## Channel-specific pricing
 
@@ -52,10 +192,10 @@ Both types are stored alongside the order and are visible in the API, so your st
 
 The pricing pipeline is designed to be customized at each stage. The two most common extension points are:
 
-- **OrderItemPriceCalculationStrategy** — For scenarios where the price depends on runtime context such as the logged-in customer, the quantity, or external data.
+- **ProductVariantBuyerPriceStrategy** — For scenarios where the price depends on runtime context such as the logged-in customer, the quantity, or external data.
 - **ProductVariantPriceSelectionStrategy** — For controlling which stored price is selected when multiple options exist.
 
-Both strategies are configured at the server level and apply globally. For details on implementing custom strategies, see the [TypeScript API reference](/reference/typescript-api/orders/order-item-price-calculation-strategy/).
+Both strategies are configured at the server level and apply globally. For details on implementing custom strategies, see the [TypeScript API reference](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy/) and [The buyer price](#the-buyer-price).
 
 ## Related topics
 

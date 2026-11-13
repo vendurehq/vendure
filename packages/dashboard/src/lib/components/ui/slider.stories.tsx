@@ -10,6 +10,7 @@ const meta = {
     tags: ['autodocs'],
     argTypes: {
         defaultValue: {
+            // @ts-expect-error 'array' is not a Storybook ControlType
             control: { type: 'array' },
             description: 'Default value',
         },

@@ -3,12 +3,20 @@ import { AssetStorageStrategy, ConfigService, Logger, ProcessContext } from '@ve
 import { createHash } from 'crypto';
 import express, { NextFunction, Request, Response } from 'express';
 import fs from 'fs-extra';
+import mime from 'mime-types';
 import path from 'path';
 
-import { getValidFormat } from './common';
+import { getValidBackgroundColor, getValidFormat } from './common';
 import { ImageTransformParameters, ImageTransformStrategy } from './config/image-transform-strategy';
 import { S3AssetStorageStrategy } from './config/s3-asset-storage-strategy';
-import { ASSET_SERVER_PLUGIN_INIT_OPTIONS, DEFAULT_CACHE_HEADER, loggerCtx } from './constants';
+import {
+    ASSET_CSP_HEADER,
+    ASSET_MARKUP_CSP_HEADER,
+    ASSET_SERVER_PLUGIN_INIT_OPTIONS,
+    DEFAULT_CACHE_HEADER,
+    loggerCtx,
+    MARKUP_MIME_TYPES,
+} from './constants';
 import { transformImage } from './transform-image';
 import { AssetServerOptions, ImageTransformMode, ImageTransformPreset } from './types';
 
@@ -50,7 +58,7 @@ export class AssetServer {
             if (typeof cacheHeader === 'string') {
                 this.cacheHeader = cacheHeader;
             } else {
-                this.cacheHeader = [cacheHeader.restriction, `max-age: ${cacheHeader.maxAge}`]
+                this.cacheHeader = [cacheHeader.restriction, `max-age=${cacheHeader.maxAge}`]
                     .filter(value => !!value)
                     .join(', ');
             }
@@ -95,7 +103,7 @@ export class AssetServer {
                     mimeType = (await getFileType(file))?.mime || 'application/octet-stream';
                 }
                 res.contentType(mimeType);
-                res.setHeader('content-security-policy', "default-src 'self'");
+                this.setAssetSecurityHeaders(res, mimeType);
                 res.setHeader('Cache-Control', this.cacheHeader);
                 res.send(file);
             } catch (e: any) {
@@ -138,7 +146,8 @@ export class AssetServer {
                             mimeType = (await getFileType(imageBuffer))?.mime || 'image/jpeg';
                         }
                         res.set('Content-Type', mimeType);
-                        res.setHeader('content-security-policy', "default-src 'self'");
+                        this.setAssetSecurityHeaders(res, mimeType);
+                        res.setHeader('Cache-Control', this.cacheHeader);
                         res.send(imageBuffer);
                         return;
                     } catch (e: any) {
@@ -198,6 +207,7 @@ export class AssetServer {
         const fpx = +queryParams.fpx || undefined;
         const fpy = +queryParams.fpy || undefined;
         const format = getValidFormat(queryParams.format);
+        const backgroundColor = getValidBackgroundColor(queryParams.bg);
 
         return {
             width,
@@ -208,14 +218,16 @@ export class AssetServer {
             fpx,
             fpy,
             preset: queryParams.preset,
+            backgroundColor,
         };
     }
 
     private getFileNameFromParameters(filePath: string, params: ImageTransformParameters): string {
-        const { width: w, height: h, mode, preset, fpx, fpy, format, quality: q } = params;
+        const { width: w, height: h, mode, preset, fpx, fpy, format, quality: q, backgroundColor } = params;
         /* eslint-disable @typescript-eslint/restrict-template-expressions */
         const focalPoint = fpx && fpy ? `_fpx${fpx}_fpy${fpy}` : '';
         const quality = q ? `_q${q}` : '';
+        const bg = backgroundColor ? `_bg${backgroundColor.replace('#', '')}` : '';
         const imageFormat = getValidFormat(format);
         let imageParamsString = '';
         if (w || h) {
@@ -237,11 +249,17 @@ export class AssetServer {
         if (quality) {
             imageParamsString += quality;
         }
+        if (bg) {
+            imageParamsString += bg;
+        }
 
         const decodedReqPath = this.sanitizeFilePath(filePath);
         if (imageParamsString !== '') {
             const imageParamHash = this.md5(imageParamsString);
-            return path.join(this.cacheDir, this.addSuffix(decodedReqPath, imageParamHash, imageFormat));
+            return path.posix.join(
+                this.cacheDir,
+                this.addSuffix(decodedReqPath, imageParamHash, imageFormat),
+            );
         } else {
             return decodedReqPath;
         }
@@ -272,7 +290,11 @@ export class AssetServer {
                 previousPath = sanitizedPath;
                 sanitizedPath = previousPath.replace(/(\.\.[\\/])+/g, '');
             } while (sanitizedPath !== previousPath);
-            return sanitizedPath;
+            // `path.normalize` rewrites separators to the platform form, so on Windows the
+            // result would otherwise carry backslashes into the asset identifier and into the
+            // cache key that `addSuffix` composes with `path.posix.join`. Normalizing here,
+            // after the traversal strip, keeps that guard unchanged.
+            return sanitizedPath.split(path.sep).join('/');
         }
     }
 
@@ -285,28 +307,49 @@ export class AssetServer {
         const effectiveExt = ext ? `.${ext}` : originalExt;
         const baseName = path.basename(fileName, originalExt);
         const dirName = path.dirname(fileName);
-        return path.join(dirName, `${baseName}${suffix}${effectiveExt}`);
+        return path.posix.join(dirName, `${baseName}${suffix}${effectiveExt}`);
     }
 
     /**
      * Attempt to get the mime type from the file name.
      */
     private getMimeType(fileName: string): string | undefined {
-        const ext = path.extname(fileName);
-        switch (ext) {
-            case '.jpg':
-            case '.jpeg':
-                return 'image/jpeg';
-            case '.png':
-                return 'image/png';
-            case '.gif':
-                return 'image/gif';
-            case '.svg':
-                return 'image/svg+xml';
-            case '.tiff':
-                return 'image/tiff';
-            case '.webp':
-                return 'image/webp';
+        return mime.lookup(fileName) || undefined;
+    }
+
+    /**
+     * Sets security-related response headers on a served asset. Some permitted asset types —
+     * notably SVG, but also XML and HTML — can carry embedded scripts which execute when the
+     * asset is opened as a top-level document or embedded via `<object>`/`<iframe>`. Served
+     * inline from the Vendure origin this is a stored-XSS vector (GHSA-f4r3-h6jf-4m29).
+     *
+     * - `X-Content-Type-Options: nosniff` stops the browser from re-interpreting a response as a
+     *   more dangerous type than its declared `Content-Type`.
+     * - The `Content-Security-Policy` denies scripts and subresources on every asset; for markup
+     *   types it additionally sandboxes the document, so even a markup asset rendered as a
+     *   top-level document cannot execute script (see `ASSET_MARKUP_CSP_HEADER` for why the
+     *   `sandbox` token is markup-only).
+     * - For markup types we additionally force `Content-Disposition: attachment`, so the browser
+     *   downloads rather than renders them. This does not affect `<img src>` previews (embedded
+     *   images ignore the header and never execute embedded scripts); the only visible change is
+     *   that opening such an asset's URL directly downloads it.
+     */
+    private setAssetSecurityHeaders(res: Response, mimeType: string) {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        if (this.isMarkupMimeType(mimeType)) {
+            res.setHeader('Content-Security-Policy', ASSET_MARKUP_CSP_HEADER);
+            res.setHeader('Content-Disposition', 'attachment');
+        } else {
+            res.setHeader('Content-Security-Policy', ASSET_CSP_HEADER);
         }
+    }
+
+    /**
+     * Whether a mime type denotes a markup document that a browser could execute script from
+     * (SVG, HTML, XHTML and generic XML). Ignores any `; charset=…` parameter.
+     */
+    private isMarkupMimeType(mimeType: string): boolean {
+        const normalized = mimeType.split(';')[0].trim().toLowerCase();
+        return MARKUP_MIME_TYPES.includes(normalized) || normalized.endsWith('+xml');
     }
 }

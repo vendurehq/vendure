@@ -36,7 +36,12 @@ type Mutation {
     """
     removeOptionGroupFromProduct(productId: ID!, optionGroupId: ID!, force: Boolean): RemoveOptionGroupFromProductResult!
 
-    "Create a set of ProductVariants based on the OptionGroups assigned to the given Product"
+    """
+    Creates ProductVariants for the given Product. Each input must name exactly one option from
+    each OptionGroup assigned to the Product. A create is rejected if another variant of the
+    Product already holds the same combination of options. A Product with no OptionGroups may
+    hold any number of variants.
+    """
     createProductVariants(input: [CreateProductVariantInput!]!): [ProductVariant]!
 
     "Update existing ProductVariants"
@@ -97,6 +102,8 @@ input ProductTranslationInput {
 input CreateProductInput {
     featuredAssetId: ID
     enabled: Boolean
+    "Sets whether it is enabled in the active Channel. Defaults to `true`."
+    enabledInChannel: Boolean
     assetIds: [ID!]
     facetValueIds: [ID!]
     translations: [ProductTranslationInput!]!
@@ -105,6 +112,8 @@ input CreateProductInput {
 input UpdateProductInput {
     id: ID!
     enabled: Boolean
+    "Sets whether it is enabled in the active Channel. If not set, it is left unchanged."
+    enabledInChannel: Boolean
     featuredAssetId: ID
     assetIds: [ID!]
     facetValueIds: [ID!]
@@ -153,6 +162,8 @@ input UpdateProductVariantPriceInput {
 input CreateProductVariantInput {
     productId: ID!
     enabled: Boolean
+    "Sets whether it is enabled in the active Channel. Defaults to `true`."
+    enabledInChannel: Boolean
     translations: [ProductVariantTranslationInput!]!
     facetValueIds: [ID!]
     sku: String!
@@ -172,6 +183,8 @@ input CreateProductVariantInput {
 input UpdateProductVariantInput {
     id: ID!
     enabled: Boolean
+    "Sets whether it is enabled in the active Channel. If not set, it is left unchanged."
+    enabledInChannel: Boolean
     translations: [ProductVariantTranslationInput!]
     facetValueIds: [ID!]
     optionIds: [ID!]
@@ -198,6 +211,11 @@ input AssignProductsToChannelInput {
     productIds: [ID!]!
     channelId: ID!
     priceFactor: Float
+    """
+    Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+    the value from the active Channel, and already assigned ones are left unchanged.
+    """
+    enabledInChannel: Boolean
 }
 
 input RemoveProductsFromChannelInput {
@@ -209,6 +227,11 @@ input AssignProductVariantsToChannelInput {
     productVariantIds: [ID!]!
     channelId: ID!
     priceFactor: Float
+    """
+    Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+    the value from the active Channel, and already assigned ones are left unchanged.
+    """
+    enabledInChannel: Boolean
 }
 
 input RemoveProductVariantsFromChannelInput {

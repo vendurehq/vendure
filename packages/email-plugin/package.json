@@ -1,6 +1,6 @@
 {
     "name": "@vendure/email-plugin",
-    "version": "3.6.4",
+    "version": "3.8.1",
     "license": "GPL-3.0-or-later",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -11,13 +11,8 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/vendurehq/vendure"
-    },
-    "scripts": {
-        "watch": "tsc -p ./tsconfig.build.json --watch",
-        "build": "rimraf lib && tsc -p ./tsconfig.build.json",
-        "lint": "eslint --fix .",
-        "test": "vitest --config vitest.config.mts --run --typecheck"
+        "url": "git+https://github.com/vendurehq/vendure.git",
+        "directory": "packages/email-plugin"
     },
     "homepage": "https://www.vendure.io/",
     "funding": "https://github.com/sponsors/michaelbromley",
@@ -25,22 +20,27 @@
         "access": "public"
     },
     "dependencies": {
-        "@types/nodemailer": "^6.4.22",
+        "@types/nodemailer": "^8.0.1",
         "dateformat": "^3.0.3",
         "express": "^5.1.0",
         "fs-extra": "^11.2.0",
-        "handlebars": "^4.7.8",
-        "mjml": "^4.14.1",
-        "nodemailer": "^6.9.4"
+        "handlebars": "^4.7.9",
+        "mjml": "^5.3.0",
+        "nodemailer": "^9.0.1"
     },
     "devDependencies": {
         "@types/dateformat": "^3.0.1",
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
-        "@types/mjml": "^4.7.4",
-        "@vendure/common": "3.6.4",
-        "@vendure/core": "3.6.4",
+        "@types/mjml": "^5.0.0",
+        "@vendure/common": "3.8.1",
+        "@vendure/core": "3.8.1",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
+    },
+    "nx": {
+        "tags": [
+            "scope:plugin"
+        ]
     }
 }

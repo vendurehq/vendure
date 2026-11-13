@@ -144,8 +144,13 @@ export function convertRelationPaths<T extends VendureEntity>(
         const parts = (path as string).split('.');
         let current: any = result;
         for (const [i, part] of Object.entries(parts)) {
-            if (!current[part]) {
-                current[part] = +i === parts.length - 1 ? true : {};
+            if (+i === parts.length - 1) {
+                if (!current[part]) {
+                    current[part] = true;
+                }
+            } else if (typeof current[part] !== 'object') {
+                // Replace a `true` set by a shorter parent path
+                current[part] = {};
             }
             current = current[part];
         }

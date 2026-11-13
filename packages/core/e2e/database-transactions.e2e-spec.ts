@@ -13,7 +13,7 @@ import {
     TRIGGER_ATTEMPTED_UPDATE_EMAIL,
     TRIGGER_NO_OPERATION,
 } from './fixtures/test-plugins/transaction-test-plugin';
-import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
+import { FragmentOf, graphql } from './graphql/graphql-admin';
 
 type DBType = 'mysql' | 'postgres' | 'sqlite' | 'sqljs';
 
@@ -51,7 +51,7 @@ describe('Transaction infrastructure', () => {
         expect(createTestAdministrator.emailAddress).toBe('test1');
         expect(createTestAdministrator.user.identifier).toBe('test1');
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(2);
@@ -70,7 +70,7 @@ describe('Transaction infrastructure', () => {
             expect(e.message).toContain('Failed!');
         }
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(2);
@@ -86,11 +86,11 @@ describe('Transaction infrastructure', () => {
                 n: 10,
             });
             fail('Should have thrown');
-        } catch (e) {
+        } catch (e: any) {
             expect(e.message).toContain('Failed!');
         }
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(2);
@@ -109,7 +109,7 @@ describe('Transaction infrastructure', () => {
             expect(e.message).toContain('Failed!');
         }
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(2);
@@ -128,7 +128,7 @@ describe('Transaction infrastructure', () => {
             expect(e.message).toContain('Failed!');
         }
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(3);
@@ -148,7 +148,7 @@ describe('Transaction infrastructure', () => {
             expect(e.message).toContain('Failed!');
         }
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(3);
@@ -166,13 +166,13 @@ describe('Transaction infrastructure', () => {
                     n: 10,
                 });
                 fail('Should have thrown');
-            } catch (e) {
+            } catch (e: any) {
                 expect(e.message).toMatch(
                     /^Failed!|Query runner already released. Cannot run queries anymore.$/,
                 );
             }
 
-            const { verify } = await adminClient.query(verifyTestDocument);
+            const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
             expect(verify.admins.length).toBe(2);
             expect(verify.users.length).toBe(3);
@@ -193,7 +193,7 @@ describe('Transaction infrastructure', () => {
             expect(e.message).toContain('Failed!');
         }
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(2);
         expect(verify.users.length).toBe(3);
@@ -208,7 +208,7 @@ describe('Transaction infrastructure', () => {
             n: 2,
         });
 
-        const { verify } = await adminClient.query(verifyTestDocument);
+        const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
 
         expect(verify.admins.length).toBe(3);
         expect(verify.users.length).toBe(4);
@@ -225,7 +225,7 @@ describe('Transaction infrastructure', () => {
                 n: 2,
             });
             fail('Should have thrown');
-        } catch (e) {
+        } catch (e: any) {
             expect(e.message).toContain('Failed!');
         }
 
@@ -266,7 +266,7 @@ describe('Transaction infrastructure', () => {
             });
             createdAdminGuard.assertSuccess(createTestAdministrator6);
 
-            const { verify } = await adminClient.query(verifyTestDocument);
+            const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
             expect(!!verify.admins.find(a => a.emailAddress === 'test-manual-inherited_a')).toBe(true);
             expect(!!verify.admins.find(a => a.emailAddress === 'test-manual-inherited_b')).toBe(true);
         },
@@ -399,4 +399,10 @@ const verifyTestDocument = graphql(`
     }
 `);
 
-type VerifyResult = ResultOf<typeof verifyTestDocument>;
+// The `verify` query is added by the TransactionTestPlugin, so it is not in the generated schema types.
+type VerifyResult = {
+    verify: {
+        admins: Array<{ id: string; emailAddress: string }>;
+        users: Array<{ id: string; identifier: string }>;
+    };
+};

@@ -23,12 +23,12 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
 }
 
 export class TestStockLocationStrategy extends DefaultStockLocationStrategy {
-    forAllocation(
+    async forAllocation(
         ctx: RequestContext,
         stockLocations: StockLocation[],
         orderLine: OrderLine,
         quantity: number,
-    ): LocationWithQuantity[] | Promise<LocationWithQuantity[]> {
+    ): Promise<LocationWithQuantity[]> {
         const selectedLocation = stockLocations.find(location =>
             idsAreEqual(location.id, orderLine.customFields.stockLocationId),
         );

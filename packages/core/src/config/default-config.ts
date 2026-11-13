@@ -28,6 +28,7 @@ import { defaultCollectionFilters } from './catalog/default-collection-filters';
 import { DefaultProductVariantPriceCalculationStrategy } from './catalog/default-product-variant-price-calculation-strategy';
 import { DefaultProductVariantPriceSelectionStrategy } from './catalog/default-product-variant-price-selection-strategy';
 import { DefaultProductVariantPriceUpdateStrategy } from './catalog/default-product-variant-price-update-strategy';
+import { DefaultProductVariantBuyerPriceStrategy } from './catalog/default-product-variant-buyer-price-strategy';
 import { DefaultStockDisplayStrategy } from './catalog/default-stock-display-strategy';
 import { MultiChannelStockLocationStrategy } from './catalog/multi-channel-stock-location-strategy';
 import { AutoIncrementIdStrategy } from './entity/auto-increment-id-strategy';
@@ -41,11 +42,13 @@ import { DefaultActiveOrderStrategy } from './order/default-active-order-strateg
 import { DefaultChangedPriceHandlingStrategy } from './order/default-changed-price-handling-strategy';
 import { DefaultGuestCheckoutStrategy } from './order/default-guest-checkout-strategy';
 import { DefaultOrderItemPriceCalculationStrategy } from './order/default-order-item-price-calculation-strategy';
+import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-order-line-discount-distribution-strategy';
 import { DefaultOrderPlacedStrategy } from './order/default-order-placed-strategy';
 import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
 import { DefaultStockAllocationStrategy } from './order/default-stock-allocation-strategy';
 import { MergeOrdersStrategy } from './order/merge-orders-strategy';
+import { NoOrderRecalculationStrategy } from './order/no-order-recalculation-strategy';
 import { DefaultOrderByCodeAccessStrategy } from './order/order-by-code-access-strategy';
 import { DefaultOrderCodeStrategy } from './order/order-code-strategy';
 import { UseGuestStrategy } from './order/use-guest-strategy';
@@ -57,8 +60,10 @@ import { cleanOrphanedSettingsStoreTask } from './settings-store/clean-orphaned-
 import { defaultShippingCalculator } from './shipping-method/default-shipping-calculator';
 import { defaultShippingEligibilityChecker } from './shipping-method/default-shipping-eligibility-checker';
 import { DefaultShippingLineAssignmentStrategy } from './shipping-method/default-shipping-line-assignment-strategy';
+import { DefaultEncryptionStrategy } from './system/default-encryption-strategy';
 import { InMemoryCacheStrategy } from './system/in-memory-cache-strategy';
 import { NoopInstrumentationStrategy } from './system/noop-instrumentation-strategy';
+import { PermissionSecretAccessStrategy } from './system/permission-secret-access-strategy';
 import { DefaultOrderTaxCalculationStrategy } from './tax/default-order-tax-calculation-strategy';
 import { DefaultTaxLineCalculationStrategy } from './tax/default-tax-line-calculation-strategy';
 import { DefaultTaxZoneStrategy } from './tax/default-tax-zone-strategy';
@@ -92,6 +97,7 @@ export const defaultConfig: RuntimeVendureConfig = {
             origin: true,
             credentials: true,
         },
+        csrfPrevention: false,
         trustProxy: false,
         middleware: [],
         introspection: true,
@@ -112,6 +118,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         sessionCacheStrategy: new DefaultSessionCacheStrategy(),
         sessionCacheTTL: 300,
         requireVerification: true,
+        disableLastLoginUpdate: false,
         verificationTokenDuration: '7d',
         superadminCredentials: {
             identifier: SUPER_ADMIN_USER_IDENTIFIER,
@@ -135,6 +142,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         productVariantPriceUpdateStrategy: new DefaultProductVariantPriceUpdateStrategy({
             syncPricesAcrossChannels: false,
         }),
+        productVariantBuyerPriceStrategy: new DefaultProductVariantBuyerPriceStrategy(),
         stockDisplayStrategy: new DefaultStockDisplayStrategy(),
         stockLocationStrategy: new MultiChannelStockLocationStrategy(),
     },
@@ -182,11 +190,13 @@ export const defaultConfig: RuntimeVendureConfig = {
         orderCodeStrategy: new DefaultOrderCodeStrategy(),
         orderByCodeAccessStrategy: new DefaultOrderByCodeAccessStrategy('2h'),
         changedPriceHandlingStrategy: new DefaultChangedPriceHandlingStrategy(),
+        orderLineDiscountDistributionStrategy: new DefaultOrderLineDiscountDistributionStrategy(),
         orderPlacedStrategy: new DefaultOrderPlacedStrategy(),
         activeOrderStrategy: new DefaultActiveOrderStrategy(),
         orderSellerStrategy: new DefaultOrderSellerStrategy(),
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
         orderInterceptors: [],
+        orderRecalculationStrategy: new NoOrderRecalculationStrategy(),
     },
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],
@@ -194,6 +204,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         customPaymentProcess: [],
         process: [defaultPaymentProcess],
         refundProcess: [defaultRefundProcess],
+        refundDestinations: [],
     },
     taxOptions: {
         taxZoneStrategy: new DefaultTaxZoneStrategy(),
@@ -241,6 +252,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         Promotion: [],
         Refund: [],
         Region: [],
+        Role: [],
         Seller: [],
         Session: [],
         ShippingLine: [],
@@ -260,5 +272,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         healthChecks: [],
         errorHandlers: [],
         instrumentationStrategy: new NoopInstrumentationStrategy(),
+        encryptionStrategy: new DefaultEncryptionStrategy(),
+        secretAccessStrategy: new PermissionSecretAccessStrategy(),
     },
 };

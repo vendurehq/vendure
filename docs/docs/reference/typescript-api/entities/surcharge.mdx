@@ -21,7 +21,10 @@ class Surcharge extends VendureEntity {
     @Column('simple-json')
     taxLines: TaxLine[];
     @Index()
-    @ManyToOne(type => Order, order => order.surcharges, { onDelete: 'CASCADE' })
+    @ManyToOne(type => Order, order => order.surcharges, {
+        onDelete: 'CASCADE',
+        orphanedRowAction: 'disable',
+    })
     order: Order;
     @Index()
     @ManyToOne(type => OrderModification, orderModification => orderModification.surcharges)

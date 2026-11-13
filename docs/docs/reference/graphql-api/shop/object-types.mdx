@@ -291,6 +291,7 @@ scalar Boolean`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -318,6 +319,26 @@ scalar Boolean`}
   label: [LocalizedString!]
   description: [LocalizedString!]
   ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="buyerprice"></a>
+
+## BuyerPrice
+
+<GraphQLDoc
+  type="type"
+  typeName="BuyerPrice"
+  typeLinks={{
+    Money: '/reference/graphql-api/shop/object-types#money',
+  }}
+>
+{`"""The unit price of a ProductVariant for the active Customer"""
+type BuyerPrice {
+  """The price of a single unit, excluding tax"""
+  price: Money!
+  """The price of a single unit, including tax"""
+  priceWithTax: Money!
 }`}
 </GraphQLDoc>
 
@@ -533,6 +554,7 @@ type CollectionResult {
   label: String
   description: String
   ui: JSON
+  secret: Boolean
 }`}
 </GraphQLDoc>
 
@@ -928,6 +950,7 @@ type DateTimeCustomFieldConfig {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: String
@@ -1236,6 +1259,7 @@ scalar Float`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Float
@@ -1544,6 +1568,7 @@ scalar Int`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Int
@@ -1640,6 +1665,7 @@ type InvalidCredentialsError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -1672,6 +1698,7 @@ type InvalidCredentialsError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -2650,6 +2677,8 @@ type PriceRange {
     ProductOption: '/reference/graphql-api/shop/object-types#productoption',
     FacetValue: '/reference/graphql-api/shop/object-types#facetvalue',
     ProductVariantTranslation: '/reference/graphql-api/shop/object-types#productvarianttranslation',
+    BuyerPrice: '/reference/graphql-api/shop/object-types#buyerprice',
+    Int: '/reference/graphql-api/shop/object-types#int',
     JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
@@ -2673,6 +2702,23 @@ type PriceRange {
   options: [ProductOption!]!
   facetValues: [FacetValue!]!
   translations: [ProductVariantTranslation!]!
+  """
+  The unit price that the configured ProductVariantBuyerPriceStrategy calculates for the
+  active Customer and the given quantity. Unlike \`price\` and \`priceWithTax\`, which give the
+  price of the Channel, this is the price that the default cart pricing starts from. No Order
+  is needed. It is \`null\` when the strategy gives no price for this buyer, for example for a
+  price on request. It is also \`null\` when the variant or its Product is not available in the
+  active Channel, for example for the variant of an OrderLine that was disabled later.
+  
+  When OrderLine custom fields are defined, the field also has a \`customFields\` argument, with
+  the same input type as \`addItemToOrder\`. To get the same price as the cart, pass the same
+  values that you pass as \`customFields\` to \`addItemToOrder\`.
+  
+  This is the base unit price of the buyer, not a guarantee of the final cart price. For
+  example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
+  of the Order.
+  """
+  buyerPrice(quantity: Int): BuyerPrice
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -2937,6 +2983,11 @@ type PriceRange {
   adjustment: Money!
   total: Money!
   method: String
+  """
+  The refund destination code, if a non-default destination was used.
+  When null, the refund was directed to the original payment method.
+  """
+  destination: String
   state: String!
   transactionId: String
   reason: String
@@ -3035,6 +3086,7 @@ type PriceRange {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   entity: String!
@@ -3122,7 +3174,7 @@ type PriceRange {
     DateTime: '/reference/graphql-api/shop/object-types#datetime',
     String: '/reference/graphql-api/shop/object-types#string',
     Permission: '/reference/graphql-api/shop/enums#permission',
-    Channel: '/reference/graphql-api/shop/object-types#channel',
+    JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
 {`type Role {
@@ -3132,7 +3184,7 @@ type PriceRange {
   code: String!
   description: String!
   permissions: [Permission!]!
-  channels: [Channel!]!
+  customFields: JSON
 }`}
 </GraphQLDoc>
 
@@ -3277,6 +3329,7 @@ union SearchResultPrice = PriceRange | SinglePrice`}
     ID: '/reference/graphql-api/shop/object-types#id',
     DateTime: '/reference/graphql-api/shop/object-types#datetime',
     String: '/reference/graphql-api/shop/object-types#string',
+    SellerTranslation: '/reference/graphql-api/shop/object-types#sellertranslation',
     JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
@@ -3285,7 +3338,33 @@ union SearchResultPrice = PriceRange | SinglePrice`}
   createdAt: DateTime!
   updatedAt: DateTime!
   name: String!
+  translations: [SellerTranslation!]!
   customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="sellertranslation"></a>
+
+## SellerTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="SellerTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+  }}
+>
+{`"""
+Holds a Seller's localized custom field values for one language.
+The Seller's own fields, such as \`name\`, are not translated.
+"""
+type SellerTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
 }`}
 </GraphQLDoc>
 
@@ -3511,6 +3590,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -3593,6 +3673,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -3822,6 +3903,7 @@ type Success {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON

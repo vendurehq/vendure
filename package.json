@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   },
   "homepage": "https://www.vendure.io",
   "repository": {
@@ -11,39 +11,44 @@
     "url": "https://github.com/vendurehq/vendure"
   },
   "scripts": {
-    "watch": "lerna run watch --parallel",
-    "watch:core-common": "lerna run --scope @vendure/common --scope @vendure/core watch --parallel",
-    "build:core-common": "lerna run --scope @vendure/common --scope @vendure/core build",
+    "watch": "nx run-many -t watch --parallel=100 --output-style=stream",
+    "watch:core-common": "nx run-many -t watch -p @vendure/common,@vendure/core --parallel=2 --output-style=stream",
+    "build:core-common": "nx run-many -t build -p @vendure/common,@vendure/core",
     "lint": "eslint --fix",
+    "lint:boundaries": "nx show projects > /dev/null && eslint --no-eslintrc -c .eslintrc.boundaries.js --ext .ts,.tsx --quiet packages",
     "format": "prettier --write --html-whitespace-sensitivity ignore",
     "docs:generate-typescript-docs": "ts-node scripts/docs/generate-typescript-docs.ts",
+    "docs:compile-manifest": "bun run docs/scripts/compile-manifest.ts",
     "docs:generate-graphql-docs": "ts-node scripts/docs/generate-graphql-docs.ts --api=shop && ts-node scripts/docs/generate-graphql-docs.ts --api=admin",
     "docs:build": "bun run docs:generate-typescript-docs && bun run docs:generate-graphql-docs",
     "codegen": "tsc -p scripts/codegen/plugins && ts-node scripts/codegen/generate-graphql-types.ts && bun run codegen:gql-tada",
     "codegen:gql-tada": "ts-node scripts/codegen/generate-gql-tada-types.ts",
-    "version": "bun install && bun run check-imports && bun run check-angular-versions && bun run build && bun run check-core-type-defs && bun run generate-changelog && git add CHANGELOG* && git add */version.ts && git add bun.lock",
-    "test": "lerna run test --stream --no-bail",
-    "e2e": "lerna run e2e --stream --no-bail",
-    "build": "lerna run build",
+    "test": "nx run-many -t test --output-style=stream",
+    "e2e": "nx run-many -t e2e --output-style=stream",
+    "build": "nx run-many -t build",
     "check-imports": "ts-node scripts/check-imports.ts",
     "check-core-type-defs": "ts-node scripts/check-core-type-defs.ts",
-    "check-angular-versions": "ts-node scripts/check-angular-versions.ts",
     "generate-changelog": "ts-node scripts/changelogs/generate-changelog.ts",
-    "publish-release": "lerna version -m \"chore: Publish %s\" --no-push --force-publish --exact",
-    "publish-prerelease": "lerna version -m \"chore: Pre-release %s\" prerelease --exact --no-push --force-publish --preid next --dist-tag next",
-    "publish-local": "lerna version --force-publish --no-git-tag-version && cd scripts && ./publish-to-verdaccio.sh"
+    "release:version": "ts-node scripts/release-version.ts",
+    "publish-release": "bun run release:version --message \"chore: Publish v{version}\"",
+    "publish-prerelease": "bun run release:version prerelease --preid next --message \"chore: Pre-release v{version}\"",
+    "publish-local": "bun run release:version --skip-git && cd scripts && ./publish-to-verdaccio.sh",
+    "typeorm:use": "node scripts/typeorm/use-version.mjs",
+    "typeorm:verify": "node scripts/typeorm/verify.mjs",
+    "build:for-tests": "node scripts/typeorm/build-for-tests.mjs",
+    "test:db": "node scripts/typeorm/run-db-tests.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.1.0",
-    "@commitlint/config-conventional": "^19.1.0",
+    "@commitlint/config-conventional": "^21.2.2",
     "@gql.tada/cli-utils": "^1.6.5",
-    "@graphql-codegen/add": "6.0.0",
-    "@graphql-codegen/cli": "6.0.0",
-    "@graphql-codegen/fragment-matcher": "6.0.0",
-    "@graphql-codegen/typed-document-node": "^6.0.1",
-    "@graphql-codegen/typescript": "5.0.1",
-    "@graphql-codegen/typescript-operations": "5.0.1",
-    "@graphql-tools/schema": "^10.0.25",
+    "@graphql-codegen/add": "6.0.1",
+    "@graphql-codegen/cli": "6.3.1",
+    "@graphql-codegen/typescript": "5.0.10",
+    "@graphql-tools/schema": "^10.1.1",
+    "@nx/devkit": "22.5.4",
+    "@nx/eslint-plugin": "22.5.4",
+    "@nx/js": "22.5.4",
     "@swc/core": "^1.4.6",
     "@types/node": "^20.11.19",
     "@vendure-io/docs-generator": "^0.1.1",
@@ -51,38 +56,35 @@
     "conventional-changelog-core": "^7.0.0",
     "cross-env": "^7.0.3",
     "find": "^0.3.0",
-    "gql.tada": "^1.8.10",
-    "graphql": "^16.11.0",
+    "gql.tada": "^1.11.3",
+    "graphql": "^16.14.2",
     "husky": "^4.3.0",
-    "lerna": "^9.0.3",
     "lint-staged": "^10.5.4",
+    "nx": "22.5.4",
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^4.1.0",
     "rollup": "^4.18.0",
     "tinybench": "^2.6.0",
     "ts-node": "^10.9.2",
     "typescript": "5.8.2",
-    "unplugin-swc": "^1.4.4",
-    "vite": "^7.3.1",
-    "vitest": "^3.2.4"
+    "unplugin-swc": "^2.0.0",
+    "vite": "^8.3.5",
+    "vitest": "^4.1.12"
   },
   "//": "Fix for https://github.com/npm/cli/issues/4828",
   "optionalDependencies": {
-    "@nx/nx-darwin-arm64": "17.2.8",
-    "@nx/nx-darwin-x64": "17.2.8",
-    "@nx/nx-linux-x64-gnu": "17.2.8",
-    "@nx/nx-win32-x64-msvc": "17.2.8",
     "@rollup/rollup-linux-x64-gnu": "^4.13.0",
     "@swc/core-darwin-arm64": "1.7.19",
-    "@swc/core-linux-x64-gnu": "1.4.7"
+    "@swc/core-linux-x64-gnu": "1.16.1"
   },
-  "//overrides": "Force a single graphql version across the monorepo install. Without this, transitive deps (e.g. @types/graphql-upload) keep a nested graphql@16.11.0 alongside the hoisted copy, which breaks TS type portability (TS2742) when building @vendure/core. Mirrors the ^16.11.0 dependency ranges. Relates to #4701.",
+  "//overrides": "Force a single graphql version across the monorepo install. Without this, transitive deps (e.g. @types/graphql-upload) keep an older nested graphql alongside the hoisted copy, which breaks TS type portability (TS2742) when building @vendure/core. Mirrors the ^16.14.2 dependency ranges. Relates to #4701.",
   "overrides": {
-    "graphql": "^16.11.0"
+    "graphql": "^16.14.2"
   },
   "trustedDependencies": [
     "husky",
-    "better-sqlite3"
+    "better-sqlite3",
+    "re2"
   ],
   "workspaces": [
     "packages/*"
@@ -90,16 +92,7 @@
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
-    ],
-    "rules": {
-      "subject-case": [
-        2,
-        "always",
-        [
-          "sentence-case"
-        ]
-      ]
-    }
+    ]
   },
   "husky": {
     "hooks": {
@@ -109,10 +102,10 @@
     }
   },
   "dependencies": {
-    "@types/nodemailer": "^6.4.22",
-    "@typescript-eslint/eslint-plugin": "^5.54.1",
-    "@typescript-eslint/parser": "^5.54.1",
-    "eslint": "^8.41.0",
+    "@types/nodemailer": "^8.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jsdoc": "^45.0.0",

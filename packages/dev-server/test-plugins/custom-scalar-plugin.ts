@@ -7,12 +7,12 @@ import gql from 'graphql-tag';
 export class DateScalar implements CustomScalar<number, Date> {
     description = 'Date custom scalar type';
 
-    parseValue(value: number): Date {
-        return new Date(value); // value from the client
+    parseValue(value: unknown): Date {
+        return new Date(value as number); // value from the client
     }
 
-    serialize(value: Date): number {
-        return value.getTime(); // value sent to the client
+    serialize(value: unknown): number {
+        return (value as Date).getTime(); // value sent to the client
     }
 
     parseLiteral(ast: ValueNode): Date | null {

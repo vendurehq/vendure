@@ -1,22 +1,24 @@
 import { cancel, isCancel, log, select, spinner, text } from '@clack/prompts';
-import { kebabCase } from '../../../utilities/case-utils';
 import path from 'path';
 import { ClassDeclaration, Scope, SourceFile } from 'ts-morph';
 
-import { Messages, pascalCaseRegex } from '../../../constants';
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { EntityRef } from '../../../shared/entity-ref';
-import { ServiceRef } from '../../../shared/service-ref';
-import { analyzeProject, selectEntity, selectPlugin } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
+
+import { Messages, pascalCaseRegex } from '../../../constants.js';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { EntityRef } from '../../../shared/entity-ref.js';
+import { ServiceRef } from '../../../shared/service-ref.js';
+import { analyzeProject, selectEntity, selectPlugin } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
 import {
     addImportsToFile,
     createFile,
     customizeCreateUpdateInputInterfaces,
     getPluginClasses,
-} from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils';
-import { addEntityCommand } from '../entity/add-entity';
+} from '../../../utilities/ast-utils.js';
+import { kebabCase } from '../../../utilities/case-utils.js';
+import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils.js';
+import { addEntityCommand } from '../entity/add-entity.js';
 
 const cancelledMessage = 'Add service cancelled';
 
@@ -93,7 +95,7 @@ export async function addService(
               }));
     if (!isNonInteractive && isCancel(type)) {
         cancel('Cancelled');
-        process.exit(0);
+        exitCliCommand(0);
     }
     const options: AddServiceOptions = {
         type,
@@ -157,7 +159,7 @@ export async function addService(
 
         if (!isNonInteractive && isCancel(name)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
 
         options.serviceName = name as string;
@@ -166,7 +168,7 @@ export async function addService(
         await pauseForPromptDisplay();
         serviceSourceFile = createFile(
             project,
-            path.join(__dirname, 'templates/basic-service.template.ts'),
+            path.join(import.meta.dirname, 'templates/basic-service.template.ts'),
             serviceSourceFilePath,
         );
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -179,7 +181,7 @@ export async function addService(
         const serviceSourceFilePath = getServiceFilePath(vendurePlugin, options.serviceName);
         serviceSourceFile = createFile(
             project,
-            path.join(__dirname, 'templates/entity-service.template.ts'),
+            path.join(import.meta.dirname, 'templates/entity-service.template.ts'),
             serviceSourceFilePath,
         );
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

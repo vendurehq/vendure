@@ -7,7 +7,7 @@ import {
     MigrationResult,
     revertMigrationOperation,
     runMigrationsOperation,
-} from './migration-operations';
+} from './migration-operations.js';
 
 describe('migration-operations', () => {
     let defaultOptions: MigrationOptions;

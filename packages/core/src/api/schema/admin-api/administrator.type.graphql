@@ -5,6 +5,7 @@ type Administrator implements Node {
     firstName: String!
     lastName: String!
     emailAddress: String!
+    avatar: Asset
     user: User!
 }
 

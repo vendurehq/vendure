@@ -86,6 +86,7 @@ export enum AdjustmentType {
 
 export type Administrator = Node & {
   __typename?: 'Administrator';
+  avatar?: Maybe<Asset>;
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
   emailAddress: Scalars['String']['output'];
@@ -201,8 +202,14 @@ export type ApiKeyFilterParameter = {
   _or?: InputMaybe<Array<ApiKeyFilterParameter>>;
   createdAt?: InputMaybe<DateOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<DateOperators>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<StringOperators>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -229,8 +236,14 @@ export type ApiKeyListOptions = {
 export type ApiKeySortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<SortOrder>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<SortOrder>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -367,12 +380,22 @@ export type AssignProductOptionGroupsToChannelInput = {
 
 export type AssignProductVariantsToChannelInput = {
   channelId: Scalars['ID']['input'];
+  /**
+   * Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+   * the value from the active Channel, and already assigned ones are left unchanged.
+   */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   priceFactor?: InputMaybe<Scalars['Float']['input']>;
   productVariantIds: Array<Scalars['ID']['input']>;
 };
 
 export type AssignProductsToChannelInput = {
   channelId: Scalars['ID']['input'];
+  /**
+   * Sets whether they are enabled in the target Channel. If not set, newly assigned entities copy
+   * the value from the active Channel, and already assigned ones are left unchanged.
+   */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   priceFactor?: InputMaybe<Scalars['Float']['input']>;
   productIds: Array<Scalars['ID']['input']>;
 };
@@ -380,6 +403,11 @@ export type AssignProductsToChannelInput = {
 export type AssignPromotionsToChannelInput = {
   channelId: Scalars['ID']['input'];
   promotionIds: Array<Scalars['ID']['input']>;
+};
+
+export type AssignRolesToUserInput = {
+  assignments: Array<RoleAssignmentInput>;
+  userId: Scalars['ID']['input'];
 };
 
 export type AssignShippingMethodsToChannelInput = {
@@ -418,6 +446,7 @@ export type BooleanCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -530,9 +559,11 @@ export type ChannelFilterParameter = {
   defaultCurrencyCode?: InputMaybe<StringOperators>;
   defaultLanguageCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
   token?: InputMaybe<StringOperators>;
+  /** Not yet used - will be implemented in a future release. */
   trackInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -560,6 +591,7 @@ export type ChannelSortParameter = {
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -686,6 +718,7 @@ export type ConfigArgDefinition = {
   list: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
   required: Scalars['Boolean']['output'];
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -850,7 +883,13 @@ export type CreateAdministratorInput = {
   firstName: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
   password: Scalars['String']['input'];
-  roleIds: Array<Scalars['ID']['input']>;
+  /** The RoleAssignments to create for the new Administrator's User. Cannot be combined with roleIds. */
+  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
+  /**
+   * Grants the Roles on the active Channel. Cannot be combined with roleAssignments.
+   * @deprecated Use roleAssignments instead. roleIds grants the Roles on the active Channel only.
+   */
+  roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /**
@@ -860,10 +899,18 @@ export type CreateAdministratorInput = {
 export type CreateApiKeyInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   /**
-   * Which roles to attach to this ApiKey.
-   * You may only grant roles which you, yourself have.
+   * Which roles to attach to this ApiKey on which Channels.
+   * You may only grant roles which you, yourself have on those Channels.
+   * Cannot be combined with roleIds.
    */
-  roleIds: Array<Scalars['ID']['input']>;
+  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
+  /**
+   * Which roles to attach to this ApiKey, granted on the active Channel.
+   * You may only grant roles which you, yourself have.
+   * Cannot be combined with roleAssignments.
+   * @deprecated Use roleAssignments instead. roleIds grants the Roles on the active Channel only.
+   */
+  roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   translations: Array<CreateApiKeyTranslationInput>;
 };
 
@@ -952,7 +999,7 @@ export type CreateCustomerInput = {
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CreateCustomerResult = Customer | EmailAddressConflictError;
+export type CreateCustomerResult = Customer | EmailAddressConflictError | PasswordValidationError;
 
 export type CreateFacetInput = {
   code: Scalars['String']['input'];
@@ -1000,6 +1047,8 @@ export type CreateProductInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. Defaults to `true`. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   translations: Array<ProductTranslationInput>;
@@ -1023,6 +1072,8 @@ export type CreateProductVariantInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. Defaults to `true`. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   optionIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -1074,8 +1125,8 @@ export type CreateProvinceInput = {
 };
 
 export type CreateRoleInput = {
-  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code: Scalars['String']['input'];
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description: Scalars['String']['input'];
   permissions: Array<Permission>;
 };
@@ -1083,6 +1134,7 @@ export type CreateRoleInput = {
 export type CreateSellerInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   name: Scalars['String']['input'];
+  translations?: InputMaybe<Array<SellerTranslationInput>>;
 };
 
 export type CreateShippingMethodInput = {
@@ -1475,6 +1527,7 @@ export type CustomField = {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1512,6 +1565,7 @@ export type CustomFields = {
   Promotion: Array<CustomFieldConfig>;
   Refund: Array<CustomFieldConfig>;
   Region: Array<CustomFieldConfig>;
+  Role: Array<CustomFieldConfig>;
   Seller: Array<CustomFieldConfig>;
   Session: Array<CustomFieldConfig>;
   ShippingLine: Array<CustomFieldConfig>;
@@ -1684,6 +1738,7 @@ export type DateTimeCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1819,6 +1874,7 @@ export enum ErrorCode {
   MANUAL_PAYMENT_STATE_ERROR = 'MANUAL_PAYMENT_STATE_ERROR',
   MIME_TYPE_ERROR = 'MIME_TYPE_ERROR',
   MISSING_CONDITIONS_ERROR = 'MISSING_CONDITIONS_ERROR',
+  MISSING_PASSWORD_ERROR = 'MISSING_PASSWORD_ERROR',
   MULTIPLE_ORDER_ERROR = 'MULTIPLE_ORDER_ERROR',
   NATIVE_AUTH_STRATEGY_ERROR = 'NATIVE_AUTH_STRATEGY_ERROR',
   NEGATIVE_QUANTITY_ERROR = 'NEGATIVE_QUANTITY_ERROR',
@@ -1830,6 +1886,10 @@ export enum ErrorCode {
   ORDER_MODIFICATION_ERROR = 'ORDER_MODIFICATION_ERROR',
   ORDER_MODIFICATION_STATE_ERROR = 'ORDER_MODIFICATION_STATE_ERROR',
   ORDER_STATE_TRANSITION_ERROR = 'ORDER_STATE_TRANSITION_ERROR',
+  PASSWORD_ALREADY_SET_ERROR = 'PASSWORD_ALREADY_SET_ERROR',
+  PASSWORD_RESET_TOKEN_EXPIRED_ERROR = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
+  PASSWORD_RESET_TOKEN_INVALID_ERROR = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
+  PASSWORD_VALIDATION_ERROR = 'PASSWORD_VALIDATION_ERROR',
   PAYMENT_METHOD_MISSING_ERROR = 'PAYMENT_METHOD_MISSING_ERROR',
   PAYMENT_ORDER_MISMATCH_ERROR = 'PAYMENT_ORDER_MISMATCH_ERROR',
   PAYMENT_STATE_TRANSITION_ERROR = 'PAYMENT_STATE_TRANSITION_ERROR',
@@ -1837,6 +1897,8 @@ export enum ErrorCode {
   PRODUCT_OPTION_IN_USE_ERROR = 'PRODUCT_OPTION_IN_USE_ERROR',
   QUANTITY_TOO_GREAT_ERROR = 'QUANTITY_TOO_GREAT_ERROR',
   REFUND_AMOUNT_ERROR = 'REFUND_AMOUNT_ERROR',
+  REFUND_DESTINATION_ERROR = 'REFUND_DESTINATION_ERROR',
+  REFUND_INCOMPLETE_ERROR = 'REFUND_INCOMPLETE_ERROR',
   REFUND_ORDER_STATE_ERROR = 'REFUND_ORDER_STATE_ERROR',
   REFUND_PAYMENT_ID_MISSING_ERROR = 'REFUND_PAYMENT_ID_MISSING_ERROR',
   REFUND_STATE_TRANSITION_ERROR = 'REFUND_STATE_TRANSITION_ERROR',
@@ -2041,6 +2103,7 @@ export type FloatCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Float']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2264,6 +2327,7 @@ export type IntCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2744,6 +2808,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -2760,6 +2825,7 @@ export type LocaleTextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -2792,36 +2858,6 @@ export type ManualPaymentStateError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
-export enum MetricInterval {
-  Daily = 'Daily'
-}
-
-export type MetricSummary = {
-  __typename?: 'MetricSummary';
-  entries: Array<MetricSummaryEntry>;
-  interval: MetricInterval;
-  title: Scalars['String']['output'];
-  type: MetricType;
-};
-
-export type MetricSummaryEntry = {
-  __typename?: 'MetricSummaryEntry';
-  label: Scalars['String']['output'];
-  value: Scalars['Float']['output'];
-};
-
-export type MetricSummaryInput = {
-  interval: MetricInterval;
-  refresh?: InputMaybe<Scalars['Boolean']['input']>;
-  types: Array<MetricType>;
-};
-
-export enum MetricType {
-  AverageOrderValue = 'AverageOrderValue',
-  OrderCount = 'OrderCount',
-  OrderTotal = 'OrderTotal'
-}
-
 export type MimeTypeError = ErrorResult & {
   __typename?: 'MimeTypeError';
   errorCode: ErrorCode;
@@ -2833,6 +2869,13 @@ export type MimeTypeError = ErrorResult & {
 /** Returned if a PromotionCondition has neither a couponCode nor any conditions set */
 export type MissingConditionsError = ErrorResult & {
   __typename?: 'MissingConditionsError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/** Returned when attempting to register or verify a customer account without a password, when one is required. */
+export type MissingPasswordError = ErrorResult & {
+  __typename?: 'MissingPasswordError';
   errorCode: ErrorCode;
   message: Scalars['String']['output'];
 };
@@ -2921,8 +2964,18 @@ export type Mutation = {
   assignProductsToChannel: Array<Product>;
   /** Assigns Promotions to the specified Channel */
   assignPromotionsToChannel: Array<Promotion>;
-  /** Assign a Role to an Administrator */
+  /**
+   * Assign a Role to an Administrator
+   * @deprecated Use assignRolesToUser instead. assignRoleToAdministrator assigns the Role on the active Channel only.
+   */
   assignRoleToAdministrator: Administrator;
+  /**
+   * Grants the User each Role on the given Channel. The active user must hold every permission
+   * of the Role on that Channel, be able to grant every assignment the User already holds, and
+   * have UpdateAdministrator (UpdateApiKey for an ApiKey's User) on each Channel involved.
+   * A SuperAdmin grant applies on every Channel.
+   */
+  assignRolesToUser: User;
   /** Assigns ShippingMethods to the specified Channel */
   assignShippingMethodsToChannel: Array<ShippingMethod>;
   /** Assigns StockLocations to the specified Channel */
@@ -2970,7 +3023,12 @@ export type Mutation = {
   createProductOption: ProductOption;
   /** Create a new ProductOptionGroup */
   createProductOptionGroup: ProductOptionGroup;
-  /** Create a set of ProductVariants based on the OptionGroups assigned to the given Product */
+  /**
+   * Creates ProductVariants for the given Product. Each input must name exactly one option from
+   * each OptionGroup assigned to the Product. A create is rejected if another variant of the
+   * Product already holds the same combination of options. A Product with no OptionGroups may
+   * hold any number of variants.
+   */
   createProductVariants: Array<Maybe<ProductVariant>>;
   createPromotion: CreatePromotionResult;
   /** Create a new Province */
@@ -3135,12 +3193,43 @@ export type Mutation = {
   removeProductsFromChannel: Array<Product>;
   /** Removes Promotions from the specified Channel */
   removePromotionsFromChannel: Array<Promotion>;
+  /**
+   * Revokes each Role on the given Channel from the User, under the same rules as
+   * assignRolesToUser. Revoking SuperAdmin removes it on every Channel; the sole SuperAdmin
+   * cannot lose it.
+   */
+  removeRolesFromUser: User;
   /** Remove all settled jobs in the given queues older than the given date. Returns the number of jobs deleted. */
   removeSettledJobs: Scalars['Int']['output'];
   /** Removes ShippingMethods from the specified Channel */
   removeShippingMethodsFromChannel: Array<ShippingMethod>;
   /** Removes StockLocations from the specified Channel */
   removeStockLocationsFromChannel: Array<StockLocation>;
+  /**
+   * Requests a password reset email to be sent to the Customer, the same as the Customer calling
+   * `requestPasswordReset` from the Shop API: it sets a reset token and publishes a
+   * `PasswordResetEvent`, which the EmailPlugin uses to send the email. The event carries the
+   * administrator's RequestContext, so the email uses the administrator's language.
+   *
+   * When `authOptions.requireVerification` is on, a Customer who has not verified their account is
+   * marked as verified when they complete the reset. No `AccountVerifiedEvent` is published.
+   *
+   * Throws for a Customer with no User (a guest checkout), and for a User with no native
+   * authentication method, since neither has a native credential to reset.
+   */
+  requestCustomerPasswordReset: Success;
+  /**
+   * Requests a password reset email to be sent to the Administrator with the given email address. To
+   * prevent leaking information about which email addresses exist, the mutation resolves to `Success`
+   * even if no Administrator with that email address was found.
+   */
+  requestPasswordReset?: Maybe<RequestPasswordResetResult>;
+  /**
+   * Resets an Administrator's password based on the provided token, which is obtained via the email
+   * sent as a result of the `requestPasswordReset` mutation. Upon success, the Administrator will be
+   * signed in.
+   */
+  resetPassword: ResetPasswordResult;
   /**
    * Replaces the old with a new API-Key.
    * This is a convenience method to invalidate an API-Key without
@@ -3149,6 +3238,8 @@ export type Mutation = {
   rotateApiKey: RotateApiKeyResult;
   runPendingSearchIndexUpdates: Success;
   runScheduledTask: Success;
+  /** Upload, replace or remove the active Administrator's profile picture */
+  setActiveAdministratorAvatar: Administrator;
   setCustomerForDraftOrder: SetCustomerForDraftOrderResult;
   /** Sets the billing address for a draft Order */
   setDraftOrderBillingAddress: Order;
@@ -3236,6 +3327,20 @@ export type Mutation = {
   updateTaxRate: TaxRate;
   /** Update an existing Zone */
   updateZone: Zone;
+  /**
+   * Manually mark a Customer's email address as verified, without the Customer having to use a
+   * verification email.
+   *
+   * A Customer with no password set (as created by `createCustomer` without one) cannot log in.
+   * Omitting `password` for such a Customer returns a `MissingPasswordError`. Passing one for a
+   * Customer who already has a password returns a `PasswordAlreadySetError`.
+   *
+   * Two failures are outside the result union, because they describe a Customer the caller should
+   * not have picked rather than a password they should correct: a Customer with no User at all (a
+   * guest checkout), and a User whose only credential is external, which a password cannot be
+   * stored on. Both throw.
+   */
+  verifyCustomerAccount: VerifyCustomerAccountResult;
 };
 
 
@@ -3338,6 +3443,11 @@ export type MutationAssignPromotionsToChannelArgs = {
 export type MutationAssignRoleToAdministratorArgs = {
   administratorId: Scalars['ID']['input'];
   roleId: Scalars['ID']['input'];
+};
+
+
+export type MutationAssignRolesToUserArgs = {
+  input: AssignRolesToUserInput;
 };
 
 
@@ -3864,6 +3974,11 @@ export type MutationRemovePromotionsFromChannelArgs = {
 };
 
 
+export type MutationRemoveRolesFromUserArgs = {
+  input: RemoveRolesFromUserInput;
+};
+
+
 export type MutationRemoveSettledJobsArgs = {
   olderThan?: InputMaybe<Scalars['DateTime']['input']>;
   queueNames?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -3880,6 +3995,22 @@ export type MutationRemoveStockLocationsFromChannelArgs = {
 };
 
 
+export type MutationRequestCustomerPasswordResetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationRequestPasswordResetArgs = {
+  emailAddress: Scalars['String']['input'];
+};
+
+
+export type MutationResetPasswordArgs = {
+  password: Scalars['String']['input'];
+  token: Scalars['String']['input'];
+};
+
+
 export type MutationRotateApiKeyArgs = {
   id: Scalars['ID']['input'];
 };
@@ -3887,6 +4018,11 @@ export type MutationRotateApiKeyArgs = {
 
 export type MutationRunScheduledTaskArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type MutationSetActiveAdministratorAvatarArgs = {
+  file?: InputMaybe<Scalars['Upload']['input']>;
 };
 
 
@@ -4148,6 +4284,12 @@ export type MutationUpdateZoneArgs = {
   input: UpdateZoneInput;
 };
 
+
+export type MutationVerifyCustomerAccountArgs = {
+  id: Scalars['ID']['input'];
+  password?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type NativeAuthInput = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
@@ -4305,21 +4447,36 @@ export type OrderAddress = {
 export type OrderFilterParameter = {
   _and?: InputMaybe<Array<OrderFilterParameter>>;
   _or?: InputMaybe<Array<OrderFilterParameter>>;
+  /** An order is active as long as the payment process has not been completed */
   active?: InputMaybe<BooleanOperators>;
   aggregateOrderId?: InputMaybe<IdOperators>;
+  /** A unique code for the Order */
   code?: InputMaybe<StringOperators>;
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   customerLastName?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<DateOperators>;
   shipping?: InputMaybe<NumberOperators>;
   shippingWithTax?: InputMaybe<NumberOperators>;
   state?: InputMaybe<StringOperators>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<NumberOperators>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<NumberOperators>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<NumberOperators>;
   totalQuantity?: InputMaybe<NumberOperators>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<NumberOperators>;
   transactionId?: InputMaybe<StringOperators>;
   type?: InputMaybe<StringOperators>;
@@ -4475,18 +4632,32 @@ export type OrderProcessState = {
 
 export type OrderSortParameter = {
   aggregateOrderId?: InputMaybe<SortOrder>;
+  /** A unique code for the Order */
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   customerLastName?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<SortOrder>;
   shipping?: InputMaybe<SortOrder>;
   shippingWithTax?: InputMaybe<SortOrder>;
   state?: InputMaybe<SortOrder>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<SortOrder>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<SortOrder>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<SortOrder>;
   totalQuantity?: InputMaybe<SortOrder>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<SortOrder>;
   transactionId?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -4527,6 +4698,41 @@ export enum OrderType {
 export type PaginatedList = {
   items: Array<Node>;
   totalItems: Scalars['Int']['output'];
+};
+
+/** Returned when attempting to verify a customer account with a password, when a password has already been set. */
+export type PasswordAlreadySetError = ErrorResult & {
+  __typename?: 'PasswordAlreadySetError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned if the token used to reset an Administrator's password is valid, but has
+ * expired according to the `verificationTokenDuration` setting in the AuthOptions.
+ */
+export type PasswordResetTokenExpiredError = ErrorResult & {
+  __typename?: 'PasswordResetTokenExpiredError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned if the token used to reset an Administrator's password is either
+ * invalid or does not match any expected tokens.
+ */
+export type PasswordResetTokenInvalidError = ErrorResult & {
+  __typename?: 'PasswordResetTokenInvalidError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/** Returned when attempting to register or verify a customer account where the given password fails password validation. */
+export type PasswordValidationError = ErrorResult & {
+  __typename?: 'PasswordValidationError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+  validationErrorMessage: Scalars['String']['output'];
 };
 
 export type Payment = Node & {
@@ -4719,6 +4925,8 @@ export enum Permission {
   CreateProduct = 'CreateProduct',
   /** Grants permission to create Promotion */
   CreatePromotion = 'CreatePromotion',
+  /** Grants permission to create Role */
+  CreateRole = 'CreateRole',
   /** Grants permission to create Seller */
   CreateSeller = 'CreateSeller',
   /** Grants permission to create PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4765,6 +4973,8 @@ export enum Permission {
   DeleteProduct = 'DeleteProduct',
   /** Grants permission to delete Promotion */
   DeletePromotion = 'DeletePromotion',
+  /** Grants permission to delete Role */
+  DeleteRole = 'DeleteRole',
   /** Grants permission to delete Seller */
   DeleteSeller = 'DeleteSeller',
   /** Grants permission to delete PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4815,6 +5025,10 @@ export enum Permission {
   ReadProduct = 'ReadProduct',
   /** Grants permission to read Promotion */
   ReadPromotion = 'ReadPromotion',
+  /** Grants permission to read Role */
+  ReadRole = 'ReadRole',
+  /** Grants permission to read the decrypted value of custom fields and config args marked as `secret` */
+  ReadSecret = 'ReadSecret',
   /** Grants permission to read Seller */
   ReadSeller = 'ReadSeller',
   /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4865,6 +5079,8 @@ export enum Permission {
   UpdateProduct = 'UpdateProduct',
   /** Grants permission to update Promotion */
   UpdatePromotion = 'UpdatePromotion',
+  /** Grants permission to update Role */
+  UpdateRole = 'UpdateRole',
   /** Grants permission to update Seller */
   UpdateSeller = 'UpdateSeller',
   /** Grants permission to update PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4914,6 +5130,11 @@ export type Product = Node & {
   customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   enabled: Scalars['Boolean']['output'];
+  /**
+   * Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel: Scalars['Boolean']['output'];
   facetValues: Array<FacetValue>;
   featuredAsset?: Maybe<Asset>;
   id: Scalars['ID']['output'];
@@ -4940,6 +5161,11 @@ export type ProductFilterParameter = {
   createdAt?: InputMaybe<DateOperators>;
   description?: InputMaybe<StringOperators>;
   enabled?: InputMaybe<BooleanOperators>;
+  /**
+   * Whether the Product is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel?: InputMaybe<BooleanOperators>;
   facetValueId?: InputMaybe<IdOperators>;
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
@@ -5019,6 +5245,7 @@ export type ProductOptionGroupFilterParameter = {
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
   name?: InputMaybe<StringOperators>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<NumberOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -5056,6 +5283,7 @@ export type ProductOptionGroupSortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -5165,6 +5393,11 @@ export type ProductVariant = Node & {
   currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
   enabled: Scalars['Boolean']['output'];
+  /**
+   * Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel: Scalars['Boolean']['output'];
   facetValues: Array<FacetValue>;
   featuredAsset?: Maybe<Asset>;
   id: Scalars['ID']['output'];
@@ -5204,6 +5437,11 @@ export type ProductVariantFilterParameter = {
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   enabled?: InputMaybe<BooleanOperators>;
+  /**
+   * Whether the ProductVariant is enabled in the active Channel. It is available in the Channel only if it is
+   * also enabled globally (`enabled`).
+   */
+  enabledInChannel?: InputMaybe<BooleanOperators>;
   facetValueId?: InputMaybe<IdOperators>;
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
@@ -5480,8 +5718,6 @@ export type Query = {
   jobs: JobList;
   jobsById: Array<Job>;
   me?: Maybe<CurrentUser>;
-  /** Get metrics for the given interval and metric types. */
-  metricSummary: Array<MetricSummary>;
   order?: Maybe<Order>;
   orders: OrderList;
   paymentMethod?: Maybe<PaymentMethod>;
@@ -5509,7 +5745,18 @@ export type Query = {
   promotions: PromotionList;
   province?: Maybe<Province>;
   provinces: ProvinceList;
+  /**
+   * Returns the available refund destinations for the given order.
+   * This includes the default destination (original payment method) plus
+   * any custom destinations registered via RefundDestinationStrategy.
+   */
+  refundDestinations: Array<RefundDestination>;
   role?: Maybe<Role>;
+  /**
+   * Get a paginated list of the RoleAssignments of the Users the active user may manage: those
+   * whose every assignment the active user could grant.
+   */
+  roleAssignments: RoleAssignmentList;
   roles: RoleList;
   scheduledTasks: Array<ScheduledTask>;
   search: SearchResponse;
@@ -5674,11 +5921,6 @@ export type QueryJobsByIdArgs = {
 };
 
 
-export type QueryMetricSummaryArgs = {
-  input?: InputMaybe<MetricSummaryInput>;
-};
-
-
 export type QueryOrderArgs = {
   id: Scalars['ID']['input'];
 };
@@ -5768,8 +6010,18 @@ export type QueryProvincesArgs = {
 };
 
 
+export type QueryRefundDestinationsArgs = {
+  orderId: Scalars['ID']['input'];
+};
+
+
 export type QueryRoleArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryRoleAssignmentsArgs = {
+  options?: InputMaybe<RoleAssignmentListOptions>;
 };
 
 
@@ -5872,6 +6124,11 @@ export type Refund = Node & {
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
+  /**
+   * The refund destination code, if a non-default destination was used.
+   * When null, the refund was directed to the original payment method.
+   */
+  destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
@@ -5894,6 +6151,43 @@ export type RefundAmountError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
+/** Represents an available refund destination for an order. */
+export type RefundDestination = {
+  __typename?: 'RefundDestination';
+  /**
+   * The IDs of the Payments on this Order for which this destination is available, as
+   * determined by the strategy's `isAvailable()` method. A refund to this destination must
+   * draw its balance from one of these Payments.
+   */
+  availableForPaymentIds: Array<Scalars['ID']['output']>;
+  code: Scalars['String']['output'];
+  description: Scalars['String']['output'];
+};
+
+/** Returned if the specified refund destination does not exist, or is not available for the specified Payment */
+export type RefundDestinationError = ErrorResult & {
+  __typename?: 'RefundDestinationError';
+  destinationCode: Scalars['String']['output'];
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned when a refund split over several `targets` fails after one or more of the earlier
+ * targets have already been refunded. The Refunds created before the failure are kept, since their
+ * funds may already have been moved, and are listed in `refunds`.
+ */
+export type RefundIncompleteError = ErrorResult & {
+  __typename?: 'RefundIncompleteError';
+  errorCode: ErrorCode;
+  /** The zero-based index of the target in `RefundOrderInput.targets` which failed. */
+  failedTargetIndex: Scalars['Int']['output'];
+  failureReason: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  /** The Refunds created by this operation, including one whose state transition failed. */
+  refunds: Array<Refund>;
+};
+
 export type RefundLine = {
   __typename?: 'RefundLine';
   orderLine: OrderLine;
@@ -5911,15 +6205,34 @@ export type RefundOrderInput = {
    * Can be as much as the total amount of the payment minus the sum of all previous refunds.
    */
   amount?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Optional refund destination code. When omitted, refunds to the original
+   * payment method. Use the `refundDestinations` query to discover available
+   * destinations for an order.
+   *
+   * Ignored when `targets` is specified.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   lines?: InputMaybe<Array<OrderLineInput>>;
   paymentId: Scalars['ID']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   shipping?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Splits the refund across multiple payments and/or refund destinations. The sum of the
+   * `amount` of each target is the total amount refunded, and the top-level `amount` and
+   * `destination` fields are ignored.
+   *
+   * All targets are validated before any refund is created, and every target must draw on a
+   * Payment in the `Settled` state. If a target fails once earlier targets have already been
+   * refunded, the Refunds created for the earlier targets are kept and a `RefundIncompleteError`
+   * is returned.
+   */
+  targets?: InputMaybe<Array<RefundTargetInput>>;
 };
 
-export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundOrderStateError | RefundStateTransitionError;
+export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundDestinationError | RefundIncompleteError | RefundOrderStateError | RefundStateTransitionError;
 
 /** Returned if an attempting to refund an Order which is not in the expected state */
 export type RefundOrderStateError = ErrorResult & {
@@ -5947,6 +6260,31 @@ export type RefundStateTransitionError = ErrorResult & {
   message: Scalars['String']['output'];
   toState: Scalars['String']['output'];
   transitionError: Scalars['String']['output'];
+};
+
+/**
+ * Specifies a single portion of a refund: how much to refund, which Payment's refundable
+ * balance it is drawn from, and where the funds are directed.
+ */
+export type RefundTargetInput = {
+  /** The amount to refund to this target. */
+  amount: Scalars['Money']['input'];
+  /**
+   * Arbitrary configuration passed to the RefundDestinationStrategy's `createRefund()` method,
+   * for example an expiry date for a store credit refund. Has no effect when `destination`
+   * is omitted.
+   */
+  arguments?: InputMaybe<Scalars['JSON']['input']>;
+  /**
+   * The refund destination code. When omitted, the funds are refunded to the original
+   * payment method.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The Payment whose refundable balance is drawn on. Defaults to the top-level `paymentId`
+   * of the RefundOrderInput when omitted.
+   */
+  paymentId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type Region = {
@@ -5986,6 +6324,7 @@ export type RelationCustomFieldConfig = CustomField & {
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
   scalarFields: Array<Scalars['String']['output']>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6046,6 +6385,11 @@ export type RemovePromotionsFromChannelInput = {
   promotionIds: Array<Scalars['ID']['input']>;
 };
 
+export type RemoveRolesFromUserInput = {
+  assignments: Array<RoleAssignmentInput>;
+  userId: Scalars['ID']['input'];
+};
+
 export type RemoveShippingMethodsFromChannelInput = {
   channelId: Scalars['ID']['input'];
   shippingMethodIds: Array<Scalars['ID']['input']>;
@@ -6055,6 +6399,10 @@ export type RemoveStockLocationsFromChannelInput = {
   channelId: Scalars['ID']['input'];
   stockLocationIds: Array<Scalars['ID']['input']>;
 };
+
+export type RequestPasswordResetResult = NativeAuthStrategyError | Success;
+
+export type ResetPasswordResult = CurrentUser | NativeAuthStrategyError | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError;
 
 export type Return = Node & StockMovement & {
   __typename?: 'Return';
@@ -6069,13 +6417,81 @@ export type Return = Node & StockMovement & {
 
 export type Role = Node & {
   __typename?: 'Role';
-  channels: Array<Channel>;
+  /**
+   * The Channel which owns this Role. A Role owned by the default Channel can be assigned on any
+   * Channel, any other Role only on its owner. Null only for a Role created by a v3 server during
+   * a rolling upgrade, until the role assignment migration has completed.
+   */
+  channel?: Maybe<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
+  customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   permissions: Array<Permission>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Grants a User the permissions of a Role on a Channel. A SuperAdmin assignment is stored on the
+ * default Channel and applies on every Channel.
+ */
+export type RoleAssignment = Node & {
+  __typename?: 'RoleAssignment';
+  channel: Channel;
+  channelId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  role: Role;
+  roleId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  user: User;
+  userId: Scalars['ID']['output'];
+};
+
+export type RoleAssignmentFilterParameter = {
+  _and?: InputMaybe<Array<RoleAssignmentFilterParameter>>;
+  _or?: InputMaybe<Array<RoleAssignmentFilterParameter>>;
+  channelId?: InputMaybe<IdOperators>;
+  createdAt?: InputMaybe<DateOperators>;
+  id?: InputMaybe<IdOperators>;
+  roleId?: InputMaybe<IdOperators>;
+  updatedAt?: InputMaybe<DateOperators>;
+  userId?: InputMaybe<IdOperators>;
+};
+
+/** The grant of a Role on a Channel */
+export type RoleAssignmentInput = {
+  channelId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+};
+
+export type RoleAssignmentList = PaginatedList & {
+  __typename?: 'RoleAssignmentList';
+  items: Array<RoleAssignment>;
+  totalItems: Scalars['Int']['output'];
+};
+
+export type RoleAssignmentListOptions = {
+  /** Allows the results to be filtered */
+  filter?: InputMaybe<RoleAssignmentFilterParameter>;
+  /** Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND. */
+  filterOperator?: InputMaybe<LogicalOperator>;
+  /** Skips the first n results, for use in pagination */
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  /** Specifies which properties to sort the results by */
+  sort?: InputMaybe<RoleAssignmentSortParameter>;
+  /** Takes n results, for use in pagination */
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type RoleAssignmentSortParameter = {
+  channelId?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  roleId?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  userId?: InputMaybe<SortOrder>;
 };
 
 export type RoleFilterParameter = {
@@ -6143,6 +6559,7 @@ export type ScheduledTask = {
   nextExecutionAt?: Maybe<Scalars['DateTime']['output']>;
   schedule: Scalars['String']['output'];
   scheduleDescription: Scalars['String']['output'];
+  timezone?: Maybe<Scalars['String']['output']>;
 };
 
 export type SearchInput = {
@@ -6221,6 +6638,7 @@ export type Seller = Node & {
   customFields?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  translations: Array<SellerTranslation>;
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -6257,6 +6675,24 @@ export type SellerSortParameter = {
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
+};
+
+/**
+ * Holds a Seller's localized custom field values for one language.
+ * The Seller's own fields, such as `name`, are not translated.
+ */
+export type SellerTranslation = {
+  __typename?: 'SellerTranslation';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  languageCode: LanguageCode;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type SellerTranslationInput = {
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  languageCode: LanguageCode;
 };
 
 export type ServerConfig = {
@@ -6569,6 +7005,7 @@ export type StringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6622,6 +7059,7 @@ export type StructCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6856,6 +7294,7 @@ export type TextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6914,6 +7353,12 @@ export type UpdateAdministratorInput = {
   id: Scalars['ID']['input'];
   lastName?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Replaces the User's Roles on the active Channel: Roles held there but absent from the list
+   * are removed, Roles in the list not yet held are assigned. The active user must be permitted
+   * to make each of those changes, including the removals.
+   * @deprecated Use assignRolesToUser / removeRolesFromUser instead. roleIds replaces the Roles on the active Channel only.
+   */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
@@ -6922,8 +7367,10 @@ export type UpdateApiKeyInput = {
   /** ID of the ApiKey */
   id: Scalars['ID']['input'];
   /**
-   * Which roles to attach to this ApiKey.
-   * You may only grant roles which you, yourself have.
+   * Which roles to attach to this ApiKey, replacing its Roles on the active Channel: Roles held
+   * there but absent from the list are removed, Roles in the list not yet held are assigned.
+   * You may only make changes for roles which you, yourself have, including the removals.
+   * @deprecated Use assignRolesToUser / removeRolesFromUser instead. roleIds replaces the Roles on the active Channel only.
    */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   translations?: InputMaybe<Array<UpdateApiKeyTranslationInput>>;
@@ -7085,6 +7532,8 @@ export type UpdateProductInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. If not set, it is left unchanged. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
@@ -7109,6 +7558,8 @@ export type UpdateProductVariantInput = {
   assetIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets whether it is enabled in the active Channel. If not set, it is left unchanged. */
+  enabledInChannel?: InputMaybe<Scalars['Boolean']['input']>;
   facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   featuredAssetId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
@@ -7163,8 +7614,8 @@ export type UpdateProvinceInput = {
 };
 
 export type UpdateRoleInput = {
-  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code?: InputMaybe<Scalars['String']['input']>;
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   permissions?: InputMaybe<Array<Permission>>;
@@ -7179,6 +7630,7 @@ export type UpdateSellerInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  translations?: InputMaybe<Array<SellerTranslationInput>>;
 };
 
 export type UpdateShippingMethodInput = {
@@ -7235,10 +7687,17 @@ export type User = Node & {
   id: Scalars['ID']['output'];
   identifier: Scalars['String']['output'];
   lastLogin?: Maybe<Scalars['DateTime']['output']>;
+  /**
+   * The RoleAssignments of this User: all of them if the active user could grant every one,
+   * none otherwise.
+   */
+  roleAssignments: Array<RoleAssignment>;
   roles: Array<Role>;
   updatedAt: Scalars['DateTime']['output'];
   verified: Scalars['Boolean']['output'];
 };
+
+export type VerifyCustomerAccountResult = Customer | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError;
 
 export type Zone = Node & {
   __typename?: 'Zone';

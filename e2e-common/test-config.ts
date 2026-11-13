@@ -11,6 +11,7 @@ import path from 'path';
 import { DataSourceOptions } from 'typeorm';
 
 import { getPackageDir } from './get-package-dir';
+import { getTestFileIndex } from './get-test-file-index';
 
 declare global {
     namespace NodeJS {
@@ -35,10 +36,20 @@ registerInitializer('mysql', new MysqlInitializer());
 registerInitializer('mariadb', new MysqlInitializer());
 
 export const testConfig = () => {
-    const index = getIndexOfTestFileInParentDir();
+    const testFilePath = getCallerFilename(1);
+    const index = getTestFileIndex(path.dirname(packageDir), testFilePath);
+    const { basePort, size } = getPortRange();
+    if (index === -1) {
+        throw new Error(`${testFilePath} is not a test file of ${path.dirname(packageDir)}.`);
+    }
+    if (index >= size) {
+        throw new Error(
+            `${path.dirname(packageDir)} has more than ${size} test files. Make its port range in e2e-common/test-config.ts larger.`,
+        );
+    }
     return mergeConfig(defaultTestConfig, {
         apiOptions: {
-            port: getBasePort() + index,
+            port: basePort + index,
         },
         importExportOptions: {
             importAssetsDir: path.join(packageDir, 'fixtures/assets'),
@@ -47,33 +58,36 @@ export const testConfig = () => {
     });
 };
 
+const CORE_BASE_PORT = 3010;
+/** Core has the most e2e specs. Its range ends at 3199. */
+const CORE_PORTS = 190;
 /**
- * Returns a base port unique to the current package, so that e2e tests
- * from different packages (which Lerna may run in parallel) never collide.
- * Core gets 3010–3199, other packages get 3200+.
+ * The other packages get ports from here. The ports are far from the ports of the services in
+ * `docker-compose.yml`, and below the ephemeral port range of Linux and macOS.
  */
-function getBasePort(): number {
-    const packageName = process.env.PACKAGE || 'core';
-    const offsets: Record<string, number> = {
-        core: 3010,
-        'asset-server-plugin': 3220,
-        'graphiql-plugin': 3230,
-        cli: 3240,
-    };
-    return offsets[packageName] ?? 3250;
-}
+const PACKAGE_BASE_PORT = 20000;
+const PORTS_PER_PACKAGE = 50;
 
 /**
- * Returns the index of the test file in the parent directory.
- * This is used to ensure each test file has a unique
- * port number.
+ * Returns a port range unique to the current package, so that e2e tests
+ * from different packages (which Nx may run in parallel) never collide.
+ * Each package other than core gets PORTS_PER_PACKAGE ports, in the order of the folder
+ * names in `packages`. A new package moves the ranges after it. That is safe, because
+ * the ports only have to be unique in one checkout.
  */
-function getIndexOfTestFileInParentDir() {
-    const testFilePath = getCallerFilename(2);
-    const parentDir = path.dirname(testFilePath);
-    const files = fs.readdirSync(parentDir);
-    const index = files.indexOf(path.basename(testFilePath));
-    return index;
+function getPortRange(): { basePort: number; size: number } {
+    const packageName = path.basename(path.dirname(packageDir));
+    if (packageName === 'core') {
+        return { basePort: CORE_BASE_PORT, size: CORE_PORTS };
+    }
+    const packages = fs
+        .readdirSync(path.dirname(path.dirname(packageDir)))
+        .filter(name => name !== 'core')
+        .sort((a, b) => a.localeCompare(b));
+    return {
+        basePort: PACKAGE_BASE_PORT + packages.indexOf(packageName) * PORTS_PER_PACKAGE,
+        size: PORTS_PER_PACKAGE,
+    };
 }
 
 /**
@@ -102,7 +116,7 @@ function getCallerFilename(depth: number): string {
     return file;
 }
 
-function getDbConfig(): DataSourceOptions {
+export function getDbConfig(): DataSourceOptions {
     const dbType = process.env.DB || 'sqljs';
     switch (dbType) {
         case 'postgres':

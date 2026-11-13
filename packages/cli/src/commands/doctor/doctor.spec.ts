@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock @clack/prompts
 vi.mock('@clack/prompts', () => ({
@@ -13,36 +13,28 @@ vi.mock('@clack/prompts', () => ({
 import { log } from '@clack/prompts';
 
 describe('doctor command internals', () => {
-    let mockExit: ReturnType<typeof vi.spyOn>;
-
     beforeEach(() => {
         vi.clearAllMocks();
         vi.resetModules();
-        // Re-apply process.exit spy after resetModules
-        mockExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
     });
 
     describe('resolveChecks', () => {
-        it('warns about unknown check names via doctorCommand', async () => {
-            vi.doMock('./checks/project-check', () => ({
+        it('warns about unknown check names via doctorCommand', { timeout: 30_000 }, async () => {
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'fail',
                     message: 'No package.json',
                 }),
             }));
-            vi.doMock('./formatters/console-formatter', () => ({
+            vi.doMock('./formatters/console-formatter.js', () => ({
                 formatConsoleReport: vi.fn(),
             }));
-            vi.doMock('./formatters/json-formatter', () => ({
+            vi.doMock('./formatters/json-formatter.js', () => ({
                 formatJsonReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
             await doctorCommand({ check: ['invalid-check'] });
 
@@ -54,60 +46,64 @@ describe('doctor command internals', () => {
 
     describe('buildReport', () => {
         it('marks report as failed when any check fails', async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'fail',
                     message: 'No package.json',
                 }),
             }));
-            vi.doMock('./formatters/json-formatter', () => ({
+            vi.doMock('./formatters/json-formatter.js', () => ({
                 formatJsonReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
-            await doctorCommand({ check: ['project'], format: 'json' });
+            const exitCode = await doctorCommand({ check: ['project'], format: 'json' });
 
-            expect(mockExit).toHaveBeenCalledWith(1);
+            expect(exitCode).toBe(1);
         });
     });
 
     describe('--strict mode', () => {
         it('treats warnings as failures with --strict', async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'warn',
                     message: 'Some warning',
                 }),
             }));
-            vi.doMock('./formatters/json-formatter', () => ({
+            vi.doMock('./formatters/json-formatter.js', () => ({
                 formatJsonReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
-            await doctorCommand({ check: ['project'], format: 'json', strict: true });
+            const exitCode = await doctorCommand({
+                check: ['project'],
+                format: 'json',
+                strict: true,
+            });
 
-            expect(mockExit).toHaveBeenCalledWith(1);
+            expect(exitCode).toBe(1);
         });
     });
 
     describe('--profile validation', () => {
         it('warns about unknown profile', async () => {
-            vi.doMock('./checks/project-check', () => ({
+            vi.doMock('./checks/project-check.js', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
                     status: 'fail',
                     message: 'No package.json',
                 }),
             }));
-            vi.doMock('./formatters/console-formatter', () => ({
+            vi.doMock('./formatters/console-formatter.js', () => ({
                 formatConsoleReport: vi.fn(),
             }));
 
-            const { doctorCommand } = await import('./doctor');
+            const { doctorCommand } = await import('./doctor.js');
 
             await doctorCommand({ check: ['project'], profile: 'staging' });
 

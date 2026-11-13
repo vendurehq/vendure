@@ -61,7 +61,7 @@ const meta = {
 } satisfies Meta<typeof VendureImage>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<typeof VendureImage>;
 
 export const Playground: Story = {
     args: {
@@ -155,8 +155,8 @@ export const Fallbacks: Story = {
                         asset={null}
                         preset="thumb"
                         fallback={
-                            <div className="w-[150px] h-[150px] bg-gray-200 flex items-center justify-center rounded-sm">
-                                <span className="text-gray-500">Custom Fallback</span>
+                            <div className="w-[150px] h-[150px] bg-muted flex items-center justify-center rounded-sm">
+                                <span className="text-muted-foreground">Custom Fallback</span>
                             </div>
                         }
                     />

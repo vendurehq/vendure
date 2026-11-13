@@ -1,5 +1,9 @@
-import { DeletionResult, LanguageCode } from '@vendure/common/lib/generated-types';
-import { SUPER_ADMIN_USER_IDENTIFIER } from '@vendure/common/lib/shared-constants';
+import {
+    DeletionResult,
+    HistoryEntryType,
+    LanguageCode,
+    Permission,
+} from '@vendure/common/lib/generated-types';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, it } from 'vitest';
@@ -17,6 +21,8 @@ describe('ApiKey resolver', () => {
     const adminApiUrl = `http://localhost:${config.apiOptions.port}/${String(config.apiOptions.adminApiPath)}`;
 
     let createdApiKeyId: string;
+    // API keys cannot hold the SuperAdmin Role, so the keys hold every other permission
+    let fullAccessRoleId: string;
 
     beforeAll(async () => {
         await server.init({
@@ -25,6 +31,20 @@ describe('ApiKey resolver', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
+        const nonAssignable: string[] = [
+            Permission.SuperAdmin,
+            Permission.Owner,
+            Permission.Public,
+            Permission.Authenticated,
+        ];
+        const { createRole } = await adminClient.query(CREATE_ROLE, {
+            input: {
+                code: 'full-access',
+                description: 'Every permission except SuperAdmin',
+                permissions: Object.values(Permission).filter(p => !nonAssignable.includes(p)),
+            },
+        });
+        fullAccessRoleId = createRole.id;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -34,7 +54,7 @@ describe('ApiKey resolver', () => {
     it('createApiKey', async ({ expect }) => {
         const result = await adminClient.query(CREATE_API_KEY, {
             input: {
-                roleIds: ['1'],
+                roleIds: [fullAccessRoleId],
                 translations: [{ languageCode: LanguageCode.en, name: 'Test API Key' }],
             },
         });
@@ -85,7 +105,7 @@ describe('ApiKey resolver', () => {
     it('rotateApiKey', async ({ expect }) => {
         const apiKey = await adminClient.query(CREATE_API_KEY, {
             input: {
-                roleIds: ['1'],
+                roleIds: [fullAccessRoleId],
                 translations: [{ languageCode: LanguageCode.en, name: 'Test API Key' }],
             },
         });
@@ -98,7 +118,7 @@ describe('ApiKey resolver', () => {
         const { apiKey, entityId } = (
             await adminClient.query(CREATE_API_KEY, {
                 input: {
-                    roleIds: ['1'],
+                    roleIds: [fullAccessRoleId],
                     translations: [{ languageCode: LanguageCode.en, name: 'Test API Key' }],
                 },
             })
@@ -106,7 +126,7 @@ describe('ApiKey resolver', () => {
 
         type _fetchResponse =
             | {
-                  data?: { administrator?: { user?: { identifier?: string } } };
+                  data?: { activeChannel?: { code?: string } };
                   errors?: any[];
               }
             | undefined;
@@ -117,26 +137,26 @@ describe('ApiKey resolver', () => {
                 'Content-Type': 'application/json',
                 [String(config.authOptions.apiKeyHeaderKey)]: apiKey,
             },
-            body: '{ "query": "query { administrator(id: 1) { user { identifier } } }" }',
+            body: '{ "query": "query { activeChannel { code } }" }',
         };
 
         // (1/4): Successfully read
 
         const readOk01 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
-        expect(readOk01?.data?.administrator?.user?.identifier).toBe(SUPER_ADMIN_USER_IDENTIFIER);
+        expect(readOk01?.data?.activeChannel?.code).toBe('__default_channel__');
 
         // (2/4): Fail to read due to rotation of key
 
         const rotate = await adminClient.query(ROTATE_API_KEY, { id: entityId });
         const readErr01 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
         expect(readErr01?.errors).toBeDefined();
-        expect(readErr01?.data?.administrator?.user?.identifier).toBeUndefined();
+        expect(readErr01?.data?.activeChannel?.code).toBeUndefined();
 
         // (3/4): Successfully read via rotated key
 
         fetchConfig.headers[String(config.authOptions.apiKeyHeaderKey)] = rotate.rotateApiKey.apiKey;
         const readOk02 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
-        expect(readOk02?.data?.administrator?.user?.identifier).toBe(SUPER_ADMIN_USER_IDENTIFIER);
+        expect(readOk02?.data?.activeChannel?.code).toBe('__default_channel__');
 
         // (4/4): Fail to read due to deletion
 
@@ -145,7 +165,134 @@ describe('ApiKey resolver', () => {
 
         const readErr02 = (await fetch(adminApiUrl, fetchConfig).then(res => res.json())) as _fetchResponse;
         expect(readErr02?.errors).toBeDefined();
-        expect(readErr02?.data?.administrator?.user?.identifier).toBeUndefined();
+        expect(readErr02?.data?.activeChannel?.code).toBeUndefined();
+    });
+
+    // The API-Key session's user is a synthetic "API-Key user" which has no Administrator row.
+    // AdministratorService.resolveActorAdministrator() falls back to the key's `owner`, so that
+    // HistoryEntry.administrator is attributed to the Administrator who created the key rather
+    // than being null.
+    it('HistoryEntry created via API-Key is attributed to the key owner', async ({ expect }) => {
+        const { apiKey } = (
+            await adminClient.query(CREATE_API_KEY, {
+                input: {
+                    roleIds: [fullAccessRoleId],
+                    translations: [{ languageCode: LanguageCode.en, name: 'Audit trail key' }],
+                },
+            })
+        ).createApiKey;
+
+        const { activeAdministrator } = await adminClient.query(GET_ACTIVE_ADMINISTRATOR);
+        const ownerAdministratorId = activeAdministrator?.id;
+        expect(ownerAdministratorId).toBeDefined();
+
+        const { customers } = await adminClient.query(GET_CUSTOMER_LIST);
+        const customerId = customers.items[0].id;
+
+        type AddNoteResponse =
+            | {
+                  data?: { addNoteToCustomer?: { id?: string } };
+                  errors?: any[];
+              }
+            | undefined;
+
+        const addNoteResult = (await fetch(adminApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [String(config.authOptions.apiKeyHeaderKey)]: apiKey,
+            },
+            body: JSON.stringify({
+                query: `mutation AddNote($input: AddNoteToCustomerInput!) {
+                    addNoteToCustomer(input: $input) { id }
+                }`,
+                variables: {
+                    input: { id: customerId, note: 'note via api-key', isPublic: false },
+                },
+            }),
+        }).then(res => res.json())) as AddNoteResponse;
+
+        expect(addNoteResult?.errors).toBeUndefined();
+        expect(addNoteResult?.data?.addNoteToCustomer?.id).toBe(customerId);
+
+        const { customer } = await adminClient.query(GET_CUSTOMER_HISTORY, {
+            id: customerId,
+            options: {
+                filter: { type: { eq: HistoryEntryType.CUSTOMER_NOTE } },
+            },
+        });
+
+        const noteEntry = customer?.history.items.find(
+            entry => (entry.data as { note?: string } | null)?.note === 'note via api-key',
+        );
+        expect(noteEntry).toBeDefined();
+        expect(noteEntry?.administrator?.id).toBe(ownerAdministratorId);
+    });
+
+    // The attribution fallback must not leak into authorization: `updateActiveAdministrator` is
+    // only gated by Permission.Owner, so if the owner's Administrator were resolvable from an
+    // API-Key session, any key holder could overwrite the owner's password.
+    it('API-Key session cannot update the owner Administrator via updateActiveAdministrator', async ({
+        expect,
+    }) => {
+        const { createRole } = await adminClient.query(CREATE_ROLE, {
+            input: {
+                code: 'restricted-api-key-role',
+                description: 'Restricted role',
+                permissions: [Permission.ReadCatalog],
+            },
+        });
+
+        const { apiKey } = (
+            await adminClient.query(CREATE_API_KEY, {
+                input: {
+                    roleIds: [createRole.id],
+                    translations: [{ languageCode: LanguageCode.en, name: 'Restricted key' }],
+                },
+            })
+        ).createApiKey;
+
+        type UpdateActiveAdministratorResponse =
+            | {
+                  data?: { updateActiveAdministrator?: { id?: string; firstName?: string } | null };
+                  errors?: any[];
+              }
+            | undefined;
+
+        const result = (await fetch(adminApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [String(config.authOptions.apiKeyHeaderKey)]: apiKey,
+            },
+            body: JSON.stringify({
+                query: `mutation UpdateActiveAdmin($input: UpdateActiveAdministratorInput!) {
+                    updateActiveAdministrator(input: $input) { id firstName }
+                }`,
+                variables: {
+                    input: { firstName: 'Pwned', password: 'not-the-real-password' },
+                },
+            }),
+        }).then(res => res.json())) as UpdateActiveAdministratorResponse;
+
+        // The API-Key user has no Administrator of its own, so the resolver finds nothing to
+        // update and the mutation is a no-op. Since `updateActiveAdministrator` is non-nullable,
+        // that no-op surfaces as a GraphQL error rather than a null result.
+        expect(result?.data?.updateActiveAdministrator).toBeFalsy();
+        expect(result?.errors?.[0]?.message).toContain(
+            'Cannot return null for non-nullable field Mutation.updateActiveAdministrator',
+        );
+
+        // The owner Administrator is untouched...
+        const { activeAdministrator } = await adminClient.query(GET_ACTIVE_ADMINISTRATOR);
+        expect(activeAdministrator?.firstName).not.toBe('Pwned');
+
+        // ...and in particular their password was not rotated, i.e. the original credentials
+        // still authenticate.
+        await adminClient.asSuperAdmin();
+        const { activeAdministrator: afterReAuthentication } =
+            await adminClient.query(GET_ACTIVE_ADMINISTRATOR);
+        expect(afterReAuthentication?.id).toBeDefined();
     });
 });
 
@@ -211,6 +358,51 @@ export const ROTATE_API_KEY = graphql(`
     mutation RotateApiKey($id: ID!) {
         rotateApiKey(id: $id) {
             apiKey
+        }
+    }
+`);
+
+export const GET_ACTIVE_ADMINISTRATOR = graphql(`
+    query ApiKeyTestActiveAdministrator {
+        activeAdministrator {
+            id
+            firstName
+        }
+    }
+`);
+
+export const CREATE_ROLE = graphql(`
+    mutation ApiKeyTestCreateRole($input: CreateRoleInput!) {
+        createRole(input: $input) {
+            id
+        }
+    }
+`);
+
+export const GET_CUSTOMER_LIST = graphql(`
+    query ApiKeyTestCustomerList {
+        customers(options: { take: 1 }) {
+            items {
+                id
+            }
+        }
+    }
+`);
+
+export const GET_CUSTOMER_HISTORY = graphql(`
+    query ApiKeyTestCustomerHistory($id: ID!, $options: HistoryEntryListOptions) {
+        customer(id: $id) {
+            id
+            history(options: $options) {
+                items {
+                    id
+                    type
+                    data
+                    administrator {
+                        id
+                    }
+                }
+            }
         }
     }
 `);

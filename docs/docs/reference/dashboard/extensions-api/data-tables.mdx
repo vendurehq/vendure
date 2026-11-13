@@ -34,7 +34,7 @@ It receives the TanStack Table `CellContext`, including `value`, `cell`, `row`, 
 </div>
 ## DashboardDataTableExtensionDefinition
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="189" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="198" packageName="@vendure/dashboard" since="3.4.0" />
 
 This allows you to customize aspects of existing data tables in the dashboard.
 
@@ -45,6 +45,7 @@ interface DashboardDataTableExtensionDefinition {
     bulkActions?: BulkAction[];
     extendListDocument?: string | DocumentNode | (() => DocumentNode | string);
     displayComponents?: DashboardDataTableDisplayComponent[];
+    viewOptionDefaults?: DashboardDataTableViewOptionDefaults;
 }
 ```
 
@@ -77,6 +78,17 @@ Allows you to extend the list document for the data table.
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/data-tables#dashboarddatatabledisplaycomponent'>DashboardDataTableDisplayComponent</a>[]`}   />
 
 Custom display components for specific columns in the data table.
+### viewOptionDefaults
+
+<MemberInfo kind="property" type={`DashboardDataTableViewOptionDefaults`}   />
+
+Initial column visibility and order for this data table. These are
+applied as defaults before the user has interacted with the column
+settings — once a user customizes their view, their saved preferences
+take precedence over these values.
+
+Use this to surface a custom field as a visible column out of the box,
+or to hide a column from a list view by default.
 
 
 </div>

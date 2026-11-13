@@ -15,6 +15,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
     render: () => (
+        // @ts-expect-error stale story: react-resizable-panels v4 uses `orientation`, not `direction`
         <ResizablePanelGroup direction="horizontal" className="w-[600px] h-[200px] rounded-lg border">
             <ResizablePanel defaultSize={50}>
                 <div className="flex h-full items-center justify-center p-6">

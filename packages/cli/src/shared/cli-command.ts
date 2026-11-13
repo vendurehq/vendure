@@ -1,6 +1,6 @@
 import { Project, SourceFile } from 'ts-morph';
 
-import { VendurePluginRef } from './vendure-plugin-ref';
+import { VendurePluginRef } from './vendure-plugin-ref.js';
 
 export type CommandCategory =
     | `Plugin`

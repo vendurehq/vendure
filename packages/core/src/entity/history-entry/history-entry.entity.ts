@@ -15,6 +15,7 @@ import { CustomHistoryEntryFields } from '../custom-entity-fields';
  */
 @Entity()
 @TableInheritance({ column: { type: 'varchar', name: 'discriminator' } })
+@Index(['discriminator'])
 export abstract class HistoryEntry extends VendureEntity implements HasCustomFields {
     @Index()
     @ManyToOne(type => Administrator)

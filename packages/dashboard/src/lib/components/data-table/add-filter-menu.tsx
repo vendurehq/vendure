@@ -5,37 +5,54 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { Trans } from '@lingui/react/macro';
 import { Column, ColumnDef } from '@tanstack/react-table';
-import { FilterIcon } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
+import type { FacetedFilter } from './data-table.js';
 
 export interface AddFilterMenuProps {
     columns: Column<any, unknown>[];
+    /**
+     * Faceted filters registered on the table. They are listed at the top of
+     * the menu, before the filterable columns, so the toolbar has a single
+     * entry point for every kind of filter.
+     */
+    facetedFilters?: { [key: string]: FacetedFilter | undefined };
+    onSelectFacetedFilter?: (key: string) => void;
 }
 
-export function AddFilterMenu({ columns }: Readonly<AddFilterMenuProps>) {
+export function AddFilterMenu({
+    columns,
+    facetedFilters,
+    onSelectFacetedFilter,
+}: Readonly<AddFilterMenuProps>) {
     const [selectedColumn, setSelectedColumn] = useState<ColumnDef<any> | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const { getTranslatedFieldName } = useDynamicTranslations();
     const filterableColumns = columns.filter(column => column.getCanFilter());
+    const facetedEntries = Object.entries(facetedFilters ?? {}).filter(([, filter]) => !!filter);
 
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DropdownMenu>
-                <Tooltip>
-                    <TooltipTrigger render={<DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" data-testid="dt-add-filter-trigger" />} />}>
-                                <FilterIcon />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <Trans>Add filter</Trans>
-                    </TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuTrigger
+                    render={<Button variant="outline" size="sm" data-testid="dt-add-filter-trigger" />}
+                >
+                    <PlusIcon />
+                    <Trans>Filter</Trans>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[200px]">
+                    {facetedEntries.map(([key, filter]) => (
+                        <DropdownMenuItem key={key} onClick={() => onSelectFacetedFilter?.(key)}>
+                            {filter?.title}
+                        </DropdownMenuItem>
+                    ))}
+                    {facetedEntries.length > 0 && filterableColumns.length > 0 && <DropdownMenuSeparator />}
                     {filterableColumns.map(column => (
                         <DropdownMenuItem
                             key={column.id}

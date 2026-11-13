@@ -1,0 +1,61 @@
+---
+title: "AssertCustomFieldsWritable"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/custom-field-input.ts" sourceLine="43" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Checks the custom fields a tool received before the tool saves them. Tool calls skip the
+checks Vendure's GraphQL API does on custom fields, so call this in any tool that accepts them.
+
+It refuses a key that is not a custom field of `entityName`, an `internal` field, and a
+non-`public` field sent by a Shop API caller. It then runs Vendure's normal custom field
+validation on the rest. Any refusal throws a `UserInputError`. A relation field uses its
+input name, so a field named `image` arrives as `imageId`.
+
+*Example*
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { Injector, RequestContext } from '@vendure/core';
+import { assertCustomFieldsWritable, McpToolHandler } from '@vendure/mcp-sdk';
+
+type UpdateCustomerInput = { id: string; customFields?: Record<string, unknown> };
+
+@Injectable()
+export class UpdateCustomerTool implements McpToolHandler<UpdateCustomerInput> {
+    constructor(private readonly moduleRef: ModuleRef) {}
+
+    async execute(ctx: RequestContext, input: UpdateCustomerInput) {
+        await assertCustomFieldsWritable(
+            ctx,
+            new Injector(this.moduleRef),
+            'Customer',
+            input.customFields,
+        );
+        // ...write the customer
+    }
+}
+```
+
+```ts title="Signature"
+function assertCustomFieldsWritable(ctx: RequestContext, injector: Injector, entityName: keyof CustomFields, input: Record<string, unknown> | undefined): Promise<void>
+```
+Parameters
+
+### ctx
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`} />
+
+### injector
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/common/injector#injector'>Injector</a>`} />
+
+### entityName
+
+<MemberInfo kind="parameter" type={`keyof <a href='/reference/typescript-api/custom-fields/#customfields'>CustomFields</a>`} />
+
+### input
+
+<MemberInfo kind="parameter" type={`Record<string, unknown> | undefined`} />
+

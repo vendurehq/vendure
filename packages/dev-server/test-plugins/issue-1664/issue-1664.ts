@@ -151,7 +151,7 @@ export class Test1664Plugin implements OnApplicationBootstrap {
         }
 
         const defaultChannel = await this.connection.getRepository(Channel).findOne({
-            relations: ['defaultShippingZone', 'defaultTaxZone'],
+            relations: { defaultShippingZone: true, defaultTaxZone: true },
             where: {
                 code: DEFAULT_CHANNEL_CODE,
             },
@@ -178,7 +178,7 @@ export class Test1664Plugin implements OnApplicationBootstrap {
         // Add products
         const products = await this.connection.rawConnection
             .getRepository(Product)
-            .find({ relations: ['variants'] });
+            .find({ relations: { variants: true } });
         const product = products[0];
         await this.orderService.addItemToOrder(ctx, created.id, product.variants[0].id, 1);
         // Add the product owner to order

@@ -17,6 +17,7 @@ import {
     createCollectionIdCountMap,
     createFacetIdCountMap,
     createPlaceholderFromId,
+    hasSortParameter,
     mapToSearchResult,
 } from './search-strategy-utils';
 
@@ -100,7 +101,7 @@ export class PostgresSearchStrategy implements SearchStrategy {
 
         this.applyTermAndFilters(ctx, qb, input);
 
-        if (sort) {
+        if (hasSortParameter(sort)) {
             if (sort.name) {
                 qb.addOrderBy('"si_productName"', sort.name);
             }

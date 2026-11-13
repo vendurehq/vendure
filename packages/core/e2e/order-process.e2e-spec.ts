@@ -7,6 +7,7 @@ import {
     mergeConfig,
     Order,
     OrderService,
+    OrderState,
     RequestContextService,
     TransactionalConnection,
 } from '@vendure/core';
@@ -18,9 +19,8 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import { orderFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
-import { FragmentOf as FragmentOfShop } from './graphql/graphql-shop';
+import { ResultOf } from './graphql/graphql-admin';
+import { FragmentOf as FragmentOfShop, ResultOf as ResultOfShop } from './graphql/graphql-shop';
 import { adminTransitionToStateDocument, getOrderDocument } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
@@ -44,7 +44,7 @@ describe('Order process', () => {
     const VALIDATION_ERROR_MESSAGE = 'Customer must have a company email address';
     const customOrderProcess: CustomOrderProcess<'ValidatingCustomer' | 'PaymentProcessing'> = {
         init(injector) {
-            initSpy(injector.get(TransactionalConnection).rawConnection.name);
+            initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
         transitions: {
             AddingItems: {
@@ -106,9 +106,14 @@ describe('Order process', () => {
     };
 
     // Create guards for different fragment types
-    type TestOrderFragmentType = FragmentOfShop<typeof testOrderFragment>;
+    type SuccessOf<R> = Exclude<NonNullable<R>, { errorCode: string }>;
+    type TestOrderFragmentType = SuccessOf<
+        ResultOfShop<typeof transitionToStateDocument>['transitionOrderToState']
+    >;
     type UpdatedOrderFragmentType = FragmentOfShop<typeof updatedOrderFragment>;
-    type AdminOrderFragmentType = FragmentOf<typeof orderFragment>;
+    type AdminOrderFragmentType = SuccessOf<
+        ResultOf<typeof adminTransitionToStateDocument>['transitionOrderToState']
+    >;
 
     const testOrderGuard: ErrorResultGuard<TestOrderFragmentType> = createErrorResultGuard(
         input => !!input.lines,
@@ -180,7 +185,7 @@ describe('Order process', () => {
     describe('CustomOrderProcess', () => {
         it('CustomOrderProcess is injectable', () => {
             expect(initSpy).toHaveBeenCalled();
-            expect(initSpy.mock.calls[0][0]).toBe('default');
+            expect(initSpy.mock.calls[0][0]).toBe(true);
         });
 
         it('replaced transition target', async () => {
@@ -524,7 +529,7 @@ describe('Order process', () => {
 
             let thrown: Error | undefined;
             try {
-                await orderService.transitionToState(ctx, orderId, 'ValidatingCustomer');
+                await orderService.transitionToState(ctx, orderId, 'ValidatingCustomer' as OrderState);
             } catch (e) {
                 thrown = e as Error;
             }

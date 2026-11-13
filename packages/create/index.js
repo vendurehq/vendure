@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('./lib/create-vendure-app');
+import './lib/create-vendure-app.js';

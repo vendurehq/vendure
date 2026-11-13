@@ -38,7 +38,7 @@ Each fulfillment tracks which [`OrderLines`](/reference/typescript-api/entities/
 
 ## FulfillmentHandlers
 
-A [`FulfillmentHandler`](/reference/typescript-api/fulfillment/fulfillment-handler/) is a pluggable component that defines the logic for creating a fulfillment. When an administrator creates a fulfillment in the Admin UI or via the Admin API, they select a handler and provide any required arguments (such as a tracking code).
+A [`FulfillmentHandler`](/reference/typescript-api/fulfillment/fulfillment-handler/) is a pluggable component that defines the logic for creating a fulfillment. When an administrator creates a fulfillment in the Dashboard or via the Admin API, they select a handler and provide any required arguments (such as a tracking code).
 
 The handler's `onFulfillmentTransition` hook can also execute logic when the fulfillment changes state — for example, sending a shipping notification email when the state transitions to "Shipped", or triggering a webhook to an external logistics system.
 

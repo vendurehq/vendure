@@ -2,14 +2,14 @@
 title: "ExternalAuthenticationService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="25" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="29" packageName="@vendure/core" />
 
 This is a helper service which exposes methods related to looking up and creating Users based on an
 external [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy).
 
 ```ts title="Signature"
 class ExternalAuthenticationService {
-    constructor(connection: TransactionalConnection, roleService: RoleService, historyService: HistoryService, customerService: CustomerService, administratorService: AdministratorService, channelService: ChannelService)
+    constructor(connection: TransactionalConnection, roleAssignmentService: RoleAssignmentService, historyService: HistoryService, customerService: CustomerService, administratorService: AdministratorService, channelService: ChannelService, roleService: RoleService)
     findCustomerUser(ctx: RequestContext, strategy: string, externalIdentifier: string, checkCurrentChannelOnly:  = true) => Promise<User | undefined>;
     findAdministratorUser(ctx: RequestContext, strategy: string, externalIdentifier: string) => Promise<User | undefined>;
     createCustomerAndUser(ctx: RequestContext, config: {
@@ -27,8 +27,25 @@ class ExternalAuthenticationService {
             emailAddress?: string;
             firstName?: string;
             lastName?: string;
-            roles: Role[];
+            /**
+             * Roles to grant. A Role owned by a Channel other than the default one is granted on
+             * that Channel; a shared Role on the active Channel, which the client chooses with
+             * the vendure-token header. To name the Channel, use roleAssignments.
+             *
+             * @deprecated since 4.0.0, use roleAssignments
+             */
+            roles?: Role[];
+            /**
+             * The Roles to grant, each on the given Channel. The Role must be assignable there:
+             * a shared Role on any Channel, any other Role on its owner only.
+             *
+             * @since 4.0.0
+             */
+            roleAssignments?: Array<{ role: Role; channelId: ID }>;
+            /** An optional provider profile image to use as the Administrator avatar. */
+            avatar?: Promise<StoredMediaUpload> | StoredMediaUpload;
         }) => ;
+    setAdministratorAvatar(ctx: RequestContext, userId: ID, avatar: Promise<StoredMediaUpload> | StoredMediaUpload | null) => Promise<Administrator>;
     findUser(ctx: RequestContext, strategy: string, externalIdentifier: string) => Promise<User | undefined>;
     createUser(ctx: RequestContext, config: {
             strategy: string;
@@ -71,11 +88,32 @@ user owns the email address. Attempting to link an unverified external identity 
 will throw an [UnverifiedExternalEmailError](/reference/typescript-api/errors/error-types#unverifiedexternalemailerror).
 ### createAdministratorAndUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, config: {             strategy: string;             externalIdentifier: string;             identifier: string;             emailAddress?: string;             firstName?: string;             lastName?: string;             roles: <a href='/reference/typescript-api/entities/role#role'>Role</a>[];         }) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, config: {             strategy: string;             externalIdentifier: string;             identifier: string;             emailAddress?: string;             firstName?: string;             lastName?: string;             /**              * Roles to grant. A <a href='/reference/typescript-api/entities/role#role'>Role</a> owned by a <a href='/reference/typescript-api/entities/channel#channel'>Channel</a> other than the default one is granted on              * that <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>; a shared <a href='/reference/typescript-api/entities/role#role'>Role</a> on the active <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, which the client chooses with              * the vendure-token header. To name the <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, use roleAssignments.              *              * @deprecated since 4.0.0, use roleAssignments              */             roles?: <a href='/reference/typescript-api/entities/role#role'>Role</a>[];             /**              * The Roles to grant, each on the given <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>. The <a href='/reference/typescript-api/entities/role#role'>Role</a> must be assignable there:              * a shared <a href='/reference/typescript-api/entities/role#role'>Role</a> on any <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, any other <a href='/reference/typescript-api/entities/role#role'>Role</a> on its owner only.              *              * @since 4.0.0              */             roleAssignments?: Array<{ role: <a href='/reference/typescript-api/entities/role#role'>Role</a>; channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> }>;             /** An optional provider profile image to use as the <a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> avatar. */             avatar?: Promise<<a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>> | <a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>;         }) => `}   />
 
 If an administrator has been successfully authenticated by an external authentication provider, yet cannot
 be found using `findAdministratorUser`, then we need to create a new User and
 Administrator record in Vendure for that user.
+### setAdministratorAvatar
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, avatar: Promise<<a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>> | <a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a> | null) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
+
+Sets or removes the avatar belonging to an externally-authenticated Administrator.
+This allows an authentication strategy to synchronize a provider profile image without
+needing to look up the Administrator or manage the underlying system Asset.
+
+*Example*
+
+```ts
+import { Readable } from 'stream';
+
+const response = await fetch(googleProfile.picture);
+const image = Buffer.from(await response.arrayBuffer());
+await externalAuthenticationService.setAdministratorAvatar(ctx, user.id, {
+    filename: `${googleProfile.sub}.jpg`,
+    mimetype: response.headers.get('content-type') ?? 'image/jpeg',
+    createReadStream: () => Readable.from([image]),
+});
+```
 ### findUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, strategy: string, externalIdentifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />

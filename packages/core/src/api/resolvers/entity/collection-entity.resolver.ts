@@ -6,13 +6,14 @@ import {
     ProductVariantListOptions,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
+import { unique } from '@vendure/common/lib/unique';
+import DataLoader from 'dataloader';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
-import { ListQueryOptions } from '../../../common/types/common-types';
 import { Translated } from '../../../common/types/locale-types';
 import { CollectionFilter } from '../../../config/catalog/collection-filter';
-import { Asset, Collection, Product, ProductVariant } from '../../../entity';
+import { Asset, Collection, ProductVariant } from '../../../entity';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { AssetService } from '../../../service/services/asset.service';
 import { CollectionService } from '../../../service/services/collection.service';
@@ -60,20 +61,16 @@ export class CollectionEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() collection: Collection,
         @Args() args: { options: ProductVariantListOptions },
-        @Api() apiType: ApiType,
         @Relations({ entity: ProductVariant, omit: ['assets'] }) relations: RelationPaths<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
-        let options: ListQueryOptions<Product> = args.options;
-        if (apiType === 'shop') {
-            options = {
-                ...args.options,
-                filter: {
-                    ...(args.options ? args.options.filter : {}),
-                    enabled: { eq: true },
-                },
-            };
-        }
-        return this.productVariantService.getVariantsByCollectionId(ctx, collection.id, options, relations);
+        // In the Shop API, getVariantsByCollectionId() only returns variants available in the active
+        // Channel (see ChannelEnabledChecker)
+        return this.productVariantService.getVariantsByCollectionId(
+            ctx,
+            collection.id,
+            args.options,
+            relations,
+        );
     }
 
     @ResolveField()
@@ -83,12 +80,36 @@ export class CollectionEntityResolver {
             CacheKey.CollectionVariantCounts,
         );
         if (cachedCountsPromise) {
-            const countsMap = await cachedCountsPromise;
-            return countsMap.get(String(collection.id)) ?? 0;
+            const count = (await cachedCountsPromise).get(String(collection.id));
+            if (count !== undefined) {
+                return count;
+            }
         }
-        // Fallback to single query if cache not available (e.g., single collection query)
-        const singleCountMap = await this.collectionService.getProductVariantCounts(ctx, [collection.id]);
-        return singleCountMap.get(String(collection.id)) ?? 0;
+        // Fallback if cache not available (e.g., single collection query) or if this collection was
+        // not included in the cached counts (e.g. a nested parent or grandchild). Collections resolved
+        // in the same tick are batched into a single query.
+        return this.getProductVariantCountLoader(ctx).load(collection.id);
+    }
+
+    /**
+     * `cache: false` batches without memoizing, so a write earlier in the request is not masked.
+     */
+    private getProductVariantCountLoader(ctx: RequestContext): DataLoader<ID, number> {
+        return this.requestContextCache.get(
+            ctx,
+            CacheKey.CollectionVariantCountLoader,
+            () =>
+                new DataLoader<ID, number>(
+                    async ids => {
+                        const counts = await this.collectionService.getProductVariantCounts(
+                            ctx,
+                            unique([...ids]),
+                        );
+                        return ids.map(id => counts.get(String(id)) ?? 0);
+                    },
+                    { cache: false },
+                ),
+        );
     }
 
     @ResolveField()
@@ -96,6 +117,18 @@ export class CollectionEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() collection: Collection,
     ): Promise<CollectionBreadcrumb[]> {
+        const cachedBreadcrumbsPromise = this.requestContextCache.get<
+            Promise<Map<ID, CollectionBreadcrumb[]>>
+        >(ctx, CacheKey.CollectionBreadcrumbs);
+        if (cachedBreadcrumbsPromise) {
+            const breadcrumbsMap = await cachedBreadcrumbsPromise;
+            const breadcrumbs = breadcrumbsMap.get(collection.id);
+            if (breadcrumbs) {
+                return breadcrumbs;
+            }
+        }
+        // Fallback to single-collection resolution if cache not available (e.g., single
+        // collection query)
         return this.collectionService.getBreadcrumbs(ctx, collection);
     }
 

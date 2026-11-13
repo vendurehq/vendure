@@ -1,4 +1,3 @@
-import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import {
     Permission,
     QuerySearchArgs,
@@ -6,22 +5,30 @@ import {
     SearchResponse,
 } from '@vendure/common/lib/generated-types';
 import { Omit } from '@vendure/common/lib/omit';
+import {
+    Args,
+    Mutation,
+    Parent,
+    Query,
+    ResolveField,
+    Resolver,
+} from '../../../common/nestjs-graphql-internals';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { Allow } from '../../../api/decorators/allow.decorator';
 import { Ctx } from '../../../api/decorators/request-context.decorator';
 import { SearchResolver as BaseSearchResolver } from '../../../api/resolvers/admin/search.resolver';
-import { InternalServerError } from '../../../common/error/errors';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { FulltextSearchService } from '../fulltext-search.service';
 import { SearchJobBufferService } from '../search-job-buffer/search-job-buffer.service';
 
 @Resolver('SearchResponse')
-export class ShopFulltextSearchResolver
-    implements Pick<BaseSearchResolver, 'search' | 'facetValues' | 'collections'>
-{
-    constructor(private fulltextSearchService: FulltextSearchService) {}
+export class ShopFulltextSearchResolver implements Pick<
+    BaseSearchResolver,
+    'search' | 'facetValues' | 'collections'
+> {
+    constructor(private readonly fulltextSearchService: FulltextSearchService) {}
 
     @Query()
     @Allow(Permission.Public)
@@ -57,8 +64,8 @@ export class ShopFulltextSearchResolver
 @Resolver('SearchResponse')
 export class AdminFulltextSearchResolver implements BaseSearchResolver {
     constructor(
-        private fulltextSearchService: FulltextSearchService,
-        private searchJobBufferService: SearchJobBufferService,
+        private readonly fulltextSearchService: FulltextSearchService,
+        private readonly searchJobBufferService: SearchJobBufferService,
     ) {}
 
     @Query()

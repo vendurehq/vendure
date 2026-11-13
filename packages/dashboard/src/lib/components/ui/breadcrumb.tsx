@@ -6,4 +6,4 @@ export {
     BreadcrumbList,
     BreadcrumbPage,
     BreadcrumbSeparator,
-} from '@vendure-io/ui/components/ui/breadcrumb';
+} from '@vendure-io/ui/components/atoms/breadcrumb';

@@ -1,19 +1,23 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { GqlExecutionContext } from '@nestjs/graphql';
 import { IdOperators } from '@vendure/common/lib/generated-types';
-import { GraphQLNamedType, GraphQLSchema, OperationDefinitionNode } from 'graphql';
+import { GraphQLField, GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { Observable } from 'rxjs';
+import { GqlExecutionContext } from '../../common/nestjs-graphql-internals';
 
+import { getApiType } from '../common/get-api-type';
 import { GraphqlValueTransformer } from '../common/graphql-value-transformer';
 import { IdCodecService } from '../common/id-codec.service';
 import { parseContext } from '../common/parse-context';
 
 export const ID_CODEC_TRANSFORM_KEYS = 'idCodecTransformKeys';
-type TypeTreeNode = {
-    type: GraphQLNamedType | undefined;
-    parent: TypeTreeNode | null;
-    isList: boolean;
-    children: { [name: string]: TypeTreeNode };
+
+/**
+ * The Admin API fields whose `ID` arguments are job ids rather than entity ids, keyed by parent
+ * type name. Their arguments are not decoded unless {@link IdCodecService.transformJobIds} is true.
+ */
+const JOB_ID_FIELDS: Record<string, string[]> = {
+    Query: ['job', 'jobsById'],
+    Mutation: ['cancelJob'],
 };
 
 /**
@@ -29,13 +33,25 @@ export class IdInterceptor implements NestInterceptor {
     constructor(private idCodecService: IdCodecService) {}
 
     intercept(context: ExecutionContext, next: CallHandler<any>): Observable<any> {
-        const { isGraphQL, req, info } = parseContext(context);
-        if (isGraphQL && info) {
+        const { isGraphQL, info } = parseContext(context);
+        if (isGraphQL && info && !this.isUntransformedJobIdField(info)) {
             const args = GqlExecutionContext.create(context).getArgs();
+            // Read the argument types from the definition of the field being resolved. `info.operation`
+            // does not include named fragment definitions, and two fields in one operation can each have
+            // an argument of the same name with a different input type.
+            const field = info.parentType.getFields()[info.fieldName];
             const transformer = this.getTransformerForSchema(info.schema);
-            this.decodeIdArguments(transformer, info.operation, args);
+            this.decodeIdArguments(transformer, field, args);
         }
         return next.handle();
+    }
+
+    private isUntransformedJobIdField(info: GraphQLResolveInfo): boolean {
+        return (
+            !this.idCodecService.transformJobIds &&
+            !!JOB_ID_FIELDS[info.parentType.name]?.includes(info.fieldName) &&
+            getApiType(info) === 'admin'
+        );
     }
 
     private getTransformerForSchema(schema: GraphQLSchema): GraphqlValueTransformer {
@@ -50,10 +66,10 @@ export class IdInterceptor implements NestInterceptor {
 
     private decodeIdArguments(
         graphqlValueTransformer: GraphqlValueTransformer,
-        definition: OperationDefinitionNode,
+        field: GraphQLField<unknown, unknown>,
         variables: Record<string, any> = {},
     ) {
-        const typeTree = graphqlValueTransformer.getInputTypeTree(definition);
+        const typeTree = graphqlValueTransformer.getArgumentTypeTree(field);
         graphqlValueTransformer.transformValues(typeTree, variables, (value, type) => {
             if (type?.name === 'ID') {
                 return this.idCodecService.decode(value);

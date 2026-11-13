@@ -9,5 +9,5 @@ This plugin uses a couple of features added in Vendure v3.1:
 
 ## Status
 
-It is currently a work-in-progress: the Admin UI parts will be completed once we add
-support for config-based list/detail views.
+It is currently a work-in-progress: it does not yet include Dashboard extensions for
+managing bundles.

@@ -15,25 +15,25 @@ vi.mock('@clack/prompts', () => ({
 }));
 
 // Mock shared prompts
-vi.mock('../../../shared/shared-prompts', () => ({
+vi.mock('../../../shared/shared-prompts.js', () => ({
     analyzeProject: vi.fn(),
     selectPlugin: vi.fn(),
 }));
 
 // Mock VendureConfigRef
-vi.mock('../../../shared/vendure-config-ref', () => ({
+vi.mock('../../../shared/vendure-config-ref.js', () => ({
     VendureConfigRef: vi.fn(),
 }));
 
 // Mock ast-utils
-vi.mock('../../../utilities/ast-utils', () => ({
+vi.mock('../../../utilities/ast-utils.js', () => ({
     createFile: vi.fn(),
     getPluginClasses: vi.fn(() => []),
     addImportsToFile: vi.fn(),
 }));
 
 // Mock utils
-vi.mock('../../../utilities/utils', () => ({
+vi.mock('../../../utilities/utils.js', () => ({
     pauseForPromptDisplay: vi.fn().mockResolvedValue(undefined),
     withInteractiveTimeout: vi.fn((fn: () => Promise<any>) => fn()),
     isRunningInTsNode: vi.fn(() => false),
@@ -47,20 +47,23 @@ vi.mock('fs-extra', () => ({
 
 import { select, text } from '@clack/prompts';
 
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { createFile } from '../../../utilities/ast-utils';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { createFile } from '../../../utilities/ast-utils.js';
 
-import { createNewPlugin } from './create-new-plugin';
+import { createNewPlugin } from './create-new-plugin.js';
 
 function setupMocks() {
     // Re-apply VendureConfigRef mock each time (vi.restoreAllMocks clears it)
-    vi.mocked(VendureConfigRef).mockImplementation((() => ({
-        addToPluginsArray: vi.fn(),
-        sourceFile: {
-            getProject: vi.fn(() => ({ save: vi.fn().mockResolvedValue(undefined) })),
-        },
-    })) as any);
+    // A `function` (not an arrow function) because the code under test calls it with `new`.
+    vi.mocked(VendureConfigRef).mockImplementation(function () {
+        return {
+            addToPluginsArray: vi.fn(),
+            sourceFile: {
+                getProject: vi.fn(() => ({ save: vi.fn().mockResolvedValue(undefined) })),
+            },
+        };
+    } as any);
 
     const mockPluginClass = {
         rename: vi.fn(),

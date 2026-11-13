@@ -34,7 +34,7 @@ export class TestResolver {
                 {
                     relations,
                     orderBy: { id: 'ASC' },
-                    where: { deletedAt: null },
+                    where: { deletedAt: null as any },
                     ctx,
                 },
             )

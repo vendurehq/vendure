@@ -1,15 +1,15 @@
 import { log } from '@clack/prompts';
-import { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig } from '@vendure/core';
 
-import { runConfigCheck } from './checks/config-check';
-import { runDatabaseCheck } from './checks/database-check';
-import { runDependencyCheck } from './checks/dependency-check';
-import { runProductionCheck } from './checks/production-check';
-import { runProjectCheck } from './checks/project-check';
-import { runSchemaCheck } from './checks/schema-check';
-import { formatConsoleReport } from './formatters/console-formatter';
-import { formatJsonReport } from './formatters/json-formatter';
-import { CheckResult, DoctorOptions, DoctorReport } from './types';
+import { runConfigCheck } from './checks/config-check.js';
+import { runDatabaseCheck } from './checks/database-check.js';
+import { runDependencyCheck } from './checks/dependency-check.js';
+import { runProductionCheck } from './checks/production-check.js';
+import { runProjectCheck } from './checks/project-check.js';
+import { runSchemaCheck } from './checks/schema-check.js';
+import { formatConsoleReport } from './formatters/console-formatter.js';
+import { formatJsonReport } from './formatters/json-formatter.js';
+import { CheckResult, DoctorOptions, DoctorReport } from './types.js';
 
 const ALL_CHECKS = ['project', 'dependencies', 'config', 'schema', 'database'] as const;
 const VALID_PROFILES = ['production'] as const;
@@ -49,12 +49,13 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to project check failure',
                 });
             }
-            outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
-            return;
+            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
         }
     }
 
-    // Check 2: Dependency version alignment, singleton duplication, DB driver
+    // Check 2: Dependency version alignment, singleton duplication, DB driver.
+    // Uses require.resolve for version alignment and DB driver (handles hoisting),
+    // and a tree scan for duplicate detection.
     if (checksToRun.includes('dependencies')) {
         results.push(await runDependencyCheck());
     }
@@ -83,8 +84,7 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to config check failure',
                 });
             }
-            outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
-            return;
+            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
         }
     }
 
@@ -127,7 +127,7 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
+    return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
 }
 
 function resolveChecks(checkFlags?: string[]): string[] {
@@ -166,16 +166,14 @@ function buildReport(
     };
 }
 
-function outputReport(report: DoctorReport, options?: DoctorOptions): void {
+function outputReport(report: DoctorReport, options?: DoctorOptions): number {
     if (options?.format === 'json') {
         formatJsonReport(report);
     } else {
         formatConsoleReport(report);
     }
 
-    if (report.overallStatus === 'failed') {
-        process.exit(1);
-    }
+    return report.overallStatus === 'failed' ? 1 : 0;
 }
 
 function capitalize(s: string): string {

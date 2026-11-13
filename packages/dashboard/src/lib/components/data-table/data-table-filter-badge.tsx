@@ -1,3 +1,4 @@
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
 import { Filter, XIcon } from 'lucide-react';
@@ -17,16 +18,17 @@ export function DataTableFilterBadge({
     dataType: ColumnDataType;
     currencyCode: string;
 }) {
+    const { getTranslatedFieldName } = useDynamicTranslations();
     const [operator, value] = Object.entries(filter.value as Record<string, unknown>)[0];
     return (
-        <div className="inline-flex items-center h-8 rounded-md border border-dashed border-input bg-background text-sm">
+        <div className="inline-flex items-center h-8 rounded-md border border-input bg-background text-sm">
             <button
                 className="flex gap-1 items-center cursor-pointer px-2 py-1 hover:bg-accent/50 rounded-l-md transition-colors"
                 onClick={() => onClick?.(filter)}
             >
                 <Filter size="12" className="text-muted-foreground flex-shrink-0" />
                 <span className="max-w-[200px] truncate" title={filter.id}>
-                    {filter.id}
+                    {getTranslatedFieldName(filter.id)}
                 </span>
                 <span className="text-muted-foreground flex-shrink-0">
                     <HumanReadableOperator operator={operator as Operator} mode="short" />
@@ -58,7 +60,11 @@ function FilterValue({
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         const entries = Object.entries(value as Record<string, unknown>);
         // Range values (start/end from "between" operator) — render inline with en dash
-        if (entries.length === 2 && 'start' in (value as Record<string, unknown>) && 'end' in (value as Record<string, unknown>)) {
+        if (
+            entries.length === 2 &&
+            'start' in (value as Record<string, unknown>) &&
+            'end' in (value as Record<string, unknown>)
+        ) {
             const range = value as Record<string, unknown>;
             return (
                 <span className="flex gap-1 items-center">

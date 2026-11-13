@@ -176,3 +176,7 @@ import { productReviewPermission } from './constants';
 })
 export class ProductReviewPlugin {}
 ```
+
+Customers do not have these permissions, so with this config the `rating` field returns `null` in the Shop API.
+To show the rating in your storefront, add `public: true` to the field. The Shop API then skips the `requiresPermission`
+check, and the Admin API still applies it.

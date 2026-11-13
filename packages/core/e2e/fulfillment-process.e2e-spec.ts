@@ -15,8 +15,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import { fulfillmentFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { ResultOf } from './graphql/graphql-admin';
 import {
     createFulfillmentDocument,
     getCustomerListDocument,
@@ -33,14 +32,17 @@ const transitionEndSpy2 = vi.fn();
 const transitionErrorSpy = vi.fn();
 
 describe('Fulfillment process', () => {
-    type FulfillmentFragment = FragmentOf<typeof fulfillmentFragment>;
+    type FulfillmentFragment = Exclude<
+        ResultOf<typeof transitFulfillmentDocument>['transitionFulfillmentToState'],
+        { errorCode: unknown }
+    >;
     const fulfillmentGuard: ErrorResultGuard<FulfillmentFragment> = createErrorResultGuard(
         input => !!input.id,
     );
     const VALIDATION_ERROR_MESSAGE = 'Fulfillment must have a tracking code';
     const customOrderProcess: CustomFulfillmentProcess<'AwaitingPickup'> = {
         init(injector) {
-            initSpy(injector.get(TransactionalConnection).rawConnection.name);
+            initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
         transitions: {
             Pending: {
@@ -164,7 +166,7 @@ describe('Fulfillment process', () => {
     describe('CustomFulfillmentProcess', () => {
         it('is injectable', () => {
             expect(initSpy).toHaveBeenCalled();
-            expect(initSpy.mock.calls[0][0]).toBe('default');
+            expect(initSpy.mock.calls[0][0]).toBe(true);
         });
 
         it('replaced transition target', async () => {

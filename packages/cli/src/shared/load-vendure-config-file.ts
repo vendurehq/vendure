@@ -1,12 +1,13 @@
-import { VendureConfig } from '@vendure/core';
+import type { VendureConfig } from '@vendure/core';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { register } from 'ts-node';
 
-import { selectTsConfigFile } from '../utilities/ast-utils';
-import { isRunningInTsNode } from '../utilities/utils';
+import { selectTsConfigFile } from '../utilities/ast-utils.js';
+import { isRunningInTsNode } from '../utilities/utils.js';
 
-import { VendureConfigRef } from './vendure-config-ref';
+import { VendureConfigRef } from './vendure-config-ref.js';
 
 /**
  * Finds the nearest tsconfig.json file by walking up the directory tree from the given file path.
@@ -159,7 +160,8 @@ export async function loadVendureConfigFile(
     if (!exportedVarName) {
         throw new Error('Could not find the exported variable name in the VendureConfig file');
     }
-    const configModule = await import(vendureConfig.sourceFile.getFilePath());
+    // The ts-node hook registered above applies to `require` only, not to `import()`.
+    const configModule = createRequire(import.meta.url)(vendureConfig.sourceFile.getFilePath());
     return configModule[exportedVarName];
 }
 

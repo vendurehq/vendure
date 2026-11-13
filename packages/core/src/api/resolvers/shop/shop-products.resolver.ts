@@ -8,6 +8,7 @@ import {
     QueryProductsArgs,
     SearchResponse,
 } from '@vendure/common/lib/generated-shop-types';
+import { LogicalOperator } from '@vendure/common/lib/generated-types';
 import { Omit } from '@vendure/common/lib/omit';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 import { GraphQLResolveInfo } from 'graphql';
@@ -15,16 +16,21 @@ import { GraphQLResolveInfo } from 'graphql';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError, UserInputError } from '../../../common/error/errors';
-import { ListQueryOptions } from '../../../common/types/common-types';
+import { FilterParameter, ListQueryOptions, NullOptionals } from '../../../common/types/common-types';
 import { Translated } from '../../../common/types/locale-types';
+import { VendureEntity } from '../../../entity/base/base.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { Facet } from '../../../entity/facet/facet.entity';
 import { Product } from '../../../entity/product/product.entity';
 import { CollectionService, FacetService } from '../../../service';
+import {
+    ChannelEnabledChecker,
+    enabledInChannelFilter,
+} from '../../../service/helpers/channel-enabled-checker/channel-enabled-checker';
 import { FacetValueService } from '../../../service/services/facet-value.service';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
-import { isFieldInSelection } from '../../common/is-field-in-selection';
+import { getVariantCountCollectionIds } from '../../common/get-variant-count-collection-ids';
 import { RequestContext } from '../../common/request-context';
 import { RelationPaths, Relations } from '../../decorators/relations.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
@@ -38,6 +44,7 @@ export class ShopProductsResolver {
         private collectionService: CollectionService,
         private facetService: FacetService,
         private requestContextCache: RequestContextCacheService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     @Query()
@@ -46,13 +53,7 @@ export class ShopProductsResolver {
         @Args() args: QueryProductsArgs,
         @Relations({ entity: Product, omit: ['variants', 'assets'] }) relations: RelationPaths<Product>,
     ): Promise<PaginatedList<Translated<Product>>> {
-        const options: ListQueryOptions<Product> = {
-            ...args.options,
-            filter: {
-                ...(args.options && args.options.filter),
-                enabled: { eq: true },
-            },
-        };
+        const options = this.enforceGuardFilter<Product>(args.options, enabledInChannelFilter());
         return this.productService.findAll(ctx, options, relations);
     }
 
@@ -73,7 +74,7 @@ export class ShopProductsResolver {
         if (!result) {
             return;
         }
-        if (result.enabled === false) {
+        if (!(await this.channelEnabledChecker.isEnabled(ctx, Product, result))) {
             return;
         }
         result.facetValues = result.facetValues?.filter(fv => !fv.facet.isPrivate) as any;
@@ -91,18 +92,12 @@ export class ShopProductsResolver {
         relations: RelationPaths<Collection>,
         @Info() info: GraphQLResolveInfo,
     ): Promise<PaginatedList<Translated<Collection>>> {
-        const options: ListQueryOptions<Collection> = {
-            ...args.options,
-            filter: {
-                ...(args.options && args.options.filter),
-                isPrivate: { eq: false },
-            },
-        };
-        const collections = await this.collectionService.findAll(ctx, options || undefined, relations);
+        const options = this.enforceGuardFilter<Collection>(args.options, { isPrivate: { eq: false } });
+        const collections = await this.collectionService.findAll(ctx, options, relations);
         // Cache the variant counts query promise if productVariantCount is requested,
         // allowing the DB query to start before the field resolvers are called
-        if (isFieldInSelection(info, 'productVariantCount')) {
-            const collectionIds = collections.items.map(c => c.id);
+        const collectionIds = getVariantCountCollectionIds(info, collections.items);
+        if (collectionIds) {
             const countsPromise = this.collectionService.getProductVariantCounts(ctx, collectionIds);
             this.requestContextCache.set(ctx, CacheKey.CollectionVariantCounts, countsPromise);
         }
@@ -147,14 +142,40 @@ export class ShopProductsResolver {
         @Args() args: QueryFacetsArgs,
         @Relations(Facet) relations: RelationPaths<Facet>,
     ): Promise<PaginatedList<Translated<Facet>>> {
-        const options: ListQueryOptions<Facet> = {
-            ...args.options,
-            filter: {
-                ...(args.options && args.options.filter),
-                isPrivate: { eq: false },
-            },
+        const options = this.enforceGuardFilter<Facet>(args.options, { isPrivate: { eq: false } });
+        return this.facetService.findAll(ctx, options, relations);
+    }
+
+    /**
+     * Combines the caller-supplied filter with a mandatory `guard` filter using AND semantics,
+     * while preserving the caller's `filterOperator` over their own filter fields. This ensures
+     * the guard (e.g. `enabled: true`) is always applied, independently of the caller's
+     * `filterOperator`, by nesting the caller's fields (combined by their operator) inside an
+     * AND block alongside the guard.
+     */
+    private enforceGuardFilter<T extends VendureEntity>(
+        options: ListQueryOptions<T> | null | undefined,
+        guard: NullOptionals<FilterParameter<T>>,
+    ): ListQueryOptions<T> {
+        const userFilter = options?.filter;
+        if (!userFilter || Object.keys(userFilter).length === 0) {
+            // Guard is the only filter field, so `filterOperator` is moot (AND/OR over a single
+            // condition are equivalent); clearing it avoids carrying a now-meaningless operator.
+            return { ...options, filter: guard, filterOperator: undefined };
+        }
+        // `FilterParameter<T>` declares `_and`/`_or` as `Array<FilterParameter<T>>`, but here the
+        // elements are `NullOptionals<FilterParameter<T>>`, which TS won't reconcile with the
+        // unwrapped element type. The shape is structurally valid for `parseFilterParams`, hence
+        // the casts below.
+        type Filter = NullOptionals<FilterParameter<T>>;
+        const userBlock = (
+            options?.filterOperator === LogicalOperator.OR ? { _or: [userFilter] } : { _and: [userFilter] }
+        ) as Filter;
+        return {
+            ...options,
+            filter: { _and: [userBlock, guard] } as Filter,
+            filterOperator: undefined,
         };
-        return this.facetService.findAll(ctx, options || undefined, relations);
     }
 
     @Query()

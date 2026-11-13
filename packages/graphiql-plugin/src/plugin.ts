@@ -21,7 +21,7 @@ import { GraphiqlPluginOptions } from './types';
  * This plugin provides a GraphiQL UI for exploring and testing the Vendure GraphQL APIs.
  *
  * It adds routes `/graphiql/admin` and `/graphiql/shop` which serve the GraphiQL interface
- * for the respective APIs.
+ * for the respective APIs. The `route` option changes the `graphiql` prefix.
  *
  * ## Installation
  *
@@ -38,17 +38,12 @@ import { GraphiqlPluginOptions } from './types';
  * };
  * ```
  *
- * ## Custom API paths
+ * ## API URLs
  *
- * By default, the plugin automatically reads the Admin API and Shop API paths from your Vendure configuration.
- *
- * If you need to override these paths, you can specify them explicitly:
- *
- * ```typescript
- * GraphiQLPlugin.init({
- *     route: 'my-custom-route', // defaults to `graphiql`
- * });
- * ```
+ * The GraphiQL page sends its requests to the Admin API and Shop API paths of your Vendure
+ * configuration (`apiOptions.adminApiPath` and `apiOptions.shopApiPath`), relative to the
+ * server that served the page. `apiOptions.hostname` is not used, so the page works behind
+ * a proxy or in a container that listens on `0.0.0.0`.
  *
  * ## Query parameters
  *
@@ -104,20 +99,25 @@ export class GraphiqlPlugin implements NestModule {
             return;
         }
 
-        const adminRoute = GraphiqlPlugin.options.route + '/admin';
-        const shopRoute = GraphiqlPlugin.options.route + '/shop';
+        // A single leading slash, also for an empty route (`'/'`), which mounts at the site root
+        const route = trimSlashes(GraphiqlPlugin.options.route);
+        const routePrefix = route ? `/${route}` : '';
+        const adminRoute = `${routePrefix}/admin`;
+        const shopRoute = `${routePrefix}/shop`;
+        const assetsPrefix = `${routePrefix}/assets/`;
 
-        consumer.apply(this.createStaticServer()).forRoutes(adminRoute);
-        consumer.apply(this.createStaticServer()).forRoutes(shopRoute);
+        consumer.apply(this.createStaticServer(assetsPrefix)).forRoutes(adminRoute);
+        consumer.apply(this.createStaticServer(assetsPrefix)).forRoutes(shopRoute);
 
         // Add middleware for serving assets
-        consumer.apply(this.createAssetsServer()).forRoutes('/graphiql/assets/*path');
+        consumer.apply(this.createAssetsServer()).forRoutes(`${assetsPrefix}*path`);
 
-        registerPluginStartupMessage('GraphiQL Admin', adminRoute);
-        registerPluginStartupMessage('GraphiQL Shop', shopRoute);
+        // The startup message adds its own leading slash
+        registerPluginStartupMessage('GraphiQL Admin', adminRoute.slice(1));
+        registerPluginStartupMessage('GraphiQL Shop', shopRoute.slice(1));
     }
 
-    private createStaticServer() {
+    private createStaticServer(assetsPrefix: string) {
         const distDir = path.join(__dirname, '../dist/graphiql');
 
         const adminApiUrl = this.graphiQLService.getAdminApiUrl();
@@ -131,13 +131,17 @@ export class GraphiqlPlugin implements NestModule {
                     // Read the HTML file
                     let html = fs.readFileSync(indexHtmlPath, 'utf-8');
 
+                    // The app is built with relative asset URLs. Make them absolute under the
+                    // configured route, so they resolve whatever the page URL looks like.
+                    html = html.replace(/(src|href)="\.\/assets\//g, `$1="${assetsPrefix}`);
+
                     // Inject API URLs
                     html = html.replace(
                         '</head>',
                         `<script>
                                 window.GRAPHIQL_SETTINGS = {
-                                    adminApiUrl: "${adminApiUrl}",
-                                    shopApiUrl: "${shopApiUrl}"
+                                    adminApiUrl: ${JSON.stringify(adminApiUrl)},
+                                    shopApiUrl: ${JSON.stringify(shopApiUrl)}
                                 };
                             </script>
                             </head>`,
@@ -156,24 +160,49 @@ export class GraphiqlPlugin implements NestModule {
     }
 
     private createAssetsServer() {
-        const distDir = path.join(__dirname, '../dist/graphiql');
+        const assetsDir = path.join(__dirname, '../dist/graphiql/assets');
 
         return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+            const notFound = () => res.status(404).send('Asset not found');
             try {
-                // Extract asset path from URL
-                const assetPath = req.params[0] || req.params.path || '';
-                const filePath = path.join(distDir, 'assets', assetPath.toString());
-
-                if (fs.existsSync(filePath)) {
-                    return res.sendFile(assetPath.toString(), { root: path.join(distDir, 'assets') });
-                } else {
-                    return res.status(404).send('Asset not found');
+                // Express 5 provides the `*path` wildcard as an array of decoded segments.
+                // A segment may itself contain a decoded "/" (from "%2F"), so the resolved
+                // path must be checked against the assets dir before touching the filesystem.
+                const rawPath: string | string[] = req.params.path ?? '';
+                const assetPath = Array.isArray(rawPath) ? rawPath.join('/') : rawPath;
+                const filePath = path.resolve(assetsDir, assetPath);
+                if (!filePath.startsWith(assetsDir + path.sep)) {
+                    return notFound();
                 }
+                if (!isFile(filePath)) {
+                    return notFound();
+                }
+                return res.sendFile(path.relative(assetsDir, filePath), { root: assetsDir }, err => {
+                    if (err && !res.headersSent) {
+                        notFound();
+                    }
+                });
             } catch (e: unknown) {
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                 Logger.error(`Error serving static asset: ${errorMessage}`, loggerCtx);
                 return res.status(500).send('An error occurred while serving static asset');
             }
         };
+    }
+}
+
+function trimSlashes(value: string): string {
+    return value.replace(/^\/+|\/+$/g, '');
+}
+
+/**
+ * Any stat failure (missing entry, over-long name, null byte) is treated as "not a file", so the
+ * caller can respond the same way for all of them.
+ */
+function isFile(filePath: string): boolean {
+    try {
+        return fs.statSync(filePath).isFile();
+    } catch {
+        return false;
     }
 }

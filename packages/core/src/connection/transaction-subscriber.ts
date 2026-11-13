@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/typeorm';
 import { lastValueFrom, merge, ObservableInput, Subject } from 'rxjs';
 import { delay, filter, map, take, tap } from 'rxjs/operators';
-import { Connection, EntitySubscriberInterface } from 'typeorm';
+import { DataSource, EntitySubscriberInterface } from 'typeorm';
 import { EntityManager } from 'typeorm/entity-manager/EntityManager';
 import { QueryRunner } from 'typeorm/query-runner/QueryRunner';
 import { TransactionCommitEvent } from 'typeorm/subscriber/event/TransactionCommitEvent';
@@ -26,7 +26,7 @@ export interface TransactionSubscriberEvent {
     /**
      * Connection used in the event.
      */
-    connection: Connection;
+    connection: DataSource;
     /**
      * QueryRunner used in the event transaction.
      * All database operations in the subscribed event listener should be performed using this query runner instance.
@@ -50,7 +50,7 @@ export interface TransactionSubscriberEvent {
 export class TransactionSubscriber implements EntitySubscriberInterface {
     private subject$ = new Subject<TransactionSubscriberEvent>();
 
-    constructor(@InjectConnection() private connection: Connection) {
+    constructor(@InjectConnection() private connection: DataSource) {
         if (!connection.subscribers.find(subscriber => subscriber.constructor === TransactionSubscriber)) {
             connection.subscribers.push(this);
         }

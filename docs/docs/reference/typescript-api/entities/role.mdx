@@ -2,26 +2,43 @@
 title: "Role"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/role/role.entity.ts" sourceLine="16" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/role/role.entity.ts" sourceLine="31" packageName="@vendure/core" />
 
 A Role represents a collection of permissions which determine the authorization
-level of a [User](/reference/typescript-api/entities/user#user) on a given set of [Channel](/reference/typescript-api/entities/channel#channel)s.
+level of a [User](/reference/typescript-api/entities/user#user). The Channels on which a User holds a Role's permissions are
+determined per-User by [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment)s.
+
+Every Role is owned by a Channel, which decides who may edit it and where it may be
+assigned:
+
+- A Role owned by the **default Channel** is a shared Role. It may be assigned on any
+  Channel, so a single definition (e.g. "Order Fulfillment") serves every vendor of a
+  multi-vendor marketplace. All Roles of a single-channel instance are shared Roles.
+- A Role owned by **any other Channel** is private to that Channel. It may only be
+  assigned on its owning Channel, and is invisible to administrators of other Channels.
+
+The owning Channel is set from the active Channel when the Role is created, and does
+not change afterwards. Deleting a Channel deletes the Roles it owns.
 
 ```ts title="Signature"
-class Role extends VendureEntity implements ChannelAware {
+class Role extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<Role>)
     @Column() code: string;
     @Column() description: string;
     @Column('simple-array') permissions: Permission[];
-    @ManyToMany(type => Channel, channel => channel.roles)
-    @JoinTable()
-    channels: Channel[];
+    @Column(type => CustomRoleFields)
+    customFields: CustomRoleFields;
+    @Index()
+    @ManyToOne(type => Channel, { onDelete: 'CASCADE' })
+    channel: Channel;
+    @EntityId({ nullable: true })
+    channelId: ID | null;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
 
 
-* Implements: [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
+* Implements: HasCustomFields
 
 
 
@@ -42,11 +59,24 @@ class Role extends VendureEntity implements ChannelAware {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]`}   />
 
 
-### channels
+### customFields
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+<MemberInfo kind="property" type={`CustomRoleFields`}   />
 
 
+### channel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`}  since="4.0.0"  />
+
+The Channel which owns this Role.
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}  since="4.0.0"  />
+
+The id of the owning Channel. Nullable in the database only so that the v4 upgrade can
+add the column to existing Roles and v3 servers can keep creating Roles during a rolling
+deployment. The role assignment migration sets it on every Role, and a Role without an
+owner can be granted by nobody.
 
 
 </div>

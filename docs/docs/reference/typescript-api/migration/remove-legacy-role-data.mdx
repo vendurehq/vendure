@@ -1,0 +1,57 @@
+---
+title: "RemoveLegacyRoleData"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="207" packageName="@vendure/core" since="4.0.0" />
+
+The second step of the role assignment migration. Call it once no v3 server or worker is
+running: in the same migration as [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) if you stop v3 before
+migrating, or from a migration in a later deployment otherwise. Running it stops v3 servers
+from working.
+
+Between the two steps, v3 and v4 servers may both have changed role grants. v4 servers
+write `role_assignment` and v3 servers write the legacy tables, so this helper first
+reconciles what it can tell apart:
+
+- A row which [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata) copied, and which the legacy tables no
+  longer grant, was revoked on a v3 server. It is deleted, and logged.
+- A grant which the legacy tables hold and `role_assignment` does not was either removed
+  on a v4 server or granted on a v3 server after the copy. The two cannot be told apart,
+  so it is logged and not applied. Grant it again with `assignRolesToUser` if needed.
+- Rows written by v4 servers since the copy are left as they are.
+
+Roles created on v3 servers since the copy have no owning Channel yet. They are given one
+by the same rule as in [migrateRoleAssignmentData](/reference/typescript-api/migration/migrate-role-assignment-data#migrateroleassignmentdata).
+
+It then **drops** the legacy tables and the `role_assignment_migration` table, and
+deletes the Customer role. The way back to v3 is the backup taken before the migration,
+which also holds the pre-v4 grants should you need them later.
+
+The helper is idempotent: a partially dropped state is completed, and a fully dropped one
+is skipped. It is safe to re-run, e.g. after a partial failure on MySQL (where DDL is
+non-transactional).
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { removeLegacyRoleData } from '@vendure/core';
+
+export class RemoveLegacyRoleData1234567891 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        await removeLegacyRoleData(queryRunner);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // Restore the backup taken before the upgrade to go back to v3
+    }
+}
+```
+
+```ts title="Signature"
+function removeLegacyRoleData(queryRunner: QueryRunner): Promise<void>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+

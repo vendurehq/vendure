@@ -1,6 +1,7 @@
 import { AlertsProvider } from '@/vdb/providers/alerts-provider.js';
 import { AuthProvider } from '@/vdb/providers/auth.js';
 import { ChannelProvider } from '@/vdb/providers/channel-provider.js';
+import { FormatBridge } from '@/vdb/providers/format-bridge.js';
 import { I18nProvider } from '@/vdb/providers/i18n-provider.js';
 import { ServerConfigProvider } from '@/vdb/providers/server-config.js';
 import { ThemeProvider } from '@/vdb/providers/theme-provider.js';
@@ -33,11 +34,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                     <ThemeProvider defaultTheme="system">
                         <AuthProvider>
                             <ServerConfigProvider>
-                                <ChannelProvider>
-                                    <AlertsProvider>
-                                        <CustomProviders location={'app'}>{children}</CustomProviders>
-                                    </AlertsProvider>
-                                </ChannelProvider>
+                                <FormatBridge>
+                                    <ChannelProvider>
+                                        <AlertsProvider>
+                                            <CustomProviders location={'app'}>
+                                                {children}
+                                            </CustomProviders>
+                                        </AlertsProvider>
+                                    </ChannelProvider>
+                                </FormatBridge>
                             </ServerConfigProvider>
                         </AuthProvider>
                     </ThemeProvider>

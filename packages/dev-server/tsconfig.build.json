@@ -8,16 +8,13 @@
     "exclude": [
         "node_modules",
         "dist",
-        "custom-admin-ui",
         "load-testing",
         "scripts",
         "vite.config.*",
         "**/*.tsx",
-        "example-plugins/**/ui/**/*",
         "example-plugins/**/dashboard/**/*",
         "test-plugins/**/components/**/*",
         "test-plugins/**/dashboard/**/*",
-        "test-plugins/**/react/**/*",
-        "test-plugins/**/ui/**/*"
+        "test-plugins/**/react/**/*"
     ]
 }

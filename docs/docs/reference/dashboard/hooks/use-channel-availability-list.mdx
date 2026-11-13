@@ -1,0 +1,37 @@
+---
+title: "UseChannelAvailabilityList"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-channel-availability-list.tsx" sourceLine="69" packageName="@vendure/dashboard" since="4.0.0" />
+
+Returns what a Product or ProductVariant `ListPage` needs to show whether each row is available
+in the active Channel. With more than one Channel:
+
+- `statusColumn` (for `customizeColumns.enabled`) turns the Enabled column into a Status column
+  showing a [ChannelAvailabilityBadge](/reference/dashboard/components/channel-availability-badge#channelavailabilitybadge): Enabled, Hidden (in this Channel) or Disabled.
+- `facetedFilter` (for `facetedFilters[filterId]`) is a matching Status filter. It needs a
+  hidden column registered under `filterId` (`additionalColumns[filterId] = filterColumn`) and
+  `transformVariables`, which turns it into a filter on `enabled` and `enabledInChannel`.
+
+With a single Channel, `statusColumn` is empty and `facetedFilter` is `undefined`, so the list
+keeps its Enabled column.
+
+*Example*
+
+```tsx
+const channelAvailability = useChannelAvailabilityList();
+<ListPage
+    customizeColumns={{
+        enabled: channelAvailability.statusColumn,
+        enabledInChannel: channelAvailability.enabledInChannelColumn,
+    }}
+    additionalColumns={{ [channelAvailability.filterId]: channelAvailability.filterColumn }}
+    facetedFilters={{ [channelAvailability.filterId]: channelAvailability.facetedFilter }}
+    transformVariables={channelAvailability.transformVariables}
+    ...
+/>
+```
+
+```ts title="Signature"
+function useChannelAvailabilityList(): void
+```

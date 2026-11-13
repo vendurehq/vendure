@@ -2,19 +2,20 @@
 title: "FacetValueService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/facet-value.service.ts" sourceLine="40" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/facet-value.service.ts" sourceLine="43" packageName="@vendure/core" />
 
 Contains methods relating to [FacetValue](/reference/typescript-api/entities/facet-value#facetvalue) entities.
 
 ```ts title="Signature"
 class FacetValueService {
-    constructor(connection: TransactionalConnection, translatableSaver: TranslatableSaver, configService: ConfigService, customFieldRelationService: CustomFieldRelationService, channelService: ChannelService, eventBus: EventBus, translator: TranslatorService, listQueryBuilder: ListQueryBuilder)
+    constructor(connection: TransactionalConnection, translatableSaver: TranslatableSaver, configService: ConfigService, customFieldRelationService: CustomFieldRelationService, channelService: ChannelService, eventBus: EventBus, translator: TranslatorService, listQueryBuilder: ListQueryBuilder, requestCache: RequestContextCacheService)
     findAll(lang: LanguageCode) => Promise<Array<Translated<FacetValue>>>;
     findAll(ctx: RequestContext, lang: LanguageCode) => Promise<Array<Translated<FacetValue>>>;
     findAll(ctxOrLang: RequestContext | LanguageCode, lang?: LanguageCode) => Promise<Array<Translated<FacetValue>>>;
     findAllList(ctx: RequestContext, options?: ListQueryOptions<FacetValue>, relations?: RelationPaths<FacetValue>) => Promise<PaginatedList<Translated<FacetValue>>>;
     findOne(ctx: RequestContext, id: ID) => Promise<Translated<FacetValue> | undefined>;
     findByIds(ctx: RequestContext, ids: ID[]) => Promise<Array<Translated<FacetValue>>>;
+    findByProductId(ctx: RequestContext, productId: ID) => Promise<Array<Translated<FacetValue>>>;
     findByFacetId(ctx: RequestContext, id: ID) => Promise<Array<Translated<FacetValue>>>;
     findByFacetIdList(ctx: RequestContext, id: ID, options?: ListQueryOptions<FacetValue>, relations?: RelationPaths<FacetValue>) => Promise<PaginatedList<Translated<FacetValue>>>;
     create(ctx: RequestContext, facet: Facet, input: CreateFacetValueInput | CreateFacetValueWithFacetInput) => Promise<Translated<FacetValue>>;
@@ -59,6 +60,13 @@ A separate method was created just to avoid a breaking change in v1.9.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, ids: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />
 
 
+### findByProductId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}  since="3.8.0"  />
+
+Returns the FacetValues assigned to the given Product which are available in the
+Channel of the RequestContext. Concurrent calls in the same request are batched into
+a fixed number of queries.
 ### findByFacetId
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />

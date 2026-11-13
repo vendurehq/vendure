@@ -2,7 +2,7 @@
 title: "Asset"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="25" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="26" packageName="@vendure/core" />
 
 An Asset represents a file such as an image which can be associated with certain other entities
 such as Products.
@@ -24,7 +24,8 @@ class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFi
     @JoinTable()
     tags: Tag[];
     @ManyToMany(type => Channel)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
     @OneToMany(type => Collection, collection => collection.featuredAsset)
     featuredInCollections?: Collection[];

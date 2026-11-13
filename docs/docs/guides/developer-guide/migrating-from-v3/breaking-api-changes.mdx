@@ -1,0 +1,68 @@
+---
+title: "Breaking API Changes"
+metaTitle: "Vendure v3 to v4 Breaking API Changes"
+metaDescription: "Breaking API changes in Vendure v4 that affect plugins, custom code and Admin API clients, with the codemods and searches that find them."
+order: 3
+---
+
+This page lists the v4 changes that break plugins, custom code and Admin API clients. Run the codemods first, then search for the code they do not change, then work through the sections that apply to your project.
+
+## Codemods
+
+| Codemod | Change |
+|---|---|
+| `npx vendure codemod role-assignments [path]` | [Role assignments](/developer-guide/migrating-from-v3/role-assignments#running-the-codemod) |
+
+A codemod makes the edits that have one right answer. Where the replacement depends on what your code is meant to do, it adds a `// TODO(vendure-v4):` comment naming the replacement instead.
+
+**Done when:** each codemod has run, and `rg "TODO\(vendure-v4\)"` lists only comments you still have to work through.
+
+## Finding code to update
+
+The codemods do not change the code below. Search your project for each pattern and update every match.
+
+```bash
+rg -n "RoleChangeEvent|getCustomerRole|getChannelsForRole|assignRoleToChannel|assertActiveUserCanGrantRoles"
+rg -n "CUSTOMER_ROLE_CODE|CUSTOMER_ROLE_DESCRIPTION|user_roles_role|role_channels_channel"
+rg -n "createApiKeyUser\(|createAdministratorAndUser\(|implements SessionCacheStrategy"
+rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
+```
+
+| Match | What to do |
+|---|---|
+| `RoleChangeEvent` | Subscribe to `RoleAssignmentEvent`. See [Events](/developer-guide/migrating-from-v3/role-assignments#events). |
+| `getCustomerRole`, `CUSTOMER_ROLE_CODE`, `CUSTOMER_ROLE_DESCRIPTION` | Remove. There is no Customer role. See [Customers](/developer-guide/migrating-from-v3/role-assignments#customers). |
+| `getChannelsForRole`, `assignRoleToChannel`, `assertActiveUserCanGrantRoles`, `createApiKeyUser(`, `createAdministratorAndUser(` | See [Services](/developer-guide/migrating-from-v3/role-assignments#services). |
+| `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
+| `implements SessionCacheStrategy` | Check that it stores `globalPermissions`. See [Sessions and permission checks](/developer-guide/migrating-from-v3/role-assignments#sessions-and-permission-checks). |
+| `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
+
+**Done when:** every match is updated, and `npx tsc --noEmit` passes.
+
+## Role assignments
+
+`User.roles` and `Role.channels` are removed, and Roles are granted per Channel through `RoleAssignment` rows. The main breaks:
+
+- Read a User's Roles with `RoleAssignmentService.resolveUserRoles()`, and grant or revoke them with `RoleAssignmentService.assign()` / `remove()`.
+- `RoleChangeEvent` is replaced by `RoleAssignmentEvent`. The codemod does not rewrite it.
+- `RoleService.getCustomerRole()` is removed. There is no Customer role.
+- Every Role is owned by the Channel it was created on. A Role owned by the default Channel can be assigned on any Channel; any other Role only on its owning Channel.
+- In the Admin API, `Role.channels` and `channelIds` on the Role inputs are removed, and `Role.channel` returns the owning Channel. `createRole` creates the Role on the active Channel. The deprecated `roleIds` inputs now apply to the active Channel only. Use `assignRolesToUser` and `removeRolesFromUser` instead.
+- Role CRUD needs the new `CreateRole`, `ReadRole`, `UpdateRole` and `DeleteRole` permissions on the Channel that owns the Role.
+- An API key cannot be granted the SuperAdmin Role, or Roles on Channels it does not belong to.
+- An Administrator cannot delete themselves or remove their own last role assignment.
+- `BaseAuthResolver.publiclyAccessibleUser()` takes the `RequestContext` as its first argument. Only relevant if you extend the auth resolvers.
+
+For the full list, and what stays the same, see [Updating your code](/developer-guide/migrating-from-v3/role-assignments#updating-your-code).
+
+## Order item pricing
+
+The default cart pricing now uses the [buyer price](/core-concepts/pricing/#the-buyer-price). Without custom strategies, the prices do not change.
+
+- `DefaultOrderItemPriceCalculationStrategy` needs `init()`. Vendure calls it for the configured strategy. If your code creates the strategy with `new` and calls `calculateUnitPrice()` directly, call `init(injector)` first.
+- When the customer of an active order or a draft order changes, Vendure calculates the price of all lines again, so a custom `OrderItemPriceCalculationStrategy` now also runs for `setCustomerForOrder`, `setCustomerForDraftOrder`, `setOrderCustomer` and the login of a guest. A line that has no price for the new customer keeps its current price.
+
+## Next steps
+
+- Preview and run the database migration: see [Database migration](/developer-guide/migrating-from-v3/database-migration).
+- For the full upgrade order, go back to [Migrating from v3](/developer-guide/migrating-from-v3).

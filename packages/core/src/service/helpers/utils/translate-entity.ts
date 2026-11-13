@@ -215,8 +215,21 @@ export function translateDeep<T extends Translatable & VendureEntity>(
             if (Array.isArray(valueLevel0)) {
                 valueLevel0.forEach((nested1, index) => {
                     object = (translatedEntity as any)[path0][index];
+                    // An array-valued relation can contain `null`/`undefined` entries, so there
+                    // may be no entity here to assign to.
+                    if (object == null) {
+                        return;
+                    }
                     property = path1;
-                    object[property] = translateLeaf(object, property, languageCode);
+                    const translated = translateLeaf(object, property, languageCode);
+                    // translateLeaf() returns undefined when the relation is null. Assigning that
+                    // unconditionally would rewrite a relation that is null in the database into
+                    // one that looks like it was never fetched — a distinction
+                    // getMissingRelations() relies on, so hydrate() would stop being idempotent
+                    // and re-query the relation on every subsequent call.
+                    if (translated !== undefined) {
+                        object[property] = translated;
+                    }
                 });
                 property = '';
                 object = null;
@@ -231,7 +244,9 @@ export function translateDeep<T extends Translatable & VendureEntity>(
             value = translateLeaf(object, property, languageCode);
         }
 
-        if (object && property) {
+        // Shared by the non-array branches above: skip the assignment when there is nothing
+        // to translate, preserving null relations for the same reason as in the array branch.
+        if (object && property && value !== undefined) {
             object[property] = value;
         }
     }
@@ -247,6 +262,14 @@ function translateLeaf(
     if (object && object[property]) {
         if (Array.isArray(object[property])) {
             return object[property].map((nested2: any) => {
+                // A relation array can contain `null`/`undefined` entries: an element that was
+                // never fetched, or a relation that is null on that element. translateEntity()
+                // dereferences `.translations`, so a hole throws a TypeError — which would be
+                // re-thrown below rather than swallowed like InternalServerError. Leave holes
+                // untouched.
+                if (nested2 == null) {
+                    return nested2;
+                }
                 try {
                     return translateEntity(nested2, languageCode);
                 } catch (e: any) {

@@ -2,189 +2,99 @@ import { CustomScriptDefinition } from '../types';
 
 // language=Lua
 const script = `--[[
-  Get job ids per provided states and filter by name - Optimized version using indexed structure
+  Get a page of job ids for the given states, ordered newest-first by creation time,
+  optionally filtered by one or more queue names.
     Input:
-      KEYS[1]    'prefix'
-      ARGV[1]    skip
-      ARGV[2]    take
-      ARGV[3]    filterName
-      ARGV[4...] types
+      KEYS[1]         key prefix (e.g. "bull:vendure-job-queue:")
+      ARGV[1]         skip
+      ARGV[2]         take
+      ARGV[3]         number of queue-name filters (N)
+      ARGV[4..3+N]    queue names
+      ARGV[4+N..]     job states/types
+    Output:
+      { totalCount, { id1, id2, ... } }
+
+  The query reads the indexed sorted sets maintained by the JobListIndexService
+  (one per queue name and state, uniformly scored by creation timestamp) rather
+  than BullMQ's native state structures. The native structures order by finish
+  time, encoded delay or priority depending on the state, so selecting the top
+  (skip + take) entries from them could cut a job from the page before a
+  creation-time sort ever saw it. When no queue names are given, the registry of
+  known queue names is used so that every indexed set is consulted.
+
+  The script is read-only: since Redis scripts execute atomically, candidates are
+  merged and sorted in Lua memory rather than in temporary Redis keys. Only the
+  first (skip + take) entries of each set are fetched, so the cost is bounded by
+  the page depth, not the queue length.
 ]]
 local rcall = redis.call
 local prefix = KEYS[1]
 local skip = tonumber(ARGV[1])
 local take = tonumber(ARGV[2])
-local filterName = ARGV[3]
+local numNames = tonumber(ARGV[3])
+local names = {}
+for i = 4, 3 + numNames do
+    table.insert(names, ARGV[i])
+end
+local states = {}
+for i = 4 + numNames, #ARGV do
+    table.insert(states, ARGV[i])
+end
+
+if numNames == 0 then
+    -- No explicit filter: consult the indexed sets of every known queue name
+    names = rcall('SMEMBERS', prefix .. 'queue-names')
+end
+
+local needed = skip + take
+local total = 0
+local candidates = {}
+local seen = {}
+
+for _, name in ipairs(names) do
+    for _, state in ipairs(states) do
+        local key = prefix .. 'queue:' .. name .. ':' .. state
+        if rcall('TYPE', key).ok == 'zset' then
+            total = total + rcall('ZCARD', key)
+            -- Guard against needed <= 0: a range end of -1 would fetch the whole set
+            if needed > 0 then
+                local elements = rcall('ZREVRANGE', key, 0, needed - 1, 'WITHSCORES')
+                for i = 1, #elements, 2 do
+                    local id = elements[i]
+                    if not seen[id] then
+                        seen[id] = true
+                        table.insert(candidates, { id = id, ts = tonumber(elements[i + 1]) })
+                    end
+                end
+            end
+        end
+    end
+end
+
+table.sort(candidates, function(a, b)
+    if a.ts == b.ts then
+        -- Stable tie-break on the (numeric where possible) job id
+        local aNum = tonumber(a.id)
+        local bNum = tonumber(b.id)
+        if aNum and bNum then
+            return aNum > bNum
+        end
+        return tostring(a.id) > tostring(b.id)
+    end
+    return a.ts > b.ts
+end)
+
 local results = {}
-local totalResults = 0
-
--- redis.log(redis.LOG_NOTICE, 'Filter name: "' .. filterName .. '"')
--- redis.log(redis.LOG_NOTICE, 'Filter name length: ' .. tostring(#filterName))
--- redis.log(redis.LOG_NOTICE, 'Number of ARGV: ' .. tostring(#ARGV))
--- redis.log(redis.LOG_NOTICE, 'skip: "' .. tostring(skip) .. '"')
--- redis.log(redis.LOG_NOTICE, 'take: "' .. tostring(take) .. '"')
-
--- Create a temporary key for merging results
-local tempKey = prefix .. 'temp:merge:' .. math.random(1000000)
-local sourceKeys = {}
-local listKeys = {}
-
--- Function to count jobs in a sorted set
-local function countJobsInSortedSet(key)
-    return rcall('ZCARD', key) or 0
+for i = skip + 1, math.min(skip + take, #candidates) do
+    table.insert(results, candidates[i].id)
 end
 
--- Function to count jobs in a list
-local function countJobsInList(key)
-    return rcall('LLEN', key) or 0
-end
-
--- First count total jobs and collect source keys
-if filterName ~= "" then
-    -- When filtering by name, we need to check each state
-    for i = 4, #ARGV do
-        local state = ARGV[i]
-        -- redis.log(redis.LOG_NOTICE, 'Processing state: "' .. state .. '"')
-        local indexedKey = prefix .. 'queue:' .. filterName .. ':' .. state
-        -- redis.log(redis.LOG_NOTICE, 'Looking for key: ' .. indexedKey)
-        local keyType = rcall('TYPE', indexedKey).ok
-        -- redis.log(redis.LOG_NOTICE, 'Key type: ' .. keyType)
-
-        if keyType == 'zset' then
-            totalResults = totalResults + countJobsInSortedSet(indexedKey)
-            table.insert(sourceKeys, indexedKey)
-        elseif keyType == 'list' then
-            totalResults = totalResults + countJobsInList(indexedKey)
-            table.insert(listKeys, indexedKey)
-        end
-    end
-else
-    -- No filter, count all types
-    for i = 4, #ARGV do
-        local state = ARGV[i]
-        -- redis.log(redis.LOG_NOTICE, 'Processing state: "' .. state .. '"')
-        local key = prefix .. state
-        -- redis.log(redis.LOG_NOTICE, 'Looking for key: ' .. key)
-        local keyType = rcall('TYPE', key).ok
-        -- redis.log(redis.LOG_NOTICE, 'Key type: ' .. keyType)
-
-        if keyType == 'zset' then
-            totalResults = totalResults + countJobsInSortedSet(key)
-            table.insert(sourceKeys, key)
-        elseif keyType == 'list' then
-            totalResults = totalResults + countJobsInList(key)
-            table.insert(listKeys, key)
-            -- redis.log(redis.LOG_NOTICE, 'total jobs in list: ' .. totalResults)
-        end
-    end
-end
-
--- If we have any sorted sets to merge, do it
-if #sourceKeys > 0 then
-    -- Calculate how many elements we need to merge
-    local neededElements = skip + take
-    -- redis.log(redis.LOG_NOTICE, 'Number of source keys: ' .. tostring(#sourceKeys))
-    -- redis.log(redis.LOG_NOTICE, 'Needed elements: ' .. tostring(neededElements))
-
-    -- Create temporary keys for each source set with limited elements
-    local limitedKeys = {}
-    for i, sourceKey in ipairs(sourceKeys) do
-        local limitedKey = tempKey .. ':limited:' .. i
-        -- redis.log(redis.LOG_NOTICE, 'Processing source key: ' .. sourceKey)
-        -- Get only the elements we need from each source set
-        local elements = rcall('ZREVRANGE', sourceKey, 0, neededElements - 1, 'WITHSCORES')
-        -- redis.log(redis.LOG_NOTICE, 'Found ' .. tostring(#elements) .. ' elements in ' .. sourceKey)
-        if #elements > 0 then
-            -- Process elements in pairs (member, score)
-            local chunkSize = 1000 -- Process in chunks of 1000 elements
-            for j = 1, #elements, chunkSize * 2 do
-                local chunkEnd = math.min(j + chunkSize * 2 - 1, #elements)
-                local chunkArgs = {}
-                for k = j, chunkEnd, 2 do
-                    local member = elements[k]
-                    local score = elements[k + 1]
-                    table.insert(chunkArgs, score)
-                    table.insert(chunkArgs, member)
-                end
-                if #chunkArgs > 0 then
-                    rcall('ZADD', limitedKey, unpack(chunkArgs))
-                end
-            end
-            table.insert(limitedKeys, limitedKey)
-            -- redis.log(redis.LOG_NOTICE, 'Added to limited key: ' .. limitedKey)
-        end
-    end
-
-    -- redis.log(redis.LOG_NOTICE, 'Number of limited keys: ' .. tostring(#limitedKeys))
-
-    if #limitedKeys > 0 then
-        -- Merge the limited sets
-        rcall('ZUNIONSTORE', tempKey, #limitedKeys, unpack(limitedKeys))
-        -- redis.log(redis.LOG_NOTICE, 'Merged sets into: ' .. tempKey)
-
-        -- Get the paginated results from the merged set
-        results = rcall('ZREVRANGE', tempKey, skip, skip + take - 1)
-        -- redis.log(redis.LOG_NOTICE, 'Got ' .. tostring(#results) .. ' results from merged set')
-
-        -- Clean up temporary limited keys
-        for _, key in ipairs(limitedKeys) do
-            rcall('DEL', key)
-        end
-    else
-        -- redis.log(redis.LOG_NOTICE, 'No elements found in any source sets')
-    end
-end
-
--- Handle list keys separately
-if #listKeys > 0 then
-    -- Create a temporary list to merge all list keys
-    local tempListKey = tempKey .. ':list'
-
-    -- Merge all list keys into the temporary list
-    for _, listKey in ipairs(listKeys) do
-        local listElements = rcall('LRANGE', listKey, 0, -1)
-        if #listElements > 0 then
-            rcall('RPUSH', tempListKey, unpack(listElements))
-        end
-    end
-
-    -- Get the total number of elements in the merged list
-    local totalListElements = rcall('LLEN', tempListKey)
-
-    if totalListElements > 0 then
-        -- If we already have results from sorted sets, we need to merge them
-        if #results > 0 then
-            -- Convert the merged sorted set results to a temporary list
-            local tempSortedListKey = tempKey .. ':sorted'
-            for _, jobId in ipairs(results) do
-                rcall('RPUSH', tempSortedListKey, jobId)
-            end
-
-            -- Merge the sorted results with list results
-            local sortedElements = rcall('LRANGE', tempSortedListKey, 0, -1)
-            rcall('RPUSH', tempListKey, unpack(sortedElements))
-
-            -- Clean up temporary sorted list
-            rcall('DEL', tempSortedListKey)
-        end
-
-        -- Get the final paginated results from the merged list
-        results = rcall('LRANGE', tempListKey, skip, skip + take - 1)
-
-        -- Clean up temporary list
-        rcall('DEL', tempListKey)
-    end
-end
-
--- Clean up temporary key
-rcall('DEL', tempKey)
-
-return {totalResults, results}
+return { total, results }
 `;
 
 export const getJobsByType: CustomScriptDefinition<
     [totalItems: number, jobIds: string[]],
-    [skip: number, take: number, queueName: string | undefined, ...states: string[]]
+    [skip: number, take: number, numQueueNames: number, ...namesAndStates: string[]]
 > = {
     script,
     numberOfKeys: 1,

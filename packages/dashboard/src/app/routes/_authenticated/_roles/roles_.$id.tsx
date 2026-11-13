@@ -1,19 +1,22 @@
-import { ChannelSelector } from '@/vdb/components/shared/channel-selector.js';
+import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    DetailFormGrid,
+import { DEFAULT_CHANNEL_CODE, NEW_ENTITY_PATH } from '@/vdb/constants.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
+    DetailFormGrid,
     Page,
     PageActionBar,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -34,7 +37,7 @@ export const Route = createFileRoute('/_authenticated/_roles/roles_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function RoleDetailPage() {
@@ -42,6 +45,7 @@ function RoleDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const { activeChannel } = useChannel();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -54,7 +58,7 @@ function RoleDetailPage() {
                 code: entity.code,
                 description: entity.description,
                 permissions: entity.permissions,
-                channelIds: entity.channels.map(channel => channel.id),
+                customFields: entity.customFields,
             };
         },
         params: { id: params.id },
@@ -72,11 +76,18 @@ function RoleDetailPage() {
         },
     });
 
+    // A new Role is owned by the active channel; an existing one keeps its owner
+    const ownerChannel = creatingNewEntity ? activeChannel : entity?.channel;
+    const isShared = ownerChannel?.code === DEFAULT_CHANNEL_CODE;
+
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{creatingNewEntity ? <Trans>New role</Trans> : (entity?.description ?? '')}</PageTitle>
             <PageActionBar>
-                <ActionBarItem itemId="save-button" requiresPermission={['UpdateAdministrator']}>
+                <ActionBarItem
+                    itemId="save-button"
+                    requiresPermission={creatingNewEntity ? ['CreateRole'] : ['UpdateRole']}
+                >
                     <Button
                         type="submit"
                         disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
@@ -101,40 +112,49 @@ function RoleDetailPage() {
                             render={({ field }) => <Input {...field} />}
                         />
                     </DetailFormGrid>
-                </PageBlock>
-                <PageBlock column="main" blockId="channels">
-                    <div className="space-y-8">
-                        <div className="md:grid md:grid-cols-2 gap-4">
-                            <FormFieldWrapper
-                                control={form.control}
-                                name="channelIds"
-                                label={<Trans>Channels</Trans>}
-                                description={
+                    {ownerChannel && (
+                        <p className="text-sm text-muted-foreground mt-4" data-testid="role-owner-note">
+                            {isShared ? (
+                                creatingNewEntity ? (
                                     <Trans>
-                                        The selected permissions will be applied to the these channels.
+                                        This role will be shared: it is created on the default channel, so it
+                                        can be assigned on every channel.
                                     </Trans>
-                                }
-                                render={({ field }) => (
-                                    <ChannelSelector
-                                        multiple={true}
-                                        value={field.value ?? []}
-                                        onChange={value => field.onChange(value)}
-                                    />
-                                )}
-                            />
-                        </div>
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="permissions"
-                            label={<Trans>Permissions</Trans>}
-                            render={({ field }) => (
-                                <PermissionsTableGrid
-                                    value={field.value ?? []}
-                                    onChange={value => field.onChange(value)}
-                                />
+                                ) : (
+                                    <Trans>
+                                        This is a shared role, owned by the default channel. It can be
+                                        assigned on every channel.
+                                    </Trans>
+                                )
+                            ) : creatingNewEntity ? (
+                                <Trans>
+                                    This role will be owned by the channel{' '}
+                                    <ChannelCodeLabel code={ownerChannel.code} /> and can only be assigned
+                                    there. Create it on the default channel to share it across channels.
+                                </Trans>
+                            ) : (
+                                <Trans>
+                                    This role is owned by the channel{' '}
+                                    <ChannelCodeLabel code={ownerChannel.code} /> and can only be assigned
+                                    there.
+                                </Trans>
                             )}
-                        />
-                    </div>
+                        </p>
+                    )}
+                </PageBlock>
+                <CustomFieldsPageBlock column="main" entityType="Role" control={form.control} />
+                <PageBlock column="main" blockId="permissions">
+                    <FormFieldWrapper
+                        control={form.control}
+                        name="permissions"
+                        label={<Trans>Permissions</Trans>}
+                        render={({ field }) => (
+                            <PermissionsTableGrid
+                                value={field.value ?? []}
+                                onChange={value => field.onChange(value)}
+                            />
+                        )}
+                    />
                 </PageBlock>
             </PageLayout>
         </Page>

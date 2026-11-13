@@ -1,5 +1,5 @@
 import { graphql } from '@/vdb/graphql/graphql.js';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DemoRouterProvider } from '../../../../.storybook/providers.js';
 import { DetailPage, DetailPageProps } from './detail-page.js';
 
@@ -67,7 +67,12 @@ const updateProductDocument = graphql(`
     }
 `);
 
-function DetailPageStoryWrapper(props: Omit<DetailPageProps<any, any, any>, 'route'>) {
+function DetailPageStoryWrapper(
+    props: Omit<
+        DetailPageProps<typeof productQuery, typeof createProductDocument, typeof updateProductDocument>,
+        'route'
+    >,
+) {
     return (
         <DemoRouterProvider
             component={route => <DetailPage {...props} route={route} />}
@@ -129,23 +134,27 @@ export const BasicDetail: Story = {
         queryDocument: productQuery,
         updateDocument: updateProductDocument,
         title: entity => entity?.name || 'Product',
-        setValuesForUpdate: entity => ({
-            id: entity.id,
-            name: entity.name,
-            slug: entity.slug,
-            description: entity.description,
-            enabled: entity.enabled,
-            featuredAssetId: entity.featuredAsset?.id,
-            assetIds: entity.assets.map(asset => asset.id),
-            facetValueIds: entity.facetValues.map(facetValue => facetValue.id),
-            translations: entity.translations.map(translation => ({
-                id: translation.id,
-                languageCode: translation.languageCode,
-                name: translation.name,
-                slug: translation.slug,
-                description: translation.description,
-                customFields: (translation as any).customFields,
-            })),
-        }),
+        // The type allows a nullish entity, but the page only calls this with a loaded one.
+        setValuesForUpdate: maybeEntity => {
+            const entity = maybeEntity as NonNullable<typeof maybeEntity>;
+            return {
+                id: entity.id,
+                name: entity.name,
+                slug: entity.slug,
+                description: entity.description,
+                enabled: entity.enabled,
+                featuredAssetId: entity.featuredAsset?.id,
+                assetIds: entity.assets.map(asset => asset.id),
+                facetValueIds: entity.facetValues.map(facetValue => facetValue.id),
+                translations: entity.translations.map(translation => ({
+                    id: translation.id,
+                    languageCode: translation.languageCode,
+                    name: translation.name,
+                    slug: translation.slug,
+                    description: translation.description,
+                    customFields: (translation as any).customFields,
+                })),
+            };
+        },
     },
 };

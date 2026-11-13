@@ -3,8 +3,8 @@ import { SUPER_ADMIN_USER_IDENTIFIER, SUPER_ADMIN_USER_PASSWORD } from '@vendure
 import { VendureConfig } from '@vendure/core';
 import fs from 'fs';
 import { DocumentNode } from 'graphql';
-import { print } from 'graphql/language/printer';
 import gql from 'graphql-tag';
+import { print } from 'graphql/language/printer';
 import mime from 'mime-types';
 import { stringify } from 'querystring';
 
@@ -65,6 +65,21 @@ export class SimpleGraphQLClient {
         this.channelToken = token;
         if (this.vendureConfig.apiOptions.channelTokenKey) {
             this.headers[this.vendureConfig.apiOptions.channelTokenKey] = this.channelToken;
+        }
+    }
+
+    /**
+     * @description
+     * Sets an arbitrary header to be sent with each subsequent request, or removes it when passed
+     * `null`. Useful for headers the server reads directly, such as `Accept-Language`.
+     *
+     * @since 3.8.0
+     */
+    setHeader(key: string, value: string | null) {
+        if (value === null) {
+            delete this.headers[key];
+        } else {
+            this.headers[key] = value;
         }
     }
 
@@ -221,6 +236,9 @@ export class SimpleGraphQLClient {
      * corresponding Upload fields appear in the variables for the mutation.
      * @param mapVariables - Function that must return the variables for the
      * mutation, with `null` as the value for each `Upload` field.
+     * @param contentTypeOverrides - Optional overrides for the `Content-Type` of individual file
+     * parts, keyed by their index in `filePaths`. Used to simulate a client spoofing the
+     * Content-Type header independently of the actual file contents (e.g. via a proxy tool).
      *
      * @example
      * ```ts
@@ -249,8 +267,9 @@ export class SimpleGraphQLClient {
         mutation: DocumentNode;
         filePaths: string[];
         mapVariables: (filePaths: string[]) => any;
+        contentTypeOverrides?: { [index: number]: string };
     }): Promise<any> {
-        const { mutation, filePaths, mapVariables } = options;
+        const { mutation, filePaths, mapVariables, contentTypeOverrides } = options;
 
         const postData = createUploadPostData(mutation, filePaths, mapVariables);
         const body = new FormData();
@@ -263,15 +282,17 @@ export class SimpleGraphQLClient {
                     .join(',') +
                 '}',
         );
-        for (const filePath of postData.filePaths) {
+        postData.filePaths.forEach((filePath, index) => {
             const file = fs.readFileSync(filePath.file);
             // Native FormData inherits its part Content-Type from the Blob's
             // `type` field. `form-data` previously did this lookup automatically
-            // via the `mime-types` package, so we reproduce it explicitly.
-            const type = mime.lookup(filePath.file) || undefined;
+            // via the `mime-types` package, so we reproduce it explicitly. An
+            // explicit `contentTypeOverrides` entry takes precedence, allowing a
+            // test to spoof the part's Content-Type independently of the file.
+            const type = contentTypeOverrides?.[index] ?? (mime.lookup(filePath.file) || undefined);
             const blob = type ? new Blob([file], { type }) : new Blob([file]);
             body.append(filePath.name, blob, filePath.file);
-        }
+        });
 
         const result = await fetch(this.apiUrl, {
             method: 'POST',

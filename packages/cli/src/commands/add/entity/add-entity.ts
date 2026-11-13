@@ -1,17 +1,19 @@
 import { cancel, isCancel, multiselect, spinner, text } from '@clack/prompts';
-import { kebabCase, pascalCase } from '../../../utilities/case-utils';
 import path from 'path';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
 
-import { pascalCaseRegex } from '../../../constants';
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { EntityRef } from '../../../shared/entity-ref';
-import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { createFile, getPluginClasses } from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils';
 
-import { addEntityToPlugin } from './codemods/add-entity-to-plugin/add-entity-to-plugin';
+import { pascalCaseRegex } from '../../../constants.js';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { EntityRef } from '../../../shared/entity-ref.js';
+import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
+import { kebabCase, pascalCase } from '../../../utilities/case-utils.js';
+import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils.js';
+
+import { addEntityToPlugin } from './codemods/add-entity-to-plugin/add-entity-to-plugin.js';
 
 const cancelledMessage = 'Add entity cancelled';
 
@@ -149,7 +151,7 @@ async function getFeatures(options?: Partial<AddEntityOptions>): Promise<AddEnti
 
     if (isCancel(features)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     return {
         customFields: features.includes('customFields'),
@@ -161,12 +163,12 @@ function createEntity(plugin: VendurePluginRef, options: AddEntityOptions) {
     const entitiesDir = path.join(plugin.getPluginDir().getPath(), 'entities');
     const entityFile = createFile(
         plugin.getSourceFile().getProject(),
-        path.join(__dirname, 'templates/entity.template.ts'),
+        path.join(import.meta.dirname, 'templates/entity.template.ts'),
         path.join(entitiesDir, `${options.fileName}.ts`),
     );
     const translationFile = createFile(
         plugin.getSourceFile().getProject(),
-        path.join(__dirname, 'templates/entity-translation.template.ts'),
+        path.join(import.meta.dirname, 'templates/entity-translation.template.ts'),
         path.join(entitiesDir, `${options.translationFileName}.ts`),
     );
 
@@ -242,7 +244,7 @@ export async function getCustomEntityName(_cancelledMessage: string) {
     });
     if (isCancel(entityName)) {
         cancel(_cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     return pascalCase(entityName);
 }

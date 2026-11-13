@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runProjectCheck } from './project-check';
+import { runProjectCheck } from './project-check.js';
 
 // Mock fs-extra
 vi.mock('fs-extra', () => ({
@@ -12,13 +12,13 @@ vi.mock('fs-extra', () => ({
 }));
 
 // Mock monorepo-utils
-vi.mock('../../../utilities/monorepo-utils', () => ({
+vi.mock('../../../utilities/monorepo-utils.js', () => ({
     detectMonorepoStructure: vi.fn(() => ({ isMonorepo: false })),
     findPackageJsonWithDependency: vi.fn(() => null),
 }));
 
 import fs from 'fs-extra';
-import { detectMonorepoStructure, findPackageJsonWithDependency } from '../../../utilities/monorepo-utils';
+import { detectMonorepoStructure, findPackageJsonWithDependency } from '../../../utilities/monorepo-utils.js';
 
 describe('project-check', () => {
     beforeEach(() => {

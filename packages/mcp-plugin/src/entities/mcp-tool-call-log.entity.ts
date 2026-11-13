@@ -1,0 +1,92 @@
+import { DeepPartial, EntityId, ID, VendureEntity } from '@vendure/core';
+import { Column, Entity, Index, ManyToOne } from 'typeorm';
+
+import { McpActorType, McpToolCallStatus } from '../types';
+
+import { McpOauthClient } from './mcp-oauth-client.entity';
+import { McpOauthGrant } from './mcp-oauth-grant.entity';
+
+/**
+ * @description
+ * Audit record of a single MCP tool call.
+ *
+ * A row exists only for a call that actually ran the tool. Calls turned away first, by a rate
+ * limit, a permission check, an unknown or switched-off tool, bad arguments, or a confirmation
+ * request, leave no trace here.
+ *
+ * @docsCategory core plugins/McpPlugin
+ * @since 3.8.0
+ */
+@Index(['createdAt'])
+@Entity()
+export class McpToolCallLog extends VendureEntity {
+    constructor(input?: DeepPartial<McpToolCallLog>) {
+        super(input);
+    }
+
+    /**
+     * @description
+     * Null when the call did not arrive over OAuth, and set back to null if the cleanup job
+     * later deletes the grant.
+     */
+    @Index()
+    @ManyToOne(() => McpOauthGrant, { nullable: true, onDelete: 'SET NULL' })
+    grant: McpOauthGrant | null;
+
+    @EntityId({ nullable: true })
+    grantId: ID | null;
+
+    /**
+     * @description
+     * Id of the user the call ran as. Null when nobody was signed in.
+     */
+    @Column({ type: 'varchar', nullable: true })
+    actor: string | null;
+
+    @Column({ type: 'varchar' })
+    actorType: McpActorType;
+
+    /**
+     * @description
+     * Null unless `logging.captureClientIp` is on, and null for calls that never came over HTTP.
+     * The Admin API also hides it from anyone without the `ReadCustomer` permission.
+     */
+    @Column({ type: 'varchar', nullable: true })
+    clientIp: string | null;
+
+    @Index()
+    @EntityId({ nullable: true })
+    channelId: ID | null;
+
+    @Index()
+    @Column()
+    toolName: string;
+
+    /**
+     * @description
+     * The plugin that registered the tool, or `unknown` if it could not be traced back to one.
+     */
+    @Column({ type: 'varchar', nullable: true })
+    pluginSource: string | null;
+
+    @Column({ type: 'simple-json', nullable: true })
+    input: unknown;
+
+    @Column({ type: 'simple-json', nullable: true })
+    output: unknown;
+
+    @Index()
+    @Column({ type: 'int', nullable: true })
+    durationMs: number | null;
+
+    @Index()
+    @Column({ type: 'varchar' })
+    status: McpToolCallStatus;
+
+    @Index()
+    @ManyToOne(() => McpOauthClient, { nullable: true, onDelete: 'SET NULL' })
+    oauthClient: McpOauthClient | null;
+
+    @EntityId({ nullable: true })
+    oauthClientId: ID | null;
+}

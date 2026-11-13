@@ -91,6 +91,7 @@ export class Collection
     parentId: ID;
 
     @ManyToMany(type => Channel, channel => channel.collections)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 }

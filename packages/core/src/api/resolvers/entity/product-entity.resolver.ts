@@ -6,12 +6,14 @@ import { PaginatedList } from '@vendure/common/lib/shared-types';
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { Asset } from '../../../entity/asset/asset.entity';
+import { ProductChannel } from '../../../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
-import { Product } from '../../../entity/product/product.entity';
 import { ProductOptionGroup } from '../../../entity/product-option-group/product-option-group.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import { Product } from '../../../entity/product/product.entity';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { AssetService } from '../../../service/services/asset.service';
 import { CollectionService } from '../../../service/services/collection.service';
@@ -32,7 +34,6 @@ export class ProductEntityResolver {
         private collectionService: CollectionService,
         private productOptionGroupService: ProductOptionGroupService,
         private assetService: AssetService,
-        private productService: ProductService,
         private facetValueService: FacetValueService,
         private localeStringHydrator: LocaleStringHydrator,
     ) {}
@@ -109,16 +110,12 @@ export class ProductEntityResolver {
         if (product.facetValues?.length === 0) {
             return [];
         }
-        let facetValues: Array<Translated<FacetValue>>;
-        if (product.facetValues?.[0]?.channels) {
-            facetValues = product.facetValues as Array<Translated<FacetValue>>;
-        } else {
-            facetValues = await this.productService.getFacetValuesForProduct(ctx, product.id);
-        }
-        const filteredFacetValues = await this.facetValueService.findByIds(
-            ctx,
-            facetValues.map(facetValue => facetValue.id),
-        );
+        const filteredFacetValues = product.facetValues?.[0]?.channels
+            ? await this.facetValueService.findByIds(
+                  ctx,
+                  product.facetValues.map(facetValue => facetValue.id),
+              )
+            : await this.facetValueService.findByProductId(ctx, product.id);
 
         if (apiType === 'shop') {
             return filteredFacetValues.filter(fv => !fv.facet.isPrivate);
@@ -143,7 +140,24 @@ export class ProductEntityResolver {
 
 @Resolver('Product')
 export class ProductAdminEntityResolver {
-    constructor(private productService: ProductService) {}
+    constructor(
+        private productService: ProductService,
+        private channelAssignmentService: ChannelAssignmentService,
+    ) {}
+
+    /**
+     * The per-channel `enabled` value in the active Channel, from the ProductChannel row. `false` if
+     * it is not assigned to the active Channel.
+     */
+    @ResolveField()
+    async enabledInChannel(@Ctx() ctx: RequestContext, @Parent() product: Product): Promise<boolean> {
+        const assignment = await this.channelAssignmentService.getAssignment<ProductChannel>(
+            ctx,
+            Product,
+            product,
+        );
+        return assignment?.enabled ?? false;
+    }
 
     @ResolveField()
     async channels(@Ctx() ctx: RequestContext, @Parent() product: Product): Promise<Channel[]> {

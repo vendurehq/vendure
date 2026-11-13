@@ -1,6 +1,7 @@
 import { Plugin } from 'vite';
 
 import { compile, CompileResult, CompilerOptions } from './utils/compiler.js';
+import { filterActivePluginInfo } from './utils/get-active-plugin-info.js';
 import { debugLogger } from './utils/logger.js';
 
 export interface ConfigLoaderApi {
@@ -41,10 +42,19 @@ export function configLoaderPlugin(options: CompilerOptions): Plugin {
                 result = await loadConfigPromise;
                 const endTime = Date.now();
                 const duration = endTime - startTime;
+                const activeNames = new Set(
+                    filterActivePluginInfo(result.pluginInfo, result.vendureConfig).map(p => p.name),
+                );
                 const pluginNames = result.pluginInfo
-                    .map(p => `${p.name} ${p.sourcePluginPath ? '(local)' : '(npm)'}`)
+                    .map(p => {
+                        const source = p.sourcePluginPath ? '(local)' : '(npm)';
+                        const inactive = activeNames.has(p.name) ? '' : ' (inactive)';
+                        return `${p.name} ${source}${inactive}`;
+                    })
                     .join(', ');
-                this.info(`Found ${result.pluginInfo.length} plugins: ${pluginNames}`);
+                this.info(
+                    `Found ${result.pluginInfo.length} plugins (${activeNames.size} active in runtime config): ${pluginNames}`,
+                );
                 this.info(
                     `Vendure config loaded (using export "${result.exportedSymbolName}") in ${duration}ms`,
                 );

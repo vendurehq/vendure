@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
 
 import { InternalServerError } from '../../common/error/errors';
 import { Logger } from '../logger/vendure-logger';
@@ -9,7 +9,7 @@ const makeResolver = (records: Array<{ address: string; family: number }>): DnsR
     vi.fn().mockResolvedValue(records);
 
 describe('assertPublicUrl', () => {
-    let warnSpy: ReturnType<typeof vi.spyOn>;
+    let warnSpy: MockInstance<typeof Logger.warn>;
 
     beforeEach(() => {
         warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);

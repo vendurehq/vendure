@@ -24,7 +24,7 @@ class TestIdStrategy extends AutoIncrementIdStrategy {
         const productService = injector.get(ProductService);
         const connection = injector.get(TransactionalConnection);
         await new Promise(resolve => setTimeout(resolve, 100));
-        strategyInitSpy(productService.constructor.name, connection.rawConnection.name);
+        strategyInitSpy(productService.constructor.name, connection.rawConnection.isInitialized);
     }
 
     async destroy() {
@@ -41,7 +41,7 @@ const testShippingEligChecker = new ShippingEligibilityChecker({
         const productService = injector.get(ProductService);
         const connection = injector.get(TransactionalConnection);
         await new Promise(resolve => setTimeout(resolve, 100));
-        codInitSpy(productService.constructor.name, connection.rawConnection.name);
+        codInitSpy(productService.constructor.name, connection.rawConnection.isInitialized);
     },
     destroy: async () => {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -74,7 +74,7 @@ describe('lifecycle hooks for configurable objects', () => {
         it('runs init with Injector', () => {
             expect(strategyInitSpy).toHaveBeenCalled();
             expect(strategyInitSpy.mock.calls[0][0]).toEqual('ProductService');
-            expect(strategyInitSpy.mock.calls[0][1]).toBe('default');
+            expect(strategyInitSpy.mock.calls[0][1]).toBe(true);
         });
 
         it('runs destroy', async () => {
@@ -95,7 +95,7 @@ describe('lifecycle hooks for configurable objects', () => {
         it('runs init with Injector', () => {
             expect(codInitSpy).toHaveBeenCalled();
             expect(codInitSpy.mock.calls[0][0]).toEqual('ProductService');
-            expect(codInitSpy.mock.calls[0][1]).toBe('default');
+            expect(codInitSpy.mock.calls[0][1]).toBe(true);
         });
 
         it('runs destroy', async () => {

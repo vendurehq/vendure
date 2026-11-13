@@ -9,14 +9,17 @@ import {
     MutationDeleteCustomerArgs,
     MutationDeleteCustomerNoteArgs,
     MutationDeleteCustomersArgs,
+    MutationRequestCustomerPasswordResetArgs,
     MutationUpdateCustomerAddressArgs,
     MutationUpdateCustomerArgs,
     MutationUpdateCustomerNoteArgs,
+    MutationVerifyCustomerAccountArgs,
     Permission,
     QueryCustomerArgs,
     QueryCustomersArgs,
     Success,
     UpdateCustomerResult,
+    VerifyCustomerAccountResult,
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
@@ -146,6 +149,16 @@ export class CustomerResolver {
     @Transaction()
     @Mutation()
     @Allow(Permission.UpdateCustomer)
+    async verifyCustomerAccount(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationVerifyCustomerAccountArgs,
+    ): Promise<ErrorResultUnion<VerifyCustomerAccountResult, Customer>> {
+        return this.customerService.verifyCustomerAccount(ctx, args.id, args.password ?? undefined);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.UpdateCustomer)
     async addNoteToCustomer(@Ctx() ctx: RequestContext, @Args() args: MutationAddNoteToCustomerArgs) {
         return this.customerService.addNoteToCustomer(ctx, args.input);
     }
@@ -162,5 +175,16 @@ export class CustomerResolver {
     @Allow(Permission.UpdateCustomer)
     async deleteCustomerNote(@Ctx() ctx: RequestContext, @Args() args: MutationDeleteCustomerNoteArgs) {
         return this.customerService.deleteCustomerNote(ctx, args.id);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.UpdateCustomer)
+    async requestCustomerPasswordReset(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationRequestCustomerPasswordResetArgs,
+    ): Promise<Success> {
+        await this.customerService.requestCustomerPasswordReset(ctx, args.id);
+        return { success: true };
     }
 }

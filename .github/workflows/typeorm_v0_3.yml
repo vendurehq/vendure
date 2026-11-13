@@ -1,0 +1,162 @@
+name: TypeORM v0.3 compatibility
+
+# TypeORM v1 is the default on this branch, so Build & Test runs the database-backed
+# suites against it across the full database matrix. This workflow keeps the
+# still-supported v0.3 covered, kept separate so that the second TypeORM version does
+# not double the cost of Build & Test.
+#
+# One database per TypeORM dialect family is enough to expose a version difference,
+# so mysql is left out: it goes through the same TypeORM driver as mariadb.
+#
+# It runs on every pull request into `major` and on every push to it, so a change that
+# breaks TypeORM v0.3 cannot merge unnoticed once these jobs are required checks.
+#
+# There is deliberately no `schedule` trigger. scripts/typeorm/profiles.json pins
+# exact versions, so a run with no repository change can only repeat the previous
+# result.
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - major
+        paths:
+            - 'packages/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+            # The harness these jobs run through. Without it a change to the version
+            # profiles or the test runner reaches a release branch untested, and the
+            # first run against it is whenever some unrelated change to packages/
+            # happens to land.
+            - 'scripts/typeorm/**'
+            - '.github/actions/setup/**'
+            - '.github/workflows/typeorm_v0_3.yml'
+    pull_request:
+        branches:
+            - major
+
+env:
+    CI: true
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+# NOTE: As in build_and_test.yml, the Redis service definition is duplicated across
+# the e2e-* jobs because GitHub Actions supports neither YAML anchors nor service
+# reuse. Update all three copies together.
+jobs:
+    build:
+        name: build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+              with:
+                  typeorm: '0.3'
+            - name: Build
+              run: bun run build
+
+    unit-tests:
+        name: unit tests
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+              with:
+                  typeorm: '0.3'
+            - name: Build (continues past type errors)
+              run: node scripts/typeorm/build-for-tests.mjs
+            - name: Unit tests
+              run: node scripts/typeorm/run-db-tests.mjs --unit-only
+
+    e2e-sqljs:
+        name: e2e (sqljs)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        services:
+            redis:
+                image: redis:7.4.1
+                ports:
+                    - 6379
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+              with:
+                  typeorm: '0.3'
+            - name: Build (continues past type errors)
+              run: node scripts/typeorm/build-for-tests.mjs
+            - name: e2e tests
+              env:
+                  E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+                  DB: sqljs
+              run: node scripts/typeorm/run-db-tests.mjs --e2e-only
+
+    e2e-mariadb:
+        name: e2e (mariadb)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        services:
+            mariadb:
+                image: mariadb:11.5
+                env:
+                    MARIADB_ROOT_PASSWORD: password
+                ports:
+                    - 3306
+                options: --health-cmd="mariadb-admin ping -h localhost -u vendure -ppassword" --health-interval=10s --health-timeout=5s --health-retries=3
+            redis:
+                image: redis:7.4.1
+                ports:
+                    - 6379
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+              with:
+                  typeorm: '0.3'
+            - name: Build (continues past type errors)
+              run: node scripts/typeorm/build-for-tests.mjs
+            - name: e2e tests
+              env:
+                  E2E_MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
+                  E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+                  DB: mariadb
+              run: node scripts/typeorm/run-db-tests.mjs --e2e-only
+
+    e2e-postgres:
+        name: e2e (postgres)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: vendure
+                    POSTGRES_PASSWORD: password
+                ports:
+                    - 5432
+                options: --health-cmd=pg_isready --health-interval=10s --health-timeout=5s --health-retries=3
+            redis:
+                image: redis:7.4.1
+                ports:
+                    - 6379
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+              with:
+                  typeorm: '0.3'
+            - name: Build (continues past type errors)
+              run: node scripts/typeorm/build-for-tests.mjs
+            - name: e2e tests
+              env:
+                  E2E_POSTGRES_PORT: ${{ job.services.postgres.ports['5432'] }}
+                  E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+                  DB: postgres
+              run: node scripts/typeorm/run-db-tests.mjs --e2e-only

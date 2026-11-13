@@ -15,15 +15,15 @@ const sections: DocsSectionConfig[] = [
         outputPath: 'typescript-api',
     },
     {
-        sourceDirs: ['packages/admin-ui-plugin/src/'],
-        outputPath: '',
-    },
-    {
         sourceDirs: ['packages/asset-server-plugin/src/'],
         outputPath: '',
     },
     {
         sourceDirs: ['packages/email-plugin/src/'],
+        outputPath: '',
+    },
+    {
+        sourceDirs: ['packages/mcp-plugin/src/', 'packages/mcp-sdk/src/'],
         outputPath: '',
     },
     {
@@ -41,11 +41,6 @@ const sections: DocsSectionConfig[] = [
     {
         sourceDirs: ['packages/dashboard/plugin/'],
         outputPath: '',
-    },
-    {
-        sourceDirs: ['packages/admin-ui/src/lib/', 'packages/ui-devkit/src/'],
-        exclude: [/generated-types/],
-        outputPath: 'admin-ui-api',
     },
     {
         sourceDirs: ['packages/dashboard/src/', 'packages/dashboard/vite/'],

@@ -15,7 +15,7 @@ import { RequestContextService } from '../../service/helpers/request-context/req
 import { ApiKeyService } from '../../service/services/api-key.service';
 import { SessionService } from '../../service/services/session.service';
 import { extractSessionToken, ExtractTokenResult } from '../common/extract-session-token';
-import { getApiType } from '../common/get-api-type';
+import { ApiType, getApiType } from '../common/get-api-type';
 import { isFieldResolver } from '../common/is-field-resolver';
 import { parseContext } from '../common/parse-context';
 import {
@@ -59,16 +59,26 @@ export class AuthGuard implements CanActivate {
         if (targetIsFieldResolver) {
             requestContext = internal_getRequestContext(req);
         } else {
-            const session = await this.getSession(req, res, hasOwnerPermission, info);
+            let session = await this.getSession(req, res, hasOwnerPermission, info);
+            if (session && !this.sessionIsValidForApi(session, getApiType(info))) {
+                // The session belongs to a different API. Continue as if the request were
+                // unauthenticated, so that public operations still work while permission-gated ones are
+                // denied. The session token itself is left alone: both APIs share a session cookie by
+                // default, so clearing it here would log the user out of the API they belong to.
+                session = undefined;
+            }
             requestContext = await this.requestContextService.fromRequest(req, info, permissions, session);
 
-            const requestContextShouldBeReinitialized = await this.setActiveChannel(requestContext, session);
-            if (requestContextShouldBeReinitialized) {
+            const updatedSession = await this.setActiveChannel(requestContext, session);
+            if (updatedSession) {
+                // The visit may just have assigned the customer to the active Channel, which
+                // changes their permissions, so the RequestContext is rebuilt from the
+                // freshly-serialized session rather than the stale one.
                 requestContext = await this.requestContextService.fromRequest(
                     req,
                     info,
                     permissions,
-                    session,
+                    updatedSession,
                 );
             }
             internal_setRequestContext(req, requestContext, context);
@@ -86,25 +96,66 @@ export class AuthGuard implements CanActivate {
         return true;
     }
 
+    /**
+     * The rule: the Admin API accepts a session only if the session was created for the Admin API.
+     *
+     * When the same AuthenticationStrategy is registered on both APIs, a Shop API `authenticate` call
+     * can create a session for a User who is an administrator. Without this check that token would
+     * carry the administrator's permissions into every Admin API resolver.
+     *
+     * The check runs on the Admin API only. The Shop API accepts a session whichever API created it,
+     * because both APIs share a session cookie by default and a symmetric rule would log an
+     * administrator out of a same-origin storefront.
+     *
+     * REST routes (apiType 'custom') are not checked either. A REST request cannot say which API it
+     * belongs to, and customers use `@Allow`-gated REST routes. The residual gap: a plugin REST route
+     * gated by an administrator permission still accepts a Shop-created administrator session. Core
+     * ships no such route. Plugin authors who add one must check `ctx.session.apiType` themselves.
+     */
+    private sessionIsValidForApi(session: CachedSession, apiType: ApiType): boolean {
+        if (apiType !== 'admin' || this.configService.authOptions.disableAuth) {
+            return true;
+        }
+        if (!session.user) {
+            // Anonymous sessions carry no permissions.
+            return true;
+        }
+        if (session.authenticationStrategy === API_KEY_AUTH_STRATEGY_NAME && session.apiType == null) {
+            // API-Keys issued before this column existed keep working without a rotation. New and
+            // recovered API-Key sessions record the API they were created on and go through the
+            // normal check.
+            return true;
+        }
+        // A null apiType means the session was created before this column existed. Those are rejected,
+        // otherwise a session created on the Shop API before the upgrade would stay replayable for the
+        // rest of its sessionDuration. Administrators log in again once.
+        return session.apiType === 'admin';
+    }
+
+    /**
+     * Sets the session's active Channel to the current request's Channel where they differ,
+     * assigning the active customer to that Channel first where appropriate. Returns the
+     * updated serialized session (whose user permissions reflect a fresh assignment), or
+     * undefined if no update was needed.
+     */
     private async setActiveChannel(
         requestContext: RequestContext,
         session?: CachedSession,
-    ): Promise<boolean> {
+    ): Promise<CachedSession | undefined> {
         if (!session) {
-            return false;
+            return;
         }
         // In case the session does not have an activeChannelId or the activeChannelId
         // does not correspond to the current channel, the activeChannelId on the session is set
         const activeChannelShouldBeSet =
             !session.activeChannelId || session.activeChannelId !== requestContext.channelId;
         if (!activeChannelShouldBeSet) {
-            return false;
+            return;
         }
         if (requestContext.activeUserId) {
             await this.customerChannelAssignmentService.tryAssignToActiveChannel(requestContext);
         }
-        await this.sessionService.setActiveChannel(session, requestContext.channel);
-        return true;
+        return this.sessionService.setActiveChannel(session, requestContext.channel);
     }
 
     private async getSession(
@@ -167,11 +218,7 @@ export class AuthGuard implements CanActivate {
 
         const ctx = await this.requestContextService.fromRequest(req, info);
 
-        const apiKey = await this.apiKeyService.findOneByLookupId(ctx, parseResult.lookupId, [
-            'user',
-            'user.roles',
-            'user.roles.channels',
-        ]);
+        const apiKey = await this.apiKeyService.findOneByLookupId(ctx, parseResult.lookupId, ['user']);
         if (!apiKey) {
             return;
         }
@@ -212,11 +259,15 @@ export class AuthGuard implements CanActivate {
         // We can conclude that the API-Key is actually broken.
         // For example someone could have deleted the session manually in the DB.
         // We must create a new session, otherwise the API-Key is unusable.
+        // The recovered session records the API the key belongs to, not the API it was presented on,
+        // so one Shop API call cannot take an Admin API key's access away. Keys created before the
+        // column existed were created on the Admin API, the only API on which core exposes createApiKey.
         await this.sessionService.createNewAuthenticatedSession(
             ctx,
             apiKey.user,
             API_KEY_AUTH_STRATEGY_NAME,
             apiKey.apiKeyHash,
+            apiKey.apiType ?? 'admin',
         );
 
         return this.sessionService.getSessionFromToken(apiKey.apiKeyHash);

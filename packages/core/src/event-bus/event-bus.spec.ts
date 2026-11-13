@@ -419,6 +419,177 @@ describe('EventBus', () => {
             );
         });
 
+        it('throws if there is a cycle of three handlers in after ordering', () => {
+            eventBus.registerBlockingEventHandler({
+                handler: () => undefined,
+                id: 'A',
+                event: TestEvent,
+                after: 'B',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => undefined,
+                id: 'B',
+                event: TestEvent,
+                after: 'C',
+            });
+
+            const register = () =>
+                eventBus.registerBlockingEventHandler({
+                    handler: () => undefined,
+                    id: 'C',
+                    event: TestEvent,
+                    after: 'A',
+                });
+
+            expect(register).toThrowError(
+                /^Circular dependency detected between event handlers \w, \w and \w$/,
+            );
+            for (const id of ['A', 'B', 'C']) {
+                expect(register).toThrowError(new RegExp(`handlers.*\\b${id}\\b`));
+            }
+        });
+
+        it('throws if there is a cycle of three handlers in before ordering', () => {
+            eventBus.registerBlockingEventHandler({
+                handler: () => undefined,
+                id: 'A',
+                event: TestEvent,
+                before: 'B',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => undefined,
+                id: 'B',
+                event: TestEvent,
+                before: 'C',
+            });
+
+            const register = () =>
+                eventBus.registerBlockingEventHandler({
+                    handler: () => undefined,
+                    id: 'C',
+                    event: TestEvent,
+                    before: 'A',
+                });
+
+            expect(register).toThrowError(
+                /^Circular dependency detected between event handlers \w, \w and \w$/,
+            );
+            for (const id of ['A', 'B', 'C']) {
+                expect(register).toThrowError(new RegExp(`handlers.*\\b${id}\\b`));
+            }
+        });
+
+        it('throws if a cycle mixes before and after', () => {
+            eventBus.registerBlockingEventHandler({
+                handler: () => undefined,
+                id: 'B',
+                event: TestEvent,
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => undefined,
+                id: 'A',
+                event: TestEvent,
+                after: 'B',
+                before: 'C',
+            });
+
+            expect(() =>
+                eventBus.registerBlockingEventHandler({
+                    handler: () => undefined,
+                    id: 'C',
+                    event: TestEvent,
+                    before: 'B',
+                }),
+            ).toThrowError(/^Circular dependency detected between event handlers \w, \w and \w$/);
+        });
+
+        it('throws if a handler is ordered relative to itself', () => {
+            expect(() =>
+                eventBus.registerBlockingEventHandler({
+                    handler: () => undefined,
+                    id: 'A',
+                    event: TestEvent,
+                    after: 'A',
+                }),
+            ).toThrowError('Circular dependency detected between event handlers A and A');
+        });
+
+        it('orders a chain of three handlers without a cycle', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: TestEvent,
+                after: 'B',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('B'),
+                id: 'B',
+                event: TestEvent,
+                after: 'C',
+            });
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('C'),
+                id: 'C',
+                event: TestEvent,
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual(['C', 'B', 'A']);
+        });
+
+        it('keeps the registered handlers when a registration is rejected', async () => {
+            const event = new TestEvent('foo');
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: TestEvent,
+                after: 'B',
+            });
+            expect(() =>
+                eventBus.registerBlockingEventHandler({
+                    handler: () => spy('B'),
+                    id: 'B',
+                    event: TestEvent,
+                    after: 'A',
+                }),
+            ).toThrowError('Circular dependency detected');
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('C'),
+                id: 'C',
+                event: TestEvent,
+            });
+
+            await eventBus.publish(event);
+
+            expect(spy.mock.calls.map(call => call[0])).toEqual(['A', 'C']);
+        });
+
+        it('keeps the registered handlers of every event when a multi-event registration is rejected', async () => {
+            const spy = vi.fn((input: string) => undefined);
+            eventBus.registerBlockingEventHandler({
+                handler: () => spy('A'),
+                id: 'A',
+                event: OtherTestEvent,
+                after: 'B',
+            });
+            expect(() =>
+                eventBus.registerBlockingEventHandler({
+                    handler: () => spy('B'),
+                    id: 'B',
+                    event: [TestEvent, OtherTestEvent],
+                    after: 'A',
+                }),
+            ).toThrowError('Circular dependency detected');
+
+            await eventBus.publish(new TestEvent('foo'));
+
+            expect(spy).not.toHaveBeenCalled();
+        });
+
         it('blocks execution of the publish method', async () => {
             const event = new TestEvent('foo');
             const subject = new Subject<void>();

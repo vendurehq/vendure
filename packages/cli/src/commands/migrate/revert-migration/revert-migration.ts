@@ -1,10 +1,10 @@
 import { log, spinner } from '@clack/prompts';
-import { revertLastMigration } from '@vendure/core';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { requireProjectCore } from '../../../shared/project-core.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 
 const cancelledMessage = 'Revert migrations cancelled';
 
@@ -23,7 +23,7 @@ async function runRevertMigration(configFile?: string): Promise<CliCommandReturn
 
     const runSpinner = spinner();
     runSpinner.start('Reverting last migration...');
-    await revertLastMigration(config);
+    await requireProjectCore().revertLastMigration(config);
     runSpinner.stop(`Successfully reverted last migration`);
     return {
         project,

@@ -328,6 +328,7 @@ export interface EmailDetails<Type extends 'serialized' | 'unserialized' = 'unse
     recipient: string;
     subject: string;
     body: string;
+    text?: string;
     attachments: Array<Type extends 'serialized' ? SerializedAttachment : Attachment>;
     cc?: string;
     bcc?: string;
@@ -389,6 +390,7 @@ export type IntermediateEmailDetails = {
     recipient: string;
     templateVars: any;
     subject: string;
+    text?: string;
     templateFile: string;
     attachments: SerializedAttachment[];
     cc?: string;
@@ -474,6 +476,23 @@ export type SetTemplateVarsFn<Event> = (
     event: Event,
     globals: { [key: string]: any },
 ) => { [key: string]: any };
+
+/**
+ * @description
+ * A function used to define the plain-text body of the email.
+ * See {@link EmailEventHandler}.setPlainTextBody().
+ *
+ * The second argument contains the template variables for this email, i.e. the
+ * globalTemplateVars merged with the output of the {@link SetTemplateVarsFn}.
+ *
+ * @since 3.8.0
+ * @docsCategory core plugins/EmailPlugin
+ * @docsPage Email Plugin Types
+ */
+export type SetPlainTextBodyFn<Event> = (
+    event: Event,
+    templateVars: { [key: string]: any },
+) => string | Promise<string>;
 
 /**
  * @description

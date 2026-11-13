@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { DateTimeInput } from './datetime-input.js';
 
 const meta = {
@@ -31,7 +32,7 @@ export const Playground: Story = {
         const field = register('playground');
         return (
             <div className="w-[400px]">
-                <DateTimeInput {...field} {...args} />
+                <DateTimeInput {...asField(field)} {...args} />
             </div>
         );
     },
@@ -43,7 +44,7 @@ export const FutureDate: Story = {
         const field = register('future');
         return (
             <div className="w-[400px]">
-                <DateTimeInput {...field} />
+                <DateTimeInput {...asField(field)} />
             </div>
         );
     },
@@ -55,7 +56,7 @@ export const ClearableValue: Story = {
         const field = register('clearable');
         return (
             <div className="w-[400px]">
-                <DateTimeInput {...field} />
+                <DateTimeInput {...asField(field)} />
             </div>
         );
     },

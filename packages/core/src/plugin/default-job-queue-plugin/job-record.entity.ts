@@ -6,6 +6,9 @@ import { VendureEntity } from '../../entity/base/base.entity';
 
 // createdAt is coming from base entity VendureEntity and is not explicitly defined here
 @Index(['createdAt'])
+// Used by the SqlJobQueueStrategy to look up the oldest job of a queue in a given state.
+// See https://github.com/vendurehq/vendure/issues/5495
+@Index(['queueName', 'state', 'createdAt'])
 @Entity()
 export class JobRecord extends VendureEntity {
     constructor(input: DeepPartial<JobRecord>) {

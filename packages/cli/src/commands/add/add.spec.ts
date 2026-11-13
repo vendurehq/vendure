@@ -4,14 +4,16 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { addCommand } from './add';
-import * as apiExtensionModule from './api-extension/add-api-extension';
-import * as codegenModule from './codegen/add-codegen';
-import * as entityModule from './entity/add-entity';
-import * as jobQueueModule from './job-queue/add-job-queue';
-import * as pluginModule from './plugin/create-new-plugin';
-import * as serviceModule from './service/add-service';
-import * as uiExtensionsModule from './ui-extensions/add-ui-extensions';
+import { addCommand } from './add.js';
+import * as apiExtensionModule from './api-extension/add-api-extension.js';
+import * as codegenModule from './codegen/add-codegen.js';
+import { addCommandDef } from './command.js';
+import * as dashboardModule from './dashboard/add-dashboard.js';
+import * as entityModule from './entity/add-entity.js';
+import * as jobQueueModule from './job-queue/add-job-queue.js';
+import * as platformModule from './platform/add-platform.js';
+import * as pluginModule from './plugin/create-new-plugin.js';
+import * as serviceModule from './service/add-service.js';
 
 const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -44,26 +46,29 @@ function restoreTTYDescriptors() {
 }
 
 // Mock all the core functions
-vi.mock('./plugin/create-new-plugin', () => ({
+vi.mock('./plugin/create-new-plugin.js', () => ({
     createNewPlugin: vi.fn(),
 }));
-vi.mock('./entity/add-entity', () => ({
+vi.mock('./entity/add-entity.js', () => ({
     addEntity: vi.fn(),
 }));
-vi.mock('./service/add-service', () => ({
+vi.mock('./service/add-service.js', () => ({
     addService: vi.fn(),
 }));
-vi.mock('./job-queue/add-job-queue', () => ({
+vi.mock('./job-queue/add-job-queue.js', () => ({
     addJobQueue: vi.fn(),
 }));
-vi.mock('./codegen/add-codegen', () => ({
+vi.mock('./codegen/add-codegen.js', () => ({
     addCodegen: vi.fn(),
 }));
-vi.mock('./api-extension/add-api-extension', () => ({
+vi.mock('./api-extension/add-api-extension.js', () => ({
     addApiExtension: vi.fn(),
 }));
-vi.mock('./ui-extensions/add-ui-extensions', () => ({
-    addUiExtensions: vi.fn(),
+vi.mock('./dashboard/add-dashboard.js', () => ({
+    addDashboard: vi.fn(),
+}));
+vi.mock('./platform/add-platform.js', () => ({
+    addPlatform: vi.fn(),
 }));
 
 // Mock clack prompts to prevent interactive prompts during tests
@@ -91,7 +96,7 @@ describe('add command', () => {
     const mockAddJobQueue = vi.mocked(jobQueueModule.addJobQueue);
     const mockAddCodegen = vi.mocked(codegenModule.addCodegen);
     const mockAddApiExtension = vi.mocked(apiExtensionModule.addApiExtension);
-    const mockAddUiExtensions = vi.mocked(uiExtensionsModule.addUiExtensions);
+    const mockAddDashboard = vi.mocked(dashboardModule.addDashboard);
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -110,7 +115,7 @@ describe('add command', () => {
         mockAddJobQueue.mockResolvedValue(defaultReturnValue as any);
         mockAddCodegen.mockResolvedValue(defaultReturnValue as any);
         mockAddApiExtension.mockResolvedValue(defaultReturnValue as any);
-        mockAddUiExtensions.mockResolvedValue(defaultReturnValue as any);
+        mockAddDashboard.mockResolvedValue(defaultReturnValue as any);
     });
 
     afterEach(() => {
@@ -191,13 +196,23 @@ describe('add command', () => {
             });
         });
 
-        it('detects non-interactive mode when uiExtensions option is provided', async () => {
-            await addCommand({ uiExtensions: 'TestPlugin' });
+        it('detects non-interactive mode when dashboard option is provided', async () => {
+            await addCommand({ dashboard: 'TestPlugin' });
 
-            expect(mockAddUiExtensions).toHaveBeenCalledWith({
+            expect(mockAddDashboard).toHaveBeenCalledWith({
                 isNonInteractive: true,
                 config: undefined,
                 pluginName: 'TestPlugin',
+            });
+        });
+
+        it('lets the dashboard plugin be selected when the dashboard flag has no value', async () => {
+            await addCommand({ dashboard: true });
+
+            expect(mockAddDashboard).toHaveBeenCalledWith({
+                isNonInteractive: true,
+                config: undefined,
+                pluginName: undefined,
             });
         });
 
@@ -211,12 +226,12 @@ describe('add command', () => {
         });
 
         it('treats false values as not triggering non-interactive mode', async () => {
-            await addCommand({ codegen: false, uiExtensions: false } as any);
+            await expect(addCommandDef.action({ codegen: false, dashboard: false } as any)).resolves.toBe(1);
 
             // Should NOT call any add functions (goes to interactive mode instead)
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
             expect(mockAddCodegen).not.toHaveBeenCalled();
-            expect(mockAddUiExtensions).not.toHaveBeenCalled();
+            expect(mockAddDashboard).not.toHaveBeenCalled();
         });
     });
 
@@ -254,15 +269,22 @@ describe('add command', () => {
     describe('non-interactive mode - error cases', () => {
         it('logs error and exits when validation fails', async () => {
             const { log } = await import('@clack/prompts');
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
-            await addCommand({ plugin: '   ' }); // Empty plugin name
+            await expect(addCommandDef.action({ plugin: '   ' })).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
+        });
 
-            exitSpy.mockRestore();
+        it('logs error and exits when the dashboard plugin name is blank', async () => {
+            const { log } = await import('@clack/prompts');
+
+            await expect(addCommandDef.action({ dashboard: '   ' })).resolves.toBe(1);
+
+            expect(log.error).toHaveBeenCalledWith(
+                'Plugin name cannot be empty when specified. Usage: vendure add --dashboard [plugin-name]',
+            );
+            expect(mockAddDashboard).not.toHaveBeenCalled();
         });
 
         it('logs error with stack trace when exception is thrown', async () => {
@@ -271,14 +293,9 @@ describe('add command', () => {
             error.stack = 'Error: Plugin name is required\n    at someFunction';
             mockCreateNewPlugin.mockRejectedValue(error);
 
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-            await addCommand({ plugin: 'test' });
+            await expect(addCommandDef.action({ plugin: 'test' })).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
     });
 
@@ -286,7 +303,7 @@ describe('add command', () => {
         it('enters interactive mode when no options are provided', async () => {
             const { intro } = await import('@clack/prompts');
 
-            await addCommand();
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             // Should call intro to start interactive session
             expect(intro).toHaveBeenCalled();
@@ -298,45 +315,98 @@ describe('add command', () => {
         it('enters interactive mode when options object is empty', async () => {
             const { intro } = await import('@clack/prompts');
 
-            await addCommand({});
+            await expect(addCommandDef.action({})).resolves.toBe(1);
 
             expect(intro).toHaveBeenCalled();
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
         });
 
+        it('returns a failure code when an interactive scaffold fails', async () => {
+            const { log, select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('create-new-plugin' as never);
+            mockCreateNewPlugin.mockRejectedValueOnce(new Error('scaffold failed'));
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
+
+            expect(log.error).toHaveBeenCalledWith('scaffold failed');
+        });
+
+        // OSS-893: the Platform entry is first, so it is the default selection.
+        it('offers the Platform entry first in the menu', async () => {
+            const { select } = await import('@clack/prompts');
+
+            await addCommandDef.action(undefined);
+
+            const { options } = vi.mocked(select).mock.calls[0][0];
+            expect(options[0]).toEqual({
+                value: 'add-platform',
+                label: 'Vendure Platform features (B2B, advanced search, ...), free trial',
+            });
+            expect(options.slice(1).map(option => option.value)).toEqual([
+                'create-new-plugin',
+                'add-entity',
+                'add-service',
+                'add-job-queue',
+                'add-codegen',
+                'add-api-extension',
+                'add-dashboard',
+            ]);
+        });
+
+        it('runs the Platform flow when the Platform entry is selected', async () => {
+            const { select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('add-platform' as never);
+            vi.mocked(platformModule.addPlatform).mockResolvedValueOnce({
+                project: undefined,
+                modifiedSourceFiles: [],
+            });
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(0);
+
+            expect(platformModule.addPlatform).toHaveBeenCalled();
+        });
+
+        it('runs the Platform flow for --platform', async () => {
+            await expect(addCommandDef.action({ platform: true })).resolves.toBe(0);
+
+            expect(platformModule.addPlatform).toHaveBeenCalled();
+            expect(mockCreateNewPlugin).not.toHaveBeenCalled();
+        });
+
+        it('returns success after an interactive scaffold completes', async () => {
+            const { select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('create-new-plugin' as never);
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(0);
+
+            expect(mockCreateNewPlugin).toHaveBeenCalled();
+        });
+
         it('fails fast when no operation is provided in a non-interactive environment', async () => {
             const { intro, log } = await import('@clack/prompts');
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
             setStdinIsTTY(false);
 
-            await addCommand();
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalledWith(
                 'Cannot run "vendure add" interactively because non-interactive mode is active.',
             );
             expect(log.info).toHaveBeenCalledWith(expect.stringContaining('VENDURE_CLI_NON_INTERACTIVE'));
             expect(intro).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('fails fast when VENDURE_CLI_NON_INTERACTIVE is set and no operation is provided', async () => {
             const { intro, log } = await import('@clack/prompts');
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
             vi.stubEnv('VENDURE_CLI_NON_INTERACTIVE', 'true');
 
-            await addCommand();
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalledWith(
                 'Cannot run "vendure add" interactively because non-interactive mode is active.',
             );
             expect(intro).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('enters non-interactive mode when config is provided with operation flag', async () => {

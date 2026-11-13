@@ -32,6 +32,7 @@ function PaymentMethodListPage() {
                 code: true,
                 enabled: true,
             }}
+            searchPlaceholder={t`Search payment methods...`}
             onSearchTermChange={searchTerm => {
                 return {
                     name: { contains: searchTerm },

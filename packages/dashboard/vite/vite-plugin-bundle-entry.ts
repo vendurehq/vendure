@@ -3,7 +3,7 @@ import { Plugin } from 'vite';
 /**
  * @description
  * Rewrites the dashboard's `index.html` script entry from the TypeScript source
- * (`/src/app/main.jsx`) to the pre-built ESM bundle
+ * (`/src/app/main.tsx`) to the pre-built ESM bundle
  * (`/dist/bundle/main.js`).
  *
  * The CSS `<link>` tag is left untouched so the consumer's Tailwind +
@@ -47,7 +47,7 @@ export function bundleEntryPlugin(): Plugin {
                 // Match the source-entry script regardless of whether Vite has
                 // already prepended the configured `base` to the src attribute.
                 return html.replace(
-                    /<script\s+type="module"\s+src="[^"]*src\/app\/main\.jsx"\s*><\/script>/,
+                    /<script\s+type="module"\s+src="[^"]*src\/app\/main\.tsx"\s*><\/script>/,
                     `${dashboardCssLink}\n${extensionCssImport}\n${newScript}`,
                 );
             },

@@ -17,7 +17,7 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
     }
 }
 
-class TokenActiveOrderStrategy implements ActiveOrderStrategy {
+class TokenActiveOrderStrategy implements ActiveOrderStrategy<{ orderToken: string }> {
     readonly name = 'orderToken';
 
     private connection: TransactionalConnection;

@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="196" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="270" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -23,7 +23,7 @@ Parameters
 
 ## VitePluginVendureDashboardOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="34" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.4.0" />
 
 Options for the [vendureDashboardPlugin](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#venduredashboardplugin) Vite plugin.
 
@@ -50,7 +50,7 @@ type VitePluginVendureDashboardOptions = {
      * @example
      * ```ts
      * vendureDashboardPlugin({
-     *     tempCompilationDir: join(__dirname, './__vendure-dashboard-temp'),
+     *     tempCompilationDir: join(import.meta.dirname, './__vendure-dashboard-temp'),
      *     pathAdapter: {
      *         getCompiledConfigPath: ({ inputRootDir, outputPath, configFileName }) => {
      *             const projectName = inputRootDir.split('/libs/')[1].split('/')[0];
@@ -85,7 +85,43 @@ type VitePluginVendureDashboardOptions = {
      * The path to the directory where the generated GraphQL Tada files will be output.
      */
     gqlOutputPath?: string;
+    /**
+     * @description
+     * The directory into which the VendureConfig is transpiled and loaded in order
+     * to introspect the configuration during the dashboard build.
+     *
+     * Defaults to `<project>/node_modules/.cache/vendure-dashboard-temp`. It must
+     * not be located inside a `"type": "module"` package (such as
+     * `@vendure/dashboard` itself), because the config is compiled to CommonJS and
+     * Node would then load it as ESM, failing with
+     * `exports is not defined in ES module scope`.
+     */
     tempCompilationDir?: string;
+    /**
+     * @description
+     * Options passed to the underlying TanStack Router Vite plugin (`tanstackRouter()`). These are
+     * merged on top of the Dashboard's own defaults, letting you override most aspects of the router
+     * plugin's configuration. The `routesDirectory`, `generatedRouteTree` and `routeFileIgnorePattern`
+     * settings are managed by the Dashboard and cannot be overridden (attempts are ignored with a warning).
+     *
+     * A common use case is setting `tmpDir` when your deployment's default temp directory is on a
+     * different device than the checked-out code (e.g. `node_modules` on a separate volume), which
+     * otherwise causes the build to fail with `EXDEV: cross-device link not permitted` during
+     * route-tree generation.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *   vendureConfigPath: './vendure-config.ts',
+     *   tanstackRouterPluginOptions: {
+     *     tmpDir: path.join(packageRoot, '.tanstack-tmp'),
+     *   },
+     * })
+     * ```
+     *
+     * @since 3.7.0
+     */
+    tanstackRouterPluginOptions?: TanstackRouterPluginOptions;
     /**
      * @description
      * Allows you to customize the location of node_modules & glob patterns used to scan for potential
@@ -132,6 +168,7 @@ type VitePluginVendureDashboardOptions = {
         bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
+        platformPromotion?: boolean;
         uiConfig?: boolean;
         gqlTada?: boolean;
         transformIndexHtml?: boolean;
@@ -163,8 +200,37 @@ type VitePluginVendureDashboardOptions = {
      * @since 3.7.0
      */
     useExperimentalBundle?: boolean;
-} & UiConfigPluginOptions &
-    ThemeVariablesPluginOptions
+    /**
+     * @description
+     * Customizes the dashboard's appearance. Override design-token colours for
+     * the `light` and `dark` themes, and/or layer in additional stylesheets via
+     * `additionalStylesheets`.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *     theme: {
+     *         light: { brand: '#1a1a1a' },
+     *         additionalStylesheets: [resolve(import.meta.dirname, 'src/dashboard.css')],
+     *     },
+     * })
+     * ```
+     */
+    theme?: DashboardThemeOptions;
+    /**
+     * @description
+     * Set to `false` to turn off the Vendure Platform items in the Dashboard: locked navigation
+     * items, locked pages, page cards and the related page actions. The build then sends no
+     * request to `api.vendure.io`. The environment variable
+     * `VENDURE_DASHBOARD_PLATFORM_PROMOTION=false` has the same effect. Do not use
+     * `disablePlugins.platformPromotion` for this: it removes a module that the Dashboard needs,
+     * and the build fails.
+     *
+     * @default true
+     * @since 3.9.0
+     */
+    platformPromotion?: boolean;
+} & UiConfigPluginOptions
 ```
 ## PathAdapter
 
@@ -242,8 +308,61 @@ the base `tsconfig.json` lives), so that a config file at
 `apps/server/src/vendure-config.ts` outputs to
 `{outputPath}/apps/server/src/vendure-config.js`.
 
-Defaults to the directory containing the `vendureConfigPath` file,
-which places the compiled config at the output root.
+Defaults to the deepest directory containing the `vendureConfigPath`
+file and every local file it imports. When every import sits at or
+below the config, that is the config's own directory and the compiled
+config lands at the output root; an import from above widens the root
+so nothing is emitted outside `outputPath`.
+
+
+</div>
+## DashboardThemeOptions
+
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-theme.ts" sourceLine="34" packageName="@vendure/dashboard" since="3.5.1" />
+
+Appearance options for the dashboard. Extends `ThemeVariables` (the
+`light`/`dark` colour-token overrides) with the ability to layer in
+additional stylesheets.
+
+```ts title="Signature"
+interface DashboardThemeOptions extends ThemeVariables {
+    additionalStylesheets?: string | string[];
+}
+```
+* Extends: ThemeVariables
+
+
+
+<div className="members-wrapper">
+
+### additionalStylesheets
+
+<MemberInfo kind="property" type={`string | string[]`}   />
+
+One or more paths to additional CSS files that should be imported into
+the dashboard's main stylesheet. Each path is injected as an `@import`
+statement at a dedicated insertion point among the stylesheet's other
+imports, so the file participates in Tailwind's build pipeline — you can
+use `@source`, `@theme`, `@apply`, `@utility`, custom variants, etc.
+inside it.
+
+Paths may be absolute or relative to the current working directory;
+relative paths are resolved against `process.cwd()`. Backslashes are
+normalized to forward slashes so the resulting `@import` statement is
+valid on Windows.
+
+To override design tokens (e.g. brand colors), prefer the `light`/`dark`
+theme options — `additionalStylesheets` is for layering custom CSS rules.
+
+*Example*
+
+```ts
+vendureDashboardPlugin({
+    theme: {
+        additionalStylesheets: [path.resolve(import.meta.dirname, 'src/dashboard.css')],
+    },
+})
+```
 
 
 </div>

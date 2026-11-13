@@ -1,0 +1,21 @@
+---
+title: "Storefront Migration"
+metaTitle: "Vendure v4 Storefront Migration - Shop API Breaking Changes"
+metaDescription: "Shop API changes in Vendure v4 that affect storefronts, such as Customers being limited to the Channels they are a member of."
+order: 4
+---
+
+This page lists the v4 changes to the Shop API that affect storefronts.
+
+## Role assignments
+
+Single-channel storefronts are not affected. Where Customers use more than one Channel:
+
+- A Customer holds `Authenticated` only on the Channels they are a member of. With the default `CustomerChannelAssignmentStrategy` nothing changes for the shopper. With a strategy that declines the assignment, customer-scoped operations such as `activeCustomer` fail with a `ForbiddenError` on that Channel.
+- `CurrentUser.channels`, returned by `login`, `authenticate` and `me`, lists only the Channels the Customer is a member of.
+
+For details, see [Storefront changes](/developer-guide/migrating-from-v3/role-assignments#storefront-changes).
+
+## Next steps
+
+- For the full upgrade order, go back to [Migrating from v3](/developer-guide/migrating-from-v3).

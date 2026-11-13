@@ -1,6 +1,6 @@
 # Vendure
 
-Headless e-commerce framework. Lerna monorepo with fixed versioning.
+Headless e-commerce framework. Nx monorepo with fixed versioning.
 
 ## Development Workflow
 
@@ -8,15 +8,22 @@ Headless e-commerce framework. Lerna monorepo with fixed versioning.
 2. Build it (or `bun run watch` for continuous)
 3. Update `packages/dev-server/dev-config.ts` if needed
 4. Restart dev server
-5. Run e2e tests from the package dir
+5. Run e2e tests with `bunx nx e2e <package>`
 
 - When editing `@vendure/core`, you usually need to watch `@vendure/common` too: `bun run watch:core-common`
 - The dev-server imports packages via TypeScript paths, so rebuilds are picked up on restart
 - Switch DB with env var: `DB=postgres` or `DB=sqlite` before `bun run populate`
 
+## Plugin packages
+
+- The plugin packages (`packages/*-plugin`) get their targets from the local Nx plugin in `tools/nx-plugin`. Do not add `build`, `test` or `e2e` scripts. A script replaces the inferred target, so keep one only when the package needs a different command: asset-server and graphiql keep `build`, and job-queue keeps `e2e`. Use `bunx nx run <package>:<target>`. `nx watch` is a built-in Nx command, so use `bunx nx run <package>:watch`.
+- Their `tsconfig*.json` files are generated. Do not edit them. Run `bunx nx sync` after you add an entry point, a `*.spec-d.ts` file or a `.tsx` file. CI runs `bunx nx sync:check`.
+- Every package needs a scope tag in `nx.tags`. `bun run lint:boundaries` checks the import rules between scopes.
+- New plugin package: `bunx nx g ./tools/nx-plugin:package <name>-plugin`.
+
 ## Testing
 
-- **E2E cache**: Seed data gets cached in `packages/<name>/e2e/__data__/`. **Delete to reset after schema changes.**
+- **E2E cache**: Seed data gets cached in `packages/<name>/e2e/__data__/`. To reset after a schema change, delete the cached DBs — `rm -f e2e/__data__/*.sqlite`. The e2e port of a spec file is the package's base port + the file's index in the sorted list of the package's test files (`e2e-common/get-test-file-index.js`), so the `__data__` folder does not change the ports.
 
 ### Dashboard E2E Tests
 

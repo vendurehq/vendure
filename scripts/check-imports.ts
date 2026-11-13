@@ -12,7 +12,6 @@ const find = require('find');
 const illegalImportPatterns: RegExp[] = [
     /@vendure\/common\/src/,
     /@vendure\/core\/src/,
-    /@vendure\/admin-ui\/src/,
 ];
 
 const exclude: string[] = [

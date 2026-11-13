@@ -8,13 +8,14 @@ import ms from 'ms';
 import { ApiType, getApiType } from '../../../api/common/get-api-type';
 import { RequestContext } from '../../../api/common/request-context';
 import { UserInputError } from '../../../common/error/errors';
+import { parseAcceptLanguage } from '../../../common/parse-accept-language';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { CachedSession, CachedSessionUser } from '../../../config/session-cache/session-cache-strategy';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { User } from '../../../entity/user/user.entity';
 import { ChannelService } from '../../services/channel.service';
-import { getUserChannelsPermissions } from '../utils/get-user-channels-permissions';
+import { RolePermissionResolver } from '../role-permission-resolver/role-permission-resolver';
 
 /**
  * @description
@@ -28,6 +29,7 @@ export class RequestContextService {
     constructor(
         private channelService: ChannelService,
         private configService: ConfigService,
+        private rolePermissionResolver: RolePermissionResolver,
     ) {}
 
     /**
@@ -35,6 +37,25 @@ export class RequestContextService {
      * Creates a RequestContext based on the config provided. This can be useful when interacting
      * with services outside the request-response cycle, for example in stand-alone scripts or in
      * worker jobs.
+     *
+     * Without a `user`, the resulting context is anonymous and carries no permissions, which
+     * services that perform permission checks will reject. Pass the `User` the context should act
+     * as — commonly the superadmin for administrative scripts:
+     *
+     * ```ts
+     * const { superadminCredentials } = this.configService.authOptions;
+     * const superAdminUser = await this.connection.rawConnection.getRepository(User).findOneOrFail({
+     *     where: { identifier: superadminCredentials.identifier },
+     *     // The roles (and their channels) must be loaded, or the resulting context
+     *     // has the user's id but no permissions.
+     *     relations: { roles: { channels: true } },
+     * });
+     *
+     * const ctx = await this.requestContextService.create({
+     *     apiType: 'admin',
+     *     user: superAdminUser,
+     * });
+     * ```
      *
      * @since 1.5.0
      */
@@ -58,13 +79,15 @@ export class RequestContextService {
         }
         let session: CachedSession | undefined;
         if (user) {
-            const channelPermissions = user.roles ? getUserChannelsPermissions(user) : [];
+            const { channels: channelPermissions, globalPermissions } =
+                await this.rolePermissionResolver.resolvePermissions(user.id);
             session = {
                 user: {
                     id: user.id,
                     identifier: user.identifier,
                     verified: user.verified,
                     channelPermissions,
+                    ...(globalPermissions.length ? { globalPermissions } : {}),
                 },
                 id: '__dummy_session_id__',
                 token: '__dummy_session_token__',
@@ -78,6 +101,7 @@ export class RequestContextService {
             apiType,
             channel,
             languageCode,
+            acceptedLanguageCodes: this.getAcceptedLanguageCodes(req),
             currencyCode,
             session,
             isAuthorized: true,
@@ -113,6 +137,7 @@ export class RequestContextService {
             apiType,
             channel,
             languageCode,
+            acceptedLanguageCodes: this.getAcceptedLanguageCodes(req),
             currencyCode,
             session,
             isAuthorized,
@@ -145,6 +170,10 @@ export class RequestContextService {
         );
     }
 
+    private getAcceptedLanguageCodes(req: Request | undefined): LanguageCode[] {
+        return parseAcceptLanguage(req?.headers?.['accept-language']);
+    }
+
     private getCurrencyCode(req: Request, channel: Channel): CurrencyCode | undefined {
         const queryCurrencyCode = req.query && (req.query.currencyCode as CurrencyCode);
         if (queryCurrencyCode && !channel.availableCurrencyCodes.includes(queryCurrencyCode)) {
@@ -166,6 +195,9 @@ export class RequestContextService {
     ): boolean {
         if (!user || !channel) {
             return false;
+        }
+        if (user.globalPermissions && this.arraysIntersect(user.globalPermissions, permissions)) {
+            return true;
         }
         const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, channel.id));
         if (permissionsOnChannel) {

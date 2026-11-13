@@ -18,7 +18,7 @@ import {
     TransactionalConnection,
     VendurePlugin,
 } from '@vendure/core';
-import gql from 'graphql-tag';
+import { gql } from 'graphql-tag';
 
 const CUSTOM_TYPE = 'CUSTOM_TYPE';
 

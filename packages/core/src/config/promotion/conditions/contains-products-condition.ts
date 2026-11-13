@@ -14,7 +14,7 @@ export const containsProducts = new PromotionCondition({
         minimum: {
             type: 'int',
             defaultValue: 1,
-            ui: { component: '', min: 0 },
+            ui: { component: '', min: 1 },
         },
         productVariantIds: {
             type: 'ID',
@@ -25,6 +25,7 @@ export const containsProducts = new PromotionCondition({
     },
     async check(ctx, order, args) {
         const ids = args.productVariantIds;
+        if (args.minimum < 1) return false;
         let matches = 0;
         for (const line of order.lines) {
             if (lineContainsIds(ids, line)) {

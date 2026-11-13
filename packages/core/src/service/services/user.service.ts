@@ -5,7 +5,7 @@ import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError } from '../../common/error/errors';
+import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import {
     IdentifierChangeTokenExpiredError,
     IdentifierChangeTokenInvalidError,
@@ -19,16 +19,13 @@ import {
     VerificationTokenInvalidError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { assertFound, isEmailAddressLike, normalizeEmailAddress } from '../../common/utils';
+import { isEmailAddressLike, normalizeEmailAddress } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Role } from '../../entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { User } from '../../entity/user/user.entity';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { VerificationTokenGenerator } from '../helpers/verification-token-generator/verification-token-generator';
-
-import { RoleService } from './role.service';
 
 /**
  * @description
@@ -42,7 +39,6 @@ export class UserService {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
-        private roleService: RoleService,
         private passwordCipher: PasswordCipher,
         private verificationTokenGenerator: VerificationTokenGenerator,
         private moduleRef: ModuleRef,
@@ -54,9 +50,6 @@ export class UserService {
             .findOne({
                 where: { id: userId },
                 relations: {
-                    roles: {
-                        channels: true,
-                    },
                     authenticationMethods: true,
                 },
             })
@@ -75,8 +68,6 @@ export class UserService {
             .getRepository(ctx, User)
             .createQueryBuilder('user')
             .innerJoin(table, table, `${table}.userId = user.id`)
-            .leftJoinAndSelect('user.roles', 'roles')
-            .leftJoinAndSelect('roles.channels', 'channels')
             .leftJoinAndSelect('user.authenticationMethods', 'authenticationMethods')
             .where('user.deletedAt IS NULL');
 
@@ -94,7 +85,9 @@ export class UserService {
 
     /**
      * @description
-     * Creates a new User with the special `customer` Role and using the {@link NativeAuthenticationStrategy}.
+     * Creates a new customer User using the {@link NativeAuthenticationStrategy}. The
+     * Customer role's permissions are derived from the Customer's channel memberships at
+     * permission-resolution time, so no role bookkeeping happens here.
      */
     async createCustomerUser(
         ctx: RequestContext,
@@ -103,8 +96,6 @@ export class UserService {
     ): Promise<User | PasswordValidationError> {
         const user = new User();
         user.identifier = normalizeEmailAddress(identifier);
-        const customerRole = await this.roleService.getCustomerRole(ctx);
-        user.roles = [customerRole];
         const addNativeAuthResult = await this.addNativeAuthenticationMethod(ctx, user, identifier, password);
         if (isGraphQlErrorResult(addNativeAuthResult)) {
             return addNativeAuthResult;
@@ -161,6 +152,104 @@ export class UserService {
 
     /**
      * @description
+     * Adds an unactivated {@link NativeAuthenticationMethod} (empty password, pending
+     * `verificationToken`) to an existing User, without altering the User's `verified` state.
+     *
+     * If the User already carries a native credential with a pending `verificationToken`, a fresh one
+     * is issued for it instead. This lets the mailbox owner restart the flow when the first message
+     * was lost or its token has expired.
+     *
+     * The guarantee this method makes is that it never stores a password. A password already on the
+     * credential is left as it is, and the `password` argument is discarded.
+     *
+     * This is used when a native credential is being registered against an account that already
+     * exists via another authentication method (e.g. an external/SSO strategy). The credential is
+     * left without a password so that it can only be activated by whoever controls the email
+     * address, via the verification flow. Storing a caller-supplied password here would allow an
+     * unauthenticated account takeover (GHSA-wr5h-x3x6-4h23).
+     *
+     * If a `password` is supplied it is validated and hashed, but the hash is deliberately NOT
+     * stored. Doing the same work as a brand-new registration keeps this path indistinguishable from
+     * one, both in its error result and in how long it takes, so it does not become an
+     * account-existence oracle.
+     */
+    async addUnactivatedNativeAuthenticationMethod(
+        ctx: RequestContext,
+        user: User,
+        identifier: string,
+        password?: string,
+    ): Promise<User | PasswordValidationError> {
+        if (password) {
+            const passwordValidationResult = await this.validatePassword(ctx, password);
+            if (passwordValidationResult !== true) {
+                return passwordValidationResult;
+            }
+            // The hash is thrown away, but it is still computed so that this branch costs the same as
+            // a brand-new registration. Skipping it would make the response time of
+            // `registerCustomerAccount` a reliable oracle for whether an account already exists,
+            // since hashing dominates the cost of the request.
+            await this.passwordCipher.hash(password);
+        }
+        if (!user.authenticationMethods && user.id != null) {
+            // Work on the caller's User from here on, so the object we mutate is the one that is
+            // returned and carried by the AccountRegistrationEvent. Load the relation first if the
+            // caller did not.
+            const reloaded = await this.getUserById(ctx, user.id);
+            user.authenticationMethods = reloaded?.authenticationMethods ?? [];
+        }
+        const existingNativeMethod = user.authenticationMethods?.find(
+            (m): m is NativeAuthenticationMethod => m instanceof NativeAuthenticationMethod,
+        );
+        if (existingNativeMethod) {
+            if (existingNativeMethod.verificationToken != null) {
+                // The credential exists but was never activated, so re-issue its token rather than
+                // leaving the mailbox owner with no way to restart the flow.
+                existingNativeMethod.verificationToken =
+                    await this.verificationTokenGenerator.generateVerificationToken(ctx);
+                // The stored password, if any, is left alone. Such a hash is the customer's own, so
+                // wiping it here would lock them out (GHSA-wr5h-x3x6-4h23).
+                await this.connection
+                    .getRepository(ctx, NativeAuthenticationMethod)
+                    .save(existingNativeMethod);
+            }
+            return user;
+        }
+        const authenticationMethod = new NativeAuthenticationMethod();
+        authenticationMethod.verificationToken =
+            await this.verificationTokenGenerator.generateVerificationToken(ctx);
+        authenticationMethod.passwordHash = '';
+        authenticationMethod.identifier = normalizeEmailAddress(identifier);
+        authenticationMethod.user = user;
+        await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(authenticationMethod);
+        user.authenticationMethods = [...(user.authenticationMethods ?? []), authenticationMethod];
+        return user;
+    }
+
+    /**
+     * @description
+     * Returns `true` if the User's native credential is waiting to be activated: it carries a
+     * `verificationToken` and holds no password, so nobody can log in with it. This is the state left
+     * by {@link UserService.addUnactivatedNativeAuthenticationMethod}.
+     *
+     * A verified account can also carry a `verificationToken` beside a real password, because
+     * `resetPasswordByToken` in earlier releases set `verified` without clearing the token. That
+     * credential works, so this returns `false` for it (GHSA-wr5h-x3x6-4h23).
+     *
+     * The `passwordHash` column is `select: false`, so it takes a query of its own to answer this.
+     *
+     * @internal
+     */
+    async nativeCredentialAwaitsActivation(ctx: RequestContext, userId: ID): Promise<boolean> {
+        const user = await this.getUserWithPasswordHash(ctx, userId);
+        const nativeAuthMethod = user?.getNativeAuthenticationMethod(false);
+        if (!nativeAuthMethod) {
+            return false;
+        }
+        return nativeAuthMethod.verificationToken != null && !nativeAuthMethod.passwordHash;
+    }
+
+    /**
+     * @description
      * Creates a new verified User using the {@link NativeAuthenticationStrategy}.
      */
     async createAdminUser(ctx: RequestContext, identifier: string, password: string): Promise<User> {
@@ -184,20 +273,11 @@ export class UserService {
      * @description
      * Creates a new User which will be responsible for the permissions of an API-Key.
      *
-     * IMPORTANT: The caller is responsible for avoiding privilege escalations!
+     * IMPORTANT: The caller is responsible for granting the User its Roles via
+     * {@link RoleAssignmentService} before a session is created for it.
      */
-    async createApiKeyUser(ctx: RequestContext, roles: Role[], identifier: string): Promise<User> {
-        const newUser = await this.connection.getRepository(ctx, User).save(new User({ identifier, roles }));
-
-        const userWithRelations = await assertFound(
-            this.connection.getRepository(ctx, User).findOne({
-                where: { id: newUser.id },
-                // ApiKeyUsers generally require roles and their channels, its important for sessions!
-                relations: { roles: { channels: true } },
-            }),
-        );
-
-        return userWithRelations;
+    createApiKeyUser(ctx: RequestContext, identifier: string): Promise<User> {
+        return this.connection.getRepository(ctx, User).save(new User({ identifier }));
     }
 
     async softDelete(ctx: RequestContext, userId: ID) {
@@ -250,19 +330,9 @@ export class UserService {
             );
             if (isTokenValid) {
                 const nativeAuthMethod = user.getNativeAuthenticationMethod();
-                if (!password) {
-                    if (!nativeAuthMethod.passwordHash) {
-                        return new MissingPasswordError();
-                    }
-                } else {
-                    if (!!nativeAuthMethod.passwordHash) {
-                        return new PasswordAlreadySetError();
-                    }
-                    const passwordValidationResult = await this.validatePassword(ctx, password);
-                    if (passwordValidationResult !== true) {
-                        return passwordValidationResult;
-                    }
-                    nativeAuthMethod.passwordHash = await this.passwordCipher.hash(password);
+                const passwordResult = await this.applyVerificationPassword(ctx, nativeAuthMethod, password);
+                if (passwordResult) {
+                    return passwordResult;
                 }
                 nativeAuthMethod.verificationToken = null;
                 user.verified = true;
@@ -278,6 +348,93 @@ export class UserService {
 
     /**
      * @description
+     * Marks a User as `verified`. Unlike {@link UserService.verifyUserByToken}, no verification
+     * token is required, so this is the route for a verification an administrator performs on the
+     * account holder's behalf. Clears any pending `verificationToken`, so
+     * `refreshCustomerVerification` will no longer issue a new one.
+     *
+     * The `password` argument follows the same rules as in `verifyUserByToken`: a
+     * {@link NativeAuthenticationMethod} with no `passwordHash` requires one, and a credential
+     * which already has one rejects it. A User with no native credential at all is verified only
+     * without a `password`, since there is nothing to set it on.
+     *
+     * `verified` is not checked before the credential is written, so a User which is already
+     * verified but whose credential has no `passwordHash` gets one here. That is the state
+     * {@link UserService.addUnactivatedNativeAuthenticationMethod} leaves behind, and activating it
+     * is otherwise reserved for whoever controls the email address (GHSA-wr5h-x3x6-4h23). This
+     * route is therefore only safe behind the `UpdateCustomer` permission.
+     *
+     * @since 3.8.0
+     */
+    async verifyUserWithoutToken(
+        ctx: RequestContext,
+        userId: ID,
+        password?: string,
+    ): Promise<User | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError> {
+        const user = await this.getUserWithPasswordHash(ctx, userId);
+        if (!user) {
+            throw new EntityNotFoundError('User', userId);
+        }
+        const nativeAuthMethod = user.getNativeAuthenticationMethod(false);
+        if (nativeAuthMethod) {
+            const passwordResult = await this.applyVerificationPassword(ctx, nativeAuthMethod, password);
+            if (passwordResult) {
+                return passwordResult;
+            }
+            nativeAuthMethod.verificationToken = null;
+            await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
+        } else if (password) {
+            throw new UserInputError('error.cannot-set-password-without-native-credential');
+        }
+        user.verified = true;
+        return this.connection.getRepository(ctx, User).save(user);
+    }
+
+    /**
+     * Writes the `password` argument of a verification flow onto the given native credential as a
+     * hash. The credential is mutated in place and left unsaved, so the caller saves it on success
+     * and discards it on the ErrorResult this returns.
+     *
+     * A credential with an empty `passwordHash` can never be used to log in, since
+     * `NativeAuthenticationStrategy` rejects an empty stored hash, so verifying one without a
+     * password leaves the account verified and unusable. A credential which already has a password
+     * rejects a new one, so that neither verification flow can overwrite it.
+     */
+    private async applyVerificationPassword(
+        ctx: RequestContext,
+        nativeAuthMethod: NativeAuthenticationMethod,
+        password?: string,
+    ): Promise<MissingPasswordError | PasswordAlreadySetError | PasswordValidationError | undefined> {
+        if (!password) {
+            return nativeAuthMethod.passwordHash ? undefined : new MissingPasswordError();
+        }
+        if (nativeAuthMethod.passwordHash) {
+            return new PasswordAlreadySetError();
+        }
+        const passwordValidationResult = await this.validatePassword(ctx, password);
+        if (passwordValidationResult !== true) {
+            return passwordValidationResult;
+        }
+        nativeAuthMethod.passwordHash = await this.passwordCipher.hash(password);
+        return undefined;
+    }
+
+    /**
+     * Loads a User with the `passwordHash` of its authentication methods. That column is
+     * `select: false`, so it takes a query of its own to read.
+     */
+    private getUserWithPasswordHash(ctx: RequestContext, userId: ID): Promise<User | null> {
+        return this.connection
+            .getRepository(ctx, User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.authenticationMethods', 'aums')
+            .addSelect('aums.passwordHash')
+            .where('user.id = :userId', { userId })
+            .getOne();
+    }
+
+    /**
+     * @description
      * Sets the {@link NativeAuthenticationMethod} `passwordResetToken` as part of the User password reset
      * flow.
      */
@@ -286,6 +443,18 @@ export class UserService {
         if (!user) {
             return;
         }
+        return this.setPasswordResetTokenForUser(ctx, user);
+    }
+
+    /**
+     * @description
+     * Sets the {@link NativeAuthenticationMethod} `passwordResetToken` on the given User, which must be
+     * loaded with its `authenticationMethods`. Returns `undefined` if the User has no
+     * NativeAuthenticationMethod.
+     *
+     * @since 3.9.0
+     */
+    async setPasswordResetTokenForUser(ctx: RequestContext, user: User): Promise<User | undefined> {
         const nativeAuthMethod = user.getNativeAuthenticationMethod(false);
         if (!nativeAuthMethod) {
             return undefined;
@@ -294,6 +463,28 @@ export class UserService {
             await this.verificationTokenGenerator.generateVerificationToken(ctx);
         await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
         return user;
+    }
+
+    /**
+     * @description
+     * Returns the User whose {@link NativeAuthenticationMethod} has the given `passwordResetToken` set,
+     * as a result of a prior call to the `setPasswordResetToken()` method. Note that this method does
+     * not check whether the token has expired.
+     *
+     * @since 3.8.0
+     */
+    async getUserByPasswordResetToken(
+        ctx: RequestContext,
+        passwordResetToken: string,
+    ): Promise<User | undefined> {
+        const user = await this.connection
+            .getRepository(ctx, User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.authenticationMethods', 'aums')
+            .leftJoin('user.authenticationMethods', 'authenticationMethod')
+            .where('authenticationMethod.passwordResetToken = :passwordResetToken', { passwordResetToken })
+            .getOne();
+        return user ?? undefined;
     }
 
     /**
@@ -310,13 +501,7 @@ export class UserService {
     ): Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
     > {
-        const user = await this.connection
-            .getRepository(ctx, User)
-            .createQueryBuilder('user')
-            .leftJoinAndSelect('user.authenticationMethods', 'aums')
-            .leftJoin('user.authenticationMethods', 'authenticationMethod')
-            .where('authenticationMethod.passwordResetToken = :passwordResetToken', { passwordResetToken })
-            .getOne();
+        const user = await this.getUserByPasswordResetToken(ctx, passwordResetToken);
         if (!user) {
             return new PasswordResetTokenInvalidError();
         }
@@ -334,6 +519,10 @@ export class UserService {
             const nativeAuthMethod = user.getNativeAuthenticationMethod();
             nativeAuthMethod.passwordHash = await this.passwordCipher.hash(password);
             nativeAuthMethod.passwordResetToken = null;
+            // Completing a password reset proves ownership of the identifier (the token was delivered
+            // to it), so clear any pending per-credential verification token too, otherwise the login
+            // gate would keep the now-owned credential non-authenticatable.
+            nativeAuthMethod.verificationToken = null;
             await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
             if (user.verified === false && this.configService.authOptions.requireVerification) {
                 // This code path represents an edge-case in which the Customer creates an account,
@@ -363,9 +552,13 @@ export class UserService {
             (m): m is NativeAuthenticationMethod => m instanceof NativeAuthenticationMethod,
         );
         if (nativeAuthMethod) {
+            // A difference only in case is not a new identifier, so it does not cancel a pending
+            // change of the email address. See #5559
+            if (normalizeEmailAddress(nativeAuthMethod.identifier) !== normalizeEmailAddress(newIdentifier)) {
+                nativeAuthMethod.identifierChangeToken = null;
+                nativeAuthMethod.pendingIdentifier = null;
+            }
             nativeAuthMethod.identifier = newIdentifier;
-            nativeAuthMethod.identifierChangeToken = null;
-            nativeAuthMethod.pendingIdentifier = null;
             await this.connection
                 .getRepository(ctx, NativeAuthenticationMethod)
                 .save(nativeAuthMethod, { reload: false });

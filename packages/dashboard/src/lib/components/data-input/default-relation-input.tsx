@@ -1,4 +1,6 @@
+import { StatusBadge, orderStateDictionary, type Tone } from '@/vdb/components/ui/status-badge.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMemo } from 'react';
 import { MultiRelationInput, SingleRelationInput } from './relation-input.js';
@@ -37,28 +39,19 @@ interface EntityLabelProps {
     tooltipText?: string;
 }
 
-interface StatusBadgeProps {
+interface EntityStatusBadgeProps {
     condition: boolean;
-    text: string;
-    variant?: 'orange' | 'green' | 'red' | 'blue';
+    text: React.ReactNode;
+    tone?: Tone;
 }
 
-function StatusBadge({ condition, text, variant = 'orange' }: Readonly<StatusBadgeProps>) {
+function EntityStatusBadge({ condition, text, tone = 'neutral' }: Readonly<EntityStatusBadgeProps>) {
     if (!condition) return null;
 
-    const colorClasses = {
-        orange: 'text-warning',
-        green: 'bg-success/10 text-success',
-        red: 'bg-destructive/10 text-destructive',
-        blue: 'bg-primary/10 text-primary',
-    };
-
     return (
-        <span
-            className={`ml-2 text-xs ${variant === 'orange' ? colorClasses.orange : `px-1.5 py-0.5 rounded-full ${colorClasses[variant]}`}`}
-        >
-            • {text}
-        </span>
+        <StatusBadge tone={tone} className="ml-2 align-middle">
+            {text}
+        </StatusBadge>
     );
 }
 
@@ -114,19 +107,8 @@ function createBaseEntityConfig(
     } as const;
 }
 
-function getOrderStateVariant(state: string): StatusBadgeProps['variant'] {
-    switch (state) {
-        case 'Delivered':
-            return 'green';
-        case 'Cancelled':
-            return 'red';
-        default:
-            return 'blue';
-    }
-}
-
 // Entity type mappings from the dev-config.ts - using functions to generate configs
-const createEntityConfigs = (i18n: any) => ({
+const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string) => string) => ({
     Product: createRelationSelectorConfig({
         ...createBaseEntityConfig('Product', i18n),
         listQuery: graphql(`
@@ -184,7 +166,13 @@ const createEntityConfigs = (i18n: any) => ({
                     item.firstName?.[0]?.toUpperCase() || item.emailAddress?.[0]?.toUpperCase() || 'U'
                 }
                 rounded
-                statusIndicator={<StatusBadge condition={!item.user?.verified} text="Unverified" />}
+                statusIndicator={
+                    <EntityStatusBadge
+                        condition={!item.user?.verified}
+                        text={<Trans>Unverified</Trans>}
+                        tone="warning"
+                    />
+                }
                 tooltipText={`${item.firstName} ${item.lastName} (${item.emailAddress})`}
             />
         ),
@@ -192,6 +180,9 @@ const createEntityConfigs = (i18n: any) => ({
 
     ProductVariant: createRelationSelectorConfig({
         ...createBaseEntityConfig('Product Variant', i18n),
+        buildSearchFilter: (term: string) => ({
+            _or: [{ name: { contains: term } }, { sku: { contains: term } }],
+        }),
         listQuery: graphql(`
             query GetProductVariantsForRelationSelector($options: ProductVariantListOptions) {
                 productVariants(options: $options) {
@@ -223,7 +214,7 @@ const createEntityConfigs = (i18n: any) => ({
                 subtitle={`SKU: ${item.sku} • Stock: ${item.stockOnHand ?? 0}`}
                 imageUrl={item.featuredAsset?.preview || item.product.featuredAsset?.preview}
                 placeholderLetter="V"
-                statusIndicator={<StatusBadge condition={!item.enabled} text="Disabled" />}
+                statusIndicator={<EntityStatusBadge condition={!item.enabled} text={<Trans>Disabled</Trans>} />}
                 tooltipText={`${item.product.name} - ${item.name} (SKU: ${item.sku})`}
             />
         ),
@@ -256,7 +247,7 @@ const createEntityConfigs = (i18n: any) => ({
                 subtitle={`${item.slug} • ${item.productVariantCount || 0} products`}
                 imageUrl={item.featuredAsset?.preview}
                 placeholderLetter="C"
-                statusIndicator={<StatusBadge condition={item.isPrivate} text="Private" />}
+                statusIndicator={<EntityStatusBadge condition={item.isPrivate} text={<Trans>Private</Trans>} />}
                 tooltipText={`${item.name} (${item.slug})`}
             />
         ),
@@ -286,7 +277,7 @@ const createEntityConfigs = (i18n: any) => ({
                 subtitle={`${item.code} • ${item.valueList?.totalItems || 0} values`}
                 placeholderLetter="F"
                 rounded
-                statusIndicator={<StatusBadge condition={item.isPrivate} text="Private" />}
+                statusIndicator={<EntityStatusBadge condition={item.isPrivate} text={<Trans>Private</Trans>} />}
                 tooltipText={`${item.name} (${item.code})`}
             />
         ),
@@ -381,7 +372,6 @@ const createEntityConfigs = (i18n: any) => ({
             }
         `),
         label: (item: any) => {
-            const stateVariant = getOrderStateVariant(item.state);
             return (
                 <EntityLabel
                     title={item.code}
@@ -389,7 +379,11 @@ const createEntityConfigs = (i18n: any) => ({
                     placeholderLetter="O"
                     rounded
                     statusIndicator={
-                        <StatusBadge condition={true} text={item.state} variant={stateVariant} />
+                        <EntityStatusBadge
+                            condition={true}
+                            text={getTranslatedOrderState(item.state)}
+                            tone={orderStateDictionary.toneFor(item.state)}
+                        />
                     }
                     tooltipText={`${item.code} - ${item.customer?.firstName} ${item.customer?.lastName} (${item.totalWithTax / 100} ${item.currencyCode})`}
                 />
@@ -451,7 +445,7 @@ const createEntityConfigs = (i18n: any) => ({
                 subtitle={`${item.code} • ${item.handler?.code}`}
                 placeholderLetter="P"
                 rounded
-                statusIndicator={<StatusBadge condition={!item.enabled} text="Disabled" />}
+                statusIndicator={<EntityStatusBadge condition={!item.enabled} text={<Trans>Disabled</Trans>} />}
                 tooltipText={`${item.name} (${item.code})`}
             />
         ),
@@ -542,7 +536,7 @@ const createEntityConfigs = (i18n: any) => ({
                     subtitle={parts.join(' • ')}
                     placeholderLetter="PR"
                     rounded
-                    statusIndicator={<StatusBadge condition={!item.enabled} text="Disabled" />}
+                    statusIndicator={<EntityStatusBadge condition={!item.enabled} text={<Trans>Disabled</Trans>} />}
                     tooltipText={item.couponCode ? `${item.name} (${item.couponCode})` : item.name}
                 />
             );
@@ -625,7 +619,11 @@ export function DefaultRelationInput({
     entityType,
 }: Readonly<DefaultRelationInputProps>) {
     const { t } = useLingui();
-    const ENTITY_CONFIGS = useMemo(() => createEntityConfigs(t), [t]);
+    const { getTranslatedOrderState } = useDynamicTranslations();
+    const ENTITY_CONFIGS = useMemo(
+        () => createEntityConfigs(t, getTranslatedOrderState),
+        [t, getTranslatedOrderState],
+    );
     if (!fieldDef || (!isRelationCustomFieldConfig(fieldDef) && !entityType)) {
         return null;
     }

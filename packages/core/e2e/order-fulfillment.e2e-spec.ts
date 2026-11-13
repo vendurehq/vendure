@@ -16,8 +16,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { getFulfillmentHandlersDocument } from './graphql/admin-definitions';
-import { fulfillmentFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import {
     createFulfillmentDocument,
     createShippingMethodDocument,
@@ -56,9 +55,12 @@ const testFulfillmentHandler = new FulfillmentHandler({
 describe('Order fulfillments', () => {
     const orderGuard: ErrorResultGuard<FragmentOf<typeof testOrderWithPaymentsFragment>> =
         createErrorResultGuard(input => !!input.lines);
-    const fulfillmentGuard: ErrorResultGuard<FragmentOf<typeof fulfillmentFragment>> = createErrorResultGuard(
-        input => !!input.id,
-    );
+    const fulfillmentGuard: ErrorResultGuard<
+        Exclude<
+            ResultOf<typeof transitFulfillmentDocument>['transitionFulfillmentToState'],
+            { errorCode: unknown }
+        >
+    > = createErrorResultGuard(input => !!input.id);
 
     let order: FragmentOf<typeof testOrderWithPaymentsFragment>;
     let f1Id: string;

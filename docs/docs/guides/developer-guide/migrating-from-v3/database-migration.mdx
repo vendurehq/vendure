@@ -1,0 +1,129 @@
+---
+title: "Database Migration"
+metaTitle: "Vendure v3 to v4 Database Migration Guide"
+metaDescription: "Generate and run the Vendure v4 database migration, including the data-migration helpers that move existing data into the new schema."
+order: 2
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+Vendure v4 changes the database schema. A generated migration handles the new tables and columns. Some changes also need existing data moved into the new schema, which you do by calling a data-migration helper from the same migration.
+
+Before you start, complete steps 1 to 4 of [Migrating from v3](/developer-guide/migrating-from-v3): your project must be on v4 packages and compile.
+
+<Callout type="danger">
+Back up your production data before you migrate. After you go live on v4, restoring this backup is the only way back to v3, and it loses everything written on v4 since.
+</Callout>
+
+## Data-migration helpers
+
+| Helper | Change | Preview | Second step | With `synchronize: true` |
+|---|---|---|---|---|
+| [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) | [Role assignments](/developer-guide/migrating-from-v3/role-assignments#migrating-the-data) | [`previewRoleAssignmentMigration`](/developer-guide/migrating-from-v3/role-assignments#previewing-the-migration) | [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) | Both steps run on the first v4 startup |
+
+Each helper's guide explains what it does, how it checks its result, and any steps after go-live.
+
+## Previewing the data migrations
+
+Some helpers have a read-only preview that reports how the migration will change your data. Run each one **before** migrating, while the database still has its v3 shape. Previews only read, so they are safe to run against production. The table above links each preview.
+
+<Callout type="warning">
+With `synchronize: true`, starting Vendure v4 runs the data migrations straight away. Run the previews before you start v4 for the first time.
+</Callout>
+
+## Running the migration
+
+The role assignment migration has two steps:
+
+1. [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) copies the role grants into the new `role_assignment` table and checks the result. It leaves the v3 tables in place, so v3 servers keep working. v4 servers can change role assignments straight away.
+2. [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) drops the v3 tables and the Customer role. v3 servers stop working once it has run.
+
+If you stop every v3 server and worker before you migrate, call both helpers from the same migration. For a rolling deployment, call `removeLegacyRoleData` from a second migration once the last v3 server is gone. See [Removing the legacy tables](#removing-the-legacy-tables).
+
+### With migrations
+
+1. Generate the migration:
+   ```bash
+   npx vendure migrate --generate v4-upgrade
+   ```
+   Running `npx vendure migrate` without flags opens an interactive menu with the same options.
+2. In the generated file, call each data-migration helper after the generated statements:
+   ```ts
+   import { MigrationInterface, QueryRunner } from 'typeorm';
+   import { migrateRoleAssignmentData, removeLegacyRoleData } from '@vendure/core';
+
+   export class V4Upgrade1234567890 implements MigrationInterface {
+       public async up(queryRunner: QueryRunner): Promise<any> {
+           // --- Auto-generated DDL ---
+           // ...
+
+           // --- Data-migration helpers ---
+           await migrateRoleAssignmentData(queryRunner);
+           // For a rolling deployment, leave this out and call it from a later migration
+           await removeLegacyRoleData(queryRunner);
+       }
+
+       public async down(queryRunner: QueryRunner): Promise<any> {
+           // Auto-generated reverse DDL
+       }
+   }
+   ```
+3. Run the migration:
+   ```bash
+   npx vendure migrate --run
+   ```
+
+**Done when:** the migration command succeeds, each helper logs its result (see the helper's guide), and Vendure v4 starts.
+
+<Callout type="warning">
+On MySQL and MariaDB every DDL statement commits on its own. If the migration stops partway, for example because the process is killed, the statements which already ran stay applied while the migration is not recorded, and running it again fails, e.g. on "Table 'role_assignment' already exists". Restore the backup, or undo what the generated statements already created (drop the `role_assignment` table and the `channelId` column of `role`) and run the migration again. The data-migration helpers themselves can be re-run safely: they skip work which is already done.
+</Callout>
+
+### With `synchronize: true`
+
+If `dbConnectionOptions.synchronize` is enabled, there is no migration to call the helpers from. Vendure runs `migrateRoleAssignmentData` and `removeLegacyRoleData` on the first v4 startup instead, in one transaction. Stop every v3 server and worker before you start v4.
+
+**Done when:** Vendure v4 starts and logs each helper's result.
+
+### During a rolling deployment
+
+Between the two steps, v3 and v4 servers can serve the same shop. v4 logs a warning on startup until `removeLegacyRoleData` has run.
+
+<Callout type="warning">
+While v3 and v4 servers both run, do not change Roles, Administrators, API keys or Channels. A change made on a v4 server does not reach the v3 servers. Of the changes made on a v3 server, `removeLegacyRoleData` applies only revoked grants. It lists every other change so that you can make it again on v4.
+</Callout>
+
+A Customer who registers on a v4 server meanwhile sees errors on the remaining v3 servers. See [the role assignments guide](/developer-guide/migrating-from-v3/role-assignments#during-a-rolling-deployment).
+
+### Removing the legacy tables
+
+Once no v3 server or worker is running, add a second migration file to your migrations folder by hand, and run it with `npx vendure migrate --run`:
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { removeLegacyRoleData } from '@vendure/core';
+
+export class RemoveLegacyRoleData1234567891 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        await removeLegacyRoleData(queryRunner);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // Restore the backup taken before the upgrade to go back to v3
+    }
+}
+```
+
+Running v4 servers pick this up without a restart. Before it drops the v3 tables, `removeLegacyRoleData` compares them with `role_assignment` and logs what it finds:
+
+- **Deleted:** grants that the first step copied and a v3 server revoked since. They are removed from `role_assignment`.
+- **Not applied:** grants that the v3 tables hold and `role_assignment` does not. Each was either removed on a v4 server or granted on a v3 server after the first step. The helper cannot tell which, so it changes nothing. Grant the ones still needed again with `assignRolesToUser`.
+
+Grants added on v4 servers are kept.
+
+**Done when:** both migrations succeed, `removeLegacyRoleData` logs its result, you have acted on any "Not applied" grants, and v4 starts without the warning.
+
+## Next steps
+
+- Update your storefront: see [Storefront migration](/developer-guide/migrating-from-v3/storefront-migration).
+- For the full upgrade order, go back to [Migrating from v3](/developer-guide/migrating-from-v3).

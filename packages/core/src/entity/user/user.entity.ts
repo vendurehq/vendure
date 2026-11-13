@@ -1,5 +1,5 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
-import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 import { InternalServerError } from '../../common/error/errors';
 import { SoftDeletable } from '../../common/types/common-types';
@@ -8,7 +8,6 @@ import { AuthenticationMethod } from '../authentication-method/authentication-me
 import { NativeAuthenticationMethod } from '../authentication-method/native-authentication-method.entity';
 import { VendureEntity } from '../base/base.entity';
 import { CustomUserFields } from '../custom-entity-fields';
-import { Role } from '../role/role.entity';
 import { AuthenticatedSession } from '../session/authenticated-session.entity';
 
 /**
@@ -35,10 +34,6 @@ export class User extends VendureEntity implements HasCustomFields, SoftDeletabl
 
     @Column({ default: false })
     verified: boolean;
-
-    @ManyToMany(type => Role)
-    @JoinTable()
-    roles: Role[];
 
     @Column({ type: Date, nullable: true })
     lastLogin: Date | null;

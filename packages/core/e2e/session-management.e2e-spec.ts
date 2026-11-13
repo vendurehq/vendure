@@ -2,6 +2,7 @@
 import { CachedSession, mergeConfig, SessionCacheStrategy } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
+import { fail } from 'assert';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';

@@ -1,0 +1,10 @@
+# .env holds local development settings (APP_ENV=dev) and secrets.
+# Pass production values to the container at run time instead.
+.env
+.env.*
+node_modules
+dist
+.git
+*.log
+# Emails written by the EmailPlugin file transport. The plugin creates the directory when it needs it.
+static/email/test-emails

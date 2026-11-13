@@ -24,19 +24,41 @@ import {
 import { Instrument } from '../../../common/instrument-decorator';
 import { ConfigService, CustomFields, Logger } from '../../../config';
 import { TransactionalConnection } from '../../../connection';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
+import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
+import {
+    ChannelAssignmentService,
+    LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
+} from '../channel-assignment/channel-assignment.service';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
-import { getColumnMetadata, getEntityAlias } from './connection-utils';
+import { resolveCalculatedColumnJoin } from './calculated-column-join';
+import { getColumnMetadata } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
 import { parseSortParams } from './parse-sort-params';
+import { createSqliteRegexpFunction } from './sqlite-regexp-function';
 
 /**
  * Counter for generating unique aliases in EXISTS subqueries.
  * Using a module-level counter ensures uniqueness across all queries in a session.
  */
 let existsSubqueryCounter = 0;
+
+/**
+ * The alias of the channel assignment row joined when a list is scoped to a Channel.
+ */
+const CHANNEL_ASSIGNMENT_ALIAS = 'lqb__channelAssignment';
+
+interface ChannelAssignmentJoin {
+    /** The channel assignment entity, e.g. `ProductChannel` */
+    target: Type<any>;
+    /** The property holding the owning entity's id, e.g. `productId` */
+    ownerColumn: string;
+    /** The per-channel properties used by the filter or sort, mapped to their property paths */
+    columns: Map<string, string>;
+}
 
 /**
  * @description
@@ -130,6 +152,17 @@ export type ExtendedListQueryOptions<T extends VendureEntity> = {
      * @default false
      */
     ignoreQueryLimits?: boolean;
+    /**
+     * @description
+     * When the list is scoped to a Channel (`channelId`) and the entity has a channel assignment
+     * entity (see {@link ChannelAssignment}), loads the assignment row of that Channel onto each
+     * entity. {@link ChannelAssignmentService}`.getAssignment()` then returns it without a further
+     * query, e.g. for a field resolver of per-channel data on each item of the list.
+     *
+     * @since 4.0.0
+     * @default false
+     */
+    loadChannelAssignment?: boolean;
 };
 
 /**
@@ -210,6 +243,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
 
     /** @internal */
@@ -286,7 +320,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         relations = relations.filter(relationPath => !processedRelations.has(relationPath));
 
         qb.setFindOptions({
-            relations,
+            relations: findOptionsArrayToObject<T>(relations),
             take,
             skip,
             where: extendedOptions.where || {},
@@ -296,7 +330,14 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         // join the tables required by calculated columns
         this.joinCalculatedColumnRelations(qb, entity, options);
 
-        const { customPropertyMap } = extendedOptions;
+        const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
+        const channelAssignmentJoin = extendedOptions.channelId
+            ? this.getChannelAssignmentJoin(qb, entity, options, providedCustomPropertyMap)
+            : undefined;
+        const customPropertyMap =
+            channelAssignmentJoin?.columns.size && !providedCustomPropertyMap
+                ? {}
+                : providedCustomPropertyMap;
         // Store the original customPropertyMap before normalization for EXISTS subquery generation.
         // This is needed because normalizeCustomPropertyMap mutates customPropertyMap, but
         // parseFilterParams needs the original paths to detect *-to-Many relations.
@@ -304,12 +345,20 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         if (customPropertyMap) {
             this.normalizeCustomPropertyMap(customPropertyMap, options, qb);
         }
+        if (customPropertyMap && channelAssignmentJoin) {
+            // Columns of the channel assignment row (e.g. `ProductChannel.enabled`) resolve against
+            // the row of the active Channel, joined below.
+            for (const [property, columnPath] of channelAssignmentJoin.columns) {
+                customPropertyMap[property] = `${CHANNEL_ASSIGNMENT_ALIAS}.${columnPath}`;
+            }
+        }
 
         const customFieldsForType = this.configService.customFields[entity.name as keyof CustomFields];
         const sortParams = Object.assign({}, options.sort, extendedOptions.orderBy);
-        this.applyTranslationConditions(qb, entity, sortParams, extendedOptions.ctx);
+        this.applyTranslationConditions(qb, entity, sortParams, options.filter, extendedOptions.ctx);
+        const dataSource = getDataSource(qb);
         const sort = parseSortParams(
-            qb.connection,
+            dataSource,
             entity,
             sortParams,
             customPropertyMap,
@@ -318,7 +367,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         );
 
         const filter = parseFilterParams({
-            connection: qb.connection,
+            connection: dataSource,
             entity,
             filterParams: options.filter,
             customPropertyMap,
@@ -342,9 +391,13 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         }
 
         if (extendedOptions.channelId) {
-            qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
-                channelId: extendedOptions.channelId,
-            });
+            this.joinChannel(
+                qb,
+                extendedOptions.channelId,
+                channelAssignmentJoin,
+                sortParams,
+                extendedOptions.loadChannelAssignment ?? false,
+            );
         }
 
         qb.orderBy(sort);
@@ -478,9 +531,13 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         const newParamKey = `exists_${baseParamKey}`;
 
         // Helper to escape identifiers for the current database driver (handles PostgreSQL quoting)
-        const escapeId = (name: string) => mainQb.connection.driver.escape(name);
+        const { driver } = getDataSource(mainQb);
+        const escapeId = (name: string) => driver.escape(name);
         const escapeTablePath = (path: string) =>
-            path.split('.').map(segment => mainQb.connection.driver.escape(segment)).join('.');
+            path
+                .split('.')
+                .map(segment => driver.escape(segment))
+                .join('.');
 
         let existsQuery: string;
 
@@ -649,9 +706,14 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
     /**
      * @description
-     * As part of list optimization, we only join the minimum required relations which are needed to
-     * get the base list query. Other relations are then joined individually in the patched `getManyAndCount()`
-     * method.
+     * Returns the relations which `build()` adds on top of the ones the caller asked for.
+     * They are derived from `customPropertyMap`, and only for the properties which the
+     * current `filter` or `sort` uses.
+     *
+     * Channel scoping does not need a relation here, because `build()` applies it with a
+     * dedicated join (see `joinChannel()`). Adding `channels` joins the Channels a second time,
+     * and on a tree entity that second join selects their rows, repeating every row of the page
+     * once per Channel. `collection.e2e-spec.ts` asserts that it does not.
      */
     private getMinimumRequiredRelations<T extends VendureEntity>(
         repository: Repository<T>,
@@ -659,9 +721,6 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         extendedOptions: ExtendedListQueryOptions<T>,
     ): string[] {
         const requiredRelations: string[] = [];
-        if (extendedOptions.channelId) {
-            requiredRelations.push('channels');
-        }
 
         if (extendedOptions.customPropertyMap) {
             const metadata = repository.metadata;
@@ -702,6 +761,99 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 filter._and?.some(nestedFilter => this.isPropertyUsedInFilter(property, nestedFilter)) ||
                 filter._or?.some(nestedFilter => this.isPropertyUsedInFilter(property, nestedFilter)))
         );
+    }
+
+    /**
+     * Restricts the query to entities assigned to the given Channel.
+     *
+     * If the entity has a channel assignment entity (see `ChannelAssignment`), this is a single
+     * join on its row of that Channel, which filters and sorts on per-channel columns reuse. A
+     * join on the `channels` relation would read the same junction table a second time, and also
+     * join the Channel table. Otherwise, the `channels` relation is joined.
+     */
+    private joinChannel(
+        qb: SelectQueryBuilder<any>,
+        channelId: ID,
+        channelAssignmentJoin: ChannelAssignmentJoin | undefined,
+        sortParams: Record<string, unknown>,
+        loadChannelAssignment: boolean,
+    ) {
+        if (!channelAssignmentJoin) {
+            qb.innerJoin(`${qb.alias}.channels`, 'lqb__channel', 'lqb__channel.id = :channelId', {
+                channelId,
+            });
+            return;
+        }
+        const { target, ownerColumn, columns } = channelAssignmentJoin;
+        const condition =
+            `${CHANNEL_ASSIGNMENT_ALIAS}.${ownerColumn} = ${qb.alias}.id ` +
+            `AND ${CHANNEL_ASSIGNMENT_ALIAS}.channelId = :channelId`;
+        if (loadChannelAssignment) {
+            qb.innerJoinAndMapOne(
+                `${qb.alias}.${LOADED_CHANNEL_ASSIGNMENT_PROPERTY}`,
+                target,
+                CHANNEL_ASSIGNMENT_ALIAS,
+                condition,
+                { channelId },
+            );
+            return;
+        }
+        // Otherwise selected only when sorting on one of its columns: TypeORM orders the
+        // distinct-id subquery of a paginated query by selected columns only.
+        const sortsOnAssignment = Array.from(columns.keys()).some(property => sortParams[property]);
+        if (sortsOnAssignment) {
+            qb.innerJoinAndSelect(target, CHANNEL_ASSIGNMENT_ALIAS, condition, { channelId });
+        } else {
+            qb.innerJoin(target, CHANNEL_ASSIGNMENT_ALIAS, condition, { channelId });
+        }
+    }
+
+    /**
+     * ChannelAware entities have their `channels` junction table owned by a channel assignment entity
+     * (see `ChannelAssignment`), which can hold per-channel data columns. When the list is scoped to a
+     * Channel, it is joined on the assignment row of that Channel (see `joinChannel()`), and a filter
+     * or sort on such a column is resolved against that row. A column is exposed under its own name,
+     * or as `<name>InChannel` if the entity itself has a column of that name (e.g.
+     * `ProductChannel.enabled` → `enabledInChannel`, since `Product.enabled` is the global value).
+     *
+     * Returns `undefined` if the entity has no channel assignment entity. `columns` maps the
+     * per-channel properties used by the filter or sort to their property paths.
+     */
+    private getChannelAssignmentJoin<T extends VendureEntity>(
+        qb: SelectQueryBuilder<any>,
+        entity: Type<T>,
+        options: ListQueryOptions<T>,
+        providedCustomPropertyMap?: { [name: string]: string },
+    ): ChannelAssignmentJoin | undefined {
+        const assignment = this.channelAssignmentService.getMetadata(entity);
+        if (!assignment) {
+            return;
+        }
+        // Every name the filter and sort parsers resolve before the customPropertyMap: entity
+        // columns (including custom fields), translation columns and calculated columns, plus the
+        // properties the caller maps itself.
+        const { columns: entityColumns, translationColumns } = getColumnMetadata(qb.connection, entity);
+        const reserved = new Set<string>([
+            ...entityColumns.map(c => c.propertyName),
+            ...translationColumns.map(c => c.propertyName),
+            ...getCalculatedColumns(entity).map(c => String(c.name)),
+            ...Object.keys(providedCustomPropertyMap ?? {}),
+        ]);
+        // Maps the filter/sort property to the column's property path on the assignment entity
+        const columns = new Map<string, string>();
+        for (const column of qb.connection.getMetadata(assignment.target).columns) {
+            if (column.isPrimary || column.relationMetadata) {
+                continue;
+            }
+            // A column which clashes with one of those names is exposed as `<name>InChannel`
+            const property = reserved.has(column.propertyName)
+                ? `${column.propertyName}InChannel`
+                : column.propertyName;
+            if (this.customPropertyIsBeingUsed(property, options)) {
+                columns.set(property, column.propertyPath);
+            }
+        }
+        return { target: assignment.target, ownerColumn: assignment.entityIdProperty, columns };
     }
 
     /**
@@ -768,22 +920,27 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     ) {
         const calculatedColumns = getCalculatedColumns(entity);
         const filterAndSortFields = this.getFilterAndSortFields(options);
-        const alias = getEntityAlias(this.connection.rawConnection, entity);
+        const alias = qb.alias;
         for (const field of filterAndSortFields) {
             const calculatedColumnDef = calculatedColumns.find(c => c.name === field);
             const instruction = calculatedColumnDef?.listQuery;
             if (instruction) {
                 const relations = instruction.relations || [];
                 for (const relation of relations) {
-                    const relationIsAlreadyJoined = qb.expressionMap.joinAttributes.find(
-                        ja => ja.entityOrProperty === `${alias}.${relation}`,
-                    );
-                    if (!relationIsAlreadyJoined) {
-                        const propertyPath = relation.includes('.') ? relation : `${alias}.${relation}`;
-                        const relationAlias = relation.includes('.')
-                            ? relation.split('.').reverse()[0]
-                            : relation;
-                        qb.innerJoinAndSelect(propertyPath, relationAlias);
+                    const {
+                        propertyPath,
+                        alias: relationAlias,
+                        joinType,
+                    } = resolveCalculatedColumnJoin(alias, relation, instruction.expression);
+                    // The check is on the alias rather than the relation property path, because
+                    // the expression references the alias by name. The same relation joined
+                    // under a different alias does not satisfy that reference.
+                    if (!this.isRelationAlreadyJoined(qb, relationAlias)) {
+                        if (joinType === 'left') {
+                            qb.leftJoinAndSelect(propertyPath, relationAlias);
+                        } else {
+                            qb.innerJoinAndSelect(propertyPath, relationAlias);
+                        }
                     }
                 }
                 if (typeof instruction.query === 'function') {
@@ -823,19 +980,22 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
     /**
      * @description
-     * If this entity is Translatable, and we are sorting on one of the translatable fields,
-     * then we need to apply appropriate WHERE clauses to limit
-     * the joined translation relations.
+     * If this entity is Translatable, and we are sorting or filtering on one of the translatable
+     * fields, we need to join the translations. When sorting, we additionally apply WHERE clauses
+     * to limit the joined translation relations to a single language, so that the row ordering
+     * is deterministic.
      */
     private applyTranslationConditions<T extends VendureEntity>(
         qb: SelectQueryBuilder<any>,
         entity: Type<T>,
         sortParams: NullOptionals<SortParameter<T>> & FindOneOptions<T>['order'],
+        filterParams?: NullOptionals<FilterParameter<T>> | null,
         ctx?: RequestContext,
     ) {
         const languageCode = ctx?.languageCode || this.configService.defaultLanguageCode;
 
-        const { translationColumns } = getColumnMetadata(qb.connection, entity);
+        const dataSource = getDataSource(qb);
+        const { translationColumns } = getColumnMetadata(dataSource, entity);
         const alias = qb.alias;
 
         const sortKeys = Object.keys(sortParams);
@@ -845,16 +1005,16 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 sortingOnTranslatableKey = true;
             }
         }
+        const filterKeys = this.getFilterFields(filterParams);
+        const filteringOnTranslatableKey = translationColumns.some(c => filterKeys.includes(c.propertyName));
 
-        if (translationColumns.length && sortingOnTranslatableKey) {
-            const translationsAlias = qb.connection.namingStrategy.joinTableName(
-                alias,
-                'translations',
-                '',
-                '',
-            );
+        if (translationColumns.length && (sortingOnTranslatableKey || filteringOnTranslatableKey)) {
+            const translationsAlias = `${alias}__translations`;
             if (!this.isRelationAlreadyJoined(qb, translationsAlias)) {
                 qb.leftJoinAndSelect(`${alias}.translations`, translationsAlias);
+            }
+            if (!sortingOnTranslatableKey) {
+                return;
             }
 
             qb.andWhere(
@@ -901,6 +1061,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                             }),
                         );
                     }
+                    // A base row with no translation rows at all matches neither branch above, so
+                    // keep it and let it sort as null. Without this, sorting by a translatable key
+                    // silently drops such rows from the result set.
+                    qb1.orWhere(`${translationsAlias}.id IS NULL`);
                     qb.setParameters({
                         nonDefaultLanguageCode: languageCode,
                         defaultLanguageCode,
@@ -915,18 +1079,17 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * so that we can run regex filters on string fields.
      */
     private registerSQLiteRegexpFunction() {
-        const regexpFn = (pattern: string, value: string) => {
-            const result = new RegExp(`${pattern}`, 'i').test(value);
-            return result ? 1 : 0;
-        };
         const dbType = this.connection.rawConnection.options.type;
+        // Only the SQLite flavours evaluate regex filters via a JS function; other backends
+        // defer to the database's own engine, so the regexp function (and any re2 warning)
+        // must not be created for them.
         if (dbType === 'better-sqlite3') {
             const driver = this.connection.rawConnection.driver as BetterSqlite3Driver;
-            driver.databaseConnection.function('regexp', regexpFn);
+            driver.databaseConnection.function('regexp', createSqliteRegexpFunction());
         }
         if (dbType === 'sqljs') {
             const driver = this.connection.rawConnection.driver as SqljsDriver;
-            driver.databaseConnection.create_function('regexp', regexpFn);
+            driver.databaseConnection.create_function('regexp', createSqliteRegexpFunction());
         }
     }
 

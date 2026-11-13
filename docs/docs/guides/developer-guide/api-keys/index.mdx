@@ -72,7 +72,7 @@ The full API key will be displayed **once**. Copy it immediately or download the
 ```graphql
 mutation {
     createApiKey(input: {
-        roleIds: ["3"]
+        roleAssignments: [{ roleId: "3", channelId: "1" }]
         translations: [{
             languageCode: en
             name: "ERP Sync Key"

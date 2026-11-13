@@ -16,6 +16,7 @@ import {
     mergeConfig,
 } from '@vendure/core';
 import { ErrorResultGuard, createErrorResultGuard, createTestEnvironment } from '@vendure/testing';
+import { fail } from 'assert';
 import path from 'path';
 import { Mock, afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,7 +24,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { PasswordValidationError } from '../src/common/error/generated-graphql-shop-errors';
 
-import { FragmentOf, ResultOf } from './graphql/graphql-admin';
+import { ResultOf } from './graphql/graphql-admin';
 import {
     MeDocument,
     getCustomerDocument,
@@ -31,13 +32,14 @@ import {
     getCustomerListDocument,
 } from './graphql/shared-definitions';
 import {
-    currentUserFragment,
+    addItemToOrderDocument,
     getActiveCustomerDocument,
     refreshTokenDocument,
     registerAccountDocument,
     requestPasswordResetDocument,
     requestUpdateEmailAddressDocument,
     resetPasswordDocument,
+    setCustomerDocument,
     updateEmailAddressDocument,
     verifyEmailDocument,
 } from './graphql/shop-definitions';
@@ -70,11 +72,13 @@ class TestEmailPlugin implements OnModuleInit {
     }
 }
 
-const successErrorGuard: ErrorResultGuard<{ success: boolean }> = createErrorResultGuard(
-    input => input.success != null,
-);
+const successErrorGuard: ErrorResultGuard<{ __typename?: 'Success'; success: boolean }> =
+    createErrorResultGuard(input => input.success != null);
 
-type CurrentUserShopFragment = FragmentOf<typeof currentUserFragment>;
+type CurrentUserShopFragment = Exclude<
+    ResultOf<typeof verifyEmailDocument>['verifyCustomerAccount'],
+    { errorCode: string }
+>;
 
 const currentUserErrorGuard: ErrorResultGuard<CurrentUserShopFragment> = createErrorResultGuard(
     input => input.identifier != null,
@@ -413,7 +417,7 @@ describe('Shop auth & accounts', () => {
             });
             currentUserErrorGuard.assertErrorResult(verifyCustomerAccount);
 
-            expect(verifyCustomerAccount.message).toBe('A password has already been set during registration');
+            expect(verifyCustomerAccount.message).toBe('A password has already been set for this account');
             expect(verifyCustomerAccount.errorCode).toBe(ErrorCode.PASSWORD_ALREADY_SET_ERROR);
         });
 
@@ -658,6 +662,42 @@ describe('Shop auth & accounts', () => {
 
             expect(requestUpdateCustomerEmailAddress.message).toBe('The email address is not available.');
             expect(requestUpdateCustomerEmailAddress.errorCode).toBe(ErrorCode.EMAIL_ADDRESS_CONFLICT_ERROR);
+        });
+
+        it('return error result if the email address belongs to a guest Customer', async () => {
+            const GUEST_EMAIL_ADDRESS = 'guest-checkout@address.com';
+            // A guest checkout Customer has no User, so `getUserByEmailAddress` does not see it.
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            await shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: GUEST_EMAIL_ADDRESS,
+                    firstName: 'Guest',
+                    lastName: 'Checkout',
+                },
+            });
+
+            await shopClient.asUserWithCredentials(customer!.emailAddress, PASSWORD);
+            const { requestUpdateCustomerEmailAddress } = await shopClient.query(
+                requestUpdateEmailAddressDocument,
+                {
+                    password: PASSWORD,
+                    newEmailAddress: GUEST_EMAIL_ADDRESS,
+                },
+            );
+            successErrorGuard.assertErrorResult(requestUpdateCustomerEmailAddress);
+
+            expect(requestUpdateCustomerEmailAddress.message).toBe('The email address is not available.');
+            expect(requestUpdateCustomerEmailAddress.errorCode).toBe(ErrorCode.EMAIL_ADDRESS_CONFLICT_ERROR);
+
+            const { customers } = await adminClient.query(getCustomerListDocument, {
+                options: { filter: { emailAddress: { eq: GUEST_EMAIL_ADDRESS } } },
+            });
+            expect(customers.items.map(c => c.emailAddress)).toEqual([GUEST_EMAIL_ADDRESS]);
+            expect(customers.items[0]?.user).toBeNull();
         });
 
         it('triggers event with token', async () => {
@@ -1047,6 +1087,43 @@ describe('Updating email address without email verification', () => {
 
         const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
         expect(activeCustomer!.emailAddress).toBe('not.normal@test.com');
+    });
+
+    // #5640 — a guest checkout Customer has no User, so its email address must still count as taken
+    it('return error result when the email address belongs to a guest Customer', async () => {
+        const GUEST_EMAIL_ADDRESS = 'guest-checkout@test.com';
+        await shopClient.asAnonymousUser();
+        await shopClient.query(addItemToOrderDocument, {
+            productVariantId: 'T_1',
+            quantity: 1,
+        });
+        await shopClient.query(setCustomerDocument, {
+            input: {
+                emailAddress: GUEST_EMAIL_ADDRESS,
+                firstName: 'Guest',
+                lastName: 'Checkout',
+            },
+        });
+
+        await shopClient.asUserWithCredentials('not.normal@test.com', 'test');
+        const { requestUpdateCustomerEmailAddress } = await shopClient.query(
+            requestUpdateEmailAddressDocument,
+            {
+                password: 'test',
+                newEmailAddress: GUEST_EMAIL_ADDRESS,
+            },
+        );
+        successErrorGuard.assertErrorResult(requestUpdateCustomerEmailAddress);
+        expect(requestUpdateCustomerEmailAddress.errorCode).toBe(ErrorCode.EMAIL_ADDRESS_CONFLICT_ERROR);
+
+        const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
+        expect(activeCustomer!.emailAddress).toBe('not.normal@test.com');
+
+        const { customers } = await adminClient.query(getCustomerListDocument, {
+            options: { filter: { emailAddress: { eq: GUEST_EMAIL_ADDRESS } } },
+        });
+        expect(customers.totalItems).toBe(1);
+        expect(customers.items[0].user).toBeNull();
     });
 });
 

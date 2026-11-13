@@ -4,8 +4,10 @@ import { Cron } from 'croner';
 
 import { Instrument } from '../../common/instrument-decorator';
 import { Logger } from '../../config';
+import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ScheduledTask } from '../../scheduler';
+import { getScheduleTimezone } from '../../scheduler/schedule-timezone';
 
 import { loggerCtx } from './constants';
 import { ScheduledTaskRecord } from './scheduled-task-record.entity';
@@ -21,10 +23,10 @@ import { ScheduledTaskRecord } from './scheduled-task-record.entity';
 @Injectable()
 @Instrument()
 export class StaleTaskService {
-    // Cache the interval for each taskId
-    private taskIntervalMap = new Map<string, number>();
-
-    constructor(private connection: TransactionalConnection) {}
+    constructor(
+        private connection: TransactionalConnection,
+        private configService: ConfigService,
+    ) {}
 
     /**
      * @description
@@ -64,13 +66,13 @@ export class StaleTaskService {
      * Returns the interval in ms between one run of the task, and the next.
      */
     getScheduleIntervalMs(task: ScheduledTask): number {
-        const cachedInterval = this.taskIntervalMap.get(task.id);
-        if (cachedInterval) {
-            return cachedInterval;
-        }
+        // The interval is not constant: around a daylight saving transition two
+        // consecutive runs are 23 or 25 hours apart. It is therefore computed from the
+        // next two runs on every call.
         const schedule = task.options.schedule;
         const scheduleString = typeof schedule === 'function' ? schedule(CronTime) : schedule;
-        const cron = new Cron(scheduleString);
+        const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+        const cron = new Cron(scheduleString, { timezone });
         const nextFn: (d?: Date) => Date | null | undefined =
             typeof (cron as any).nextRun === 'function'
                 ? (cron as any).nextRun.bind(cron)
@@ -83,9 +85,7 @@ export class StaleTaskService {
         if (!next2) {
             throw new Error('Could not compute next run times');
         }
-        const interval = next2.getTime() - next1.getTime();
-        this.taskIntervalMap.set(task.id, interval);
-        return interval;
+        return next2.getTime() - next1.getTime();
     }
 
     private isStale(task: ScheduledTaskRecord, now: Date, intervalMs: number): boolean {

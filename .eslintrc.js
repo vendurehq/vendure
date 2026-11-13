@@ -11,6 +11,8 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 
 Happy linting! 💖
 */
+const boundaries = require('./.eslintrc.boundaries.js');
+
 module.exports = {
     env: {
         es6: true,
@@ -25,7 +27,6 @@ module.exports = {
         '**/generated*',
         '**/*.js',
         '**/*.d.ts',
-        '/packages/ui-devkit/scaffold/**/*',
         '/packages/dev-server/load-testing/**/*',
         '/docs/layouts/**/*',
     ],
@@ -39,24 +40,10 @@ module.exports = {
         'eslint-plugin-jsdoc',
         'eslint-plugin-prefer-arrow',
         '@typescript-eslint',
+        '@nx',
     ],
     root: true,
-    overrides: [
-        {
-            files: ['./packages/ui-devkit/src/client/**/*'],
-            parserOptions: {
-                project: './packages/ui-devkit/tsconfig.json',
-                sourceType: 'module',
-            },
-        },
-        {
-            files: ['./packages/ui-devkit/src/compiler/**/*'],
-            parserOptions: {
-                project: './packages/ui-devkit/tsconfig.compiler.json',
-                sourceType: 'module',
-            },
-        },
-    ],
+    overrides: boundaries.overrides,
     rules: {
         '@typescript-eslint/adjacent-overload-signatures': 'error',
         '@typescript-eslint/array-type': [
@@ -67,32 +54,17 @@ module.exports = {
         ],
         '@typescript-eslint/await-thenable': 'error',
         '@typescript-eslint/ban-ts-comment': 'off',
-        '@typescript-eslint/ban-types': [
-            'error',
-            {
-                types: {
-                    Object: {
-                        message: 'Avoid using the `Object` type. Did you mean `object`?',
-                    },
-                    Function: {
-                        message:
-                            'Avoid using the `Function` type. Prefer a specific function type, like `() => void`.',
-                    },
-                    Boolean: {
-                        message: 'Avoid using the `Boolean` type. Did you mean `boolean`?',
-                    },
-                    Number: {
-                        message: 'Avoid using the `Number` type. Did you mean `number`?',
-                    },
-                    String: {
-                        message: 'Avoid using the `String` type. Did you mean `string`?',
-                    },
-                    Symbol: {
-                        message: 'Avoid using the `Symbol` type. Did you mean `symbol`?',
-                    },
-                },
-            },
-        ],
+        // Empty interfaces are the extension points for declaration merging, e.g. CustomOrderStates.
+        '@typescript-eslint/no-empty-object-type': ['error', { allowInterfaces: 'always' }],
+        // Rules added to the recommended configs after typescript-eslint v5. Warn until existing code is cleaned up.
+        '@typescript-eslint/no-array-delete': 'warn',
+        '@typescript-eslint/no-base-to-string': 'warn',
+        '@typescript-eslint/no-duplicate-type-constituents': 'warn',
+        '@typescript-eslint/no-redundant-type-constituents': 'warn',
+        '@typescript-eslint/no-require-imports': 'warn',
+        '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
+        '@typescript-eslint/only-throw-error': 'warn',
+        '@typescript-eslint/prefer-promise-reject-errors': 'warn',
         '@typescript-eslint/consistent-type-assertions': 'error',
         '@typescript-eslint/consistent-type-definitions': 'off',
         '@typescript-eslint/dot-notation': 'error',
@@ -120,7 +92,6 @@ module.exports = {
         '@typescript-eslint/no-empty-interface': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-extra-non-null-assertion': 'error',
-        '@typescript-eslint/no-extra-semi': 'error',
         '@typescript-eslint/no-floating-promises': 'error',
         '@typescript-eslint/no-for-in-array': 'error',
         '@typescript-eslint/no-implied-eval': 'error',

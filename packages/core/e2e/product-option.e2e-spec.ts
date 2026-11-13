@@ -20,6 +20,7 @@ import {
     deleteProductVariantDocument,
     removeOptionGroupFromProductDocument,
     removeProductOptionGroupsFromChannelDocument,
+    updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
@@ -182,6 +183,7 @@ describe('ProductOption resolver', () => {
             ResultOf<typeof getProductOptionGroupDocument>['productOptionGroup']
         >;
         let variants: ResultOf<typeof createProductVariantsDocument>['createProductVariants'];
+        let productId: string;
 
         beforeAll(async () => {
             // Create a new product with a variant in each size option
@@ -219,6 +221,7 @@ describe('ProductOption resolver', () => {
             });
             variants = createProductVariants;
             sizeOptionGroupWithOptions = productOptionGroup!;
+            productId = createProduct.id;
         });
 
         it(
@@ -265,6 +268,46 @@ describe('ProductOption resolver', () => {
             expect(productOptionGroup?.options.length).toBe(2);
             expect(productOptionGroup?.options.findIndex(o => o.code === 'medium')).toBe(-1);
         });
+
+        it(
+            'createProductVariants rejects a deleted ProductOption',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(createProductVariantsDocument, {
+                        input: [
+                            {
+                                productId,
+                                sku: 'TS-medium-again',
+                                optionIds: [deletedOptionId()],
+                                translations: [
+                                    { languageCode: LanguageCode.en, name: 'T-shirt medium again' },
+                                ],
+                            },
+                        ],
+                    }),
+                'ProductVariant optionIds must include one optionId from each of the groups: size',
+            ),
+        );
+
+        it(
+            'updateProductVariants rejects moving a variant onto a deleted ProductOption',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(updateProductVariantsDocument, {
+                        input: [
+                            {
+                                id: variants.find(v => v!.name.includes('small'))!.id,
+                                optionIds: [deletedOptionId()],
+                            },
+                        ],
+                    }),
+                'ProductVariant optionIds must include one optionId from each of the groups: size',
+            ),
+        );
+
+        function deletedOptionId() {
+            return sizeOptionGroupWithOptions.options.find(o => o.code === 'medium')!.id;
+        }
     });
 
     describe('standalone deleteProductOptionGroup', () => {
@@ -567,6 +610,143 @@ describe('ProductOption resolver', () => {
             } catch (e: any) {
                 expect(e.message).toContain('default Channel');
             }
+        });
+    });
+
+    describe('cross-channel update protection', () => {
+        const CHANNEL_A_TOKEN = 'opt-cross-channel-a';
+        const CHANNEL_B_TOKEN = 'opt-cross-channel-b';
+        let targetGroupId: string;
+        let targetOptionId: string;
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            for (const [code, token] of [
+                ['opt-cross-a', CHANNEL_A_TOKEN],
+                ['opt-cross-b', CHANNEL_B_TOKEN],
+            ]) {
+                await adminClient.query(createChannelDocument, {
+                    input: {
+                        code,
+                        token,
+                        defaultLanguageCode: LanguageCode.en,
+                        currencyCode: CurrencyCode.USD,
+                        pricesIncludeTax: true,
+                        defaultShippingZoneId: 'T_1',
+                        defaultTaxZoneId: 'T_1',
+                    },
+                });
+            }
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { createProductOptionGroup } = await adminClient.query(
+                createProductOptionGroupDocument,
+                {
+                    input: {
+                        code: 'cross-channel-group',
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'Cross Channel Group' },
+                        ],
+                        options: [
+                            {
+                                code: 'cross-channel-opt',
+                                translations: [
+                                    { languageCode: LanguageCode.en, name: 'Cross Channel Option' },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            );
+            targetGroupId = createProductOptionGroup.id;
+            targetOptionId = createProductOptionGroup.options[0].id;
+        });
+
+        afterAll(() => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it('cannot update a ProductOptionGroup belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(updateProductOptionGroupLocalDocument, {
+                    input: {
+                        id: targetGroupId,
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'PWNED-GROUP' },
+                        ],
+                    },
+                }),
+            ).rejects.toThrow(/No ProductOptionGroup with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { productOptionGroup } = await adminClient.query(
+                getProductOptionGroupDocument,
+                { id: targetGroupId },
+            );
+            expect(productOptionGroup?.name).toBe('Cross Channel Group');
+        });
+
+        it('cannot update a ProductOption belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(updateProductOptionDocument, {
+                    input: {
+                        id: targetOptionId,
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'PWNED-OPTION' },
+                        ],
+                    },
+                }),
+            ).rejects.toThrow(/No ProductOption with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { productOptionGroup } = await adminClient.query(
+                getProductOptionGroupDocument,
+                { id: targetGroupId },
+            );
+            const option = productOptionGroup?.options.find(
+                (o: any) => o.id === targetOptionId,
+            );
+            expect(option?.name).toBe('Cross Channel Option');
+        });
+
+        // GHSA-gg28-cx38-jxxr — createProductOption must not link to a group from another channel
+        it('cannot create a ProductOption in a ProductOptionGroup belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(createProductOptionDocument, {
+                    input: {
+                        productOptionGroupId: targetGroupId,
+                        code: 'foreign-link',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Foreign Link' }],
+                    },
+                }),
+            ).rejects.toThrow(/No ProductOptionGroup with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { productOptionGroup } = await adminClient.query(getProductOptionGroupDocument, {
+                id: targetGroupId,
+            });
+            expect(productOptionGroup?.options.map((o: any) => o.code)).toEqual(['cross-channel-opt']);
+        });
+
+        it('cannot delete a ProductOption belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(deleteProductOptionDocument, {
+                    id: targetOptionId,
+                }),
+            ).rejects.toThrow(/No ProductOption with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { productOptionGroup } = await adminClient.query(
+                getProductOptionGroupDocument,
+                { id: targetGroupId },
+            );
+            const option = productOptionGroup?.options.find(
+                (o: any) => o.id === targetOptionId,
+            );
+            expect(option?.name).toBe('Cross Channel Option');
         });
     });
 });

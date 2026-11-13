@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm } from 'react-hook-form';
-import { withDescription } from '../../../.storybook/with-description.js';
+import { asField } from '../../../../.storybook/as-field.js';
+import { withDescription } from '../../../../.storybook/with-description.js';
 import { MoneyInput } from './money-input.js';
 
 const meta = {
@@ -37,7 +38,7 @@ export const Playground: Story = {
         const field = register('playground');
         return (
             <div className="w-[300px]">
-                <MoneyInput {...field} {...args} />
+                <MoneyInput {...asField(field)} {...args} />
             </div>
         );
     },
@@ -53,22 +54,22 @@ export const DifferentCurrencies: Story = {
             <div className="w-[300px] space-y-4">
                 <div className="space-y-2">
                     <label className="text-sm font-medium">USD</label>
-                    <MoneyInput {...register('usd')} currency="USD" value={args.value} />
+                    <MoneyInput {...asField(register('usd'))} currency="USD" value={args.value} />
                 </div>
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium">EUR</label>
-                    <MoneyInput {...register('eur')} currency="EUR" value={args.value} />
+                    <MoneyInput {...asField(register('eur'))} currency="EUR" value={args.value} />
                 </div>
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium">GBP</label>
-                    <MoneyInput {...register('gbp')} currency="GBP" value={args.value} />
+                    <MoneyInput {...asField(register('gbp'))} currency="GBP" value={args.value} />
                 </div>
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium">JPY</label>
-                    <MoneyInput {...register('jpy')} currency="JPY" value={args.value} />
+                    <MoneyInput {...asField(register('jpy'))} currency="JPY" value={args.value} />
                 </div>
             </div>
         );
@@ -81,7 +82,7 @@ export const LargeAmount: Story = {
         const field = register('large');
         return (
             <div className="w-[300px]">
-                <MoneyInput {...field} currency="USD" value={123} />
+                <MoneyInput {...asField(field)} currency="USD" value={123} />
             </div>
         );
     },

@@ -33,6 +33,7 @@ class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements Inspec
     findManyById(ids: ID[]) => Promise<Job[]>;
     next(queueName: string, waitingJobs: Job[] = []) => Promise<Job | undefined>;
     update(job: Job) => Promise<void>;
+    cancelJob(jobId: ID) => Promise<Job | undefined>;
     removeSettledJobs(queueNames: string[] = [], olderThan?: Date) => Promise<number>;
 }
 ```
@@ -93,6 +94,11 @@ class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements Inspec
 ### update
 
 <MemberInfo kind="method" type={`(job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a>) => Promise<void>`}   />
+
+
+### cancelJob
+
+<MemberInfo kind="method" type={`(jobId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a> | undefined>`}   />
 
 
 ### removeSettledJobs

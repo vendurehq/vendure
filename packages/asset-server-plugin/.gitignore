@@ -1,3 +1,6 @@
 lib
 e2e/__data__/*.sqlite
 e2e/test-assets
+e2e/test-assets-cache-custom
+e2e/test-assets-cache-nostore
+e2e/test-assets-cache-object

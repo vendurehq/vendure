@@ -1,23 +1,35 @@
-export const REQUIRED_NODE_VERSION = '>=20.0.0';
+export const REQUIRED_NODE_VERSION = '>=22.12.0';
+/**
+ * Oldest Node.js major release that has not reached end-of-life. Used to warn (not block)
+ * users on EOL versions, for which native deps often stop publishing prebuilt binaries.
+ * Bump when the oldest maintained LTS goes EOL: https://nodejs.org/en/about/previous-releases
+ */
+export const OLDEST_NON_EOL_NODE_MAJOR = 22;
 export const SERVER_PORT = 3000;
 export const STOREFRONT_PORT = 3001;
-export const STOREFRONT_REPO = 'vendure-ecommerce/nextjs-starter-vendure';
-export const STOREFRONT_BRANCH = 'main';
 /**
  * The TypeScript version needs to pinned because minor versions often
  * introduce breaking changes.
  */
 export const TYPESCRIPT_VERSION = '5.8.2';
 /**
+ * Generated migration files import `MigrationInterface`/`QueryRunner` directly from `typeorm`.
+ * pnpm's strict, non-hoisting `node_modules` does not expose `typeorm` (a transitive dep of
+ * `@vendure/core`), so pnpm-scaffolded projects must declare it directly. Must stay equal to the
+ * range `@vendure/core` depends on so pnpm dedupes to a single instance - a mismatch would produce
+ * duplicate TypeORM copies with separate decorator metadata. Enforced by a test in helpers.spec.ts.
+ */
+export const TYPEORM_VERSION = '^0.3.21 || ^1.1.2';
+/**
  * Vite must be a direct dependency of the scaffolded project because the
  * generated vite.config.mts imports `vite` directly, and strict
  * (non-hoisting) package managers like pnpm don't expose transitive deps.
  * The range tracks @vendure/dashboard's declaration so the scaffold stays
- * on the same Vite major line as the dashboard (currently v7); the caret
- * caps at <8.0.0, which is important because Vite 8 ships a Rolldown-based
- * bundler with breaking changes.
+ * on the same Vite major line as the dashboard (currently v8, the
+ * Rolldown-based release); the caret caps at <9.0.0 so a future major with
+ * breaking changes is not picked up implicitly.
  */
-export const VITE_VERSION = '^7.3.1';
+export const VITE_VERSION = '^8.3.5';
 /**
  * `concurrently` runs the generated `dev`/`start` scripts. The major is pinned because
  * the `<pm>:script:*` shorthand expansion (relied on by both the server scripts and the
@@ -34,6 +46,14 @@ export const PORT_SCAN_RANGE = 20;
  * by `PORT_SCAN_RANGE` could stall the CLI for tens of minutes.
  */
 export const SOCKET_TIMEOUT_MS = 2_000;
+
+/**
+ * How long to wait for the dockerized PostgreSQL container to accept connections.
+ * A first boot runs `initdb`, which alone can take well over 10 seconds on slower
+ * machines, so the budget must comfortably exceed that.
+ */
+export const PG_READY_MAX_ATTEMPTS = 120;
+export const PG_READY_POLL_INTERVAL_MS = 500;
 
 // Timing constants (milliseconds)
 export const SCAFFOLD_DELAY_MS = 500;

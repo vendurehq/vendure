@@ -3,7 +3,8 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import pc from 'picocolors';
 
-import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
 /**
  * Registry of available codemods. To add a new codemod, just add an entry here.
@@ -14,8 +15,16 @@ const CODEMODS: Record<string, { description: string; run: (targetPath?: string)
     'dashboard-base-ui': {
         description: 'Migrate dashboard extensions from Radix UI to Base UI patterns',
         run: async (targetPath?: string) => {
-            const { dashboardUiMigration } = await import('./dashboard-ui/dashboard-ui-migration');
+            const { dashboardUiMigration } = await import('./dashboard-ui/dashboard-ui-migration.js');
             await dashboardUiMigration(targetPath);
+        },
+    },
+    'role-assignments': {
+        description: 'Migrate User.roles and Role.channels to v4 role assignments',
+        run: async (targetPath?: string) => {
+            const { roleAssignmentsMigration } =
+                await import('./role-assignments/role-assignments-migration.js');
+            await roleAssignmentsMigration(targetPath);
         },
     },
 };
@@ -30,24 +39,30 @@ export async function codemodCommand(transform?: string, targetPath?: string) {
         if (!codemod) {
             log.error(`Unknown codemod: "${transform}"`);
             log.info(`Available codemods:\n${formatCodemodList()}`);
-            process.exit(1);
+            exitCliCommand(1);
         }
         try {
             await codemod.run(resolvedPath);
         } catch (e: unknown) {
+            rethrowCliCommandExit(e);
             const message = e instanceof Error ? e.message : String(e);
             log.error(`Codemod "${transform}" failed: ${message}`);
             if (e instanceof Error && e.stack) {
                 log.error(e.stack);
             }
-            process.exit(1);
+            exitCliCommand(1);
         }
         return;
     }
 
     // Interactive mode: let the user pick a codemod.
     // Path is not supported in interactive mode — run from the project directory.
-    if (abortIfNonInteractive('vendure codemod', ['vendure codemod dashboard-base-ui'])) {
+    if (
+        abortIfNonInteractive('vendure codemod', [
+            'vendure codemod dashboard-base-ui',
+            'vendure codemod role-assignments',
+        ])
+    ) {
         return;
     }
 
@@ -67,25 +82,26 @@ export async function codemodCommand(transform?: string, targetPath?: string) {
 
     if (isCancel(selected)) {
         cancel('Codemod cancelled.');
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const selectedCodemod = CODEMODS[selected as string];
     if (!selectedCodemod) {
         log.error('Selected codemod not found.');
-        process.exit(1);
+        exitCliCommand(1);
     }
 
     try {
         await selectedCodemod.run(resolvedPath);
         outro('✅ Done!');
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         const message = e instanceof Error ? e.message : String(e);
         log.error(`Codemod failed: ${message}`);
         if (e instanceof Error && e.stack) {
             log.error(e.stack);
         }
-        process.exit(1);
+        exitCliCommand(1);
     }
 }
 
@@ -97,11 +113,11 @@ function resolveAndValidatePath(targetPath: string): string {
     const resolved = path.resolve(targetPath);
     if (!fs.existsSync(resolved)) {
         log.error(`Path does not exist: ${resolved}`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     if (!fs.statSync(resolved).isDirectory()) {
         log.error(`Path is not a directory: ${resolved}`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     return resolved;
 }

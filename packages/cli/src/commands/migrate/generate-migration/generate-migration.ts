@@ -1,13 +1,15 @@
 import { cancel, isCancel, log, select, spinner, text } from '@clack/prompts';
 import { unique } from '@vendure/common/lib/unique';
-import { generateMigration, VendureConfig } from '@vendure/core';
+import type { VendureConfig } from '@vendure/core';
 import path from 'path';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { analyzeProject } from '../../../shared/shared-prompts';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref';
-import { withInteractiveTimeout } from '../../../utilities/utils';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { requireProjectCore } from '../../../shared/project-core.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { withInteractiveTimeout } from '../../../utilities/utils.js';
 
 const cancelledMessage = 'Generate migration cancelled';
 
@@ -38,7 +40,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
     if (isCancel(name)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     const config = await loadVendureConfigFile(vendureConfig, tsConfigPath);
 
@@ -63,7 +65,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
         if (isCancel(migrationDirSelect)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         migrationDir = migrationDirSelect as string;
     }
@@ -79,14 +81,17 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
         if (isCancel(confirmation)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         migrationDir = confirmation;
     }
 
     const migrationSpinner = spinner();
     migrationSpinner.start('Generating migration...');
-    const migrationName = await generateMigration(config, { name, outputDir: migrationDir });
+    const migrationName = await requireProjectCore().generateMigration(config, {
+        name,
+        outputDir: migrationDir,
+    });
     const report =
         typeof migrationName === 'string'
             ? `New migration generated: ${migrationName}`

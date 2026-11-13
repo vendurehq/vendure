@@ -188,8 +188,9 @@ export class EventBus implements OnModuleDestroy {
     registerBlockingEventHandler<T extends VendureEvent>(handlerOptions: BlockingEventHandlerOptions<T>) {
         const events = Array.isArray(handlerOptions.event) ? handlerOptions.event : [handlerOptions.event];
 
+        const orderedHandlersByEvent = new Map<Type<T>, Array<BlockingEventHandlerOptions<T>>>();
         for (const event of events) {
-            let handlers = this.blockingEventHandlers.get(event);
+            const handlers = this.blockingEventHandlers.get(event);
             const handlerWithIdAlreadyExists = handlers?.some(h => h.id === handlerOptions.id);
             if (handlerWithIdAlreadyExists) {
                 throw new Error(
@@ -197,12 +198,9 @@ export class EventBus implements OnModuleDestroy {
                 );
             }
 
-            if (handlers) {
-                handlers.push(handlerOptions);
-            } else {
-                handlers = [handlerOptions];
-            }
-            const orderedHandlers = this.orderEventHandlers(handlers);
+            orderedHandlersByEvent.set(event, this.orderEventHandlers([...(handlers ?? []), handlerOptions]));
+        }
+        for (const [event, orderedHandlers] of orderedHandlersByEvent) {
             this.blockingEventHandlers.set(event, orderedHandlers);
         }
     }
@@ -231,9 +229,52 @@ export class EventBus implements OnModuleDestroy {
         }
     }
 
+    private assertNoDependencyCycles<T extends VendureEvent>(
+        handlers: Array<BlockingEventHandlerOptions<T>>,
+    ): void {
+        const runsBefore = new Map<string, string[]>();
+        for (const handler of handlers) {
+            runsBefore.set(handler.id, []);
+        }
+        for (const handler of handlers) {
+            if (handler.after && runsBefore.has(handler.after)) {
+                runsBefore.get(handler.after)?.push(handler.id);
+            }
+            if (handler.before && runsBefore.has(handler.before)) {
+                runsBefore.get(handler.id)?.push(handler.before);
+            }
+        }
+
+        const finished = new Set<string>();
+        const path: string[] = [];
+        const visit = (id: string) => {
+            const cycleStart = path.indexOf(id);
+            if (cycleStart !== -1) {
+                const cycle = path.slice(cycleStart);
+                const last = cycle.length > 1 ? cycle.pop() : id;
+                throw new Error(
+                    `Circular dependency detected between event handlers ${cycle.join(', ')} and ${last}`,
+                );
+            }
+            if (finished.has(id)) {
+                return;
+            }
+            path.push(id);
+            for (const next of runsBefore.get(id) ?? []) {
+                visit(next);
+            }
+            path.pop();
+            finished.add(id);
+        };
+        for (const handler of handlers) {
+            visit(handler.id);
+        }
+    }
+
     private orderEventHandlers<T extends VendureEvent>(
         handlers: Array<BlockingEventHandlerOptions<T>>,
     ): Array<BlockingEventHandlerOptions<T>> {
+        this.assertNoDependencyCycles(handlers);
         let orderedHandlers: Array<BlockingEventHandlerOptions<T>> = [];
         const handlerMap: Map<string, BlockingEventHandlerOptions<T>> = new Map();
 
@@ -253,11 +294,6 @@ export class EventBus implements OnModuleDestroy {
             if (handler.after) {
                 const afterHandler = handlerMap.get(handler.after);
                 if (afterHandler) {
-                    if (afterHandler.after === handler.id) {
-                        throw new Error(
-                            `Circular dependency detected between event handlers ${handler.id} and ${afterHandler.id}`,
-                        );
-                    }
                     orderedHandlers = orderedHandlers.filter(h => h.id !== afterHandler.id);
                     addHandler(afterHandler);
                 }
@@ -270,11 +306,6 @@ export class EventBus implements OnModuleDestroy {
             if (handler.before) {
                 const beforeHandler = handlerMap.get(handler.before);
                 if (beforeHandler) {
-                    if (beforeHandler.before === handler.id) {
-                        throw new Error(
-                            `Circular dependency detected between event handlers ${handler.id} and ${beforeHandler.id}`,
-                        );
-                    }
                     orderedHandlers = orderedHandlers.filter(h => h.id !== beforeHandler.id);
                     addHandler(beforeHandler);
                 }

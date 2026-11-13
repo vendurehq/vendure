@@ -2,7 +2,7 @@
 title: "CustomerService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/customer.service.ts" sourceLine="80" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/customer.service.ts" sourceLine="82" packageName="@vendure/core" />
 
 Contains methods relating to [Customer](/reference/typescript-api/entities/customer#customer) entities.
 
@@ -20,11 +20,13 @@ class CustomerService {
     update(ctx: RequestContext, input: UpdateCustomerInput | (UpdateCustomerShopInput & { id: ID })) => Promise<ErrorResultUnion<UpdateCustomerResult, Customer>>;
     registerCustomerAccount(ctx: RequestContext, input: RegisterCustomerInput) => Promise<RegisterCustomerAccountResult | EmailAddressConflictError | PasswordValidationError>;
     refreshVerificationToken(ctx: RequestContext, emailAddress: string) => Promise<void>;
-    verifyCustomerEmailAddress(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, Customer>>;
+    verifyCustomerEmailAddress(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountShopResult, Customer>>;
+    verifyCustomerAccount(ctx: RequestContext, customerId: ID, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountAdminResult, Customer>>;
     requestPasswordReset(ctx: RequestContext, emailAddress: string) => Promise<void>;
     resetPassword(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
     >;
+    requestCustomerPasswordReset(ctx: RequestContext, customerId: ID) => Promise<void>;
     requestUpdateEmailAddress(ctx: RequestContext, userId: ID, newEmailAddress: string) => Promise<boolean | EmailAddressConflictError>;
     updateEmailAddress(ctx: RequestContext, token: string) => Promise<boolean | IdentifierChangeTokenInvalidError | IdentifierChangeTokenExpiredError>;
     createOrUpdate(ctx: RequestContext, input: Partial<CreateCustomerInput> & { emailAddress: string }, errorOnExistingUser: boolean = false) => Promise<Customer | EmailAddressConflictError>;
@@ -72,7 +74,9 @@ Returns a list of all [CustomerGroup](/reference/typescript-api/entities/custome
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateCustomerInput, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><CreateCustomerResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
 
-Creates a new Customer, including creation of a new User with the special `customer` Role.
+Creates a new Customer, including creation of a new User. Customer permissions are
+derived from channel membership (see [CUSTOMER_PERMISSIONS](/reference/typescript-api/auth/customer_permissions#customer_permissions)), so no Role is
+involved.
 
 If the `password` argument is specified, the Customer will be immediately verified. If not,
 then an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent) is published, so that the customer can have their
@@ -103,6 +107,13 @@ Registers a new Customer account with the [NativeAuthenticationStrategy](/refere
 the email verification flow (unless [AuthOptions](/reference/typescript-api/auth/auth-options#authoptions) `requireVerification` is set to `false`)
 by publishing an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent).
 
+If an account with the given email address already exists via another authentication method
+(for example an external/SSO strategy) and has no native credential yet, a native credential is
+added in an unactivated state (no password) and an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent) is always
+published, even when `requireVerification` is `false`. The password can then only be set by
+whoever controls the email address, by completing the verification flow. This prevents an
+unauthenticated caller from taking over such an account by registering a password against it.
+
 This method is intended to be used in storefront Customer-creation flows.
 ### refreshVerificationToken
 
@@ -112,10 +123,19 @@ Refreshes a stale email address verification token by generating a new one and
 publishing a [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent).
 ### verifyCustomerEmailAddress
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, verificationToken: string, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><VerifyCustomerAccountResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, verificationToken: string, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><VerifyCustomerAccountShopResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
 
 Given a valid verification token which has been published in an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent), this
 method is used to set the Customer as `verified` as part of the account registration flow.
+### verifyCustomerAccount
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerId: <a href='/reference/typescript-api/common/id#id'>ID</a>, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><VerifyCustomerAccountAdminResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}  since="3.8.0"  />
+
+Manually marks a Customer's email address as verified, for use by an administrator when the
+customer has not received or cannot complete the verification email. See
+`UserService.verifyUserWithoutToken` for the rules the `password` argument follows.
+
+A Customer with no User (a guest checkout) has no account to verify, and is rejected.
 ### requestPasswordReset
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, emailAddress: string) => Promise<void>`}   />
@@ -128,6 +148,20 @@ a token which can be used in the `resetPassword()` method.
 
 Given a valid password reset token created by a call to the `requestPasswordReset()` method,
 this method will change the Customer's password to that given as the `password` argument.
+### requestCustomerPasswordReset
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}  since="3.9.0"  />
+
+Requests a password reset email for the Customer on behalf of an administrator, the same as
+`CustomerService.requestPasswordReset`: sets a reset token and publishes a
+[PasswordResetEvent](/reference/typescript-api/events/event-types#passwordresetevent). The event carries the administrator's RequestContext, so an email
+sent from it uses the administrator's language.
+
+When `authOptions.requireVerification` is on, a Customer who has not verified their account is
+marked as verified when they complete the reset. No [AccountVerifiedEvent](/reference/typescript-api/events/event-types#accountverifiedevent) is published.
+
+A Customer with no User (a guest checkout), or whose User has no native authentication method,
+has no native credential to reset, and is rejected.
 ### requestUpdateEmailAddress
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, newEmailAddress: string) => Promise<boolean | EmailAddressConflictError>`}   />

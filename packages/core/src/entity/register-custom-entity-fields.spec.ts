@@ -1,23 +1,25 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
-import { getMetadataArgsStorage } from 'typeorm';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Column, DataSource, Entity, getMetadataArgsStorage, PrimaryGeneratedColumn } from 'typeorm';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../config';
-import { CustomFields } from '../config/custom-field/custom-field-types';
+import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
+import { AutoIncrementIdStrategy } from '../config/entity/auto-increment-id-strategy';
 import { VendureConfig } from '../config/vendure-config';
 
 import { Asset } from './asset/asset.entity';
 import { VendureEntity } from './base/base.entity';
-import { registerCustomEntityFields } from './register-custom-entity-fields';
+import { registerCustomEntityFields, registerCustomFieldsForEntity } from './register-custom-entity-fields';
+import { setEntityIdStrategy } from './set-entity-id-strategy';
 
 const SINGLE_RELATION_FIELD = '__testRelationOptionsSingle__';
 const LIST_RELATION_FIELD = '__testRelationOptionsList__';
 const NON_RELATION_FIELD = '__testRelationOptionsNonRelation__';
 
 class TestEntity extends VendureEntity {
-        constructor(input?: DeepPartial<TestEntity>) {
-            super(input);
-        }
+    constructor(input?: DeepPartial<TestEntity>) {
+        super(input);
+    }
     customFields: any;
 }
 
@@ -33,7 +35,7 @@ describe('registerCustomEntityFields() relation options', () => {
         mockLoggerWarn.mockRestore();
     });
 
-    it('applies cascade/onDelete/onUpdate/eager/nullable on many-to-one relation custom fields', () => {
+    it('applies cascade/onDelete/onUpdate/eager on many-to-one relation custom fields', () => {
         registerCustomEntityFields(
             createConfig({
                 Product: [
@@ -46,7 +48,6 @@ describe('registerCustomEntityFields() relation options', () => {
                         onDelete: 'SET NULL',
                         onUpdate: 'CASCADE',
                         eager: true,
-                        nullable: true,
                     },
                 ],
             }),
@@ -62,7 +63,6 @@ describe('registerCustomEntityFields() relation options', () => {
             onDelete: 'SET NULL',
             onUpdate: 'CASCADE',
             eager: true,
-            nullable: true,
         });
     });
 
@@ -125,7 +125,7 @@ describe('registerCustomEntityFields() relation options', () => {
         });
     });
 
-    it('warns if onDelete: \'CASCADE\' is affecting core Vendure entities', () => {
+    it("warns if onDelete: 'CASCADE' is affecting core Vendure entities", () => {
         registerCustomEntityFields(
             createConfig({
                 Product: [
@@ -144,9 +144,9 @@ describe('registerCustomEntityFields() relation options', () => {
 
         expect(mockLoggerWarn).toHaveBeenCalledWith(
             [
-                `WARNING: You have set "onDelete: 'CASCADE'" on a custom field relation to the "Asset" entity.`,
-                `With this FK behavior, deleting a "Asset" row can delete owning rows that reference it.`,
-                `Please verify this is intended, especially when targeting core Vendure entities.`,
+                `WARNING: You have set "onDelete: 'CASCADE'" on the custom field relation "Product.${LIST_RELATION_FIELD}" to the "Asset" entity.`,
+                `Deleting "Asset" rows will also delete the "Product" rows that reference them.`,
+                `"Asset" is a core Vendure entity, so make sure this is what you intend.`,
             ].join('\n'),
         );
     });
@@ -170,9 +170,9 @@ describe('registerCustomEntityFields() relation options', () => {
 
         expect(mockLoggerWarn).toHaveBeenCalledWith(
             [
-                `WARNING: You have set "cascade: ['remove' | 'soft-remove']" on a custom field relation to the "Asset" entity.`,
-                `With this behavior, deleting a "Asset" row can delete owning rows that reference it.`,
-                `Please verify this is intended, especially when targeting core Vendure entities.`,
+                `WARNING: You have set "cascade: ["remove"]" on the custom field relation "Product.${LIST_RELATION_FIELD}" to the "Asset" entity.`,
+                `Removing "Product" rows with TypeORM's remove() or softRemove() will also remove the "Asset" rows they reference.`,
+                `"Asset" is a core Vendure entity, so make sure this is what you intend.`,
             ].join('\n'),
         );
     });
@@ -196,9 +196,9 @@ describe('registerCustomEntityFields() relation options', () => {
 
         expect(mockLoggerWarn).toHaveBeenCalledWith(
             [
-                `WARNING: You have set "cascade: ['remove' | 'soft-remove']" on a custom field relation to the "Asset" entity.`,
-                `With this behavior, deleting a "Asset" row can delete owning rows that reference it.`,
-                `Please verify this is intended, especially when targeting core Vendure entities.`,
+                `WARNING: You have set "cascade: ["soft-remove"]" on the custom field relation "Product.${LIST_RELATION_FIELD}" to the "Asset" entity.`,
+                `Removing "Product" rows with TypeORM's remove() or softRemove() will also remove the "Asset" rows they reference.`,
+                `"Asset" is a core Vendure entity, so make sure this is what you intend.`,
             ].join('\n'),
         );
     });
@@ -222,11 +222,77 @@ describe('registerCustomEntityFields() relation options', () => {
 
         expect(mockLoggerWarn).toHaveBeenCalledWith(
             [
-                `WARNING: You have set "cascade: ['remove' | 'soft-remove']" on a custom field relation to the "Asset" entity.`,
-                `With this behavior, deleting a "Asset" row can delete owning rows that reference it.`,
-                `Please verify this is intended, especially when targeting core Vendure entities.`,
+                `WARNING: You have set "cascade: true (which includes 'remove' and 'soft-remove')" on the custom field relation "Product.${LIST_RELATION_FIELD}" to the "Asset" entity.`,
+                `Removing "Product" rows with TypeORM's remove() or softRemove() will also remove the "Asset" rows they reference.`,
+                `"Asset" is a core Vendure entity, so make sure this is what you intend.`,
             ].join('\n'),
         );
+    });
+
+    it('warns if a mixed cascade array including "remove" affects core Vendure entities', () => {
+        registerCustomEntityFields(
+            createConfig({
+                Product: [
+                    { name: NON_RELATION_FIELD, type: 'string' },
+                    {
+                        name: SINGLE_RELATION_FIELD,
+                        type: 'relation',
+                        list: false,
+                        entity: Asset,
+                        cascade: ['insert', 'remove'],
+                        eager: false,
+                    },
+                ],
+            }),
+        );
+
+        expect(mockLoggerWarn).toHaveBeenCalledWith(
+            [
+                `WARNING: You have set "cascade: ["insert","remove"]" on the custom field relation "Product.${SINGLE_RELATION_FIELD}" to the "Asset" entity.`,
+                `Removing "Product" rows with TypeORM's remove() or softRemove() will also remove the "Asset" rows they reference.`,
+                `"Asset" is a core Vendure entity, so make sure this is what you intend.`,
+            ].join('\n'),
+        );
+    });
+
+    it('should not warn for cascade: ["insert"] on a core entity', () => {
+        registerCustomEntityFields(
+            createConfig({
+                Product: [
+                    { name: NON_RELATION_FIELD, type: 'string' },
+                    {
+                        name: SINGLE_RELATION_FIELD,
+                        type: 'relation',
+                        list: false,
+                        entity: Asset,
+                        cascade: ['insert', 'update'],
+                        eager: false,
+                    },
+                ],
+            }),
+        );
+
+        expect(mockLoggerWarn).toBeCalledTimes(0);
+    });
+
+    it('should not warn for onDelete: "SET NULL" on a core entity', () => {
+        registerCustomEntityFields(
+            createConfig({
+                Product: [
+                    { name: NON_RELATION_FIELD, type: 'string' },
+                    {
+                        name: SINGLE_RELATION_FIELD,
+                        type: 'relation',
+                        list: false,
+                        entity: Asset,
+                        onDelete: 'SET NULL',
+                        eager: false,
+                    },
+                ],
+            }),
+        );
+
+        expect(mockLoggerWarn).toBeCalledTimes(0);
     });
 
     it('should not warn if cascading is not affecting core entities', () => {
@@ -270,30 +336,6 @@ describe('registerCustomEntityFields() relation options', () => {
 
         expect(mockLoggerWarn).toBeCalledTimes(0);
     });
-
-    it('should ignore nullable on list relation fields', () => {
-        registerCustomEntityFields(
-            createConfig({
-                Product: [
-                    // @ts-expect-error -- nullable is not a valid option for many-to-many relations
-                    {
-                        name: LIST_RELATION_FIELD,
-                        type: 'relation',
-                        list: true,
-                        entity: Asset,
-                        nullable: true,
-                    },
-                ],
-            }),
-        );
-
-        const relation = getMetadataArgsStorage()
-            .filterRelations(getProductCustomFieldsClass())
-            .find(r => r.propertyName === LIST_RELATION_FIELD);
-
-        expect(relation?.relationType).toBe('many-to-many');
-        expect(relation?.options.nullable).toBeUndefined();
-    });
 });
 
 function createConfig(customFields: CustomFields): VendureConfig {
@@ -302,7 +344,7 @@ function createConfig(customFields: CustomFields): VendureConfig {
         dbConnectionOptions: {
             type: 'sqlite',
         },
-    } as VendureConfig;
+    } as unknown as VendureConfig;
 }
 
 function getProductCustomFieldsClass() {
@@ -339,3 +381,147 @@ function removeTestMetadata() {
     // @ts-ignore - accessing protected properties for test cleanup
     metadata.joinColumns = metadata.joinColumns.filter(jc => !fieldNames.includes(jc.propertyName));
 }
+
+class IndexedCustomFields {}
+class RelatedEntity {}
+
+@Entity()
+class IndexedRelationTarget {
+    @PrimaryGeneratedColumn()
+    id: number;
+}
+
+class IndexedRelationHostCustomFields {}
+
+@Entity()
+class IndexedRelationHost {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column(type => IndexedRelationHostCustomFields)
+    customFields: IndexedRelationHostCustomFields;
+}
+
+describe('registerCustomFieldsForEntity() indexes', () => {
+    const metadata = getMetadataArgsStorage();
+    let originalLengths: {
+        columns: number;
+        indices: number;
+        relations: number;
+        joinColumns: number;
+    };
+
+    beforeEach(() => {
+        originalLengths = {
+            columns: metadata.columns.length,
+            indices: metadata.indices.length,
+            relations: metadata.relations.length,
+            joinColumns: metadata.joinColumns.length,
+        };
+    });
+
+    afterEach(() => {
+        metadata.columns.splice(originalLengths.columns);
+        metadata.indices.splice(originalLengths.indices);
+        metadata.relations.splice(originalLengths.relations);
+        metadata.joinColumns.splice(originalLengths.joinColumns);
+    });
+
+    it.each(['mysql', 'mariadb', 'postgres', 'sqlite'] as const)(
+        'registers one non-unique scalar index for %s',
+        dbEngine => {
+            register(dbEngine, [{ name: 'reference', type: 'string', index: true }]);
+            register(dbEngine, [{ name: 'reference', type: 'string', index: true }]);
+
+            const indices = getTestIndices('reference');
+            expect(indices).toHaveLength(1);
+            expect(indices[0].unique).not.toBe(true);
+        },
+    );
+
+    it.each(['mysql', 'mariadb', 'postgres', 'sqlite'] as const)(
+        'does not duplicate a unique index for %s',
+        dbEngine => {
+            register(dbEngine, [{ name: 'reference', type: 'string', unique: true, index: true }]);
+            register(dbEngine, [{ name: 'reference', type: 'string', unique: true, index: true }]);
+
+            const indices = getTestIndices('reference');
+            if (dbEngine === 'mysql' || dbEngine === 'mariadb') {
+                expect(indices).toHaveLength(1);
+                expect(indices[0].unique).toBe(true);
+            } else {
+                expect(indices).toHaveLength(0);
+            }
+        },
+    );
+
+    it.each(['mysql', 'mariadb', 'postgres', 'sqlite'] as const)(
+        'registers the index on the id property of a single relation for %s',
+        dbEngine => {
+            const fields: CustomFieldConfig[] = [
+                {
+                    name: 'related',
+                    type: 'relation',
+                    entity: RelatedEntity as any,
+                    index: true,
+                },
+            ];
+            register(dbEngine, fields);
+            register(dbEngine, fields);
+
+            const indices = getTestIndices('relatedId');
+            expect(indices).toHaveLength(1);
+            expect(indices[0].unique).not.toBe(true);
+        },
+    );
+
+    // Builds the schema through TypeORM, because an index on a property that is not a column
+    // only fails once TypeORM resolves the entity metadata at startup.
+    it('creates the index of a single relation on its foreign key column', async () => {
+        const config = {
+            customFields: {
+                Product: [{ name: 'related', type: 'relation', entity: IndexedRelationTarget, index: true }],
+            },
+            dbConnectionOptions: { type: 'sqljs' },
+        } as VendureConfig;
+        registerCustomFieldsForEntity(config, 'Product', IndexedRelationHostCustomFields);
+        const entities = [IndexedRelationHost, IndexedRelationTarget];
+        setEntityIdStrategy(new AutoIncrementIdStrategy(), entities);
+
+        const dataSource = new DataSource({ type: 'sqljs', entities, synchronize: true });
+        await dataSource.initialize();
+        try {
+            const queryRunner = dataSource.createQueryRunner();
+            const table = await queryRunner.getTable('indexed_relation_host');
+            await queryRunner.release();
+
+            const indices = table?.indices.filter(
+                index => index.columnNames.length === 1 && index.columnNames[0] === 'customFieldsRelatedid',
+            );
+            expect(indices).toHaveLength(1);
+            expect(indices?.[0].isUnique).toBe(false);
+        } finally {
+            await dataSource.destroy();
+        }
+    });
+
+    function register(
+        dbEngine: 'mysql' | 'mariadb' | 'postgres' | 'sqlite',
+        fields: CustomFieldConfig[],
+    ): void {
+        const config = {
+            customFields: { Product: fields },
+            dbConnectionOptions: { type: dbEngine },
+        } as unknown as VendureConfig;
+        registerCustomFieldsForEntity(config, 'Product', IndexedCustomFields);
+    }
+
+    function getTestIndices(propertyName: string) {
+        return metadata.indices.filter(
+            index =>
+                index.target === IndexedCustomFields &&
+                Array.isArray(index.columns) &&
+                index.columns.includes(propertyName),
+        );
+    }
+});

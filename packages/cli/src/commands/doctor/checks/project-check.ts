@@ -1,8 +1,8 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import { detectMonorepoStructure, findPackageJsonWithDependency } from '../../../utilities/monorepo-utils';
-import { CheckResult } from '../types';
+import { detectMonorepoStructure, findPackageJsonWithDependency } from '../../../utilities/monorepo-utils.js';
+import { CheckResult } from '../types.js';
 
 /**
  * Checks whether the current working directory is a valid Vendure project,

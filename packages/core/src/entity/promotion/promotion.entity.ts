@@ -17,10 +17,11 @@ import {
     PromotionShippingAction,
 } from '../../config/promotion/promotion-action';
 import { PromotionCondition, PromotionConditionState } from '../../config/promotion/promotion-condition';
+import { couponCodesMatch } from '../../service/helpers/utils/coupon-codes-match';
 import { Channel } from '../channel/channel.entity';
 import { CustomPromotionFields } from '../custom-entity-fields';
-import { Order } from '../order/order.entity';
 import { OrderLine } from '../order-line/order-line.entity';
+import { Order } from '../order/order.entity';
 import { ShippingLine } from '../shipping-line/shipping-line.entity';
 
 import { PromotionTranslation } from './promotion-translation.entity';
@@ -116,10 +117,12 @@ export class Promotion
     @Column() enabled: boolean;
 
     @ManyToMany(type => Channel, channel => channel.promotions)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
-    @ManyToMany(type => Order, order => order.promotions)
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(type => Order, order => order.promotions, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
     orders: Order[];
 
     @Column(type => CustomPromotionFields)
@@ -145,6 +148,18 @@ export class Promotion
      * if the subsequent application of Promotion 1 brings the order total down to way below $50.
      */
     @Column() priorityScore: number;
+
+    /**
+     * @description
+     * Whether any of this Promotion's actions define a side effect (`onActivate` / `onDeactivate`).
+     * Such a Promotion can benefit the Order without producing a price adjustment - the free gift
+     * action being the canonical example - so it counts as applied even when it discounts nothing.
+     *
+     * @internal
+     */
+    get hasSideEffects(): boolean {
+        return this.actions.some(action => this.allActions[action.code]?.hasSideEffects);
+    }
 
     async apply(
         ctx: RequestContext,
@@ -203,7 +218,7 @@ export class Promotion
         if (this.startsAt && this.startsAt > new Date()) {
             return false;
         }
-        if (this.couponCode && !order.couponCodes.includes(this.couponCode)) {
+        if (this.couponCode && !order.couponCodes.some(cc => couponCodesMatch(cc, this.couponCode))) {
             return false;
         }
         const promotionState: PromotionState = {};

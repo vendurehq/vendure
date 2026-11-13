@@ -1,14 +1,19 @@
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
+import { NoProductsIllustration } from '@/vdb/components/ui/illustrations.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useChannelAvailabilityList } from '@/vdb/hooks/use-channel-availability-list.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ListRestart, PlusIcon } from 'lucide-react';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
 import {
     AssignFacetValuesToProductsBulkAction,
@@ -26,6 +31,7 @@ export const Route = createFileRoute('/_authenticated/_products/products')({
 
 function ProductListPage() {
     const { t } = useLingui();
+    const channelAvailability = useChannelAvailabilityList();
     const reindexMutation = useMutation({
         mutationFn: () => api.mutate(reindexDocument, {}),
         onSuccess: () => {
@@ -36,15 +42,29 @@ function ProductListPage() {
         },
     });
 
-    const handleRebuildSearchIndex = () => {
-        reindexMutation.mutate();
-    };
+    const RebuildIndexMenuItem = useCallback(
+        () => (
+            <DropdownMenuItem onClick={() => reindexMutation.mutate()}>
+                <ListRestart className="w-4 h-4" />
+                <Trans>Rebuild search index</Trans>
+            </DropdownMenuItem>
+        ),
+        [reindexMutation.mutate],
+    );
 
     return (
         <ListPage
             pageId="product-list"
+            emptyStateIllustration={<NoProductsIllustration />}
             listQuery={productListDocument}
             title={<Trans>Products</Trans>}
+            dropdownMenuItems={[
+                {
+                    id: 'rebuild-index-button',
+                    requiresPermission: ['UpdateCatalog'],
+                    component: RebuildIndexMenuItem,
+                },
+            ]}
             customizeColumns={{
                 name: {
                     cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,
@@ -52,13 +72,18 @@ function ProductListPage() {
                 description: {
                     cell: RichTextDescriptionCell,
                 },
+                enabled: channelAvailability.statusColumn,
+                enabledInChannel: channelAvailability.enabledInChannelColumn,
             }}
+            searchPlaceholder={t`Search products...`}
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          name: { contains: searchTerm },
-                          slug: { contains: searchTerm },
-                          sku: { contains: searchTerm },
+                          _or: [
+                              { name: { contains: searchTerm } },
+                              { slug: { contains: searchTerm } },
+                              { sku: { contains: searchTerm } },
+                          ],
                       }
                     : {};
             }}
@@ -70,20 +95,15 @@ function ProductListPage() {
                     enableHiding: false,
                     enableColumnFilter: false,
                 },
+                [channelAvailability.filterId]: channelAvailability.filterColumn,
             }}
+            transformVariables={channelAvailability.transformVariables}
             facetedFilters={{
+                [channelAvailability.filterId]: channelAvailability.facetedFilter,
                 facetValueId: {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,
                 },
-            }}
-            transformVariables={variables => {
-                return {
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR',
-                    },
-                };
             }}
             defaultSort={[{ id: 'updatedAt', desc: true }]}
             defaultVisibility={{
@@ -93,6 +113,14 @@ function ProductListPage() {
                 enabled: true,
             }}
             route={Route}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateProduct', 'CreateCatalog']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        <Trans>Create your first product</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
             bulkActions={[
                 [
                     { component: AssignProductsToChannelBulkAction, order: 100 },
@@ -100,17 +128,9 @@ function ProductListPage() {
                     { component: AssignFacetValuesToProductsBulkAction, order: 300 },
                     { component: DuplicateProductsBulkAction, order: 400 },
                 ],
-                [
-                    { component: DeleteProductsBulkAction },
-                ],
+                [{ component: DeleteProductsBulkAction }],
             ]}
         >
-            <ActionBarItem itemId="rebuild-index-button" requiresPermission={['UpdateCatalog']}>
-                <Button variant="outline" onClick={handleRebuildSearchIndex}>
-                    <ListRestart />
-                    <Trans>Rebuild search index</Trans>
-                </Button>
-            </ActionBarItem>
             <ActionBarItem itemId="create-button" requiresPermission={['CreateProduct', 'CreateCatalog']}>
                 <Button render={<Link to="./new" />}>
                     <PlusIcon className="mr-2 h-4 w-4" />

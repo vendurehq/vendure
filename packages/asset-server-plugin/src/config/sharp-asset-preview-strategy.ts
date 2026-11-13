@@ -129,9 +129,13 @@ export class SharpAssetPreviewStrategy implements AssetPreviewStrategy {
                     // Convert the SVG to a raster for the preview
                     return image.toBuffer();
                 } else {
+                    // sharp reports the container it detected, so `metadata.format`
+                    // returns `jpeg` for both JPEG spellings and `heif` for AVIF.
+                    // There is no `jpg` or `avif` case because neither value can
+                    // occur. AVIF input falls through to the default branch, so
+                    // `avifOptions` is not applied to it.
                     switch (metadata.format) {
                         case 'jpeg':
-                        case 'jpg':
                             return image.jpeg(this.config.jpegOptions).toBuffer();
                         case 'png':
                             return image.png(this.config.pngOptions).toBuffer();
@@ -139,8 +143,6 @@ export class SharpAssetPreviewStrategy implements AssetPreviewStrategy {
                             return image.webp(this.config.webpOptions).toBuffer();
                         case 'gif':
                             return image.gif(this.config.jpegOptions).toBuffer();
-                        case 'avif':
-                            return image.avif(this.config.avifOptions).toBuffer();
                         default:
                             return image.toBuffer();
                     }

@@ -1,1 +1,1 @@
-export { Textarea } from '@vendure-io/ui/components/ui/textarea';
+export { Textarea } from '@vendure-io/ui/components/atoms/textarea';

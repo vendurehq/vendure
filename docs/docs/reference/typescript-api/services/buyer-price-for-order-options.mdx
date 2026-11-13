@@ -1,0 +1,38 @@
+---
+title: "BuyerPriceForOrderOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/product-variant.service.ts" sourceLine="113" packageName="@vendure/core" since="4.0.0" />
+
+The options of `ProductVariantService.calculateBuyerPriceForOrder()`.
+
+```ts title="Signature"
+interface BuyerPriceForOrderOptions {
+    quantity: number;
+    orderLineCustomFields: { [key: string]: any };
+    buyer?: Buyer;
+}
+```
+
+<div className="members-wrapper">
+
+### quantity
+
+<MemberInfo kind="property" type={`number`}   />
+
+The quantity of the OrderLine.
+### orderLineCustomFields
+
+<MemberInfo kind="property" type={`{ [key: string]: any }`}   />
+
+The custom fields of the OrderLine. The strategy receives a shallow copy as the `data` argument.
+### buyer
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#buyer'>Buyer</a>`}   />
+
+Who the price is for. Defaults to the Buyer of the Customer of the Order, see
+`BuyerIdentityService.forCustomer()`. An [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy) can pass its
+own Buyer, for example the Customer of a company for a shared cart.
+
+
+</div>

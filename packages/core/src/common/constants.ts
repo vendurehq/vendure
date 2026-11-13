@@ -9,6 +9,12 @@ import { CrudPermissionDefinition, PermissionDefinition, PermissionMetadata } fr
  */
 export const DEFAULT_LANGUAGE_CODE = LanguageCode.en;
 export const TRANSACTION_MANAGER_KEY = Symbol('TRANSACTION_MANAGER');
+/**
+ * Injection token for the {@link ConfigurableOperationTranslator}. A token is used rather than the
+ * `I18nService` class itself so that the low-level ConfigurableOperationDef base class does not
+ * need to import from the i18n module.
+ */
+export const CONFIGURABLE_OPERATION_TRANSLATOR = Symbol('CONFIGURABLE_OPERATION_TRANSLATOR');
 export const REQUEST_CONTEXT_KEY = 'vendureRequestContext';
 export const REQUEST_CONTEXT_MAP_KEY = 'vendureRequestContextMap';
 export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
@@ -42,6 +48,13 @@ export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
         assignable: true,
         internal: false,
     }),
+    new PermissionDefinition({
+        name: 'ReadSecret',
+        description:
+            'Grants permission to read the decrypted value of custom fields and config args marked as `secret`',
+        assignable: true,
+        internal: false,
+    }),
     new CrudPermissionDefinition(
         'Catalog',
         operation => `Grants permission to ${operation} Products, Facets, Assets, Collections`,
@@ -64,6 +77,7 @@ export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
     new CrudPermissionDefinition('PaymentMethod'),
     new CrudPermissionDefinition('Product'),
     new CrudPermissionDefinition('Promotion'),
+    new CrudPermissionDefinition('Role'),
     new CrudPermissionDefinition('ShippingMethod'),
     new CrudPermissionDefinition('Tag'),
     new CrudPermissionDefinition('TaxCategory'),
@@ -85,6 +99,8 @@ export const CacheKey = {
     ActiveTaxZone: (channelId: ID) => `ActiveTaxZone:${channelId}`,
     ActiveTaxZone_PPA: (channelId: ID) => `ActiveTaxZone_PPA:${channelId}`,
     CollectionVariantCounts: 'CollectionService.getProductVariantCounts',
+    CollectionVariantCountLoader: 'CollectionEntityResolver.productVariantCountLoader',
+    CollectionBreadcrumbs: 'CollectionService.getBreadcrumbsForMany',
     ExhaustedPromotions: (channelId: ID, customerId: ID | undefined) =>
         `ExhaustedPromotions:${channelId}:${customerId ?? 'guest'}`,
 };

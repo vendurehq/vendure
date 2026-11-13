@@ -6,7 +6,18 @@ declare module 'virtual:dashboard-extensions' {
     export const runDashboardExtensions: () => Promise<void>;
 }
 declare module 'virtual:plugin-translations' {
-    export default translations = Record<string, any>;
+    import { Messages } from '@lingui/core';
+
+    // Keyed by locale with `-` replaced by `_`, as emitted by `translationsPlugin`.
+    const translations: Record<string, Messages>;
+    export default translations;
+}
+
+declare module 'virtual:vendure-platform-promotion' {
+    import { DashboardPromotionV1 } from '@/vdb/framework/platform-promotion/platform-promotion-types.js';
+    export const dashboardPromotion: DashboardPromotionV1;
+    export const licenseGuardConfigured: boolean;
+    export const platformPromotionEnabled: boolean;
 }
 
 declare module 'virtual:vendure-ui-config' {

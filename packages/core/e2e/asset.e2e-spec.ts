@@ -1,10 +1,12 @@
 import { DeletionResult, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
-import { mergeConfig } from '@vendure/core';
+import { Asset, AssetService, ChannelService, mergeConfig, RequestContextService } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import fs from 'fs-extra';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { fail } from 'assert';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -253,6 +255,73 @@ describe('Asset resolver', () => {
                 message: 'The MIME type "text/plain" is not permitted.',
                 mimeType: 'text/plain',
                 fileName: 'dummy.txt',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — the permitted-type check must not rely solely on the
+        // client-supplied Content-Type header, which can be spoofed (e.g. via a proxy tool).
+        it('rejects a dangerous extension even when the Content-Type header is spoofed', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/malicious.php')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                // Spoof the part Content-Type to a permitted type, as an attacker would.
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/x-httpd-php" is not permitted.',
+                mimeType: 'application/x-httpd-php',
+                fileName: 'malicious.php',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — a file that cannot be positively identified as a permitted
+        // type by either its extension or its contents must be rejected. `.phtml` has no
+        // mime-types mapping and the text content has no magic bytes, so neither signal
+        // confirms it is permitted.
+        it('rejects an unrecognised extension with spoofed Content-Type and no detectable content type', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/malicious.phtml')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/octet-stream" is not permitted.',
+                mimeType: 'application/octet-stream',
+                fileName: 'malicious.phtml',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — the actual file contents (magic bytes) are validated, so a
+        // disguised file whose extension and Content-Type are both permitted is still rejected
+        // when its real content type is not permitted.
+        it('rejects a file whose actual contents are a non-permitted type', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/disguised-gzip.jpg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/gzip" is not permitted.',
+                mimeType: 'application/gzip',
+                fileName: 'disguised-gzip.jpg',
             });
         });
 
@@ -542,6 +611,62 @@ describe('Asset resolver', () => {
             productGuard.assertSuccess(product);
             expect(product.featuredAsset).toBeNull();
             expect(product.assets.length).toEqual(0);
+        });
+    });
+
+    // This block and the one after it must stay at the end of the file: each creates an asset,
+    // which advances the auto-increment id that the total-count and hardcoded-id assertions in
+    // the tests above rely on.
+    describe('MIME type content validation (GHSA-88rq-mq4v-frmm)', () => {
+        // An SVG that begins with an XML prolog is reported by `file-type` as the generic
+        // `application/xml`, which must not cause the permitted `image/svg+xml` upload to be
+        // rejected as a content/extension mismatch.
+        it('accepts an SVG whose contents are detected as generic XML', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/test.svg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            // An Asset (with name/source), not a MimeTypeError, confirms the SVG was accepted.
+            expect(createAssets[0]).toMatchObject({
+                name: 'test.svg',
+                source: expect.stringContaining('test.svg'),
+            });
+            expect(createAssets[0]).not.toHaveProperty('message');
+        });
+    });
+
+    // Guards against the default translation being saved with a null languageCode when no
+    // RequestContext is passed. https://github.com/vendurehq/vendure/issues/4651
+    describe('createFromFileStream without a RequestContext', () => {
+        const assetGuard: ErrorResultGuard<Asset> = createErrorResultGuard(input => input.id != null);
+
+        it('creates the default translation with the default Channel languageCode', async () => {
+            const assetService = server.app.get(AssetService);
+            const defaultChannel = await server.app.get(ChannelService).getDefaultChannel();
+
+            const result = await assetService.createFromFileStream(
+                Readable.from([Buffer.from('%PDF-1.4\n%%EOF\n')]),
+                'test-file.pdf',
+            );
+
+            assetGuard.assertSuccess(result);
+            expect(result.name).toBe('test-file.pdf');
+            expect(result.translations.map(t => t.languageCode)).toEqual([
+                defaultChannel.defaultLanguageCode,
+            ]);
+
+            // The returned entity carries the Channel ids the service assigned in memory, so it is
+            // also read back to check what reached the database. Both matter.
+            expect(result.channels.map(c => c.id)).toEqual([defaultChannel.id]);
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const persisted = await assetService.findOne(ctx, result.id, ['channels']);
+            expect(persisted?.channels.map(c => c.id)).toEqual([defaultChannel.id]);
         });
     });
 });

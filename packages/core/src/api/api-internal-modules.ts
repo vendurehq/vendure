@@ -32,6 +32,7 @@ import { PaymentMethodResolver } from './resolvers/admin/payment-method.resolver
 import { ProductOptionResolver } from './resolvers/admin/product-option.resolver';
 import { ProductResolver } from './resolvers/admin/product.resolver';
 import { PromotionResolver } from './resolvers/admin/promotion.resolver';
+import { RoleAssignmentResolver } from './resolvers/admin/role-assignment.resolver';
 import { RoleResolver } from './resolvers/admin/role.resolver';
 import { ScheduledTaskResolver } from './resolvers/admin/scheduled-task.resolver';
 import { SearchResolver } from './resolvers/admin/search.resolver';
@@ -48,6 +49,7 @@ import { AdministratorEntityResolver } from './resolvers/entity/administrator-en
 import { AssetEntityResolver } from './resolvers/entity/asset-entity.resolver';
 import { ChannelEntityResolver } from './resolvers/entity/channel-entity.resolver';
 import { CollectionEntityResolver } from './resolvers/entity/collection-entity.resolver';
+import { ConfigurableOperationEntityResolver } from './resolvers/entity/configurable-operation-entity.resolver';
 import { CountryEntityResolver } from './resolvers/entity/country-entity.resolver';
 import {
     CustomerAdminEntityResolver,
@@ -68,7 +70,6 @@ import {
     PaymentAdminEntityResolver,
     PaymentEntityResolver,
 } from './resolvers/entity/payment-entity.resolver';
-import { PaymentMethodEntityResolver } from './resolvers/entity/payment-method-entity.resolver';
 import {
     ProductAdminEntityResolver,
     ProductEntityResolver,
@@ -81,14 +82,16 @@ import {
 import {
     ProductVariantAdminEntityResolver,
     ProductVariantEntityResolver,
+    ProductVariantShopEntityResolver,
 } from './resolvers/entity/product-variant-entity.resolver';
 import { RefundEntityResolver } from './resolvers/entity/refund-entity.resolver';
 import { RefundLineEntityResolver } from './resolvers/entity/refund-line-entity.resolver';
+import { RoleAssignmentEntityResolver } from './resolvers/entity/role-assignment-entity.resolver';
 import { RoleEntityResolver } from './resolvers/entity/role-entity.resolver';
 import { ShippingLineEntityResolver } from './resolvers/entity/shipping-line-entity.resolver';
 import { ShippingMethodEntityResolver } from './resolvers/entity/shipping-method-entity.resolver';
 import { TaxRateEntityResolver } from './resolvers/entity/tax-rate-entity.resolver';
-import { UserEntityResolver } from './resolvers/entity/user-entity.resolver';
+import { UserAdminEntityResolver, UserEntityResolver } from './resolvers/entity/user-entity.resolver';
 import { ZoneEntityResolver } from './resolvers/entity/zone-entity.resolver';
 import { ShopAuthResolver } from './resolvers/shop/shop-auth.resolver';
 import { ShopCustomerResolver } from './resolvers/shop/shop-customer.resolver';
@@ -120,6 +123,7 @@ const adminResolvers = [
     ProductOptionResolver,
     ProductResolver,
     PromotionResolver,
+    RoleAssignmentResolver,
     RoleResolver,
     SearchResolver,
     ScheduledTaskResolver,
@@ -147,6 +151,7 @@ export const entityResolvers = [
     AssetEntityResolver,
     ChannelEntityResolver,
     CollectionEntityResolver,
+    ConfigurableOperationEntityResolver,
     CountryEntityResolver,
     CustomerEntityResolver,
     CustomerGroupEntityResolver,
@@ -163,7 +168,6 @@ export const entityResolvers = [
     ProductVariantEntityResolver,
     RefundEntityResolver,
     RefundLineEntityResolver,
-    RoleEntityResolver,
     ShippingLineEntityResolver,
     UserEntityResolver,
     TaxRateEntityResolver,
@@ -171,11 +175,15 @@ export const entityResolvers = [
     ZoneEntityResolver,
 ];
 
+export const shopEntityResolvers = [ProductVariantShopEntityResolver];
+
 export const adminEntityResolvers = [
+    RoleAssignmentEntityResolver,
+    RoleEntityResolver,
+    UserAdminEntityResolver,
     AdministratorEntityResolver,
     CustomerAdminEntityResolver,
     OrderAdminEntityResolver,
-    PaymentMethodEntityResolver,
     FulfillmentAdminEntityResolver,
     PaymentAdminEntityResolver,
     ProductVariantAdminEntityResolver,
@@ -224,7 +232,7 @@ export class AdminApiModule {}
  */
 @Module({
     imports: [ApiSharedModule, ...createDynamicGraphQlModulesForPlugins('shop')],
-    providers: [...shopResolvers, ...entityResolvers],
+    providers: [...shopResolvers, ...entityResolvers, ...shopEntityResolvers],
     exports: [...shopResolvers],
 })
 export class ShopApiModule {}

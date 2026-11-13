@@ -1,7 +1,11 @@
+// Adds the `session` property to the Express `Request` type.
+import type {} from 'cookie-session';
 import { Request, Response } from 'express';
 import ms from 'ms';
 
 import { AuthOptions } from '../../config/vendure-config';
+
+import { tokenMethodIncludes } from './token-method-includes';
 
 /**
  * Sets the authToken either as a cookie or as a response header, depending on the
@@ -15,12 +19,8 @@ export function setSessionToken(options: {
     res: Response;
 }) {
     const { sessionToken, rememberMe, authOptions, req, res } = options;
-    const usingCookie =
-        authOptions.tokenMethod === 'cookie' ||
-        (Array.isArray(authOptions.tokenMethod) && authOptions.tokenMethod.includes('cookie'));
-    const usingBearer =
-        authOptions.tokenMethod === 'bearer' ||
-        (Array.isArray(authOptions.tokenMethod) && authOptions.tokenMethod.includes('bearer'));
+    const usingCookie = tokenMethodIncludes(authOptions.tokenMethod, 'cookie');
+    const usingBearer = tokenMethodIncludes(authOptions.tokenMethod, 'bearer');
 
     if (usingCookie) {
         if (req.session) {
@@ -30,7 +30,8 @@ export function setSessionToken(options: {
             req.session.token = sessionToken;
         }
     }
-    if (usingBearer) {
+    // A parallel resolver can finish after an error has already sent the response.
+    if (usingBearer && !res.headersSent) {
         res.set(authOptions.authTokenHeaderKey, sessionToken);
     }
 }

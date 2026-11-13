@@ -1,5 +1,4 @@
 import { cancel, isCancel, log, spinner, text } from '@clack/prompts';
-import { kebabCase } from '../../../utilities/case-utils';
 import path from 'path';
 import {
     ClassDeclaration,
@@ -13,19 +12,22 @@ import {
     VariableDeclarationKind,
 } from 'ts-morph';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { EntityRef } from '../../../shared/entity-ref';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
-import { ServiceRef } from '../../../shared/service-ref';
-import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
+
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { EntityRef } from '../../../shared/entity-ref.js';
+import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
+import { ServiceRef } from '../../../shared/service-ref.js';
+import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
 import {
     addImportsToFile,
     createFile,
     customizeCreateUpdateInputInterfaces,
-} from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay } from '../../../utilities/utils';
-import { addServiceCommand } from '../service/add-service';
+} from '../../../utilities/ast-utils.js';
+import { kebabCase } from '../../../utilities/case-utils.js';
+import { pauseForPromptDisplay } from '../../../utilities/utils.js';
+import { addServiceCommand } from '../service/add-service.js';
 
 const cancelledMessage = 'Add API extension cancelled';
 
@@ -133,7 +135,7 @@ export async function addApiExtension(
 
     if (!serviceRef) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const modifiedSourceFiles: SourceFile[] = [];
@@ -185,7 +187,7 @@ export async function addApiExtension(
     } else {
         if (!options?.isNonInteractive && isCancel(queryName)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         resolver = createSimpleResolver(project, plugin, serviceRef, queryName, mutationName);
         if (queryName) {
@@ -290,7 +292,7 @@ function createSimpleResolver(
     const { resolverFileName, suffix } = getResolverFileName(project, serviceRef);
     const resolverSourceFile = createFile(
         project,
-        path.join(__dirname, 'templates/simple-resolver.template.ts'),
+        path.join(import.meta.dirname, 'templates/simple-resolver.template.ts'),
         path.join(plugin.getPluginDir().getPath(), 'api', resolverFileName),
     );
 
@@ -349,7 +351,7 @@ function createCrudResolver(
 ) {
     const resolverSourceFile = createFile(
         project,
-        path.join(__dirname, 'templates/crud-resolver.template.ts'),
+        path.join(import.meta.dirname, 'templates/crud-resolver.template.ts'),
         path.join(
             plugin.getPluginDir().getPath(),
             'api',
@@ -606,6 +608,12 @@ function createCrudApiExtension(project: Project, plugin: VendurePluginRef, serv
                             if (serviceRef.features.create) {
                                 writer.writeLine(`  input Create${entityRef.name}Input {`);
                                 for (const { name, type, nullable } of entityRef.getProps()) {
+                                    if (
+                                        entityRef.isTranslatable() &&
+                                        type.getText().includes('LocaleString')
+                                    ) {
+                                        continue;
+                                    }
                                     const graphQlType = getGraphQLType(type);
                                     if (graphQlType) {
                                         writer.writeLine(`    ${name}: ${graphQlType}${nullable ? '' : '!'}`);
@@ -624,6 +632,12 @@ function createCrudApiExtension(project: Project, plugin: VendurePluginRef, serv
                                 writer.writeLine(`  input Update${entityRef.name}Input {`);
                                 writer.writeLine(`    id: ID!`);
                                 for (const { name, type } of entityRef.getProps()) {
+                                    if (
+                                        entityRef.isTranslatable() &&
+                                        type.getText().includes('LocaleString')
+                                    ) {
+                                        continue;
+                                    }
                                     const graphQlType = getGraphQLType(type);
                                     if (graphQlType) {
                                         writer.writeLine(`    ${name}: ${graphQlType}`);
@@ -743,7 +757,7 @@ function getOrCreateApiExtensionsFile(project: Project, plugin: VendurePluginRef
     }
     return createFile(
         project,
-        path.join(__dirname, 'templates/api-extensions.template.ts'),
+        path.join(import.meta.dirname, 'templates/api-extensions.template.ts'),
         path.join(plugin.getPluginDir().getPath(), 'api', 'api-extensions.ts'),
     );
 }

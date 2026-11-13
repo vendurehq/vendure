@@ -34,7 +34,8 @@ export class StockLocation extends VendureEntity implements HasCustomFields, Cha
     customFields: CustomStockLocationFields;
 
     @ManyToMany(type => Channel, channel => channel.stockLocations)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
 
     @OneToMany(type => StockMovement, movement => movement.stockLocation)

@@ -20,7 +20,7 @@ In order to make the best use of both your time and that of the Vendure maintain
   - [Release Process](#release-process)
 - [Specific Contributions](#specific-contributions)
   - [Contributing to the documentation](#contributing-to-the-documentation)
-  - [Contributing to the Admin UI translations](#contributing-to-the-admin-ui-translations)
+  - [Contributing to the Dashboard translations](#contributing-to-the-dashboard-translations)
 - [Help & Support](#help--support)
   - [Where to get help](#where-to-get-help)
   - [Contributor License Agreement](#contributor-license-agreement)
@@ -91,11 +91,11 @@ git push origin master
 ## Setting up the dev environment
 
 > [!IMPORTANT]
-> The following instructions are for those who want to develop the Vendure core framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
+> The following instructions are for those who want to develop the Vendure Framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
 ### Prerequisites
 
-- Node.js `^20.19.0 || >=22.12.0`
+- Node.js `>=22.12.0`
 - [Bun](https://bun.sh/) — the canonical package manager for this repo. Install via `curl -fsSL https://bun.sh/install | bash` or one of the [other supported methods](https://bun.sh/docs/installation).
 
 We use Bun (not npm) for installing dependencies because it provides two security features that defend against supply-chain attacks: a configurable minimum-release-age check on dependencies and an explicit `trustedDependencies` allow-list for packages whose lifecycle scripts we permit to run. See [#4674](https://github.com/vendurehq/vendure/issues/4674) for the rationale.
@@ -117,9 +117,32 @@ The root directory has a `package.json` which contains build-related dependencie
 
 `bun run build`
 
-Packages must be built (i.e. TypeScript compiled, Admin UI app built, certain assets copied etc.) before being used.
+Packages must be built (i.e. TypeScript compiled, Dashboard built, certain assets copied etc.) before being used.
 
 Note that this can take a few minutes.
+
+#### Plugin packages
+
+Most packages are Vendure plugins with the same folder structure. A local Nx plugin in [`tools/nx-plugin`](./tools/nx-plugin) finds these packages and creates their targets, so a plugin package has almost no build configuration:
+
+```
+packages/<name>/
+  package.json              name, version, main, nx.tags
+  tsconfig*.json            written by `bunx nx sync`, do not edit
+  index.ts or src/index.ts  public entry point
+  src/*.plugin.ts           marks the package as a Vendure plugin (also src/plugin.ts or src/*/plugin.ts)
+  src/**/*.spec.ts          unit tests, run by the `test` target
+  src/**/*.spec-d.ts        type-level tests, run by the `test` target with `--typecheck`
+  e2e/*.e2e-spec.ts         e2e tests, run by the `e2e` target
+```
+
+The targets are `build`, `watch`, `lint`, `test` (when there are unit tests) and `e2e` (when there are e2e tests). The build writes to the first folder of `main` in `package.json`, for example `lib`. Run `bunx nx show project <package>` to see the targets. A script in `package.json` with the same name replaces the inferred target. Use this only when a package needs a different command, for example an extra build step.
+
+To create a new plugin package, run `bunx nx g ./tools/nx-plugin:package <name>-plugin`.
+
+When you add or remove an entry point, a `*.spec-d.ts` file or a `.tsx` file, run `bunx nx sync` to update the `tsconfig*.json` files. CI runs `bunx nx sync:check` and fails when they are out of date.
+
+Each package has a scope tag in `nx.tags`. ESLint uses the tags to stop `core` and `common` from importing any package other than each other. See [`.eslintrc.boundaries.js`](./.eslintrc.boundaries.js). Every project must have a tag.
 
 ### 3. Start the docker containers
 
@@ -127,7 +150,7 @@ All the necessary infrastructure is defined in the root [docker-compose.yml](./d
 you will need to start a database, for example:
 
 ```bash
-docker-compose up -d mariadb
+docker compose up -d mariadb
 ```
 
 MariaDB/MySQL is the default that will be used by the dev server if you don't explicitly set the `DB` environment variable.
@@ -135,7 +158,7 @@ MariaDB/MySQL is the default that will be used by the dev server if you don't ex
 If for example you are doing development on the Elasticsearch plugin, you will also need to start the Elasticsearch container:
 
 ```bash
-docker-compose up -d elasticsearch
+docker compose up -d elasticsearch
 ```
 
 ### 4. Populate test data
@@ -156,7 +179,7 @@ If you want to develop against **PostgreSQL**:
 1. Run the `postgres_16` Docker container.
 
 ```bash
-docker-compose up -d postgres_16
+docker compose up -d postgres_16
 ```
 
 2. Create a .env file in `/packages/dev-server` and declare the `DB` variable inside it:
@@ -182,36 +205,16 @@ bun run dev
 
 This will start the development server, and you should see output in your terminal indicating that the **Vendure development server** has successfully started.
 
-The output lists the available endpoints for the Shop API, Admin API, GraphiQL interfaces, asset server, development mailbox, and the Admin UI, along with their respective URLs.
+The output lists the available endpoints for the Shop API, Admin API, GraphiQL interfaces, asset server, development mailbox, and the Dashboard, along with their respective URLs.
 
 You can now access these services in your browser for development and testing.
 
-Default Admin UI credentials:
+Default Dashboard credentials:
 
 Username: `superadmin`
 Password: `superadmin`
 
 ## Development Workflow
-
-### Testing Admin UI changes locally
-
-If you are making changes to the Admin UI, you need to start the Admin UI independent from the dev-server:
-
-> [!NOTE]
-> You don't need this step when you just use the Admin UI just
-> to test backend changes since the `dev-server` package ships with a default admin-ui
-
-```
-cd packages/admin-ui
-bun run dev
-```
-
-This will run a separate process of admin-ui on "http://localhost:4200", you can login with the default credentials:
-
-Username: `superadmin`
-Password: `superadmin`
-
-This will auto restart when you make changes to the Admin UI.
 
 ### Testing your changes locally
 
@@ -225,8 +228,7 @@ This same workflow can be used for other packages as well.
 **Terminal 1** - Watch changes to the package:
 
 ```bash
-cd packages/email-plugin
-bun run watch
+bunx nx run @vendure/email-plugin:watch
 ```
 
 **Terminal 2** - Run the development server:
@@ -250,7 +252,7 @@ bun run watch:core-common
 
 #### Development Workflow Summary
 
-1. Start your package watcher (bun run watch)
+1. Start your package watcher (bunx nx run <package>:watch)
 2. Start the dev-server (bun run dev)
 3. Make code changes
 4. Wait for compilation to complete
@@ -274,7 +276,7 @@ After implementing your changes, stage the changes and commit them. Refer to the
 
 ```
 git add .
-git commit -m "type(scope): Message in present tense"
+git commit -m "type(scope): message in present tense"
 ```
 
 ### Creating a pull request
@@ -354,8 +356,12 @@ myNewApi: number;
 This repo uses [Conventional Commits](https://www.conventionalcommits.org).
 
 ```
-type(scope): Message in present tense
+type(scope): message in present tense
 ```
+
+The subject must not start with a capital letter: `@commitlint/config-conventional` rejects sentence-case,
+start-case, pascal-case and upper-case subjects.
+
 `type` may be one of:
 * **feat** (new feature)
 * **fix** (bug fix)
@@ -368,19 +374,18 @@ type(scope): Message in present tense
 
 `scope` indicates the package affected by the commit:
 
-* admin-ui
-* admin-ui-plugin
 * asset-server-plugin
 * common
 * core
 * create
+* dashboard
 * email-plugin
 * etc.
 
 If a commit affects more than one package, separate them with a comma:
 
 ```
-fix(core,common): Fix the thing
+fix(core,common): fix the thing
 ```
 
 If a commit applies to no particular package (e.g. a tooling change in the root package.json), the scope can be omitted.
@@ -394,7 +399,7 @@ Please also make your pull request against the `major` branch rather than `maste
 Example:
 
 ```
-feat(core): Add new field to Customer
+feat(core): add new field to Customer
 
 Relates to #123. This commit adds the "foo" field to the Custom entity.
 
@@ -403,27 +408,26 @@ BREAKING CHANGE: A DB migration will be required in order to add the new "foo" f
 
 #### Linting
 
-Commit messages are linted on commit, so you'll know if your message is not quite right.
+Commit messages are linted on commit, so you'll know if your message is not quite right. Pull request titles are
+checked against the same format when a pull request is opened or its title is edited.
 
 ## Advanced Topics
 
 ### Code Generation
 
-[graphql-code-generator](https://github.com/dotansimha/graphql-code-generator) is used to automatically create TypeScript interfaces for all GraphQL server operations and Admin UI queries. These generated interfaces are used in both the Admin UI and the server.
+[graphql-code-generator](https://github.com/dotansimha/graphql-code-generator) is used to automatically create TypeScript interfaces for all GraphQL server operations. These generated interfaces are used by the server and in e2e tests.
 
 Running `bun run codegen` will generate the following files:
 
 - [`packages/common/src/generated-types.ts`](./packages/common/src/generated-types.ts): Types, Inputs & resolver args relating to the Admin API
 - [`packages/common/src/generated-shop-types.ts`](./packages/common/src/generated-shop-types.ts): Types, Inputs & resolver args relating to the Shop API
-- [`packages/admin-ui/src/lib/core/src/common/generated-types.ts`](./packages/admin-ui/src/lib/core/src/common/generated-types.ts): Types & operations relating to the admin-ui queries & mutations.
-- [`packages/admin-ui/src/lib/core/src/common/introspection-result.ts`](./packages/admin-ui/src/lib/core/src/common/introspection-result.ts): Used by the Apollo Client [`IntrospectionFragmentMatcher`](https://www.apollographql.com/docs/react/data/fragments/#fragments-on-unions-and-interfaces) to correctly handle fragments in the Admin UI.
 - Also generates types used in e2e tests in those packages which feature e2e tests (core, asset-server-plugin etc).
 
 ### Testing
 
 #### Server Unit Tests
 
-The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually by running it from the package directory.
+The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually with `bunx nx test <package>`, for example `bunx nx test @vendure/email-plugin`.
 
 Unit tests are co-located with the files which they test, and have the suffix `.spec.ts`.
 
@@ -431,7 +435,7 @@ If you're getting `Error: Bindings not found.`, please run `bun install --force`
 
 #### End-to-end Tests
 
-Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually by running it from the package directory.
+Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually with `bunx nx e2e <package>`.
 
 e2e tests use the `@vendure/testing` package. For details of how the setup works, see the [Testing docs](https://docs.vendure.io/guides/developer-guide/testing/).
 
@@ -439,27 +443,27 @@ When **debugging e2e tests**, set an environment variable `E2E_DEBUG=true` which
 
 ### Release Process
 
-All packages in this repo are released at every version change (using [Lerna's fixed mode](https://lerna.js.org/docs/features/version-and-publish#fixedlocked-mode-default)). This simplifies both the development (tracking multiple disparate versions is tough) and also the developer experience for users of the framework (it is simple to see that all packages are up-to-date and compatible).
+All packages in this repo are released at every version change (using a fixed release group of [Nx Release](https://nx.dev/docs/guides/nx-release), configured in `nx.json`). This simplifies both the development (tracking multiple disparate versions is tough) and also the developer experience for users of the framework (it is simple to see that all packages are up-to-date and compatible).
 
 To make a release:
 
 #### 1. `bun run publish-release`
 
-It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
+It will run `nx release version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
-Next it will build all packages to ensure the distributed files are up to date.
+Next it will refresh the Platform catalog snapshot (`packages/common/src/platform-promotion-snapshot.ts`) from `https://api.vendure.io/v1/catalog`. The Dashboard build and the Core startup banner use this snapshot. Then it will build all packages to ensure the distributed files are up to date. Do not set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH` for a release. Check the output for `Platform catalog snapshot updated`. If it says `Platform catalog snapshot not changed`, the release keeps the old snapshot. After the command, `git show --stat HEAD` lists the snapshot file if the catalog data changed.
 
 Finally, the command will create changelog entries for this release and create a tagged commit.
 
 #### 2. `git push origin master --follow-tags`
 
-Push the version commit and the new tag to `master`. (Lerna is run with `--no-push` so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Admin UI.)
+Push the version commit and the new tag to `master`. (The release script does not push, so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Dashboard.)
 
 Publishing itself happens in CI, not locally: it is triggered by creating the GitHub release in the next step, using OIDC trusted publishing (no npm token or local OTP is involved).
 
 #### 3. Create a GitHub release
 
-Create a GitHub release based on the tag generated by Lerna. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
+Create a GitHub release based on the tag generated by the release script. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
 
 > [!IMPORTANT]
 > Staged packages are **not yet live** on npm. They sit in npm's [staging area](https://www.npmjs.com/settings/~/staged-packages) awaiting manual approval. This is a deliberate supply-chain safeguard: a release only goes public after a maintainer approves it with 2FA, so a compromised CI run cannot publish to the `latest` tag on its own. See [#4772](https://github.com/vendurehq/vendure/issues/4772) for the rationale.
@@ -507,9 +511,9 @@ docs/docs
 > [!NOTE]
 > Files in the [reference](https://docs.vendure.io/reference/) directory are auto-generated. To edit reference documentation, modify the [JSDoc](https://jsdoc.app/about-getting-started) comments in the source code and run `bun run docs:build` from the project root directory.
 
-### Contributing to the Admin UI translations
+### Contributing to the Dashboard translations
 
-If you wish to contribute translations of the Admin UI into another language (or improve an existing set of translations), please see the [Localization guide](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization) in the admin-ui package.
+If you wish to contribute translations into another language (or improve an existing set of translations), see [Contributing a translation of the Dashboard itself](https://docs.vendure.io/guides/extending-the-dashboard/localization/#contributing-a-translation-of-the-dashboard-itself) in the Localization guide.
 
 ## Help & Support
 

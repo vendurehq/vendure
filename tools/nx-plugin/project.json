@@ -1,0 +1,34 @@
+{
+    "name": "nx-plugin",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "tools/nx-plugin/src",
+    "projectType": "library",
+    "tags": ["scope:tool"],
+    "targets": {
+        "test": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "vitest --run",
+                "cwd": "{projectRoot}"
+            },
+            "dependsOn": [],
+            "inputs": ["default", "{workspaceRoot}/nx.json"]
+        },
+        "lint": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "eslint --fix .",
+                "cwd": "{projectRoot}"
+            }
+        },
+        "typecheck": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "tsc -p tsconfig.json",
+                "cwd": "{projectRoot}"
+            },
+            "inputs": ["default", "^production"],
+            "cache": true
+        }
+    }
+}

@@ -3,7 +3,8 @@ import {
     RegisterCustomerAccountResult,
     RegisterCustomerInput,
     UpdateCustomerInput as UpdateCustomerShopInput,
-    VerifyCustomerAccountResult,
+    // Both APIs declare a `VerifyCustomerAccountResult`, with different members.
+    VerifyCustomerAccountResult as VerifyCustomerAccountShopResult,
 } from '@vendure/common/lib/generated-shop-types';
 import {
     AddNoteToCustomerInput,
@@ -19,14 +20,15 @@ import {
     UpdateCustomerInput,
     UpdateCustomerNoteInput,
     UpdateCustomerResult,
+    VerifyCustomerAccountResult as VerifyCustomerAccountAdminResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { IsNull } from 'typeorm';
+import { IsNull, Not } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError } from '../../common/error/errors';
+import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { EmailAddressConflictError as EmailAddressConflictAdminError } from '../../common/error/generated-graphql-admin-errors';
 import {
     EmailAddressConflictError,
@@ -198,7 +200,9 @@ export class CustomerService {
 
     /**
      * @description
-     * Creates a new Customer, including creation of a new User with the special `customer` Role.
+     * Creates a new Customer, including creation of a new User. Customer permissions are
+     * derived from channel membership (see {@link CUSTOMER_PERMISSIONS}), so no Role is
+     * involved.
      *
      * If the `password` argument is specified, the Customer will be immediately verified. If not,
      * then an {@link AccountRegistrationEvent} is published, so that the customer can have their
@@ -229,7 +233,7 @@ export class CustomerService {
         }
 
         const existingCustomer = await this.connection.getRepository(ctx, Customer).findOne({
-            relations: ['channels'],
+            relations: { channels: true },
             where: {
                 emailAddress: input.emailAddress,
                 deletedAt: IsNull(),
@@ -252,7 +256,7 @@ export class CustomerService {
         }
         const customerUser = await this.userService.createCustomerUser(ctx, input.emailAddress, password);
         if (isGraphQlErrorResult(customerUser)) {
-            throw customerUser;
+            return customerUser;
         }
         customer.user = customerUser;
 
@@ -283,14 +287,7 @@ export class CustomerService {
         });
 
         if (customer.user?.verified) {
-            await this.historyService.createHistoryEntryForCustomer({
-                ctx,
-                customerId: createdCustomer.id,
-                type: HistoryEntryType.CUSTOMER_VERIFIED,
-                data: {
-                    strategy: NATIVE_AUTH_STRATEGY_NAME,
-                },
-            });
+            await this.createVerifiedHistoryEntry(ctx, createdCustomer.id);
         }
         await this.eventBus.publish(new CustomerEvent(ctx, createdCustomer, 'created', input));
         return createdCustomer;
@@ -314,7 +311,9 @@ export class CustomerService {
 
         if (hasEmailAddress(input)) {
             input.emailAddress = normalizeEmailAddress(input.emailAddress);
-            if (input.emailAddress !== customer.emailAddress) {
+            // A Customer may have been saved with capital letters, so the stored email address is
+            // normalized too. A difference only in case is not a new email address. See #5559
+            if (input.emailAddress !== normalizeEmailAddress(customer.emailAddress)) {
                 const existingCustomerInChannel = await this.connection
                     .getRepository(ctx, Customer)
                     .createQueryBuilder('customer')
@@ -351,6 +350,28 @@ export class CustomerService {
                         input.emailAddress,
                     );
                 }
+            } else if (input.emailAddress !== customer.emailAddress) {
+                // Only the case differs. Another Customer may already use the lowercase form, as
+                // external logins before #5559 could create a second Customer for it. In that case
+                // the stored email address is kept, so that no two Customers have the same email
+                // address.
+                const otherCustomerWithEmailAddress = await this.connection
+                    .getRepository(ctx, Customer)
+                    .createQueryBuilder('customer')
+                    .where('customer.emailAddress = :emailAddress', { emailAddress: input.emailAddress })
+                    .andWhere('customer.id != :customerId', { customerId: input.id })
+                    .andWhere('customer.deletedAt is null')
+                    .getOne();
+
+                if (otherCustomerWithEmailAddress) {
+                    input.emailAddress = customer.emailAddress;
+                } else if (customer.user) {
+                    await this.userService.changeUserAndNativeIdentifier(
+                        ctx,
+                        customer.user.id,
+                        input.emailAddress,
+                    );
+                }
             }
         }
 
@@ -375,6 +396,13 @@ export class CustomerService {
      * the email verification flow (unless {@link AuthOptions} `requireVerification` is set to `false`)
      * by publishing an {@link AccountRegistrationEvent}.
      *
+     * If an account with the given email address already exists via another authentication method
+     * (for example an external/SSO strategy) and has no native credential yet, a native credential is
+     * added in an unactivated state (no password) and an {@link AccountRegistrationEvent} is always
+     * published, even when `requireVerification` is `false`. The password can then only be set by
+     * whoever controls the email address, by completing the verification flow. This prevents an
+     * unauthenticated caller from taking over such an account by registering a password against it.
+     *
      * This method is intended to be used in storefront Customer-creation flows.
      */
     async registerCustomerAccount(
@@ -387,25 +415,57 @@ export class CustomerService {
             }
         }
         let user = await this.userService.getUserByEmailAddress(ctx, input.emailAddress);
-        const hasNativeAuthMethod = !!user?.authenticationMethods.find(
-            m => m instanceof NativeAuthenticationMethod,
+        const isExistingUser = !!user;
+        const nativeAuthMethod = user?.authenticationMethods.find(
+            (m): m is NativeAuthenticationMethod => m instanceof NativeAuthenticationMethod,
         );
+        const hasNativeAuthMethod = !!nativeAuthMethod;
+        // True when we are adding a native credential to a pre-existing account (e.g. SSO-only). In
+        // that case the credential is created unactivated and must be confirmed via email before use.
+        const addingUnactivatedNativeMethod = isExistingUser && !hasNativeAuthMethod;
+        // True when a previous registration already added an unactivated credential to this account
+        // and nobody has claimed it yet: it carries a verification token and no password. Re-issue the
+        // token instead of returning early, otherwise the first attempt would be the only chance the
+        // mailbox owner ever gets to set a password.
+        //
+        // A verified account can also carry a token beside a real password, because
+        // `resetPasswordByToken` in earlier releases set `verified` without clearing the token. That
+        // credential is usable and its owner logs in with it, so it is not pending activation. Testing
+        // the token alone would put those accounts on the registration path, where an anonymous caller
+        // could rotate their token and send them a verification email on demand (GHSA-wr5h-x3x6-4h23).
+        const reissueUnactivatedNativeMethod =
+            !!user &&
+            user.verified &&
+            nativeAuthMethod?.verificationToken != null &&
+            (await this.userService.nativeCredentialAwaitsActivation(ctx, user.id));
+        // Either way the registration ends with a credential that still needs email confirmation.
+        const pendingNativeActivation = addingUnactivatedNativeMethod || reissueUnactivatedNativeMethod;
         if (user && user.verified) {
-            if (hasNativeAuthMethod) {
+            if (hasNativeAuthMethod && !reissueUnactivatedNativeMethod) {
                 // If the user has already been verified and has already
                 // registered with the native authentication strategy, do nothing.
                 return { success: true };
             }
         }
         const customFields = (input as any).customFields;
-        const customer = await this.createOrUpdate(ctx, {
-            emailAddress: input.emailAddress,
-            title: input.title || '',
-            firstName: input.firstName || '',
-            lastName: input.lastName || '',
-            phoneNumber: input.phoneNumber || '',
-            ...(customFields ? { customFields } : {}),
-        });
+        // The caller of this mutation is unauthenticated and has not proven they own the email address.
+        // So when an account already exists for it, the caller-supplied profile fields must NOT be
+        // written. createOrUpdate would patchEntity them onto the real owner's Customer, which lets an
+        // attacker blank or overwrite their name, phone number and custom fields (GHSA-wr5h-x3x6-4h23).
+        // A Customer with no User (a guest checkout) is not an account, so that one is still filled in.
+        const customer = await this.createOrUpdate(
+            ctx,
+            isExistingUser
+                ? { emailAddress: input.emailAddress }
+                : {
+                      emailAddress: input.emailAddress,
+                      title: input.title || '',
+                      firstName: input.firstName || '',
+                      lastName: input.lastName || '',
+                      phoneNumber: input.phoneNumber || '',
+                      ...(customFields ? { customFields } : {}),
+                  },
+        );
         if (isGraphQlErrorResult(customer)) {
             return customer;
         }
@@ -429,7 +489,22 @@ export class CustomerService {
                 user = customerUser;
             }
         }
-        if (!hasNativeAuthMethod) {
+        if (pendingNativeActivation) {
+            // This is the caller that must not let the supplied password reach storage: doing so would
+            // let an unauthenticated caller set a working password on someone else's account
+            // (GHSA-wr5h-x3x6-4h23). The User's `verified` state is left untouched, so an existing SSO
+            // login keeps working.
+            const addResult = await this.userService.addUnactivatedNativeAuthenticationMethod(
+                ctx,
+                user,
+                input.emailAddress,
+                input.password || undefined,
+            );
+            if (isGraphQlErrorResult(addResult)) {
+                return addResult;
+            }
+            user = addResult;
+        } else if (!hasNativeAuthMethod) {
             const addAuthenticationResult = await this.userService.addNativeAuthenticationMethod(
                 ctx,
                 user,
@@ -442,24 +517,24 @@ export class CustomerService {
                 user = addAuthenticationResult;
             }
         }
-        if (!user.verified) {
+        if (!user.verified && !pendingNativeActivation) {
+            // Issue a verification token for a brand-new or still-pending native registration. When we
+            // just added or refreshed an unactivated native method above, it already carries a fresh
+            // token, so we skip this to avoid persisting a second one that invalidates the first.
             user = await this.userService.setVerificationToken(ctx, user);
         }
 
         customer.user = user;
         await this.connection.getRepository(ctx, User).save(user, { reload: false });
         await this.connection.getRepository(ctx, Customer).save(customer, { reload: false });
-        if (!user.verified) {
+        if (!user.verified || pendingNativeActivation) {
+            // Publish the registration event when there is a pending verification: either a brand-new
+            // unverified account, or an unactivated native credential on an existing account (which
+            // needs email confirmation before the password can be set, regardless of the
+            // `requireVerification` setting).
             await this.eventBus.publish(new AccountRegistrationEvent(ctx, user));
         } else {
-            await this.historyService.createHistoryEntryForCustomer({
-                customerId: customer.id,
-                ctx,
-                type: HistoryEntryType.CUSTOMER_VERIFIED,
-                data: {
-                    strategy: NATIVE_AUTH_STRATEGY_NAME,
-                },
-            });
+            await this.createVerifiedHistoryEntry(ctx, customer.id);
         }
         return { success: true };
     }
@@ -486,7 +561,7 @@ export class CustomerService {
         ctx: RequestContext,
         verificationToken: string,
         password?: string,
-    ): Promise<ErrorResultUnion<VerifyCustomerAccountResult, Customer>> {
+    ): Promise<ErrorResultUnion<VerifyCustomerAccountShopResult, Customer>> {
         const result = await this.userService.verifyUserByToken(ctx, verificationToken, password);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -498,17 +573,60 @@ export class CustomerService {
         if (ctx.channelId) {
             await this.channelService.assignToChannels(ctx, Customer, customer.id, [ctx.channelId]);
         }
+        await this.createVerifiedHistoryEntry(ctx, customer.id);
+        const user = assertFound(this.findOneByUserId(ctx, result.id));
+        await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
+        return user;
+    }
+
+    /**
+     * @description
+     * Manually marks a Customer's email address as verified, for use by an administrator when the
+     * customer has not received or cannot complete the verification email. See
+     * {@link UserService.verifyUserWithoutToken} for the rules the `password` argument follows.
+     *
+     * A Customer with no User (a guest checkout) has no account to verify, and is rejected.
+     *
+     * @since 3.8.0
+     */
+    async verifyCustomerAccount(
+        ctx: RequestContext,
+        customerId: ID,
+        password?: string,
+    ): Promise<ErrorResultUnion<VerifyCustomerAccountAdminResult, Customer>> {
+        const customer = await this.connection.getEntityOrThrow(ctx, Customer, customerId, {
+            channelId: ctx.channelId,
+            relations: ['user'],
+        });
+        if (!customer.user) {
+            throw new UserInputError('error.customer-has-no-user-account');
+        }
+        const wasVerified = customer.user.verified;
+        const result = await this.userService.verifyUserWithoutToken(ctx, customer.user.id, password);
+        if (isGraphQlErrorResult(result)) {
+            return result;
+        }
+        // `verifyUserWithoutToken` loads and saves a User of its own, so the relation loaded above
+        // still reads `verified: false`. Subscribers of the event below are handed this Customer, so
+        // it has to carry the saved User rather than the stale one.
+        customer.user = result;
+        // Re-running the mutation must not add a second history entry or publish a second event.
+        if (!wasVerified) {
+            await this.createVerifiedHistoryEntry(ctx, customer.id);
+            await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
+        }
+        return assertFound(this.findOne(ctx, customer.id));
+    }
+
+    private async createVerifiedHistoryEntry(ctx: RequestContext, customerId: ID): Promise<void> {
         await this.historyService.createHistoryEntryForCustomer({
-            customerId: customer.id,
+            customerId,
             ctx,
             type: HistoryEntryType.CUSTOMER_VERIFIED,
             data: {
                 strategy: NATIVE_AUTH_STRATEGY_NAME,
             },
         });
-        const user = assertFound(this.findOneByUserId(ctx, result.id));
-        await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
-        return user;
     }
 
     /**
@@ -519,18 +637,22 @@ export class CustomerService {
     async requestPasswordReset(ctx: RequestContext, emailAddress: string): Promise<void> {
         const user = await this.userService.setPasswordResetToken(ctx, emailAddress);
         if (user) {
-            await this.eventBus.publish(new PasswordResetEvent(ctx, user));
             const customer = await this.findOneByUserId(ctx, user.id);
             if (!customer) {
                 throw new InternalServerError('error.cannot-locate-customer-for-user');
             }
-            await this.historyService.createHistoryEntryForCustomer({
-                customerId: customer.id,
-                ctx,
-                type: HistoryEntryType.CUSTOMER_PASSWORD_RESET_REQUESTED,
-                data: {},
-            });
+            await this.publishPasswordResetRequested(ctx, user, customer.id);
         }
+    }
+
+    private async publishPasswordResetRequested(ctx: RequestContext, user: User, customerId: ID) {
+        await this.eventBus.publish(new PasswordResetEvent(ctx, user));
+        await this.historyService.createHistoryEntryForCustomer({
+            customerId,
+            ctx,
+            type: HistoryEntryType.CUSTOMER_PASSWORD_RESET_REQUESTED,
+            data: {},
+        });
     }
 
     /**
@@ -565,6 +687,42 @@ export class CustomerService {
 
     /**
      * @description
+     * Requests a password reset email for the Customer on behalf of an administrator, the same as
+     * {@link CustomerService.requestPasswordReset}: sets a reset token and publishes a
+     * {@link PasswordResetEvent}. The event carries the administrator's RequestContext, so an email
+     * sent from it uses the administrator's language.
+     *
+     * When `authOptions.requireVerification` is on, a Customer who has not verified their account is
+     * marked as verified when they complete the reset. No {@link AccountVerifiedEvent} is published.
+     *
+     * A Customer with no User (a guest checkout), or whose User has no native authentication method,
+     * has no native credential to reset, and is rejected.
+     *
+     * @since 3.9.0
+     */
+    async requestCustomerPasswordReset(ctx: RequestContext, customerId: ID): Promise<void> {
+        const customer = await this.connection.getEntityOrThrow(ctx, Customer, customerId, {
+            channelId: ctx.channelId,
+            relations: ['user'],
+        });
+        if (!customer.user) {
+            throw new UserInputError('error.customer-has-no-user-account');
+        }
+        // Loaded separately rather than as the `user.authenticationMethods` relation of the Customer
+        // query: TypeORM 0.3.29+ drops that nested relation when it is merged into the already
+        // loaded `user`.
+        const userWithAuthMethods = await this.connection.getEntityOrThrow(ctx, User, customer.user.id, {
+            relations: ['authenticationMethods'],
+        });
+        const user = await this.userService.setPasswordResetTokenForUser(ctx, userWithAuthMethods);
+        if (!user) {
+            throw new UserInputError('error.cannot-set-password-without-native-credential');
+        }
+        await this.publishPasswordResetRequested(ctx, user, customer.id);
+    }
+
+    /**
+     * @description
      * Publishes a {@link IdentifierChangeRequestEvent} for the given User. This event contains a token
      * which is then used in the `updateEmailAddress()` method to change the email address of the User &
      * Customer.
@@ -589,6 +747,15 @@ export class CustomerService {
         const customer = await this.findOneByUserId(ctx, user.id);
         if (!customer) {
             return false;
+        }
+        // A guest checkout Customer has no User, so it is not covered by the `getUserByEmailAddress`
+        // check above. Without this, the update would leave two live Customers on one email address.
+        const otherCustomerWithEmailAddress = await this.connection.getRepository(ctx, Customer).findOne({
+            select: { id: true },
+            where: { emailAddress: normalizedEmailAddress, id: Not(customer.id), deletedAt: IsNull() },
+        });
+        if (otherCustomerWithEmailAddress) {
+            return new EmailAddressConflictError();
         }
         const oldEmailAddress = customer.emailAddress;
         await this.historyService.createHistoryEntryForCustomer({
@@ -673,7 +840,7 @@ export class CustomerService {
         input.emailAddress = normalizeEmailAddress(input.emailAddress);
         let customer: Customer;
         const existing = await this.connection.getRepository(ctx, Customer).findOne({
-            relations: ['channels'],
+            relations: { channels: true },
             where: {
                 emailAddress: input.emailAddress,
                 deletedAt: IsNull(),
@@ -890,7 +1057,9 @@ export class CustomerService {
 
     async deleteCustomerNote(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         try {
-            await this.historyService.deleteCustomerHistoryEntry(ctx, id);
+            await this.historyService.deleteCustomerHistoryEntry(ctx, id, {
+                type: HistoryEntryType.CUSTOMER_NOTE,
+            });
             return {
                 result: DeletionResult.DELETED,
             };
@@ -909,7 +1078,7 @@ export class CustomerService {
     ) {
         const result = await this.connection
             .getRepository(ctx, Address)
-            .findOne({ where: { id: addressId }, relations: ['customer', 'customer.addresses'] });
+            .findOne({ where: { id: addressId }, relations: { customer: { addresses: true } } });
         if (result) {
             const customerAddressIds = result.customer.addresses
                 .map(a => a.id)
@@ -941,7 +1110,7 @@ export class CustomerService {
         }
         const result = await this.connection
             .getRepository(ctx, Address)
-            .findOne({ where: { id: addressToDelete.id }, relations: ['customer', 'customer.addresses'] });
+            .findOne({ where: { id: addressToDelete.id }, relations: { customer: { addresses: true } } });
         if (result) {
             const customerAddresses = result.customer.addresses;
             if (1 < customerAddresses.length) {

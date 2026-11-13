@@ -75,7 +75,9 @@ const preview: Preview = {
                 if (jsdocMatch) {
                     const jsdoc = jsdocMatch[0];
                     // Extract text after @description tag
-                    const descMatch = jsdoc.match(/@description\s*\n\s*\*\s*(.*?)(?=\n\s*\*\s*@|\n\s*\*\/)/s);
+                    const descMatch = jsdoc.match(
+                        /@description\s*\n\s*\*\s*([\s\S]*?)(?=\n\s*\*\s*@|\n\s*\*\/)/,
+                    );
                     if (descMatch) {
                         return descMatch[1].trim();
                     }

@@ -1,5 +1,5 @@
 import type { AssetStorageStrategy } from '@vendure/core';
-import { mergeConfig } from '@vendure/core';
+import { defaultCollectionFilters, mergeConfig } from '@vendure/core';
 import {
     createTestEnvironment,
     testConfig as defaultTestConfig,
@@ -12,7 +12,12 @@ import { Readable, Stream, Writable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { VENDURE_PORT } from './constants.js';
-import { e2eCustomFields, e2ePaymentMethodHandlers } from './fixtures/e2e-shared-config.js';
+import {
+    e2eCollectionFilters,
+    e2eCustomFields,
+    e2ePaymentMethodHandlers,
+    e2eRefundDestinations,
+} from './fixtures/e2e-shared-config.js';
 import { initialData } from './fixtures/initial-data.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,7 +90,7 @@ export default async function globalSetup() {
     // rather than statically imported because Playwright's built-in TypeScript
     // transpiler (esbuild/Babel) does not support emitDecoratorMetadata.
     const { CustomHistoryEntryPlugin } = await importWithSwc<{
-        CustomHistoryEntryPlugin: new () => unknown;
+        CustomHistoryEntryPlugin: new (...args: any[]) => any;
     }>(path.join(__dirname, 'fixtures', 'custom-history-entry-plugin.ts'));
 
     const config = mergeConfig(defaultTestConfig, {
@@ -94,6 +99,7 @@ export default async function globalSetup() {
         },
         paymentOptions: {
             paymentMethodHandlers: e2ePaymentMethodHandlers,
+            refundDestinations: e2eRefundDestinations,
         },
         // Default test strategy emits a non-parseable URL that crashes VendureImage.
         assetOptions: {
@@ -104,8 +110,12 @@ export default async function globalSetup() {
         importExportOptions: {
             importAssetsDir: path.join(__dirname, '../../core/e2e/fixtures/assets'),
         },
-        plugins: [CustomHistoryEntryPlugin],
+        plugins: [CustomHistoryEntryPlugin as any],
         customFields: e2eCustomFields,
+        // mergeConfig replaces arrays, so keep the defaults explicitly.
+        catalogOptions: {
+            collectionFilters: [...defaultCollectionFilters, ...e2eCollectionFilters],
+        },
     });
 
     // mergeConfig won't replace a boolean with an object, so set CORS explicitly.

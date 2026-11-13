@@ -2,15 +2,16 @@ import { cancel, log, note, spinner } from '@clack/prompts';
 import path from 'path';
 import { StructureKind } from 'ts-morph';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { PackageJson } from '../../../shared/package-json-ref';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution';
-import { analyzeProject, selectMultiplePluginClasses } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { getRelativeImportPath } from '../../../utilities/ast-utils';
-import { pauseForPromptDisplay } from '../../../utilities/utils';
+import { exitCliCommand } from '../../../shared/cli-command-exit.js';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { PackageJson } from '../../../shared/package-json-ref.js';
+import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
+import { analyzeProject, selectMultiplePluginClasses } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { getRelativeImportPath } from '../../../utilities/ast-utils.js';
+import { pauseForPromptDisplay } from '../../../utilities/utils.js';
 
-import { CodegenConfigRef } from './codegen-config-ref';
+import { CodegenConfigRef } from './codegen-config-ref.js';
 
 export interface AddCodegenOptions {
     plugin?: VendurePluginRef;
@@ -57,18 +58,12 @@ export async function addCodegen(options?: AddCodegenOptions): Promise<CliComman
             isDevDependency: true,
         },
     ];
-    if (plugins.some(p => p.hasUiExtensions())) {
-        packagesToInstall.push({
-            pkg: '@graphql-codegen/client-preset',
-            isDevDependency: true,
-        });
-    }
     const packageManager = packageJson.determinePackageManager();
     const packageJsonFile = packageJson.locatePackageJsonWithVendureDependency();
     log.info(`Detected package manager: ${packageManager}`);
     if (!packageJsonFile) {
         cancel(`Could not locate package.json file with a dependency on Vendure.`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     log.info(`Detected package.json: ${packageJsonFile}`);
     try {
@@ -99,21 +94,6 @@ export async function addCodegen(options?: AddCodegenOptions): Promise<CliComman
             kind: StructureKind.PropertyAssignment,
             initializer: `{ plugins: ['typescript'] }`,
         });
-
-        if (pluginRef.hasUiExtensions()) {
-            const uiExtensionsPath = `${path.dirname(relativePluginPath)}/ui`;
-            codegenFile.addEntryToGeneratesObject({
-                name: `'${uiExtensionsPath}/gql/'`,
-                kind: StructureKind.PropertyAssignment,
-                initializer: `{
-                        preset: 'client',
-                        documents: '${uiExtensionsPath}/**/*.ts',
-                        presetConfig: {
-                            fragmentMasking: false,
-                        },
-                     }`,
-            });
-        }
     }
 
     packageJson.addScriptToRootPackageJson('codegen', 'graphql-codegen --config codegen.ts');

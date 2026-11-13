@@ -140,30 +140,8 @@ Instead, this information is now located at `ProductVariant.stockLevels`, which 
 
 ### Admin UI changes
 
-If you are using the `@vendure/ui-devkit` package to generate custom ui extensions, here are the breaking changes to be aware of:
-
-- As part of the major refresh to the Admin UI app, certain layout elements had be changed which can cause your custom routes to look bad. Wrapping all your custom pages in `<vdr-page-block>` (or `<div class="page-block">` if not built with Angular components) will improve things. There will soon be a comprehensive guide published on how to create seamless ui extensions that look just like the built-in screens.
-- If you use any of the scoped method of the Admin UI `DataService`, you might find that some no longer exist. They are now deprecated and will eventually be removed. Use the `dataService.query()` and `dataService.mutation()` methods only, passing your own GraphQL documents:
-   ```ts
-    // Old way
-   this.dataService.product.getProducts().single$.subscribe(...);
-   ```
-   ```ts
-    // New way
-   const GET_PRODUCTS = gql`
-     query GetProducts {
-       products {
-         items {
-           id
-           name
-           # ... etc
-         }
-       }
-     }
-   `;
-   this.dataService.query(GET_PRODUCTS).single$.subscribe(...);
-   ```
-- The Admin UI component `vdr-product-selector` has been renamed to `vdr-product-variant-selector` to more accurately represent what it does. If you are using `vdr-product-selector` if any ui extensions code, update it to use the new selector.
+The Angular-based Admin UI and its `@vendure/ui-devkit` extension API have since been removed (in Vendure v4).
+Any Admin UI extensions should be migrated to the Dashboard; see the [Dashboard migration guide](/extending-the-dashboard/migration/).
 
 ### Other breaking API changes
 - **End-to-end tests using Jest** will likely run into issues due to our move towards using some dependencies that make use of ES modules. We have found the best solution to be to migrate tests over to [Vitest](https://vitest.dev), which can handle this and is also significantly faster than Jest. See the updated [Testing guide](/developer-guide/testing) for instructions on getting started with Vitest.

@@ -37,7 +37,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     base: '/dashboard', // [!code highlight]
     build: {
-        outDir: join(__dirname, 'dist/dashboard'), // [!code highlight]
+        outDir: join(import.meta.dirname, 'dist/dashboard'), // [!code highlight]
     },
     plugins: [
         vendureDashboardPlugin({
@@ -52,17 +52,13 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '@/gql': resolve(__dirname, './src/gql/graphql.ts'),
+            '@/gql': resolve(import.meta.dirname, './src/gql/graphql.ts'),
         },
     },
 });
 ```
 
 ### 2. Add DashboardPlugin to Vendure Config
-
-:::info[Angular Admin UI compatibility]
-If you want to use the Angular Admin UI and the Dashboard together, both plugins can now be used simultaneously without any special configuration.
-:::
 
 Add the DashboardPlugin to your `vendure-config.ts`:
 
@@ -98,6 +94,16 @@ npx vite build
 ```
 
 This command creates optimized production files in the `dist/dashboard` directory that the DashboardPlugin will serve.
+
+### Vendure Platform catalog
+
+The Dashboard reads data about Vendure Platform capabilities from the Vendure catalog at build time. The build, and the start of the Vite dev server, send one request to `https://api.vendure.io/v1/catalog` and put the result into the built files. The browser makes no request to `api.vendure.io`.
+
+If the request fails or takes more than 2 seconds, the build uses a copy of the catalog that ships with `@vendure/common`. The build does not fail.
+
+For a build with no internet access, set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH=true`. The build then uses the bundled copy and sends no request.
+
+To build the Dashboard without the Vendure Platform items, set the `platformPromotion: false` option of `vendureDashboardPlugin`, or set `VENDURE_DASHBOARD_PLATFORM_PROMOTION=false`. The build then sends no request to `api.vendure.io`.
 
 ## Accessing the Dashboard
 
@@ -151,7 +157,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     build: {
-        outDir: path.join(__dirname, 'dist/dashboard'),
+        outDir: path.join(import.meta.dirname, 'dist/dashboard'),
     },
     plugins: [
         vendureDashboardPlugin({

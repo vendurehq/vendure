@@ -3,11 +3,18 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { PluginOption } from 'vite';
 
 import { PathAdapter } from './types.js';
 import { PackageScannerConfig } from './utils/compiler.js';
+import {
+    buildTanstackRouterPluginConfig,
+    TanstackRouterPluginOptions,
+} from './utils/tanstack-router-config.js';
+import { getDefaultTempCompilationDir } from './utils/temp-compilation-dir.js';
 import { adminApiSchemaPlugin } from './vite-plugin-admin-api-schema.js';
 import { bundleEntryPlugin } from './vite-plugin-bundle-entry.js';
 import { configLoaderPlugin } from './vite-plugin-config-loader.js';
@@ -16,8 +23,9 @@ import { dashboardMetadataPlugin } from './vite-plugin-dashboard-metadata.js';
 import { gqlTadaPlugin } from './vite-plugin-gql-tada.js';
 import { hmrPlugin } from './vite-plugin-hmr.js';
 import { linguiBabelPlugin } from './vite-plugin-lingui-babel.js';
+import { platformPromotionPlugin } from './vite-plugin-platform-promotion.js';
 import { dashboardTailwindSourcePlugin } from './vite-plugin-tailwind-source.js';
-import { themeVariablesPlugin, ThemeVariablesPluginOptions } from './vite-plugin-theme.js';
+import { DashboardThemeOptions, themeVariablesPlugin } from './vite-plugin-theme.js';
 import { transformIndexHtmlPlugin } from './vite-plugin-transform-index.js';
 import { translationsPlugin } from './vite-plugin-translations.js';
 import { uiConfigPlugin, UiConfigPluginOptions } from './vite-plugin-ui-config.js';
@@ -53,7 +61,7 @@ export type VitePluginVendureDashboardOptions = {
      * @example
      * ```ts
      * vendureDashboardPlugin({
-     *     tempCompilationDir: join(__dirname, './__vendure-dashboard-temp'),
+     *     tempCompilationDir: join(import.meta.dirname, './__vendure-dashboard-temp'),
      *     pathAdapter: {
      *         getCompiledConfigPath: ({ inputRootDir, outputPath, configFileName }) => {
      *             const projectName = inputRootDir.split('/libs/')[1].split('/')[0];
@@ -88,7 +96,43 @@ export type VitePluginVendureDashboardOptions = {
      * The path to the directory where the generated GraphQL Tada files will be output.
      */
     gqlOutputPath?: string;
+    /**
+     * @description
+     * The directory into which the VendureConfig is transpiled and loaded in order
+     * to introspect the configuration during the dashboard build.
+     *
+     * Defaults to `<project>/node_modules/.cache/vendure-dashboard-temp`. It must
+     * not be located inside a `"type": "module"` package (such as
+     * `@vendure/dashboard` itself), because the config is compiled to CommonJS and
+     * Node would then load it as ESM, failing with
+     * `exports is not defined in ES module scope`.
+     */
     tempCompilationDir?: string;
+    /**
+     * @description
+     * Options passed to the underlying TanStack Router Vite plugin (`tanstackRouter()`). These are
+     * merged on top of the Dashboard's own defaults, letting you override most aspects of the router
+     * plugin's configuration. The `routesDirectory`, `generatedRouteTree` and `routeFileIgnorePattern`
+     * settings are managed by the Dashboard and cannot be overridden (attempts are ignored with a warning).
+     *
+     * A common use case is setting `tmpDir` when your deployment's default temp directory is on a
+     * different device than the checked-out code (e.g. `node_modules` on a separate volume), which
+     * otherwise causes the build to fail with `EXDEV: cross-device link not permitted` during
+     * route-tree generation.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *   vendureConfigPath: './vendure-config.ts',
+     *   tanstackRouterPluginOptions: {
+     *     tmpDir: path.join(packageRoot, '.tanstack-tmp'),
+     *   },
+     * })
+     * ```
+     *
+     * @since 3.7.0
+     */
+    tanstackRouterPluginOptions?: TanstackRouterPluginOptions;
     /**
      * @description
      * Allows you to customize the location of node_modules & glob patterns used to scan for potential
@@ -135,6 +179,7 @@ export type VitePluginVendureDashboardOptions = {
         bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
+        platformPromotion?: boolean;
         uiConfig?: boolean;
         gqlTada?: boolean;
         transformIndexHtml?: boolean;
@@ -166,8 +211,37 @@ export type VitePluginVendureDashboardOptions = {
      * @since 3.7.0
      */
     useExperimentalBundle?: boolean;
-} & UiConfigPluginOptions &
-    ThemeVariablesPluginOptions;
+    /**
+     * @description
+     * Customizes the dashboard's appearance. Override design-token colours for
+     * the `light` and `dark` themes, and/or layer in additional stylesheets via
+     * `additionalStylesheets`.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *     theme: {
+     *         light: { brand: '#1a1a1a' },
+     *         additionalStylesheets: [resolve(import.meta.dirname, 'src/dashboard.css')],
+     *     },
+     * })
+     * ```
+     */
+    theme?: DashboardThemeOptions;
+    /**
+     * @description
+     * Set to `false` to turn off the Vendure Platform items in the Dashboard: locked navigation
+     * items, locked pages, page cards and the related page actions. The build then sends no
+     * request to `api.vendure.io`. The environment variable
+     * `VENDURE_DASHBOARD_PLATFORM_PROMOTION=false` has the same effect. Do not use
+     * `disablePlugins.platformPromotion` for this: it removes a module that the Dashboard needs,
+     * and the build fails.
+     *
+     * @default true
+     * @since 3.9.0
+     */
+    platformPromotion?: boolean;
+} & UiConfigPluginOptions;
 
 /**
  * @description
@@ -194,7 +268,7 @@ type PluginMapEntry = {
  * @docsWeight 0
  */
 export function vendureDashboardPlugin(options: VitePluginVendureDashboardOptions): PluginOption[] {
-    const tempDir = options.tempCompilationDir ?? path.join(import.meta.dirname, './.vendure-dashboard-temp');
+    const tempDir = options.tempCompilationDir ?? getDefaultTempCompilationDir();
     const tempInstanceId = `${process.pid}-${randomUUID()}`;
     const compilationTempDir = path.join(tempDir, 'compiler', tempInstanceId);
     const gqlTadaTempDir = path.join(tempDir, 'gql-tada', tempInstanceId);
@@ -211,12 +285,9 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
         {
             key: 'tanstackRouter',
             plugin: () =>
-                tanstackRouter({
-                    autoCodeSplitting: true,
-                    routeFileIgnorePattern: '.graphql.ts|components|hooks|utils',
-                    routesDirectory: path.join(packageRoot, 'src/app/routes'),
-                    generatedRouteTree: path.join(packageRoot, 'src/app/routeTree.gen.ts'),
-                }),
+                tanstackRouter(
+                    buildTanstackRouterPluginConfig(packageRoot, options.tanstackRouterPluginOptions),
+                ),
         },
         {
             // Custom plugin that transforms Lingui macros using Babel instead of SWC.
@@ -245,7 +316,11 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
         },
         {
             key: 'themeVariables',
-            plugin: () => themeVariablesPlugin({ theme: options.theme }),
+            plugin: () =>
+                themeVariablesPlugin({
+                    theme: options.theme,
+                    additionalStylesheets: options.theme?.additionalStylesheets,
+                }),
         },
         {
             key: 'tailwindSource',
@@ -275,6 +350,7 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
             plugin: () =>
                 viteConfigPlugin({
                     packageRoot,
+                    gqlOutputPath: options.gqlOutputPath,
                     useExperimentalBundle: options.useExperimentalBundle,
                 }),
         },
@@ -289,6 +365,10 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
         {
             key: 'dashboardMetadata',
             plugin: () => dashboardMetadataPlugin(),
+        },
+        {
+            key: 'platformPromotion',
+            plugin: () => platformPromotionPlugin({ enabled: options.platformPromotion }),
         },
         {
             key: 'uiConfig',
@@ -341,12 +421,38 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
 
 /**
  * @description
+ * Walks up from `fromFile` until it finds a `package.json` whose `name` field
+ * matches `packageName`, and returns that directory.
+ */
+export function findPackageRoot(fromFile: string, packageName: string): string {
+    let dir = path.dirname(fromFile);
+    while (true) {
+        const packageJsonPath = path.join(dir, 'package.json');
+        if (
+            fs.existsSync(packageJsonPath) &&
+            JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).name === packageName
+        ) {
+            return dir;
+        }
+        const parentDir = path.dirname(dir);
+        if (parentDir === dir) {
+            throw new Error(`Could not find the root of the "${packageName}" package above ${fromFile}`);
+        }
+        dir = parentDir;
+    }
+}
+
+/**
+ * @description
  * Returns the path to the root of the `@vendure/dashboard` package.
  */
 function getDashboardPackageRoot(): string {
+    // fileURLToPath (rather than URL.pathname) decodes percent-encoding, so paths
+    // containing e.g. spaces resolve correctly, and handles Windows drive letters.
     const fileUrl = import.meta.resolve('@vendure/dashboard');
-    const packagePath = fileUrl.startsWith('file:') ? new URL(fileUrl).pathname : fileUrl;
-    return fixWindowsPath(path.join(packagePath, '../../../'));
+    const packagePath = fileUrl.startsWith('file:') ? fileURLToPath(fileUrl) : fileUrl;
+
+    return findPackageRoot(packagePath, '@vendure/dashboard');
 }
 
 /**
@@ -355,7 +461,8 @@ function getDashboardPackageRoot(): string {
 export function getNormalizedVendureConfigPath(vendureConfigPath: string | URL): string {
     const stringPath = typeof vendureConfigPath === 'string' ? vendureConfigPath : vendureConfigPath.href;
     if (stringPath.startsWith('file:')) {
-        return fixWindowsPath(new URL(stringPath).pathname);
+        // fileURLToPath decodes percent-encoding (e.g. spaces) and handles Windows drive letters.
+        return fileURLToPath(stringPath);
     }
     return fixWindowsPath(stringPath);
 }

@@ -23,6 +23,33 @@ import { prorate } from './prorate';
 
 /**
  * @description
+ * Options passed to {@link OrderService.applyPriceAdjustments} and {@link OrderCalculator.applyPriceAdjustments}.
+ *
+ * @docsCategory orders
+ * @docsPage OrderRecalculationStrategy
+ * @since 3.8.0
+ */
+export interface ApplyPriceAdjustmentsOptions {
+    /**
+     * @description
+     * Whether the shipping method & rate should be re-evaluated — which may swap the Order's
+     * shipping method to a different eligible one. Defaults to `true`.
+     */
+    recalculateShipping?: boolean;
+    /**
+     * @description
+     * When `recalculateShipping` is `false` (the chosen shipping method & rate are left
+     * untouched), this controls whether shipping *promotions* are still re-tested and their
+     * adjustments cleared/re-applied. Defaults to the value of `recalculateShipping`, so
+     * callers that freeze shipping entirely (e.g. order modification) are unaffected, while
+     * read-time recalculation can drop a now-inactive shipping promotion's discount without
+     * re-selecting the method.
+     */
+    recalculateShippingPromotions?: boolean;
+}
+
+/**
+ * @description
  * This helper is used when making changes to an Order, to apply all applicable price adjustments to that Order,
  * including:
  *
@@ -55,7 +82,7 @@ export class OrderCalculator {
         order: Order,
         promotions: Promotion[],
         updatedOrderLines: OrderLine[] = [],
-        options?: { recalculateShipping?: boolean },
+        options?: ApplyPriceAdjustmentsOptions,
     ): Promise<Order> {
         const { taxZoneStrategy } = this.configService.taxOptions;
         // We reset the promotions array as all promotions
@@ -101,11 +128,20 @@ export class OrderCalculator {
                 await this.applyTaxes(ctx, order, activeTaxZone);
             }
         }
-        if (options?.recalculateShipping !== false) {
+        const recalculateShipping = options?.recalculateShipping !== false;
+        // Shipping promotions default to following `recalculateShipping`, but can be re-tested
+        // independently: read-time recalculation freezes the chosen method/rate yet must still
+        // clear a now-inactive shipping promotion's adjustment (clearAdjustments() only runs
+        // inside applyShippingPromotions).
+        const recalculateShippingPromotions = options?.recalculateShippingPromotions ?? recalculateShipping;
+        if (recalculateShipping) {
             await this.applyShipping(ctx, order);
+        }
+        if (recalculateShippingPromotions) {
             await this.applyShippingPromotions(ctx, order, promotions);
         }
         this.calculateOrderTotals(order);
+        this.removeIneffectivePromotions(order);
         return order;
     }
 
@@ -186,11 +222,14 @@ export class OrderCalculator {
         order: Order,
         promotions: Promotion[],
     ): Promise<void> {
+        // Clear every line before testing any promotion. Otherwise the discounts from the previous
+        // calculation still reduce the subTotal which conditions such as minimum_order_amount test.
         for (const line of order.lines) {
-            // Must be re-calculated for each line, since the previous lines may have triggered promotions
-            // which affected the order price.
             line.clearAdjustments();
+        }
+        this.calculateOrderTotals(order);
 
+        for (const line of order.lines) {
             for (const promotion of promotions) {
                 // We need to test the promotion *again*, even though we've tested them for the line.
                 // This is because the previous Promotions may have adjusted the Order in such a way
@@ -243,8 +282,11 @@ export class OrderCalculator {
                     const adjustment = await promotion.apply(ctx, { order }, state);
                     if (adjustment && adjustment.amount !== 0) {
                         const amount = adjustment.amount;
-                        const weights = order.lines.map(l =>
-                            l.quantity !== 0 ? l.proratedLinePriceWithTax : 0,
+                        const { orderLineDiscountDistributionStrategy } = this.configService.orderOptions;
+                        const weights = await Promise.all(
+                            order.lines.map(line =>
+                                orderLineDiscountDistributionStrategy.getWeight(ctx, line, order),
+                            ),
                         );
                         const distribution = prorate(weights, amount);
                         order.lines.forEach((line, i) => {
@@ -376,5 +418,36 @@ export class OrderCalculator {
         if (order.promotions && !order.promotions.find(p => idsAreEqual(p.id, promotion.id))) {
             order.promotions.push(promotion);
         }
+    }
+
+    /**
+     * Promotions are added to the Order as soon as their conditions pass, since a Promotion which
+     * discounts nothing on one OrderLine may still discount a later line, the Order total or the
+     * shipping. Once everything has been applied, any Promotion which ended up adjusting nothing
+     * at all is removed again: `Order.promotions` is what the usage limits are counted from, so a
+     * Promotion the customer got no benefit from must not consume a usage.
+     *
+     * Promotions whose actions define side effects are kept regardless, as their benefit (a free
+     * gift, say) is not expressed as an adjustment amount - and on the first pass the side effect
+     * has not run yet, so there is nothing to discount.
+     */
+    private removeIneffectivePromotions(order: Order) {
+        if (!order.promotions?.length) {
+            return;
+        }
+        const adjustmentSources = new Set<string>();
+        for (const line of order.lines) {
+            for (const adjustment of line.adjustments ?? []) {
+                adjustmentSources.add(adjustment.adjustmentSource);
+            }
+        }
+        for (const shippingLine of order.shippingLines ?? []) {
+            for (const adjustment of shippingLine.adjustments ?? []) {
+                adjustmentSources.add(adjustment.adjustmentSource);
+            }
+        }
+        order.promotions = order.promotions.filter(
+            promotion => adjustmentSources.has(promotion.getSourceId()) || promotion.hasSideEffects,
+        );
     }
 }

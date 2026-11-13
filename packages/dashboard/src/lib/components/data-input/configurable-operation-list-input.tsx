@@ -39,8 +39,16 @@ export function ConfigurableOperationListInput({
     );
 }
 
-function parseArrayValue(value: string): string[] {
+function parseArrayValue(value: unknown): string[] {
+    // FormControlAdapter passes list values already parsed into an array. Serializing
+    // and re-parsing them here dropped numeric-looking entries, so return them as-is.
+    if (Array.isArray(value)) {
+        return value.map(String);
+    }
     if (!value) return [];
+    if (typeof value !== 'string') {
+        return [String(value)];
+    }
 
     try {
         const parsed = JSON.parse(value);

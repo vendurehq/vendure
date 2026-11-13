@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { BuyerPrice } from '@vendure/common/lib/generated-shop-types';
 import {
     AssignProductVariantsToChannelInput,
     CreateProductVariantInput,
@@ -18,12 +19,18 @@ import { In, IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { ForbiddenError, UserInputError } from '../../common/error/errors';
+import {
+    EntityNotFoundError,
+    ForbiddenError,
+    NoBuyerPriceError,
+    UserInputError,
+} from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { roundMoney } from '../../common/round-money';
-import { ListQueryOptions } from '../../common/types/common-types';
+import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { idsAreEqual } from '../../common/utils';
+import { Buyer } from '../../config/catalog/product-variant-buyer-price-strategy';
 import { UpdatedProductVariantPrice } from '../../config/catalog/product-variant-price-update-strategy';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
@@ -41,27 +48,97 @@ import { FacetValue } from '../../entity/facet-value/facet-value.entity';
 import { ProductOption } from '../../entity/product-option/product-option.entity';
 import { ProductVariantTranslation } from '../../entity/product-variant/product-variant-translation.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { ProductTranslation } from '../../entity/product/product-translation.entity';
 import { Product } from '../../entity/product/product.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { ProductVariantChannelEvent } from '../../event-bus/events/product-variant-channel-event';
 import { ProductVariantEvent } from '../../event-bus/events/product-variant-event';
 import { ProductVariantPriceEvent } from '../../event-bus/events/product-variant-price-event';
+import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channel-enabled-checker';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
+import { SlugValidator } from '../helpers/slug-validator/slug-validator';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { samplesEach } from '../helpers/utils/samples-each';
 
 import { AssetService } from './asset.service';
+import { BuyerIdentityService } from './buyer-identity.service';
 import { ChannelService } from './channel.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
-import { StockLevelService } from './stock-level.service';
+import { StockLevelReadOptions, StockLevelService } from './stock-level.service';
 import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
+
+/**
+ * @description
+ * The options of `ProductVariantService.calculateBuyerPrice()`.
+ *
+ * @docsCategory services
+ * @since 4.0.0
+ */
+export interface BuyerPriceOptions {
+    /**
+     * @description
+     * A positive integer.
+     *
+     * @default 1
+     */
+    quantity?: number;
+    /**
+     * @description
+     * The pricing data, for example the values that the storefront passes as OrderLine custom fields
+     * to `addItemToOrder`. The strategy receives a copy.
+     */
+    data?: Record<string, unknown>;
+    /**
+     * @description
+     * Who the price is for. Defaults to the Buyer of the active User, see
+     * `BuyerIdentityService.forActiveUser()`.
+     */
+    buyer?: Buyer;
+}
+
+/**
+ * @description
+ * The options of `ProductVariantService.calculateBuyerPriceForOrder()`.
+ *
+ * @docsCategory services
+ * @since 4.0.0
+ */
+export interface BuyerPriceForOrderOptions {
+    /**
+     * @description
+     * The quantity of the OrderLine.
+     */
+    quantity: number;
+    /**
+     * @description
+     * The custom fields of the OrderLine. The strategy receives a shallow copy as the `data` argument.
+     */
+    orderLineCustomFields: { [key: string]: any };
+    /**
+     * @description
+     * Who the price is for. Defaults to the Buyer of the Customer of the Order, see
+     * `BuyerIdentityService.forCustomer()`. An {@link OrderItemPriceCalculationStrategy} can pass its
+     * own Buyer, for example the Customer of a company for a shared cart.
+     */
+    buyer?: Buyer;
+}
+
+/**
+ * @description
+ * The result of `ProductVariantService.calculateBuyerPrice()`: the price for the GraphQL `BuyerPrice`
+ * type, and the `metadata` of the {@link ProductVariantBuyerPriceStrategy} result.
+ *
+ * @docsCategory services
+ * @since 4.0.0
+ */
+export type BuyerPriceResult = BuyerPrice & { metadata?: Record<string, unknown> };
 
 /**
  * @description
@@ -90,6 +167,9 @@ export class ProductVariantService {
         private requestCache: RequestContextCacheService,
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
+        private slugValidator: SlugValidator,
+        private buyerIdentityService: BuyerIdentityService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async findAll(
@@ -114,6 +194,8 @@ export class ProductVariantService {
                 where: { deletedAt: IsNull() },
                 ctx,
                 customPropertyMap,
+                // For the Admin API `enabledInChannel` field of each item
+                loadChannelAssignment: ctx.apiType === 'admin',
             })
             .getManyAndCount()
             .then(async ([variants, totalItems]) => {
@@ -184,15 +266,21 @@ export class ProductVariantService {
                 where: { deletedAt: IsNull() },
                 ctx,
             })
-            .innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
-                channelId: ctx.channelId,
-            })
-            .innerJoinAndSelect('productvariant.product', 'product', 'product.id = :productId', {
+            // Not selected: the join is only here to constrain the query to one Product. Selecting
+            // it would populate `productvariant.product` with a Product carrying none of its own
+            // relations, which then takes precedence over the fully-loaded one when `product` is
+            // among the requested relations.
+            .innerJoin('productvariant.product', 'product', 'product.id = :productId', {
                 productId,
             });
 
         if (ctx.apiType === 'shop') {
-            qb.andWhere('productvariant.enabled = :enabled', { enabled: true });
+            // Also restricts the query to the active Channel
+            this.channelEnabledChecker.applyToQuery(ctx, qb, ProductVariant);
+        } else {
+            qb.innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
+                channelId: ctx.channelId,
+            });
         }
 
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
@@ -214,10 +302,13 @@ export class ProductVariantService {
         options: ListQueryOptions<ProductVariant>,
         relations: RelationPaths<ProductVariant> = [],
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
+        const isShop = ctx.apiType === 'shop';
         const qb = this.listQueryBuilder
             .build(ProductVariant, options, {
                 relations: unique([...relations, 'taxCategory']),
-                channelId: ctx.channelId,
+                // In the Shop API, the per-channel enabled check below restricts the query to the
+                // active Channel, so the ListQueryBuilder does not need to join it as well
+                channelId: isShop ? undefined : ctx.channelId,
                 ctx,
             })
             .leftJoin('productvariant.collections', 'collection')
@@ -226,8 +317,10 @@ export class ProductVariantService {
             .andWhere('productvariant.deletedAt IS NULL')
             .andWhere('collection.id = :collectionId', { collectionId });
 
-        if (options && options.filter && options.filter.enabled && options.filter.enabled.eq === true) {
-            qb.andWhere('product.enabled = :enabled', { enabled: true });
+        if (isShop) {
+            // Both the Product and the variant must be available in the active Channel
+            this.channelEnabledChecker.applyToQuery(ctx, qb, Product, 'product');
+            this.channelEnabledChecker.applyToQuery(ctx, qb, ProductVariant);
         }
 
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
@@ -319,8 +412,19 @@ export class ProductVariantService {
      * Returns the number of saleable units of the ProductVariant, i.e. how many are available
      * for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
      * as well as the local and global `outOfStockThreshold` settings.
+     *
+     * Pass `{ lockStockLevels: true }` when the result is used to decide whether stock may be
+     * allocated. This holds a write lock on the StockLevel rows until the surrounding
+     * transaction commits, so that two concurrent checkouts cannot both pass the check and
+     * then both allocate the same units. See {@link StockLevelService.getAvailableStock}.
+     *
+     * @since 3.7.4 - Added the `options` parameter
      */
-    async getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant): Promise<number> {
+    async getSaleableStockLevel(
+        ctx: RequestContext,
+        variant: ProductVariant,
+        options?: StockLevelReadOptions,
+    ): Promise<number> {
         const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
 
         const inventoryNotTracked =
@@ -332,6 +436,7 @@ export class ProductVariantService {
         const { stockOnHand, stockAllocated } = await this.stockLevelService.getAvailableStock(
             ctx,
             variant.id,
+            options,
         );
         const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
             ? outOfStockThreshold
@@ -386,6 +491,9 @@ export class ProductVariantService {
         input: CreateProductVariantInput[],
     ): Promise<Array<Translated<ProductVariant>>> {
         const ids: ID[] = [];
+        // No up-front stock lock here, unlike `update()`: each variant is created in this loop, so
+        // its StockLevel rows do not exist until `createSingle` inserts them and no other
+        // transaction can be holding them. The ids are not even known before the loop runs.
         for (const productInput of input) {
             const id = await this.createSingle(ctx, productInput);
             ids.push(id);
@@ -399,6 +507,16 @@ export class ProductVariantService {
         ctx: RequestContext,
         input: UpdateProductVariantInput[],
     ): Promise<Array<Translated<ProductVariant>>> {
+        // Lock every variant whose stock this call adjusts before the loop below touches any of it.
+        // The loop visits the variants in input order, and a bulk update can share variants with a
+        // concurrent settlement or order modification; taking the locks up front in the shared
+        // order is what stops the two from deadlocking. Untracked variants are included because the
+        // adjustment derives its delta from the current `stockOnHand` either way.
+        await this.stockLevelService.lockStockLevelsForVariants(
+            ctx,
+            input.filter(i => i.stockOnHand != null || i.stockLevels).map(i => i.id),
+            { includeUntrackedVariants: true },
+        );
         for (const productInput of input) {
             await this.updateSingle(ctx, productInput);
         }
@@ -411,10 +529,11 @@ export class ProductVariantService {
     }
 
     private async createSingle(ctx: RequestContext, input: CreateProductVariantInput): Promise<ID> {
+        // optionIds is nullable in the GraphQL input, so it can arrive as null. Both checks
+        // below read its length, so normalise it first.
+        input.optionIds ??= [];
         await this.validateVariantOptionIds(ctx, input.productId, input.optionIds);
-        if (!input.optionIds) {
-            input.optionIds = [];
-        }
+        await this.assertOptionCombinationIsUnused(ctx, input.productId, input.optionIds);
         if (input.price == null) {
             input.price = 0;
         }
@@ -451,6 +570,12 @@ export class ProductVariantService {
         });
         await this.customFieldRelationService.updateRelations(ctx, ProductVariant, input, createdVariant);
         await this.assetService.updateEntityAssets(ctx, createdVariant, input);
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            ProductVariant,
+            createdVariant.id,
+            input,
+        );
         if (input.stockOnHand != null || input.stockLevels) {
             await this.stockMovementService.adjustProductVariantStock(
                 ctx,
@@ -478,6 +603,32 @@ export class ProductVariantService {
         // variant created directly within a non-default channel the channel-filtered `stockLevels`
         // field resolves to a real entry rather than an empty array until stock is first adjusted.
         await this.ensureStockLevelsForChannel(ctx, [createdVariant.id], ctx.channelId);
+
+        // Assign the new variant to any other channels the parent product is already assigned to,
+        // so that the variant is visible in all channels the product belongs to.
+        // We reuse assignProductVariantsToChannel which handles permissions, pricing
+        // (pricesIncludeTax + defaultCurrencyCode), stock-level seeding, asset assignment,
+        // option and option group assignment, and ProductVariantChannelEvent — matching the flow in
+        // ProductService.assignProductsToChannel().
+        const product = await this.connection.getRepository(ctx, Product).findOne({
+            where: { id: input.productId },
+            relations: { channels: true },
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
+        });
+        if (product) {
+            const additionalChannelIds = product.channels
+                .map(c => c.id)
+                .filter(id => !idsAreEqual(id, ctx.channelId) && !idsAreEqual(id, defaultChannel.id));
+
+            for (const additionalChannelId of additionalChannelIds) {
+                await this.assignProductVariantsToChannel(ctx, {
+                    productVariantIds: [createdVariant.id],
+                    channelId: additionalChannelId,
+                });
+            }
+        }
+
         return createdVariant.id;
     }
 
@@ -491,7 +642,7 @@ export class ProductVariantService {
             throw new UserInputError('error.stockonhand-cannot-be-negative');
         }
         if (input.optionIds) {
-            await this.validateVariantOptionIds(ctx, existingVariant.productId, input.optionIds, true);
+            await this.validateVariantOptionIds(ctx, existingVariant.productId, input.optionIds);
         }
         const inputWithoutPriceAndStockLevels = {
             ...input,
@@ -542,6 +693,12 @@ export class ProductVariantService {
             },
         });
         await this.customFieldRelationService.updateRelations(ctx, ProductVariant, input, updatedVariant);
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            ProductVariant,
+            updatedVariant.id,
+            input,
+        );
         if (input.price != null) {
             await this.createOrUpdateProductVariantPrice(ctx, input.id, input.price, ctx.channelId);
         }
@@ -707,11 +864,37 @@ export class ProductVariantService {
         }
     }
 
-    async softDelete(ctx: RequestContext, id: ID | ID[]): Promise<DeletionResponse> {
+    /**
+     * @description
+     * Soft-deletes the ProductVariant(s) with the given id(s).
+     *
+     * The lookup is scoped to the active Channel, so an id which does not belong to
+     * `ctx.channelId` throws an {@link EntityNotFoundError}. Previously an unknown or
+     * out-of-channel id was silently reported as deleted.
+     *
+     * @param checkChannel - Set to `false` only for trusted internal cascades which have
+     * already verified the parent entity's Channel, such as `ProductService.softDelete`.
+     * A global Product deletion must reach every one of its variants, including any which
+     * were individually removed from the active Channel.
+     */
+    async softDelete(
+        ctx: RequestContext,
+        id: ID | ID[],
+        checkChannel: boolean = true,
+    ): Promise<DeletionResponse> {
         const ids = Array.isArray(id) ? id : [id];
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(ids) } });
+        let variants: ProductVariant[];
+        if (checkChannel) {
+            variants = await this.connection.findByIdsInChannel(ctx, ProductVariant, ids, ctx.channelId, {});
+            const missingId = ids.find(candidate => !variants.some(v => idsAreEqual(v.id, candidate)));
+            if (missingId != null) {
+                throw new EntityNotFoundError('ProductVariant', missingId);
+            }
+        } else {
+            variants = await this.connection
+                .getRepository(ctx, ProductVariant)
+                .find({ where: { id: In(ids) } });
+        }
         for (const variant of variants) {
             variant.deletedAt = new Date();
         }
@@ -735,6 +918,138 @@ export class ProductVariantService {
         variant: ProductVariant,
         priceField: F,
     ): Promise<ProductVariant[F]> {
+        const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
+        return hydratedVariant[priceField];
+    }
+
+    /**
+     * @description
+     * Calculates the unit price of the ProductVariant for a buyer, the given quantity and the given
+     * pricing data, without an Order. It applies the Channel price and tax (as for the `price` and
+     * `priceWithTax` fields), and then runs the configured {@link ProductVariantBuyerPriceStrategy}.
+     * The buyer is the `buyer` option, or else the Buyer of the active User from the
+     * {@link BuyerIdentityService}.
+     *
+     * Returns `undefined` if the variant or its Product is not available in the active Channel (see
+     * {@link ChannelEnabledChecker}). Then the strategy does not run. It also returns `undefined` if
+     * the strategy gives no price for this buyer. The result has the `metadata`
+     * of the strategy result. It is not a field of the GraphQL `BuyerPrice` type, but a field resolver
+     * of a plugin can read it from the parent object.
+     *
+     * The result is the base unit price of the buyer, not a guarantee of the final cart price. The tax
+     * rate comes from the tax zone of the active session, and the cart uses the tax zone of the Order.
+     *
+     * The strategy receives a copy of the variant and of the data, so the given objects do not change.
+     * Vendure does not cache the result: the strategy runs on each call.
+     *
+     * @since 4.0.0
+     */
+    async calculateBuyerPrice(
+        ctx: RequestContext,
+        variant: ProductVariant,
+        options: BuyerPriceOptions = {},
+    ): Promise<BuyerPriceResult | undefined> {
+        const { quantity = 1, data, buyer = this.buyerIdentityService.forActiveUser(ctx) } = options;
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            throw new UserInputError('error.buyer-price-quantity-must-be-positive');
+        }
+        if (!(await this.isAvailableInActiveChannel(ctx, variant))) {
+            return undefined;
+        }
+        const hydratedVariant = await this.getVariantWithPrices(ctx, variant);
+        const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
+        const result = await productVariantBuyerPriceStrategy.calculateUnitPrice(
+            ctx,
+            new ProductVariant(hydratedVariant),
+            { quantity, data: structuredClone(data), buyer },
+        );
+        if (!result) {
+            return undefined;
+        }
+        const { price, priceIncludesTax, metadata } = result;
+        const taxRate = hydratedVariant.taxRateApplied;
+        return {
+            price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
+            priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
+            metadata,
+        };
+    }
+
+    /**
+     * @description
+     * Calculates the unit price of an OrderLine with the configured {@link ProductVariantBuyerPriceStrategy},
+     * for a buyer of the Order. The {@link DefaultOrderItemPriceCalculationStrategy} uses this method.
+     * A custom {@link OrderItemPriceCalculationStrategy} that replaces the default calls it too, so that the
+     * cart and the Shop API `ProductVariant.buyerPrice` field use the same strategy and the same buyer.
+     *
+     * The `productVariant` must have the Channel price and tax applied, as the
+     * OrderItemPriceCalculationStrategy receives it. The strategy receives the `buyer` option, or else the
+     * Buyer of the Customer of the Order, and the OrderLine custom fields as the `data` argument. It
+     * receives a copy of the variant and a shallow copy of the custom fields, so the given objects do not
+     * change. The result includes the `metadata` of the strategy.
+     *
+     * If the strategy gives no price for this buyer, this method throws a {@link NoBuyerPriceError}. Then
+     * Vendure does not add a new OrderLine, and an OrderLine that is already in the Order keeps its
+     * current price.
+     *
+     * @since 4.0.0
+     */
+    async calculateBuyerPriceForOrder(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        order: Order,
+        options: BuyerPriceForOrderOptions,
+    ): Promise<PriceCalculationResult> {
+        const {
+            quantity,
+            orderLineCustomFields,
+            buyer = this.buyerIdentityService.forCustomer(ctx, order.customerId),
+        } = options;
+        const { productVariantBuyerPriceStrategy } = this.configService.catalogOptions;
+        const result = await productVariantBuyerPriceStrategy.calculateUnitPrice(
+            ctx,
+            new ProductVariant(productVariant),
+            {
+                quantity,
+                data: { ...orderLineCustomFields },
+                buyer,
+            },
+        );
+        if (!result) {
+            throw new NoBuyerPriceError(productVariant.id);
+        }
+        return result;
+    }
+
+    /**
+     * The variant and its Product must be available in the active Channel, as for `addItemToOrder`.
+     * The Product check runs once for each Product and request.
+     */
+    private async isAvailableInActiveChannel(ctx: RequestContext, variant: ProductVariant): Promise<boolean> {
+        const [variantEnabled, productEnabled] = await Promise.all([
+            this.channelEnabledChecker.isEnabled(ctx, ProductVariant, variant),
+            this.requestCache.get(
+                ctx,
+                `ProductVariantService.productEnabled(${variant.productId})`,
+                async () => {
+                    const product =
+                        variant.product ??
+                        (await this.connection.getRepository(ctx, Product).findOne({
+                            where: { id: variant.productId },
+                            select: { id: true, enabled: true },
+                            loadEagerRelations: false,
+                        }));
+                    return !!product && this.channelEnabledChecker.isEnabled(ctx, Product, product);
+                },
+            ),
+        ]);
+        return variantEnabled && productEnabled;
+    }
+
+    /**
+     * Applies the Channel price and tax to the variant once for each request.
+     */
+    private getVariantWithPrices(ctx: RequestContext, variant: ProductVariant): Promise<ProductVariant> {
         const cacheKey = `hydrate-variant-price-fields-${variant.id}`;
         let populatePricesPromise = this.requestCache.get<Promise<ProductVariant>>(ctx, cacheKey);
 
@@ -767,8 +1082,7 @@ export class ProductVariantService {
             });
             this.requestCache.set(ctx, cacheKey, populatePricesPromise);
         }
-        const hydratedVariant = await populatePricesPromise;
-        return hydratedVariant[priceField];
+        return populatePricesPromise;
     }
 
     /**
@@ -808,7 +1122,8 @@ export class ProductVariantService {
     /**
      * @description
      * Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
-     * {@link ProductVariantPrice} and also assign the associated Product and any Assets to the Channel too.
+     * {@link ProductVariantPrice} and also assign the associated Product, any Assets, and the variant's
+     * ProductOptions and their ProductOptionGroups to the Channel too.
      */
     async assignProductVariantsToChannel(
         ctx: RequestContext,
@@ -822,15 +1137,28 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const variants = await this.connection.getRepository(ctx, ProductVariant).find({
-            where: {
-                id: In(input.productVariantIds),
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {
+                relations: { taxCategory: true, assets: true, options: { group: true } },
             },
-            relations: ['taxCategory', 'assets'],
-        });
+        );
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
+        // Assigning a variant also assigns its Product, so the Product's slug must be free there.
+        await this.slugValidator.assertNoConflictsInChannel(
+            ctx,
+            ProductTranslation,
+            unique(variants.filter(v => !v.deletedAt).map(v => v.productId)),
+            input.channelId,
+        );
         const assignedVariantIds: ID[] = [];
+        const optionIds: ID[] = [];
+        const optionGroupIds: ID[] = [];
         for (const variant of variants) {
             if (variant.deletedAt) {
                 continue;
@@ -848,8 +1176,39 @@ export class ProductVariantService {
             );
             const assetIds = variant.assets?.map(a => a.assetId) || [];
             await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
+            // An active variant can still reference a soft-deleted option or group.
+            // assignToChannels throws on those, so they are skipped.
+            for (const option of variant.options ?? []) {
+                if (!option.deletedAt) {
+                    optionIds.push(option.id);
+                }
+                if (!option.group?.deletedAt) {
+                    optionGroupIds.push(option.groupId);
+                }
+            }
             assignedVariantIds.push(variant.id);
         }
+        // One update for all variants, after assignToChannels() has copied the data of the existing
+        // assignments, so that an explicit `enabledInChannel` wins
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            ProductVariant,
+            assignedVariantIds,
+            input,
+            input.channelId,
+        );
+        // Also assign the variants' options and their groups, matching
+        // ProductService.assignProductsToChannel(). Otherwise `ProductOption.group`
+        // cannot be resolved in the target channel. Variants of one product share
+        // options, so the ids are de-duplicated and assigned once per call.
+        await Promise.all([
+            ...unique(optionGroupIds).map(id =>
+                this.channelService.assignToChannels(ctx, ProductOptionGroup, id, [input.channelId]),
+            ),
+            ...unique(optionIds).map(id =>
+                this.channelService.assignToChannels(ctx, ProductOption, id, [input.channelId]),
+            ),
+        ]);
         // Seed a StockLevel for each of the target channel's stock locations so that per-channel
         // inventory is usable immediately; otherwise the channel-filtered `stockLevels` field
         // resolves to `[]` in the newly-assigned channel until stock is first adjusted there.
@@ -922,17 +1281,42 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {},
+        );
+        return this.removeVariantsFromChannel(ctx, variants, input.channelId);
+    }
+
+    /**
+     * Removes the given ProductVariants from the Channel. The caller must have established that it may
+     * act on these variants: this method does not check permissions and does not scope the variants to
+     * the active Channel. `ProductService.removeProductsFromChannel()` calls it with the variants of a
+     * Product it has already loaded in the active Channel, so that the cascade removes every variant of
+     * that Product, including one which is no longer in the active Channel itself.
+     *
+     * The default-Channel guard lives here rather than in the public method, so that both callers keep
+     * it.
+     *
+     * @internal
+     */
+    async removeVariantsFromChannel(
+        ctx: RequestContext,
+        variants: ProductVariant[],
+        channelId: ID,
+    ): Promise<Array<Translated<ProductVariant>>> {
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
-        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+        if (idsAreEqual(channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(input.productVariantIds) } });
         for (const variant of variants) {
-            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [input.channelId]);
+            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [channelId]);
             await this.connection.getRepository(ctx, ProductVariantPrice).delete({
-                channelId: input.channelId,
+                channelId,
                 variant: { id: variant.id },
             });
             // If none of the ProductVariants is assigned to the Channel, remove the Channel from Product
@@ -940,15 +1324,13 @@ export class ProductVariantService {
                 where: {
                     productId: variant.productId,
                 },
-                relations: ['channels'],
+                relations: { channels: true },
             });
             const productChannelsFromVariants = ([] as Channel[]).concat(
                 ...productVariants.map(pv => pv.channels),
             );
-            if (!productChannelsFromVariants.find(c => c.id === input.channelId)) {
-                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [
-                    input.channelId,
-                ]);
+            if (!productChannelsFromVariants.find(c => c.id === channelId)) {
+                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [channelId]);
             }
         }
         const result = await this.findByIds(
@@ -959,19 +1341,16 @@ export class ProductVariantService {
         // whereby an event listener triggers a query which does not yet have access to the changes
         // within the current transaction.
         for (const variant of variants) {
-            await this.eventBus.publish(
-                new ProductVariantChannelEvent(ctx, variant, input.channelId, 'removed'),
-            );
+            await this.eventBus.publish(new ProductVariantChannelEvent(ctx, variant, channelId, 'removed'));
         }
         return result;
     }
 
-    private async validateVariantOptionIds(
-        ctx: RequestContext,
-        productId: ID,
-        optionIds: ID[] = [],
-        isUpdateOperation?: boolean,
-    ) {
+    /**
+     * Checks that the given option ids name exactly one option from each of the Product's
+     * option groups.
+     */
+    private async validateVariantOptionIds(ctx: RequestContext, productId: ID, optionIds: ID[]) {
         // this could be done with fewer queries but depending on the data, node will crash
         // https://github.com/vendurehq/vendure/issues/328
         const optionGroups = (
@@ -990,11 +1369,20 @@ export class ProductVariantService {
         if (
             !samplesEach(
                 optionIds,
-                activeOptions.map(g => g.options.map(o => o.id)),
+                activeOptions.map(g => g.options.filter(o => !o.deletedAt).map(o => o.id)),
             )
         ) {
             this.throwIncompatibleOptionsError(optionGroups);
         }
+    }
+
+    /**
+     * Ensures that no other ProductVariant of the Product already holds the given combination
+     * of options. Call this only after {@link validateVariantOptionIds}, which is what makes an
+     * empty list mean the Product has no option groups rather than a malformed input.
+     */
+    private async assertOptionCombinationIsUnused(ctx: RequestContext, productId: ID, optionIds: ID[]) {
+        if (optionIds.length === 0) return;
 
         const product = await this.connection.getEntityOrThrow(ctx, Product, productId, {
             channelId: ctx.channelId,
@@ -1008,7 +1396,6 @@ export class ProductVariantService {
             .filter(v => !v.deletedAt)
             .forEach(variant => {
                 const variantOptionIds = this.sortJoin(variant.options, ',', 'id');
-                if (isUpdateOperation) return;
                 if (variantOptionIds === inputOptionIds) {
                     throw new UserInputError('error.product-variant-options-combination-already-exists', {
                         variantName: this.translator.translate(variant, ctx).name,

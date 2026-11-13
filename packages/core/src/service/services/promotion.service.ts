@@ -9,18 +9,19 @@ import {
     DeletionResponse,
     DeletionResult,
     OrderType,
+    Permission,
     RemovePromotionsFromChannelInput,
     UpdatePromotionInput,
     UpdatePromotionResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull } from 'typeorm';
+import { In, IsNull, Raw } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion, JustErrorResults } from '../../common/error/error-result';
-import { UserInputError } from '../../common/error/errors';
+import { ForbiddenError, UserInputError } from '../../common/error/errors';
 import { MissingConditionsError } from '../../common/error/generated-graphql-admin-errors';
 import {
     CouponCodeExpiredError,
@@ -48,6 +49,7 @@ import { TranslatableSaver } from '../helpers/translatable-saver/translatable-sa
 import { TranslatorService } from '../helpers/translator/translator.service';
 
 import { ChannelService } from './channel.service';
+import { RoleService } from './role.service';
 
 /**
  * @description
@@ -71,6 +73,7 @@ export class PromotionService {
         private eventBus: EventBus,
         private translatableSaver: TranslatableSaver,
         private translator: TranslatorService,
+        private roleService: RoleService,
     ) {
         this.availableConditions = this.configService.promotionOptions.promotionConditions || [];
         this.availableActions = this.configService.promotionOptions.promotionActions || [];
@@ -168,6 +171,20 @@ export class PromotionService {
         if (!hasConditions && !hasCouponCode) {
             return new MissingConditionsError();
         }
+        const conditions = input.conditions
+            ? this.configArgService.parseInputList(
+                  'PromotionCondition',
+                  input.conditions,
+                  promotion.conditions,
+              )
+            : promotion.conditions;
+        const actions = input.actions
+            ? this.configArgService.parseInputList('PromotionAction', input.actions, promotion.actions)
+            : promotion.actions;
+        // Skipped when neither is sent, so a promotion stored without a required condition can still be disabled
+        if (input.conditions || input.actions) {
+            this.validateRequiredConditions(conditions, actions);
+        }
         const updatedPromotion = await this.translatableSaver.update({
             ctx,
             input,
@@ -176,14 +193,10 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput('PromotionCondition', c),
-                    );
+                    p.conditions = conditions;
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput('PromotionAction', a),
-                    );
+                    p.actions = actions;
                 }
             },
         });
@@ -193,7 +206,9 @@ export class PromotionService {
     }
 
     async softDeletePromotion(ctx: RequestContext, promotionId: ID): Promise<DeletionResponse> {
-        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId);
+        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId, {
+            channelId: ctx.channelId,
+        });
         await this.connection
             .getRepository(ctx, Promotion)
             .update({ id: promotionId }, { deletedAt: new Date() });
@@ -208,6 +223,12 @@ export class PromotionService {
         ctx: RequestContext,
         input: AssignPromotionsToChannelInput,
     ): Promise<Promotion[]> {
+        const hasPermission = await this.roleService.userHasAnyPermissionsOnChannel(ctx, input.channelId, [
+            Permission.UpdatePromotion,
+        ]);
+        if (!hasPermission) {
+            throw new ForbiddenError();
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
@@ -222,6 +243,16 @@ export class PromotionService {
     }
 
     async removePromotionsFromChannel(ctx: RequestContext, input: RemovePromotionsFromChannelInput) {
+        const hasPermission = await this.roleService.userHasAnyPermissionsOnChannel(ctx, input.channelId, [
+            Permission.UpdatePromotion,
+        ]);
+        if (!hasPermission) {
+            throw new ForbiddenError();
+        }
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+            throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
@@ -238,8 +269,9 @@ export class PromotionService {
     /**
      * @description
      * Checks the validity of a coupon code, by checking that it is associated with an existing,
-     * enabled and non-expired Promotion. Additionally, if there is a usage limit on the coupon code,
-     * this method will enforce that limit against the specified Customer.
+     * enabled and non-expired Promotion. The comparison is case-insensitive, so e.g. "SUMMER20"
+     * and "summer20" are treated as the same code. Additionally, if there is a usage limit on the
+     * coupon code, this method will enforce that limit against the specified Customer.
      */
     async validateCouponCode(
         ctx: RequestContext,
@@ -249,18 +281,17 @@ export class PromotionService {
     ): Promise<JustErrorResults<ApplyCouponCodeResult> | Promotion> {
         const promotion = await this.connection.getRepository(ctx, Promotion).findOne({
             where: {
-                couponCode,
+                // Use Raw() with LOWER() for a case-insensitive DB lookup, so that e.g.
+                // "summer20" matches a promotion with couponCode "SUMMER20". LOWER() is
+                // supported across all Vendure DB backends (MariaDB, PostgreSQL, SQLite).
+                couponCode: Raw(alias => `LOWER(${alias}) = LOWER(:couponCode)`, { couponCode }),
                 enabled: true,
                 deletedAt: IsNull(),
                 channels: { id: ctx.channelId },
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
-        if (
-            !promotion ||
-            promotion.couponCode !== couponCode ||
-            !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))
-        ) {
+        if (!promotion || !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
             return new CouponCodeInvalidError({ couponCode });
         }
         if (promotion.endsAt && +promotion.endsAt < +new Date()) {

@@ -2,7 +2,7 @@
 title: "Promotion"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/promotion/promotion.entity.ts" sourceLine="61" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/promotion/promotion.entity.ts" sourceLine="62" packageName="@vendure/core" />
 
 A Promotion is used to define a set of conditions under which promotions actions (typically discounts)
 will be applied to an Order.
@@ -35,9 +35,10 @@ class Promotion extends AdjustmentSource implements ChannelAware, SoftDeletable,
     translations: Array<Translation<Promotion>>;
     @Column() enabled: boolean;
     @ManyToMany(type => Channel, channel => channel.promotions)
-    @JoinTable()
+    // The junction table is owned by the channel assignment entity, which manages its schema.
+    @JoinTable({ synchronize: false })
     channels: Channel[];
-    @ManyToMany(type => Order, order => order.promotions)
+    @ManyToMany(type => Order, order => order.promotions, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
     orders: Order[];
     @Column(type => CustomPromotionFields)
     customFields: CustomPromotionFields;

@@ -33,7 +33,6 @@ export function ManageTagsDialog({ open, onOpenChange, onTagsUpdated }: Readonly
     const { data: tagsData, isLoading } = useQuery({
         queryKey: ['tags'],
         queryFn: () => api.query(tagListDocument, { options: { take: 100 } }),
-        staleTime: 1000 * 60 * 5,
     });
 
     // Update tag mutation

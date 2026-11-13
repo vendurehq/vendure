@@ -54,7 +54,7 @@ export class CampaignService {
     findOne(ctx: RequestContext, id: ID): Promise<Translated<Campaign> | undefined | null> {
         return this.connection
             .getRepository(ctx, Campaign)
-            .findOne({ where: { id }, relations: ['promotion'] })
+            .findOne({ where: { id }, relations: { promotion: true } })
             .then(campaignItem => {
                 return campaignItem && translateDeep(campaignItem, ctx.languageCode, ['promotion']);
             });
@@ -63,7 +63,7 @@ export class CampaignService {
     findOneByCode(ctx: RequestContext, code: string): Promise<Translated<Campaign> | undefined | null> {
         return this.connection
             .getRepository(ctx, Campaign)
-            .findOne({ where: { code }, relations: ['promotion'] })
+            .findOne({ where: { code }, relations: { promotion: true } })
             .then(campaignItem => {
                 return campaignItem && translateDeep(campaignItem, ctx.languageCode, ['promotion']);
             });

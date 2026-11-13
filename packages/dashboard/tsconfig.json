@@ -3,14 +3,17 @@
     "../../tsconfig.json"
   ],
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "lib": [
-      "dom"
+      "dom",
+      "es2021.intl",
+      "es2021.string"
     ],
     "types": [
       "node"
     ],
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
       "@/vdb/*": [
         "./src/lib/*"
@@ -25,6 +28,8 @@
     ]
   },
   "exclude": [
-    "./lib"
+    "./lib",
+    "e2e/fixtures",
+    "vite/tests/fixtures-*"
   ]
 }

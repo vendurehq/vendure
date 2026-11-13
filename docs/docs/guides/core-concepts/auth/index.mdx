@@ -12,6 +12,8 @@ The term **auth** is shorthand for _both_ authentication and authorization.
 
 Auth in Vendure applies to both **administrators** and **customers**. Authentication is controlled by the configured `AuthenticationStrategies`, and authorization is controlled by the configured `Roles` and `Permissions`.
 
+Sessions belong to the API they were created for: a session created on the Shop API is refused on the Admin API.
+
 ## The three pillars
 
 Vendure's authentication and authorization system is built on three pillars:
@@ -79,6 +81,18 @@ export const config: VendureConfig = {
 In the above example, we define the strategies available for authenticating in the Shop API and the Admin API. The `NativeAuthenticationStrategy` is the only one actually provided by Vendure out-of-the-box, and this is the default username/email + password strategy.
 
 The other strategies would be custom-built (or provided by future npm packages) by creating classes that implement the [`AuthenticationStrategy` interface](/reference/typescript-api/auth/authentication-strategy).
+
+:::warning
+A strategy which is registered on both APIs must not resolve a Shop API request to a User who is an administrator. Since v3.8.0, Vendure records the API each session was created for. The Admin API accepts a session only if it was created for the Admin API. Keep the strategies which can resolve administrators on `adminAuthenticationStrategy` only.
+
+The check runs on the Admin API only. A REST route added by a plugin is not checked, because a REST request cannot say which API it belongs to. A REST route gated by an administrator permission therefore still accepts a session created on the Shop API. If you add such a route, check `ctx.session?.apiType === 'admin'` in the handler.
+
+If you create sessions yourself, for example from a REST controller which completes an SSO callback, pass the API the caller authenticated against as the `apiType` argument of `AuthService.authenticate()`, `AuthService.createAuthenticatedSessionForUser()` or `SessionService.createNewAuthenticatedSession()`. The request context of a REST route has an `apiType` of `custom`, which is not accepted on the Admin API.
+
+A context built outside the request-response cycle carries no request, and `RequestContext.empty()` hardcodes `apiType: 'admin'`. A context in a job queue worker carries no request either, because `serialize()` deliberately drops it. A session created from such a context records the Shop API. Pass `apiType: 'admin'` if the session must work on the Admin API.
+
+An API key records the API it was created on. Rotating the key and recovering its session keep that value, so an Admin API key stays an Admin API key and a key created from the Shop API or from a REST route stays refused on the Admin API.
+:::
 
 ### Google authentication
 
@@ -379,7 +393,7 @@ Here's an example of an AuthenticationStrategy intended to be used on the Admin 
 
 This example uses [Keycloak](https://www.keycloak.org/), a popular open-source identity management server. To get your own Keycloak server up and running in minutes, follow the [Keycloak on Docker](https://www.keycloak.org/getting-started/getting-started-docker) guide.
 
-#### Configure a login page & Admin UI
+#### Configure a login page & Dashboard
 
 In this example, we'll assume the login page is hosted at `http://intranet/login`. We'll also assume that a "login to Vendure" button has been added to that page and that the page is using the [Keycloak JavaScript adapter](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter), which can be used to get the current user's authorization token:
 
@@ -401,31 +415,16 @@ vendureLoginButton.addEventListener('click', () => {
   )
   .then((result) => {
       if (result.data?.authenticate.user) {
-          // successfully authenticated - redirect to Vendure Admin UI
-          window.location.replace('http://localhost:3000/admin');
+          // successfully authenticated - redirect to the Vendure Dashboard
+          window.location.replace('http://localhost:3000/dashboard');
       }
   });
 });
 ```
 
-We also need to tell the Admin UI application about the custom login URL, since we have no need for the default "username/password" login form. This can be done by setting the [`loginUrl` property](/reference/typescript-api/common/admin-ui/admin-ui-config#loginurl) in the AdminUiConfig:
-
-```ts title="/src/vendure-config.ts"
-import { VendureConfig } from '@vendure/core';
-import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
-
-export const config: VendureConfig = {
-    // ...
-    plugins: [
-        AdminUiPlugin.init({
-            port: 5001,
-            adminUiConfig: {
-                loginUrl: 'http://intranet/login',
-            },
-        }),
-    ],
-};
-```
+If you'd also like users to be able to start this flow from the Dashboard's own login screen, you can add a
+"Login with Keycloak" button which links to your intranet login page using a
+[login page extension](/extending-the-dashboard/customizing-pages/customizing-login-page).
 
 #### Backend
 
@@ -509,7 +508,10 @@ export class KeycloakAuthenticationStrategy implements AuthenticationStrategy<Ke
             emailAddress: userInfo.email,
             firstName: userInfo.given_name,
             lastName: userInfo.family_name,
-            roles: [merchantRole],
+            // Name the Channel of each grant. The active Channel comes from the client's
+            // vendure-token header, so it is not a safe choice for a Role shared by all Channels.
+            // Here the Role is owned by the merchant's Channel, and granted there.
+            roleAssignments: [{ role: merchantRole, channelId: merchantRole.channelId! }],
         });
     }
 }

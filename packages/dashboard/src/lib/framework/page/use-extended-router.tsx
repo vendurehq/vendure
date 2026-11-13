@@ -1,5 +1,13 @@
-import { AnyRoute, createRoute, createRouter, RouterOptions } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import {
+    AnyRoute,
+    AnyRouter,
+    createRoute,
+    createRouter,
+    RouterOptions,
+    useRouter,
+    useRouterState,
+} from '@tanstack/react-router';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { ErrorPage } from '../../components/shared/error-page.js';
 import { AUTHENTICATED_ROUTE_PREFIX } from '../../constants.js';
 import { useDashboardExtensions } from '../extension-api/use-dashboard-extensions.js';
@@ -24,11 +32,11 @@ export const useExtendedRouter = (
             return createExtendedRouter(routerOptions, routeTree);
         }
 
-        const authenticatedRouteIndex = routeTree.children.findIndex(
+        const authenticatedRoute: AnyRoute | undefined = routeTree.children.find(
             (r: AnyRoute) => r.id === AUTHENTICATED_ROUTE_PREFIX,
         );
 
-        if (authenticatedRouteIndex === -1) {
+        if (!authenticatedRoute) {
             if (process.env.NODE_ENV !== 'production') {
                 console.error(
                     `[Dashboard] Could not find authenticated route with id ` +
@@ -41,8 +49,6 @@ export const useExtendedRouter = (
             // No authenticated route found, return router with base tree
             return createExtendedRouter(routerOptions, routeTree);
         }
-
-        let authenticatedRoute: AnyRoute = routeTree.children[authenticatedRouteIndex];
 
         const newAuthenticatedRoutes: AnyRoute[] = [];
         const newRootRoutes: AnyRoute[] = [];
@@ -61,7 +67,7 @@ export const useExtendedRouter = (
                         (r: AnyRoute) => r.path === pathWithoutLeadingSlash,
                     ) > -1
                 ) {
-                    // Skip if the route already exists
+                    warnRouteCollision(path);
                     continue;
                 }
 
@@ -71,7 +77,7 @@ export const useExtendedRouter = (
                     loader: config.loader,
                     validateSearch: config.validateSearch,
                     component: () => config.component(newRoute),
-                    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+                    errorComponent: ({ error }) => <ErrorPage error={error} />,
                 });
                 newAuthenticatedRoutes.push(newRoute);
             } else {
@@ -91,7 +97,7 @@ export const useExtendedRouter = (
                     );
 
                 if (routeExists) {
-                    // Skip if the route already exists
+                    warnRouteCollision(path);
                     continue;
                 }
 
@@ -101,7 +107,7 @@ export const useExtendedRouter = (
                     loader: config.loader,
                     validateSearch: config.validateSearch,
                     component: () => config.component(newRoute),
-                    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+                    errorComponent: ({ error }) => <ErrorPage error={error} />,
                 });
                 newRootRoutes.push(newRoute);
             }
@@ -112,24 +118,65 @@ export const useExtendedRouter = (
             return createExtendedRouter(routerOptions, routeTree);
         }
 
-        const childrenWithoutAuthenticated = routeTree.children.filter(
-            (r: AnyRoute) => r.id !== AUTHENTICATED_ROUTE_PREFIX,
-        );
-
-        const updatedAuthenticatedRoute = authenticatedRoute.addChildren([
+        // The base route tree is shared, and this memo can run more than once (StrictMode, HMR).
+        // The extended routes are views, so the base routes keep their original children.
+        const extendedAuthenticatedRoute = withChildren(authenticatedRoute, [
             ...authenticatedRoute.children,
             ...newAuthenticatedRoutes,
         ]);
 
-        const extendedRouteTree: AnyRoute = routeTree.addChildren([
-            ...childrenWithoutAuthenticated,
-            updatedAuthenticatedRoute,
+        const extendedRouteTree = withChildren(routeTree, [
+            ...routeTree.children.filter((r: AnyRoute) => r !== authenticatedRoute),
+            extendedAuthenticatedRoute,
             ...newRootRoutes,
         ]);
 
         return createExtendedRouter(routerOptions, extendedRouteTree);
     }, [baseRouteTree, routerOptions, extensionsLoaded]);
 };
+
+function warnRouteCollision(path: string) {
+    if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+            `[Dashboard] Extension route "${path}" conflicts with an existing route and will not be registered.`,
+        );
+    }
+}
+
+/**
+ * Returns a view of the route with the given children. The view reads and writes all other
+ * properties on the route itself, so the route and its `children` array stay unchanged.
+ */
+function withChildren(route: AnyRoute, children: AnyRoute[]): AnyRoute {
+    return new Proxy(route, {
+        get: (target, prop) => (prop === 'children' ? children : Reflect.get(target, prop)),
+    });
+}
+
+/**
+ * Shows an error message when the router has not loaded a route. Without it, the page is blank.
+ * For example, the dev build of `@tanstack/react-router` 1.170.x does not load a new router
+ * instance that a mounted `RouterProvider` receives.
+ */
+function RouterLoadGuard({ children }: Readonly<{ children: ReactNode }>) {
+    const router = useRouter();
+    const hasNoMatches = useRouterState({ select: s => s.status === 'idle' && s.matches.length === 0 });
+    // The router starts to load in a layout effect of `RouterProvider`. This effect runs later,
+    // so a router that still has no matches at that time did not start to load.
+    const [mountedRouter, setMountedRouter] = useState<AnyRouter>();
+    useEffect(() => setMountedRouter(router), [router]);
+
+    return (
+        <>
+            {children}
+            {hasNoMatches && mountedRouter === router ? (
+                <div className="text-destructive p-6">
+                    The Dashboard router did not load a route. Reload the page.
+                </div>
+            ) : null}
+        </>
+    );
+}
 
 /**
  * Helper to create a router with extended route tree, handling some
@@ -140,6 +187,7 @@ function createExtendedRouter(
     extendedRouteTree: AnyRoute,
 ) {
     return createRouter({
+        InnerWrap: RouterLoadGuard,
         ...routerOptions,
         dehydrate: routerOptions.dehydrate as any,
         hydrate: routerOptions.hydrate as any,

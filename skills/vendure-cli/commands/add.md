@@ -16,16 +16,15 @@ there is no add operation to run.
 vendure add <feature-flag> [value] [sub-options]
 ```
 
-| Feature flag                   | Creates                                                     | Required inputs (non-interactive)                                                  |
-| ------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `-p, --plugin <name>`          | A new plugin                                                | Plugin class name                                                                  |
-| `-e, --entity <name>`          | An entity in an existing plugin                             | Entity class name, `--selected-plugin <name>`                                      |
-| `-s, --service <name>`         | A service in an existing plugin                             | Service class name, `--selected-plugin <name>`                                     |
-| `-j, --job-queue [plugin]`     | A job queue handler                                         | Plugin value, `--name <name>`, `--selected-service <name>`                         |
-| `-c, --codegen [plugin]`       | GraphQL codegen configuration                               | Plugin value                                                                       |
-| `-a, --api-extension [plugin]` | An API extension scaffold                                   | Plugin value, `--selected-service <name>`, and `--query-name` or `--mutation-name` |
-| `-d, --dashboard [plugin]`     | Dashboard UI extensions                                     | Plugin value                                                                       |
-| `-u, --ui-extensions [plugin]` | Admin UI extensions (**deprecated** — prefer `--dashboard`) | Plugin value                                                                       |
+| Feature flag                   | Creates                         | Required inputs (non-interactive)                                                  |
+| ------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------- |
+| `-p, --plugin <name>`          | A new plugin                    | Plugin class name                                                                  |
+| `-e, --entity <name>`          | An entity in an existing plugin | Entity class name, `--selected-plugin <name>`                                      |
+| `-s, --service <name>`         | A service in an existing plugin | Service class name, `--selected-plugin <name>`                                     |
+| `-j, --job-queue [plugin]`     | A job queue handler             | Plugin value, `--name <name>`, `--selected-service <name>`                         |
+| `-c, --codegen [plugin]`       | GraphQL codegen configuration   | Plugin value                                                                       |
+| `-a, --api-extension [plugin]` | An API extension scaffold       | Plugin value, `--selected-service <name>`, and `--query-name` or `--mutation-name` |
+| `-d, --dashboard [plugin]`     | Dashboard UI extensions         | Plugin value                                                                       |
 
 ### Sub-options
 
@@ -48,9 +47,8 @@ vendure add <feature-flag> [value] [sub-options]
   mode, or the command errors out.
 - For entity-backed services, pass `--selected-entity <name>`. Using
   `--type entity` without `--selected-entity` can still prompt for an entity.
-- `--job-queue`, `--codegen`, `--api-extension`, `--dashboard`, and
-  `--ui-extensions` use optional-value plugin flags, but agents should pass the
-  plugin name. In non-interactive mode, omitting it errors before selection can
+- `--job-queue`, `--codegen`, `--api-extension` and `--dashboard` use
+  optional-value plugin flags, but agents should pass the plugin name. In non-interactive mode, omitting it errors before selection can
   happen.
 - `--api-extension` also requires an existing service plus at least one
   generated operation name: `--query-name`, `--mutation-name`, or both.

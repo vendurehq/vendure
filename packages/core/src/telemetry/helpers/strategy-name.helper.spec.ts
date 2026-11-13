@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { InjectableStrategy } from '../../common/types/injectable-strategy';
+import { composeStrategy } from '../../config/strategy-layer/compose-strategy';
+import { StrategyLayer } from '../../config/strategy-layer/strategy-layer';
+
 import { getStrategyName } from './strategy-name.helper';
 
 describe('getStrategyName()', () => {
@@ -81,5 +85,17 @@ describe('getStrategyName()', () => {
             strategy.name = ['not', 'a', 'string'];
             expect(getStrategyName(strategy)).toBe('unknown');
         });
+    });
+
+    it('returns the name of the base strategy for a composed strategy', () => {
+        class BaseStrategy implements InjectableStrategy {}
+        class NamedStrategy {
+            readonly name = 'named';
+        }
+        class Layer extends StrategyLayer.passThrough<InjectableStrategy>() {
+            static priority = 1;
+        }
+        expect(getStrategyName(composeStrategy(Layer, new BaseStrategy()))).toBe('BaseStrategy');
+        expect(getStrategyName(composeStrategy(Layer, new NamedStrategy() as InjectableStrategy))).toBe('named');
     });
 });

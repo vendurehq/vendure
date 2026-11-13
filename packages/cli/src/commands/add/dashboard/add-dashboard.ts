@@ -2,10 +2,10 @@ import { log } from '@clack/prompts';
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
-import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
-import { createFile, getPluginClasses } from '../../../utilities/ast-utils';
+import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
+import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts.js';
+import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
+import { createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
 
 export interface AddDashboardOptions {
     plugin?: VendurePluginRef;
@@ -51,7 +51,7 @@ export async function addDashboard(options?: AddDashboardOptions): Promise<CliCo
     if (isNonInteractive && !vendurePlugin) {
         throw new Error('Plugin must be specified when running in non-interactive mode');
     }
-    vendurePlugin = vendurePlugin ?? (await selectPlugin(project, 'Add UI extensions cancelled'));
+    vendurePlugin = vendurePlugin ?? (await selectPlugin(project, 'Add Dashboard extensions cancelled'));
 
     try {
         vendurePlugin.addMetadataProperty('dashboard', './dashboard/index.tsx');
@@ -64,7 +64,7 @@ export async function addDashboard(options?: AddDashboardOptions): Promise<CliCo
     const pluginDir = vendurePlugin.getPluginDir().getPath();
     const dashboardEntrypointFile = path.join(pluginDir, 'dashboard', 'index.tsx');
     if (!fs.existsSync(dashboardEntrypointFile)) {
-        createFile(project, path.join(__dirname, 'templates/index.template.tsx'), dashboardEntrypointFile);
+        createFile(project, path.join(import.meta.dirname, 'templates/index.template.tsx'), dashboardEntrypointFile);
     }
     log.success('Created Dashboard extension scaffold');
 

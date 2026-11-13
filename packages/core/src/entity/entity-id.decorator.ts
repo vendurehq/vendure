@@ -5,6 +5,13 @@ interface IdColumnOptions {
     nullable?: boolean;
     /** Whether this is a primary key. Defaults to false */
     primary?: boolean;
+    /**
+     * Whether the column references the primary key of another entity and must have exactly the
+     * same type, as the columns of a junction table do. Without it, ids stored by the UUID strategy
+     * use a plain `varchar` column, which differs from the primary key type on MySQL and Postgres.
+     * Defaults to false
+     */
+    matchPrimaryKeyType?: boolean;
 }
 
 interface IdColumnConfig {
@@ -53,12 +60,15 @@ export function EntityId(options?: IdColumnOptions) {
 /**
  * Returns any columns on the entity which have been decorated with the {@link EntityId}
  * decorator.
+ *
+ * Multiple registry entries can exist for a single entity type, since dynamically-registered
+ * columns (e.g. custom field relation id columns) are decorated on separate instances
+ * rather than on the class prototype.
  */
 export function getIdColumnsFor(entityType: Type<any>): IdColumnConfig[] {
-    const match = Array.from(idColumnRegistry.entries()).find(
-        ([entity, columns]) => entity.constructor === entityType,
-    );
-    return match ? match[1] : [];
+    return Array.from(idColumnRegistry.entries())
+        .filter(([entity]) => entity.constructor === entityType)
+        .flatMap(([, columns]) => columns);
 }
 
 /**

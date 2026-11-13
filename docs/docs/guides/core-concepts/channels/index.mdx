@@ -8,7 +8,7 @@ Channels are a feature of Vendure which allows multiple sales channels to be rep
 
 * Set Channel-specific currency, language, tax and shipping defaults
 * Assign only specific products to the channel (with channel-specific prices)
-* Create administrator roles limited to one or more channels
+* Grant administrators roles on specific channels only
 * Assign specific stock locations, assets, facets, collections, promotions, and other entities to the channel
 * Have orders and customers associated with specific channels.
 
@@ -29,7 +29,7 @@ Every Vendure server always has a **default Channel**, which contains _all_ enti
 
 ## Channel-aware entities
 
-Many entities are channel-aware, meaning that they can be associated with a multiple channels. The following entities are channel-aware:
+Many entities are channel-aware, meaning that they can be associated with multiple channels. The following entities are channel-aware:
 
 - [`Asset`](/reference/typescript-api/entities/asset/)
 - [`Collection`](/reference/typescript-api/entities/collection/)

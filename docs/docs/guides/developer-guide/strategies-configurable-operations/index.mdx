@@ -120,6 +120,178 @@ export class MyStockLocationStrategy implements StockLocationStrategy {
 }
 ```
 
+### Changing a configured strategy with layers
+
+A plugin can change the result of a configured strategy and keep the strategy itself. For this, the plugin adds a
+**strategy layer**. A layer holds the next strategy in the chain (`this.inner`) and has the same interface.
+
+Write a layer as a class that extends [`StrategyLayer`](/reference/typescript-api/configuration/strategy-layer/):
+
+```ts title="src/plugins/minimum-price/minimum-price-layer.ts"
+import {
+    OrderItemPriceCalculationStrategy,
+    PriceCalculationResult,
+    StrategyLayer,
+} from '@vendure/core';
+
+type PriceArgs = Parameters<OrderItemPriceCalculationStrategy['calculateUnitPrice']>;
+
+export class MinimumPriceLayer
+    extends StrategyLayer<OrderItemPriceCalculationStrategy, { minimum: number }>
+    implements OrderItemPriceCalculationStrategy
+{
+    static priority = 300;
+
+    async calculateUnitPrice(...args: PriceArgs): Promise<PriceCalculationResult> {
+        const result = await this.inner.calculateUnitPrice(...args);
+        return { ...result, price: Math.max(result.price, this.options.minimum) };
+    }
+}
+```
+
+Then add the layer in the `configuration` function of the plugin with
+[`composeStrategy()`](/reference/typescript-api/configuration/compose-strategy/):
+
+```ts title="src/plugins/minimum-price/minimum-price.plugin.ts"
+import { composeStrategy, PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { MinimumPriceLayer } from './minimum-price-layer';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    configuration: config => {
+        config.orderOptions.orderItemPriceCalculationStrategy = composeStrategy(
+            MinimumPriceLayer.with({ minimum: 100 }),
+            config.orderOptions.orderItemPriceCalculationStrategy,
+        );
+        return config;
+    },
+})
+export class MinimumPricePlugin {}
+```
+
+Vendure applies these rules:
+
+- **Priority sets the order.** The static `priority` sets the position of the layer in the chain. A layer with a lower
+  number gets the call first, as with the `priorityValue` of promotions. The order of the `plugins` array has no effect.
+  If two layers have the same priority, Vendure logs a warning and uses the plugin order for them.
+- **A layer is applied one time.** The class of a layer is its identity. If a strategy already has a layer of a class,
+  `composeStrategy()` does not add it again, and does not change its options or its priority.
+- **Vendure owns the lifecycle.** Vendure creates the layer instance, so a layer class has no constructor arguments.
+  Use `with()` to give options, and read them from `this.options`. Vendure calls `init()` on the base strategy and then on each
+  layer from the inside out, and waits for each call. It calls `destroy()` in the opposite order. A layer does not call
+  `init()` or `destroy()` on `this.inner`.
+- **Vendure logs each chain at startup**, with the class names of the layers in call order.
+
+#### Layers that change only some methods
+
+A layer that uses `implements` must define each method of the strategy interface. When the interface gets a new
+method, TypeScript reports an error and you decide what the layer does.
+
+If a layer changes only some methods, extend `StrategyLayer.passThrough()` and do not use `implements`. Vendure sends each
+method that the layer does not define to the inner strategy. TypeScript checks the signature of each method that the
+layer defines:
+
+```ts
+import { StockLocationStrategy, StrategyLayer } from '@vendure/core';
+
+export class ReservedStockLayer extends StrategyLayer.passThrough<StockLocationStrategy>() {
+    static priority = 200;
+
+    async getAvailableStock(...args: Parameters<StockLocationStrategy['getAvailableStock']>) {
+        const stock = await this.inner.getAvailableStock(...args);
+        return { ...stock, stockOnHand: Math.max(stock.stockOnHand - 5, 0) };
+    }
+}
+```
+
+If the inner strategy does not have an optional method, the layer does not have it either.
+
+#### Changing the base strategy
+
+A plugin that replaces the whole strategy removes the layers that the project and other plugins added. Vendure logs
+a warning that names the dropped layers. To change only the base strategy and keep the layers, use
+[`replaceBase()`](/reference/typescript-api/configuration/compose-strategy/):
+
+```ts
+config.catalogOptions.stockLocationStrategy = replaceBase(
+    config.catalogOptions.stockLocationStrategy,
+    new MultiChannelStockLocationStrategy(),
+);
+```
+
+#### Changing or removing a layer in the project config
+
+Vendure merges the project config before the `configuration` functions of the plugins run. Thus a project can record
+changes for a layer that a plugin adds later:
+
+```ts title="src/vendure-config.ts"
+import {
+    DefaultOrderItemPriceCalculationStrategy,
+    removeLayer,
+    setLayerPriority,
+    VendureConfig,
+} from '@vendure/core';
+import { MinimumPriceLayer } from './plugins/minimum-price/minimum-price-layer';
+import { OtherPriceLayer } from './plugins/other/other-price-layer';
+
+export const config: VendureConfig = {
+    // ...
+    orderOptions: {
+        orderItemPriceCalculationStrategy: removeLayer(
+            // Put the layer of the plugin at the priority 250. The options of the plugin stay.
+            setLayerPriority(new DefaultOrderItemPriceCalculationStrategy(), MinimumPriceLayer, 250),
+            // Do not apply this layer.
+            OtherPriceLayer,
+        ),
+    },
+};
+```
+
+If the project config adds a layer itself, for example `composeStrategy(MinimumPriceLayer.with({ minimum: 50 }, { priority: 250 }), ...)`,
+the options and the priority of the project win. The plugin cannot add the layer again.
+
+#### Checks on the configured strategy
+
+When a strategy has layers, the config option holds a different object than the base strategy. Thus `instanceof` and
+`constructor.name` on the config option do not see the base strategy. Use
+[`getBaseStrategy()`](/reference/typescript-api/configuration/compose-strategy/):
+
+```ts
+const jobQueueStrategy = getBaseStrategy(configService.jobQueueOptions.jobQueueStrategy);
+if (jobQueueStrategy instanceof InMemoryJobQueueStrategy) {
+    // ...
+}
+```
+
+Do not keep a reference to a composed strategy in the `configuration` function. A later change to the chain gives a
+new object.
+
+#### Ordered lists: `activeOrderStrategy`
+
+`orderOptions.activeOrderStrategy` accepts a list, and Vendure calls the entries in list order. To add an entry, use
+[`addStrategyToList()`](/reference/typescript-api/configuration/add-strategy-to-list/) and do not assign a new array:
+
+```ts
+config.orderOptions.activeOrderStrategy = addStrategyToList(
+    config.orderOptions.activeOrderStrategy,
+    new TokenActiveOrderStrategy(),
+    { priority: -100 },
+);
+```
+
+Vendure sorts the list by priority after all `configuration` functions have run. An entry with a lower number gets the
+call first. Entries that the project gives as a plain array, and the default entry, have the priority 0. Use a negative
+priority to call an entry before them. A project removes an entry, also the default entry, with `removeStrategyFromList()`:
+
+```ts title="src/vendure-config.ts"
+orderOptions: {
+    activeOrderStrategy: removeStrategyFromList(
+        defaultConfig.orderOptions.activeOrderStrategy,
+        DefaultActiveOrderStrategy,
+    ),
+},
+```
+
 ## Configurable Operations
 
 Configurable operations are similar to strategies in that they allow certain aspects of the system to be customized. However,
@@ -205,7 +377,7 @@ The `args` property is an object which defines the arguments which can be config
 object is a key-value pair, where the key is the name of the argument, and the value is an object which defines the type of the argument
 and any additional configuration.
 
-As an example let's look at the `dummyPaymentMethodHandler`, a test payment method which we ship with Vendure core:
+As an example let's look at the `dummyPaymentMethodHandler`, a test payment method which we ship with the Vendure Framework:
 
 ```ts title="dummy-payment-method.ts"
 import { PaymentMethodHandler, LanguageCode } from '@vendure/core';
@@ -323,6 +495,28 @@ a `component` property, and optional properties to configure that component.
 ```
 
 A full description of the available UI components can be found in the [Custom Fields guide](/developer-guide/custom-fields/#custom-field-ui).
+
+#### secret
+
+<span class="badge badge--secondary">Optional</span>
+
+`boolean`
+
+Since v3.8.0, setting `secret: true` on a `string` argument encrypts its value in the database and redacts it in API
+responses for users who lack the `ReadSecret` permission. Use it for values such as the API key of a payment
+method handler. List arguments cannot be secret. This requires an encryption key to be configured; see the
+[Secret Fields guide](/developer-guide/secret-fields/) for setup and details.
+
+```ts
+{
+    args: {
+        apiKey: {
+            type: 'string',
+            secret: true,
+        },
+    }
+}
+```
 
 ### Injecting dependencies
 

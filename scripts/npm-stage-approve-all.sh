@@ -4,8 +4,14 @@
 #
 # After a GitHub release triggers publish_to_npm.yml, every published
 # package lands in npm's staging area. This script finds them and
-# approves them all behind a single 2FA prompt (the 5-min OTP-skip
-# window covers the rest).
+# approves them in sequence.
+#
+# Every approval needs its own 2FA challenge. Unlike `npm trust`, npm does
+# not grant `stage approve` a session window — staging exists to prove a
+# human is present for each artifact, so a window would defeat it. Register
+# a passkey as a security key on your npm account: the challenge opens in
+# the browser, making each approval a fingerprint tap rather than a typed
+# OTP code.
 #
 # Usage:
 #   ./scripts/npm-stage-approve-all.sh 3.7.0
@@ -156,8 +162,6 @@ for entry in "${pending[@]}"; do
     continue
   fi
   approved=$((approved + 1))
-  # Stay inside the 5-minute 2FA skip window without hammering the API.
-  sleep 2
 done
 
 echo

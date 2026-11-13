@@ -5,5 +5,6 @@ export {
     CardDescription,
     CardFooter,
     CardHeader,
+    CardTable,
     CardTitle,
-} from '@vendure-io/ui/components/ui/card';
+} from '@vendure-io/ui/components/atoms/card';

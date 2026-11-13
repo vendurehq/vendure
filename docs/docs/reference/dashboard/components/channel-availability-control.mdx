@@ -1,0 +1,25 @@
+---
+title: "ChannelAvailabilityControl"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/channel-availability.tsx" sourceLine="77" packageName="@vendure/dashboard" since="4.0.0" />
+
+A switch that hides a Product or ProductVariant in the active Channel only (its
+`enabledInChannel` value). Meant for a side block of a detail page, next to the global
+"Enabled" switch in the page header, whose value it takes as `enabled`: while that is off, the
+help text says the entity is unavailable in every Channel.
+
+```ts title="Signature"
+function ChannelAvailabilityControl(props: Readonly<{
+    enabled: boolean;
+    value: boolean;
+    onChange: (value: boolean) => void;
+    disabled?: boolean;
+}>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{     enabled: boolean;     value: boolean;     onChange: (value: boolean) => void;     disabled?: boolean; }>`} />
+

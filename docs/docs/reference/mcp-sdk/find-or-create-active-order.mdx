@@ -1,0 +1,67 @@
+---
+title: "FindOrCreateActiveOrder"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/active-order.ts" sourceLine="85" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Finds the active order (cart) of the MCP session, or creates one, the same way the built-in
+`add_to_cart` tool does. Call it in a Shop tool that adds to the cart, instead of
+`ActiveOrderService.getActiveOrder(ctx, undefined, true)`.
+
+- It locks the session row before it looks for the order. Two calls that run at the same time
+  on one session then use one order. Without the lock, both calls find no order and both
+  create one. SQLite has no row locks and runs one write at a time, so there it does not lock.
+- It returns the order and a request context in the order's currency.
+
+Set `usesActiveOrder: true` on the tool. The MCP plugin then gives the call a session, and the
+helper reads the session from `ctx`. Without a session the helper throws an
+`IllegalOperationError`. You can also call the helper from a service that the tool calls: pass
+the `ctx` the tool received.
+
+Call it after the checks that can refuse the call. Core writes the ID of a new order to the
+session cache, and a rollback does not undo that.
+
+*Example*
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { Injector, OrderService, Permission, RequestContext } from '@vendure/core';
+import { findOrCreateActiveOrder, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+
+@McpTool({
+    name: 'add_warranty_to_cart',
+    toolset: 'shop',
+    description: 'Add a warranty to the active cart.',
+    permissions: [Permission.Public],
+    behavior: 'mutating',
+    usesActiveOrder: true,
+    inputSchema: warrantyInput,
+})
+@Injectable()
+export class AddWarrantyToCartTool implements McpToolHandler<WarrantyInput> {
+    constructor(
+        private readonly moduleRef: ModuleRef,
+        private readonly orderService: OrderService,
+    ) {}
+
+    async execute(ctx: RequestContext, input: WarrantyInput) {
+        const cart = await findOrCreateActiveOrder(ctx, new Injector(this.moduleRef));
+        return this.orderService.addItemToOrder(cart.ctx, cart.order.id, input.variantId, 1);
+    }
+}
+```
+
+```ts title="Signature"
+function findOrCreateActiveOrder(ctx: RequestContext, injector: Injector): Promise<McpActiveOrder>
+```
+Parameters
+
+### ctx
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`} />
+
+### injector
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/common/injector#injector'>Injector</a>`} />
+

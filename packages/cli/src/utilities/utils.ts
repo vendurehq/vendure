@@ -1,5 +1,7 @@
 import { log } from '@clack/prompts';
 
+import { CliCommandExit, exitCliCommand } from '../shared/cli-command-exit.js';
+
 interface TtyLike {
     isTTY?: boolean;
 }
@@ -14,6 +16,8 @@ interface InteractiveTimeoutOptions {
     timeoutMs?: number;
     examples?: readonly string[];
     helpCommands?: readonly string[];
+    /** Decides whether the prompt times out. Defaults to the process's stdin, stdout and env. */
+    environment?: NonInteractiveEnvironmentOptions;
 }
 
 /**
@@ -61,13 +65,15 @@ export function abortIfNonInteractive(commandName: string, examples: string[]): 
     if (examples.length) {
         log.info(`Examples:\n${examples.map(example => `   ${example}`).join('\n')}`);
     }
-    process.exit(1);
-    return true;
+    exitCliCommand(1);
 }
 
 /**
- * Wraps an interactive prompt with a timeout to prevent hanging in automated environments.
- * After the timeout, it shows a helpful message for AI agents and exits.
+ * Runs an interactive prompt. In a terminal, the prompt waits for the person
+ * to answer, however long that takes. In a non-interactive environment (see
+ * {@link isNonInteractiveEnvironment}), such as a coding agent or a pipe,
+ * nobody may be there to answer, so the prompt gives up after the timeout,
+ * names the flags that answer it, and exits.
  */
 export async function withInteractiveTimeout<T>(
     promptFn: () => Promise<T>,
@@ -75,24 +81,26 @@ export async function withInteractiveTimeout<T>(
 ): Promise<T> {
     const timeoutOptions: InteractiveTimeoutOptions =
         typeof options === 'number' ? { timeoutMs: options } : options;
+    if (!isNonInteractiveEnvironment(timeoutOptions.environment)) {
+        return promptFn();
+    }
     const timeoutMs = timeoutOptions.timeoutMs ?? 60000;
     const timeoutSeconds = Math.round(timeoutMs / 1000);
 
     return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-            log.warning(`\n⚠Interactive mode timeout after ${timeoutSeconds} seconds\n`);
-            log.info('This appears to be an automated environment (AI agent/editor).');
-            log.info('Interactive prompts are not suitable for automated tools.\n');
-            log.info('Please use the non-interactive mode with specific command flags.\n');
+            log.warning(`No answer after ${timeoutSeconds} seconds, so the command stopped.`);
+            log.info(
+                'This run is non-interactive: stdin or stdout is not a terminal, or CI or ' +
+                    'VENDURE_CLI_NON_INTERACTIVE is set. Pass the answers as command flags instead.',
+            );
             if (timeoutOptions.examples?.length) {
-                log.info('Examples:');
-                log.info(`${timeoutOptions.examples.map(example => `   ${example}`).join('\n')}\n`);
+                log.info(`Examples:\n${timeoutOptions.examples.map(example => `   ${example}`).join('\n')}`);
             }
-            log.info('--- For complete usage information, run:');
             const helpCommands = timeoutOptions.helpCommands ?? ['vendure --help'];
-            log.info(`${helpCommands.map(command => `   ${command}`).join('\n')}\n`);
+            log.info(`For all options, run:\n${helpCommands.map(command => `   ${command}`).join('\n')}`);
 
-            process.exit(1);
+            reject(new CliCommandExit(1));
         }, timeoutMs);
 
         promptFn()

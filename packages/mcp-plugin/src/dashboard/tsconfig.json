@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "paths": {
+      "@/vdb/*": ["../../../dashboard/src/lib/*"]
+    }
+  },
+  "include": ["./**/*", "../../../dashboard/src/vite-env.d.ts"]
+}

@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Permission } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import { Asset, mergeConfig } from '@vendure/core';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import { fail } from 'assert';
+import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -56,6 +58,13 @@ describe('Custom field permissions', () => {
                         public: false,
                         requiresPermission: Permission.SuperAdmin,
                     },
+                    {
+                        name: 'restrictedRelation',
+                        type: 'relation',
+                        entity: Asset,
+                        public: false,
+                        requiresPermission: Permission.SuperAdmin,
+                    },
                 ],
             },
         }),
@@ -95,7 +104,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'publicField Value',
             authenticatedField: 'authenticatedField Value',
             updateProductField: 'updateProductField Value',
@@ -111,7 +120,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'publicField Value',
             authenticatedField: 'authenticatedField Value',
             updateProductField: null,
@@ -127,7 +136,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'publicField Value',
             authenticatedField: 'authenticatedField Value',
             updateProductField: 'updateProductField Value',
@@ -155,7 +164,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields).toEqual({
+        expect(product!.customFields).toEqual({
             publicField: 'new publicField Value',
             authenticatedField: 'new authenticatedField Value',
             updateProductField: 'new updateProductField Value',
@@ -179,7 +188,7 @@ describe('Custom field permissions', () => {
             id: 'T_1',
         });
 
-        expect(product.customFields.updateProductField).toBe('new updateProductField Value 2');
+        expect(product!.customFields.updateProductField).toBe('new updateProductField Value 2');
     });
 
     it('readProductUpdateProductAdmin cannot update superadminField', async () => {
@@ -228,11 +237,53 @@ describe('Custom field permissions', () => {
                 id: 'T_1',
             });
 
-            expect(product.customFields).toEqual({
+            expect(product!.customFields).toEqual({
                 publicField: 'new publicField Value',
                 authenticatedField: 'new authenticatedField Value',
                 updateProductField: 'new updateProductField Value 2',
             });
+        });
+    });
+
+    // https://github.com/vendurehq/vendure/issues/2031
+    describe('relation id fields', () => {
+        const productWithRestrictedRelationIdQuery = gql`
+            query {
+                product(id: "T_1") {
+                    customFields {
+                        restrictedRelationId
+                    }
+                }
+            }
+        `;
+
+        beforeAll(async () => {
+            await adminClient.asSuperAdmin();
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { restrictedRelationId: "T_1" } }) {
+                        id
+                    }
+                }
+            `);
+        });
+
+        it('relation id field is readable with the required permission', async () => {
+            const { product } = await adminClient.query(productWithRestrictedRelationIdQuery);
+            expect(product.customFields.restrictedRelationId).toBe('T_1');
+        });
+
+        it('relation id field is masked without the required permission', async () => {
+            await adminClient.asUserWithCredentials(readProductUpdateProductAdmin.emailAddress, 'test');
+            const { product } = await adminClient.query(productWithRestrictedRelationIdQuery);
+            expect(product.customFields.restrictedRelationId).toBeNull();
+        });
+
+        it('non-public relation id field is not present in the Shop API schema', async () => {
+            await shopClient.asAnonymousUser();
+            await expect(shopClient.query(productWithRestrictedRelationIdQuery)).rejects.toThrowError(
+                /restrictedRelationId/,
+            );
         });
     });
 });

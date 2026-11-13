@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConfigService } from '../../config/config.service';
+import { JobQueueStrategy } from '../../config/job-queue/job-queue-strategy';
+import { composeStrategy } from '../../config/strategy-layer/compose-strategy';
+import { StrategyLayer } from '../../config/strategy-layer/strategy-layer';
 import { InMemoryJobQueueStrategy } from '../../job-queue/in-memory-job-queue-strategy';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { ProcessContext } from '../../process-context/process-context';
@@ -226,6 +229,27 @@ describe('DeploymentCollector', () => {
             mockProcessContext.isWorker = false;
             mockConfigService.jobQueueOptions = {
                 jobQueueStrategy: new InMemoryJobQueueStrategy(),
+                activeQueues: [],
+            };
+            collector = new DeploymentCollector(
+                mockProcessContext as ProcessContext,
+                mockConfigService as ConfigService,
+                mockJobQueueService as JobQueueService,
+            );
+            vi.mocked(mockFs.existsSync).mockReturnValue(false);
+
+            const result = collector.collect();
+
+            expect(result.workerMode).toBe('integrated');
+        });
+
+        it('returns "integrated" when the base of a composed strategy is InMemoryJobQueueStrategy', () => {
+            class JobQueueLayer extends StrategyLayer.passThrough<JobQueueStrategy>() {
+                static priority = 1;
+            }
+            mockProcessContext.isWorker = false;
+            mockConfigService.jobQueueOptions = {
+                jobQueueStrategy: composeStrategy(JobQueueLayer, new InMemoryJobQueueStrategy()),
                 activeQueues: [],
             };
             collector = new DeploymentCollector(

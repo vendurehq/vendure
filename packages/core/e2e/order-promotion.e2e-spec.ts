@@ -9,6 +9,8 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    buyXGetYFreeAction,
+    buyXGetYFreeCondition,
     containsProducts,
     customerGroup,
     defaultShippingCalculator,
@@ -20,6 +22,8 @@ import {
     minimumOrderAmount,
     orderPercentageDiscount,
     productsPercentageDiscount,
+    Promotion,
+    TransactionalConnection,
 } from '@vendure/core';
 import {
     createErrorResultGuard,
@@ -52,7 +56,9 @@ import {
     deletePromotionDocument,
     getFacetListDocument,
     getProductsWithVariantPricesDocument,
+    getPromotionDocument,
     removeCustomersFromGroupDocument,
+    updatePromotionDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
@@ -68,6 +74,7 @@ import {
     testOrderWithPaymentsFragment,
     updatedOrderFragment,
 } from './graphql/shop-definitions';
+import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 describe('Promotions applied to Orders', () => {
@@ -97,6 +104,13 @@ describe('Promotions applied to Orders', () => {
 
     type OrderSuccessResult = FragmentOf<typeof updatedOrderFragment> | FragmentOf<typeof testOrderFragment>;
     const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(
+        input => !!input.lines,
+    );
+    type ApplyCouponSuccessResult = Exclude<
+        ResultOf<typeof applyCouponCodeDocument>['applyCouponCode'],
+        { errorCode: string }
+    >;
+    const applyCouponResultGuard: ErrorResultGuard<ApplyCouponSuccessResult> = createErrorResultGuard(
         input => !!input.lines,
     );
 
@@ -172,7 +186,7 @@ describe('Promotions applied to Orders', () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: 'bad code',
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
+            applyCouponResultGuard.assertErrorResult(applyCouponCode);
             expect(applyCouponCode.message).toBe('Coupon code "bad code" is not valid');
             expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_INVALID_ERROR);
         });
@@ -181,20 +195,60 @@ describe('Promotions applied to Orders', () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: EXPIRED_COUPON_CODE,
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
+            applyCouponResultGuard.assertErrorResult(applyCouponCode);
             expect(applyCouponCode.message).toBe(`Coupon code "${EXPIRED_COUPON_CODE}" has expired`);
             expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_EXPIRED_ERROR);
         });
 
-        it('coupon code application is case-sensitive', async () => {
+        it('coupon code application is case-insensitive', async () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: TEST_COUPON_CODE.toLowerCase(),
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
-            expect(applyCouponCode.message).toBe(
-                `Coupon code "${TEST_COUPON_CODE.toLowerCase()}" is not valid`,
-            );
-            expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_INVALID_ERROR);
+            orderResultGuard.assertSuccess(applyCouponCode);
+            // The canonical coupon code from the promotion should be stored
+            expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+            expect(applyCouponCode.discounts.length).toBe(1);
+            expect(applyCouponCode.discounts[0].description).toBe('Free with test coupon');
+            expect(applyCouponCode.totalWithTax).toBe(0);
+        });
+
+        it('removes a coupon code with different casing than it was applied', async () => {
+            // Re-apply with lowercase
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            orderResultGuard.assertSuccess(applyCouponCode);
+            expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+
+            // #4364 — remove using different casing than how it was applied
+            const { removeCouponCode } = await shopClient.query(removeCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            expect(removeCouponCode!.couponCodes).toEqual([]);
+            expect(removeCouponCode!.discounts.length).toBe(0);
+        });
+
+        // #4364 — applying the same coupon code with different casings should not create duplicates
+        it('de-duplicates coupon codes case-insensitively', async () => {
+            // Apply with uppercase (canonical form)
+            const { applyCouponCode: first } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE,
+            });
+            orderResultGuard.assertSuccess(first);
+            expect(first.couponCodes).toEqual([TEST_COUPON_CODE]);
+
+            // Apply again with lowercase — should not duplicate
+            const { applyCouponCode: second } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            orderResultGuard.assertSuccess(second);
+            expect(second.couponCodes).toEqual([TEST_COUPON_CODE]);
+            expect(second.couponCodes.length).toBe(1);
+
+            // Clean up
+            await shopClient.query(removeCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE,
+            });
         });
 
         it('applies a valid coupon code', async () => {
@@ -219,6 +273,36 @@ describe('Promotions applied to Orders', () => {
                         to: 'AddingItems',
                     },
                 },
+                // From "coupon code application is case-insensitive" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                // From "removes a coupon code with different casing" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "de-duplicates coupon codes case-insensitively" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "applies a valid coupon code" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_APPLIED,
                     data: {
@@ -264,6 +348,7 @@ describe('Promotions applied to Orders', () => {
                         to: 'AddingItems',
                     },
                 },
+                // From "coupon code application is case-insensitive" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_APPLIED,
                     data: {
@@ -271,6 +356,36 @@ describe('Promotions applied to Orders', () => {
                         promotionId: 'T_3',
                     },
                 },
+                // From "removes a coupon code with different casing" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "de-duplicates coupon codes case-insensitively" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "applies a valid coupon code" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                // From "removes a coupon code" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_REMOVED,
                     data: {
@@ -285,12 +400,40 @@ describe('Promotions applied to Orders', () => {
                 couponCode: 'NOT_THERE',
             });
 
+            // History should be unchanged from previous test — no new entry
+            // for the failed removal of 'NOT_THERE'
             expect(removeCouponCode!.history.items.map(i => omit(i, ['id']))).toEqual([
                 {
                     type: HistoryEntryType.ORDER_STATE_TRANSITION,
                     data: {
                         from: 'Created',
                         to: 'AddingItems',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
                     },
                 },
                 {
@@ -345,7 +488,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: OTHER_CHANNEL_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
                 expect(applyCouponCode.errorCode).toEqual('COUPON_CODE_INVALID_ERROR');
             });
         });
@@ -469,6 +612,61 @@ describe('Promotions applied to Orders', () => {
             await deletePromotion(promotion.id);
         });
 
+        // #4889 — minimum of 0 must not create an unconditional discount
+        it('containsProducts does not apply when minimum is 0', async () => {
+            const item5000 = getVariantBySlug('item-5000')!;
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Contains products, minimum 0',
+                conditions: [
+                    {
+                        code: containsProducts.code,
+                        arguments: [
+                            { name: 'minimum', value: '0' },
+                            { name: 'productVariantIds', value: JSON.stringify([item5000.id]) },
+                        ],
+                    },
+                ],
+                actions: [freeOrderAction],
+            });
+            // add an item that is NOT in productVariantIds
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
+        // #4889 — same guard for the facet-based condition
+        it('atLeastNWithFacets does not apply when minimum is 0', async () => {
+            const { facets } = await adminClient.query(getFacetListDocument);
+            const saleFacetValue = facets.items[0].values[0];
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Facets, minimum 0',
+                conditions: [
+                    {
+                        code: hasFacetValues.code,
+                        arguments: [
+                            { name: 'minimum', value: '0' },
+                            { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                        ],
+                    },
+                ],
+                actions: [freeOrderAction],
+            });
+            // add an item WITHOUT the Sale facet
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
         it('customerGroup', async () => {
             const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
                 input: { name: 'Test Group', customerIds: ['T_1'] },
@@ -511,6 +709,64 @@ describe('Promotions applied to Orders', () => {
             expect(adjustOrderLine.totalWithTax).toBe(12000);
             expect(adjustOrderLine.discounts.length).toBe(0);
 
+            await deletePromotion(promotion.id);
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4856
+        // A read → save round-trip (what the dashboard does on any edit) must not
+        // corrupt the customerGroupId. Before the fix, encode re-quoted the id
+        // (`'T_1'` → `'"T_1"'`), which then mis-decoded on the way back in and
+        // silently cleared the customer group. The single-create `customerGroup`
+        // test above never exercises this read → re-encode → save path where the
+        // corruption occurs, so this guards the round-trip explicitly.
+        it('customerGroup id survives a read-back → re-save round-trip', async () => {
+            const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
+                input: { name: 'Round-trip Group', customerIds: ['T_1'] },
+            });
+
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Round-trip promotion',
+                conditions: [
+                    {
+                        code: customerGroup.code,
+                        arguments: [{ name: 'customerGroupId', value: createCustomerGroup.id }],
+                    },
+                ],
+                actions: [freeOrderAction],
+            });
+
+            // Read the promotion back — this encodes the condition args for the client.
+            const { promotion: readBack } = await adminClient.query(getPromotionDocument, {
+                id: promotion.id,
+            });
+            const encodedGroupId = readBack!.conditions[0].args.find(
+                a => a.name === 'customerGroupId',
+            )?.value;
+            // Encode must emit the raw id, not a re-quoted `'"T_1"'`.
+            expect(encodedGroupId).toBe(createCustomerGroup.id);
+
+            // Save it again unchanged, exactly as the dashboard does on edit.
+            const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+                input: {
+                    id: promotion.id,
+                    conditions: readBack!.conditions.map(c => ({
+                        code: c.code,
+                        arguments: c.args.map(a => ({ name: a.name, value: a.value })),
+                    })),
+                },
+            });
+            const savedGroupId = (updatePromotion as PromotionFragment).conditions[0].args.find(
+                a => a.name === 'customerGroupId',
+            )?.value;
+            // After the round-trip the id is still the original group, not a corrupted
+            // `-1` (AutoIncrement) or a quote-accumulated value.
+            expect(savedGroupId).toBe(createCustomerGroup.id);
+
+            await adminClient.query(removeCustomersFromGroupDocument, {
+                groupId: createCustomerGroup.id,
+                customerIds: ['T_1'],
+            });
             await deletePromotion(promotion.id);
         });
     });
@@ -1354,7 +1610,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
 
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
@@ -1440,7 +1696,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
                 );
@@ -1572,7 +1828,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
 
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
@@ -1628,7 +1884,7 @@ describe('Promotions applied to Orders', () => {
                 const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                     couponCode: TEST_COUPON_CODE,
                 });
-                orderResultGuard.assertErrorResult(applyCouponCode);
+                applyCouponResultGuard.assertErrorResult(applyCouponCode);
                 expect(applyCouponCode.message).toEqual(
                     'Coupon code cannot be used more than once per customer',
                 );
@@ -1749,16 +2005,18 @@ describe('Promotions applied to Orders', () => {
                     // by revalidation receive a CouponRemovedDuringCheckoutError instead
                     // of being silently charged the new (higher) total — see the
                     // explanatory comment in OrderService.addPaymentToOrder.
-                    const results = await Promise.all(
+                    // The helper is typed to return only the Order, but the runtime result can also be an error.
+                    const results: unknown[] = await Promise.all(
                         clients.map(client => addPaymentToOrder(client, testSuccessfulPaymentMethod)),
                     );
 
                     // Discriminate by __typename rather than duck-typing on field shape:
                     // a future schema change that, say, adds errorCode-shaped fields to
                     // Order would silently break a duck-typed filter.
-                    const orderResults = results.filter(
-                        (r: any) => r.__typename === 'Order',
-                    ) as Array<{ couponCodes: string[]; totalWithTax: number }>;
+                    const orderResults = results.filter((r: any) => r.__typename === 'Order') as Array<{
+                        couponCodes: string[];
+                        totalWithTax: number;
+                    }>;
                     const errorResults = results.filter(
                         (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
                     ) as Array<{
@@ -1806,9 +2064,8 @@ describe('Promotions applied to Orders', () => {
                         const errorClientIdx = results.findIndex(
                             (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
                         );
-                        const { activeOrder: postOrder } = await clients[errorClientIdx].query(
-                            getActiveOrderDocument,
-                        );
+                        const { activeOrder: postOrder } =
+                            await clients[errorClientIdx].query(getActiveOrderDocument);
                         expectedNewTotal = postOrder!.totalWithTax;
                         // The strip must have increased the total — otherwise the error
                         // should never have been returned.
@@ -1975,6 +2232,93 @@ describe('Promotions applied to Orders', () => {
                 expect(activeOrder!.discounts[0].description).toBe('Auto-applied with per-customer limit');
                 expect(activeOrder!.totalWithTax).toBe(0);
             });
+        });
+    });
+
+    describe('promotion which applies no discount', () => {
+        const couponCode = 'NO_DISCOUNT_ON_THIS_CART';
+        let promotion: PromotionFragment;
+
+        beforeAll(async () => {
+            promotion = await createPromotion({
+                enabled: true,
+                name: '50% off item-5000 only',
+                couponCode,
+                perCustomerUsageLimit: 1,
+                conditions: [],
+                actions: [
+                    {
+                        code: productsPercentageDiscount.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            {
+                                name: 'productVariantIds',
+                                value: `["${getVariantBySlug('item-5000').id}"]`,
+                            },
+                        ],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(promotion.id);
+        });
+
+        function addGuestCustomerToOrder() {
+            return shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: 'no-discount-guest@test.com',
+                    firstName: 'No Discount',
+                    lastName: 'Customer',
+                },
+            });
+        }
+
+        it('is not added to the Order and does not consume a usage', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                // Not one of the Promotion's ProductVariants, so the action discounts nothing
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            const { setCustomerForOrder } = await addGuestCustomerToOrder();
+            orderResultGuard.assertSuccess(setCustomerForOrder);
+
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, { couponCode });
+            orderResultGuard.assertSuccess(applyCouponCode);
+
+            // The customer typed the code, so it stays on the Order even though it discounts nothing
+            expect(applyCouponCode.couponCodes).toEqual([couponCode]);
+            expect(applyCouponCode.discounts).toEqual([]);
+            const orderCode = applyCouponCode.code;
+
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderResultGuard.assertSuccess(order);
+            expect(order.state).toBe('PaymentSettled');
+
+            const { orderByCode } = await shopClient.query(getOrderPromotionsByCodeDocument, {
+                code: orderCode,
+            });
+            expect(orderByCode!.promotions).toEqual([]);
+
+            // The customer's single allowed usage is still available
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-5000').id,
+                quantity: 1,
+            });
+            const { setCustomerForOrder: setCustomerForSecondOrder } = await addGuestCustomerToOrder();
+            orderResultGuard.assertSuccess(setCustomerForSecondOrder);
+
+            const { applyCouponCode: secondUse } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode,
+            });
+            orderResultGuard.assertSuccess(secondUse);
+
+            expect(secondUse.discounts.length).toBe(1);
+            expect(secondUse.totalWithTax).toBe(3000);
         });
     });
 
@@ -2171,6 +2515,114 @@ describe('Promotions applied to Orders', () => {
         });
     });
 
+    describe('updatePromotion with an action that requires a condition', () => {
+        const buyXGetYCondition = () => ({
+            code: buyXGetYFreeCondition.code,
+            arguments: [
+                { name: 'amountX', value: '1' },
+                { name: 'variantIdsX', value: JSON.stringify([getVariantBySlug('item-100').id]) },
+                { name: 'amountY', value: '1' },
+                { name: 'variantIdsY', value: JSON.stringify([getVariantBySlug('item-1000').id]) },
+            ],
+        });
+        const buyXGetYAction = { code: buyXGetYFreeAction.code, arguments: [] };
+        const requiredConditionMessage = `The PromotionAction "${buyXGetYFreeAction.code}" requires the following conditions: ${buyXGetYFreeCondition.code}`;
+
+        let buyXGetYPromotion: PromotionFragment;
+        let otherPromotion: PromotionFragment;
+
+        beforeAll(async () => {
+            buyXGetYPromotion = await createPromotion({
+                enabled: true,
+                name: 'Buy X get Y',
+                couponCode: 'BUY_X_GET_Y',
+                conditions: [buyXGetYCondition()],
+                actions: [buyXGetYAction],
+            });
+            otherPromotion = await createPromotion({
+                enabled: true,
+                name: 'Ten percent off',
+                couponCode: 'TEN_OFF',
+                conditions: [minOrderAmountCondition(0)],
+                actions: [
+                    {
+                        code: orderPercentageDiscount.code,
+                        arguments: [{ name: 'discount', value: '10' }],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(buyXGetYPromotion.id);
+            await deletePromotion(otherPromotion.id);
+        });
+
+        it(
+            'rejects replacing the required condition',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(updatePromotionDocument, {
+                        input: { id: buyXGetYPromotion.id, conditions: [minOrderAmountCondition(0)] },
+                    }),
+                requiredConditionMessage,
+            ),
+        );
+
+        it(
+            'rejects adding the action without its required condition',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(updatePromotionDocument, {
+                        input: { id: otherPromotion.id, actions: [buyXGetYAction] },
+                    }),
+                requiredConditionMessage,
+            ),
+        );
+
+        it('the coupon can still be applied', async () => {
+            const { promotion } = await adminClient.query(getPromotionDocument, { id: buyXGetYPromotion.id });
+            expect(promotion!.conditions.map(c => c.code)).toEqual([buyXGetYFreeCondition.code]);
+
+            shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-100').id,
+                quantity: 1,
+            });
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: 'BUY_X_GET_Y',
+            });
+            orderResultGuard.assertSuccess(applyCouponCode);
+            expect(applyCouponCode.couponCodes).toEqual(['BUY_X_GET_Y']);
+            const freeLine = applyCouponCode.lines.find(
+                l => l.productVariant.id === getVariantBySlug('item-1000').id,
+            );
+            expect(freeLine!.discounts.map(d => d.description)).toEqual(['Buy X get Y']);
+            expect(freeLine!.discountedUnitPriceWithTax).toBe(0);
+        });
+
+        it('a promotion already saved without the required condition can still be disabled', async () => {
+            // Writes the invalid state with the repository because updatePromotion rejects it
+            await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Promotion)
+                .update(
+                    { couponCode: 'TEN_OFF' },
+                    { actions: [{ code: buyXGetYFreeAction.code, args: [] }] },
+                );
+
+            const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+                input: { id: otherPromotion.id, enabled: false },
+            });
+            expect((updatePromotion as PromotionFragment).enabled).toBe(false);
+        });
+    });
+
     // https://github.com/vendurehq/vendure/issues/2052
     describe('multi-channel usage', () => {
         const SECOND_CHANNEL_TOKEN = 'second_channel_token';
@@ -2295,6 +2747,93 @@ describe('Promotions applied to Orders', () => {
             const result = await addItemAndApplyPromoCode();
             expect(result.discounts.length).toBe(1);
             expect(result.discounts[0].description).toBe('common-promotion-second-channel');
+        });
+    });
+
+    // #5605: recalculating an unchanged order must not cycle item promotions behind an order total condition
+    describe('item promotion with minimumOrderAmount condition', () => {
+        let promotion: PromotionFragment;
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            promotion = await createPromotion({
+                enabled: true,
+                name: '50% off items over 10000',
+                conditions: [
+                    {
+                        code: minimumOrderAmount.code,
+                        arguments: [
+                            { name: 'amount', value: '10000' },
+                            { name: 'taxInclusive', value: 'false' },
+                        ],
+                    },
+                ],
+                actions: [
+                    {
+                        code: productsPercentageDiscount.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            {
+                                name: 'productVariantIds',
+                                value: JSON.stringify([
+                                    getVariantBySlug('item-1000').id,
+                                    getVariantBySlug('item-5000').id,
+                                ]),
+                            },
+                        ],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(promotion.id);
+        });
+
+        it('keeps the same discounts on every recalculation through to payment', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 6,
+            });
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-5000').id,
+                quantity: 1,
+            });
+
+            // 6000 + 5000 meets the minimum, so the first line gets 50% off. The discounted
+            // subtotal of 8000 no longer meets it, so the second line is not discounted.
+            const { activeOrder: firstCalculation } = await shopClient.query(getActiveOrderDocument);
+            expect(firstCalculation!.subTotal).toBe(8000);
+            expect(firstCalculation!.lines.map(l => l.discounts.length)).toEqual([1, 0]);
+
+            const secondLineId = firstCalculation!.lines[1].id;
+            for (let i = 0; i < 3; i++) {
+                const { adjustOrderLine } = await shopClient.query(adjustItemQuantityDocument, {
+                    orderLineId: secondLineId,
+                    quantity: 1,
+                });
+                orderResultGuard.assertSuccess(adjustOrderLine);
+                expect(adjustOrderLine.subTotal).toBe(8000);
+                expect(adjustOrderLine.lines.map(l => l.discounts.length)).toEqual([1, 0]);
+            }
+
+            await shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: 'minimum-order-amount@test.com',
+                    firstName: 'Guest',
+                    lastName: 'Customer',
+                },
+            });
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderResultGuard.assertSuccess(order);
+            expect(order.state).toBe('PaymentSettled');
+            expect(order.subTotal).toBe(8000);
+            expect(order.subTotalWithTax).toBe(9600);
+            expect(order.lines.map(l => l.discounts.length)).toEqual([1, 0]);
+            expect(order.payments![0].amount).toBe(order.totalWithTax);
         });
     });
 

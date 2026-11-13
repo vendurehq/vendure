@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CliTestProject, createProblematicTsConfig, createTestProject } from './cli-test-utils';
+import { CliTestProject, createProblematicTsConfig, createTestProject } from './cli-test-utils.js';
 
 describe('CLI Migrate Command E2E', () => {
     let testProject: CliTestProject;
@@ -111,7 +111,7 @@ describe('CLI Migrate Command E2E', () => {
 
             const result = await testProject.runCliCommand(['invalid-command'], { expectError: true });
             expect(result.exitCode).not.toBe(0);
-            expect(result.stderr).toContain('unknown command');
+            expect(result.stderr.toLowerCase()).toContain('unknown command');
         });
     });
 

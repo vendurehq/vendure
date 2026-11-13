@@ -1,7 +1,11 @@
 /* eslint-disable no-console */
-// TODO: Remove this file once v3.6 has been stable for a while. It is a one-time
-// migration helper and will not be needed after all users have upgraded past v3.6.
+// This one-time v3.6 migration helper must remain exported indefinitely: user migrations
+// import it directly, so removing the export would break compilation of any committed
+// migration that calls it. The guard against the already-migrated state makes it a safe no-op
+// once the migration has run.
 import { QueryRunner } from 'typeorm';
+
+import { getDataSource } from '../connection/get-data-source';
 
 /**
  * @description
@@ -48,7 +52,7 @@ export async function migrateProductOptionGroupData(queryRunner: QueryRunner): P
         return;
     }
 
-    const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    const esc = (name: string) => getDataSource(queryRunner).driver.escape(name);
 
     // 1. Populate Product <-> ProductOptionGroup join table from existing FK
     await queryRunner.query(

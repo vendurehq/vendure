@@ -19,7 +19,7 @@ class Fulfillment extends VendureEntity implements HasCustomFields {
     handlerCode: string;
     @OneToMany(type => FulfillmentLine, fulfillmentLine => fulfillmentLine.fulfillment)
     lines: FulfillmentLine[];
-    @ManyToMany(type => Order, order => order.fulfillments)
+    @ManyToMany(type => Order, order => order.fulfillments, { onDelete: 'NO ACTION', onUpdate: 'NO ACTION' })
     orders: Order[];
     @Column(type => CustomFulfillmentFields)
     customFields: CustomFulfillmentFields;

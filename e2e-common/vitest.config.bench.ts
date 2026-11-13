@@ -14,7 +14,7 @@ export default defineConfig({
         // singleThread: true,
         // reporters: ['verbose'],
         typecheck: {
-            tsconfig: path.join(__dirname, 'tsconfig.e2e.json'),
+            tsconfig: path.join(import.meta.dirname, 'tsconfig.e2e.json'),
         },
         // In jobs-queue.e2e-spec.ts, we use `it.only()` for sqljs, so we need this
         // set to true to avoid failures in CI.

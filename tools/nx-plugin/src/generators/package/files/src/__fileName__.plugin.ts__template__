@@ -1,0 +1,11 @@
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+
+/**
+ * @description
+ * The <%= className %> plugin.
+ */
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    compatibility: '^<%= majorVersion %>.0.0',
+})
+export class <%= className %>Plugin {}

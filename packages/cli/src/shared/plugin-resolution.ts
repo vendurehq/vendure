@@ -1,8 +1,8 @@
 import { Project } from 'ts-morph';
 
-import { getPluginClasses } from '../utilities/ast-utils';
+import { getPluginClasses } from '../utilities/ast-utils.js';
 
-import { VendurePluginRef } from './vendure-plugin-ref';
+import { VendurePluginRef } from './vendure-plugin-ref.js';
 
 export interface PluginResolutionOptions {
     providedPlugin?: VendurePluginRef;

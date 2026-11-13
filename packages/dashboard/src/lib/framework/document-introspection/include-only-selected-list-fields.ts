@@ -73,7 +73,10 @@ function createCacheKey(
 }
 
 function sortJoin<T>(arr: T[], separator: string): string {
-    return arr.slice(0).sort().join(separator);
+    return arr
+        .slice(0)
+        .sort((a, b) => String(a).localeCompare(String(b)))
+        .join(separator);
 }
 
 /**

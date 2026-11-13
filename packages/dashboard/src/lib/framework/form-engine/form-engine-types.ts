@@ -133,6 +133,41 @@ export type DashboardFormComponentMetadata = {
      * the full width of the detail form grid.
      */
     isFullWidth?: boolean;
+    /**
+     * @description
+     * A component which renders a compact, read-only summary of the field's
+     * current value. Used by the configurable operation "sentence" UI to label
+     * the inline value chips. The component may use hooks and data fetching,
+     * e.g. to resolve entity IDs to display names.
+     *
+     * If not provided, a default summary based on the field type is used.
+     *
+     * @since 3.6.0
+     */
+    summary?: React.ComponentType<DashboardFormComponentSummaryProps>;
+    /**
+     * @description
+     * A hint for how wide the popover should be when this component is
+     * rendered inside a configurable operation sentence chip popover.
+     * Defaults to `'sm'`.
+     *
+     * @since 3.6.0
+     */
+    popoverSize?: 'sm' | 'lg';
+};
+
+/**
+ * @description
+ * Props received by a {@link DashboardFormComponentMetadata} `summary` component.
+ * The `value` is the parsed value of the field (arrays for list fields).
+ *
+ * @docsCategory extensions-api
+ * @docsPage FormComponents
+ * @since 3.6.0
+ */
+export type DashboardFormComponentSummaryProps = {
+    value: any;
+    fieldDef: ConfigurableFieldDef;
 };
 
 /**

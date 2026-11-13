@@ -1,1 +1,1 @@
-export { Slider } from '@vendure-io/ui/components/ui/slider';
+export { Slider } from '@vendure-io/ui/components/atoms/slider';

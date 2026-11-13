@@ -1,15 +1,14 @@
 import path from 'path';
-import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
 
-import { TestDbInitializer } from './test-db-initializer';
+import { DriverOptions, TestDbInitializer } from './test-db-initializer';
 
-export class MysqlInitializer implements TestDbInitializer<MysqlConnectionOptions> {
+export class MysqlInitializer implements TestDbInitializer<DriverOptions<'mysql' | 'mariadb'>> {
     private conn: import('mysql2/promise').Connection;
 
     async init(
         testFileName: string,
-        connectionOptions: MysqlConnectionOptions,
-    ): Promise<MysqlConnectionOptions> {
+        connectionOptions: DriverOptions<'mysql' | 'mariadb'>,
+    ): Promise<DriverOptions<'mysql' | 'mariadb'>> {
         const dbName = this.getDbNameFromFilename(testFileName);
         this.conn = await this.getMysqlConnection(connectionOptions);
         (connectionOptions as any).database = dbName;
@@ -28,7 +27,7 @@ export class MysqlInitializer implements TestDbInitializer<MysqlConnectionOption
     }
 
     private async getMysqlConnection(
-        connectionOptions: MysqlConnectionOptions,
+        connectionOptions: DriverOptions<'mysql' | 'mariadb'>,
     ): Promise<import('mysql2/promise').Connection> {
         const { createConnection } = await import('mysql2/promise');
         const conn = createConnection({

@@ -68,7 +68,7 @@ added to it using the `.andWhere()` method.
 Here's an example of a collection filter which filters by SKU:
 
 ```ts title="src/config/sku-collection-filter.ts"
-import { CollectionFilter, LanguageCode } from '@vendure/core';
+import { CollectionFilter, getDataSource, LanguageCode } from '@vendure/core';
 
 export const skuCollectionFilter = new CollectionFilter({
     args: {
@@ -91,9 +91,9 @@ export const skuCollectionFilter = new CollectionFilter({
     // This is the function that defines the logic of the filter.
     apply: (qb, args) => {
         // Sometimes syntax differs between database types, so we use
-        // the `type` property of the connection options to determine
+        // the `type` property of the DataSource options to determine
         // which syntax to use.
-        const LIKE = qb.connection.options.type === 'postgres' ? 'ILIKE' : 'LIKE';
+        const LIKE = getDataSource(qb).options.type === 'postgres' ? 'ILIKE' : 'LIKE';
 
         return qb.andWhere(`productVariant.sku ${LIKE} :sku`, {
             sku: `%${args.sku}%`

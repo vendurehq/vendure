@@ -23,4 +23,4 @@ export {
     SidebarSeparator,
     SidebarTrigger,
     useSidebar,
-} from '@vendure-io/ui/components/ui/sidebar';
+} from '@vendure-io/ui/components/atoms/sidebar';

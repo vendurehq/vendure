@@ -1,28 +1,31 @@
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { PasswordInput } from '@/vdb/components/ui/password-input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     Page,
     PageActionBar,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
     administratorDetailDocument,
     createAdministratorDocument,
     updateAdministratorDocument,
 } from './administrators.graphql.js';
-import { RolePermissionsDisplay } from './components/role-permissions-display.js';
+import { completeRoleAssignmentPairs, RoleAssignmentPair } from './components/role-assignments-editor.js';
+import { RolesPageBlock } from './components/roles-page-block.js';
 
 const pageId = 'administrator-detail';
 
@@ -39,7 +42,7 @@ export const Route = createFileRoute('/_authenticated/_administrators/administra
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function AdministratorDetailPage() {
@@ -48,7 +51,7 @@ function AdministratorDetailPage() {
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
 
-    const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
+    const { form, submitHandler, entity, isPending, resetForm, refreshEntity } = useDetailPage({
         pageId,
         queryDocument: administratorDetailDocument,
         createDocument: createAdministratorDocument,
@@ -61,14 +64,26 @@ function AdministratorDetailPage() {
                 emailAddress: entity.emailAddress,
                 password: '',
                 customFields: entity.customFields,
-                roleIds: entity.user.roles.map(role => role.id),
             };
         },
+        // The generated form seeds the deprecated roleIds list with []; sent as-is it would
+        // strip the roles on the active channel. roleIds is also mutually exclusive with
+        // roleAssignments on creation. Incomplete editor rows must not reach the input.
+        transformCreateInput: input => {
+            const transformed = {
+                ...input,
+                roleAssignments: completeRoleAssignmentPairs(input.roleAssignments),
+            };
+            delete transformed.roleIds;
+            return transformed;
+        },
         transformUpdateInput: input => {
-            return {
+            const transformed = {
                 ...input,
                 password: input.password || undefined,
             };
+            delete transformed.roleIds;
+            return transformed;
         },
         params: { id: params.id },
         onSuccess: async data => {
@@ -88,9 +103,12 @@ function AdministratorDetailPage() {
             });
         },
     });
+    // useDetailPage types the form on the update input, and roleAssignments is a creation
+    // input only: once the administrator exists, assignments are edited through their own
+    // mutations (RolesPageBlock), not through updateAdministrator.
+    const createForm = form as unknown as UseFormReturn<{ roleAssignments: RoleAssignmentPair[] }>;
 
     const name = `${entity?.firstName} ${entity?.lastName}`;
-    const roleIds = form.watch('roleIds');
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
@@ -131,25 +149,17 @@ function AdministratorDetailPage() {
                             control={form.control}
                             name="password"
                             label={<Trans>Password</Trans>}
-                            render={({ field }) => <Input placeholder="" type="password" {...field} />}
+                            render={({ field }) => <PasswordInput {...field} />}
                         />
                     </div>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Administrator" control={form.control} />
-                <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
-                    <FormFieldWrapper
-                        control={form.control}
-                        name="roleIds"
-                        render={({ field }) => (
-                            <RoleSelector
-                                value={field.value ?? []}
-                                onChange={field.onChange}
-                                multiple={true}
-                            />
-                        )}
-                    />
-                    <RolePermissionsDisplay value={roleIds ?? []} />
-                </PageBlock>
+                <RolesPageBlock
+                    column="main"
+                    createForm={creatingNewEntity ? createForm : undefined}
+                    user={entity?.user}
+                    onChange={refreshEntity}
+                />
             </PageLayout>
         </Page>
     );

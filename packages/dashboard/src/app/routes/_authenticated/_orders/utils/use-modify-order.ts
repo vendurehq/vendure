@@ -35,6 +35,8 @@ export interface UseModifyOrderReturn {
     removeCouponCode: (params: { couponCode: string }) => void;
     updateShippingAddress: (address: AddressFragment) => void;
     updateBillingAddress: (address: AddressFragment) => void;
+    updateShippingAddressRaw: (input: NonNullable<ModifyOrderInput['updateShippingAddress']>) => void;
+    updateBillingAddressRaw: (input: NonNullable<ModifyOrderInput['updateBillingAddress']>) => void;
     addSurcharge: (surcharge: SurchargeInput) => void;
     setNote: (note: string) => void;
     setRecalculateShipping: (recalculate: boolean) => void;
@@ -291,6 +293,28 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
         }));
     }, []);
 
+    // Update shipping address from a raw input (e.g. a new ad-hoc address entered inline)
+    const updateShippingAddressRaw = useCallback(
+        (input: NonNullable<ModifyOrderInput['updateShippingAddress']>) => {
+            setModifyOrderInput(prev => ({
+                ...prev,
+                updateShippingAddress: input,
+            }));
+        },
+        [],
+    );
+
+    // Update billing address from a raw input (e.g. a new ad-hoc address entered inline)
+    const updateBillingAddressRaw = useCallback(
+        (input: NonNullable<ModifyOrderInput['updateBillingAddress']>) => {
+            setModifyOrderInput(prev => ({
+                ...prev,
+                updateBillingAddress: input,
+            }));
+        },
+        [],
+    );
+
     // Add surcharge
     const addSurcharge = useCallback((surcharge: SurchargeInput) => {
         setModifyOrderInput(prev => ({
@@ -342,6 +366,8 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
         removeCouponCode,
         updateShippingAddress,
         updateBillingAddress,
+        updateShippingAddressRaw,
+        updateBillingAddressRaw,
         addSurcharge,
         setNote,
         setRecalculateShipping,

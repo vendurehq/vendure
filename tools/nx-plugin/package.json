@@ -1,0 +1,8 @@
+{
+    "name": "@vendure-internal/nx-plugin",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Local Nx plugin that creates the targets of Vendure plugin packages",
+    "main": "./src/index.js",
+    "generators": "./generators.json"
+}

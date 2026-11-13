@@ -13,12 +13,19 @@ import { Translatable, Translation } from '../../../common/types/locale-types';
 import { asyncObservable, idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
+import {
+    ProductChannel,
+    ProductVariantChannel,
+} from '../../../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { Product } from '../../../entity/product/product.entity';
 import { Job } from '../../../job-queue/job';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
+import { isEnabledInChannel } from '../../../service/helpers/channel-enabled-checker/channel-enabled-checker';
 import { EntityHydrator } from '../../../service/helpers/entity-hydrator/entity-hydrator.service';
 import { ProductPriceApplicator } from '../../../service/helpers/product-price-applicator/product-price-applicator';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
@@ -64,6 +71,7 @@ export const variantRelations = [
     'product.facetValues.facet',
     'collections',
     'collections.translations',
+    'collections.channels',
 ];
 export const workerLoggerCtx = 'DefaultSearchPlugin Worker';
 
@@ -78,6 +86,7 @@ export class IndexerController {
         private configService: ConfigService,
         private requestContextCache: RequestContextCacheService,
         private productVariantService: ProductVariantService,
+        private channelAssignmentService: ChannelAssignmentService,
         @Inject(PLUGIN_INIT_OPTIONS) private options: DefaultSearchPluginInitOptions,
     ) {}
 
@@ -87,7 +96,7 @@ export class IndexerController {
         return asyncObservable(async observer => {
             const timeStart = Date.now();
             const channel = ctx.channel ?? (await this.loadChannel(ctx, ctx.channelId));
-            const { count } = await this.getSearchIndexQueryBuilder(ctx, { channels: [channel] });
+            const { count } = await this.getSearchIndexQueryBuilder(ctx, { channels: [channel], take: 1 });
             Logger.verbose(`Reindexing ${count} variants for channel ${ctx.channel.code}`, workerLoggerCtx);
             const batches = Math.ceil(count / BATCH_SIZE);
 
@@ -142,6 +151,7 @@ export class IndexerController {
                     const { variants: batch } = await this.getSearchIndexQueryBuilder(ctx, {
                         channels: await this.getAllChannels(ctx),
                         productVariantIds: batchIds,
+                        take: batchIds.length,
                     });
 
                     await this.saveVariants(ctx, batch);
@@ -275,9 +285,6 @@ export class IndexerController {
                 product.translations = clone.translations;
                 await this.saveSyntheticVariant(ctx, product);
             } else {
-                if (product.enabled === false) {
-                    updatedVariants.forEach(v => (v.enabled = false));
-                }
                 const variantsInCurrentChannel = updatedVariants.filter(
                     v => !!v.channels.find(c => idsAreEqual(c.id, ctx.channelId)),
                 );
@@ -296,11 +303,15 @@ export class IndexerController {
         variantIds: ID[],
         channelId: ID,
     ): Promise<boolean> {
+        if (!variantIds.length) {
+            return true;
+        }
         const channel = await this.loadChannel(ctx, channelId);
         ctx.setChannel(channel);
         const { variants } = await this.getSearchIndexQueryBuilder(ctx, {
             channels: [channel],
             productVariantIds: variantIds,
+            take: variantIds.length,
         });
 
         if (variants) {
@@ -354,7 +365,7 @@ export class IndexerController {
             productId = undefined,
             productVariantIds = undefined,
             channels = [],
-            take = 50,
+            take,
             skip = 0,
         } = options ?? {};
         const where: FindOptionsWhere<ProductVariant> = {
@@ -372,7 +383,7 @@ export class IndexerController {
         where.channels = { id: In(channels.map(c => c.id)) };
         const [variants, count] = await this.connection.getRepository(ctx, ProductVariant).findAndCount({
             loadEagerRelations: false,
-            relations: variantRelations,
+            relations: findOptionsArrayToObject<ProductVariant>(variantRelations),
             where,
             take,
             skip,
@@ -396,7 +407,7 @@ export class IndexerController {
 
         const product = await this.connection.getRepository(ctx, Product).findOne({
             loadEagerRelations: false,
-            relations: productRelations,
+            relations: findOptionsArrayToObject<Product>(productRelations),
             relationLoadStrategy: 'query',
             where: { id: Equal(productId), channels: { id: In(channels.map(x => x.id)) } },
         });
@@ -408,6 +419,20 @@ export class IndexerController {
 
         await this.removeSyntheticVariants(ctx, variants);
         const productMap = new Map<ID, Product>();
+        // A variant is indexed as enabled in a Channel only if it and its Product are enabled
+        // globally and in that Channel (see isEnabledInChannel).
+        const [variantAssignments, productAssignments] = await Promise.all([
+            this.channelAssignmentService.getAssignmentsByChannel<ProductVariantChannel>(
+                ctx,
+                ProductVariant,
+                variants.map(v => v.id),
+            ),
+            this.channelAssignmentService.getAssignmentsByChannel<ProductChannel>(
+                ctx,
+                Product,
+                unique(variants.map(v => v.productId)),
+            ),
+        ]);
 
         const originalChannel = ctx.channel;
         for (const variant of variants) {
@@ -424,9 +449,6 @@ export class IndexerController {
             for (const languageCode of availableLanguageCodes) {
                 const productTranslation = this.getTranslation(product, languageCode);
                 const variantTranslation = this.getTranslation(variant, languageCode);
-                const collectionTranslations = variant.collections.map(c =>
-                    this.getTranslation(c, languageCode),
-                );
                 let channelIds = variant.channels.map(x => x.id);
                 const clone = new ProductVariant({ id: variant.id });
                 await this.entityHydrator.hydrate(ctx, clone, {
@@ -447,6 +469,14 @@ export class IndexerController {
                     for (const currencyCode of availableCurrencyCodes) {
                         const ch = new Channel({ ...channel, defaultCurrencyCode: currencyCode });
                         ctx.setChannel(ch);
+                        // Collection slugs are unique per channel, so only record the
+                        // collections that belong to the channel of this index row.
+                        const channelCollections = variant.collections.filter(c =>
+                            c.channels?.some(cc => idsAreEqual(cc.id, channel.id)),
+                        );
+                        const collectionTranslations = channelCollections.map(c =>
+                            this.getTranslation(c, languageCode),
+                        );
 
                         await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
                         const item = new SearchIndexItem({
@@ -457,7 +487,17 @@ export class IndexerController {
                             price: variant.price,
                             priceWithTax: variant.priceWithTax,
                             sku: variant.sku,
-                            enabled: product.enabled === false ? false : variant.enabled,
+                            enabled:
+                                isEnabledInChannel(
+                                    product.enabled,
+                                    productAssignments.get(String(product.id))?.get(String(channel.id))
+                                        ?.enabled,
+                                ) &&
+                                isEnabledInChannel(
+                                    variant.enabled,
+                                    variantAssignments.get(String(variant.id))?.get(String(channel.id))
+                                        ?.enabled,
+                                ),
                             slug: productTranslation?.slug ?? '',
                             productId: product.id,
                             productName: productTranslation?.name ?? '',
@@ -476,7 +516,7 @@ export class IndexerController {
                             channelIds: channelIds.map(x => x.toString()),
                             facetIds: this.getFacetIds(variant, product),
                             facetValueIds: this.getFacetValueIds(variant, product),
-                            collectionIds: variant.collections.map(c => c.id.toString()),
+                            collectionIds: channelCollections.map(c => c.id.toString()),
                             collectionSlugs:
                                 collectionTranslations.map(c => c?.slug).filter(notNullOrUndefined) ?? [],
                         });

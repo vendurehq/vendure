@@ -2,7 +2,7 @@
 title: "ConfigArgs"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="140" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="214" packageName="@vendure/core" />
 
 A object which defines the configurable arguments which may be passed to
 functions in those classes which implement the [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef) interface.
@@ -34,10 +34,10 @@ data type. For example, if you want to store an array of strings:
   },
 }
 ```
-In the Admin UI, this will be rendered as an orderable list of string inputs.
+In the Dashboard, this will be rendered as an orderable list of string inputs.
 
 ## UI Component
-The `ui` field allows you to specify a specific input component to be used in the Admin UI.
+The `ui` field allows you to specify a specific input component to be used in the Dashboard.
 When not set, a default input component is used appropriate to the data type.
 
 *Example*
@@ -63,8 +63,8 @@ When not set, a default input component is used appropriate to the data type.
 }
 ```
 The available components as well as their configuration options can be found in the [DefaultFormConfigHash](/reference/typescript-api/configurable-operation-def/default-form-config-hash#defaultformconfighash) docs.
-Custom UI components may also be defined via an Admin UI extension using the `registerFormInputComponent()` function
-which is exported from `@vendure/admin-ui/core`.
+Custom UI components may also be defined via a Dashboard extension. See the
+[Custom Form Components guide](/extending-the-dashboard/custom-form-components/).
 
 ```ts title="Signature"
 type ConfigArgs = {
