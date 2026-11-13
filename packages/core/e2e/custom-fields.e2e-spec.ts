@@ -981,6 +981,25 @@ describe('Custom fields', () => {
             collectionGuard.assertSuccess(collection);
             expect(collection.customFields).toBe(null);
         });
+
+        // On an entity with no custom fields, customFields is typed JSON. It must not include the
+        // internal keys which the resolver attaches for the field resolvers.
+        it('returns an empty object as the JSON customFields of an entity without custom fields', async () => {
+            const { availableCountries } = await shopClient.query(
+                graphqlShop(`
+                    query AvailableCountriesCustomFields {
+                        availableCountries {
+                            id
+                            customFields
+                        }
+                    }
+                `),
+            );
+            expect(availableCountries.length).toBeGreaterThan(0);
+            for (const country of availableCountries) {
+                expect(country.customFields).toEqual({});
+            }
+        });
     });
 
     describe('sort & filter', () => {

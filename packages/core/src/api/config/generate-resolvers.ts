@@ -214,13 +214,15 @@ function generateCustomFieldResolvers(
         // access to the entity id. Therefore, we attach it to the resolved value
         // so that it is available to the `relationResolver` below.
         const customFieldResolver: IFieldResolver<any, any> = (source: any) => {
-            return {
-                ...source.customFields,
-                [ENTITY_ID_KEY]: source.id,
-                // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
-                // pass the real VendureEntity to strategies, rather than this customFields wrapper.
-                [ENTITY_KEY]: source,
-            };
+            const result = { ...source.customFields };
+            // Both keys are internal. They are non-enumerable, so field resolvers can read them but
+            // the `JSON` scalar (used when an entity has no custom fields for this API) leaves them
+            // out of the response.
+            Object.defineProperty(result, ENTITY_ID_KEY, { value: source.id, enumerable: false });
+            // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
+            // pass the real VendureEntity to strategies, rather than this customFields wrapper.
+            Object.defineProperty(result, ENTITY_KEY, { value: source, enumerable: false });
+            return result;
         };
         const resolverObject = {
             customFields: customFieldResolver,
