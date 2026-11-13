@@ -10,6 +10,7 @@
  */
 import { mergeConfig, migrateTimestampColumnsToTimestamptz, previewTimestamptzMigration, revertTimestamptzMigration } from '@vendure/core';
 import { preBootstrapConfig } from '@vendure/core/dist/bootstrap';
+import { initializeDataSource } from '@vendure/core/dist/connection/initialize-data-source';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -129,6 +130,10 @@ describe.skipIf(!isPostgres)(`timestamp -> timestamptz migration (process TZ ${P
     it('migrates', async () => {
         // Build the v4 entity metadata (timestamptz) without starting a server
         const { dbConnectionOptions } = await preBootstrapConfig(migratedConfig);
+        // synchronize would drop and re-add the columns, so it must refuse
+        await expect(
+            initializeDataSource({ ...(dbConnectionOptions as any), database: DB_NAME, synchronize: true }),
+        ).rejects.toThrow(/deletes their data/);
         dataSource = new DataSource({ ...(dbConnectionOptions as any), database: DB_NAME, synchronize: false, migrations: [] });
         await dataSource.initialize();
 
