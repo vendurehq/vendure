@@ -11,7 +11,6 @@ import {
     ProductVariant,
     ProductVariantBuyerPriceArgs,
     ProductVariantBuyerPriceStrategy,
-    ProductVariantService,
     RequestContext,
     roundMoney,
     StrategyLayer,
@@ -43,6 +42,9 @@ export const buyerOverride: { customerId?: ID } = {};
 
 /** The metadata that {@link MetadataRecordingLayer} reads from the result of the inner strategy. */
 export const orderItemMetadata: Array<Record<string, unknown> | undefined> = [];
+
+/** The Customer IDs of the `options.buyer` arguments that {@link MetadataRecordingLayer} receives. */
+export const orderItemBuyerCustomerIds: Array<ID | undefined> = [];
 
 /**
  * A layer over the {@link ProductVariantBuyerPriceStrategy}:
@@ -95,7 +97,8 @@ export class TestBuyerPriceLayer extends StrategyLayer.passThrough<ProductVarian
 }
 
 /**
- * A layer over the {@link OrderItemPriceCalculationStrategy} that records the metadata of the inner result.
+ * A layer over the {@link OrderItemPriceCalculationStrategy} that records the metadata of the inner result,
+ * and the Customer ID of the `options.buyer` argument.
  */
 export class MetadataRecordingLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
     static priority = 100;
@@ -103,6 +106,10 @@ export class MetadataRecordingLayer extends StrategyLayer.passThrough<OrderItemP
     async calculateUnitPrice(
         ...args: Parameters<OrderItemPriceCalculationStrategy['calculateUnitPrice']>
     ): Promise<PriceCalculationResult> {
+        const buyer = args[5]?.buyer;
+        if (buyer) {
+            orderItemBuyerCustomerIds.push(await buyer.getCustomerId());
+        }
         const result = await this.inner.calculateUnitPrice(...args);
         orderItemMetadata.push(result.metadata);
         return result;
@@ -110,16 +117,15 @@ export class MetadataRecordingLayer extends StrategyLayer.passThrough<OrderItemP
 }
 
 /**
- * A layer over the {@link OrderItemPriceCalculationStrategy} that passes its own Buyer to
- * `ProductVariantService.calculateBuyerPriceForOrder()` when {@link buyerOverride} is set.
+ * A layer over the {@link OrderItemPriceCalculationStrategy} that passes its own Buyer to the inner
+ * chain as `options.buyer` when {@link buyerOverride} is set. It is the outermost layer, so that the
+ * {@link MetadataRecordingLayer} and the base strategy get the Buyer.
  */
 export class BuyerOverrideLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
-    static priority = 200;
-    private productVariantService: ProductVariantService;
+    static priority = 50;
     private buyerIdentityService: BuyerIdentityService;
 
     init(injector: Injector) {
-        this.productVariantService = injector.get(ProductVariantService);
         this.buyerIdentityService = injector.get(BuyerIdentityService);
     }
 
@@ -130,9 +136,7 @@ export class BuyerOverrideLayer extends StrategyLayer.passThrough<OrderItemPrice
         if (buyerOverride.customerId == null) {
             return this.inner.calculateUnitPrice(...args);
         }
-        return this.productVariantService.calculateBuyerPriceForOrder(ctx, productVariant, order, {
-            quantity,
-            orderLineCustomFields,
+        return this.inner.calculateUnitPrice(ctx, productVariant, orderLineCustomFields, order, quantity, {
             buyer: this.buyerIdentityService.forCustomer(ctx, buyerOverride.customerId),
         });
     }
