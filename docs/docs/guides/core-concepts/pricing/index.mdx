@@ -64,7 +64,44 @@ The `buyer` argument tells the strategy who the price is for. It has two methods
 
 The [`BuyerIdentityService`](/reference/typescript-api/services/buyer-identity-service/) creates the buyer with `forCustomer()` or `forActiveUser()`. It loads each customer once for each request, so a strategy can call the buyer for each order line. `getCustomerId()` of a buyer from `forCustomer()` loads the customer too, with the same query as `getCustomer()`. If your strategy caches its results, include the customer ID in the cache key.
 
-A caller can pass its own buyer in the `buyer` option of `ProductVariantService.calculateBuyerPriceForOrder()` and `calculateBuyerPrice()`. For example, a `StrategyLayer` over the `OrderItemPriceCalculationStrategy` can price a shared cart for the company, and not for the member who checks out.
+A caller can pass its own buyer in the `buyer` option of `ProductVariantService.calculateBuyerPriceForOrder()` and `calculateBuyerPrice()`.
+
+In the cart, a `StrategyLayer` over the `OrderItemPriceCalculationStrategy` passes its own buyer to `inner` in the last argument, `options.buyer`. For example, a layer can price a shared cart for the company, and not for the member who checks out. The inner layers and the base strategy still run. The default strategy passes `options.buyer` to `calculateBuyerPriceForOrder()`. Without `options.buyer`, the price is for the customer of the order. Vendure itself does not pass `options`.
+
+```ts title="src/plugins/shared-cart/company-buyer-layer.ts"
+import {
+    BuyerIdentityService,
+    Injector,
+    OrderItemPriceCalculationStrategy,
+    PriceCalculationResult,
+    StrategyLayer,
+} from '@vendure/core';
+
+export class CompanyBuyerLayer extends StrategyLayer.passThrough<OrderItemPriceCalculationStrategy>() {
+    static priority = 50;
+    private buyerIdentityService: BuyerIdentityService;
+
+    init(injector: Injector) {
+        this.buyerIdentityService = injector.get(BuyerIdentityService);
+    }
+
+    async calculateUnitPrice(
+        ...args: Parameters<OrderItemPriceCalculationStrategy['calculateUnitPrice']>
+    ): Promise<PriceCalculationResult> {
+        const [ctx, productVariant, orderLineCustomFields, order, quantity] = args;
+        // An Order custom field that your plugin defines
+        const companyCustomerId = order.customFields.companyCustomerId;
+        if (companyCustomerId == null) {
+            return this.inner.calculateUnitPrice(...args);
+        }
+        return this.inner.calculateUnitPrice(ctx, productVariant, orderLineCustomFields, order, quantity, {
+            buyer: this.buyerIdentityService.forCustomer(ctx, companyCustomerId),
+        });
+    }
+}
+```
+
+A layer that changes other arguments and calls `inner` with its own argument list must pass `options` on too. Otherwise the inner strategies do not get the buyer of an outer layer.
 
 ### Pricing data
 
@@ -156,7 +193,7 @@ Things to know:
 
 The `OrderItemPriceCalculationStrategy` gives the price of an order line, and it has the order. Use it only for logic that needs the order, or that writes data to the order line. Put catalog pricing that depends on the variant, the buyer, the quantity and the pricing data in the buyer price strategy.
 
-A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `ProductVariantService.calculateBuyerPriceForOrder()`. This method passes the customer of the order as the buyer (or the `buyer` option), the order line custom fields as `data`, and a copy of the variant. It also throws the error for no price. If the custom strategy does not call it, the cart ignores the buyer price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a buyer price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`.
+A custom `OrderItemPriceCalculationStrategy` that replaces the default must call `ProductVariantService.calculateBuyerPriceForOrder()`. This method passes the customer of the order as the buyer (or the `buyer` option, so pass `options?.buyer` to it), the order line custom fields as `data`, and a copy of the variant. It also throws the error for no price. If the custom strategy does not call it, the cart ignores the buyer price strategy. If you have a custom `OrderItemPriceCalculationStrategy` today, move the logic that does not need the order into a buyer price layer, and write the rest as a `StrategyLayer` over the default `OrderItemPriceCalculationStrategy`. The default strategy is exported from `@vendure/core` as `DefaultOrderItemPriceCalculationStrategy`.
 
 ## Channel-specific pricing
 
