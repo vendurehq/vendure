@@ -72,7 +72,7 @@ export async function analyzeProject(options: {
                 compilerOptions: {
                     // When running via the CLI, we want to find all source files,
                     // not just the compiled .js files.
-                    rootDir: './src',
+                    rootDir: path.resolve('./src'),
                 },
             },
             tsConfigFile,
