@@ -1,5 +1,6 @@
 import { CurrencyCode } from '@vendure/common/lib/generated-types';
 import {
+    Asset,
     ConfigService,
     DefaultOrderItemPriceCalculationStrategy,
     getBaseStrategy,
@@ -22,6 +23,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import {
     BOX_SIZE,
     buyerOverride,
+    buyerPriceData,
     FIXED_UNIT_PRICE,
     fixedPriceEmailAddresses,
     noPriceSkus,
@@ -290,7 +292,10 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         mergeConfig(config, {
             plugins: [TestBuyerPricePlugin],
             customFields: {
-                OrderLine: [{ name: 'unitCode', type: 'string' }],
+                OrderLine: [
+                    { name: 'unitCode', type: 'string' },
+                    { name: 'giftAsset', type: 'relation', entity: Asset },
+                ],
             },
             dbConnectionOptions: {
                 ...config.dbConnectionOptions,
@@ -417,6 +422,17 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
 
         expect(line.unitPrice).toBe(variant.buyerPrice!.price);
         expect(line.unitPriceWithTax).toBe(variant.buyerPrice!.priceWithTax);
+    });
+
+    it('decodes the ID values in the custom fields', async () => {
+        buyerPriceData.length = 0;
+        await shopClient.query(getVariantPricesDocument, {
+            id: 'T_1',
+            customFields: customFieldsInput({ giftAssetId: 'T_1' }),
+        });
+
+        expect(buyerPriceData.length).toBeGreaterThan(0);
+        expect(buyerPriceData.map(data => data?.giftAssetId)).toEqual(buyerPriceData.map(() => 1));
     });
 
     it('gives null when the strategy has no price for the buyer', async () => {

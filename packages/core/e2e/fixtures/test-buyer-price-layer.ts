@@ -43,6 +43,9 @@ export const buyerOverride: { customerId?: ID } = {};
 /** The metadata that {@link MetadataRecordingLayer} reads from the result of the inner strategy. */
 export const orderItemMetadata: Array<Record<string, unknown> | undefined> = [];
 
+/** The pricing data that {@link TestBuyerPriceLayer} receives. */
+export const buyerPriceData: Array<Record<string, unknown> | undefined> = [];
+
 /** The Customer IDs of the `options.buyer` arguments that {@link MetadataRecordingLayer} receives. */
 export const orderItemBuyerCustomerIds: Array<ID | undefined> = [];
 
@@ -65,6 +68,7 @@ export class TestBuyerPriceLayer extends StrategyLayer.passThrough<ProductVarian
         productVariant: ProductVariant,
         args: ProductVariantBuyerPriceArgs,
     ): Promise<PriceCalculationResult | undefined> {
+        buyerPriceData.push(args.data);
         if (noPriceSkus.has(productVariant.sku) || args.data?.unitCode === 'NONE') {
             return undefined;
         }
