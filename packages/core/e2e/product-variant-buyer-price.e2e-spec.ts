@@ -1,5 +1,11 @@
 import { CurrencyCode } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import {
+    Asset,
+    ConfigService,
+    DefaultOrderItemPriceCalculationStrategy,
+    getBaseStrategy,
+    mergeConfig,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -17,10 +23,12 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import {
     BOX_SIZE,
     buyerOverride,
+    buyerPriceData,
     FIXED_UNIT_PRICE,
     fixedPriceEmailAddresses,
     noPriceSkus,
     noPriceSkusForFixedPriceCustomers,
+    orderItemBuyerCustomerIds,
     orderItemMetadata,
     TestBuyerPricePlugin,
 } from './fixtures/test-buyer-price-layer';
@@ -284,7 +292,10 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         mergeConfig(config, {
             plugins: [TestBuyerPricePlugin],
             customFields: {
-                OrderLine: [{ name: 'unitCode', type: 'string' }],
+                OrderLine: [
+                    { name: 'unitCode', type: 'string' },
+                    { name: 'giftAsset', type: 'relation', entity: Asset },
+                ],
             },
             dbConnectionOptions: {
                 ...config.dbConnectionOptions,
@@ -411,6 +422,17 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
 
         expect(line.unitPrice).toBe(variant.buyerPrice!.price);
         expect(line.unitPriceWithTax).toBe(variant.buyerPrice!.priceWithTax);
+    });
+
+    it('decodes the ID values in the custom fields', async () => {
+        buyerPriceData.length = 0;
+        await shopClient.query(getVariantPricesDocument, {
+            id: 'T_1',
+            customFields: customFieldsInput({ giftAssetId: 'T_1' }),
+        });
+
+        expect(buyerPriceData.length).toBeGreaterThan(0);
+        expect(buyerPriceData.map(data => data?.giftAssetId)).toEqual(buyerPriceData.map(() => 1));
     });
 
     it('gives null when the strategy has no price for the buyer', async () => {
@@ -699,17 +721,28 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         });
     });
 
-    it('prices an order line for the buyer that an order item layer passes', async () => {
+    it('prices an order line for the buyer that an order item layer passes to the inner chain', async () => {
         await shopClient.asAnonymousUser();
         // The layer runs on the server, where the ID has no "T_" prefix
         buyerOverride.customerId = Number(fixedPriceCustomer.id.replace('T_', ''));
+        orderItemBuyerCustomerIds.length = 0;
         try {
             const line = await addToCart(shopClient, channelPrices[0].id, 1);
 
             expect(line.unitPrice).toBe(FIXED_UNIT_PRICE);
+            // The inner layer got the buyer of the outer layer
+            expect(orderItemBuyerCustomerIds).toEqual([buyerOverride.customerId]);
         } finally {
             buyerOverride.customerId = undefined;
         }
+    });
+
+    it('exports the default OrderItemPriceCalculationStrategy from @vendure/core', () => {
+        const { orderItemPriceCalculationStrategy } = server.app.get(ConfigService).orderOptions;
+
+        expect(getBaseStrategy(orderItemPriceCalculationStrategy)).toBeInstanceOf(
+            DefaultOrderItemPriceCalculationStrategy,
+        );
     });
 
     describe('modifyOrder', () => {

@@ -1,4 +1,4 @@
-import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { ProductVariantBuyerPriceArgs } from '@vendure/common/lib/generated-shop-types';
 import {
     CurrencyCode,
@@ -7,6 +7,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { Translated } from '../../../common/types/locale-types';
@@ -22,6 +23,8 @@ import { BuyerPriceResult, ProductVariantService } from '../../../service/servic
 import { StockLevelService } from '../../../service/services/stock-level.service';
 import { StockMovementService } from '../../../service/services/stock-movement.service';
 import { ApiType } from '../../common/get-api-type';
+import { GraphqlValueTransformer } from '../../common/graphql-value-transformer';
+import { IdCodecService } from '../../common/id-codec.service';
 import { RequestContext } from '../../common/request-context';
 import { Api } from '../../decorators/api.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
@@ -242,7 +245,12 @@ export class ProductVariantAdminEntityResolver {
 
 @Resolver('ProductVariant')
 export class ProductVariantShopEntityResolver {
-    constructor(private productVariantService: ProductVariantService) {}
+    private graphqlValueTransformers = new WeakMap<GraphQLSchema, GraphqlValueTransformer>();
+
+    constructor(
+        private productVariantService: ProductVariantService,
+        private idCodecService: IdCodecService,
+    ) {}
 
     @ResolveField()
     async buyerPrice(
@@ -250,10 +258,31 @@ export class ProductVariantShopEntityResolver {
         @Parent() productVariant: ProductVariant,
         // `customFields` exists when OrderLine custom fields are defined
         @Args() args: ProductVariantBuyerPriceArgs & { customFields?: Record<string, unknown> | null },
+        @Info() info: GraphQLResolveInfo,
     ): Promise<BuyerPriceResult | undefined> {
+        const { quantity, customFields } = this.decodeIdArguments(info, args);
         return this.productVariantService.calculateBuyerPrice(ctx, productVariant, {
-            quantity: args.quantity ?? 1,
-            data: args.customFields ?? undefined,
+            quantity: quantity ?? 1,
+            data: customFields ?? undefined,
         });
+    }
+
+    /**
+     * The IdInterceptor does not run for field resolvers, so this decodes the ID values in the
+     * arguments, as `addItemToOrder` gets them. It decodes a copy, because the arguments can
+     * contain a variable object that the field of each variant shares.
+     */
+    private decodeIdArguments<T extends Record<string, any>>(info: GraphQLResolveInfo, args: T): T {
+        let transformer = this.graphqlValueTransformers.get(info.schema);
+        if (!transformer) {
+            transformer = new GraphqlValueTransformer(info.schema);
+            this.graphqlValueTransformers.set(info.schema, transformer);
+        }
+        const field = info.parentType.getFields()[info.fieldName];
+        const decoded = structuredClone(args);
+        transformer.transformValues(transformer.getArgumentTypeTree(field), decoded, (value, type) =>
+            type?.name === 'ID' ? this.idCodecService.decode(value) : value,
+        );
+        return decoded;
     }
 }
