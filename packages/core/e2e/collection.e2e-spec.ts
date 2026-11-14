@@ -2302,7 +2302,10 @@ describe('Collection resolver', () => {
                     ],
                 },
             });
-            await awaitRunningJobs(adminClient, 5000);
+            // The product and variant mutations above each queue an apply-collection-filters job
+            // for all Collections, and the queue runs them one at a time. On a slow runner the
+            // jobs need more than 5 seconds.
+            await awaitRunningJobs(adminClient, 20_000);
 
             const result = await adminClient.query(getCollectionProductVariantsDocument, {
                 id: createCollection.id,
