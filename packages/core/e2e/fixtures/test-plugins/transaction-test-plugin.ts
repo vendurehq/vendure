@@ -202,36 +202,26 @@ class TestResolver {
 
     @Mutation()
     async createNTestAdministrators2(@Ctx() ctx: RequestContext, @Args() args: any) {
-        let error: any;
-
-        const promises: Array<Promise<any>> = [];
-        const result = await this.connection
-            .withTransaction(ctx, _ctx => {
-                for (let i = 0; i < args.n; i++) {
-                    promises.push(
-                        new Promise(resolve => setTimeout(resolve, i * 10)).then(() =>
-                            this.testAdminService.createAdministrator(
-                                _ctx,
-                                `${args.emailAddress}${i}`,
-                                i < args.n * args.failFactor,
-                            ),
+        return this.connection.withTransaction(ctx, async _ctx => {
+            const promises: Array<Promise<any>> = [];
+            for (let i = 0; i < args.n; i++) {
+                promises.push(
+                    new Promise(resolve => setTimeout(resolve, i * 10)).then(() =>
+                        this.testAdminService.createAdministrator(
+                            _ctx,
+                            `${args.emailAddress}${i}`,
+                            i < args.n * args.failFactor,
                         ),
-                    );
-                }
+                    ),
+                );
+            }
 
-                return Promise.all(promises);
-            })
-            .catch((e: any) => {
-                error = e;
-            });
-
-        await this.allSettled(promises);
-
-        if (error) {
-            throw error;
-        }
-
-        return result;
+            // Wait for every write to end before the transaction ends. A write that is still
+            // running after the rollback goes to the same connection outside the transaction,
+            // and the database keeps it.
+            await this.allSettled(promises);
+            return Promise.all(promises);
+        });
     }
 
     @Mutation()
