@@ -167,9 +167,7 @@ describe('Transaction infrastructure', () => {
                 });
                 fail('Should have thrown');
             } catch (e: any) {
-                expect(e.message).toMatch(
-                    /^Failed!|Query runner already released. Cannot run queries anymore.$/,
-                );
+                expect(e.message).toContain('Failed!');
             }
 
             const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
