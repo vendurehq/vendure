@@ -2770,7 +2770,7 @@
                   "title": "DefaultOrderItemPriceCalculationStrategy",
                   "slug": "default-order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/default-order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:45:27Z"
                 },
                 {
                   "title": "DefaultOrderPlacedStrategy",
@@ -2818,7 +2818,7 @@
                   "title": "OrderItemPriceCalculationStrategy",
                   "slug": "order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:45:27Z"
                 },
                 {
                   "title": "OrderLineDiscountDistributionStrategy",
