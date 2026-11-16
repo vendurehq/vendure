@@ -16,6 +16,8 @@ import {
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 
+import { getRelationTargetScope } from './relation-target-scope';
+
 @Injectable()
 export class CustomFieldRelationService {
     constructor(
@@ -84,11 +86,13 @@ export class CustomFieldRelationService {
     /**
      * @description
      * Throws an {@link EntityNotFoundError} if any of the given ids does not belong to an entity
-     * of the type the relation custom field points at. `null` and `undefined` pass, since they
-     * clear or leave alone the relation.
+     * of the type the relation custom field points at. If that type is ChannelAware, the entity
+     * must also be assigned to the active Channel. `null` and `undefined` pass, since they clear or
+     * leave alone the relation.
      *
      * Without this check, an unknown id on a single relation fails as a raw foreign key error from
-     * the database, and an unknown id in a list relation is silently dropped.
+     * the database, an unknown id in a list relation is silently dropped, and a relation can link
+     * to an entity of a Channel the caller has no access to.
      */
     async assertRelationsExist(
         ctx: RequestContext,
@@ -106,8 +110,8 @@ export class CustomFieldRelationService {
     }
 
     /**
-     * Loads the target entities with the given ids, and throws an {@link EntityNotFoundError} for
-     * the first id which matches none. One query either way, so checking the ids costs nothing
+     * Loads the target entities with the given ids, limited to the active Channel if the target is
+     * ChannelAware, and throws an {@link EntityNotFoundError} for the first id which matches none. One query either way, so checking the ids costs nothing
      * extra where the entities are needed anyway.
      */
     private async findTargetsOrThrow(
@@ -125,6 +129,11 @@ export class CustomFieldRelationService {
             .where('target.id IN (:...ids)', { ids });
         if (idsOnly) {
             qb.select('target.id');
+        }
+        if (getRelationTargetScope(this.connection.rawConnection, field.entity).channelAware) {
+            qb.innerJoin('target.channels', 'target_channel', 'target_channel.id = :channelId', {
+                channelId: ctx.channelId,
+            });
         }
         const found = await qb.getMany();
         const missing = ids.find(id => !found.some(entity => idsAreEqual(entity.id, id)));
