@@ -65,7 +65,7 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
 
     /**
      * @description
-     * Returns the values of the Customer's `channelScoped` custom fields in the active Channel of
+     * Returns the values of the Customer's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the Customer is not assigned to
      * that Channel. They are not part of `customFields`, since they have a value per Channel.
      * Declare their types on {@link CustomCustomerChannelFields}.

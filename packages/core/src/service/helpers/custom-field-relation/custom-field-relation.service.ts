@@ -42,7 +42,7 @@ export class CustomFieldRelationService {
                 entityType.name as keyof CustomFields
             ]
                 .filter(this.isRelationalType)
-                .filter(field => !field.channelScoped);
+                .filter(field => field.scope !== 'channel');
 
             for (const field of relationCustomFields) {
                 const idOrIds = input.customFields[getGraphQlInputName(field)];
@@ -78,7 +78,7 @@ export class CustomFieldRelationService {
 
     /**
      * @description
-     * Writes the values of the entity's channel-scoped custom fields (see the `channelScoped`
+     * Writes the values of the entity's channel-scoped custom fields (see the `scope`
      * custom field option) from `customFieldsInput` to its channel assignment row in the given
      * Channel (defaults to the active Channel). {@link updateRelations} calls this; services which save custom field input without
      * calling {@link updateRelations} must call it after the entity is assigned to the Channel.
@@ -94,7 +94,7 @@ export class CustomFieldRelationService {
     ) {
         const channelScoped = (
             this.configService.customFields[entityType.name as keyof CustomFields] ?? []
-        ).filter(field => field.channelScoped);
+        ).filter(field => field.scope === 'channel');
         if (!channelScoped.length || !customFieldsInput) {
             return;
         }

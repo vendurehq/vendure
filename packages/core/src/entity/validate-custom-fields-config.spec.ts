@@ -281,16 +281,16 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.errors).toEqual([]);
     });
 
-    describe('channelScoped', () => {
+    describe("scope: 'channel'", () => {
         it('accepts channel-scoped fields on an entity with a channel assignment entity', () => {
             const config: CustomFields = {
                 Product: [
-                    { name: 'note', type: 'string', channelScoped: true, nullable: true },
+                    { name: 'note', type: 'string', scope: 'channel', nullable: true },
                     {
                         name: 'featured',
                         type: 'relation',
                         entity: coreEntitiesMap.Asset,
-                        channelScoped: true,
+                        scope: 'channel',
                     },
                 ],
             };
@@ -299,10 +299,10 @@ describe('validateCustomFieldsConfig()', () => {
 
         it('rejects channel-scoped fields on an entity without a channel assignment entity', () => {
             const config: CustomFields = {
-                User: [{ name: 'note', type: 'string', channelScoped: true }],
+                User: [{ name: 'note', type: 'string', scope: 'channel' }],
             };
             expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
-                'User entity custom field(s) "note" have "channelScoped: true", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
+                'User entity custom field(s) "note" have scope "channel", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
             ]);
         });
 
@@ -313,17 +313,17 @@ describe('validateCustomFieldsConfig()', () => {
                         name: 'structured',
                         type: 'struct',
                         fields: [{ name: 'a', type: 'string' }],
-                        channelScoped: true,
+                        scope: 'channel',
                     },
-                    { name: 'tags', type: 'string', list: true, channelScoped: true },
-                    { name: 'uniqueValue', type: 'string', unique: true, channelScoped: true },
-                    { name: 'hidden', type: 'string', secret: true, channelScoped: true },
+                    { name: 'tags', type: 'string', list: true, scope: 'channel' },
+                    { name: 'uniqueValue', type: 'string', unique: true, scope: 'channel' },
+                    { name: 'hidden', type: 'string', secret: true, scope: 'channel' },
                     {
                         name: 'many',
                         type: 'relation',
                         entity: coreEntitiesMap.Asset,
                         list: true,
-                        channelScoped: true,
+                        scope: 'channel',
                     },
                 ],
             };
@@ -332,10 +332,10 @@ describe('validateCustomFieldsConfig()', () => {
 
         it('rejects the field types and options which are not supported', () => {
             const config: CustomFields = {
-                Product: [{ name: 'localized', type: 'localeString', channelScoped: true }],
+                Product: [{ name: 'localized', type: 'localeString', scope: 'channel' }],
             };
             expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
-                'Product entity custom field "localized" has "channelScoped: true", which does not support type "localeString"',
+                'Product entity custom field "localized" has scope "channel", which does not support type "localeString"',
             ]);
         });
     });

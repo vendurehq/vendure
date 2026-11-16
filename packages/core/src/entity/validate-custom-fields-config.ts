@@ -29,11 +29,11 @@ function validateCustomFieldsForEntity(
 }
 
 /**
- * Assert that `channelScoped` custom fields are only declared on entities with a channel assignment
+ * Assert that channel-scoped custom fields are only declared on entities with a channel assignment
  * entity, and only with the field types and options which are supported there.
  */
 function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomFieldConfig[]): string[] {
-    const channelScoped = customFields.filter(f => f.channelScoped);
+    const channelScoped = customFields.filter(f => f.scope === 'channel');
     if (!channelScoped.length) {
         return [];
     }
@@ -44,7 +44,7 @@ function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomF
         const names = channelScoped.map(f => JSON.stringify(f.name)).join(', ');
         return [
             `${entity.name} entity custom field(s) ${names} ` +
-                'have "channelScoped: true", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
+                'have scope "channel", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
         ];
     }
     const errors: string[] = [];
@@ -54,7 +54,7 @@ function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomF
         );
         if (unsupported.length) {
             errors.push(
-                `${entity.name} entity custom field "${field.name}" has "channelScoped: true", which does not support ${unsupported.join(', ')}`,
+                `${entity.name} entity custom field "${field.name}" has scope "channel", which does not support ${unsupported.join(', ')}`,
             );
         }
     }

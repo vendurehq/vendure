@@ -1,3 +1,11 @@
+"""
+Where the value of a custom field lives: one value for the entity, or a separate value per Channel.
+"""
+enum CustomFieldScope {
+    global
+    channel
+}
+
 interface CustomField {
     name: String!
     type: String!
@@ -12,7 +20,7 @@ interface CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 type StringCustomFieldConfig implements CustomField {
@@ -32,7 +40,7 @@ type StringCustomFieldConfig implements CustomField {
     pattern: String
     options: [StringFieldOption!]
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 type StringFieldOption {
@@ -56,7 +64,7 @@ type LocaleStringCustomFieldConfig implements CustomField {
     deprecationReason: String
     pattern: String
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 type IntCustomFieldConfig implements CustomField {
     name: String!
@@ -75,7 +83,7 @@ type IntCustomFieldConfig implements CustomField {
     max: Int
     step: Int
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 type FloatCustomFieldConfig implements CustomField {
     name: String!
@@ -94,7 +102,7 @@ type FloatCustomFieldConfig implements CustomField {
     max: Float
     step: Float
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 type BooleanCustomFieldConfig implements CustomField {
     name: String!
@@ -110,7 +118,7 @@ type BooleanCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 """
 Expects the same validation formats as the `<input type="datetime-local">` HTML element.
@@ -133,7 +141,7 @@ type DateTimeCustomFieldConfig implements CustomField {
     max: String
     step: Int
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 type RelationCustomFieldConfig implements CustomField {
@@ -152,7 +160,7 @@ type RelationCustomFieldConfig implements CustomField {
     entity: String!
     scalarFields: [String!]!
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 type TextCustomFieldConfig implements CustomField {
@@ -169,7 +177,7 @@ type TextCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 type LocaleTextCustomFieldConfig implements CustomField {
@@ -186,7 +194,7 @@ type LocaleTextCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 interface StructField {
@@ -288,7 +296,7 @@ type StructCustomFieldConfig implements CustomField {
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
-    channelScoped: Boolean
+    scope: CustomFieldScope!
 }
 
 type LocalizedString {

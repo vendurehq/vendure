@@ -19,7 +19,7 @@ export type ChannelCustomFieldRelations<Fields> = {
 
 /**
  * @description
- * Options for reading the `channelScoped` custom fields of an entity, e.g. with
+ * Options for reading the channel-scoped custom fields of an entity, e.g. with
  * `product.getChannelCustomFields(ctx, options)`.
  *
  * @docsCategory entities

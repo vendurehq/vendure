@@ -1,7 +1,7 @@
 /**
  * Channel-scoped custom fields (#490).
  *
- * A custom field with `channelScoped: true` is stored on the entity's channel assignment row
+ * A custom field with `scope: 'channel'` is stored on the entity's channel assignment row
  * (e.g. `ProductChannel`), and the normal `customFields` API reads and writes the value of the
  * active Channel. The tests run in order and share the state they set up.
  */
@@ -233,29 +233,29 @@ describe('Channel-scoped custom fields (#490)', () => {
             },
             customFields: {
                 Product: [
-                    { name: 'channelNote', type: 'string', channelScoped: true, nullable: true },
+                    { name: 'channelNote', type: 'string', scope: 'channel', nullable: true },
                     {
                         name: 'channelFeaturedAsset',
                         type: 'relation',
                         entity: Asset,
-                        channelScoped: true,
+                        scope: 'channel',
                         nullable: true,
                     },
                     { name: 'globalNote', type: 'string', nullable: true },
-                    { name: 'channelPriority', type: 'int', channelScoped: true, defaultValue: 5 },
-                    { name: 'channelTags', type: 'string', list: true, channelScoped: true, nullable: true },
-                    { name: 'channelSku', type: 'string', unique: true, channelScoped: true, nullable: true },
+                    { name: 'channelPriority', type: 'int', scope: 'channel', defaultValue: 5 },
+                    { name: 'channelTags', type: 'string', list: true, scope: 'channel', nullable: true },
+                    { name: 'channelSku', type: 'string', unique: true, scope: 'channel', nullable: true },
                     {
                         name: 'channelApiKey',
                         type: 'string',
                         secret: true,
-                        channelScoped: true,
+                        scope: 'channel',
                         nullable: true,
                     },
                     {
                         name: 'channelSpecs',
                         type: 'struct',
-                        channelScoped: true,
+                        scope: 'channel',
                         fields: [
                             { name: 'label', type: 'string' },
                             { name: 'rank', type: 'int' },
@@ -266,7 +266,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                         type: 'relation',
                         entity: Asset,
                         list: true,
-                        channelScoped: true,
+                        scope: 'channel',
                         nullable: true,
                     },
                 ],
@@ -278,14 +278,12 @@ describe('Channel-scoped custom fields (#490)', () => {
                         type: 'relation',
                         entity: Asset,
                         list: true,
-                        channelScoped: true,
+                        scope: 'channel',
                         nullable: true,
                     },
                 ],
-                StockLocation: [
-                    { name: 'channelLabel', type: 'string', channelScoped: true, nullable: true },
-                ],
-                Customer: [{ name: 'channelNickname', type: 'string', channelScoped: true, nullable: true }],
+                StockLocation: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
+                Customer: [{ name: 'channelNickname', type: 'string', scope: 'channel', nullable: true }],
             },
         }),
     );
@@ -342,7 +340,7 @@ describe('Channel-scoped custom fields (#490)', () => {
         expect(columns('FacetChannel').some(c => c.startsWith('customFields'))).toBe(false);
     });
 
-    it('exposes channelScoped in the custom field config', async () => {
+    it('exposes the scope in the custom field config', async () => {
         asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
         const { globalSettings } = await adminClient.query(gql`
             query {
@@ -353,7 +351,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                             customFields {
                                 ... on CustomField {
                                     name
-                                    channelScoped
+                                    scope
                                 }
                             }
                         }
@@ -361,7 +359,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                             Product {
                                 ... on CustomField {
                                     name
-                                    channelScoped
+                                    scope
                                 }
                             }
                         }
@@ -370,15 +368,15 @@ describe('Channel-scoped custom fields (#490)', () => {
             }
         `);
         const expected = [
-            { name: 'channelNote', channelScoped: true },
-            { name: 'channelFeaturedAsset', channelScoped: true },
-            { name: 'globalNote', channelScoped: false },
-            { name: 'channelPriority', channelScoped: true },
-            { name: 'channelTags', channelScoped: true },
-            { name: 'channelSku', channelScoped: true },
-            { name: 'channelApiKey', channelScoped: true },
-            { name: 'channelSpecs', channelScoped: true },
-            { name: 'channelGallery', channelScoped: true },
+            { name: 'channelNote', scope: 'channel' },
+            { name: 'channelFeaturedAsset', scope: 'channel' },
+            { name: 'globalNote', scope: 'global' },
+            { name: 'channelPriority', scope: 'channel' },
+            { name: 'channelTags', scope: 'channel' },
+            { name: 'channelSku', scope: 'channel' },
+            { name: 'channelApiKey', scope: 'channel' },
+            { name: 'channelSpecs', scope: 'channel' },
+            { name: 'channelGallery', scope: 'channel' },
         ];
         const { entityCustomFields, customFieldConfig } = globalSettings.serverConfig;
         expect(entityCustomFields.find((e: any) => e.entityName === 'Product').customFields).toEqual(

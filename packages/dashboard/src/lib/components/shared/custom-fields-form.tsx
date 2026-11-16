@@ -393,7 +393,7 @@ function CustomFieldFormItem({
     // A channel-scoped custom field holds a separate value in each channel, and the form shows and
     // saves the active channel's value. Only worth saying when there is more than one channel.
     const showChannelScopedHint =
-        'channelScoped' in fieldDef && fieldDef.channelScoped === true && channels.length > 1;
+        'scope' in fieldDef && fieldDef.scope === 'channel' && channels.length > 1;
     return (
         <Field data-invalid={fieldState?.invalid || undefined}>
             <FieldLabel htmlFor={fieldId}>{getTranslation(fieldDef.label) ?? fieldDef.name}</FieldLabel>

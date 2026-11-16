@@ -315,7 +315,7 @@ query {
 
 ### Channel-scoped custom fields
 
-The values of [channel-scoped](#channelscoped) custom fields are not stored on the entity, since they have a
+The values of [channel-scoped](#scope) custom fields are not stored on the entity, since they have a
 value per Channel. They are not part of `entity.customFields`, so read them with the entity's
 `getChannelCustomFields()` method, which returns the values in the active Channel of the `RequestContext`:
 
@@ -851,11 +851,12 @@ type ProductCustomFields {
 }
 ```
 
-#### channelScoped
+#### scope
 
-<CustomFieldProperty required={false} type="boolean" />
+<CustomFieldProperty required={false} type="'global' | 'channel'" />
 
-From Vendure v4.0, setting `channelScoped: true` gives the field a separate value in each Channel. For example,
+From Vendure v4.0, `scope` sets where the field's value lives. The default, `'global'`, is one value for the entity.
+Setting `scope: 'channel'` gives the field a separate value in each Channel (a "channel-scoped" field). For example,
 a Product can have a different `channelNote` in each Channel it is assigned to:
 
 ```ts title="src/vendure-config.ts"
@@ -867,14 +868,14 @@ const config = {
                 name: 'channelNote',
                 type: 'string',
                 nullable: true,
-                channelScoped: true, // [!code highlight]
+                scope: 'channel', // [!code highlight]
             },
             {
                 name: 'channelFeaturedAsset',
                 type: 'relation',
                 entity: Asset,
                 nullable: true,
-                channelScoped: true, // [!code highlight]
+                scope: 'channel', // [!code highlight]
             },
         ],
     },
@@ -883,7 +884,7 @@ const config = {
 
 In the GraphQL APIs, nothing changes for clients: channel-scoped fields are part of the same `customFields`
 object and input as the other custom fields. Queries read, and mutations write, the value in the active Channel.
-List queries filter and sort by the value in the active Channel. The `channelScoped` property of the custom
+List queries filter and sort by the value in the active Channel. The `scope` property of the custom
 field config tells a client (such as the Dashboard) which fields hold a value per Channel.
 
 How the values behave:
@@ -1686,7 +1687,7 @@ For a working example of this setup, see the [real-world-vendure repo](https://g
 
 ### Channel-scoped custom field typings
 
-Declare the types of [channel-scoped](#channelscoped) custom fields on the entity's `Custom<Entity>ChannelFields`
+Declare the types of [channel-scoped](#scope) custom fields on the entity's `Custom<Entity>ChannelFields`
 interface, e.g. `CustomProductChannelFields`, rather than on `CustomProductFields`:
 
 ```ts

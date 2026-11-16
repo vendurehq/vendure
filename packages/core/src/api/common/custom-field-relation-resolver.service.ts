@@ -97,9 +97,10 @@ export class CustomFieldRelationResolverService {
     ): Promise<VendureEntity[][]> {
         // Fetch the parent -> relation id mapping for all batched parent ids in a single query.
         // Channel-scoped fields live on the entity's channel assignment row for the active Channel.
-        const assignment = fieldDef.channelScoped
-            ? this.channelAssignmentService.getMetadataByEntityName(entityName)
-            : undefined;
+        const assignment =
+            fieldDef.scope === 'channel'
+                ? this.channelAssignmentService.getMetadataByEntityName(entityName)
+                : undefined;
         // Only the queried table, its id column and the Channel condition differ
         const idColumn = assignment ? `entity.${assignment.entityIdProperty}` : 'entity.id';
         const mappingQb = this.connection

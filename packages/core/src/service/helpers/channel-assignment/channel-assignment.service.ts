@@ -346,7 +346,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
 
     /**
      * @description
-     * Returns the values of the entity's `channelScoped` custom fields in a Channel (the active
+     * Returns the values of the entity's channel-scoped custom fields in a Channel (the active
      * Channel by default), or `undefined` if the entity is not assigned to that Channel. Relation
      * fields are only set if they are listed in `options.relations`.
      *

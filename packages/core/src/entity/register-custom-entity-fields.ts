@@ -140,7 +140,7 @@ export function registerCustomFieldsForEntity(
     // Channel-scoped fields are registered on the entity's channel assignment entity instead
     // (see registerChannelScopedCustomFields), so each call only handles one of the two sets.
     const customFields = (config.customFields?.[entityName] ?? []).filter(
-        f => !!f.channelScoped === channelScoped,
+        f => (f.scope === 'channel') === channelScoped,
     );
     const dbEngine = getDatabaseType(config.dbConnectionOptions);
     if (customFields.length) {
@@ -505,12 +505,12 @@ function assertLocaleFieldsNotSpecified(config: VendureConfig, entityName: keyof
 }
 
 /**
- * Registers the `channelScoped` custom fields of an entity on its channel assignment entity
+ * Registers the channel-scoped custom fields of an entity on its channel assignment entity
  * (e.g. `ProductChannel` for `Product`), in a `customFields` embedded which is only added when
  * the entity has channel-scoped fields, so entities without any keep their schema unchanged.
  */
 function registerChannelScopedCustomFields(config: VendureConfig, entityName: string) {
-    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.channelScoped);
+    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.scope === 'channel');
     if (!channelScoped.length) {
         return;
     }
@@ -573,7 +573,7 @@ function guardChannelScopedCustomFields(
     entityName: string,
     customFieldsClass: Type<any>,
 ) {
-    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.channelScoped);
+    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.scope === 'channel');
     for (const field of channelScoped) {
         const names =
             field.type === 'relation' && !field.list ? [field.name, `${field.name}Id`] : [field.name];

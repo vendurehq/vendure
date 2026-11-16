@@ -65,7 +65,7 @@ export const e2eCustomFields: CustomFields = {
             name: 'channelNote',
             type: 'string',
             nullable: true,
-            channelScoped: true,
+            scope: 'channel',
             label: [{ languageCode: LanguageCode.en, value: 'Channel Note' }],
         },
         {

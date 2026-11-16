@@ -88,7 +88,7 @@ export class Collection
 
     /**
      * @description
-     * Returns the values of the Collection's `channelScoped` custom fields in the active Channel of
+     * Returns the values of the Collection's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the Collection is not assigned to
      * that Channel. They are not part of `customFields`, since they have a value per Channel.
      * Declare their types on {@link CustomCollectionChannelFields}.

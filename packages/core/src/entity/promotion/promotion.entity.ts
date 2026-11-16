@@ -134,7 +134,7 @@ export class Promotion
 
     /**
      * @description
-     * Returns the values of the Promotion's `channelScoped` custom fields in the active Channel of
+     * Returns the values of the Promotion's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the Promotion is not assigned to
      * that Channel. They are not part of `customFields`, since they have a value per Channel.
      * Declare their types on {@link CustomPromotionChannelFields}.

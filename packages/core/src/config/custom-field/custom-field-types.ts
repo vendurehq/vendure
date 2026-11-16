@@ -54,6 +54,27 @@ export function isLocalizedCustomFieldType(type: CustomFieldType | undefined): b
     return type === 'localeString' || type === 'localeText';
 }
 
+/**
+ * @description
+ * Where the value of a custom field lives: `'global'` (one value for the entity) or `'channel'` (a
+ * separate value per Channel). See the `scope` property of the custom field config.
+ *
+ * @docsCategory custom-fields
+ * @since 4.0.0
+ */
+export type CustomFieldScope = 'global' | 'channel';
+
+/**
+ * @description
+ * Whether the custom field holds a separate value per Channel (`scope: 'channel'`).
+ *
+ * @docsCategory custom-fields
+ * @since 4.0.0
+ */
+export function isChannelScopedCustomField(field: { scope?: CustomFieldScope }): boolean {
+    return field.scope === 'channel';
+}
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :
@@ -64,7 +85,7 @@ export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
 
 export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends CustomField> = Omit<
     C,
-    '__typename' | 'list' | 'requiresPermission' | 'deprecated'
+    '__typename' | 'list' | 'requiresPermission' | 'deprecated' | 'scope'
 > & {
     type: T;
     /**
@@ -90,7 +111,10 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     index?: boolean;
     /**
      * @description
-     * If set to `true`, the field holds a separate value per Channel. It is only supported on
+     * Where the value of the field lives:
+     *
+     * - `'global'`: one value for the entity, stored on the entity's own table.
+     * - `'channel'`: a separate value per Channel ("channel-scoped"). It is only supported on
      * {@link ChannelAware} entities which have a channel assignment entity (see
      * `ChannelAssignment`), e.g. `Product`: the value is stored on the entity's row for each Channel
      * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value in the active
@@ -118,9 +142,9 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * Not supported with the localized types (`localeString`, `localeText`).
      *
      * @since 4.0.0
-     * @default false
+     * @default 'global'
      */
-    channelScoped?: boolean;
+    scope?: CustomFieldScope;
     /**
      * @description
      * If set to `true`, the value of this field is encrypted at rest using the configured

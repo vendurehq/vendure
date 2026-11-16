@@ -202,7 +202,7 @@ export class EntityHydrator {
                     const field = this.configService.customFields[entityName as keyof CustomFields]?.find(
                         f => f.name === segments[i + 1],
                     );
-                    if (field?.channelScoped) {
+                    if (field?.scope === 'channel') {
                         throw new InternalServerError(
                             `Cannot hydrate "${path}": "${field.name}" is a channel-scoped custom field of ` +
                                 `${entityName}, which is not stored on the entity. Read it with ` +

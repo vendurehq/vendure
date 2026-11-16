@@ -58,7 +58,7 @@ export class AssetChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Asset's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Asset's channel-scoped custom fields in this Channel. Only present if
      * the Asset has channel-scoped custom fields. Read them with `asset.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -85,7 +85,7 @@ export class ApiKeyChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ApiKey's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the ApiKey's channel-scoped custom fields in this Channel. Only present if
      * the ApiKey has channel-scoped custom fields. Read them with `apiKey.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -111,7 +111,7 @@ export class CollectionChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Collection's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Collection's channel-scoped custom fields in this Channel. Only present if
      * the Collection has channel-scoped custom fields. Read them with `collection.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -137,7 +137,7 @@ export class CustomerChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Customer's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Customer's channel-scoped custom fields in this Channel. Only present if
      * the Customer has channel-scoped custom fields. Read them with `customer.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -163,7 +163,7 @@ export class FacetChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Facet's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Facet's channel-scoped custom fields in this Channel. Only present if
      * the Facet has channel-scoped custom fields. Read them with `facet.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -189,7 +189,7 @@ export class FacetValueChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the FacetValue's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the FacetValue's channel-scoped custom fields in this Channel. Only present if
      * the FacetValue has channel-scoped custom fields. Read them with `facetValue.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -216,7 +216,7 @@ export class OrderChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Order's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Order's channel-scoped custom fields in this Channel. Only present if
      * the Order has channel-scoped custom fields. Read them with `order.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -242,7 +242,7 @@ export class PaymentMethodChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the PaymentMethod's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the PaymentMethod's channel-scoped custom fields in this Channel. Only present if
      * the PaymentMethod has channel-scoped custom fields. Read them with `paymentMethod.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -279,7 +279,7 @@ export class ProductChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Product's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Product's channel-scoped custom fields in this Channel. Only present if
      * the Product has channel-scoped custom fields. Read them with `product.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -305,7 +305,7 @@ export class ProductOptionChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ProductOption's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the ProductOption's channel-scoped custom fields in this Channel. Only present if
      * the ProductOption has channel-scoped custom fields. Read them with `productOption.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -331,7 +331,7 @@ export class ProductOptionGroupChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ProductOptionGroup's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the ProductOptionGroup's channel-scoped custom fields in this Channel. Only present if
      * the ProductOptionGroup has channel-scoped custom fields. Read them with `productOptionGroup.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -368,7 +368,7 @@ export class ProductVariantChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ProductVariant's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the ProductVariant's channel-scoped custom fields in this Channel. Only present if
      * the ProductVariant has channel-scoped custom fields. Read them with `productVariant.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -394,7 +394,7 @@ export class PromotionChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Promotion's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the Promotion's channel-scoped custom fields in this Channel. Only present if
      * the Promotion has channel-scoped custom fields. Read them with `promotion.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -420,7 +420,7 @@ export class ShippingMethodChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ShippingMethod's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the ShippingMethod's channel-scoped custom fields in this Channel. Only present if
      * the ShippingMethod has channel-scoped custom fields. Read them with `shippingMethod.getChannelCustomFields()`.
      *
      * @since 4.0.0
@@ -446,7 +446,7 @@ export class StockLocationChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the StockLocation's `channelScoped` custom fields in this Channel. Only present if
+     * The values of the StockLocation's channel-scoped custom fields in this Channel. Only present if
      * the StockLocation has channel-scoped custom fields. Read them with `stockLocation.getChannelCustomFields()`.
      *
      * @since 4.0.0
