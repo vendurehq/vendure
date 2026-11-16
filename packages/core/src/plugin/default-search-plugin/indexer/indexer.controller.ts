@@ -15,11 +15,17 @@ import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
+import {
+    ProductChannel,
+    ProductVariantChannel,
+} from '../../../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { Product } from '../../../entity/product/product.entity';
 import { Job } from '../../../job-queue/job';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
+import { isEnabledInChannel } from '../../../service/helpers/channel-enabled-checker/channel-enabled-checker';
 import { EntityHydrator } from '../../../service/helpers/entity-hydrator/entity-hydrator.service';
 import { ProductPriceApplicator } from '../../../service/helpers/product-price-applicator/product-price-applicator';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
@@ -80,6 +86,7 @@ export class IndexerController {
         private configService: ConfigService,
         private requestContextCache: RequestContextCacheService,
         private productVariantService: ProductVariantService,
+        private channelAssignmentService: ChannelAssignmentService,
         @Inject(PLUGIN_INIT_OPTIONS) private options: DefaultSearchPluginInitOptions,
     ) {}
 
@@ -278,9 +285,6 @@ export class IndexerController {
                 product.translations = clone.translations;
                 await this.saveSyntheticVariant(ctx, product);
             } else {
-                if (product.enabled === false) {
-                    updatedVariants.forEach(v => (v.enabled = false));
-                }
                 const variantsInCurrentChannel = updatedVariants.filter(
                     v => !!v.channels.find(c => idsAreEqual(c.id, ctx.channelId)),
                 );
@@ -415,6 +419,20 @@ export class IndexerController {
 
         await this.removeSyntheticVariants(ctx, variants);
         const productMap = new Map<ID, Product>();
+        // A variant is indexed as enabled in a Channel only if it and its Product are enabled
+        // globally and in that Channel (see isEnabledInChannel).
+        const [variantAssignments, productAssignments] = await Promise.all([
+            this.channelAssignmentService.getAssignmentsByChannel<ProductVariantChannel>(
+                ctx,
+                ProductVariant,
+                variants.map(v => v.id),
+            ),
+            this.channelAssignmentService.getAssignmentsByChannel<ProductChannel>(
+                ctx,
+                Product,
+                unique(variants.map(v => v.productId)),
+            ),
+        ]);
 
         const originalChannel = ctx.channel;
         for (const variant of variants) {
@@ -469,7 +487,17 @@ export class IndexerController {
                             price: variant.price,
                             priceWithTax: variant.priceWithTax,
                             sku: variant.sku,
-                            enabled: product.enabled === false ? false : variant.enabled,
+                            enabled:
+                                isEnabledInChannel(
+                                    product.enabled,
+                                    productAssignments.get(String(product.id))?.get(String(channel.id))
+                                        ?.enabled,
+                                ) &&
+                                isEnabledInChannel(
+                                    variant.enabled,
+                                    variantAssignments.get(String(variant.id))?.get(String(channel.id))
+                                        ?.enabled,
+                                ),
                             slug: productTranslation?.slug ?? '',
                             productId: product.id,
                             productName: productTranslation?.name ?? '',

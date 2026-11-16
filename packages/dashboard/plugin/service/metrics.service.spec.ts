@@ -81,7 +81,7 @@ describe('Dashboard MetricsService', () => {
             result.find(metric => metric.type === DashboardMetricType.AverageOrderValue)?.entries[0].value,
         ).toBe(2000);
         expect(queryBuilder.select).toHaveBeenCalledWith(
-            `TO_CHAR(order.orderPlacedAt, 'YYYY-MM-DD')`,
+            `TO_CHAR(order.orderPlacedAt AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
             'date',
         );
         expect(queryBuilder.addSelect).toHaveBeenCalledWith(
@@ -89,7 +89,7 @@ describe('Dashboard MetricsService', () => {
             'averageOrderValue',
         );
         expect(queryBuilder.groupBy).toHaveBeenCalledWith(
-            `TO_CHAR(order.orderPlacedAt, 'YYYY-MM-DD')`,
+            `TO_CHAR(order.orderPlacedAt AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
         );
         expect(queryBuilder.getRawMany).toHaveBeenCalledOnce();
     });
@@ -140,7 +140,8 @@ describe('Dashboard MetricsService', () => {
     });
 
     it.each([
-        ['postgres', `TO_CHAR(order.orderPlacedAt, 'YYYY-MM-DD')`],
+        ['postgres', `TO_CHAR(order.orderPlacedAt AT TIME ZONE 'UTC', 'YYYY-MM-DD')`],
+        ['aurora-postgres', `TO_CHAR(order.orderPlacedAt AT TIME ZONE 'UTC', 'YYYY-MM-DD')`],
         ['mysql', `DATE_FORMAT(order.orderPlacedAt, '%Y-%m-%d')`],
         ['mariadb', `DATE_FORMAT(order.orderPlacedAt, '%Y-%m-%d')`],
         ['better-sqlite3', `STRFTIME('%Y-%m-%d', order.orderPlacedAt)`],

@@ -13,6 +13,7 @@ This section contains guides for migrating from Vendure v3 to v4. Follow the ste
 |---|---|---|
 | Roles are granted per Channel through role assignments. Customers no longer hold a Customer role. | Database, plugins, Admin API clients, multi-channel storefronts | [Role assignments](/developer-guide/migrating-from-v3/role-assignments) |
 | TypeORM v1 is the default dependency. TypeORM 0.3 is still supported. | Plugins with custom entities, queries or migrations | [TypeORM v1](/developer-guide/migrating-from-v3/typeorm-v1) |
+| On PostgreSQL, date columns are `timestamptz`. On MySQL and MariaDB, the session time zone is UTC. | PostgreSQL databases, plugins with raw SQL on date columns | [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns) |
 
 ## Migration steps
 
@@ -64,7 +65,7 @@ Run the read-only previews against your production data. See [Previewing the dat
 
 ### 6. Migrate your database
 
-Generate and run the v4 migration. It copies the role grants and keeps the v3 tables, then drops them: in the same migration if you stop v3 first, or in a later one for a rolling deployment. See [Database migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration).
+On PostgreSQL, set `dbConnectionOptions.synchronize` to `false` for this step: the date columns must be converted by the migration. Generate and run the v4 migration. It copies the role grants and keeps the v3 tables, then drops them: in the same migration if you stop v3 first, or in a later one for a rolling deployment. See [Database migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration).
 
 **Done when:** the migration has run, each data-migration helper logged its result, and Vendure v4 starts. For a rolling deployment, also once the migration that drops the v3 tables has run.
 

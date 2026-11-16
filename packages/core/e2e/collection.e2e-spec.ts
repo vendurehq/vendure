@@ -2302,7 +2302,10 @@ describe('Collection resolver', () => {
                     ],
                 },
             });
-            await awaitRunningJobs(adminClient, 5000);
+            // The product and variant mutations above each queue an apply-collection-filters job
+            // for all Collections, and the queue runs them one at a time. On a slow runner the
+            // jobs need more than 5 seconds.
+            await awaitRunningJobs(adminClient, 20_000);
 
             const result = await adminClient.query(getCollectionProductVariantsDocument, {
                 id: createCollection.id,
@@ -2396,8 +2399,8 @@ describe('Collection resolver', () => {
          * statements are captured and re-run because the row count is what grows when an
          * unwanted relation is joined, and it is not visible in the GraphQL response.
          *
-         * Only the statements carrying the `lqb__channel` alias are counted. That alias is
-         * added by the Channel scoping join, so it selects the list query's own statements
+         * Only the statements carrying an `lqb__channel` alias are counted (`lqb__channelAssignment`
+         * for a Collection). That alias is added by the Channel scoping join, so it selects the list query's own statements
          * and leaves out session lookups and any job queue activity, whose number varies
          * between runs. The test asserts a non-zero row count, so this narrowing fails
          * loudly rather than silently measuring nothing if that alias is ever renamed.

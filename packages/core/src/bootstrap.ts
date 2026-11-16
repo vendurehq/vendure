@@ -28,6 +28,7 @@ import {
     warnOnDroppedListEntries,
 } from './config/strategy-layer/strategy-chain-checks';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
+import { checkDatabaseTimezone } from './connection/check-database-timezone';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
 import {
@@ -38,6 +39,7 @@ import { registerTranslationEntityUniqueConstraints } from './entity/register-tr
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
+import { setTimestampColumnTypes } from './entity/set-timestamp-column-types';
 import { patchTypeOrmDeepValue } from './entity/typeorm-deep-value-fix';
 import { patchTypeOrmDuplicateEagerLoad } from './entity/typeorm-duplicate-eager-load-fix';
 import { patchTypeOrmEagerRelationJoins } from './entity/typeorm-eager-relation-join-fix';
@@ -256,6 +258,7 @@ export async function bootstrap(
         }
         app.use(mid.route, handler);
     });
+    await checkDatabaseTimezone(app.get<DataSource>(getConnectionToken()), config);
     await options?.onBeforeAppListen?.(app);
     await app.listen(port, hostname || '');
     app.enableShutdownHooks();
@@ -312,6 +315,7 @@ export async function bootstrapWorker(
     workerApp.useLogger(new Logger());
     workerApp.enableShutdownHooks();
     await validateDbTablesForWorker(workerApp);
+    await checkDatabaseTimezone(workerApp.get<DataSource>(getConnectionToken()), config);
     Logger.info('Vendure Worker is ready');
     logStartupBanner('worker');
     await workerApp.get(EventBus).publish(new BootstrappedEvent());
@@ -364,6 +368,7 @@ export async function preBootstrapConfig(
         throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
     }
     registerCustomEntityFields(config);
+    setTimestampColumnTypes(config, entities);
     registerTranslationEntityUniqueConstraints(entities);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;

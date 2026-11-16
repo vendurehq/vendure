@@ -1,6 +1,5 @@
 import { Calculated, DeepPartial, EntityId, ID, VendureEntity } from '@vendure/core';
 import { Column, Entity, Index, ManyToOne } from 'typeorm';
-import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { McpGrantUserType } from '../types';
 
@@ -123,7 +122,7 @@ export class McpOauthGrant extends VendureEntity {
      * update it.
      */
     @Calculated({
-        query: qb => qb.setParameter('grant_status_now', DateUtils.mixedDateToUtcDatetimeString(new Date())),
+        query: qb => qb.setParameter('grant_status_now', new Date()),
         expression: `CASE WHEN mcpoauthgrant.revokedAt IS NOT NULL THEN 'revoked' WHEN mcpoauthgrant.expiresAt <= :grant_status_now THEN 'expired' ELSE 'active' END`,
     })
     get status(): McpOauthGrantStatus {

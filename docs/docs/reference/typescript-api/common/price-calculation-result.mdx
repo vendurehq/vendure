@@ -4,13 +4,14 @@ generated: true
 ---
 <GenerationInfo sourceFile="packages/core/src/common/types/common-types.ts" sourceLine="174" packageName="@vendure/core" />
 
-The result of the price calculation from the [ProductVariantPriceCalculationStrategy](/reference/typescript-api/products-stock/product-variant-price-calculation-strategy#productvariantpricecalculationstrategy) or the
-[OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy).
+The result of the price calculation from the [ProductVariantPriceCalculationStrategy](/reference/typescript-api/products-stock/product-variant-price-calculation-strategy#productvariantpricecalculationstrategy), the
+[ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy) or the [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy).
 
 ```ts title="Signature"
 type PriceCalculationResult = {
     price: number;
     priceIncludesTax: boolean;
+    metadata?: Record<string, unknown>;
 }
 ```
 
@@ -26,6 +27,14 @@ type PriceCalculationResult = {
 <MemberInfo kind="property" type={`boolean`}   />
 
 
+### metadata
+
+<MemberInfo kind="property" type={`Record<string, unknown>`}  since="4.0.0"  />
+
+Optional data about the calculation, for example the price rule that applied. Vendure does not
+save it. The [DefaultOrderItemPriceCalculationStrategy](/reference/typescript-api/orders/default-order-item-price-calculation-strategy#defaultorderitempricecalculationstrategy) returns the metadata of the
+[ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy), so an outer layer can read it, for example to write it
+to the OrderLine custom fields.
 
 
 </div>

@@ -27,6 +27,7 @@ import { CollectionFilter } from './catalog/collection-filter';
 import { ProductVariantPriceCalculationStrategy } from './catalog/product-variant-price-calculation-strategy';
 import { ProductVariantPriceSelectionStrategy } from './catalog/product-variant-price-selection-strategy';
 import { ProductVariantPriceUpdateStrategy } from './catalog/product-variant-price-update-strategy';
+import { ProductVariantBuyerPriceStrategy } from './catalog/product-variant-buyer-price-strategy';
 import { StockDisplayStrategy } from './catalog/stock-display-strategy';
 import { StockLocationStrategy } from './catalog/stock-location-strategy';
 import { CustomFields } from './custom-field/custom-field-types';
@@ -933,6 +934,16 @@ export interface CatalogOptions {
     productVariantPriceUpdateStrategy?: ProductVariantPriceUpdateStrategy;
     /**
      * @description
+     * Defines the strategy that calculates the unit price of a ProductVariant for a buyer and a
+     * quantity. The default OrderItemPriceCalculationStrategy uses it for the price of each OrderLine,
+     * and the Shop API `ProductVariant.buyerPrice` field uses it without an Order.
+     *
+     * @default DefaultProductVariantBuyerPriceStrategy
+     * @since 4.0.0
+     */
+    productVariantBuyerPriceStrategy?: ProductVariantBuyerPriceStrategy;
+    /**
+     * @description
      * Defines how the `ProductVariant.stockLevel` value is obtained. It is usually not desirable
      * to directly expose stock levels over a public API, as this could be considered a leak of
      * sensitive information. However, the storefront will usually want to display _some_ indication
@@ -1340,6 +1351,31 @@ export interface EntityOptions {
      * @default DefaultSlugStrategy
      */
     slugStrategy?: SlugStrategy;
+    /**
+     * @description
+     * **Postgres only.** The column type used for every date-time column: the `createdAt`,
+     * `updatedAt` and `deletedAt` columns, every column whose TypeScript type is `Date`
+     * (for example `Order.orderPlacedAt`), and custom fields of type `datetime`. This
+     * applies to the built-in entities and to plugin entities.
+     *
+     * - `'timestamptz'` (`timestamp with time zone`) stores an absolute instant. The value
+     *   does not depend on the `TZ` of the Node.js process or on the timezone of the
+     *   Postgres server or session.
+     * - `'timestamp'` (`timestamp without time zone`) is the pre-v4 behaviour. node-postgres
+     *   writes and reads these columns in the local time of the Node.js process, and column
+     *   defaults such as `now()` use the session timezone. Values are only correct when the
+     *   process, the server and the session all use the same timezone, and are ambiguous
+     *   during the repeated hour when daylight saving time ends.
+     *
+     * Columns declared with an explicit string type such as `type: 'timestamp'` are not changed.
+     *
+     * Changing this setting on an existing database needs a migration. See the
+     * `migrateTimestampColumnsToTimestamptz()` helper.
+     *
+     * @since 4.0.0
+     * @default 'timestamptz'
+     */
+    timestampColumnType?: 'timestamptz' | 'timestamp';
 }
 
 /**

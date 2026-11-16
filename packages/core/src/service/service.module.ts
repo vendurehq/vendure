@@ -9,6 +9,7 @@ import { SchedulerModule } from '../scheduler/scheduler.module';
 
 import { ActiveOrderService } from './helpers/active-order/active-order.service';
 import { ChannelAssignmentService } from './helpers/channel-assignment/channel-assignment.service';
+import { ChannelEnabledChecker } from './helpers/channel-enabled-checker/channel-enabled-checker';
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
 import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
@@ -72,6 +73,7 @@ import { SearchService } from './services/search.service';
 import { SellerService } from './services/seller.service';
 import { SessionService } from './services/session.service';
 import { ShippingMethodService } from './services/shipping-method.service';
+import { BuyerIdentityService } from './services/buyer-identity.service';
 import { StockLevelService } from './services/stock-level.service';
 import { StockLocationService } from './services/stock-location.service';
 import { StockMovementService } from './services/stock-movement.service';
@@ -113,6 +115,7 @@ const services = [
     SellerService,
     SessionService,
     ShippingMethodService,
+    BuyerIdentityService,
     SlugService,
     StockLevelService,
     StockLocationService,
@@ -151,6 +154,7 @@ const helpers = [
     CustomerChannelAssignmentService,
     ChannelAssignmentService,
     IdentityScopeService,
+    ChannelEnabledChecker,
     TranslatorService,
     EntityDuplicatorService,
     FacetValueChecker,

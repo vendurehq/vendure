@@ -36,6 +36,7 @@ import { EventBus } from '../../event-bus/event-bus';
 import { ProductChannelEvent } from '../../event-bus/events/product-channel-event';
 import { ProductEvent } from '../../event-bus/events/product-event';
 import { ProductOptionGroupChangeEvent } from '../../event-bus/events/product-option-group-change-event';
+import { ChannelEnabledChecker } from '../helpers/channel-enabled-checker/channel-enabled-checker';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { SlugValidator } from '../helpers/slug-validator/slug-validator';
@@ -74,6 +75,7 @@ export class ProductService {
         private translator: TranslatorService,
         private productOptionGroupService: ProductOptionGroupService,
         private roleService: RoleService,
+        private channelEnabledChecker: ChannelEnabledChecker,
     ) {}
 
     async findAll(
@@ -115,6 +117,8 @@ export class ProductService {
                 where: { deletedAt: IsNull() },
                 ctx,
                 customPropertyMap,
+                // For the Admin API `enabledInChannel` field of each item
+                loadChannelAssignment: ctx.apiType === 'admin',
             })
             .getManyAndCount()
             .then(async ([products, totalItems]) => {
@@ -228,6 +232,7 @@ export class ProductService {
         });
         await this.customFieldRelationService.updateRelations(ctx, Product, input, product);
         await this.assetService.updateEntityAssets(ctx, product, input);
+        await this.channelEnabledChecker.updateEnabledInChannel(ctx, Product, product.id, input);
         await this.eventBus.publish(new ProductEvent(ctx, product, 'created', input));
 
         return assertFound(this.findOne(ctx, product.id));
@@ -259,6 +264,7 @@ export class ProductService {
             },
         });
         await this.customFieldRelationService.updateRelations(ctx, Product, input, updatedProduct);
+        await this.channelEnabledChecker.updateEnabledInChannel(ctx, Product, updatedProduct.id, input);
         await this.eventBus.publish(new ProductEvent(ctx, updatedProduct, 'updated', input));
 
         return assertFound(this.findOne(ctx, updatedProduct.id));
@@ -338,12 +344,20 @@ export class ProductService {
         await Promise.all(
             productIds.map(id => this.channelService.assignToChannels(ctx, Product, id, [input.channelId])),
         );
+        await this.channelEnabledChecker.updateEnabledInChannel(
+            ctx,
+            Product,
+            productIds,
+            input,
+            input.channelId,
+        );
         await this.productVariantService.assignProductVariantsToChannel(ctx, {
             productVariantIds: ([] as ID[]).concat(
                 ...productsWithVariants.map(p => p.variants.map(v => v.id)),
             ),
             channelId: input.channelId,
             priceFactor: input.priceFactor,
+            enabledInChannel: input.enabledInChannel,
         });
         const assetIds: ID[] = unique(
             ([] as ID[]).concat(...productsWithVariants.map(p => p.assets.map(a => a.assetId))),

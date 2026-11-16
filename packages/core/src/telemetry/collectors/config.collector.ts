@@ -27,6 +27,7 @@ const CUSTOMIZABLE_STRATEGY_PATHS: Record<string, string[]> = {
         'productVariantPriceSelectionStrategy',
         'productVariantPriceCalculationStrategy',
         'productVariantPriceUpdateStrategy',
+        'productVariantBuyerPriceStrategy',
         'stockDisplayStrategy',
         'stockLocationStrategy',
     ],
