@@ -11,10 +11,15 @@ const addressCustomFields: CustomFieldConfig[] = [
     { name: 'lockedCode', type: 'string', readonly: true },
 ];
 
-// Core's validator also receives this Injector, but resolves nothing from it for these field types.
+// Core's validator also receives this Injector. For a relation field it asks the
+// CustomFieldRelationService whether the ids exist; these tests accept any id.
 function injectorFor(customFields: CustomFieldConfig[]): Injector {
     const configService = { customFields: { Address: customFields } } as unknown as ConfigService;
-    return { get: () => configService } as unknown as Injector;
+    const customFieldRelationService = { assertRelationsExist: () => Promise.resolve() };
+    return {
+        get: (token: { name?: string }) =>
+            token?.name === 'CustomFieldRelationService' ? customFieldRelationService : configService,
+    } as unknown as Injector;
 }
 
 function ctxFor(apiType: 'admin' | 'shop'): RequestContext {

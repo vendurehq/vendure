@@ -15,6 +15,7 @@ import {
     TypedCustomFieldConfig,
     TypedStructFieldConfig,
 } from '../../config/custom-field/custom-field-types';
+import { CustomFieldRelationService } from '../../service/helpers/custom-field-relation/custom-field-relation.service';
 
 import { RequestContext } from './request-context';
 import { userHasPermissionsOnCustomField } from './user-has-permissions-on-custom-field';
@@ -22,8 +23,9 @@ import { userHasPermissionsOnCustomField } from './user-has-permissions-on-custo
 /**
  * @description
  * Runs the checks the GraphQL APIs apply to custom field input: `readonly`, `nullable`,
- * `requiresPermission`, the `pattern`, `options`, `min` and `max` constraints, and the field's own
- * `validate` function. Throws a `UserInputError` on the first failed check.
+ * `requiresPermission`, the `pattern`, `options`, `min` and `max` constraints, that the ids of a
+ * `relation` field exist, and the field's own `validate` function. Throws a `UserInputError` on the
+ * first failed check, or an `EntityNotFoundError` for an unknown relation id.
  *
  * Use it to validate custom field values that do not arrive through the GraphQL APIs.
  *
@@ -63,6 +65,9 @@ export async function validateCustomFieldValue(
         if (config.type === 'struct') {
             await validateStructField(config, value, injector, ctx);
         }
+    }
+    if (config.type === 'relation') {
+        await injector.get(CustomFieldRelationService).assertRelationsExist(ctx, config, value);
     }
     await validateCustomFunction(config as TypedCustomFieldConfig<any, any>, value, injector, ctx);
 }
