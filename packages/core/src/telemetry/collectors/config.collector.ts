@@ -86,8 +86,6 @@ export class ConfigCollector {
             hasCustomPaymentProcess: this.hasCustomPaymentProcess(),
             hasCustomFulfillmentProcess: this.hasCustomFulfillmentProcess(),
             apiIntrospectionEnabled: this.getApiIntrospectionEnabled(),
-            apiPlaygroundEnabled: this.getApiPlaygroundEnabled(),
-            apiDebugEnabled: this.getApiDebugEnabled(),
             trustProxyEnabled: this.getTrustProxyEnabled(),
             corsWildcardOrigin: this.getCorsWildcardOrigin(),
             tokenMethods: this.getTokenMethods(),
@@ -105,31 +103,6 @@ export class ConfigCollector {
         try {
             // introspection defaults to true when not explicitly disabled
             return this.configService.apiOptions.introspection !== false;
-        } catch {
-            return undefined;
-        }
-    }
-
-    private getApiPlaygroundEnabled(): boolean | undefined {
-        try {
-            const api = this.configService.apiOptions;
-            // adminApiPlayground/shopApiPlayground are deprecated, but reading them
-            // is intentional: telemetry on how many installations still enable the
-            // built-in playground is what tells us when it is safe to remove.
-            return !!(api.adminApiPlayground || api.shopApiPlayground); // NOSONAR
-        } catch {
-            return undefined;
-        }
-    }
-
-    private getApiDebugEnabled(): boolean | undefined {
-        try {
-            const api = this.configService.apiOptions;
-            // adminApiDebug/shopApiDebug stopped reaching Apollo Server when it removed its
-            // `debug` option in v4, so this does not report whether anything is enabled. It
-            // counts the installations still setting the options, which is what tells us when
-            // it is safe to remove them.
-            return !!(api.adminApiDebug || api.shopApiDebug); // NOSONAR
         } catch {
             return undefined;
         }
@@ -237,21 +210,10 @@ export class ConfigCollector {
             for (const [optionsKey, fields] of Object.entries(CUSTOMIZABLE_STRATEGY_PATHS)) {
                 const liveOptions = (this.configService as any)[optionsKey];
                 const defaultOptions = (defaultConfig as any)[optionsKey];
-                const isEntityIdStrategy = optionsKey === 'entityOptions';
                 for (const field of fields) {
                     try {
-                        // entityOptions.entityIdStrategy has a deprecated root-level
-                        // fallback (mirrors getEntityIdStrategy); resolve both live
-                        // and default the same way so a project using the deprecated
-                        // field is still detected as customized. Reading the
-                        // deprecated root-level field is intentional here.
-                        const useRootFallback = isEntityIdStrategy && field === 'entityIdStrategy';
-                        const liveStrategy = useRootFallback
-                            ? (liveOptions?.[field] ?? (this.configService as any).entityIdStrategy) // NOSONAR
-                            : liveOptions?.[field];
-                        const defaultStrategy = useRootFallback
-                            ? (defaultOptions?.[field] ?? (defaultConfig as any).entityIdStrategy) // NOSONAR
-                            : defaultOptions?.[field];
+                        const liveStrategy = liveOptions?.[field];
+                        const defaultStrategy = defaultOptions?.[field];
                         if (liveStrategy == null || defaultStrategy == null) {
                             continue;
                         }
@@ -309,8 +271,7 @@ export class ConfigCollector {
 
     private getEntityIdStrategy(): string {
         try {
-            const strategy =
-                this.configService.entityOptions.entityIdStrategy ?? this.configService.entityIdStrategy;
+            const strategy = this.configService.entityOptions.entityIdStrategy;
             return strategy ? getStrategyName(strategy) : 'unknown';
         } catch {
             return 'unknown';

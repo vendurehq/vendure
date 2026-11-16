@@ -32,7 +32,7 @@ export const idSchema = z
         // A Zod schema cannot inject ConfigService, so it reads the active config. getConfig() returns
         // undefined in a test runtime that cannot load the default config.
         const config = getConfig();
-        const strategy = config?.entityOptions?.entityIdStrategy ?? config?.entityIdStrategy;
+        const strategy = config?.entityOptions?.entityIdStrategy;
         return strategy?.primaryKeyType === 'increment' ? +id : id;
     });
 

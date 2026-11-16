@@ -24,14 +24,4 @@ export class ProductVariantEvent extends VendureEntityEvent<ProductVariant[], Pr
     ) {
         super(entity, type, ctx, input);
     }
-
-    /**
-     * Return an variants field to become compatible with the
-     * deprecated old version of ProductEvent
-     * @deprecated Use `entity` instead
-     * @since 1.4
-     */
-    get variants(): ProductVariant[] {
-        return this.entity;
-    }
 }

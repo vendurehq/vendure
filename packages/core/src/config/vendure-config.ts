@@ -24,10 +24,10 @@ import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
 import { VerificationTokenStrategy } from './auth/verification-token-strategy';
 import { CollectionFilter } from './catalog/collection-filter';
+import { ProductVariantBuyerPriceStrategy } from './catalog/product-variant-buyer-price-strategy';
 import { ProductVariantPriceCalculationStrategy } from './catalog/product-variant-price-calculation-strategy';
 import { ProductVariantPriceSelectionStrategy } from './catalog/product-variant-price-selection-strategy';
 import { ProductVariantPriceUpdateStrategy } from './catalog/product-variant-price-update-strategy';
-import { ProductVariantBuyerPriceStrategy } from './catalog/product-variant-buyer-price-strategy';
 import { StockDisplayStrategy } from './catalog/stock-display-strategy';
 import { StockLocationStrategy } from './catalog/stock-location-strategy';
 import { CustomFields } from './custom-field/custom-field-types';
@@ -69,7 +69,6 @@ import { ShippingLineAssignmentStrategy } from './shipping-method/shipping-line-
 import { CacheStrategy } from './system/cache-strategy';
 import { EncryptionStrategy } from './system/encryption-strategy';
 import { ErrorHandlerStrategy } from './system/error-handler-strategy';
-import { HealthCheckStrategy } from './system/health-check-strategy';
 import { InstrumentationStrategy } from './system/instrumentation-strategy';
 import { SecretAccessStrategy } from './system/secret-access-strategy';
 import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
@@ -112,44 +111,6 @@ export interface ApiOptions {
      * @default 'shop-api'
      */
     shopApiPath?: string;
-    /**
-     * @description
-     * Enables the GraphQL landing page served at the admin API path. Since Apollo Server 5
-     * removed the GraphQL Playground, a truthy value now serves GraphiQL instead, and the
-     * object form is read as a boolean and otherwise ignored.
-     *
-     * @deprecated Use `\@vendure/graphiql-plugin` instead.
-     * @default false
-     */
-    adminApiPlayground?: boolean | Record<string, any>;
-    /**
-     * @description
-     * Enables the GraphQL landing page served at the shop API path. Since Apollo Server 5
-     * removed the GraphQL Playground, a truthy value now serves GraphiQL instead, and the
-     * object form is read as a boolean and otherwise ignored.
-     *
-     * @deprecated Use `\@vendure/graphiql-plugin` instead.
-     * @default false
-     */
-    shopApiPlayground?: boolean | Record<string, any>;
-    /**
-     * @description
-     * Has no effect. This option used to set the `debug` option of Apollo Server, which was
-     * removed in Apollo Server 4. Stack traces are never included in API error responses.
-     *
-     * @deprecated Will be removed in a future major version.
-     * @default false
-     */
-    adminApiDebug?: boolean;
-    /**
-     * @description
-     * Has no effect. This option used to set the `debug` option of Apollo Server, which was
-     * removed in Apollo Server 4. Stack traces are never included in API error responses.
-     *
-     * @deprecated Will be removed in a future major version.
-     * @default false
-     */
-    shopApiDebug?: boolean;
     /**
      * @description
      * The maximum number of items that may be returned by a query which returns a `PaginatedList` response. In other words,
@@ -1010,14 +971,6 @@ export interface ShippingOptions {
      * Allows the definition of custom states and transition logic for the fulfillment process state machine.
      * Takes an array of objects implementing the {@link FulfillmentProcess} interface.
      *
-     * @deprecated use `process`
-     */
-    customFulfillmentProcess?: Array<FulfillmentProcess<any>>;
-    /**
-     * @description
-     * Allows the definition of custom states and transition logic for the fulfillment process state machine.
-     * Takes an array of objects implementing the {@link FulfillmentProcess} interface.
-     *
      * @since 2.0.0
      * @default defaultFulfillmentProcess
      */
@@ -1071,10 +1024,6 @@ export interface PaymentOptions {
      * {@link PaymentMethod}s
      */
     paymentMethodEligibilityCheckers?: PaymentMethodEligibilityChecker[];
-    /**
-     * @deprecated use `process`
-     */
-    customPaymentProcess?: Array<PaymentProcess<any>>;
     /**
      * @description
      * Allows the definition of custom states and transition logic for the payment process state machine.
@@ -1388,19 +1337,6 @@ export interface EntityOptions {
 export interface SystemOptions {
     /**
      * @description
-     * Defines an array of {@link HealthCheckStrategy} instances. Before v3.6.0 the `/health` endpoint ran these
-     * strategies to verify that critical systems which the Vendure server depends on were healthy. Since v3.6.0
-     * the strategies are not executed and this option has no effect on the `/health` response.
-     *
-     * @default []
-     * @since 1.6.0
-     * @deprecated Not executed since v3.6.0. Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
-     * load balancer checks) instead of application-level health checks. The application should not
-     * be responsible for determining its own health. This config option will be removed in v4.0.0.
-     */
-    healthChecks?: HealthCheckStrategy[];
-    /**
-     * @description
      * Defines an array of {@link ErrorHandlerStrategy} instances which are used to define logic to be executed
      * when an error occurs, either on the server or the worker.
      *
@@ -1506,17 +1442,6 @@ export interface VendureConfig {
      * @default LanguageCode.en
      */
     defaultLanguageCode?: LanguageCode;
-    /**
-     * @description
-     * Defines the strategy used for both storing the primary keys of entities
-     * in the database, and the encoding & decoding of those ids when exposing
-     * entities via the API. The default uses a simple auto-increment integer
-     * strategy.
-     *
-     * @deprecated Use entityOptions.entityIdStrategy instead
-     * @default AutoIncrementIdStrategy
-     */
-    entityIdStrategy?: EntityIdStrategy<any>;
     entityOptions?: EntityOptions;
     /**
      * @description
@@ -1598,7 +1523,7 @@ export interface RuntimeVendureConfig extends Required<VendureConfig> {
     authOptions: Required<AuthOptions>;
     catalogOptions: Required<CatalogOptions>;
     customFields: Required<CustomFields>;
-    entityOptions: Required<Omit<EntityOptions, 'entityIdStrategy'>> & EntityOptions;
+    entityOptions: Required<EntityOptions>;
     importExportOptions: Required<ImportExportOptions>;
     jobQueueOptions: Required<JobQueueOptions>;
     schedulerOptions: Required<Omit<SchedulerOptions, 'timezone'>> & SchedulerOptions;

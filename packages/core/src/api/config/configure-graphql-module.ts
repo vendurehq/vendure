@@ -23,7 +23,6 @@ export interface GraphQLApiOptions {
     apiType: 'shop' | 'admin';
     typePaths: string[];
     apiPath: string;
-    playground: boolean | Record<string, any>;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     resolverModule: Function;
     validationRules: Array<(context: ValidationContext) => any>;
@@ -94,11 +93,7 @@ async function createGraphQLOptions(
     // a non-default EntityIdStrategy. This is a performance optimization
     // that prevents unnecessary traversal of each response when no
     // actual encoding/decoding is taking place.
-    if (
-        !isUsingDefaultEntityIdStrategy(
-            configService.entityOptions.entityIdStrategy ?? configService.entityIdStrategy,
-        )
-    ) {
+    if (!isUsingDefaultEntityIdStrategy(configService.entityOptions.entityIdStrategy)) {
         apolloServerPlugins.unshift(new IdCodecPlugin(idCodecService, options.apiType));
     }
 
@@ -112,12 +107,9 @@ async function createGraphQLOptions(
         // We no longer rely on the upload facility bundled with Apollo Server, and instead
         // manually configure the graphql-upload package. See https://github.com/vendurehq/vendure/issues/396
         uploads: false,
-        // `playground` is a deprecated boolean alias for GraphiQL in @nestjs/apollo v14.
-        // The options it used to accept configured the GraphQL Playground, which Apollo
-        // Server 5 removed, so only the truthiness of the configured value still means
-        // anything. Coercing also keeps the value from ever being `undefined`, which the
-        // driver reads as "serve GraphiQL unless NODE_ENV is production".
-        playground: !!options.playground,
+        // An explicit `false` stops the driver from serving GraphiQL when NODE_ENV is not
+        // "production". Use @vendure/graphiql-plugin for an in-browser IDE.
+        playground: false,
         csrfPrevention: configService.apiOptions.csrfPrevention ?? false,
         // Apollo Server includes stack traces in error responses unless NODE_ENV is "production"
         // or "test". They expose server file paths, so they are always turned off explicitly.

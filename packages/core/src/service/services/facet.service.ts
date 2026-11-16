@@ -96,37 +96,18 @@ export class FacetService {
             );
     }
 
-    /**
-     * @deprecated Use {@link FacetService.findByCode findByCode(ctx, facetCode, lang)} instead
-     */
-    findByCode(facetCode: string, lang: LanguageCode): Promise<Translated<Facet> | undefined>;
     findByCode(
         ctx: RequestContext,
         facetCode: string,
         lang: LanguageCode,
-    ): Promise<Translated<Facet> | undefined>;
-    findByCode(
-        ctxOrFacetCode: RequestContext | string,
-        facetCodeOrLang: string | LanguageCode,
-        lang?: LanguageCode,
     ): Promise<Translated<Facet> | undefined> {
         const relations = { values: { facet: true } };
-        const [repository, facetCode, languageCode, channelLanguageCode] =
-            ctxOrFacetCode instanceof RequestContext
-                ? [
-                      this.connection.getRepository(ctxOrFacetCode, Facet),
-                      facetCodeOrLang,
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                      lang!,
-                      ctxOrFacetCode.channel.defaultLanguageCode,
-                  ]
-                : [
-                      this.connection.rawConnection.getRepository(Facet),
-                      ctxOrFacetCode,
-                      facetCodeOrLang as LanguageCode,
-                      undefined,
-                  ];
-        const globalDefaultLanguageCode = this.configService.defaultLanguageCode;
+        const repository = this.connection.getRepository(ctx, Facet);
+        const languageCodes: [LanguageCode, ...LanguageCode[]] = [
+            lang,
+            ctx.channel.defaultLanguageCode,
+            this.configService.defaultLanguageCode,
+        ];
 
         return repository
             .findOne({
@@ -137,14 +118,7 @@ export class FacetService {
             })
             .then(
                 facet =>
-                    (facet &&
-                        translateDeep(
-                            facet,
-                            channelLanguageCode
-                                ? [languageCode, channelLanguageCode, globalDefaultLanguageCode]
-                                : [languageCode, globalDefaultLanguageCode],
-                            ['values', ['values', 'facet']],
-                        )) ??
+                    (facet && translateDeep(facet, languageCodes, ['values', ['values', 'facet']])) ??
                     undefined,
             );
     }

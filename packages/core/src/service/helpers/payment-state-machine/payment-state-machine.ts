@@ -45,8 +45,7 @@ export class PaymentStateMachine {
 
     private initConfig(): StateMachineConfig<PaymentState, PaymentTransitionData> {
         const { paymentMethodHandlers } = this.configService.paymentOptions;
-        const customProcesses = this.configService.paymentOptions.customPaymentProcess ?? [];
-        const processes = [...customProcesses, ...(this.configService.paymentOptions.process ?? [])];
+        const processes = this.configService.paymentOptions.process ?? [];
         const allTransitions = processes.reduce(
             (transitions, process) =>
                 mergeTransitionDefinitions(transitions, process.transitions as Transitions<any>),

@@ -52,7 +52,7 @@ describe('RequestContext', () => {
 
         it('isAuthorized', () => {
             const result = RequestContext.deserialize(serializedCtx);
-            expect(result.isAuthorized).toBe(original.isAuthorized);
+            expect(result.serialize()._isAuthorized).toBe(original.serialize()._isAuthorized);
         });
 
         it('authorizedAsOwnerOnly', () => {
@@ -262,7 +262,7 @@ describe('RequestContext', () => {
             expect(copy.languageCode).toEqual(original.languageCode);
             expect(copy.acceptedLanguageCodes).toEqual(original.acceptedLanguageCodes);
             expect(copy.activeUserId).toEqual(original.activeUserId);
-            expect(copy.isAuthorized).toEqual(original.isAuthorized);
+            expect(copy.serialize()._isAuthorized).toEqual(original.serialize()._isAuthorized);
             expect(copy.authorizedAsOwnerOnly).toEqual(original.authorizedAsOwnerOnly);
             expect(copy.channel).toEqual(original.channel);
             expect(copy.session).toEqual(original.session);

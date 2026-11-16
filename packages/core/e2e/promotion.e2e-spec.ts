@@ -225,7 +225,7 @@ describe('Promotion resolver', () => {
     // #4700 — updatePromotion should not double-decode ID args in actions
     it('updatePromotion with ID list args in actions', async () => {
         const configService = server.app.get(ConfigService);
-        const decodeIdSpy = vi.spyOn(configService.entityIdStrategy, 'decodeId');
+        const decodeIdSpy = vi.spyOn(configService.entityOptions.entityIdStrategy, 'decodeId');
 
         const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
             input: {

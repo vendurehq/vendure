@@ -49,9 +49,7 @@ export class FulfillmentStateMachine {
     }
 
     private initConfig(): StateMachineConfig<FulfillmentState, FulfillmentTransitionData> {
-        // TODO: remove once the customFulfillmentProcess option is removed
-        const customProcesses = this.configService.shippingOptions.customFulfillmentProcess ?? [];
-        const processes = [...customProcesses, ...(this.configService.shippingOptions.process ?? [])];
+        const processes = this.configService.shippingOptions.process ?? [];
         const allTransitions = processes.reduce(
             (transitions, process) =>
                 mergeTransitionDefinitions(transitions, process.transitions as Transitions<any>),

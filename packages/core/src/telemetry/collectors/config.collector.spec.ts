@@ -29,9 +29,6 @@ describe('ConfigCollector', () => {
                     constructor: { name: 'DefaultMoneyStrategy' },
                 },
             } as any,
-            entityIdStrategy: {
-                constructor: { name: 'FallbackIdStrategy' },
-            } as any,
             defaultLanguageCode: LanguageCode.en,
             customFields: {
                 Product: [{ name: 'customField1' }, { name: 'customField2' }],
@@ -115,19 +112,17 @@ describe('ConfigCollector', () => {
             });
         });
 
-        describe('entityIdStrategy fallback', () => {
-            it('falls back to entityIdStrategy when entityOptions.entityIdStrategy is undefined', () => {
+        describe('entityIdStrategy', () => {
+            it('returns unknown when entityOptions.entityIdStrategy is undefined', () => {
                 mockConfigService.entityOptions = {} as any;
 
                 const result = collector.collect();
 
-                expect(result.entityIdStrategy).toBe('FallbackIdStrategy');
+                expect(result.entityIdStrategy).toBe('unknown');
             });
 
-            it('returns unknown when entityOptions is undefined (cannot access fallback)', () => {
-                // When entityOptions is undefined, accessing entityOptions.entityIdStrategy
-                // throws an error which is caught, returning 'unknown'.
-                // This is different from entityOptions being an empty object.
+            it('returns unknown when entityOptions is undefined', () => {
+                // Accessing entityOptions.entityIdStrategy throws, which is caught.
                 mockConfigService.entityOptions = undefined as any;
 
                 const result = collector.collect();
@@ -251,15 +246,6 @@ describe('ConfigCollector', () => {
                 const result = collector.collect();
 
                 expect(result.jobQueueType).toBe('unknown');
-            });
-
-            it('returns "unknown" when both entityOptions and entityIdStrategy are undefined', () => {
-                mockConfigService.entityOptions = undefined as any;
-                mockConfigService.entityIdStrategy = undefined;
-
-                const result = collector.collect();
-
-                expect(result.entityIdStrategy).toBe('unknown');
             });
 
             it('returns 0 when customFields throws', () => {
@@ -654,7 +640,6 @@ describe('ConfigCollector', () => {
                     'entityOptions',
                     'customFields',
                     'defaultLanguageCode',
-                    'entityIdStrategy',
                 ];
                 for (const prop of throwingProps) {
                     Object.defineProperty(mockConfigService, prop, {
@@ -695,10 +680,6 @@ describe('ConfigCollector', () => {
             beforeEach(() => {
                 mockConfigService.apiOptions = {
                     introspection: false,
-                    adminApiPlayground: true,
-                    shopApiPlayground: false,
-                    adminApiDebug: false,
-                    shopApiDebug: false,
                     trustProxy: true,
                     cors: { origin: '*', credentials: true },
                 } as any;
@@ -720,8 +701,6 @@ describe('ConfigCollector', () => {
                 const result = collector.collect();
 
                 expect(result.apiIntrospectionEnabled).toBe(false);
-                expect(result.apiPlaygroundEnabled).toBe(true);
-                expect(result.apiDebugEnabled).toBe(false);
                 expect(result.trustProxyEnabled).toBe(true);
                 expect(result.corsWildcardOrigin).toBe(true);
                 expect(result.tokenMethods).toEqual(['cookie', 'bearer']);
@@ -837,29 +816,6 @@ describe('ConfigCollector', () => {
 
                 expect(collector.collect().customizedStrategies).not.toContain(
                     'orderOptions.activeOrderStrategy',
-                );
-            });
-
-            it('detects a customized strategy set via the deprecated root-level entityIdStrategy', () => {
-                // entityOptions.entityIdStrategy is unset; the project configured the
-                // deprecated root-level entityIdStrategy instead. The fallback should
-                // still surface it as customized against the default.
-                mockConfigService.entityOptions = { moneyStrategy: undefined } as any;
-                (mockConfigService as any).entityIdStrategy = {
-                    constructor: { name: 'CustomEntityIdStrategy' },
-                };
-
-                expect(collector.collect().customizedStrategies).toContain('entityOptions.entityIdStrategy');
-            });
-
-            it('does not flag entityIdStrategy when the root-level fallback matches the default', () => {
-                mockConfigService.entityOptions = {} as any;
-                (mockConfigService as any).entityIdStrategy = {
-                    constructor: { name: 'AutoIncrementIdStrategy' },
-                };
-
-                expect(collector.collect().customizedStrategies).not.toContain(
-                    'entityOptions.entityIdStrategy',
                 );
             });
 

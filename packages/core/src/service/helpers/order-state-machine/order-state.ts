@@ -3,15 +3,6 @@ import { Order } from '../../../entity/order/order.entity';
 
 /**
  * @description
- * An interface to extend standard {@link OrderState}.
- *
- * @docsCategory orders
- * @deprecated use OrderStates
- */
-export interface CustomOrderStates {}
-
-/**
- * @description
  * An interface to extend the {@link OrderState} type.
  *
  * @docsCategory orders
@@ -39,13 +30,7 @@ export interface OrderStates {}
  * @docsCategory orders
  * @docsPage OrderProcess
  */
-export type OrderState =
-    | 'Created'
-    | 'Draft'
-    | 'AddingItems'
-    | 'Cancelled'
-    | keyof CustomOrderStates
-    | keyof OrderStates;
+export type OrderState = 'Created' | 'Draft' | 'AddingItems' | 'Cancelled' | keyof OrderStates;
 
 /**
  * @description

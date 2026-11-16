@@ -202,28 +202,15 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             orderRecalculationStrategy,
             orderPlacedStrategy,
         } = this.configService.orderOptions;
-        const {
-            customFulfillmentProcess,
-            process: fulfillmentProcess,
-            shippingLineAssignmentStrategy,
-        } = this.configService.shippingOptions;
-        const {
-            customPaymentProcess,
-            process: paymentProcess,
-            refundDestinations,
-        } = this.configService.paymentOptions;
-        const { entityIdStrategy: entityIdStrategyDeprecated } = this.configService;
-        const {
-            entityIdStrategy: entityIdStrategyCurrent,
-            moneyStrategy,
-            slugStrategy,
-        } = this.configService.entityOptions;
-        const { healthChecks, errorHandlers } = this.configService.systemOptions;
+        const { process: fulfillmentProcess, shippingLineAssignmentStrategy } =
+            this.configService.shippingOptions;
+        const { process: paymentProcess, refundDestinations } = this.configService.paymentOptions;
+        const { entityIdStrategy, moneyStrategy, slugStrategy } = this.configService.entityOptions;
+        const { errorHandlers } = this.configService.systemOptions;
         const { assetImportStrategy } = this.configService.importExportOptions;
         const { refundProcess: refundProcess } = this.configService.paymentOptions;
         const { cacheStrategy, instrumentationStrategy, encryptionStrategy, secretAccessStrategy } =
             this.configService.systemOptions;
-        const entityIdStrategy = entityIdStrategyCurrent ?? entityIdStrategyDeprecated;
         return [
             ...adminAuthenticationStrategy,
             ...shopAuthenticationStrategy,
@@ -249,13 +236,10 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             productVariantBuyerPriceStrategy,
             orderItemPriceCalculationStrategy,
             ...orderProcess,
-            ...customFulfillmentProcess,
             ...fulfillmentProcess,
-            ...customPaymentProcess,
             ...paymentProcess,
             stockAllocationStrategy,
             stockDisplayStrategy,
-            ...healthChecks,
             ...errorHandlers,
             assetImportStrategy,
             changedPriceHandlingStrategy,

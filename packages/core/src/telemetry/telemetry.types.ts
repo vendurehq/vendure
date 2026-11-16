@@ -147,8 +147,6 @@ export interface TelemetryConfig {
 
     // API / security posture — booleans and short enums only, never raw values
     apiIntrospectionEnabled?: boolean;
-    apiPlaygroundEnabled?: boolean;
-    apiDebugEnabled?: boolean;
     trustProxyEnabled?: boolean;
     corsWildcardOrigin?: boolean;
     tokenMethods?: string[];

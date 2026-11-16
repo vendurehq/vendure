@@ -23,14 +23,4 @@ export class OrderEvent extends VendureEntityEvent<Order, OrderInputTypes> {
     ) {
         super(order, type, ctx, input);
     }
-
-    /**
-     * Return a customer field to become compatible with the
-     * deprecated old version of CustomerEvent
-     * @deprecated Use `entity` instead
-     * @since 3.4.0
-     */
-    get order(): Order {
-        return this.entity;
-    }
 }

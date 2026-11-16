@@ -64,6 +64,5 @@ export * from './events/stock-movement-event';
 export * from './events/stock-shortfall-event';
 export * from './events/tax-category-event';
 export * from './events/tax-rate-event';
-export * from './events/tax-rate-modification-event';
 export * from './events/zone-event';
 export * from './events/zone-members-event';

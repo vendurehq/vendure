@@ -52,19 +52,10 @@ import { EventBus, ProductEvent, ProductVariantEvent } from '../../../event-bus/
  */
 @Injectable()
 export class FacetValueChecker implements OnModuleInit {
-    /**
-     * @deprecated
-     * Do not directly instantiate. Use the injector to get an instance:
-     *
-     * ```ts
-     * facetValueChecker = injector.get(FacetValueChecker);
-     * ```
-     * @param connection
-     */
     constructor(
         private connection: TransactionalConnection,
         private cacheService: CacheService,
-        private eventBus?: EventBus,
+        private eventBus: EventBus,
     ) {}
 
     private facetValueCache = this.cacheService.createCache({
@@ -74,7 +65,7 @@ export class FacetValueChecker implements OnModuleInit {
 
     onModuleInit(): any {
         this.eventBus
-            ?.ofType(ProductEvent)
+            .ofType(ProductEvent)
             .pipe(filter(event => event.type === 'updated'))
             .subscribe(async event => {
                 if ((event.input as UpdateProductInput)?.facetValueIds) {
@@ -82,7 +73,7 @@ export class FacetValueChecker implements OnModuleInit {
                         .getRepository(ProductVariant)
                         .createQueryBuilder('variant')
                         .select('variant.id', 'id')
-                        .where('variant.productId = :prodId', { prodId: event.product.id })
+                        .where('variant.productId = :prodId', { prodId: event.entity.id })
                         .getRawMany()
                         .then(result => result.map(r => r.id));
 

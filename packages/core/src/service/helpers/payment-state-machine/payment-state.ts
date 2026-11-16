@@ -6,14 +6,6 @@ import { Payment } from '../../../entity/payment/payment.entity';
  * @description
  * An interface to extend standard {@link PaymentState}.
  *
- * @deprecated use PaymentStates
- */
-export interface CustomPaymentStates {}
-
-/**
- * @description
- * An interface to extend standard {@link PaymentState}.
- *
  * @docsCategory payment
  */
 export interface PaymentStates {}
@@ -24,12 +16,7 @@ export interface PaymentStates {}
  *
  * @docsCategory payment
  */
-export type PaymentState =
-    | 'Created'
-    | 'Error'
-    | 'Cancelled'
-    | keyof CustomPaymentStates
-    | keyof PaymentStates;
+export type PaymentState = 'Created' | 'Error' | 'Cancelled' | keyof PaymentStates;
 
 /**
  * @description

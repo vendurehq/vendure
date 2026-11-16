@@ -13,7 +13,6 @@ export * from './instrument-decorator';
 export * from './permission-definition';
 export * from './round-money';
 export * from './self-refreshing-cache';
-export * from './ttl-cache';
 export * from './types/common-types';
 export * from './types/entity-relation-paths';
 export * from './types/injectable-strategy';

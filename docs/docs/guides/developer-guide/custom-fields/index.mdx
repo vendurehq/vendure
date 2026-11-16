@@ -1363,7 +1363,7 @@ const config = {
 This then allows you to query the `ProductReview` entity and include the `product` relation:
 
 ```ts
-const { productReviews } = await this.connection.getRepository(ProductReview).findOne({
+const { productReviews } = await this.connection.getRepository(ctx, ProductReview).findOne({
     where: { id: 1 },
     relations: ['product'],
 });

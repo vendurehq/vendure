@@ -10,9 +10,6 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 const config = mergeConfig(testConfig(), {
     apiOptions: {
         csrfPrevention: true,
-        // The deprecated debug flags must not turn stack traces back on for either API.
-        adminApiDebug: true,
-        shopApiDebug: true,
     },
     authOptions: {
         tokenMethod: 'cookie' as const,

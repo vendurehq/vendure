@@ -157,8 +157,6 @@ import { HardenPluginOptions } from './types';
         }
         config.apiOptions.apolloServerPlugins.push(new QueryComplexityPlugin(HardenPlugin.options));
         if (HardenPlugin.options.apiMode !== 'dev') {
-            config.apiOptions.adminApiPlayground = false;
-            config.apiOptions.shopApiPlayground = false;
             config.apiOptions.introspection = false;
         }
 

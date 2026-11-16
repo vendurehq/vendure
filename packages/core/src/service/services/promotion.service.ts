@@ -15,8 +15,7 @@ import {
     UpdatePromotionResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull, Raw } from 'typeorm';
+import { IsNull, Raw } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -29,7 +28,6 @@ import {
     CouponCodeLimitError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { AdjustmentSource } from '../../common/types/adjustment-source';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
@@ -355,24 +353,6 @@ export class PromotionService {
                 await activePost.activate(ctx, order);
             }
         }
-    }
-
-    /**
-     * @description
-     * Used internally to associate a Promotion with an Order, once an Order has been placed.
-     *
-     * @deprecated This method is no longer used and will be removed in v2.0
-     */
-    async addPromotionsToOrder(ctx: RequestContext, order: Order): Promise<Order> {
-        const allPromotionIds = order.discounts.map(
-            a => AdjustmentSource.decodeSourceId(a.adjustmentSource).id,
-        );
-        const promotionIds = unique(allPromotionIds);
-        const promotions = await this.connection
-            .getRepository(ctx, Promotion)
-            .find({ where: { id: In(promotionIds) } });
-        order.promotions = promotions;
-        return this.connection.getRepository(ctx, Order).save(order);
     }
 
     /**

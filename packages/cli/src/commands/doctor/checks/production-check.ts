@@ -1,7 +1,4 @@
-import {
-    SUPER_ADMIN_USER_IDENTIFIER,
-    SUPER_ADMIN_USER_PASSWORD,
-} from '@vendure/common/lib/shared-constants';
+import { SUPER_ADMIN_USER_IDENTIFIER, SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import type { RuntimeVendureConfig } from '@vendure/core';
 
 import { CheckResult } from '../types.js';
@@ -44,7 +41,8 @@ export async function runProductionCheck(config: RuntimeVendureConfig): Promise<
     // The default is randomBytes(16) which changes on every restart, breaking sessions
     // across multiple instances or restarts.
     const tokenMethod = config.authOptions.tokenMethod;
-    const usesCookies = tokenMethod === 'cookie' || (Array.isArray(tokenMethod) && tokenMethod.includes('cookie'));
+    const usesCookies =
+        tokenMethod === 'cookie' || (Array.isArray(tokenMethod) && tokenMethod.includes('cookie'));
     if (usesCookies) {
         const secret = config.authOptions.cookieOptions?.secret;
         if (!secret) {
@@ -57,58 +55,46 @@ export async function runProductionCheck(config: RuntimeVendureConfig): Promise<
         warn('GraphQL introspection is enabled');
     }
 
-    // 5. Playground enabled
-    if (config.apiOptions.adminApiPlayground) {
-        warn('Admin API playground is enabled');
-    }
-    if (config.apiOptions.shopApiPlayground) {
-        warn('Shop API playground is enabled');
-    }
-
-    // 6. Broad CORS with credentials
+    // 5. Broad CORS with credentials
     const cors = config.apiOptions.cors;
     if (cors && typeof cors === 'object' && 'origin' in cors && cors.credentials === true) {
         const origin = cors.origin;
-        if (
-            origin === true ||
-            origin === '*' ||
-            (Array.isArray(origin) && origin.includes('*'))
-        ) {
+        if (origin === true || origin === '*' || (Array.isArray(origin) && origin.includes('*'))) {
             warn('CORS allows all origins with credentials enabled');
         }
     }
 
-    // 7. In-memory job queue strategy
+    // 6. In-memory job queue strategy
     const jobQueueStrategy = config.jobQueueOptions?.jobQueueStrategy;
     if (jobQueueStrategy?.constructor?.name === 'InMemoryJobQueueStrategy') {
         warn('Using InMemoryJobQueueStrategy (not persistent across restarts)');
     }
 
-    // 8. In-memory cache strategy
+    // 7. In-memory cache strategy
     const cacheStrategy = config.systemOptions?.cacheStrategy;
     if (cacheStrategy?.constructor?.name === 'InMemoryCacheStrategy') {
         warn('Using InMemoryCacheStrategy (not shared across instances)');
     }
 
-    // 9. In-memory session cache strategy
+    // 8. In-memory session cache strategy
     const sessionCacheStrategy = config.authOptions?.sessionCacheStrategy;
     if (sessionCacheStrategy?.constructor?.name === 'DefaultSessionCacheStrategy') {
         warn('Using DefaultSessionCacheStrategy (in-memory, not shared across instances)');
     }
 
-    // 10. No asset storage configured
+    // 9. No asset storage configured
     const assetStorage = config.assetOptions?.assetStorageStrategy;
     if (assetStorage?.constructor?.name === 'NoAssetStorageStrategy') {
         warn('No asset storage strategy configured');
     }
 
-    // 11. No asset preview configured
+    // 10. No asset preview configured
     const assetPreview = config.assetOptions?.assetPreviewStrategy;
     if (assetPreview?.constructor?.name === 'NoAssetPreviewStrategy') {
         warn('No asset preview strategy configured');
     }
 
-    // 12. synchronize: true
+    // 11. synchronize: true
     if (config.dbConnectionOptions?.synchronize) {
         fail('dbConnectionOptions.synchronize is enabled (use migrations instead)');
     }

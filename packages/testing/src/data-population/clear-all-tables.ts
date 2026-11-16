@@ -12,7 +12,7 @@ export async function clearAllTables(config: VendureConfig, logging = true) {
         console.log('Clearing all tables...');
     }
     config = await preBootstrapConfig(config);
-    const entityIdStrategy = config.entityIdStrategy ?? config.entityOptions?.entityIdStrategy;
+    const entityIdStrategy = config.entityOptions?.entityIdStrategy;
     const connection = await new DataSource({ ...config.dbConnectionOptions }).initialize();
     try {
         await connection.synchronize(true);

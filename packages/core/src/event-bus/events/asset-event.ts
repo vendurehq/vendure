@@ -24,14 +24,4 @@ export class AssetEvent extends VendureEntityEvent<Asset, AssetInputTypes> {
     ) {
         super(entity, type, ctx, input);
     }
-
-    /**
-     * Return an asset field to become compatible with the
-     * deprecated old version of AssetEvent
-     * @deprecated Use `entity` instead
-     * @since 1.4
-     */
-    get asset(): Asset {
-        return this.entity;
-    }
 }

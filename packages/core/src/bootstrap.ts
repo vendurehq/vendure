@@ -352,7 +352,7 @@ export async function preBootstrapConfig(
     // logger (which may depend on config coming from a plugin) being set.
     Logger.useLogger(config.logger);
     config = await runPluginConfigurations(config);
-    const entityIdStrategy = config.entityOptions.entityIdStrategy ?? config.entityIdStrategy;
+    const entityIdStrategy = config.entityOptions.entityIdStrategy;
     patchTypeOrmDeepValue();
     patchTypeOrmDuplicateEagerLoad();
     patchTypeOrmEagerRelationJoins();

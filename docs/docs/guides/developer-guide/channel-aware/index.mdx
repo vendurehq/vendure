@@ -58,7 +58,7 @@ export class RequestService {
         // Now we need to assign the request to the current channel (+ default channel)
         await this.channelService.assignToCurrentChannel(input, ctx); // [!code highlight]
         
-        return await this.connection.getRepository(ProductRequest).save(request);
+        return await this.connection.getRepository(ctx, ProductRequest).save(request);
     }
 }
 ```

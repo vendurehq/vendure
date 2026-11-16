@@ -6,8 +6,8 @@ import {
 } from '../../common/finite-state-machine/types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import {
-    CustomRefundStates,
     RefundState,
+    RefundStates,
     RefundTransitionData,
 } from '../../service/helpers/refund-state-machine/refund-state';
 
@@ -22,20 +22,9 @@ import {
  *
  * @docsCategory payment
  */
-export interface RefundProcess<State extends keyof CustomRefundStates | string> extends InjectableStrategy {
+export interface RefundProcess<State extends keyof RefundStates | string> extends InjectableStrategy {
     transitions?: Transitions<State, State | RefundState> & Partial<Transitions<RefundState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | RefundState, RefundTransitionData>;
     onTransitionEnd?: OnTransitionEndFn<State | RefundState, RefundTransitionData>;
     onTransitionError?: OnTransitionErrorFn<State | RefundState>;
 }
-
-/**
- * @description
- * Used to define extensions to or modifications of the default refund process.
- *
- * For detailed description of the interface members, see the {@link StateMachineConfig} docs.
- *
- * @deprecated Use RefundProcess
- */
-export interface CustomRefundProcess<State extends keyof CustomRefundStates | string>
-    extends RefundProcess<State> {}

@@ -6,14 +6,6 @@ import { Order } from '../../../entity/order/order.entity';
  * @description
  * An interface to extend standard {@link FulfillmentState}.
  *
- * @deprecated use FulfillmentStates
- */
-export interface CustomFulfillmentStates {}
-
-/**
- * @description
- * An interface to extend standard {@link FulfillmentState}.
- *
  * @docsCategory fulfillment
  */
 export interface FulfillmentStates {}
@@ -26,12 +18,7 @@ export interface FulfillmentStates {}
  *
  * @docsCategory fulfillment
  */
-export type FulfillmentState =
-    | 'Created'
-    | 'Pending'
-    | 'Cancelled'
-    | keyof CustomFulfillmentStates
-    | keyof FulfillmentStates;
+export type FulfillmentState = 'Created' | 'Pending' | 'Cancelled' | keyof FulfillmentStates;
 
 /**
  * @description

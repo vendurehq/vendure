@@ -13,7 +13,7 @@ export async function getSuperadminContext(app: INestApplicationContext): Promis
     const connection = app.get(TransactionalConnection);
     const configService = app.get(ConfigService);
     const { superadminCredentials } = configService.authOptions;
-    const superAdminUser = await connection
+    const superAdminUser = await connection.rawConnection
         .getRepository(User)
         .findOneOrFail({ where: { identifier: superadminCredentials.identifier } });
     return new RequestContext({

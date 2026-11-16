@@ -131,17 +131,6 @@ export class TransactionalConnection {
 
     /**
      * @description
-     * Returns a TypeORM repository. Note that when no RequestContext is supplied, the repository will not
-     * be aware of any existing transaction. Therefore, calling this method without supplying a RequestContext
-     * is discouraged without a deliberate reason.
-     *
-     * @deprecated since 1.7.0: Use {@link TransactionalConnection.rawConnection rawConnection.getRepository()} function instead.
-     */
-    getRepository<Entity extends ObjectLiteral>(
-        target: ObjectType<Entity> | EntitySchema<Entity> | string,
-    ): Repository<Entity>;
-    /**
-     * @description
      * Returns a TypeORM repository which is bound to any existing transactions. It is recommended to _always_ pass
      * the RequestContext argument when possible, otherwise the queries will be executed outside of any
      * ongoing transactions which have been started by the {@link Transaction} decorator.
@@ -161,58 +150,30 @@ export class TransactionalConnection {
         options?: {
             replicationMode?: ReplicationMode;
         },
-    ): Repository<Entity>;
-    /**
-     * @description
-     * Returns a TypeORM repository. Depending on the parameters passed, it will either be transaction-aware
-     * or not. If `RequestContext` is provided, the repository is bound to any ongoing transactions. The
-     * `options` parameter allows further customization, such as selecting the replication mode (e.g., 'master').
-     *
-     * @param ctxOrTarget - Either the RequestContext, which binds the repository to ongoing transactions, or the entity type/schema.
-     * @param maybeTarget - The entity type or schema for which the repository is returned (if `ctxOrTarget` is a RequestContext).
-     * @param options - Additional options for configuring the repository, such as the `replicationMode`.
-     *
-     * @returns A TypeORM repository for the specified entity type.
-     */
-    getRepository<Entity extends ObjectLiteral>(
-        ctxOrTarget: RequestContext | ObjectType<Entity> | EntitySchema<Entity> | string | undefined,
-        maybeTarget?: ObjectType<Entity> | EntitySchema<Entity> | string,
-        options?: {
-            replicationMode?: ReplicationMode;
-        },
     ): Repository<Entity> {
-        if (ctxOrTarget instanceof RequestContext) {
-            const transactionManager = this.getTransactionManager(ctxOrTarget);
+        if (ctx) {
+            const transactionManager = this.getTransactionManager(ctx);
             let repo: Repository<Entity>;
             if (transactionManager) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                repo = transactionManager.getRepository(maybeTarget!);
-            } else if (ctxOrTarget.replicationMode === 'master' || options?.replicationMode === 'master') {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                repo = this.dataSource.createQueryRunner('master').manager.getRepository(maybeTarget!);
+                repo = transactionManager.getRepository(target);
+            } else if (ctx.replicationMode === 'master' || options?.replicationMode === 'master') {
+                repo = this.dataSource.createQueryRunner('master').manager.getRepository(target);
             } else {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                repo = this.rawConnection.getRepository(maybeTarget!);
+                repo = this.rawConnection.getRepository(target);
             }
             const strategy = this.configService.authOptions.entityAccessControlStrategy;
-            if (strategy?.applyAccessControl && maybeTarget && typeof maybeTarget === 'function') {
-                repo = this.wrapWithAccessControl(repo, maybeTarget, ctxOrTarget, strategy);
+            if (strategy?.applyAccessControl && typeof target === 'function') {
+                repo = this.wrapWithAccessControl(repo, target, ctx, strategy);
             }
-            if (this.readsChannelCustomFields(maybeTarget)) {
-                repo = wrapWithChannelCustomFields(repo, ctxOrTarget, this.getChannelScopedEntities());
+            if (this.readsChannelCustomFields(target)) {
+                repo = wrapWithChannelCustomFields(repo, ctx, this.getChannelScopedEntities());
             }
             return repo;
-        } else {
-            if (options?.replicationMode === 'master') {
-                /* eslint-disable @typescript-eslint/no-non-null-assertion */
-                return this.dataSource
-                    .createQueryRunner(options.replicationMode)
-                    .manager.getRepository(maybeTarget!);
-                /* eslint-enable @typescript-eslint/no-non-null-assertion */
-            }
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            return this.rawConnection.getRepository(ctxOrTarget ?? maybeTarget!);
         }
+        if (options?.replicationMode === 'master') {
+            return this.dataSource.createQueryRunner(options.replicationMode).manager.getRepository(target);
+        }
+        return this.rawConnection.getRepository(target);
     }
 
     /**

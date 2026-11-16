@@ -27,6 +27,9 @@ rg -n "CUSTOMER_ROLE_CODE|CUSTOMER_ROLE_DESCRIPTION|user_roles_role|role_channel
 rg -n "createApiKeyUser\(|createAdministratorAndUser\(|implements SessionCacheStrategy"
 rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
 rg -n "trackInventory|StockLocationStrategy|getAvailableStock\(|createCancellationsForOrderLines"
+rg -n "ApiPlayground|ApiDebug|healthChecks|HealthCheck|HealthIndicator|TaxRateModificationEvent|TtlCache"
+rg -n "customFulfillmentProcess|customPaymentProcess|Custom(Order|Payment|Fulfillment|Refund)(Process|States)"
+rg -n "getOrderFromContext|addPromotionsToOrder|deleteGroupAndOptionsFromProduct|\.isAuthorized\b"
 ```
 
 | Match | What to do |
@@ -38,6 +41,7 @@ rg -n "trackInventory|StockLocationStrategy|getAvailableStock\(|createCancellati
 | `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
 | `implements SessionCacheStrategy` | Check that it stores `globalPermissions`. See [Sessions and permission checks](/developer-guide/migrating-from-v3/role-assignments#sessions-and-permission-checks). |
 | `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
+| Anything matched by the last three searches | See [Removed deprecated APIs](#removed-deprecated-apis). |
 
 **Done when:** every match is updated, and `npx tsc --noEmit` passes.
 
@@ -76,6 +80,36 @@ Inventory tracking is resolved per stock level, then per variant, then per chann
 - `StockMovementEvent` subscribers can receive a movement split into a tracked and an untracked row.
 
 For the full list, see [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code).
+
+## Removed deprecated APIs
+
+These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.
+
+| Removed | Use instead |
+|---|---|
+| `apiOptions.adminApiPlayground`, `apiOptions.shopApiPlayground` | The [GraphiQL plugin](/reference/core-plugins/graphiql-plugin/) |
+| `apiOptions.adminApiDebug`, `apiOptions.shopApiDebug` | Nothing. They have had no effect since v3.8.0. |
+| `systemOptions.healthChecks`, `HealthCheckStrategy`, `HttpHealthCheckStrategy`, `TypeORMHealthCheckStrategy`, `HealthCheckRegistryService`, `HealthIndicator`, `HealthCheckError` and the `HealthIndicator*` types | Health checks in your infrastructure. `/health` still returns `{ "status": "ok" }`. See [Health checks](/core-concepts/healthchecks/). |
+| BullMQ `RedisHealthCheckStrategy` | Health checks in your infrastructure |
+| Top-level `entityIdStrategy` in the VendureConfig, and `ConfigService.entityIdStrategy` | `entityOptions.entityIdStrategy` |
+| `shippingOptions.customFulfillmentProcess` | `shippingOptions.process`. Keep `defaultFulfillmentProcess` in the array. |
+| `paymentOptions.customPaymentProcess` | `paymentOptions.process`. Keep `defaultPaymentProcess` in the array. |
+| `CustomOrderProcess`, `CustomPaymentProcess`, `CustomFulfillmentProcess`, `CustomRefundProcess` | `OrderProcess`, `PaymentProcess`, `FulfillmentProcess`, `RefundProcess` |
+| `CustomOrderStates`, `CustomPaymentStates`, `CustomFulfillmentStates`, `CustomRefundStates` | Declare your states on `OrderStates`, `PaymentStates`, `FulfillmentStates`, `RefundStates` |
+| `TransactionalConnection.getRepository(Entity)` without a `RequestContext` | `getRepository(ctx, Entity)`, or `rawConnection.getRepository(Entity)` outside a request |
+| `TtlCache` | `CacheService` |
+| `FacetService.findByCode(code, lang)` | `findByCode(ctx, code, lang)` |
+| `FacetValueService.findAll(lang)` | `findAll(ctx, lang)` |
+| `PromotionService.addPromotionsToOrder()` | Nothing. It was not used. |
+| `ProductOptionGroupService.deleteGroupAndOptionsFromProduct()` | `ProductOptionGroupService.delete()` |
+| `ActiveOrderService.getOrderFromContext()` | `ActiveOrderService.getActiveOrder(ctx, undefined, createIfNotExists)` |
+| `SettingsStoreService` `get`, `getMany`, `set` and `setMany` with `ctx` as the last argument | Pass `ctx` as the first argument |
+| `SettingsStoreService.hasPermission()` | `hasReadPermission()` and `hasWritePermission()` |
+| `RequestContext.isAuthorized` | `RequestContext.userHasPermissions()` |
+| `TaxRateModificationEvent` | `TaxRateEvent`. It is also published on delete, so check `event.type`. |
+| `AssetEvent.asset`, `CustomerEvent.customer`, `CustomerAddressEvent.address`, `OrderEvent.order`, `ProductEvent.product`, `ProductVariantEvent.variants` | `event.entity` |
+
+`FacetValueChecker` must be obtained from the injector (`injector.get(FacetValueChecker)`). Creating it with `new` no longer works without an `EventBus`.
 
 ## Next steps
 

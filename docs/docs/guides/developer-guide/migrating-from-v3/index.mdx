@@ -16,6 +16,7 @@ This section contains guides for migrating from Vendure v3 to v4. Follow the ste
 | On PostgreSQL, date columns are `timestamptz`. On MySQL and MariaDB, the session time zone is UTC. | PostgreSQL databases, plugins with raw SQL on date columns | [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns) |
 | Inventory tracking is set per stock level, variant and channel. `GlobalSettings.trackInventory` is removed. | Database, plugins and custom stock strategies, Admin API clients | [Inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking) |
 | `order.taxZoneId` and `product_variant_price.channelId` get foreign keys. With UUID ids, `@EntityId()` columns are `uuid`. | Database, plugins with `@EntityId()` columns on UUID ids | [Id columns and foreign keys](/developer-guide/migrating-from-v3/entity-id-columns) |
+| APIs deprecated during v3 or earlier are removed, including the built-in health check strategies and the API playground options. | VendureConfig, plugins | [Removed deprecated APIs](/developer-guide/migrating-from-v3/breaking-api-changes#removed-deprecated-apis) |
 
 ## Migration steps
 

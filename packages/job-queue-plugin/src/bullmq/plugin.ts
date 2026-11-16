@@ -191,8 +191,6 @@ import { BullMQPluginOptions } from './types';
     configuration: config => {
         config.jobQueueOptions.jobQueueStrategy = new BullMQJobQueueStrategy();
         config.jobQueueOptions.jobBufferStorageStrategy = new RedisJobBufferStorageStrategy();
-        // RedisHealthCheckStrategy is deprecated and will be removed in v4.0.0
-        // config.systemOptions.healthChecks.push(new RedisHealthCheckStrategy());
         config.schedulerOptions.tasks.push(cleanIndexedSetsTask);
         return config;
     },

@@ -4,7 +4,6 @@ import { DataSourceOptions } from 'typeorm';
 
 import { getConfig } from './config-helpers';
 import { CustomFields } from './custom-field/custom-field-types';
-import { EntityIdStrategy } from './entity/entity-id-strategy';
 import { Logger, VendureLogger } from './logger/vendure-logger';
 import { SettingsStoreFields } from './settings-store/settings-store-types';
 import {
@@ -57,12 +56,8 @@ export class ConfigService implements VendureConfig {
         return this.activeConfig.defaultLanguageCode;
     }
 
-    get entityOptions(): Required<Omit<EntityOptions, 'entityIdStrategy'>> & EntityOptions {
+    get entityOptions(): Required<EntityOptions> {
         return this.activeConfig.entityOptions;
-    }
-
-    get entityIdStrategy(): EntityIdStrategy<any> {
-        return this.activeConfig.entityIdStrategy;
     }
 
     get assetOptions(): Required<AssetOptions> {
