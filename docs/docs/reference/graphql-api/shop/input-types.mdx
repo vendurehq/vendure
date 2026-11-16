@@ -74,6 +74,28 @@ input BooleanOperators {
 }`}
 </GraphQLDoc>
 
+<a name="buyerpriceinput"></a>
+
+## BuyerPriceInput
+
+<GraphQLDoc
+  type="input"
+  typeName="BuyerPriceInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""
+The input of the \`buyerPrices\` query. When OrderLine custom fields are defined, it also has a
+\`customFields\` field, with the same input type as \`addItemToOrder\`.
+"""
+input BuyerPriceInput {
+  productVariantId: ID!
+  quantity: Int
+}`}
+</GraphQLDoc>
+
 <a name="collectionfilterparameter"></a>
 
 ## CollectionFilterParameter

@@ -1,5 +1,7 @@
 import { Args, Info, Query, Resolver } from '@nestjs/graphql';
 import {
+    QueryBuyerPriceArgs,
+    QueryBuyerPricesArgs,
     QueryCollectionArgs,
     QueryCollectionsArgs,
     QueryFacetArgs,
@@ -18,6 +20,7 @@ import { CacheKey } from '../../../common/constants';
 import { InternalServerError, UserInputError } from '../../../common/error/errors';
 import { FilterParameter, ListQueryOptions, NullOptionals } from '../../../common/types/common-types';
 import { Translated } from '../../../common/types/locale-types';
+import { ConfigService } from '../../../config/config.service';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { Facet } from '../../../entity/facet/facet.entity';
@@ -28,7 +31,7 @@ import {
     enabledInChannelFilter,
 } from '../../../service/helpers/channel-enabled-checker/channel-enabled-checker';
 import { FacetValueService } from '../../../service/services/facet-value.service';
-import { ProductVariantService } from '../../../service/services/product-variant.service';
+import { BuyerPriceResult, ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
 import { getVariantCountCollectionIds } from '../../common/get-variant-count-collection-ids';
 import { RequestContext } from '../../common/request-context';
@@ -45,6 +48,7 @@ export class ShopProductsResolver {
         private facetService: FacetService,
         private requestContextCache: RequestContextCacheService,
         private channelEnabledChecker: ChannelEnabledChecker,
+        private configService: ConfigService,
     ) {}
 
     @Query()
@@ -79,6 +83,47 @@ export class ShopProductsResolver {
         }
         result.facetValues = result.facetValues?.filter(fv => !fv.facet.isPrivate) as any;
         return result;
+    }
+
+    @Query()
+    async buyerPrice(
+        @Ctx() ctx: RequestContext,
+        // `customFields` exists when OrderLine custom fields are defined
+        @Args() args: QueryBuyerPriceArgs & { customFields?: Record<string, unknown> | null },
+    ): Promise<BuyerPriceResult | undefined> {
+        const [result] = await this.productVariantService.calculateBuyerPrices(ctx, [
+            {
+                productVariantId: args.productVariantId,
+                quantity: args.quantity ?? 1,
+                data: args.customFields ?? undefined,
+            },
+        ]);
+        return result;
+    }
+
+    @Query()
+    async buyerPrices(
+        @Ctx() ctx: RequestContext,
+        // Each input has `customFields` when OrderLine custom fields are defined
+        @Args()
+        args: {
+            input: Array<
+                QueryBuyerPricesArgs['input'][number] & { customFields?: Record<string, unknown> | null }
+            >;
+        },
+    ): Promise<Array<BuyerPriceResult | undefined>> {
+        const limit = this.configService.apiOptions.shopListQueryLimit;
+        if (args.input.length > limit) {
+            throw new UserInputError('error.list-query-limit-exceeded', { limit });
+        }
+        return this.productVariantService.calculateBuyerPrices(
+            ctx,
+            args.input.map(input => ({
+                productVariantId: input.productVariantId,
+                quantity: input.quantity ?? 1,
+                data: input.customFields ?? undefined,
+            })),
+        );
     }
 
     @Query()

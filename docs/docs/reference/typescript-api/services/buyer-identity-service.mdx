@@ -12,7 +12,7 @@ Creates the [Buyer](/reference/typescript-api/products-stock/product-variant-buy
   Admin draft order this is the Customer, not the Administrator, and in a guest Order it is the guest
   Customer.
 * `forActiveUser()` gives the Buyer for the Customer of the active User, or no Customer for a guest
-  session. The Shop API `ProductVariant.buyerPrice` field uses it.
+  session. The Shop API `buyerPrice` and `buyerPrices` queries use it.
 
 The service loads each Customer once for each request, so a strategy can call the Buyer for each
 OrderLine without a query for each line. It gives only a Customer of the active Channel that is not

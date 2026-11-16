@@ -37,7 +37,7 @@
           "title": "Pricing",
           "slug": "pricing",
           "file": "docs/guides/core-concepts/pricing/index.mdx",
-          "lastModified": "2026-11-16T10:44:06+01:00"
+          "lastModified": "2026-11-16T11:09:59+01:00"
         },
         {
           "title": "Products",
@@ -2818,7 +2818,7 @@
                   "title": "OrderItemPriceCalculationStrategy",
                   "slug": "order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-16T09:45:27Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "OrderLineDiscountDistributionStrategy",
@@ -3022,7 +3022,7 @@
                   "title": "CatalogOptions",
                   "slug": "catalog-options",
                   "file": "docs/reference/typescript-api/products-stock/catalog-options.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "DefaultProductVariantPriceCalculationStrategy",
@@ -3052,7 +3052,7 @@
                   "title": "ProductVariantBuyerPriceStrategy",
                   "slug": "product-variant-buyer-price-strategy",
                   "file": "docs/reference/typescript-api/products-stock/product-variant-buyer-price-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -3302,7 +3302,7 @@
                   "title": "BuyerIdentityService",
                   "slug": "buyer-identity-service",
                   "file": "docs/reference/typescript-api/services/buyer-identity-service.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "BuyerPriceForOrderOptions",
@@ -3452,7 +3452,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "PromotionService",
@@ -4546,7 +4546,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/shop/input-types.mdx",
-                  "lastModified": "2026-08-14T14:30:25+02:00"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "Mutations",
@@ -4558,13 +4558,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/shop/queries.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
