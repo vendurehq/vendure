@@ -220,9 +220,10 @@ function generateCustomFieldResolvers(
         // so that it is available to the `relationResolver` below.
         // Channel-scoped custom fields are stored on the entity's channel assignment row, so their
         // values for the active Channel are merged in. Relation fields resolve via relationResolver.
+        // Including the `<name>Id` of single relations, which relationResolver resolves the relation of
         const channelScopedFieldNames = customFields
-            .filter(f => isChannelScopedCustomField(f) && !isRelationalType(f))
-            .map(f => f.name);
+            .filter(isChannelScopedCustomField)
+            .flatMap(f => (isRelationalType(f) ? (f.list ? [] : [`${f.name}Id`]) : [f.name]));
         const resolveCustomFields = (source: any, channelScopedValues?: Record<string, unknown>) => ({
             ...source.customFields,
             ...channelScopedValues,

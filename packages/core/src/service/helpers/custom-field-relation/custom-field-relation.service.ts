@@ -105,7 +105,15 @@ export class CustomFieldRelationService {
         const values: Record<string, unknown> = {};
         for (const field of channelScoped) {
             if (this.isRelationalType(field)) {
-                const idOrIds = input(getGraphQlInputName(field));
+                let idOrIds = input(getGraphQlInputName(field));
+                const byName = input(field.name);
+                if (idOrIds === undefined && byName !== undefined) {
+                    // Keyed by the field name, as by the Importer: `{ id }` (or an entity), a list of
+                    // them, or null
+                    idOrIds = Array.isArray(byName)
+                        ? byName.map((value: any) => value?.id ?? value)
+                        : (byName?.id ?? byName);
+                }
                 if (idOrIds !== undefined) {
                     const relation = await this.resolveRelationInput(ctx, field, idOrIds);
                     if (relation !== undefined) {

@@ -159,6 +159,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
         if (!entityIds.length) {
             return new Map();
         }
+        requireChannelId(channelId);
         const rows = await this.connection.getRepository(ctx, meta.target).find({
             where: { [meta.entityIdProperty]: In(entityIds), channelId },
         });
@@ -301,6 +302,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
         if (!Object.keys(values).length) {
             return;
         }
+        requireChannelId(channelId);
         const meta = this.getMetadataOrThrow(entityType);
         const repo = this.connection.getRepository(ctx, meta.target);
         const row: any = await repo.findOne({
@@ -368,7 +370,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
         options: ChannelCustomFieldsOptions<any> = {},
     ): Promise<Record<string, unknown> | undefined> {
         const meta = this.getMetadataOrThrow(entityType);
-        const channelId = options.channelId ?? ctx.channelId;
+        const channelId = requireChannelId(options.channelId ?? ctx.channelId);
         const relations = (options.relations ?? []).map(name => `customFields.${name}`);
         const unknownRelations = relations.filter(path => !meta.dataRelations.includes(path));
         if (unknownRelations.length) {
@@ -664,9 +666,20 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
         entity: { id: ID; customFields?: object },
     ): Promise<Record<string, unknown>> {
         const meta = this.getMetadata(entityType);
-        const channelValues = meta ? await this.getChannelCustomFields(ctx, entityType, entity) : undefined;
+        const listRelations = this.getChannelScopedFieldsByType().get(entityType)?.listRelations ?? [];
+        const channelValues = meta
+            ? await this.getChannelCustomFields(ctx, entityType, entity, { relations: listRelations })
+            : undefined;
         // Spreading copies only own properties, not the getters of channel-scoped names
         const result: Record<string, unknown> = { ...entity.customFields, ...channelValues };
+        for (const name of listRelations) {
+            // As create input, which takes list relations as `<name>Ids`
+            const related = result[name];
+            delete result[name];
+            if (Array.isArray(related)) {
+                result[`${name}Ids`] = related.map((item: { id: ID }) => item.id);
+            }
+        }
         for (const name of meta?.uniqueCustomFields ?? []) {
             delete result[name];
         }
@@ -786,6 +799,21 @@ interface ChannelScopedFields {
     columns: string[];
     singleRelations: string[];
     listRelations: string[];
+}
+
+/**
+ * Channel-scoped custom fields are read and written for a Channel. A RequestContext without one (e.g.
+ * `RequestContext.empty()`) would otherwise drop the Channel from the query's `where`, which TypeORM
+ * 0.3 ignores, and use the row of an arbitrary Channel.
+ */
+function requireChannelId(channelId: ID | undefined): ID {
+    if (channelId == null) {
+        throw new InternalServerError(
+            'Channel-scoped custom fields are read and written for a Channel, but the RequestContext has ' +
+                'none (e.g. RequestContext.empty()). Use a RequestContext of a Channel, or pass a channelId.',
+        );
+    }
+    return channelId;
 }
 
 /**

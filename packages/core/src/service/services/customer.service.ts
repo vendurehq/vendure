@@ -47,7 +47,6 @@ import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Address } from '../../entity/address/address.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
-import { Channel } from '../../entity/channel/channel.entity';
 import { CustomerGroup } from '../../entity/customer-group/customer-group.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
@@ -247,9 +246,11 @@ export class CustomerService {
 
         if (existingCustomer && existingUser) {
             // Customer already exists, bring to this Channel
+            await this.assignExistingCustomerToChannel(ctx, existingCustomer);
             const updatedCustomer = patchEntity(existingCustomer, input);
-            updatedCustomer.channels.push(ctx.channel);
-            return this.connection.getRepository(ctx, Customer).save(updatedCustomer);
+            const saved = await this.connection.getRepository(ctx, Customer).save(updatedCustomer);
+            await this.customFieldRelationService.updateRelations(ctx, Customer, input, saved);
+            return saved;
         } else if (existingCustomer || existingUser) {
             // Not sure when this situation would occur
             return new EmailAddressConflictAdminError();
@@ -851,8 +852,8 @@ export class CustomerService {
                 // It is not permitted to modify an existing *registered* Customer
                 return new EmailAddressConflictError();
             }
+            await this.assignExistingCustomerToChannel(ctx, existing);
             customer = patchEntity(existing, input);
-            customer.channels.push(await this.connection.getEntityOrThrow(ctx, Channel, ctx.channelId));
         } else {
             customer = await this.connection.getRepository(ctx, Customer).save(new Customer(input));
             await this.channelService.assignToCurrentChannel(customer, ctx);
@@ -867,6 +868,20 @@ export class CustomerService {
             saved,
         );
         return saved;
+    }
+
+    /**
+     * Assigns an existing Customer to the active Channel, unless it is already, with
+     * `ChannelService.assignToChannels()`, so that its new assignment starts with the per-channel data
+     * (such as channel-scoped custom fields) of an existing one. Its loaded `channels` are updated
+     * too, so that saving it keeps the assignment.
+     */
+    private async assignExistingCustomerToChannel(ctx: RequestContext, customer: Customer) {
+        if (customer.channels.some(channel => idsAreEqual(channel.id, ctx.channelId))) {
+            return;
+        }
+        await this.channelService.assignToChannels(ctx, Customer, customer.id, [ctx.channelId]);
+        customer.channels.push(ctx.channel);
     }
 
     /**

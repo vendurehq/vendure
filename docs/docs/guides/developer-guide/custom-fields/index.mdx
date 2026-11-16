@@ -899,6 +899,24 @@ A `unique` channel-scoped field is unique within each Channel: the same value ca
 `secret` one is encrypted and redacted like any other [secret](#secret) field. Channel-scoped fields cannot have the
 localized types (`localeString`, `localeText`). Vendure checks this when the server starts.
 
+An entity's row in a Channel is created when the entity is assigned to it, before its channel-scoped values are
+written, so a few options are restricted:
+
+- A list or relation field cannot be `nullable: false`.
+- The `onDelete` of a relation applies to that row rather than to the entity. A single relation cannot use
+  `'CASCADE'`, which would remove the entity from the Channel when the related entity is deleted, and a list
+  relation only supports `'CASCADE'`.
+- As for other list fields, MySQL and MariaDB do not support a `defaultValue` on a list field.
+
+:::caution
+Changing an existing custom field to `scope: 'channel'` moves its column from the entity's table to the junction
+table. A generated migration, like `synchronize: true`, drops the old column with its values and adds an empty one.
+To keep the values, edit the migration: add the new column, copy the values with an `UPDATE` (e.g.
+`UPDATE product_channels_channel pc SET "customFieldsNote" = p."customFieldsNote" FROM product p WHERE p.id = pc."productId"`
+on Postgres), and only then drop the old column. Changing a channel-scoped field back to `scope: 'global'` needs the
+same care.
+:::
+
 In your TypeScript code, you read and write them on `entity.customFields`, like other custom fields: see
 [Channel-scoped custom fields](#channel-scoped-custom-fields).
 

@@ -50,10 +50,34 @@ function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomF
     }
     const errors: string[] = [];
     for (const field of channelScoped) {
+        const prefix = `${entity.name} entity custom field "${field.name}" has scope "channel"`;
         if (isLocalizedCustomFieldType(field.type)) {
+            errors.push(`${prefix}, which does not support type "${field.type}"`);
+        }
+        // A channel assignment row is created with only its key columns, and the values are written
+        // later, so a NOT NULL column needs a database default. Lists (on MySQL) and relations have
+        // none.
+        if (field.nullable === false && (field.list || field.type === 'relation')) {
             errors.push(
-                `${entity.name} entity custom field "${field.name}" has scope "channel", which does not support type "${field.type}"`,
+                `${prefix}, which does not support "nullable: false" on a list or relation field, because ` +
+                    'its value is set after the entity is assigned to a Channel',
             );
+        }
+        // The foreign key actions of a channel-scoped relation apply to the channel assignment row,
+        // not to the entity.
+        if (field.type === 'relation') {
+            if (field.list && field.onDelete && field.onDelete !== 'CASCADE') {
+                errors.push(
+                    `${prefix}, which only supports "onDelete: 'CASCADE'" on a list relation, so that the ` +
+                        'entity can be removed from a Channel',
+                );
+            }
+            if (!field.list && field.onDelete === 'CASCADE') {
+                errors.push(
+                    `${prefix}, which does not support "onDelete: 'CASCADE'": deleting the related entity ` +
+                        'would remove the entity from the Channel',
+                );
+            }
         }
     }
     return errors;

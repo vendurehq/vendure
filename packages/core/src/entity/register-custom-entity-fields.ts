@@ -577,6 +577,17 @@ function guardChannelScopedCustomFields(
     customFieldsClass: Type<any>,
 ) {
     const channelScoped = getChannelScopedCustomFields(config.customFields, entityName);
+    if (channelScoped.length && !Object.getOwnPropertyDescriptor(customFieldsClass.prototype, 'toJSON')) {
+        // Serializers which read the getters of a class instance, such as the job queue's
+        // (Job.ensureDataIsSerializable()), use toJSON() instead: the own values only
+        Object.defineProperty(customFieldsClass.prototype, 'toJSON', {
+            configurable: true,
+            enumerable: false,
+            value(this: object) {
+                return { ...this };
+            },
+        });
+    }
     for (const field of channelScoped) {
         const names =
             field.type === 'relation' && !field.list ? [field.name, `${field.name}Id`] : [field.name];

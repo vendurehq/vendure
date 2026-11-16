@@ -331,9 +331,14 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         this.joinCalculatedColumnRelations(qb, entity, options);
 
         const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
-        const channelAssignmentJoin = extendedOptions.channelId
-            ? this.getChannelAssignmentJoin(qb, entity, options, providedCustomPropertyMap)
-            : undefined;
+        // A list scoped to a Channel joins the assignment rows of that Channel. A list which is not,
+        // but filters or sorts by a per-channel column (e.g. a channel-scoped custom field), joins
+        // the rows of the active Channel without restricting the list to it.
+        const assignmentChannelId = extendedOptions.channelId ?? extendedOptions.ctx?.channelId;
+        const channelAssignmentJoin =
+            assignmentChannelId != null
+                ? this.getChannelAssignmentJoin(qb, entity, options, providedCustomPropertyMap)
+                : undefined;
         const customPropertyMap =
             channelAssignmentJoin?.columns.size && !providedCustomPropertyMap
                 ? {}
@@ -398,6 +403,8 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 sortParams,
                 extendedOptions.loadChannelAssignment ?? false,
             );
+        } else if (channelAssignmentJoin?.columns.size && assignmentChannelId != null) {
+            this.leftJoinChannelAssignment(qb, assignmentChannelId, channelAssignmentJoin, sortParams);
         }
 
         qb.orderBy(sort);
@@ -809,6 +816,31 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     }
 
     /**
+     * For a list which is not scoped to a Channel, but filters or sorts by a column of the assignment
+     * row: joins the row of the given Channel without restricting the list to entities assigned to it.
+     */
+    private leftJoinChannelAssignment(
+        qb: SelectQueryBuilder<any>,
+        channelId: ID,
+        channelAssignmentJoin: ChannelAssignmentJoin,
+        sortParams: Record<string, unknown>,
+    ) {
+        const { target, ownerColumn, columns } = channelAssignmentJoin;
+        const condition =
+            `${CHANNEL_ASSIGNMENT_ALIAS}.${ownerColumn} = ${qb.alias}.id ` +
+            `AND ${CHANNEL_ASSIGNMENT_ALIAS}.channelId = :assignmentChannelId`;
+        // Selected only when sorting on one of its columns, as in joinChannel()
+        const sortsOnAssignment = Array.from(columns.keys()).some(property => sortParams[property]);
+        if (sortsOnAssignment) {
+            qb.leftJoinAndSelect(target, CHANNEL_ASSIGNMENT_ALIAS, condition, {
+                assignmentChannelId: channelId,
+            });
+        } else {
+            qb.leftJoin(target, CHANNEL_ASSIGNMENT_ALIAS, condition, { assignmentChannelId: channelId });
+        }
+    }
+
+    /**
      * ChannelAware entities have their `channels` junction table owned by a channel assignment entity
      * (see `ChannelAssignment`), which can hold per-channel data columns. When the list is scoped to a
      * Channel, it is joined on the assignment row of that Channel (see `joinChannel()`), and a filter
@@ -842,7 +874,11 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         // Maps the filter/sort property to the column's property path on the assignment entity
         const columns = new Map<string, string>();
         for (const column of qb.connection.getMetadata(assignment.target).columns) {
-            if (column.isPrimary || column.relationMetadata) {
+            // The foreign key of a channel-scoped single relation custom field (`<name>Id`) is a
+            // relation column too, but can be filtered and sorted by
+            const isCustomFieldRelation =
+                !!column.relationMetadata && column.embeddedMetadata?.propertyName === 'customFields';
+            if (column.isPrimary || (column.relationMetadata && !isCustomFieldRelation)) {
                 continue;
             }
             // A column which clashes with one of those names is exposed as `<name>InChannel`
@@ -851,6 +887,15 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 : column.propertyName;
             if (this.customPropertyIsBeingUsed(property, options)) {
                 columns.set(property, column.propertyPath);
+            }
+            // A relation is sorted by its id, as non-list relation custom fields of the entity are
+            const relationName = isCustomFieldRelation ? column.relationMetadata?.propertyName : undefined;
+            if (
+                relationName &&
+                !reserved.has(relationName) &&
+                this.customPropertyIsBeingUsed(relationName, options)
+            ) {
+                columns.set(relationName, column.propertyPath);
             }
         }
         return { target: assignment.target, ownerColumn: assignment.entityIdProperty, columns };

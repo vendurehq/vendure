@@ -14,12 +14,14 @@ import {
     DefaultEncryptionStrategy,
     EntityHydrator,
     FastImporterService,
+    Job,
     mergeConfig,
     Order,
     Product,
     ProductService,
     ProductVariantService,
     Promotion,
+    RequestContext,
     RequestContextService,
     StockLocationService,
     TransactionalConnection,
@@ -32,6 +34,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+
+import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
+import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 declare module '@vendure/core/dist/entity/custom-entity-fields' {
     interface CustomProductFields {
@@ -238,6 +243,9 @@ describe('Channel-scoped custom fields (#490)', () => {
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'channel-scoped-test-key' }),
             },
+            paymentOptions: {
+                paymentMethodHandlers: [testSuccessfulPaymentMethod],
+            },
             customFields: {
                 Product: [
                     { name: 'channelNote', type: 'string', scope: 'channel', nullable: true },
@@ -280,6 +288,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                 // The junction table of a list relation on an assignment entity has a long name:
                 // product_variant_channels_channel_custom_fields_channel_gallery_asset (68 chars)
                 ProductVariant: [
+                    { name: 'channelBarcode', type: 'string', scope: 'channel', nullable: true },
                     {
                         name: 'channelGallery',
                         type: 'relation',
@@ -291,6 +300,8 @@ describe('Channel-scoped custom fields (#490)', () => {
                 ],
                 // Entities which OrderService locks, and which CollectionService queries with GROUP BY
                 Order: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
+                ShippingMethod: [{ name: 'carrierNote', type: 'string', scope: 'channel', nullable: true }],
+                PaymentMethod: [{ name: 'methodNote', type: 'string', scope: 'channel', nullable: true }],
                 Promotion: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
                 Collection: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
                 StockLocation: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
@@ -308,7 +319,15 @@ describe('Channel-scoped custom fields (#490)', () => {
 
     beforeAll(async () => {
         await server.init({
-            initialData,
+            initialData: {
+                ...initialData,
+                paymentMethods: [
+                    {
+                        name: testSuccessfulPaymentMethod.code,
+                        handler: { code: testSuccessfulPaymentMethod.code, arguments: [] },
+                    },
+                ],
+            },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 1,
         });
@@ -766,6 +785,10 @@ describe('Channel-scoped custom fields (#490)', () => {
 
     it('duplicating an entity copies its channel-scoped values in the active channel, except unique ones', async () => {
         asChannel(CHANNEL_B_TOKEN);
+        // A list relation is copied too
+        await adminClient.query(UPDATE_PRODUCT_LIST_FIELDS, {
+            input: { id: 'T_1', customFields: { channelGalleryIds: ['T_1', 'T_2'] } },
+        });
         const { duplicateEntity } = await adminClient.query(
             gql`
                 mutation Duplicate($input: DuplicateEntityInput!) {
@@ -801,6 +824,9 @@ describe('Channel-scoped custom fields (#490)', () => {
                         channelSku
                         channelApiKey
                         globalNote
+                        channelGallery {
+                            id
+                        }
                     }
                 }
             }
@@ -813,6 +839,7 @@ describe('Channel-scoped custom fields (#490)', () => {
             channelSku: null,
             channelApiKey: 'key in B',
             globalNote: 'shared',
+            channelGallery: [{ id: 'T_1' }, { id: 'T_2' }],
         });
     });
 
@@ -1181,15 +1208,375 @@ describe('Channel-scoped custom fields (#490)', () => {
             translations: [
                 { languageCode: LanguageCode.en, name: 'Imported', slug: 'imported', description: '' },
             ],
-            customFields: { channelNote: 'imported' },
+            // Relations as the Importer gives them: keyed by the field name
+            customFields: {
+                channelNote: 'imported',
+                channelFeaturedAsset: { id: 1 },
+                channelGallery: [{ id: 1 }, { id: 2 }],
+            },
         } as any);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const values = await server.app
             .get(ChannelAssignmentService)
             .getCustomFieldValues(ctx, 'Product', productId, ['channelNote']);
         expect(values).toEqual({ channelNote: 'imported' });
+        const product = await server.app
+            .get(TransactionalConnection)
+            .getRepository(ctx, Product)
+            .findOne({ where: { id: productId } });
+        const withRelations = await product!.getChannelCustomFields(ctx, { relations: ['channelGallery'] });
+        expect((withRelations as any)?.channelFeaturedAssetId).toBe(1);
+        expect(withRelations?.channelGallery?.map(a => a.id).sort()).toEqual([1, 2]);
         expect(server.app.get(ChannelAssignmentService).getMetadata(Product)?.dataProperties).toContain(
             'customFields',
         );
+    });
+
+    // Regression tests from the review of #5749
+
+    it('entities with channel-scoped fields can be put in job data', async () => {
+        const ctxB = await server.app
+            .get(RequestContextService)
+            .create({ apiType: 'admin', channelOrToken: CHANNEL_B_TOKEN });
+        const loaded = await server.app.get(ProductService).findOne(ctxB, 1);
+        // Loaded without a RequestContext, so the channel-scoped names are getters which throw
+        const raw = await server.app
+            .get(TransactionalConnection)
+            .rawConnection.getRepository(Product)
+            .findOne({ where: { id: 1 } });
+        const job = new Job({ queueName: 'test', data: { loaded, raw } as any });
+        expect((job.data as any).loaded.customFields.channelNote).toBe('B note');
+        expect((job.data as any).raw.customFields).not.toHaveProperty('channelNote');
+        expect((job.data as any).raw.customFields.globalNote).toBe('shared');
+    });
+
+    it('createCustomer for a Customer registered in another channel saves its channel-scoped values', async () => {
+        const createCustomer = gql`
+            mutation CreateCustomer($input: CreateCustomerInput!, $password: String) {
+                createCustomer(input: $input, password: $password) {
+                    ... on Customer {
+                        id
+                        customFields {
+                            channelNickname
+                        }
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `;
+        const input = {
+            emailAddress: 'registered@channel-scoped.test',
+            firstName: 'Reg',
+            lastName: 'Istered',
+        };
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { createCustomer: inDefault } = await adminClient.query(createCustomer, {
+            input: { ...input, customFields: { channelNickname: 'Dee' } },
+            password: 'test',
+        });
+        expect(inDefault.customFields.channelNickname).toBe('Dee');
+
+        asChannel(CHANNEL_B_TOKEN);
+        const { createCustomer: inB } = await adminClient.query(createCustomer, {
+            input: { ...input, customFields: { channelNickname: 'Bee' } },
+        });
+        expect(inB.id).toBe(inDefault.id);
+        const { customers } = await adminClient.query(CUSTOMER_BY_EMAIL, {
+            options: { filter: { emailAddress: { eq: input.emailAddress } } },
+        });
+        expect(customers.items[0].customFields.channelNickname).toBe('Bee');
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { customers: inDefaultAfter } = await adminClient.query(CUSTOMER_BY_EMAIL, {
+            options: { filter: { emailAddress: { eq: input.emailAddress } } },
+        });
+        expect(inDefaultAfter.items[0].customFields.channelNickname).toBe('Dee');
+    });
+
+    it('setCustomerForOrder in another channel copies the values of an existing guest Customer', async () => {
+        // guest@channel-scoped.test has channelNickname 'nick' in the default channel
+        asChannel(CHANNEL_B_TOKEN);
+        await shopClient.asAnonymousUser();
+        await shopClient.query(ADD_ITEM, { productVariantId: 'T_1', quantity: 1 });
+        const { setCustomerForOrder } = await shopClient.query(SET_CUSTOMER, {
+            input: { emailAddress: 'guest@channel-scoped.test', firstName: 'Guest', lastName: 'Shopper' },
+        });
+        expect(setCustomerForOrder.customer.emailAddress).toBe('guest@channel-scoped.test');
+        const { customers } = await adminClient.query(CUSTOMER_BY_EMAIL, {
+            options: { filter: { emailAddress: { eq: 'guest@channel-scoped.test' } } },
+        });
+        expect(customers.items[0].customFields.channelNickname).toBe('nick');
+    });
+
+    it('modifyOrder saves channel-scoped Order fields', async () => {
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await shopClient.asAnonymousUser();
+        await shopClient.query(ADD_ITEM, { productVariantId: 'T_1', quantity: 1 });
+        await shopClient.query(SET_CUSTOMER, {
+            input: { emailAddress: 'modify@channel-scoped.test', firstName: 'Mo', lastName: 'Dify' },
+        });
+        await proceedToArrangingPayment(shopClient);
+        const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+        const { transitionOrderToState } = await adminClient.query(
+            gql`
+                mutation Transition($id: ID!) {
+                    transitionOrderToState(id: $id, state: "Modifying") {
+                        ... on Order {
+                            state
+                        }
+                    }
+                }
+            `,
+            { id: order.id },
+        );
+        expect(transitionOrderToState.state).toBe('Modifying');
+        const { modifyOrder } = await adminClient.query(
+            gql`
+                mutation Modify($input: ModifyOrderInput!) {
+                    modifyOrder(input: $input) {
+                        ... on Order {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            { input: { orderId: order.id, dryRun: false, customFields: { channelLabel: 'AM' } } },
+        );
+        expect(modifyOrder.id).toBe(order.id);
+        const { order: modified } = await adminClient.query(
+            gql`
+                query Order($id: ID!) {
+                    order(id: $id) {
+                        customFields {
+                            channelLabel
+                        }
+                    }
+                }
+            `,
+            { id: order.id },
+        );
+        expect(modified.customFields.channelLabel).toBe('AM');
+    });
+
+    it('shipping and payment method types of the Shop and Admin APIs resolve channel-scoped fields', async () => {
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(
+            gql`
+                mutation ($input: UpdateShippingMethodInput!) {
+                    updateShippingMethod(input: $input) {
+                        id
+                    }
+                }
+            `,
+            { input: { id: 'T_1', translations: [], customFields: { carrierNote: 'carrier note' } } },
+        );
+        await adminClient.query(
+            gql`
+                mutation ($input: UpdatePaymentMethodInput!) {
+                    updatePaymentMethod(input: $input) {
+                        id
+                    }
+                }
+            `,
+            { input: { id: 'T_1', translations: [], customFields: { methodNote: 'method note' } } },
+        );
+        await shopClient.asAnonymousUser();
+        await shopClient.query(ADD_ITEM, { productVariantId: 'T_1', quantity: 1 });
+        const shop = await shopClient.query(gql`
+            {
+                activeShippingMethods {
+                    id
+                    customFields {
+                        carrierNote
+                    }
+                }
+                activePaymentMethods {
+                    id
+                    customFields {
+                        methodNote
+                    }
+                }
+                eligibleShippingMethods {
+                    id
+                    customFields {
+                        carrierNote
+                    }
+                }
+                eligiblePaymentMethods {
+                    id
+                    customFields {
+                        methodNote
+                    }
+                }
+            }
+        `);
+        const byId = (items: any[], id: string) => items.find(item => item.id === id).customFields;
+        expect(byId(shop.activeShippingMethods, 'T_1')).toEqual({ carrierNote: 'carrier note' });
+        expect(byId(shop.activePaymentMethods, 'T_1')).toEqual({ methodNote: 'method note' });
+        expect(byId(shop.eligibleShippingMethods, 'T_1')).toEqual({ carrierNote: 'carrier note' });
+        expect(byId(shop.eligiblePaymentMethods, 'T_1')).toEqual({ methodNote: 'method note' });
+
+        // Admin ShippingMethodQuote
+        const { createDraftOrder } = await adminClient.query(gql`
+            mutation {
+                createDraftOrder {
+                    id
+                }
+            }
+        `);
+        await adminClient.query(
+            gql`
+                mutation ($orderId: ID!) {
+                    addItemToDraftOrder(orderId: $orderId, input: { productVariantId: "T_1", quantity: 1 }) {
+                        ... on Order {
+                            id
+                        }
+                    }
+                }
+            `,
+            { orderId: createDraftOrder.id },
+        );
+        await adminClient.query(
+            gql`
+                mutation ($orderId: ID!) {
+                    setDraftOrderShippingAddress(
+                        orderId: $orderId
+                        input: { streetLine1: "1 street", countryCode: "US" }
+                    ) {
+                        id
+                    }
+                }
+            `,
+            { orderId: createDraftOrder.id },
+        );
+        const { eligibleShippingMethodsForDraftOrder } = await adminClient.query(
+            gql`
+                query ($orderId: ID!) {
+                    eligibleShippingMethodsForDraftOrder(orderId: $orderId) {
+                        id
+                        customFields {
+                            carrierNote
+                        }
+                    }
+                }
+            `,
+            { orderId: createDraftOrder.id },
+        );
+        expect(byId(eligibleShippingMethodsForDraftOrder, 'T_1')).toEqual({ carrierNote: 'carrier note' });
+    });
+
+    it('lists which are not scoped to a channel filter and sort by channel-scoped fields of the active channel', async () => {
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(
+            gql`
+                mutation ($input: [UpdateProductVariantInput!]!) {
+                    updateProductVariants(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: [
+                    { id: 'T_1', customFields: { channelBarcode: 'd' } },
+                    { id: 'T_2', customFields: { channelBarcode: 'c' } },
+                    { id: 'T_3', customFields: { channelBarcode: 'b' } },
+                    { id: 'T_4', customFields: { channelBarcode: 'a' } },
+                ],
+            },
+        );
+        // Product.variantList is built without a channelId
+        const variantList = gql`
+            query ($options: ProductVariantListOptions) {
+                product(id: "T_1") {
+                    variantList(options: $options) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            }
+        `;
+        const { product: sorted } = await adminClient.query(variantList, {
+            options: { sort: { channelBarcode: 'ASC' } },
+        });
+        expect(sorted.variantList.items.map((v: any) => v.id)).toEqual(['T_4', 'T_3', 'T_2', 'T_1']);
+        const { product: filtered } = await adminClient.query(variantList, {
+            options: { filter: { channelBarcode: { eq: 'c' } } },
+        });
+        expect(filtered.variantList.items.map((v: any) => v.id)).toEqual(['T_2']);
+        // Other channels have their own values: none in channel B
+        asChannel(CHANNEL_B_TOKEN);
+        const { product: inB } = await adminClient.query(variantList, {
+            options: { filter: { channelBarcode: { eq: 'c' } } },
+        });
+        expect(inB.variantList.items).toEqual([]);
+    });
+
+    it('lists filter and sort by a channel-scoped single relation', async () => {
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        const products = gql`
+            query ($options: ProductListOptions) {
+                products(options: $options) {
+                    items {
+                        id
+                        customFields {
+                            channelFeaturedAssetId
+                        }
+                    }
+                }
+            }
+        `;
+        const { products: filtered } = await adminClient.query(products, {
+            options: { filter: { channelFeaturedAssetId: { eq: 'T_1' } } },
+        });
+        expect(filtered.items.map((p: any) => p.id)).toContain('T_1');
+        expect(filtered.items.every((p: any) => p.customFields.channelFeaturedAssetId === 'T_1')).toBe(true);
+        for (const sort of [{ channelFeaturedAssetId: 'DESC' }, { channelFeaturedAsset: 'DESC' }]) {
+            const { products: sorted } = await adminClient.query(products, { options: { sort, take: 3 } });
+            expect(sorted.items.length).toBeGreaterThan(0);
+        }
+    });
+
+    it('customFields.<name>Id of a channel-scoped single relation resolves to the id', async () => {
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        const { product } = await adminClient.query(gql`
+            {
+                product(id: "T_1") {
+                    customFields {
+                        channelFeaturedAsset {
+                            id
+                        }
+                        channelFeaturedAssetId
+                    }
+                }
+            }
+        `);
+        expect(product.customFields).toEqual({
+            channelFeaturedAsset: { id: 'T_1' },
+            channelFeaturedAssetId: 'T_1',
+        });
+    });
+
+    it('reads and writes without a channel throw an error', async () => {
+        const product = await server.app
+            .get(TransactionalConnection)
+            .rawConnection.getRepository(Product)
+            .findOne({ where: { id: 1 } });
+        await expect(product!.getChannelCustomFields(RequestContext.empty())).rejects.toThrow(
+            'Channel-scoped custom fields are read and written for a Channel, but the RequestContext has none',
+        );
+        await expect(
+            server.app
+                .get(ChannelAssignmentService)
+                .updateCustomFields(RequestContext.empty(), Product, 1, undefined as any, {
+                    channelNote: 'x',
+                }),
+        ).rejects.toThrow('Channel-scoped custom fields are read and written for a Channel');
     });
 });
