@@ -1,36 +1,25 @@
-import fs from 'fs-extra';
-import os from 'node:os';
-import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { createProjectTree, removeProjectTrees } from '../../../shared/__tests__/project-tree';
 
 import { runDatabaseCheck } from './database-check';
 
 describe('runDatabaseCheck()', () => {
-    const tempDirs: string[] = [];
-
     afterEach(() => {
         vi.restoreAllMocks();
-        for (const dir of tempDirs.splice(0)) {
-            fs.removeSync(dir);
-        }
+        removeProjectTrees();
     });
 
     function makeProject(files: Record<string, string>): string {
-        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-database-check-'));
-        tempDirs.push(root);
-        const base: Record<string, string> = {
+        const root = createProjectTree({
             'package.json': JSON.stringify({ dependencies: { '@vendure/core': '3.8.1' } }),
             'node_modules/@vendure/core/package.json': JSON.stringify({
                 name: '@vendure/core',
                 main: 'index.js',
             }),
             'node_modules/@vendure/core/index.js': 'module.exports = {};',
-        };
-        for (const [relativePath, contents] of Object.entries({ ...base, ...files })) {
-            const fullPath = path.join(root, relativePath);
-            fs.ensureDirSync(path.dirname(fullPath));
-            fs.writeFileSync(fullPath, contents, 'utf8');
-        }
+            ...files,
+        });
         vi.spyOn(process, 'cwd').mockReturnValue(root);
         return root;
     }

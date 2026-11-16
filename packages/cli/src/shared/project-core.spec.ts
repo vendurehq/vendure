@@ -1,29 +1,14 @@
 import fs from 'fs-extra';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { createProjectTree as makeTree, removeProjectTrees } from './__tests__/project-tree';
 import { requireFromProject, requireFromProjectCore } from './project-core';
 
 describe('requireFromProjectCore()', () => {
-    const tempDirs: string[] = [];
-
     afterEach(() => {
-        for (const dir of tempDirs.splice(0)) {
-            fs.removeSync(dir);
-        }
+        removeProjectTrees();
     });
-
-    function makeTree(files: Record<string, string>): string {
-        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-project-core-'));
-        tempDirs.push(root);
-        for (const [relativePath, contents] of Object.entries(files)) {
-            const fullPath = path.join(root, relativePath);
-            fs.ensureDirSync(path.dirname(fullPath));
-            fs.writeFileSync(fullPath, contents, 'utf8');
-        }
-        return root;
-    }
 
     const project = JSON.stringify({ dependencies: { '@vendure/core': '3.8.1' } });
     const corePackage = JSON.stringify({ name: '@vendure/core', version: '3.8.1', main: 'index.js' });
@@ -95,7 +80,9 @@ describe('requireFromProjectCore()', () => {
             'node_modules/@vendure/core/index.js': marker('core'),
         });
 
-        expect(() => requireFromProjectCore('typeorm', root)).toThrow(`Could not load "typeorm" from ${root}`);
+        expect(() => requireFromProjectCore('typeorm', root)).toThrow(
+            `Could not load "typeorm" from ${root}`,
+        );
     });
 
     it('names @vendure/core when it is not installed', () => {
