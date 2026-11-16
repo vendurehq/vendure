@@ -602,8 +602,8 @@ test.describe('Custom Fields', () => {
     });
 
     // #4902 — the built-in relation input, whether chosen by id or by default, shows the related
-    // entity of a readonly relation. It receives the id: given the object it would look up the
-    // id "[object Object]".
+    // entity of a readonly relation, disabled. It receives the id: given the object it would look up
+    // the id "[object Object]".
     test('readonly relation custom fields rendered by the built-in input show the related entity', async ({
         page,
     }) => {
@@ -620,8 +620,12 @@ test.describe('Custom Fields', () => {
 
         await goToFirstProduct(page);
         const dp = detailPage(page);
-        await expect(dp.formItem('Related Asset Built In')).toContainText(asset.name);
-        await expect(dp.formItem('Related Asset Plain')).toContainText(asset.name);
+        for (const label of ['Related Asset Built In', 'Related Asset Plain']) {
+            const item = dp.formItem(label);
+            await expect(item).toContainText(asset.name);
+            // A readonly value is never saved, so the input cannot be changed.
+            await expect(item.getByRole('button', { name: 'Change selection' })).toBeDisabled();
+        }
         expect(objectLookups).toEqual([]);
     });
 });

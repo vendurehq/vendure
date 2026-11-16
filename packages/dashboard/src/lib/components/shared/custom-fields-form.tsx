@@ -243,7 +243,7 @@ function CustomFieldItem({
 
     // A registered custom component receives the related entity object(s) of a readonly relation.
     // A built-in input, which is also the fallback for an unknown component id, receives the id(s)
-    // it expects, and is disabled since a readonly value is not saved.
+    // it expects.
     const isReadonlyRelation = readonlyRelationValuePath != null;
     const readonlyRelationObjects = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
     const rendersBuiltInInput = !inputComponent || isBuiltInInputComponent(customInputComponentId);
@@ -251,10 +251,8 @@ function CustomFieldItem({
     const readonlyRelationValue = rendersBuiltInInput
         ? (toRelationIdValue(readonlyRelationObjects, isListField) ?? (isListField ? [] : null))
         : (readonlyRelationObjects ?? (isListField ? [] : null));
-    const withReadonlyRelationValue = <F extends { value: unknown; disabled?: boolean }>(field: F): F =>
-        isReadonlyRelation
-            ? { ...field, value: readonlyRelationValue, disabled: field.disabled || rendersBuiltInInput }
-            : field;
+    const withReadonlyRelationValue = <F extends { value: unknown }>(field: F): F =>
+        isReadonlyRelation ? { ...field, value: readonlyRelationValue } : field;
 
     const localeFallbackPlaceholder = useMemo(
         () =>

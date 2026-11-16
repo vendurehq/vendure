@@ -1,5 +1,11 @@
 import type { AssetStorageStrategy } from '@vendure/core';
-import { defaultCollectionFilters, mergeConfig } from '@vendure/core';
+import {
+    Asset,
+    defaultCollectionFilters,
+    mergeConfig,
+    Product,
+    TransactionalConnection,
+} from '@vendure/core';
 import {
     createTestEnvironment,
     testConfig as defaultTestConfig,
@@ -135,7 +141,6 @@ export default async function globalSetup() {
 
     // Seed the readonly relation custom fields of #4902 on the "laptop" product. Readonly custom
     // fields are not in the GraphQL input types, so they cannot be set via the Admin API.
-    const { Asset, Product, TransactionalConnection } = await import('@vendure/core');
     const dataSource = server.app.get(TransactionalConnection).rawConnection;
     const [firstAsset, secondAsset] = await dataSource
         .getRepository(Asset)
