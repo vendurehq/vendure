@@ -50,6 +50,7 @@ export function CancelOrderDialog({
             toast.error(t`Failed to cancel order`, {
                 description: error instanceof Error ? error.message : t`Unknown error`,
             });
+            onSettled?.();
         }
     };
 
