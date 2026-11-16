@@ -26,7 +26,7 @@ const stockLocation = new StockLocation({ id: 1 });
 const orderLine = new OrderLine({ id: 1, productVariantId: 1 });
 
 function stockLevels(stockOnHand: number, stockAllocated: number): StockLevel[] {
-    return [new StockLevel({ stockLocationId: 1, productVariantId: 1, stockOnHand, stockAllocated })];
+    return [new StockLevel({ id: 1, stockLocationId: 1, productVariantId: 1, stockOnHand, stockAllocated })];
 }
 
 /**
@@ -62,10 +62,20 @@ describe('DefaultStockLocationStrategy', () => {
         await ensureConfigLoaded();
     });
 
+    function contextWithChannelTracking(trackInventory: boolean): RequestContext {
+        return new RequestContext({
+            apiType: 'shop',
+            channel: new Channel({ id: 1, trackInventory }),
+            authorizedAsOwnerOnly: false,
+            isAuthorized: true,
+            session: {} as any,
+        } as any);
+    }
+
     beforeEach(() => {
         ctx = new RequestContext({
             apiType: 'shop',
-            channel: new Channel({ id: 1 }),
+            channel: new Channel({ id: 1, trackInventory: true }),
             authorizedAsOwnerOnly: false,
             isAuthorized: true,
             session: {} as any,
@@ -75,18 +85,23 @@ describe('DefaultStockLocationStrategy', () => {
 
     /**
      * `init()` resolves its services from the Injector, which needs the whole Nest container, so
-     * the three collaborators `forAllocation()` uses are stubbed directly. The locked and the
-     * unlocked read return the same rows, so which of the two was used is visible only in the
-     * call counts, which is exactly what the lock assertions are about.
+     * the three collaborators `forAllocation()` uses are stubbed directly. The unlocked read
+     * always runs first (it decides whether anything is tracked); the locked read returns the
+     * same rows, so whether the lock was taken is visible only in the call counts, which is
+     * exactly what the lock assertions are about. Whether inventory is tracked by default comes
+     * from the Channel of the RequestContext, so `channelTrackInventory` replaces `ctx`.
      */
     function setUpAllocation(options: {
         trackInventory: GlobalFlag;
-        globalTrackInventory?: boolean;
+        channelTrackInventory?: boolean;
         useGlobalOutOfStockThreshold?: boolean;
         outOfStockThreshold?: number;
         globalOutOfStockThreshold?: number;
         stockLevels?: StockLevel[];
     }) {
+        if (options.channelTrackInventory !== undefined) {
+            ctx = contextWithChannelTracking(options.channelTrackInventory);
+        }
         const rows = options.stockLevels ?? stockLevels(10, 0);
         const unlockedFind = vi.fn(() => Promise.resolve(rows));
         const lockedRead = vi.fn(() => Promise.resolve(rows));
@@ -105,7 +120,6 @@ describe('DefaultStockLocationStrategy', () => {
         (strategy as any).globalSettingsService = {
             getSettings: () =>
                 Promise.resolve({
-                    trackInventory: options.globalTrackInventory ?? true,
                     outOfStockThreshold: options.globalOutOfStockThreshold ?? 0,
                 }),
         };
@@ -115,12 +129,18 @@ describe('DefaultStockLocationStrategy', () => {
 
     describe('forAllocation()', () => {
         it('reads the StockLevels under a lock and allocates the full quantity when stock allows', async () => {
-            const { lockedRead } = setUpAllocation({ trackInventory: GlobalFlag.TRUE });
+            const { unlockedFind, lockedRead } = setUpAllocation({ trackInventory: GlobalFlag.TRUE });
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 3);
 
+            // The unlocked read only decides that the rows are tracked; the figures come from the
+            // locked read which follows it.
+            expect(unlockedFind).toHaveBeenCalledTimes(1);
             expect(lockedRead).toHaveBeenCalledTimes(1);
-            expect(result).toEqual([{ location: stockLocation, quantity: 3 }]);
+            expect(unlockedFind.mock.invocationCallOrder[0]).toBeLessThan(
+                lockedRead.mock.invocationCallOrder[0],
+            );
+            expect(result).toEqual([{ location: stockLocation, quantity: 3, tracked: true }]);
         });
 
         it('caps the quantity at the stock which is available', async () => {
@@ -128,7 +148,7 @@ describe('DefaultStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 5);
 
-            expect(result).toEqual([{ location: stockLocation, quantity: 2 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 2, tracked: true }]);
         });
 
         it('allocates nothing when the stock is fully allocated', async () => {
@@ -157,7 +177,7 @@ describe('DefaultStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 10);
 
-            expect(result).toEqual([{ location: stockLocation, quantity: 6 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 6, tracked: true }]);
         });
 
         it('uses the global outOfStockThreshold when the variant defers to it', async () => {
@@ -171,7 +191,7 @@ describe('DefaultStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 10);
 
-            expect(result).toEqual([{ location: stockLocation, quantity: 6 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 6, tracked: true }]);
         });
 
         // A negative threshold is the backorder depth, so the allocation may exceed stockOnHand
@@ -186,7 +206,7 @@ describe('DefaultStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 10);
 
-            expect(result).toEqual([{ location: stockLocation, quantity: 7 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 7, tracked: true }]);
         });
 
         it('sums the StockLevels of every StockLocation, as getAvailableStock() does', async () => {
@@ -210,7 +230,7 @@ describe('DefaultStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 10);
 
-            expect(result).toEqual([{ location: stockLocation, quantity: 4 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 4, tracked: true }]);
         });
 
         // The missing row counts as zero stock on hand and zero allocated, which is the same
@@ -233,9 +253,10 @@ describe('DefaultStockLocationStrategy', () => {
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 5);
 
-            expect(result).toEqual([{ location: stockLocation, quantity: 3 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 3, tracked: true }]);
         });
 
+        // The unlocked read is what shows that none of the rows is tracked, so it still runs.
         it('allocates the full quantity without a lock for an untracked variant', async () => {
             const { unlockedFind, lockedRead } = setUpAllocation({
                 trackInventory: GlobalFlag.FALSE,
@@ -245,34 +266,136 @@ describe('DefaultStockLocationStrategy', () => {
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 5);
 
             expect(lockedRead).not.toHaveBeenCalled();
-            expect(unlockedFind).not.toHaveBeenCalled();
-            expect(result).toEqual([{ location: stockLocation, quantity: 5 }]);
+            expect(unlockedFind).toHaveBeenCalledTimes(1);
+            expect(result).toEqual([{ location: stockLocation, quantity: 5, tracked: false }]);
         });
 
-        it('treats an INHERIT variant as untracked when the global setting is off', async () => {
+        it('allocates an untracked variant with no StockLevel row at the first StockLocation', async () => {
+            const { lockedRead } = setUpAllocation({ trackInventory: GlobalFlag.FALSE, stockLevels: [] });
+            const secondLocation = new StockLocation({ id: 2 });
+
+            const result = await strategy.forAllocation(ctx, [stockLocation, secondLocation], orderLine, 5);
+
+            expect(lockedRead).not.toHaveBeenCalled();
+            expect(result).toEqual([{ location: stockLocation, quantity: 5, tracked: false }]);
+        });
+
+        it("treats an INHERIT variant as untracked when the Channel's trackInventory is off", async () => {
             const { lockedRead } = setUpAllocation({
                 trackInventory: GlobalFlag.INHERIT,
-                globalTrackInventory: false,
+                channelTrackInventory: false,
                 stockLevels: stockLevels(0, 0),
             });
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 5);
 
             expect(lockedRead).not.toHaveBeenCalled();
-            expect(result).toEqual([{ location: stockLocation, quantity: 5 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 5, tracked: false }]);
         });
 
-        it('treats an INHERIT variant as tracked when the global setting is on', async () => {
+        it("treats an INHERIT variant as tracked when the Channel's trackInventory is on", async () => {
             const { lockedRead } = setUpAllocation({
                 trackInventory: GlobalFlag.INHERIT,
-                globalTrackInventory: true,
+                channelTrackInventory: true,
                 stockLevels: stockLevels(2, 0),
             });
 
             const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 5);
 
             expect(lockedRead).toHaveBeenCalledTimes(1);
-            expect(result).toEqual([{ location: stockLocation, quantity: 2 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 2, tracked: true }]);
+        });
+
+        it('sends the overflow of a tracked variant to a StockLevel which does not track inventory', async () => {
+            const untrackedLocation = new StockLocation({ id: 2 });
+            setUpAllocation({
+                trackInventory: GlobalFlag.TRUE,
+                stockLevels: [
+                    new StockLevel({
+                        id: 1,
+                        stockLocationId: 1,
+                        productVariantId: 1,
+                        stockOnHand: 2,
+                        stockAllocated: 0,
+                    }),
+                    new StockLevel({
+                        id: 2,
+                        stockLocationId: 2,
+                        productVariantId: 1,
+                        stockOnHand: 0,
+                        stockAllocated: 0,
+                        trackInventory: GlobalFlag.FALSE,
+                    }),
+                ],
+            });
+
+            const result = await strategy.forAllocation(
+                ctx,
+                [stockLocation, untrackedLocation],
+                orderLine,
+                5,
+            );
+
+            expect(result).toEqual([
+                { location: stockLocation, quantity: 2, tracked: true },
+                { location: untrackedLocation, quantity: 3, tracked: false },
+            ]);
+        });
+
+        it('uses tracked stock before untracked stock, whatever the order of the StockLocations', async () => {
+            const untrackedLocation = new StockLocation({ id: 2 });
+            setUpAllocation({
+                trackInventory: GlobalFlag.TRUE,
+                stockLevels: [
+                    new StockLevel({
+                        id: 1,
+                        stockLocationId: 1,
+                        productVariantId: 1,
+                        stockOnHand: 10,
+                        stockAllocated: 0,
+                    }),
+                    new StockLevel({
+                        id: 2,
+                        stockLocationId: 2,
+                        productVariantId: 1,
+                        stockOnHand: 0,
+                        stockAllocated: 0,
+                        trackInventory: GlobalFlag.FALSE,
+                    }),
+                ],
+            });
+
+            const result = await strategy.forAllocation(
+                ctx,
+                [untrackedLocation, stockLocation],
+                orderLine,
+                4,
+            );
+
+            expect(result).toEqual([{ location: stockLocation, quantity: 4, tracked: true }]);
+        });
+
+        it('does not cap a StockLevel which tracks inventory on an untracked variant', async () => {
+            const { lockedRead } = setUpAllocation({
+                trackInventory: GlobalFlag.FALSE,
+                stockLevels: [
+                    new StockLevel({
+                        id: 1,
+                        stockLocationId: 1,
+                        productVariantId: 1,
+                        stockOnHand: 3,
+                        stockAllocated: 0,
+                        trackInventory: GlobalFlag.TRUE,
+                    }),
+                ],
+            });
+
+            const result = await strategy.forAllocation(ctx, [stockLocation], orderLine, 5);
+
+            // The override makes the row tracked, so it is locked and capped, and with no
+            // untracked StockLevel to overflow to, the rest is a shortfall.
+            expect(lockedRead).toHaveBeenCalledTimes(1);
+            expect(result).toEqual([{ location: stockLocation, quantity: 3, tracked: true }]);
         });
     });
     describe('subclassing', () => {
@@ -292,6 +415,9 @@ describe('DefaultStockLocationStrategy', () => {
                             outOfStockThreshold: 0,
                         }),
                     ),
+                // The unlocked read which decides that the rows are tracked. The figures it
+                // returns are discarded in favour of the locked read's.
+                getRepository: () => ({ find: () => Promise.resolve(stockLevels(10, 0)) }),
             };
             return {
                 get: (token: unknown) => {
@@ -300,8 +426,7 @@ describe('DefaultStockLocationStrategy', () => {
                             return connection;
                         case 'GlobalSettingsService':
                             return {
-                                getSettings: () =>
-                                    Promise.resolve({ trackInventory: true, outOfStockThreshold: 0 }),
+                                getSettings: () => Promise.resolve({ outOfStockThreshold: 0 }),
                             };
                         case 'StockLevelService':
                             return { getLockedStockLevelsForVariant: lockedRead };
@@ -321,7 +446,7 @@ describe('DefaultStockLocationStrategy', () => {
             expect(subclass.initReturnedVoid).toBe(true);
             const result = await subclass.forAllocation(ctx, [stockLocation], orderLine, 5);
             expect(lockedRead).toHaveBeenCalledTimes(1);
-            expect(result).toEqual([{ location: stockLocation, quantity: 2 }]);
+            expect(result).toEqual([{ location: stockLocation, quantity: 2, tracked: true }]);
         });
 
         it('names the missing call when a subclass does not call super.init()', async () => {

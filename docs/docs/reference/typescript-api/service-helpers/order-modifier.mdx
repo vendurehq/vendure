@@ -2,7 +2,7 @@
 title: "OrderModifier"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="88" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="90" packageName="@vendure/core" />
 
 This helper is responsible for modifying the contents of an Order.
 
@@ -15,7 +15,7 @@ of these Order-related methods into a more clearly-delineated set of classes.
 
 ```ts title="Signature"
 class OrderModifier {
-    constructor(connection: TransactionalConnection, configService: ConfigService, orderCalculator: OrderCalculator, paymentService: PaymentService, countryService: CountryService, stockMovementService: StockMovementService, productVariantService: ProductVariantService, customFieldRelationService: CustomFieldRelationService, promotionService: PromotionService, eventBus: EventBus, shippingCalculator: ShippingCalculator, historyService: HistoryService, translator: TranslatorService, stockLevelService: StockLevelService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, orderCalculator: OrderCalculator, paymentService: PaymentService, countryService: CountryService, stockMovementService: StockMovementService, productVariantService: ProductVariantService, customFieldRelationService: CustomFieldRelationService, promotionService: PromotionService, eventBus: EventBus, shippingCalculator: ShippingCalculator, historyService: HistoryService, translator: TranslatorService, stockLevelService: StockLevelService, channelService: ChannelService)
     constrainQuantityToSaleable(ctx: RequestContext, variant: ProductVariant, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0, options?: StockLevelReadOptions) => ;
     getExistingOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => Promise<OrderLine | undefined>;
     getOrCreateOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => ;

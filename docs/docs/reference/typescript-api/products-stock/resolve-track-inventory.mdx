@@ -1,0 +1,24 @@
+---
+title: "ResolveTrackInventory"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/catalog/track-inventory.ts" sourceLine="34" packageName="@vendure/core" since="4.0.0" />
+
+Resolves whether inventory is tracked. The most specific explicit setting wins:
+
+1. `StockLevel.trackInventory` (per ProductVariant per StockLocation), unless `INHERIT`
+2. `ProductVariant.trackInventory`, unless `INHERIT`
+3. `Channel.trackInventory`
+
+`GlobalSettings.trackInventory` is no longer consulted from v4.0. Its value is copied to
+every Channel by the v4 migration.
+
+```ts title="Signature"
+function resolveTrackInventory(inputs: TrackInventoryInputs): boolean
+```
+Parameters
+
+### inputs
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/products-stock/track-inventory-inputs#trackinventoryinputs'>TrackInventoryInputs</a>`} />
+

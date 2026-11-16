@@ -2,7 +2,7 @@
 title: "StockMovementService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/stock-movement.service.ts" sourceLine="45" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-movement.service.ts" sourceLine="48" packageName="@vendure/core" />
 
 Contains methods relating to [StockMovement](/reference/typescript-api/entities/stock-movement#stockmovement) entities.
 
@@ -10,7 +10,7 @@ Contains methods relating to [StockMovement](/reference/typescript-api/entities/
 class StockMovementService {
     shippingEligibilityCheckers: ShippingEligibilityChecker[];
     shippingCalculators: ShippingCalculator[];
-    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, globalSettingsService: GlobalSettingsService, stockLevelService: StockLevelService, eventBus: EventBus, stockLocationService: StockLocationService)
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, channelService: ChannelService, stockLevelService: StockLevelService, eventBus: EventBus, stockLocationService: StockLocationService)
     getStockMovementsByProductVariantId(ctx: RequestContext, productVariantId: ID, options?: StockMovementListOptions) => Promise<PaginatedList<StockMovement>>;
     adjustProductVariantStock(ctx: RequestContext, productVariantId: ID, stockOnHandNumberOrInput: number | StockLevelInput[]) => Promise<StockAdjustment[]>;
     createAllocationsForOrder(ctx: RequestContext, order: Order) => Promise<Allocation[]>;
@@ -18,6 +18,7 @@ class StockMovementService {
     createSalesForOrder(ctx: RequestContext, lines: OrderLineInput[]) => Promise<Sale[]>;
     createCancellationsForOrderLines(ctx: RequestContext, lineInputs: OrderLineInput[]) => Promise<Cancellation[]>;
     createReleasesForOrderLines(ctx: RequestContext, lineInputs: OrderLineInput[]) => Promise<Release[]>;
+    reverseSalesForOrderLines(ctx: RequestContext, lineInputs: OrderLineInput[]) => Promise<{ cancellations: Cancellation[]; allocations: Allocation[] }>;
 }
 ```
 
@@ -89,6 +90,20 @@ increased for each Cancellation, allowing that stock to be sold again.
 Creates a [Release](/reference/typescript-api/entities/stock-movement#release) for each of the specified OrderItems. For ProductVariants
 which are configured to track stock levels, the `ProductVariant.stockAllocated` value is
 reduced, indicating that this stock is once again available to buy.
+### reverseSalesForOrderLines
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, lineInputs: OrderLineInput[]) => Promise<{ cancellations: <a href='/reference/typescript-api/entities/stock-movement#cancellation'>Cancellation</a>[]; allocations: <a href='/reference/typescript-api/entities/stock-movement#allocation'>Allocation</a>[] }>`}  since="4.0.0"  />
+
+Reverses Sales when a Fulfillment is cancelled: the units go back on hand and are allocated
+to the OrderLine again, so that it can be fulfilled again. For each StockLocation, a
+[Cancellation](/reference/typescript-api/entities/stock-movement#cancellation) and an [Allocation](/reference/typescript-api/entities/stock-movement#allocation) are created with the same `tracked` state as
+the Sales they reverse. Only units whose Sale deducted stockOnHand change the figures, so
+the stock figures come out exactly as they were before the Fulfillment, whatever
+`trackInventory` is now.
+
+Before v4.0, the default FulfillmentProcess called `createCancellationsForOrderLines()`
+then `createAllocationsForOrderLines()`, which re-resolved tracking and re-ran the
+StockLocationStrategy (capping the re-allocation by available stock).
 
 
 </div>

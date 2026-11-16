@@ -135,6 +135,7 @@ import { TranslatorService } from '../helpers/translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
+import { getOrderChannelContext } from '../helpers/utils/order-channel-context';
 import {
     assertOrderIsInChannel,
     getOrdersFromLines,
@@ -1883,20 +1884,27 @@ export class OrderService implements OnApplicationBootstrap {
             where: {
                 id: In(input.lines.map(l => l.orderLineId)),
             },
-            relations: { productVariant: true },
+            relations: { productVariant: true, order: true },
         });
 
         for (const line of lines) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const lineInput = input.lines.find(l => idsAreEqual(l.orderLineId, line.id))!;
 
-            const fulfillableStockLevel = await this.productVariantService.getFulfillableStockLevel(
+            // Judged in the Order's Channel, not the Channel of the Administrator fulfilling it.
+            const orderCtx = await getOrderChannelContext(
                 ctx,
+                this.connection,
+                this.channelService,
+                line.order.id,
+            );
+            const fulfillableStockLevel = await this.productVariantService.getFulfillableStockLevel(
+                orderCtx,
                 line.productVariant,
             );
             if (fulfillableStockLevel < lineInput.quantity) {
                 const { stockOnHand } = await this.stockLevelService.getAvailableStock(
-                    ctx,
+                    orderCtx,
                     line.productVariant.id,
                 );
                 const productVariant = this.translator.translate(line.productVariant, ctx);

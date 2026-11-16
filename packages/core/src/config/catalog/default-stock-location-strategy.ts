@@ -1,4 +1,3 @@
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import type { GlobalSettingsService, StockLevelService } from '../../service/index';
 
@@ -11,9 +10,13 @@ import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
-import { Allocation } from '../../entity/stock-movement/allocation.entity';
+import { OrderLineStockLedger } from '../../service/helpers/utils/order-line-stock-ledger';
+import { Logger } from '../logger/vendure-logger';
 
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
+import { resolveTrackInventory } from './track-inventory';
+
+const loggerCtx = 'StockLocationStrategy';
 
 export abstract class BaseStockLocationStrategy implements StockLocationStrategy {
     protected connection: TransactionalConnection;
@@ -33,6 +36,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         ctx: RequestContext,
         productVariantId: ID,
         stockLevels: StockLevel[],
+        productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>,
     ): AvailableStock | Promise<AvailableStock>;
 
     abstract forAllocation(
@@ -48,7 +52,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsFromLedger(ctx, stockLocations, orderLine, quantity, 'sold');
     }
 
     async forRelease(
@@ -57,7 +61,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsFromLedger(ctx, stockLocations, orderLine, quantity, 'allocated');
     }
 
     async forSale(
@@ -66,7 +70,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsFromLedger(ctx, stockLocations, orderLine, quantity, 'allocated');
     }
 
     /**
@@ -114,62 +118,216 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
     }
 
     /**
-     * Resolves the two ProductVariant settings which decide how much of it may be allocated:
-     * whether its inventory is tracked at all, and the threshold below which its stock may not
-     * fall. Both can defer to the global settings, so both are resolved here rather than read
-     * from the ProductVariant directly.
+     * @description
+     * Decides whether inventory is tracked for the ProductVariant, at the given StockLevel when one
+     * is passed. The default resolves StockLevel, then ProductVariant, then the active Channel
+     * (see {@link resolveTrackInventory}). Override to apply other rules. See
+     * {@link StockLocationStrategy}`.isInventoryTracked` for what the arguments carry.
+     *
+     * @since 4.0.0
+     */
+    isInventoryTracked(
+        ctx: RequestContext,
+        productVariant: Pick<ProductVariant, 'id' | 'trackInventory'> & Partial<ProductVariant>,
+        stockLevel?: StockLevel,
+    ): boolean | Promise<boolean> {
+        return resolveTrackInventory({
+            stockLevel: stockLevel?.trackInventory,
+            variant: productVariant.trackInventory,
+            channel: ctx.channel.trackInventory,
+        });
+    }
+
+    /**
+     * @description
+     * Resolves `isInventoryTracked` for each StockLevel, in the same order.
+     *
+     * @since 4.0.0
+     */
+    protected async resolveTracking(
+        ctx: RequestContext,
+        variant: Pick<ProductVariant, 'id' | 'trackInventory'>,
+        stockLevels: StockLevel[],
+    ): Promise<boolean[]> {
+        const tracked: boolean[] = [];
+        for (const level of stockLevels) {
+            tracked.push(await this.isInventoryTracked(ctx, variant, level));
+        }
+        return tracked;
+    }
+
+    /**
+     * @description
+     * Sums the given StockLevels and reports whether any of them does not track inventory. When
+     * there are no StockLevels, the ProductVariant and Channel settings decide whether the variant
+     * is untracked. Untracked levels are still summed: the Admin API's stockOnHand/stockAllocated
+     * show them, and consumers checking available stock short-circuit on `hasUntrackedStock`.
+     *
+     * @since 4.0.0
+     */
+    protected async sumStockLevels(
+        ctx: RequestContext,
+        variant: Pick<ProductVariant, 'id' | 'trackInventory'>,
+        stockLevels: StockLevel[],
+    ): Promise<Required<AvailableStock>> {
+        let stockOnHand = 0;
+        let stockAllocated = 0;
+        for (const level of stockLevels) {
+            stockOnHand += level.stockOnHand;
+            stockAllocated += level.stockAllocated;
+        }
+        const hasUntrackedStock = stockLevels.length
+            ? (await this.resolveTracking(ctx, variant, stockLevels)).includes(false)
+            : !(await this.isInventoryTracked(ctx, variant));
+        return { stockOnHand, stockAllocated, hasUntrackedStock };
+    }
+
+    protected getVariant(ctx: RequestContext, productVariantId: ID): Promise<ProductVariant> {
+        return this.connection.getEntityOrThrow(ctx, ProductVariant, productVariantId, {
+            loadEagerRelations: false,
+            includeSoftDeleted: true,
+        });
+    }
+
+    /**
+     * @description
+     * Reads the variant's StockLevels and resolves their tracking once. The rows are read under a
+     * write lock only if at least one of them tracks inventory: untracked stock is never capped,
+     * so there is no reason to make concurrent checkouts of it wait for each other.
+     *
+     * @since 4.0.0
+     */
+    protected async getStockLevelsForAllocation(
+        ctx: RequestContext,
+        variant: ProductVariant,
+    ): Promise<Array<{ level: StockLevel; tracked: boolean }>> {
+        const unlocked = await this.connection.getRepository(ctx, StockLevel).find({
+            where: { productVariantId: variant.id },
+            loadEagerRelations: false,
+        });
+        const tracked = await this.resolveTracking(ctx, variant, unlocked);
+        if (!tracked.includes(true)) {
+            return unlocked.map((level, i) => ({ level, tracked: tracked[i] }));
+        }
+        const stockLevelService = await this.getStockLevelService();
+        const locked = await stockLevelService.getLockedStockLevelsForVariant(ctx, variant.id);
+        // The tracking settings come from the same rows; only the figures can have changed while
+        // waiting for the lock.
+        return locked.map(level => ({
+            level,
+            tracked: tracked[unlocked.findIndex(u => idsAreEqual(u.id, level.id))] ?? true,
+        }));
+    }
+
+    /**
+     * @description
+     * The StockLevels whose location is one of `stockLocations`, in the order of
+     * `stockLocations`, so that allocation is deterministic.
+     *
+     * @since 4.0.0
+     */
+    protected orderLevelsByLocation<T extends { level: StockLevel }>(
+        levels: T[],
+        stockLocations: StockLocation[],
+    ): Array<T & { location: StockLocation }> {
+        const result: Array<T & { location: StockLocation }> = [];
+        for (const location of stockLocations) {
+            const entry = levels.find(l => idsAreEqual(l.level.stockLocationId, location.id));
+            if (entry) {
+                result.push({ ...entry, location });
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Resolves the ProductVariant setting which decides how much of it may be allocated: the
+     * threshold below which its stock may not fall.
+     *
+     * `inventoryNotTracked` is the variant/Channel-level setting only. It ignores StockLevel
+     * overrides, so it does not say whether a given allocation is tracked.
+     *
+     * @deprecated since 4.0.0, `inventoryNotTracked`: use `isInventoryTracked()` per StockLevel.
      */
     protected async getVariantStockSettings(
         ctx: RequestContext,
         variant: ProductVariant,
     ): Promise<{ inventoryNotTracked: boolean; effectiveOutOfStockThreshold: number }> {
         const globalSettingsService = await this.getGlobalSettingsService();
-        const { outOfStockThreshold, trackInventory } = await globalSettingsService.getSettings(ctx);
-
-        const inventoryNotTracked =
-            variant.trackInventory === GlobalFlag.FALSE ||
-            (variant.trackInventory === GlobalFlag.INHERIT && trackInventory === false);
+        const { outOfStockThreshold } = await globalSettingsService.getSettings(ctx);
         const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
             ? outOfStockThreshold
             : variant.outOfStockThreshold;
-
         return {
-            inventoryNotTracked,
+            get inventoryNotTracked() {
+                // Kept for subclasses written before v4.0, and only computed if read.
+                return !resolveTrackInventory({
+                    variant: variant.trackInventory,
+                    channel: ctx.channel.trackInventory,
+                });
+            },
             effectiveOutOfStockThreshold,
         };
     }
 
-    private async getLocationsBasedOnAllocations(
+    /**
+     * @description
+     * Picks the locations to release, sell or cancel from, using what is still outstanding for
+     * this OrderLine at each location (see {@link OrderLineStockLedger}), and returns each part
+     * with the `tracked` state recorded on the movements it reverses. Tracked units are taken
+     * first at each location. The StockMovementService records exactly these parts, so the
+     * figures it changes match what was allocated or sold.
+     *
+     * @since 4.0.0
+     */
+    protected async getLocationsFromLedger(
         ctx: RequestContext,
         stockLocations: StockLocation[],
         orderLine: OrderLine,
         quantity: number,
-    ) {
-        const allocations = await this.connection.getRepository(ctx, Allocation).find({
-            where: {
-                orderLine: { id: orderLine.id },
-            },
-        });
-        let unallocated = quantity;
-        const quantityByLocationId = new Map<ID, number>();
-        for (const allocation of allocations) {
-            if (unallocated <= 0) {
+        mode: 'allocated' | 'sold',
+    ): Promise<LocationWithQuantity[]> {
+        const ledger = await OrderLineStockLedger.load(ctx, this.connection, orderLine.id);
+        const result: LocationWithQuantity[] = [];
+        let remaining = quantity;
+        let variant: ProductVariant | undefined;
+        for (const locationId of ledger.locationIds(mode)) {
+            if (remaining <= 0) {
                 break;
             }
-            const qtyAtLocation = quantityByLocationId.get(allocation.stockLocationId);
-            const qtyToAdd = Math.min(allocation.quantity, unallocated);
-            if (qtyAtLocation != null) {
-                quantityByLocationId.set(allocation.stockLocationId, qtyAtLocation + qtyToAdd);
-            } else {
-                quantityByLocationId.set(allocation.stockLocationId, qtyToAdd);
+            const location = stockLocations.find(l => idsAreEqual(l.id, locationId));
+            if (!location) {
+                continue;
             }
-            unallocated -= qtyToAdd;
+            let legacyTracked = false;
+            if (ledger.hasLegacyRows(locationId)) {
+                variant = variant ?? (await this.getVariant(ctx, orderLine.productVariantId));
+                const level = await this.connection.getRepository(ctx, StockLevel).findOne({
+                    where: { productVariantId: orderLine.productVariantId, stockLocationId: locationId },
+                    loadEagerRelations: false,
+                });
+                legacyTracked = await this.isInventoryTracked(ctx, variant, level ?? undefined);
+            }
+            const outstanding = ledger.outstanding(locationId, mode, legacyTracked);
+            for (const tracked of [true, false]) {
+                const take = Math.min(tracked ? outstanding.tracked : outstanding.untracked, remaining);
+                if (take > 0) {
+                    result.push({ location, quantity: take, tracked });
+                    remaining -= take;
+                }
+            }
         }
-        return [...quantityByLocationId.entries()].map(([locationId, qty]) => ({
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            location: stockLocations.find(l => idsAreEqual(l.id, locationId))!,
-            quantity: qty,
-        }));
+        if (remaining > 0 && !ledger.isEmpty) {
+            // Expected after a shortfall (the line was allocated less than it ordered), unusual
+            // otherwise, e.g. if a location was deleted.
+            Logger.debug(
+                `OrderLine ${String(orderLine.id)}: ${remaining} of ${quantity} unit(s) have no ` +
+                    `outstanding ${mode === 'allocated' ? 'allocation' : 'sale'} at the given ` +
+                    'StockLocations, so no stock movement is recorded for them',
+                loggerCtx,
+            );
+        }
+        return result;
     }
 }
 
@@ -193,25 +351,43 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
  * @since 2.0.0
  */
 export class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
-    getAvailableStock(ctx: RequestContext, productVariantId: ID, stockLevels: StockLevel[]): AvailableStock {
-        let stockOnHand = 0;
-        let stockAllocated = 0;
-        for (const stockLevel of stockLevels) {
-            stockOnHand += stockLevel.stockOnHand;
-            stockAllocated += stockLevel.stockAllocated;
-        }
-        return { stockOnHand, stockAllocated };
+    /**
+     * @description
+     * Sums every StockLevel of the variant. Core always passes `productVariant`; when it is
+     * omitted, the variant is loaded. Declared as possibly synchronous so that subclasses may
+     * override it with a synchronous implementation.
+     *
+     * @since 4.0.0 - Accepts `productVariant` and reports `hasUntrackedStock`
+     */
+    getAvailableStock(
+        ctx: RequestContext,
+        productVariantId: ID,
+        stockLevels: StockLevel[],
+        productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>,
+    ): AvailableStock | Promise<AvailableStock> {
+        return (async () =>
+            this.sumStockLevels(
+                ctx,
+                productVariant ?? (await this.getVariant(ctx, productVariantId)),
+                stockLevels,
+            ))();
     }
 
     /**
      * @description
-     * Allocates from the first StockLocation, capped at the quantity the ProductVariant still has
-     * available: `stockOnHand - stockAllocated - outOfStockThreshold`, summed over every
-     * StockLevel of the variant, which is the same figure the saleable stock check uses. The
-     * StockLevels are read under a write lock, so a concurrent allocation of the same variant
-     * waits and then sees this one's result.
+     * Allocates tracked stock first, then sends what is left to an untracked StockLevel.
+     *
+     * Tracked: capped at the quantity the ProductVariant still has available,
+     * `stockOnHand - stockAllocated - outOfStockThreshold` summed over its tracked StockLevels (the
+     * figure the saleable stock check uses), and allocated at the first tracked StockLevel's
+     * location (or the first StockLocation). The StockLevels are read under a write lock, so a
+     * concurrent allocation of the same variant waits and then sees this one's result.
+     *
+     * Untracked: the remainder goes, without a cap, to the first untracked StockLevel whose
+     * location is one of `stockLocations`. Locations are taken in the order of `stockLocations`.
      *
      * @since 3.7.4 - The quantity is capped and the StockLevels are read under a lock
+     * @since 4.0.0 - Tracked stock first, untracked StockLevels take the overflow
      */
     async forAllocation(
         ctx: RequestContext,
@@ -219,39 +395,37 @@ export class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const variant = await this.connection.getEntityOrThrow(
-            ctx,
-            ProductVariant,
-            orderLine.productVariantId,
-            { loadEagerRelations: false },
-        );
-        const { inventoryNotTracked, effectiveOutOfStockThreshold } = await this.getVariantStockSettings(
-            ctx,
-            variant,
-        );
-        if (inventoryNotTracked) {
-            // Nothing is counted for an untracked variant, so there is nothing to cap it against
-            // and no reason to make concurrent checkouts of it wait for each other.
-            return [{ location: stockLocations[0], quantity }];
+        const variant = await this.getVariant(ctx, orderLine.productVariantId);
+        const { effectiveOutOfStockThreshold } = await this.getVariantStockSettings(ctx, variant);
+        const levels = await this.getStockLevelsForAllocation(ctx, variant);
+        if (!levels.length && !(await this.isInventoryTracked(ctx, variant))) {
+            // Nothing is counted for an untracked variant, so there is nothing to cap it against.
+            return [{ location: stockLocations[0], quantity, tracked: false }];
         }
-        const stockLevelService = await this.getStockLevelService();
-        const stockLevels = await stockLevelService.getLockedStockLevelsForVariant(
-            ctx,
-            orderLine.productVariantId,
-        );
-        const { stockOnHand, stockAllocated } = this.getAvailableStock(
-            ctx,
-            orderLine.productVariantId,
-            stockLevels,
-        );
-        // A negative threshold is a permitted backorder depth, so this stays above
-        // `stockOnHand` by exactly that much. A variant with no StockLevel row counts as zero of
-        // both figures, which is what the saleable stock check makes of it too.
-        const quantityAvailable = stockOnHand - stockAllocated - effectiveOutOfStockThreshold;
-        const quantityToAllocate = Math.min(quantity, quantityAvailable);
-        if (quantityToAllocate <= 0) {
-            return [];
+        const trackedLevels = levels.filter(l => l.tracked).map(l => l.level);
+        const inScope = this.orderLevelsByLocation(levels, stockLocations);
+        const result: LocationWithQuantity[] = [];
+        let remaining = quantity;
+
+        // A variant with no StockLevel at all is tracked here (checked above), and counts as zero
+        // of both figures, which is what the saleable stock check makes of it too.
+        if (trackedLevels.length || !levels.length) {
+            const stockOnHand = trackedLevels.reduce((sum, l) => sum + l.stockOnHand, 0);
+            const stockAllocated = trackedLevels.reduce((sum, l) => sum + l.stockAllocated, 0);
+            // A negative threshold is a permitted backorder depth, so this stays above
+            // `stockOnHand` by exactly that much.
+            const quantityAvailable = stockOnHand - stockAllocated - effectiveOutOfStockThreshold;
+            const take = Math.min(remaining, quantityAvailable);
+            if (take > 0) {
+                const location = inScope.find(l => l.tracked)?.location ?? stockLocations[0];
+                result.push({ location, quantity: take, tracked: true });
+                remaining -= take;
+            }
         }
-        return [{ location: stockLocations[0], quantity: quantityToAllocate }];
+        const untracked = inScope.find(l => !l.tracked);
+        if (remaining > 0 && untracked) {
+            result.push({ location: untracked.location, quantity: remaining, tracked: false });
+        }
+        return result;
     }
 }

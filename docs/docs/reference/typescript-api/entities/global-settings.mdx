@@ -11,8 +11,6 @@ class GlobalSettings extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<GlobalSettings>)
     @Column('simple-array')
     availableLanguages: LanguageCode[];
-    @Column({ default: true })
-    trackInventory: boolean;
     @Column({ default: 0 })
     outOfStockThreshold: number;
     @Column(type => CustomGlobalSettingsFields)
@@ -33,13 +31,6 @@ class GlobalSettings extends VendureEntity implements HasCustomFields {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>[]`}   />
 
 
-### trackInventory
-
-<MemberInfo kind="property" type={`boolean`}   />
-
-Specifies the default value for inventory tracking for ProductVariants.
-Can be overridden per ProductVariant, but this value determines the default
-if not otherwise specified.
 ### outOfStockThreshold
 
 <MemberInfo kind="property" type={`number`}   />

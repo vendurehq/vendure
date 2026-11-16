@@ -9,6 +9,7 @@ import {
     ensureRoleAssignmentDataMigrated,
     hasLegacyRoleTables,
 } from '../migration-utils/v4_0_role_assignments';
+import { assertTrackInventoryMigrated } from '../migration-utils/v4_0_track_inventory';
 
 import { AdministratorService } from './services/administrator.service';
 import { ChannelService } from './services/channel.service';
@@ -46,6 +47,7 @@ export class InitializerService {
     async onModuleInit() {
         await this.awaitDbSchemaGeneration();
         await this.ensureRoleAssignmentDataMigrated();
+        await this.assertTrackInventoryMigrated();
         // IMPORTANT - why manually invoke these init methods rather than just relying on
         // Nest's "onModuleInit" lifecycle hook within each individual service class?
         // The reason is that the order of invocation matters. By explicitly invoking the
@@ -89,6 +91,20 @@ export class InitializerService {
                         'database-migration#removing-the-legacy-tables',
                 );
             }
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    /**
+     * Refuses to start on a v3 database whose inventory tracking setting has not been migrated
+     * (see assertTrackInventoryMigrated). The migration itself runs from the user's v4 migration,
+     * not here.
+     */
+    private async assertTrackInventoryMigrated() {
+        const queryRunner = this.connection.rawConnection.createQueryRunner();
+        try {
+            await assertTrackInventoryMigrated(queryRunner);
         } finally {
             await queryRunner.release();
         }

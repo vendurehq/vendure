@@ -1954,7 +1954,6 @@ type FulfillmentStateTransitionError {
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
-    Boolean: '/reference/graphql-api/admin/object-types#boolean',
     Int: '/reference/graphql-api/admin/object-types#int',
     ServerConfig: '/reference/graphql-api/admin/object-types#serverconfig',
     JSON: '/reference/graphql-api/admin/object-types#json',
@@ -1965,7 +1964,6 @@ type FulfillmentStateTransitionError {
   createdAt: DateTime!
   updatedAt: DateTime!
   availableLanguages: [LanguageCode!]!
-  trackInventory: Boolean!
   outOfStockThreshold: Int!
   serverConfig: ServerConfig!
   customFields: JSON
@@ -3805,6 +3803,12 @@ type PriceRange {
   """
   enabledInChannel: Boolean!
   trackInventory: GlobalFlag!
+  """
+  Whether stock limits apply to this ProductVariant in the active Channel: false when any
+  StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+  sold and fulfilled without limit.
+  """
+  tracksInventory: Boolean!
   stockOnHand: Int!
   stockAllocated: Int!
   outOfStockThreshold: Int!
@@ -5199,6 +5203,8 @@ type SinglePrice {
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     Int: '/reference/graphql-api/admin/object-types#int',
+    GlobalFlag: '/reference/graphql-api/admin/enums#globalflag',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
     StockLocation: '/reference/graphql-api/admin/object-types#stocklocation',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
@@ -5210,6 +5216,16 @@ type SinglePrice {
   stockLocationId: ID!
   stockOnHand: Int!
   stockAllocated: Int!
+  """
+  Whether inventory is tracked for this ProductVariant at this StockLocation. INHERIT defers to
+  the ProductVariant's \`trackInventory\`, and then to the Channel's.
+  """
+  trackInventory: GlobalFlag!
+  """
+  Whether inventory is tracked at this StockLevel in the active Channel, with INHERIT resolved
+  against the ProductVariant and the Channel.
+  """
+  tracksInventory: Boolean!
   stockLocation: StockLocation!
   customFields: JSON
 }`}

@@ -31,3 +31,4 @@ export {
     previewTimestamptzMigration,
     revertTimestamptzMigration,
 } from './v4_0_timestamptz';
+export { TrackInventoryMigrationResult, migrateTrackInventoryToChannels } from './v4_0_track_inventory';
