@@ -1,11 +1,14 @@
 import { CustomFieldListInput } from '@/vdb/components/data-input/custom-field-list-input.js';
-import { DefaultRelationInput } from '@/vdb/components/data-input/default-relation-input.js';
 import { StructFormInput } from '@/vdb/components/data-input/struct-form-input.js';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
-import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
+import {
+    getInputComponent,
+    isBuiltInInputComponent,
+} from '@/vdb/framework/extension-api/input-component-extensions.js';
 import { CustomFormComponent } from '@/vdb/framework/form-engine/custom-form-component.js';
 import { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
+import { toRelationIdValue } from '@/vdb/framework/form-engine/utils.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
@@ -40,18 +43,16 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
         return fieldDef.list ? fieldDef.name + 'Ids' : fieldDef.name + 'Id';
     };
 
-    const getFieldName = (fieldDef: CustomFieldConfig) => {
-        const name = getCustomFieldBaseName(fieldDef);
-        return formPathPrefix ? `${formPathPrefix}.customFields.${name}` : `customFields.${name}`;
-    };
+    const getCustomFieldPath = (name: string) =>
+        formPathPrefix ? `${formPathPrefix}.customFields.${name}` : `customFields.${name}`;
 
-    // The path of the related entity object(s) of a relation field, beside its `<name>Id(s)` input
-    const getRelationValuePath = (fieldDef: CustomFieldConfig) =>
-        fieldDef.type === 'relation'
-            ? formPathPrefix
-                ? `${formPathPrefix}.customFields.${fieldDef.name}`
-                : `customFields.${fieldDef.name}`
-            : undefined;
+    const getFieldName = (fieldDef: CustomFieldConfig) =>
+        getCustomFieldPath(getCustomFieldBaseName(fieldDef));
+
+    // A readonly relation has no `<name>Id(s)` in the form values, because readonly custom fields
+    // are not in the input types. Its related entity object(s) are at `customFields.<name>`.
+    const getReadonlyRelationValuePath = (fieldDef: CustomFieldConfig) =>
+        fieldDef.type === 'relation' && fieldDef.readonly ? getCustomFieldPath(fieldDef.name) : undefined;
 
     // Group custom fields by tabs
     const groupedFields = useMemo(() => {
@@ -94,7 +95,7 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
                         fieldDef={fieldDef}
                         control={control}
                         fieldName={getFieldName(fieldDef)}
-                        relationValuePath={getRelationValuePath(fieldDef)}
+                        readonlyRelationValuePath={getReadonlyRelationValuePath(fieldDef)}
                         disabled={disabled}
                     />
                 ))}
@@ -121,7 +122,7 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
                                 fieldDef={fieldDef}
                                 control={control}
                                 fieldName={getFieldName(fieldDef)}
-                                relationValuePath={getRelationValuePath(fieldDef)}
+                                readonlyRelationValuePath={getReadonlyRelationValuePath(fieldDef)}
                                 disabled={disabled}
                             />
                         ))}
@@ -202,9 +203,9 @@ interface CustomFieldItemProps {
     control: Control<any>;
     fieldName: string;
     /**
-     * For a relation field: the form path of its related entity object(s), `customFields.<name>`.
+     * For a readonly relation field: the form path of its related entity object(s).
      */
-    relationValuePath?: string;
+    readonlyRelationValuePath?: string;
     disabled?: boolean;
 }
 
@@ -212,7 +213,7 @@ function CustomFieldItem({
     fieldDef,
     control,
     fieldName,
-    relationValuePath,
+    readonlyRelationValuePath,
     disabled,
 }: Readonly<CustomFieldItemProps>) {
     const {
@@ -240,20 +241,20 @@ function CustomFieldItem({
     const containerClassName = shouldBeFullWidth ? 'col-span-2' : '';
     const isReadonly = (fieldDef as CustomFieldConfig).readonly ?? false;
 
-    // A readonly relation has no `<name>Id(s)` in the form values, because readonly custom fields
-    // are not in the input types, but its related entity object(s) are at `relationValuePath`.
-    // A registered custom component receives the object(s); the built-in relation input, which is
-    // also the fallback for an unknown component id, receives the id(s) it expects.
-    const isReadonlyRelation = fieldDef.type === 'relation' && isReadonly && relationValuePath != null;
-    const readonlyRelationObjects = isReadonlyRelation ? watch(relationValuePath) : undefined;
-    const rendersBuiltInRelationInput = !inputComponent || inputComponent === DefaultRelationInput;
-    const readonlyRelationValue = !isReadonlyRelation
-        ? undefined
-        : rendersBuiltInRelationInput
-          ? toRelationIds(readonlyRelationObjects, fieldDef.list ?? false)
-          : (readonlyRelationObjects ?? (fieldDef.list ? [] : null));
-    const withReadonlyRelationValue = <F extends { value: unknown }>(field: F): F =>
-        isReadonlyRelation ? { ...field, value: readonlyRelationValue } : field;
+    // A registered custom component receives the related entity object(s) of a readonly relation.
+    // A built-in input, which is also the fallback for an unknown component id, receives the id(s)
+    // it expects, and is disabled since a readonly value is not saved.
+    const isReadonlyRelation = readonlyRelationValuePath != null;
+    const readonlyRelationObjects = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
+    const rendersBuiltInInput = !inputComponent || isBuiltInInputComponent(customInputComponentId);
+    const isListField = fieldDef.list ?? false;
+    const readonlyRelationValue = rendersBuiltInInput
+        ? (toRelationIdValue(readonlyRelationObjects, isListField) ?? (isListField ? [] : null))
+        : (readonlyRelationObjects ?? (isListField ? [] : null));
+    const withReadonlyRelationValue = <F extends { value: unknown; disabled?: boolean }>(field: F): F =>
+        isReadonlyRelation
+            ? { ...field, value: readonlyRelationValue, disabled: field.disabled || rendersBuiltInInput }
+            : field;
 
     const localeFallbackPlaceholder = useMemo(
         () =>
@@ -402,13 +403,6 @@ function CustomFieldItem({
             />
         </div>
     );
-}
-
-function toRelationIds(objects: unknown, list: boolean) {
-    if (list) {
-        return Array.isArray(objects) ? objects.map((o: { id: string }) => o.id) : [];
-    }
-    return (objects as { id?: string } | null | undefined)?.id ?? null;
 }
 
 interface CustomFieldFormItemProps {

@@ -43,6 +43,22 @@ inputComponents.set('combination-mode-form-input', CombinationModeInput);
 inputComponents.set('number-form-input', NumberInput);
 inputComponents.set('text-form-input', TextInput);
 
+// The built-in components, before any extension registers its own under the same ids
+const builtInInputComponents = new Map(inputComponents);
+
+/**
+ * @description
+ * Whether the input component with this id is one of the dashboard's built-in components, rather
+ * than one registered by an extension.
+ */
+export function isBuiltInInputComponent(id: string | undefined): boolean {
+    return (
+        id != null &&
+        builtInInputComponents.has(id) &&
+        builtInInputComponents.get(id) === getInputComponent(id)
+    );
+}
+
 export function getInputComponent(id: string | undefined): DashboardFormComponent | undefined {
     if (!id) {
         return undefined;

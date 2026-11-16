@@ -1,14 +1,13 @@
 import { defineDashboardExtension } from '@vendure/dashboard';
 
 /**
- * Registers a custom form component for the readonly single `relation` custom field
- * `Product.relatedAsset` (configured in e2e-shared-config.ts). The component renders the
- * related entity from `props.value`.
+ * Custom form components for the readonly relation custom fields configured in
+ * e2e-shared-config.ts (#4902). Each renders the related entity object(s) it receives as `value`:
  *
- * This exercises #4902: a custom form component bound to a readonly relation custom field must
- * receive the related entity *object* as `value`. Without this it receives `undefined`, because the
- * form control binds to the scalar `<name>Id`, which does not exist for a readonly relation
- * (readonly custom fields are excluded from the update/create input types).
+ * - `relation-cf.related-asset` for `Product.relatedAsset` renders `asset:<id>`.
+ * - `relation-cf.related-assets` for `Product.relatedAssets` renders `assets:<id>,<id>`.
+ *
+ * Either renders `none` without a value.
  */
 defineDashboardExtension({
     customFormComponents: {

@@ -1,9 +1,8 @@
 import { VendurePlugin } from '@vendure/core';
 
 /**
- * E2E-only plugin whose dashboard extension registers a custom form component for the readonly
- * `Product.relatedAsset` relation custom field. Used to verify #4902: the component
- * must receive the related entity object as `value`.
+ * E2E-only plugin whose dashboard extension registers the custom form components of the readonly
+ * relation custom fields `Product.relatedAsset` and `Product.relatedAssets` (#4902).
  *
  * The dashboard extension is discovered by the Vite plugin's config introspection and dynamically
  * imported at build time.

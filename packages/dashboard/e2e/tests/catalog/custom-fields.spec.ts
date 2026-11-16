@@ -2,6 +2,7 @@ import { type Locator, type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Custom fields are configured in global-setup.ts on the Product entity.
 // This suite verifies rendering of all custom field types: scalar, list, struct,
@@ -600,23 +601,28 @@ test.describe('Custom Fields', () => {
         await expect(page.getByTestId('related-assets-cf')).toHaveText('assets:T_1,T_2');
     });
 
-    // #4902 — the built-in relation input, whether chosen by id or by default, receives the related
-    // entity id. Given the object, it would look up the id "[object Object]".
-    test('readonly relation custom fields rendered by the built-in input look up the related id', async ({
+    // #4902 — the built-in relation input, whether chosen by id or by default, shows the related
+    // entity of a readonly relation. It receives the id: given the object it would look up the
+    // id "[object Object]".
+    test('readonly relation custom fields rendered by the built-in input show the related entity', async ({
         page,
     }) => {
-        const relationLookups: string[] = [];
+        const objectLookups: string[] = [];
         page.on('request', request => {
             const body = request.postData();
             if (request.url().includes('/admin-api') && body?.includes('[object Object]')) {
-                relationLookups.push(body);
+                objectLookups.push(body);
             }
         });
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { asset } = await client.gql(`query { asset(id: "T_1") { name } }`);
+
         await goToFirstProduct(page);
-        await expect(page.getByText('Related Asset Built In')).toBeVisible();
-        await expect(page.getByText('Related Asset Plain')).toBeVisible();
-        await page.waitForLoadState('networkidle');
-        expect(relationLookups).toEqual([]);
+        const dp = detailPage(page);
+        await expect(dp.formItem('Related Asset Built In')).toContainText(asset.name);
+        await expect(dp.formItem('Related Asset Plain')).toContainText(asset.name);
+        expect(objectLookups).toEqual([]);
     });
 });
 
