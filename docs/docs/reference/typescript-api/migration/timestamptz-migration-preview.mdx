@@ -1,0 +1,47 @@
+---
+title: "TimestamptzMigrationPreview"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_timestamptz.ts" sourceLine="360" packageName="@vendure/core" />
+
+The result of [previewTimestamptzMigration](/reference/typescript-api/migration/preview-timestamptz-migration#previewtimestamptzmigration).
+
+```ts title="Signature"
+interface TimestamptzMigrationPreview {
+    sessionTimezone: string;
+    columns: TimestampColumnToMigrate[];
+    offsetByMonth: Array<{
+        month: string;
+        hours: number;
+        orders: number;
+        /**
+         * `false` when the median is not close to a whole quarter hour within ±14 hours, which a
+         * timezone offset would be. That happens when payments are not created as the order is
+         * placed, e.g. with an `OrderPlacedStrategy` which places orders before payment. Such months
+         * are not checked.
+         */
+        conclusive: boolean;
+    }>;
+}
+```
+
+<div className="members-wrapper">
+
+### sessionTimezone
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### columns
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/migration/timestamp-column-to-migrate#timestampcolumntomigrate'>TimestampColumnToMigrate</a>[]`}   />
+
+
+### offsetByMonth
+
+<MemberInfo kind="property" type={`Array<{         month: string;         hours: number;         orders: number;         /**          * \`false\` when the median is not close to a whole quarter hour within &#177;14 hours, which a          * timezone offset would be. That happens when payments are not created as the order is          * placed, e.g. with an \`<a href='/reference/typescript-api/orders/order-placed-strategy#orderplacedstrategy'>OrderPlacedStrategy</a>\` which places orders before payment. Such months          * are not checked.          */         conclusive: boolean;     }>`}   />
+
+
+
+
+</div>
