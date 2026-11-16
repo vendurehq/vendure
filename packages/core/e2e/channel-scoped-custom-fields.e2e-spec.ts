@@ -1579,4 +1579,19 @@ describe('Channel-scoped custom fields (#490)', () => {
                 }),
         ).rejects.toThrow('Channel-scoped custom fields are read and written for a Channel');
     });
+
+    // #5793 — unknown ids in relation input are rejected, also for channel-scoped relations
+    it('rejects an unknown id in channel-scoped relation input', async () => {
+        asChannel(CHANNEL_B_TOKEN);
+        await expect(
+            adminClient.query(UPDATE_PRODUCT, {
+                input: { id: 'T_1', customFields: { channelFeaturedAssetId: 'T_999' } },
+            }),
+        ).rejects.toThrow('No Asset with the id "999" could be found');
+        await expect(
+            adminClient.query(UPDATE_PRODUCT_LIST_FIELDS, {
+                input: { id: 'T_1', customFields: { channelGalleryIds: ['T_1', 'T_999'] } },
+            }),
+        ).rejects.toThrow('No Asset with the id "999" could be found');
+    });
 });

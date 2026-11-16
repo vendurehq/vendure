@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { pick } from '@vendure/common/lib/pick';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
-import { In } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { EntityNotFoundError } from '../../../common/error/errors';
+import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import {
     CustomFieldConfig,
@@ -137,8 +138,8 @@ export class CustomFieldRelationService {
 
     /**
      * Resolves the input of a relation custom field: `null` removes the relation, an id (or a list
-     * of ids for `list` fields) loads the related entities, and input of the wrong shape is ignored
-     * (`undefined`).
+     * of ids for `list` fields) loads the related entities, throwing an {@link EntityNotFoundError}
+     * for an unknown id, and input of the wrong shape is ignored (`undefined`).
      */
     private async resolveRelationInput(
         ctx: RequestContext,
@@ -149,13 +150,66 @@ export class CustomFieldRelationService {
             return null;
         }
         if (field.list && Array.isArray(idOrIds) && idOrIds.every(id => this.isId(id))) {
-            return await this.connection.getRepository(ctx, field.entity).findBy({ id: In(idOrIds) });
+            return await this.findTargetsOrThrow(ctx, field, idOrIds, false);
         }
         if (!field.list && this.isId(idOrIds)) {
-            // An unknown id resolves to null, which removes the relation
-            return await this.connection.getRepository(ctx, field.entity).findOne({ where: { id: idOrIds } });
+            // An unknown id throws an EntityNotFoundError
+            return (await this.findTargetsOrThrow(ctx, field, [idOrIds], false))[0];
         }
         return undefined;
+    }
+
+    /**
+     * @description
+     * Throws an {@link EntityNotFoundError} if any of the given ids does not belong to an entity
+     * of the type the relation custom field points at. `null` and `undefined` pass, since they
+     * clear or leave alone the relation.
+     *
+     * Without this check, an unknown id on a single relation fails as a raw foreign key error from
+     * the database, and an unknown id in a list relation is silently dropped.
+     */
+    async assertRelationsExist(
+        ctx: RequestContext,
+        field: RelationCustomFieldConfig,
+        idOrIds: ID | ID[] | null | undefined,
+    ): Promise<void> {
+        if (idOrIds == null) {
+            return;
+        }
+        const ids = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).filter(id => this.isId(id));
+        if (ids.length === 0) {
+            return;
+        }
+        await this.findTargetsOrThrow(ctx, field, ids, true);
+    }
+
+    /**
+     * Loads the target entities with the given ids, and throws an {@link EntityNotFoundError} for
+     * the first id which matches none. One query either way, so checking the ids costs nothing
+     * extra where the entities are needed anyway.
+     */
+    private async findTargetsOrThrow(
+        ctx: RequestContext,
+        field: RelationCustomFieldConfig,
+        ids: ID[],
+        idsOnly: boolean,
+    ): Promise<VendureEntity[]> {
+        if (ids.length === 0) {
+            return [];
+        }
+        const qb = this.connection
+            .getRepository(ctx, field.entity)
+            .createQueryBuilder('target')
+            .where('target.id IN (:...ids)', { ids });
+        if (idsOnly) {
+            qb.select('target.id');
+        }
+        const found = await qb.getMany();
+        const missing = ids.find(id => !found.some(entity => idsAreEqual(entity.id, id)));
+        if (missing !== undefined) {
+            throw new EntityNotFoundError(field.entity.name, missing);
+        }
+        return found;
     }
 
     private isRelationalType(this: void, input: CustomFieldConfig): input is RelationCustomFieldConfig {
