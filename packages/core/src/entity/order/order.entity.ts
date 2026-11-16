@@ -9,6 +9,7 @@ import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { Calculated } from '../../common/calculated-decorator';
 import { InternalServerError } from '../../common/error/errors';
 import { ChannelAware } from '../../common/types/common-types';
@@ -16,6 +17,10 @@ import { getConfig } from '../../config/config-helpers';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { OrderState } from '../../service/helpers/order-state-machine/order-state';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomOrderFields } from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
@@ -165,6 +170,22 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
 
     @Column(type => CustomOrderFields)
     customFields: CustomOrderFields;
+
+    /**
+     * @description
+     * Returns the values of the Order's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. An Order loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomOrderFields>,
+    ): Promise<Partial<CustomOrderFields> | undefined> {
+        return readChannelCustomFields(ctx, Order, this, options);
+    }
 
     @EntityId({ nullable: true })
     taxZoneId?: ID;

@@ -7,6 +7,7 @@ import { ConfigModule } from '../../config/config.module';
 import { ConfigService } from '../../config/config.service';
 import { I18nModule } from '../../i18n/i18n.module';
 import { I18nService } from '../../i18n/i18n.service';
+import { ChannelAssignmentService } from '../../service/helpers/channel-assignment/channel-assignment.service';
 import { ServiceModule } from '../../service/service.module';
 import { ApiSharedModule } from '../api-internal-modules';
 import { CustomFieldRelationResolverService } from '../common/custom-field-relation-resolver.service';
@@ -42,6 +43,7 @@ export function configureGraphQLModule(
             idCodecService: IdCodecService,
             typesLoader: GraphQLTypesLoader,
             customFieldRelationResolverService: CustomFieldRelationResolverService,
+            channelAssignmentService: ChannelAssignmentService,
         ) => {
             return createGraphQLOptions(
                 i18nService,
@@ -49,6 +51,7 @@ export function configureGraphQLModule(
                 idCodecService,
                 typesLoader,
                 customFieldRelationResolverService,
+                channelAssignmentService,
                 getOptions(configService),
             );
         },
@@ -58,6 +61,7 @@ export function configureGraphQLModule(
             IdCodecService,
             GraphQLTypesLoader,
             CustomFieldRelationResolverService,
+            ChannelAssignmentService,
         ],
         imports: [ConfigModule, I18nModule, ApiSharedModule, ServiceModule],
     });
@@ -69,12 +73,14 @@ async function createGraphQLOptions(
     idCodecService: IdCodecService,
     typesLoader: GraphQLTypesLoader,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    channelAssignmentService: ChannelAssignmentService,
     options: GraphQLApiOptions,
 ): Promise<ApolloDriverConfig> {
     const builtSchema = await buildSchemaForApi(options.apiType);
     const resolvers = await generateResolvers(
         configService,
         customFieldRelationResolverService,
+        channelAssignmentService,
         options.apiType,
         builtSchema,
     );

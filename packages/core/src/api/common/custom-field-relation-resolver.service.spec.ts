@@ -88,6 +88,8 @@ describe('CustomFieldRelationResolverService', () => {
             { applyChannelPriceAndTax: async (v: any) => v } as any,
             { translate: (v: any) => v } as any,
             { applyToQuery: vi.fn() } as any,
+            // Only used for channel-scoped fields, which these tests don't define
+            {} as any,
         );
 
         fieldDef = { name: 'related', entity: {}, list: false };

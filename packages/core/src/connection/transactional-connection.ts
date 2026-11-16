@@ -21,7 +21,16 @@ import { EntityNotFoundError } from '../common/error/errors';
 import { ChannelAware, SoftDeletable } from '../common/types/common-types';
 import { EntityAccessControlStrategy } from '../config/auth/entity-access-control-strategy';
 import { ConfigService } from '../config/config.service';
+import { isChannelScopedCustomField } from '../config/custom-field/custom-field-types';
 import { VendureEntity } from '../entity/base/base.entity';
+import {
+    getChannelAssignmentEntities,
+    LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
+} from '../entity/channel-assignment/channel-assignment-registry';
+import {
+    applyChannelCustomFields,
+    persistChannelCustomFields,
+} from '../entity/channel-assignment/channel-custom-fields';
 import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-relations-qb-joiner';
 
 import { findOptionsArrayToObject } from './find-options-array-to-object';
@@ -61,6 +70,33 @@ const QB_TERMINAL_METHODS = new Set([
 ]);
 
 /**
+ * Repository read methods after which the channel-scoped custom fields of the loaded entities are
+ * set on their `customFields` (see {@link applyChannelCustomFields}).
+ */
+const CHANNEL_CUSTOM_FIELDS_REPOSITORY_METHODS = new Set([
+    'find',
+    'findBy',
+    'findOne',
+    'findOneBy',
+    'findOneOrFail',
+    'findOneByOrFail',
+    'findAndCount',
+    'findAndCountBy',
+]);
+
+/**
+ * SelectQueryBuilder methods which return entities, after which their channel-scoped custom fields
+ * are set.
+ */
+const CHANNEL_CUSTOM_FIELDS_QB_METHODS = new Set([
+    'getMany',
+    'getOne',
+    'getOneOrFail',
+    'getManyAndCount',
+    'getRawAndEntities',
+]);
+
+/**
  * @description
  * The TransactionalConnection is a wrapper around the TypeORM `Connection` object which works in conjunction
  * with the {@link Transaction} decorator to implement per-request transactions. All services which access the
@@ -74,6 +110,9 @@ const QB_TERMINAL_METHODS = new Set([
  */
 @Injectable()
 export class TransactionalConnection {
+    private hasChannelScopedCustomFields: boolean | undefined;
+    private channelScopedEntities: Set<unknown> | undefined;
+
     constructor(
         @InjectDataSource() private dataSource: DataSource,
         private transactionWrapper: TransactionWrapper,
@@ -157,7 +196,10 @@ export class TransactionalConnection {
             }
             const strategy = this.configService.authOptions.entityAccessControlStrategy;
             if (strategy?.applyAccessControl && maybeTarget && typeof maybeTarget === 'function') {
-                return this.wrapWithAccessControl(repo, maybeTarget, ctxOrTarget, strategy);
+                repo = this.wrapWithAccessControl(repo, maybeTarget, ctxOrTarget, strategy);
+            }
+            if (this.readsChannelCustomFields(maybeTarget)) {
+                repo = wrapWithChannelCustomFields(repo, ctxOrTarget, this.getChannelScopedEntities());
             }
             return repo;
         } else {
@@ -477,6 +519,40 @@ export class TransactionalConnection {
         });
     }
 
+    /**
+     * Whether reads of the given entity type should set the channel-scoped custom fields of the
+     * loaded entities: only when some entity has channel-scoped custom fields, and not for the
+     * channel assignment entities themselves, which hold those values.
+     */
+    private readsChannelCustomFields(target: unknown): boolean {
+        if (this.hasChannelScopedCustomFields === undefined) {
+            this.hasChannelScopedCustomFields = Object.values(this.configService.customFields ?? {}).some(
+                fields => fields?.some(isChannelScopedCustomField),
+            );
+        }
+        return (
+            this.hasChannelScopedCustomFields &&
+            !(typeof target === 'function' && getChannelAssignmentEntities().has(target as Type<any>))
+        );
+    }
+
+    /**
+     * The entity types which have channel-scoped custom fields.
+     */
+    private getChannelScopedEntities(): Set<unknown> {
+        if (!this.channelScopedEntities) {
+            const names = new Set(
+                Object.entries(this.configService.customFields ?? {})
+                    .filter(([, fields]) => fields?.some(isChannelScopedCustomField))
+                    .map(([name]) => name),
+            );
+            this.channelScopedEntities = new Set(
+                this.dataSource.entityMetadatas.filter(m => names.has(m.name)).map(m => m.target),
+            );
+        }
+        return this.channelScopedEntities;
+    }
+
     private getTransactionManager(ctx: RequestContext): EntityManager | undefined {
         return (ctx as any)[TRANSACTION_MANAGER_KEY];
     }
@@ -511,4 +587,154 @@ function wrapQueryBuilder<Entity extends ObjectLiteral>(
             return Reflect.get(obj, prop, receiver);
         },
     });
+}
+
+/**
+ * Wraps a repository so that the entities loaded by its reads, and by the reads of its
+ * QueryBuilders, get the values of their channel-scoped custom fields in the Channel of `ctx` on
+ * their `customFields` object. See `ChannelAssignmentService.applyChannelCustomFields()`.
+ *
+ * If the repository's entity has channel-scoped custom fields, its reads join the entity's
+ * assignment row in that Channel, so that only entities loaded as relations take a query, and
+ * `save()` writes the channel-scoped values changed on the saved entities to that Channel (see
+ * `ChannelAssignmentService.persistChannelCustomFields()`).
+ */
+function wrapWithChannelCustomFields<Entity extends ObjectLiteral>(
+    repo: Repository<Entity>,
+    ctx: RequestContext,
+    channelScopedEntities: Set<unknown>,
+): Repository<Entity> {
+    const joinsAssignment = channelScopedEntities.has(repo.metadata.target) && ctx.channelId != null;
+    return new Proxy(repo, {
+        get(obj, prop, receiver) {
+            if (prop === 'createQueryBuilder') {
+                return (...args: any[]) =>
+                    wrapQueryBuilderWithChannelCustomFields(
+                        (obj as any).createQueryBuilder(...args),
+                        ctx,
+                        channelScopedEntities,
+                    );
+            }
+            if (prop === 'save' && joinsAssignment) {
+                // Writes the channel-scoped values changed on the saved entities to the ctx Channel
+                return async (...args: any[]) => {
+                    const result = await (obj as any).save(...args);
+                    await persistChannelCustomFields(ctx, result, obj.metadata.target);
+                    return result;
+                };
+            }
+            if (typeof prop === 'string' && CHANNEL_CUSTOM_FIELDS_REPOSITORY_METHODS.has(prop)) {
+                if (joinsAssignment) {
+                    // Run the read as a QueryBuilder query, which joins the assignment row
+                    return (options: any = {}) => {
+                        const byWhere = prop.endsWith('By') || prop === 'findOneByOrFail';
+                        let findOptions = byWhere ? { where: options } : options;
+                        if (prop.startsWith('findOne')) {
+                            // As TypeORM's findOne()
+                            if (!findOptions.where) {
+                                return Promise.reject(
+                                    new Error(
+                                        'You must provide selection conditions in order to find a single row.',
+                                    ),
+                                );
+                            }
+                            findOptions = { ...findOptions, take: 1 };
+                        }
+                        const qb = wrapQueryBuilderWithChannelCustomFields(
+                            (obj as any).createQueryBuilder(obj.metadata.name),
+                            ctx,
+                            channelScopedEntities,
+                        );
+                        qb.setFindOptions(findOptions);
+                        if (prop === 'findOneOrFail' || prop === 'findOneByOrFail') {
+                            return qb.getOneOrFail();
+                        }
+                        if (prop.startsWith('findOne')) {
+                            return qb.getOne();
+                        }
+                        if (prop.startsWith('findAndCount')) {
+                            return qb.getManyAndCount();
+                        }
+                        return qb.getMany();
+                    };
+                }
+                return async (...args: any[]) => {
+                    const result = await (obj as any)[prop](...args);
+                    await applyChannelCustomFields(ctx, result);
+                    return result;
+                };
+            }
+            return Reflect.get(obj, prop, receiver);
+        },
+    });
+}
+
+function wrapQueryBuilderWithChannelCustomFields<Entity extends ObjectLiteral>(
+    qb: SelectQueryBuilder<Entity>,
+    ctx: RequestContext,
+    channelScopedEntities: Set<unknown>,
+): SelectQueryBuilder<Entity> {
+    return new Proxy(qb, {
+        get(obj, prop, receiver) {
+            if (typeof prop === 'string' && CHANNEL_CUSTOM_FIELDS_QB_METHODS.has(prop)) {
+                return async (...args: any[]) => {
+                    joinChannelAssignment(obj, ctx, channelScopedEntities);
+                    const result = await (obj as any)[prop](...args);
+                    await applyChannelCustomFields(ctx, result);
+                    return result;
+                };
+            }
+            return Reflect.get(obj, prop, receiver);
+        },
+    });
+}
+
+/**
+ * If the main entity of the query has channel-scoped custom fields, joins its assignment row in the
+ * Channel of `ctx`, unless the query already loads it (the ListQueryBuilder's
+ * `loadChannelAssignment` option).
+ *
+ * Queries with a lock or a GROUP BY are left as they are: Postgres rejects `FOR UPDATE` on the
+ * nullable side of an outer join, and the joined columns are not in the GROUP BY. The rows of their
+ * entities are loaded by a separate query instead (see `applyChannelCustomFields()`).
+ */
+function joinChannelAssignment(
+    qb: SelectQueryBuilder<any>,
+    ctx: RequestContext,
+    channelScopedEntities: Set<unknown>,
+) {
+    const mainAlias = qb.expressionMap.mainAlias;
+    if (
+        !mainAlias?.hasMetadata ||
+        ctx.channelId == null ||
+        qb.expressionMap.lockMode ||
+        // A lock given in the find options of setFindOptions() is only applied when the query runs
+        (qb as any).findOptions?.lock ||
+        qb.expressionMap.groupBys.length
+    ) {
+        return;
+    }
+    const target = mainAlias.metadata.target;
+    const property = `${mainAlias.name}.${LOADED_CHANNEL_ASSIGNMENT_PROPERTY}`;
+    if (
+        !channelScopedEntities.has(target) ||
+        qb.expressionMap.joinAttributes.some(join => join.mapToProperty === property)
+    ) {
+        return;
+    }
+    const assignment = Array.from(getChannelAssignmentEntities()).find(
+        ([, options]) => options.entity() === target,
+    );
+    if (!assignment) {
+        return;
+    }
+    const [assignmentTarget, options] = assignment;
+    const alias = `${mainAlias.name}__channelAssignment`;
+    qb.leftJoinAndMapOne(
+        property,
+        assignmentTarget,
+        alias,
+        `${alias}.${options.entityProperty}Id = ${mainAlias.name}.id AND ${alias}.channelId = :${alias}ChannelId`,
+        { [`${alias}ChannelId`]: ctx.channelId },
+    );
 }

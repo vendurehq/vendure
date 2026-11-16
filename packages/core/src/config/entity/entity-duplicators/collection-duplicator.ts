@@ -8,9 +8,11 @@ import {
 import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Collection } from '../../../entity/collection/collection.entity';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { CollectionService } from '../../../service/services/collection.service';
 import { EntityDuplicator } from '../entity-duplicator';
 
+let channelAssignmentService: ChannelAssignmentService;
 let connection: TransactionalConnection;
 let collectionService: CollectionService;
 
@@ -31,6 +33,7 @@ export const collectionDuplicator = new EntityDuplicator({
     args: {},
     init(injector: Injector) {
         connection = injector.get(TransactionalConnection);
+        channelAssignmentService = injector.get(ChannelAssignmentService);
         collectionService = injector.get(CollectionService);
     },
     async duplicate({ ctx, id }) {
@@ -57,7 +60,7 @@ export const collectionDuplicator = new EntityDuplicator({
             assetIds: collection.assets.map(value => value.assetId),
             parentId: collection.parentId,
             translations,
-            customFields: collection.customFields,
+            customFields: await channelAssignmentService.getCustomFieldsToCopy(ctx, Collection, collection),
             filters: collection.filters.map(filter => ({
                 code: filter.code,
                 arguments: filter.args,

@@ -23,6 +23,7 @@ import { ProductVariant } from '../../../entity/product-variant/product-variant.
 import { ProductAsset } from '../../../entity/product/product-asset.entity';
 import { ProductTranslation } from '../../../entity/product/product-translation.entity';
 import { Product } from '../../../entity/product/product.entity';
+import { CustomFieldRelationService } from '../../../service/helpers/custom-field-relation/custom-field-relation.service';
 import { RequestContextService } from '../../../service/helpers/request-context/request-context.service';
 import { TranslatableSaver } from '../../../service/helpers/translatable-saver/translatable-saver';
 import { ChannelService } from '../../../service/services/channel.service';
@@ -50,7 +51,16 @@ export class FastImporterService {
         private stockMovementService: StockMovementService,
         private translatableSaver: TranslatableSaver,
         private requestContextService: RequestContextService,
+        private customFieldRelationService: CustomFieldRelationService,
     ) {}
+
+    /**
+     * The Channel whose channel-scoped custom field values are written. Without a `channel`,
+     * `initialize()` uses `RequestContext.empty()`, whose Channel has no id, so the default Channel's.
+     */
+    private get importChannelId(): ID {
+        return this.importCtx.channelId ?? this.defaultChannel.id;
+    }
 
     /**
      * @description
@@ -105,6 +115,13 @@ export class FastImporterService {
                 .getRepository(this.importCtx, ProductAsset)
                 .save(productAssets, { reload: false });
         }
+        await this.customFieldRelationService.updateChannelScopedFields(
+            this.importCtx,
+            Product,
+            input.customFields,
+            product,
+            this.importChannelId,
+        );
         return product.id;
     }
 
@@ -213,6 +230,13 @@ export class FastImporterService {
                 .save(variantPrice, { reload: false });
         }
 
+        await this.customFieldRelationService.updateChannelScopedFields(
+            this.importCtx,
+            ProductVariant,
+            input.customFields,
+            createdVariant,
+            this.importChannelId,
+        );
         return createdVariant.id;
     }
 

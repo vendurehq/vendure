@@ -36,3 +36,12 @@ const registry = new Map<Type<any>, ChannelAssignmentEntityOptions>();
 export function getChannelAssignmentEntities(): Map<Type<any>, ChannelAssignmentEntityOptions> {
     return registry;
 }
+
+/**
+ * The property under which a channel assignment row of the active Channel is loaded onto an entity,
+ * by the ListQueryBuilder (the `loadChannelAssignment` option) or the TransactionalConnection. Not a
+ * column, nor part of the GraphQL schema.
+ *
+ * @internal
+ */
+export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';

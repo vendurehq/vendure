@@ -91,6 +91,13 @@ export class StockLocationService {
         );
         await this.channelService.assignToCurrentChannel(stockLocation, ctx);
         await this.connection.getRepository(ctx, StockLocation).save(stockLocation);
+        // Once assigned to the Channel, so that its channel assignment row exists
+        await this.customFieldRelationService.updateChannelScopedFields(
+            ctx,
+            StockLocation,
+            input.customFields,
+            stockLocation,
+        );
         await this.eventBus.publish(new StockLocationEvent(ctx, stockLocation, 'created', input));
         return stockLocation;
     }

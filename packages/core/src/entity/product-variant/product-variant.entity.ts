@@ -2,6 +2,7 @@ import { CurrencyCode, GlobalFlag } from '@vendure/common/lib/generated-types';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
@@ -9,14 +10,18 @@ import { LocaleString, Translatable, Translation } from '../../common/types/loca
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { Collection } from '../collection/collection.entity';
 import { CustomProductVariantFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { FacetValue } from '../facet-value/facet-value.entity';
 import { OrderLine } from '../order-line/order-line.entity';
-import { Product } from '../product/product.entity';
 import { ProductOption } from '../product-option/product-option.entity';
+import { Product } from '../product/product.entity';
 import { StockLevel } from '../stock-level/stock-level.entity';
 import { StockMovement } from '../stock-movement/stock-movement.entity';
 import { TaxCategory } from '../tax-category/tax-category.entity';
@@ -172,6 +177,22 @@ export class ProductVariant
 
     @Column(type => CustomProductVariantFields)
     customFields: CustomProductVariantFields;
+
+    /**
+     * @description
+     * Returns the values of the ProductVariant's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A ProductVariant loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomProductVariantFields>,
+    ): Promise<Partial<CustomProductVariantFields> | undefined> {
+        return readChannelCustomFields(ctx, ProductVariant, this, options);
+    }
 
     // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
     @ManyToMany(type => Collection, collection => collection.productVariants, {

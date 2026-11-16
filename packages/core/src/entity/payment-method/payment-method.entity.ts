@@ -2,10 +2,15 @@ import { ConfigurableOperation } from '@vendure/common/lib/generated-types';
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomPaymentMethodFields } from '../custom-entity-fields';
 
@@ -46,4 +51,20 @@ export class PaymentMethod extends VendureEntity implements Translatable, Channe
 
     @Column(type => CustomPaymentMethodFields)
     customFields: CustomPaymentMethodFields;
+
+    /**
+     * @description
+     * Returns the values of the PaymentMethod's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A PaymentMethod loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomPaymentMethodFields>,
+    ): Promise<Partial<CustomPaymentMethodFields> | undefined> {
+        return readChannelCustomFields(ctx, PaymentMethod, this, options);
+    }
 }

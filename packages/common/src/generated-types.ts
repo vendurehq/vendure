@@ -446,6 +446,7 @@ export type BooleanCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1527,12 +1528,19 @@ export type CustomField = {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
 
 export type CustomFieldConfig = BooleanCustomFieldConfig | DateTimeCustomFieldConfig | FloatCustomFieldConfig | IntCustomFieldConfig | LocaleStringCustomFieldConfig | LocaleTextCustomFieldConfig | RelationCustomFieldConfig | StringCustomFieldConfig | StructCustomFieldConfig | TextCustomFieldConfig;
+
+/** Where the value of a custom field lives: one value for the entity, or a separate value per Channel. */
+export enum CustomFieldScope {
+  channel = 'channel',
+  global = 'global'
+}
 
 /**
  * This type is deprecated in v2.2 in favor of the EntityCustomFields type,
@@ -1738,6 +1746,7 @@ export type DateTimeCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
@@ -2103,6 +2112,7 @@ export type FloatCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Float']['output']>;
   type: Scalars['String']['output'];
@@ -2326,6 +2336,7 @@ export type IntCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
@@ -2807,6 +2818,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2824,6 +2836,7 @@ export type LocaleTextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -6335,6 +6348,7 @@ export type RelationCustomFieldConfig = CustomField & {
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
   scalarFields: Array<Scalars['String']['output']>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -7031,6 +7045,7 @@ export type StringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -7085,6 +7100,7 @@ export type StructCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -7320,6 +7336,7 @@ export type TextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  scope: CustomFieldScope;
   secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
