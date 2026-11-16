@@ -18,6 +18,12 @@ import { Customer } from '../../../entity/customer/customer.entity';
 import { ProcessContext } from '../../../process-context/process-context';
 import { ChannelService } from '../../services/channel.service';
 
+const IDENTITY_SCOPE_MISMATCH_ADVICE =
+    'No data has been changed. If you changed the IdentityScopeStrategy, migrate the Customers to the new ' +
+    'scopes with migrateCustomerIdentityScopes() from a database migration, or go back to the previous ' +
+    'strategy. Do not change the inputs a strategy reads once Customers exist. See ' +
+    'https://docs.vendure.io/current/framework/core-concepts/customers#changing-the-strategy-on-an-existing-install';
+
 /**
  * @description
  * Resolves customer identity scopes using the configured {@link IdentityScopeStrategy}.
@@ -40,15 +46,17 @@ export class IdentityScopeService implements OnApplicationBootstrap {
     ) {}
 
     /**
-     * Checks that the stored scopes still match the strategy. A Customer can only act on Channels
-     * in its own scope, so a mismatch locks Customers out. It happens when the strategy is changed
-     * without migrating (including going back to the global strategy), when a strategy's input such
-     * as a Channel custom field changes while the server is down, or when Customers are created
-     * without going through the CustomerService.
+     * Checks that the identity scopes stored on Customers still match the strategy, and refuses to
+     * start if they do not. Nothing is lost when they do not match, but every affected Customer is
+     * locked out: they cannot log in or be found by email address, and registering again creates a
+     * second Customer beside them. This happens when the strategy is changed without migrating
+     * (including going back to the global strategy), or when an input the strategy reads, such as
+     * a Channel custom field, changes while the server is down.
      *
-     * Every non-default Channel's members should be in that Channel's scope. A Channel none of
-     * whose members are refuses the start; a partial mismatch, or Customers in a scope no Channel
-     * has, is logged. Runs in the server process only.
+     * Refuses to start when all members of a non-default Channel are stored in another scope, or
+     * when no Customer is stored in a scope that any Channel has (which also covers installs whose
+     * Customers only use the default Channel). Logs a partial mismatch, which Customers created
+     * outside the CustomerService can cause. Runs in the server process only.
      */
     async onApplicationBootstrap() {
         if (this.processContext.isWorker) {
@@ -58,6 +66,45 @@ export class IdentityScopeService implements OnApplicationBootstrap {
         const channels = await this.connection.rawConnection.getRepository(Channel).find();
         const resolved = await Promise.all(channels.map(channel => this.getScopeForLoadedChannel(channel)));
         const scopeByChannel = new Map(channels.map((channel, i) => [String(channel.id), resolved[i]]));
+        const knownScopes = [...new Set(resolved)];
+
+        const { lockedOut, partial } = await this.findChannelScopeMismatches(channels, scopeByChannel);
+        const { live, orphaned } = await this.countCustomersOutsideKnownScopes(knownScopes);
+
+        if (lockedOut.length) {
+            throw new Error(
+                `The identity scopes stored on Customers do not match the configured ` +
+                    `IdentityScopeStrategy, so no Customer of these Channels could log in: ` +
+                    `${lockedOut.join('; ')}. ${IDENTITY_SCOPE_MISMATCH_ADVICE}`,
+            );
+        }
+        if (live > 0 && orphaned === live) {
+            throw new Error(
+                `None of the ${live} Customers is stored in an identity scope that the configured ` +
+                    `IdentityScopeStrategy gives a Channel (${knownScopes.map(scope => `"${scope}"`).join(', ')}), ` +
+                    `so no Customer could log in. ${IDENTITY_SCOPE_MISMATCH_ADVICE}`,
+            );
+        }
+        if (partial.length) {
+            Logger.error(
+                `Some Customers are members of Channels outside their identity scope and cannot act ` +
+                    `on them: ${partial.join('; ')}`,
+            );
+        }
+        if (orphaned) {
+            Logger.error(
+                `${orphaned} Customers have an identity scope that no Channel maps to. They cannot log ` +
+                    `in or be found by email address. Create Customers through the CustomerService, which ` +
+                    `sets the scope.`,
+            );
+        }
+    }
+
+    /**
+     * For each non-default Channel, the members stored in a scope other than the Channel's. The
+     * default Channel is left out: every Customer is a member of it, whatever its scope.
+     */
+    private async findChannelScopeMismatches(channels: Channel[], scopeByChannel: Map<string, string>) {
         const rows: Array<{ channelId: ID; identityScope: string; count: string | number }> =
             await this.connection.rawConnection
                 .getRepository(Customer)
@@ -71,7 +118,6 @@ export class IdentityScopeService implements OnApplicationBootstrap {
                 .groupBy('channel.id')
                 .addGroupBy('customer.identityScope')
                 .getRawMany();
-
         const lockedOut: string[] = [];
         const partial: string[] = [];
         for (const channel of channels.filter(ch => ch.code !== DEFAULT_CHANNEL_CODE)) {
@@ -86,34 +132,22 @@ export class IdentityScopeService implements OnApplicationBootstrap {
                 .join(', ')}`;
             (mismatched.length === members.length ? lockedOut : partial).push(detail);
         }
-        if (lockedOut.length) {
-            throw new Error(
-                `The configured IdentityScopeStrategy does not match the identity scopes stored on ` +
-                    `Customers, so no member of these Channels could log in: ${lockedOut.join('; ')}. ` +
-                    `Run migrateCustomerIdentityScopes() when changing the strategy, and do not change ` +
-                    `the inputs the strategy reads once Customers exist.`,
-            );
-        }
-        if (partial.length) {
-            Logger.error(
-                `Some Customers are members of Channels outside their identity scope and cannot act ` +
-                    `on them: ${partial.join('; ')}`,
-            );
-        }
-        const knownScopes = [...new Set(scopeByChannel.values())];
-        const orphaned = await this.connection.rawConnection
-            .getRepository(Customer)
-            .createQueryBuilder('customer')
-            .where('customer.deletedAt IS NULL')
-            .andWhere('customer.identityScope NOT IN (:...knownScopes)', { knownScopes })
-            .getCount();
-        if (orphaned) {
-            Logger.error(
-                `${orphaned} Customers have an identity scope that no Channel maps to. They cannot log ` +
-                    `in or be found by email address. Create Customers through the CustomerService, which ` +
-                    `sets the scope.`,
-            );
-        }
+        return { lockedOut, partial };
+    }
+
+    private async countCustomersOutsideKnownScopes(knownScopes: string[]) {
+        const customers = () =>
+            this.connection.rawConnection
+                .getRepository(Customer)
+                .createQueryBuilder('customer')
+                .where('customer.deletedAt IS NULL');
+        const live = await customers().getCount();
+        const orphaned = live
+            ? await customers()
+                  .andWhere('customer.identityScope NOT IN (:...knownScopes)', { knownScopes })
+                  .getCount()
+            : 0;
+        return { live, orphaned };
     }
 
     /**

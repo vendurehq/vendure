@@ -108,5 +108,7 @@ helper in a database migration. Run it with `dryRun: true` first to see what it 
 Channels in several scopes is split into one Customer per scope, so they can still log in everywhere with the
 same password.
 
-The server checks on startup that the stored scopes match the configured strategy. It refuses to start if the
-Customers of a Channel are all in a different scope, for example because the migration was not run.
+The server checks on startup that the stored scopes match the configured strategy. It refuses to start, without
+changing any data, if all Customers of a Channel are stored in a different scope, or if no Customer is stored in a
+scope the strategy gives a Channel. Either means the migration was not run, the strategy was changed back, or an
+input the strategy reads has changed. Starting anyway would lock those Customers out.

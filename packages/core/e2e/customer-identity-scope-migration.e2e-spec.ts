@@ -416,7 +416,7 @@ describe('Customer identity scope migration', () => {
         authOptions.identityScopeStrategy = new GlobalIdentityScopeStrategy();
         try {
             await expect(identityScopeService.onApplicationBootstrap()).rejects.toThrow(
-                /does not match the identity scopes stored on Customers/,
+                /do not match the configured IdentityScopeStrategy[\s\S]*No data has been changed/,
             );
         } finally {
             authOptions.identityScopeStrategy = new ChannelIdentityScopeStrategy();
@@ -446,6 +446,39 @@ describe('Customer identity scope migration', () => {
     function idOf(brand: { code: string }) {
         return channelIds[brand.code].replace(/^T_/, '');
     }
+});
+
+describe('Customer identity scope startup check with only the default Channel', () => {
+    const { server } = createTestEnvironment(mergeAuth(testConfig(), { requireVerification: false }));
+
+    beforeAll(async () => {
+        await server.init({
+            initialData,
+            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
+            customerCount: 3,
+        });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    // There is no other Channel whose members could be checked, but switching strategy without
+    // migrating would still lock every Customer out.
+    it('refuses to start when no Customer is in a scope the strategy gives a Channel', async () => {
+        const authOptions = server.app.get(ConfigService).authOptions;
+        const identityScopeService = server.app.get(IdentityScopeService);
+        await expect(identityScopeService.onApplicationBootstrap()).resolves.toBeUndefined();
+
+        authOptions.identityScopeStrategy = new ChannelIdentityScopeStrategy();
+        try {
+            await expect(identityScopeService.onApplicationBootstrap()).rejects.toThrow(
+                /None of the \d+ Customers is stored in an identity scope[\s\S]*No data has been changed/,
+            );
+        } finally {
+            authOptions.identityScopeStrategy = new GlobalIdentityScopeStrategy();
+        }
+    });
 });
 
 function mergeAuth<T extends { authOptions: any }>(config: T, authOptions: Record<string, any>): T {
