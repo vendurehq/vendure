@@ -16,6 +16,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import {
     backfillStockMovementTracking,
+    ensureTrackInventoryMigrated,
     migrateTrackInventoryToChannels,
 } from '../src/migration-utils/v4_0_track_inventory';
 
@@ -44,7 +45,9 @@ describe('v4.0 trackInventory migration helpers', () => {
         queryRunner = rawConnection.createQueryRunner();
         esc = (name: string) => rawConnection.driver.escape(name);
 
-        // Roll the schema back to v3.x for the three columns this change touches.
+        // Roll the schema back to v3.x for the three columns this change touches. v4 keeps
+        // global_settings.trackInventory (nullable) until its value has been copied.
+        await queryRunner.dropColumn(table('global_settings'), 'trackInventory');
         await queryRunner.addColumn(
             table('global_settings'),
             new TableColumn({ name: 'trackInventory', type: 'boolean', default: true }),
@@ -145,7 +148,8 @@ describe('v4.0 trackInventory migration helpers', () => {
         }
         const after = await rawConnection.driver.createSchemaBuilder().log();
         expect(after.upQueries.map(q => q.query)).toEqual([]);
-        expect(await queryRunner.hasColumn(table('global_settings'), 'trackInventory')).toBe(false);
+        // The column is kept, nullable, so the value survives until it has been copied.
+        expect(await queryRunner.hasColumn(table('global_settings'), 'trackInventory')).toBe(true);
     });
 
     // #2908 — keeps every StockLevel and StockMovement, defaulting the new columns
@@ -195,6 +199,25 @@ describe('v4.0 trackInventory migration helpers', () => {
         } finally {
             options.entityPrefix = PREFIX;
         }
+    });
+
+    // #2908 — on startup (also with synchronize), a pending migration runs and clears the old value
+    it('ensureTrackInventoryMigrated() finishes a pending migration on startup and clears the old value', async () => {
+        const legacy = async () =>
+            (
+                await queryRunner.query(
+                    `SELECT ${esc('trackInventory')} AS ${esc('v')} FROM ${esc(table('global_settings'))}`,
+                )
+            )[0].v;
+        // The copy above ran while the column was still NOT NULL, so the value is still there.
+        expect(asBool(await legacy())).toBe(false);
+        expect(await ensureTrackInventoryMigrated(queryRunner)).toBe(true);
+        expect(await legacy()).toBeNull();
+        const channels: Array<{ value: unknown }> = await queryRunner.query(
+            `SELECT ${esc('trackInventory')} AS ${esc('value')} FROM ${esc(table('channel'))}`,
+        );
+        expect(channels.every(c => asBool(c.value) === false)).toBe(true);
+        expect(await ensureTrackInventoryMigrated(queryRunner)).toBe(false);
     });
 
     // #2908 — is a no-op when run again

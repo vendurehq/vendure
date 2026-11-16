@@ -19,5 +19,6 @@ export { SlugConflict, findSlugConflicts, formatSlugConflicts } from './v4_0_slu
 export {
     TrackInventoryMigrationResult,
     backfillStockMovementTracking,
+    ensureTrackInventoryMigrated,
     migrateTrackInventoryToChannels,
 } from './v4_0_track_inventory';

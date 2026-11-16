@@ -9,6 +9,7 @@ import { Injector } from '../../common';
 import { idsAreEqual } from '../../common/utils';
 import { EventBus } from '../../event-bus/event-bus';
 import { AssetEvent } from '../../event-bus/events/asset-event';
+import { ChannelEvent } from '../../event-bus/events/channel-event';
 import { CollectionModificationEvent } from '../../event-bus/events/collection-modification-event';
 import { ProductChannelEvent } from '../../event-bus/events/product-channel-event';
 import { ProductEvent } from '../../event-bus/events/product-event';
@@ -207,6 +208,22 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
                     return this.searchIndexService.reindex(event.ctx);
                 }
             });
+
+        // #2908: a Channel's trackInventory decides whether its variants are in stock, so the
+        // Channel is reindexed when an update sets it. Clients should only send it when it
+        // changes; the Dashboard does.
+        this.eventBus
+            .ofType(ChannelEvent)
+            .pipe(
+                filter(
+                    event =>
+                        event.type === 'updated' &&
+                        (event.input as { trackInventory?: boolean } | undefined)?.trackInventory != null,
+                ),
+                // See the TaxRateModificationEvent subscription above.
+                delay(1),
+            )
+            .subscribe(event => this.searchIndexService.reindex(event.ctx.copy(event.entity)));
 
         await this.initSearchStrategy();
     }

@@ -24,6 +24,18 @@ export class GlobalSettings extends VendureEntity implements HasCustomFields {
     availableLanguages: LanguageCode[];
 
     /**
+     * The pre-v4 `GlobalSettings.trackInventory` value, kept in its original column until it has
+     * been copied to every Channel on upgrade, then set to `null`. It is not exposed in the API
+     * and nothing else reads it: from v4.0, `Channel.trackInventory` is the default. Keeping the
+     * column on the entity stops `synchronize` and generated migrations from dropping it before
+     * the value has been copied. See `migrateTrackInventoryToChannels()`.
+     *
+     * @internal
+     */
+    @Column({ name: 'trackInventory', type: Boolean, nullable: true, default: null, select: false })
+    legacyTrackInventory: boolean | null;
+
+    /**
      * @description
      * Specifies the value of stockOnHand at which a given ProductVariant is considered
      * out of stock.

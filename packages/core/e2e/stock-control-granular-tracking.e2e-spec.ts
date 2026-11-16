@@ -810,6 +810,41 @@ describe('Stock control: granular trackInventory', () => {
             });
         });
 
+        // #2908 — the out-of-stock threshold applies when a StockLevel is tracked, even if the
+        // variant itself is untracked
+        it('rejects stockOnHand below the threshold for a tracked StockLevel of an untracked variant', async () => {
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [
+                    {
+                        id: 'T_2',
+                        trackInventory: 'FALSE' as any,
+                        useGlobalOutOfStockThreshold: false,
+                        outOfStockThreshold: 5,
+                        stockLevels: [{ stockLocationId: defaultLocationId, trackInventory: 'TRUE' }] as any,
+                    },
+                ],
+            });
+            try {
+                await expect(
+                    adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_2', stockOnHand: 3 }] }),
+                ).rejects.toThrow('stockOnHand cannot be a negative value');
+            } finally {
+                await adminClient.query(UPDATE_VARIANT, {
+                    input: [
+                        {
+                            id: 'T_2',
+                            trackInventory: 'TRUE' as any,
+                            useGlobalOutOfStockThreshold: true,
+                            outOfStockThreshold: 0,
+                            stockLevels: [
+                                { stockLocationId: defaultLocationId, trackInventory: 'INHERIT' },
+                            ] as any,
+                        },
+                    ],
+                });
+            }
+        });
+
         // #2908 — duplicating a product keeps its per-location tracking settings
         it('keeps StockLevel overrides when a product is duplicated', async () => {
             const { duplicateEntity } = await adminClient.query(DUPLICATE_PRODUCT, {

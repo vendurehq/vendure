@@ -368,8 +368,10 @@ export class ProductVariantService {
     private async getOutOfStockThreshold(ctx: RequestContext, variant: ProductVariant): Promise<number> {
         const { outOfStockThreshold } = await this.globalSettingsService.getSettings(ctx);
 
-        const inventoryNotTracked = !(await this.stockLevelService.isInventoryTracked(ctx, variant));
-        if (inventoryNotTracked) {
+        // Tracked if the variant/Channel says so, or if any of its StockLevels overrides that to
+        // tracked: the same rule the stock lock uses.
+        const tracked = (await this.stockLevelService.getTrackedVariantIds(ctx, [variant.id])).length > 0;
+        if (!tracked) {
             return 0;
         } else {
             return variant.useGlobalOutOfStockThreshold ? outOfStockThreshold : variant.outOfStockThreshold;

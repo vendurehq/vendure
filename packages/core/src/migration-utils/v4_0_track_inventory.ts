@@ -5,7 +5,7 @@ import { QueryRunner } from 'typeorm';
 import { qualifiedTableName } from './v4_0_role_assignments';
 
 export interface TrackInventoryMigrationResult {
-    /** The value read from `global_settings.trackInventory`, or undefined if already migrated. */
+    /** The pre-v4 value read from `global_settings.trackInventory`, or undefined if already migrated. */
     globalTrackInventory: boolean | undefined;
     /** Channels whose stored `trackInventory` differed from the global value and was overwritten. */
     overwrittenChannels: Array<{ code: string; previous: boolean }>;
@@ -17,8 +17,11 @@ export interface TrackInventoryMigrationResult {
  *
  * Before v4, `GlobalSettings.trackInventory` was the default for every ProductVariant set to
  * `INHERIT`, and `Channel.trackInventory` existed but was never read. From v4 the Channel value
- * is the default, and `GlobalSettings.trackInventory` is removed. This helper copies the global
- * value to every Channel, so that every variant keeps its current behaviour.
+ * is the default, and `GlobalSettings.trackInventory` is removed from the API. This helper copies
+ * the global value to every Channel, so that every variant keeps its current behaviour, then sets
+ * the `global_settings.trackInventory` column to `NULL` to record that the copy has been done.
+ * The column itself is kept (see `GlobalSettings.legacyTrackInventory`), so neither
+ * `synchronize` nor a generated migration drops the value before it is copied.
  *
  * Channels whose stored value differed are overwritten (it had no effect before) and are
  * returned and logged, so you can set them again on purpose after the upgrade.
@@ -31,9 +34,12 @@ export interface TrackInventoryMigrationResult {
  * `schema` option. The helper throws if the `global_settings` table cannot be found, rather than
  * treating that as "already migrated".
  *
- * **Call this at the start of your migration's `up()`, before the generated statement that drops
- * `global_settings.trackInventory`.** It is a no-op once that column has gone. Then call
- * {@link backfillStockMovementTracking} at the end of `up()`.
+ * You do not have to call it: Vendure runs it, together with
+ * {@link backfillStockMovementTracking}, on the first v4 startup (see
+ * {@link ensureTrackInventoryMigrated}). Call both from your v4 migration if you want the data
+ * migration to be part of the deployment step: this helper anywhere in `up()`, and
+ * `backfillStockMovementTracking()` at the end of `up()`, after the statement which adds
+ * `stock_movement.tracked`. It is a no-op once the value has been copied.
  *
  * @since 4.0.0
  */
@@ -55,13 +61,14 @@ export async function migrateTrackInventoryToChannels(
         overwrittenChannels: [],
     };
     if (!(await queryRunner.hasColumn(globalSettingsTable, 'trackInventory'))) {
-        console.log('[v4 trackInventory] global_settings.trackInventory not found; nothing to migrate.');
         return result;
     }
     const settings: Array<{ value: unknown }> = await queryRunner.query(
-        `SELECT ${esc('trackInventory')} AS ${esc('value')} FROM ${escTable(globalSettingsTable)}`,
+        `SELECT ${esc('trackInventory')} AS ${esc('value')} FROM ${escTable(globalSettingsTable)}
+         WHERE ${esc('trackInventory')} IS NOT NULL`,
     );
     if (!settings.length) {
+        // Already copied, or a database created by v4.
         return result;
     }
     const globalValue = toBoolean(settings[0].value);
@@ -76,6 +83,15 @@ export async function migrateTrackInventoryToChannels(
         .map(c => ({ code: c.code, previous: toBoolean(c.value) }));
 
     await queryRunner.query(`UPDATE ${escTable(channelTable)} SET ${esc('trackInventory')} = ${literal}`);
+    // Clearing the value records that the copy has been done. Before the v4 schema change the
+    // column is still NOT NULL; the value is then cleared by ensureTrackInventoryMigrated() on
+    // startup, which copies the same value again first.
+    const column = (await queryRunner.getTable(globalSettingsTable))?.findColumnByName('trackInventory');
+    if (column?.isNullable) {
+        await queryRunner.query(
+            `UPDATE ${escTable(globalSettingsTable)} SET ${esc('trackInventory')} = NULL`,
+        );
+    }
 
     console.log(
         `[v4 trackInventory] Copied GlobalSettings.trackInventory (${String(globalValue)}) to ` +
@@ -165,4 +181,51 @@ export async function backfillStockMovementTracking(queryRunner: QueryRunner): P
     const filled = before - (await countNull());
     console.log(`[v4 trackInventory] Set stock_movement.tracked on ${filled} pre-v4 row(s).`);
     return filled;
+}
+
+/**
+ * @description
+ * Runs the v4.0 inventory tracking data migration if it is still pending, i.e. if
+ * `global_settings.trackInventory` still holds the pre-v4 value: {@link migrateTrackInventoryToChannels}
+ * then {@link backfillStockMovementTracking}, in one transaction. Returns `true` if it ran.
+ *
+ * Called by Vendure on startup, so the migration also happens with `synchronize` enabled and when
+ * a v4 migration does not call the helpers. A no-op on later startups and on databases created by
+ * v4.
+ *
+ * During a rolling deployment, a v3 server which saves the Global Settings writes the old column
+ * again, and the next v4 startup copies that value to every Channel once more. Avoid editing the
+ * Global Settings from a v3 Dashboard once v4 is running.
+ *
+ * @since 4.0.0
+ */
+export async function ensureTrackInventoryMigrated(queryRunner: QueryRunner): Promise<boolean> {
+    const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    const escTable = (qualified: string) => qualified.split('.').map(esc).join('.');
+    const globalSettingsTable = qualifiedTableName(queryRunner, 'global_settings');
+    const movementTable = qualifiedTableName(queryRunner, 'stock_movement');
+    if (
+        !(await queryRunner.hasTable(globalSettingsTable)) ||
+        !(await queryRunner.hasColumn(globalSettingsTable, 'trackInventory'))
+    ) {
+        return false;
+    }
+    const pending: unknown[] = await queryRunner.query(
+        `SELECT 1 FROM ${escTable(globalSettingsTable)} WHERE ${esc('trackInventory')} IS NOT NULL`,
+    );
+    if (!pending.length) {
+        return false;
+    }
+    await queryRunner.startTransaction();
+    try {
+        await migrateTrackInventoryToChannels(queryRunner);
+        if (await queryRunner.hasColumn(movementTable, 'tracked')) {
+            await backfillStockMovementTracking(queryRunner);
+        }
+        await queryRunner.commitTransaction();
+    } catch (e) {
+        await queryRunner.rollbackTransaction();
+        throw e;
+    }
+    return true;
 }
