@@ -16,7 +16,6 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import {
     assertTrackInventoryMigrated,
-    backfillStockMovementTracking,
     migrateTrackInventoryToChannels,
 } from '../src/migration-utils/v4_0_track_inventory';
 
@@ -153,6 +152,8 @@ describe('v4.0 trackInventory migration helpers', () => {
     it('copies GlobalSettings.trackInventory to every Channel and reports overwritten ones', async () => {
         const result = await migrateTrackInventoryToChannels(queryRunner);
         expect(result.globalTrackInventory).toBe(false);
+        // The same call fills StockMovement.tracked for every pre-v4 movement.
+        expect(result.filledStockMovements).toBe(stockMovementCount);
         expect(result.overwrittenChannels.map(c => c.code).sort()).toEqual([
             '__default_channel__',
             'vendor-a',
@@ -170,25 +171,22 @@ describe('v4.0 trackInventory migration helpers', () => {
     });
 
     // #2908 — keeps every StockLevel and StockMovement, defaulting the new columns
-    it('keeps every StockLevel and StockMovement, defaulting the new columns', async () => {
+    it('keeps every StockLevel and StockMovement', async () => {
         const levels: Array<{ v: string }> = await queryRunner.query(
             `SELECT ${esc('trackInventory')} AS ${esc('v')} FROM ${esc(table('stock_level'))}`,
         );
         expect(levels.length).toBe(stockLevelCount);
         expect(levels.every(l => l.v === 'INHERIT')).toBe(true);
 
-        const movements: Array<{ v: unknown }> = await queryRunner.query(
-            `SELECT ${esc('tracked')} AS ${esc('v')} FROM ${esc(table('stock_movement'))}`,
+        const movements: Array<{ c: unknown }> = await queryRunner.query(
+            `SELECT COUNT(*) AS ${esc('c')} FROM ${esc(table('stock_movement'))}`,
         );
-        expect(movements.length).toBe(stockMovementCount);
-        expect(movements.every(m => m.v === null)).toBe(true);
+        expect(Number(movements[0].c)).toBe(stockMovementCount);
     });
 
     // #2908 — movements recorded before v4.0 get the tracked state of the pre-v4 rule
     // (variant flag, else the former global setting), so open Orders keep their behaviour.
-    it('backfills stock_movement.tracked with the pre-v4 rule', async () => {
-        const filled = await backfillStockMovementTracking(queryRunner);
-        expect(filled).toBe(stockMovementCount);
+    it('fills stock_movement.tracked with the pre-v4 rule', async () => {
         const rows: Array<{ type: string; variant: unknown; tracked: unknown }> = await queryRunner.query(
             `SELECT ${esc('type')} AS ${esc('type')}, ${esc('productVariantId')} AS ${esc('variant')},
                     ${esc('tracked')} AS ${esc('tracked')} FROM ${esc(table('stock_movement'))}`,
@@ -201,8 +199,24 @@ describe('v4.0 trackInventory migration helpers', () => {
         expect(trackedOf('SALE', 1)).toBe(true);
         expect(rows.filter(r => r.type === 'ADJUSTMENT').every(r => asBool(r.tracked))).toBe(true);
         expect(rows.every(r => r.tracked !== null)).toBe(true);
-        // Only NULL rows are touched, so a second run does nothing.
-        expect(await backfillStockMovementTracking(queryRunner)).toBe(0);
+    });
+
+    // #2908 — run again after a rolling deployment, it fills what v3 servers recorded meanwhile
+    it('fills movements recorded by a v3 server when run again', async () => {
+        await queryRunner.query(
+            `INSERT INTO ${esc(table('stock_movement'))} (${[
+                'type',
+                'discriminator',
+                'quantity',
+                'productVariantId',
+                'stockLocationId',
+            ]
+                .map(esc)
+                .join(', ')}) VALUES ('RELEASE', 'Release', 1, 1, 1)`,
+        );
+        const result = await migrateTrackInventoryToChannels(queryRunner);
+        expect(result.globalTrackInventory).toBeUndefined();
+        expect(result.filledStockMovements).toBe(1);
     });
 
     // #2908 — a wrong table prefix must fail loudly rather than skip the copy
@@ -222,5 +236,6 @@ describe('v4.0 trackInventory migration helpers', () => {
     it('is a no-op when run again', async () => {
         const result = await migrateTrackInventoryToChannels(queryRunner);
         expect(result.globalTrackInventory).toBeUndefined();
+        expect(result.filledStockMovements).toBe(0);
     });
 });

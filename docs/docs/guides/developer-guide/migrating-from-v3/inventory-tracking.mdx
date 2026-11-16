@@ -31,10 +31,10 @@ The migration copies the v3 `GlobalSettings.trackInventory` value to every Chann
 
 ### With migrations
 
-Call both helpers from your v4 migration, **after** the generated statements:
+Call the helper from your v4 migration, **after** the generated statements:
 
 ```ts
-import { backfillStockMovementTracking, migrateTrackInventoryToChannels } from '@vendure/core';
+import { migrateTrackInventoryToChannels } from '@vendure/core';
 
 export class V4Upgrade1234567890 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
@@ -43,18 +43,17 @@ export class V4Upgrade1234567890 implements MigrationInterface {
 
         // --- Data-migration helpers ---
         await migrateTrackInventoryToChannels(queryRunner);
-        await backfillStockMovementTracking(queryRunner);
     }
 }
 ```
 
-[`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) throws if it is called before the generated statements, and if it cannot find the `global_settings` table. Both helpers honour the `entityPrefix` of your connection options and, on PostgreSQL, the `schema` option.
+[`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) copies the value and fills `StockMovement.tracked` in one call. It throws if it is called before the generated statements, or if it cannot find the `global_settings` table. It honours the `entityPrefix` of your connection options and, on PostgreSQL, the `schema` option, and it is safe to run again.
 
 ### With `synchronize: true`
 
 Set `dbConnectionOptions.synchronize` to `false` for the upgrade, and run the helpers from a migration as described above. You can switch `synchronize` back on afterwards.
 
-If you leave `synchronize` on, no data is lost: Vendure keeps the v3 column (`global_settings.trackInventory`) until the helper has copied it.
+If you leave `synchronize` on, no data is lost: Vendure keeps the v3 column (`global_settings.trackInventory`) until the helper has copied it, and refuses to start. The schema is then already synchronized, so a generated migration would be empty: write one by hand which only calls the helper. See [If you already started v4 with `synchronize: true`](/developer-guide/migrating-from-v3/database-migration#if-you-already-started-v4-with-synchronize-true).
 
 ### Startup check
 
@@ -62,13 +61,13 @@ Until the value has been copied, Vendure v4 refuses to start. Otherwise each Cha
 
 ### During a rolling deployment
 
-A v3 server which saves the Global Settings writes the v3 column again, and the next v4 server then refuses to start. Do not edit the Global Settings from a v3 Dashboard once the migration has run. If it happens, run `migrateTrackInventoryToChannels` again.
+v3 servers keep recording stock movements without the `tracked` state, and a v3 server which saves the Global Settings writes the v3 column again, after which the next v4 server refuses to start. Once the last v3 server and worker have stopped, run `migrateTrackInventoryToChannels` again from a later migration. It fills the movements recorded in between, and copies the setting again if a v3 server saved it.
 
 ## After migrating
 
 - **Channels whose value was overwritten.** A Channel's stored `trackInventory` had no effect in v3, so the migration overwrites it with the global value. The helper logs each Channel whose value differed. If you had set those on purpose, set them again.
 - **New Channels** are tracked by default (`trackInventory: true`). If your shop did not track inventory, set it when you create a Channel.
-- **Search index.** The default search plugin reindexes a Channel when its `trackInventory` changes. Other search plugins may need a manual reindex.
+- **Search index.** The default search plugin reindexes a Channel when its `trackInventory` changes. Other search plugins can subscribe to `ChannelTrackInventoryEvent`, which is fired only when the value changes, or need a manual reindex.
 
 ## Updating your code
 
@@ -81,5 +80,4 @@ A v3 server which saves the Global Settings writes the v3 column again, and the 
 | Subscribes to `StockMovementEvent` (for example an ERP sync) | One movement can be split into a tracked and an untracked row. Read `StockMovement.tracked`, not the variant setting. |
 | Has a custom `FulfillmentProcess` copied from the default one | When a Fulfillment is cancelled, call `stockMovementService.reverseSalesForOrderLines()` instead of `createCancellationsForOrderLines()` followed by `createAllocationsForOrderLines()`. |
 | Sends `StockLevelInput` in `updateProductVariants` | `stockOnHand` is optional, so you can change `trackInventory` without writing the stock. |
-| Sends `trackInventory` in every `updateChannel` call | Send it only when it changes. Each call that includes it reindexes the Channel in the default search plugin. |
 | Adds `trackInventory` to `StockLevel` or `StockLevelInput` through an API extension | Remove the extension. The field is part of the schema now. |

@@ -42,6 +42,7 @@ import { Zone } from '../../entity/zone/zone.entity';
 import { EventBus } from '../../event-bus';
 import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event';
 import { ChannelEvent } from '../../event-bus/events/channel-event';
+import { ChannelTrackInventoryEvent } from '../../event-bus/events/channel-track-inventory-event';
 import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
@@ -471,6 +472,7 @@ export class ChannelService {
             throw new EntityNotFoundError('Channel', input.id);
         }
         const originalDefaultCurrencyCode = channel.defaultCurrencyCode;
+        const originalTrackInventory = channel.trackInventory;
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
             return defaultLanguageValidationResult;
@@ -555,6 +557,11 @@ export class ChannelService {
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, updatedChannel);
         this.clearCache(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, channel, 'updated', input));
+        if (updatedChannel.trackInventory !== originalTrackInventory) {
+            await this.eventBus.publish(
+                new ChannelTrackInventoryEvent(ctx, updatedChannel, updatedChannel.trackInventory),
+            );
+        }
         return assertFound(this.findOne(ctx, channel.id));
     }
 

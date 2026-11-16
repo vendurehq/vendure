@@ -21,7 +21,7 @@ Back up your production data before you migrate. After you go live on v4, restor
 |---|---|---|---|---|
 | [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) | [Role assignments](/developer-guide/migrating-from-v3/role-assignments#migrating-the-data) | [`previewRoleAssignmentMigration`](/developer-guide/migrating-from-v3/role-assignments#previewing-the-migration) | [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) | Both steps run on the first v4 startup |
 | [`migrateTimestampColumnsToTimestamptz`](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz) (PostgreSQL) | [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#converting-the-columns) | [`previewTimestamptzMigration`](/developer-guide/migrating-from-v3/date-time-columns#checking-which-timezones-your-data-was-written-in) | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
-| [`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) | [Inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking#migrating-the-data) | None | [`backfillStockMovementTracking`](/reference/typescript-api/migration/backfill-stock-movement-tracking), in the same migration | Not run. Set `synchronize: false` for the upgrade and use a migration |
+| [`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) | [Inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking#migrating-the-data) | None | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
 
 Each helper's guide explains what it does, how it checks its result, and any steps after go-live.
 
@@ -30,7 +30,7 @@ Each helper's guide explains what it does, how it checks its result, and any ste
 Some helpers have a read-only preview that reports how the migration will change your data. Run each one **before** migrating, while the database still has its v3 shape. Previews only read, so they are safe to run against production. The table above links each preview.
 
 <Callout type="warning">
-With `synchronize: true`, starting Vendure v4 runs the data migrations straight away. Run the previews before you start v4 for the first time.
+Upgrade with `synchronize: false`, and run the previews before you migrate. See [With `synchronize: true`](#with-synchronize-true).
 </Callout>
 
 ## Running the migration
@@ -54,7 +54,6 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
    ```ts
    import { MigrationInterface, QueryRunner } from 'typeorm';
    import {
-       backfillStockMovementTracking,
        migrateRoleAssignmentData,
        migrateTimestampColumnsToTimestamptz,
        migrateTrackInventoryToChannels,
@@ -72,10 +71,9 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
            await migrateRoleAssignmentData(queryRunner);
            // For a rolling deployment, leave this out and call it from a later migration
            await removeLegacyRoleData(queryRunner);
-           // Inventory tracking: copies the global setting to every Channel, then fills
+           // Inventory tracking: copies the global setting to every Channel and fills
            // StockMovement.tracked for existing stock movements
            await migrateTrackInventoryToChannels(queryRunner);
-           await backfillStockMovementTracking(queryRunner);
        }
 
        public async down(queryRunner: QueryRunner): Promise<any> {
@@ -96,11 +94,35 @@ On MySQL and MariaDB every DDL statement commits on its own. If the migration st
 
 ### With `synchronize: true`
 
-If `dbConnectionOptions.synchronize` is enabled, there is no migration to call the helpers from. Vendure runs `migrateRoleAssignmentData` and `removeLegacyRoleData` on the first v4 startup instead, in one transaction. Stop every v3 server and worker before you start v4.
+Set `dbConnectionOptions.synchronize` to `false` for the upgrade and follow [With migrations](#with-migrations). You can switch it back on afterwards.
 
-On PostgreSQL this does not work for the first v4 start: the date columns must be converted by a migration, so Vendure refuses to start with `synchronize: true` until they are. Set `synchronize` to `false` for the upgrade and follow [With migrations](#with-migrations). See [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#with-synchronize-true).
+Several v4 changes need a data migration that `synchronize` cannot do, so Vendure v4 refuses to start with a v3 database until they have run:
 
-**Done when:** Vendure v4 starts and logs each helper's result.
+- The [inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking#with-synchronize-true) migration, on every database. `synchronize` keeps the v3 data, so nothing is lost.
+- On PostgreSQL, the [date columns](/developer-guide/migrating-from-v3/date-time-columns#with-synchronize-true). Here Vendure refuses before synchronizing, because the schema change would delete the dates.
+
+Only the role assignment migration also runs on startup with `synchronize: true` (`migrateRoleAssignmentData` and `removeLegacyRoleData`, in one transaction).
+
+#### If you already started v4 with `synchronize: true`
+
+The schema has then been synchronized, so `npx vendure migrate --generate` finds no changes and creates no file. Create a migration by hand which only calls the data-migration helpers, and run it with `npx vendure migrate --run`:
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { migrateTrackInventoryToChannels } from '@vendure/core';
+
+export class V4DataMigration1234567890 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        await migrateTrackInventoryToChannels(queryRunner);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // No reverse migration
+    }
+}
+```
+
+**Done when:** the migration command succeeds and Vendure v4 starts.
 
 ### During a rolling deployment
 

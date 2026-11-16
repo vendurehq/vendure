@@ -9,8 +9,10 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    ChannelTrackInventoryEvent,
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
+    EventBus,
     facetValueCollectionFilter,
     mergeConfig,
     variantNameCollectionFilter,
@@ -842,6 +844,30 @@ describe('Default search plugin', () => {
                 input: { groupByProduct: false, inStock: false },
             });
             expect(restored.search.totalItems).toBe(outOfStockIds.length);
+        });
+
+        // #2908 — sending an unchanged trackInventory does not reindex the channel
+        it('does not signal a trackInventory change when the value is unchanged', async () => {
+            const events: ChannelTrackInventoryEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(ChannelTrackInventoryEvent)
+                .subscribe(e => events.push(e));
+            try {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true },
+                });
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: false },
+                });
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true },
+                });
+                await awaitRunningJobs(adminClient);
+                expect(events.map(e => e.trackInventory)).toEqual([false, true]);
+            } finally {
+                subscription.unsubscribe();
+            }
         });
     });
 

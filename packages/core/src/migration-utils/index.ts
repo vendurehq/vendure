@@ -25,9 +25,4 @@ export {
     previewTimestamptzMigration,
     revertTimestamptzMigration,
 } from './v4_0_timestamptz';
-export {
-    TrackInventoryMigrationResult,
-    assertTrackInventoryMigrated,
-    backfillStockMovementTracking,
-    migrateTrackInventoryToChannels,
-} from './v4_0_track_inventory';
+export { TrackInventoryMigrationResult, migrateTrackInventoryToChannels } from './v4_0_track_inventory';

@@ -16,6 +16,8 @@ export interface TrackInventoryMigrationResult {
     globalTrackInventory: boolean | undefined;
     /** Channels whose stored `trackInventory` differed from the global value and was overwritten. */
     overwrittenChannels: Array<{ code: string; previous: boolean }>;
+    /** The number of stock movements whose `tracked` state was filled in. */
+    filledStockMovements: number;
 }
 
 /**
@@ -27,6 +29,8 @@ export interface TrackInventoryMigrationResult {
  * is the default, and `GlobalSettings.trackInventory` is removed from the API. This helper copies
  * the global value to every Channel, so that every variant keeps its current behaviour, then sets
  * the `global_settings.trackInventory` column to `NULL` to record that the copy has been done.
+ * It then fills the new `StockMovement.tracked` for the stock movements recorded before v4.0,
+ * with the rule that applied when they were recorded (see below).
  * The column itself is kept (see `GlobalSettings.legacyTrackInventory`), so neither
  * `synchronize` nor a generated migration drops the value before it is copied.
  *
@@ -34,21 +38,30 @@ export interface TrackInventoryMigrationResult {
  * returned and logged, so you can set them again on purpose after the upgrade.
  *
  * The new `stock_level.trackInventory` column needs no data: its default, `INHERIT`, keeps the
- * variant setting in force. The new `stock_movement.tracked` column is filled by
- * {@link backfillStockMovementTracking}.
+ * variant setting in force.
  *
  * Table names honour the `entityPrefix` of the connection options and, on Postgres, the
  * `schema` option. The helper throws if the `global_settings` table cannot be found, rather than
  * treating that as "already migrated".
  *
- * Call it from your v4 migration, after the generated statements, and then call
- * {@link backfillStockMovementTracking}. It is a no-op once the value has been copied. Vendure v4
- * refuses to start until it has run (see {@link assertTrackInventoryMigrated}).
+ * Call it from your v4 migration, after the generated statements. Vendure v4 refuses to start
+ * until it has run. It can be run again, e.g. from a later migration once the last v3 server of a
+ * rolling deployment has stopped: the copy is skipped once done, and only stock movements whose
+ * `tracked` state is still empty are filled.
  *
  * @docsCategory migration
  * @since 4.0.0
  */
 export async function migrateTrackInventoryToChannels(
+    queryRunner: QueryRunner,
+): Promise<TrackInventoryMigrationResult> {
+    const result = await copyGlobalTrackInventoryToChannels(queryRunner);
+    // Uses the default Channel's value, which the copy has just set to the v3 global value.
+    result.filledStockMovements = await backfillStockMovementTracking(queryRunner);
+    return result;
+}
+
+async function copyGlobalTrackInventoryToChannels(
     queryRunner: QueryRunner,
 ): Promise<TrackInventoryMigrationResult> {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
@@ -64,6 +77,7 @@ export async function migrateTrackInventoryToChannels(
     const result: TrackInventoryMigrationResult = {
         globalTrackInventory: undefined,
         overwrittenChannels: [],
+        filledStockMovements: 0,
     };
     if (!(await queryRunner.hasColumn(globalSettingsTable, 'trackInventory'))) {
         return result;
@@ -119,27 +133,18 @@ function toBoolean(value: unknown): boolean {
 }
 
 /**
- * @description
- * Second step of the v4.0 granular inventory tracking migration (#2908): fills
- * `stock_movement.tracked` for movements recorded before v4.0, with the rule that applied when
- * they were recorded. Before v4.0 a movement changed the StockLevel figures if the
- * ProductVariant's `trackInventory` was `TRUE`, or `INHERIT` with the global setting on. Channels
- * and StockLevels played no part.
+ * Fills `stock_movement.tracked` for movements recorded before v4.0, with the rule that applied
+ * when they were recorded: a movement changed the StockLevel figures if the ProductVariant's
+ * `trackInventory` was `TRUE`, or `INHERIT` with the global setting on. Channels and StockLevels
+ * played no part. Without this, those movements follow the *current* setting, so an Order still
+ * open at the upgrade would be released or sold by a rule different from the one it was
+ * allocated by. StockAdjustments always changed `stockOnHand`, so they are set to `TRUE`.
  *
- * Without this, those movements have `tracked = NULL` and follow the *current* setting, so an
- * Order still open at the upgrade would be released or sold by a rule different from the one it
- * was allocated by, the very leak v4.0 fixes. StockAdjustments always changed `stockOnHand`, so
- * they are set to `TRUE`.
+ * The former global value is read from the default Channel, which the copy has set to it. Only
+ * rows still `NULL` are touched. Part of {@link migrateTrackInventoryToChannels}; exported for
+ * tests only.
  *
- * The former global value is read from the default Channel, which
- * {@link migrateTrackInventoryToChannels} has set to it. **Call this at the end of your
- * migration's `up()`**, after the generated statement that adds `stock_movement.tracked` and
- * after `migrateTrackInventoryToChannels()`. Only rows still `NULL` are touched, so it is safe to
- * run more than once.
- *
- * @returns the number of rows it set
- * @docsCategory migration
- * @since 4.0.0
+ * @internal
  */
 export async function backfillStockMovementTracking(queryRunner: QueryRunner): Promise<number> {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
@@ -150,7 +155,7 @@ export async function backfillStockMovementTracking(queryRunner: QueryRunner): P
     if (!(await queryRunner.hasColumn(movementTable, 'tracked'))) {
         throw new Error(
             `[v4 trackInventory] Column "tracked" not found on "${movementTable}". Call ` +
-                'backfillStockMovementTracking() after the statement which adds it.',
+                'migrateTrackInventoryToChannels() after the generated statements of your v4 migration.',
         );
     }
     // The outer table is referenced by its name without the schema, which every supported
@@ -201,8 +206,7 @@ export async function backfillStockMovementTracking(queryRunner: QueryRunner): P
  * track inventory would start allocating, and limiting sales by, stock it never maintained. It
  * only reads, and finds nothing on databases created by v4 or already migrated.
  *
- * @docsCategory migration
- * @since 4.0.0
+ * @internal
  */
 export async function assertTrackInventoryMigrated(queryRunner: QueryRunner): Promise<void> {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
@@ -220,8 +224,7 @@ export async function assertTrackInventoryMigrated(queryRunner: QueryRunner): Pr
     if (pending.length) {
         throw new Error(
             'The v4 inventory tracking data migration has not run: GlobalSettings.trackInventory still ' +
-                'holds its v3 value. Call migrateTrackInventoryToChannels() and ' +
-                'backfillStockMovementTracking() from your v4 migration. See ' +
+                'holds its v3 value. Call migrateTrackInventoryToChannels() from your v4 migration. See ' +
                 'https://docs.vendure.io/current/framework/developer-guide/migrating-from-v3/inventory-tracking',
         );
     }

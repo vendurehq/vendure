@@ -27,7 +27,6 @@ import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { z } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { channelDetailDocument, createChannelDocument, updateChannelDocument } from './channels.graphql.js';
 
@@ -81,8 +80,6 @@ function ChannelDetailPage() {
     const { refreshChannels } = useChannel();
     const { canEdit: canEditChannelColors, isAvailable: channelColorsAvailable } = useChannelColors();
 
-    // The trackInventory value as loaded, so the update only sends it when it changed.
-    const loadedTrackInventoryRef = useRef<boolean | null | undefined>(undefined);
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
         queryDocument: channelDetailDocument,
@@ -116,12 +113,8 @@ function ChannelDetailPage() {
             };
         },
         transformUpdateInput: input => {
-            // Changing trackInventory reindexes the channel's search index (#2908), so only send
-            // it when the admin changed it.
-            const { trackInventory, ...rest } = input;
             return {
-                ...rest,
-                ...(trackInventory !== loadedTrackInventoryRef.current ? { trackInventory } : {}),
+                ...input,
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
                     input.defaultLanguageCode,
@@ -204,10 +197,6 @@ function ChannelDetailPage() {
             });
         },
     });
-
-    useEffect(() => {
-        loadedTrackInventoryRef.current = entity?.trackInventory;
-    }, [entity]);
 
     const availableCurrencyCodes = form.watch('availableCurrencyCodes');
     const availableLanguageCodes = form.watch('availableLanguageCodes');
