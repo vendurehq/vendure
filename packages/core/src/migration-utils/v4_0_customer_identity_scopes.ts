@@ -268,8 +268,10 @@ function planMigration(data: CustomerData, scopes: ChannelScopes): MigrationPlan
             continue;
         }
         plan.splits.push(split);
-        plan.finalScopes.push({ customerId, scope: split.primary });
-        plan.finalScopes.push(...split.others.map(other => ({ customerId, scope: other.scope })));
+        plan.finalScopes.push(
+            { customerId, scope: split.primary },
+            ...split.others.map(other => ({ customerId, scope: other.scope })),
+        );
     }
     return plan;
 }
