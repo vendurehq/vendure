@@ -2,7 +2,7 @@
 title: "OrderChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="136" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="207" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [Order](/reference/typescript-api/entities/order#order) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [Order](/reference/typescript-api/entities/order#order) to a
 class OrderChannel extends ChannelAssignment {
     orderId: ID;
     order: Order;
+    customFields: Partial<CustomOrderFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class OrderChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomOrderFields>`}  since="4.0.0"  />
+
+The values of the Order's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

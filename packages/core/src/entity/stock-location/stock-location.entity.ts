@@ -1,9 +1,14 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware } from '../../common/types/common-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomStockLocationFields } from '../custom-entity-fields';
 import { StockMovement } from '../stock-movement/stock-movement.entity';
@@ -32,6 +37,22 @@ export class StockLocation extends VendureEntity implements HasCustomFields, Cha
 
     @Column(type => CustomStockLocationFields)
     customFields: CustomStockLocationFields;
+
+    /**
+     * @description
+     * Returns the values of the StockLocation's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A StockLocation loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomStockLocationFields>,
+    ): Promise<Partial<CustomStockLocationFields> | undefined> {
+        return readChannelCustomFields(ctx, StockLocation, this, options);
+    }
 
     @ManyToMany(type => Channel, channel => channel.stockLocations)
     // The junction table is owned by the channel assignment entity, which manages its schema.

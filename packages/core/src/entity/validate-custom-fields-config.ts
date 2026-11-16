@@ -5,10 +5,12 @@ import { DataSourceOptions, getMetadataArgsStorage } from 'typeorm';
 import {
     CustomFieldConfig,
     CustomFields,
+    isChannelScopedCustomField,
     isLocalizedCustomFieldType,
 } from '../config/custom-field/custom-field-types';
 
 import { VendureEntity } from './base/base.entity';
+import { getChannelAssignmentEntities } from './channel-assignment/channel-assignment-registry';
 
 function validateCustomFieldsForEntity(
     entity: Type<VendureEntity>,
@@ -23,7 +25,62 @@ function validateCustomFieldsForEntity(
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
         ...assertValidIndexConfiguration(entity.name, customFields, dbEngine),
         ...(isTranslatable(entity) ? [] : assertNoLocalizedFields(entity.name, customFields)),
+        ...assertValidChannelScopedFields(entity, customFields),
     ];
+}
+
+/**
+ * Assert that channel-scoped custom fields are only declared on entities with a channel assignment
+ * entity, and only with the field types and options which are supported there.
+ */
+function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomFieldConfig[]): string[] {
+    const channelScoped = customFields.filter(isChannelScopedCustomField);
+    if (!channelScoped.length) {
+        return [];
+    }
+    const hasAssignmentEntity = Array.from(getChannelAssignmentEntities().values()).some(
+        options => options.entity() === entity,
+    );
+    if (!hasAssignmentEntity) {
+        const names = channelScoped.map(f => JSON.stringify(f.name)).join(', ');
+        return [
+            `${entity.name} entity custom field(s) ${names} ` +
+                'have scope "channel", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
+        ];
+    }
+    const errors: string[] = [];
+    for (const field of channelScoped) {
+        const prefix = `${entity.name} entity custom field "${field.name}" has scope "channel"`;
+        if (isLocalizedCustomFieldType(field.type)) {
+            errors.push(`${prefix}, which does not support type "${field.type}"`);
+        }
+        // A channel assignment row is created with only its key columns, and the values are written
+        // later, so a NOT NULL column needs a database default. Lists (on MySQL) and relations have
+        // none.
+        if (field.nullable === false && (field.list || field.type === 'relation')) {
+            errors.push(
+                `${prefix}, which does not support "nullable: false" on a list or relation field, because ` +
+                    'its value is set after the entity is assigned to a Channel',
+            );
+        }
+        // The foreign key actions of a channel-scoped relation apply to the channel assignment row,
+        // not to the entity.
+        if (field.type === 'relation') {
+            if (field.list && field.onDelete && field.onDelete !== 'CASCADE') {
+                errors.push(
+                    `${prefix}, which only supports "onDelete: 'CASCADE'" on a list relation, so that the ` +
+                        'entity can be removed from a Channel',
+                );
+            }
+            if (!field.list && field.onDelete === 'CASCADE') {
+                errors.push(
+                    `${prefix}, which does not support "onDelete: 'CASCADE'": deleting the related entity ` +
+                        'would remove the entity from the Channel',
+                );
+            }
+        }
+    }
+    return errors;
 }
 
 /**

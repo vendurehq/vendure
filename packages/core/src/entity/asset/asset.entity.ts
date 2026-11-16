@@ -2,15 +2,20 @@ import { AssetType } from '@vendure/common/lib/generated-types';
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, Taggable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { Collection } from '../collection/collection.entity';
 import { CustomAssetFields } from '../custom-entity-fields';
-import { Product } from '../product/product.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
+import { Product } from '../product/product.entity';
 import { Tag } from '../tag/tag.entity';
 
 import { AssetTranslation } from './asset-translation.entity';
@@ -78,6 +83,22 @@ export class Asset extends VendureEntity implements Taggable, ChannelAware, HasC
 
     @Column(type => CustomAssetFields)
     customFields: CustomAssetFields;
+
+    /**
+     * @description
+     * Returns the values of the Asset's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. An Asset loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomAssetFields>,
+    ): Promise<Partial<CustomAssetFields> | undefined> {
+        return readChannelCustomFields(ctx, Asset, this, options);
+    }
 
     @OneToMany(type => AssetTranslation, translation => translation.base, { eager: true })
     translations: Array<Translation<Asset>>;

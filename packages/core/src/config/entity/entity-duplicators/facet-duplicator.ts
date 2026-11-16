@@ -9,10 +9,12 @@ import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { Facet } from '../../../entity/facet/facet.entity';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { FacetValueService } from '../../../service/services/facet-value.service';
 import { FacetService } from '../../../service/services/facet.service';
 import { EntityDuplicator } from '../entity-duplicator';
 
+let channelAssignmentService: ChannelAssignmentService;
 let connection: TransactionalConnection;
 let facetService: FacetService;
 let facetValueService: FacetValueService;
@@ -40,6 +42,7 @@ export const facetDuplicator = new EntityDuplicator({
     },
     init(injector: Injector) {
         connection = injector.get(TransactionalConnection);
+        channelAssignmentService = injector.get(ChannelAssignmentService);
         facetService = injector.get(FacetService);
         facetValueService = injector.get(FacetValueService);
     },
@@ -57,7 +60,7 @@ export const facetDuplicator = new EntityDuplicator({
         const facetInput: CreateFacetInput = {
             isPrivate: true,
             translations,
-            customFields: facet.customFields,
+            customFields: await channelAssignmentService.getCustomFieldsToCopy(ctx, Facet, facet),
             code: facet.code + '-copy',
         };
 
@@ -81,7 +84,11 @@ export const facetDuplicator = new EntityDuplicator({
                         customFields: translation.customFields,
                     })),
                     facetId: duplicatedFacet.id,
-                    customFields: value.customFields,
+                    customFields: await channelAssignmentService.getCustomFieldsToCopy(
+                        ctx,
+                        FacetValue,
+                        value,
+                    ),
                 });
                 duplicatedFacet.values.push(newValue);
             }

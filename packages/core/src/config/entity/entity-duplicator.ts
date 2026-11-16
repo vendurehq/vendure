@@ -77,8 +77,9 @@ export interface EntityDuplicatorConfig<T extends ConfigArgs> extends Configurab
  * @example
  * ```ts title=src/config/custom-collection-duplicator.ts
  * import { Collection, LanguageCode, Permission
- *   EntityDuplicator, TransactionalConnection, CollectionService } from '\@vendure/core';
+ *   EntityDuplicator, TransactionalConnection, CollectionService, ChannelAssignmentService } from '\@vendure/core';
  *
+ * let channelAssignmentService: ChannelAssignmentService;
  * let collectionService: CollectionService;
  * let connection: TransactionalConnection;
  *
@@ -95,6 +96,7 @@ export interface EntityDuplicatorConfig<T extends ConfigArgs> extends Configurab
  *     forEntities: ['Collection'],
  *     requiresPermission: [Permission.UpdateCollection],
  *     init(injector) {
+ *         channelAssignmentService = injector.get(ChannelAssignmentService);
  *         collectionService = injector.get(CollectionService);
  *         connection = injector.get(TransactionalConnection);
  *     },
@@ -112,7 +114,8 @@ export interface EntityDuplicatorConfig<T extends ConfigArgs> extends Configurab
  *         });
  *         const newCollection = await collectionService.create(ctx, {
  *             isPrivate: original.isPrivate,
- *             customFields: original.customFields,
+ *             // Includes the original's channel-scoped custom fields in the active Channel
+ *             customFields: await channelAssignmentService.getCustomFieldsToCopy(ctx, Collection, original),
  *             assetIds: original.assets.map(a => a.id),
  *             featuredAssetId: original.featuredAsset?.id,
  *             parentId: original.parentId,

@@ -2,7 +2,7 @@
 title: "PromotionChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="261" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="386" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [Promotion](/reference/typescript-api/entities/promotion#promotion) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [Promotion](/reference/typescript-api/entities/promotion#pro
 class PromotionChannel extends ChannelAssignment {
     promotionId: ID;
     promotion: Promotion;
+    customFields: Partial<CustomPromotionFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class PromotionChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomPromotionFields>`}  since="4.0.0"  />
+
+The values of the Promotion's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

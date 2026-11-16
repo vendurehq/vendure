@@ -4,6 +4,23 @@ import { Column } from 'typeorm';
 import { ApiKey } from '../api-key/api-key.entity';
 import { Asset } from '../asset/asset.entity';
 import { Collection } from '../collection/collection.entity';
+import {
+    CustomApiKeyFields,
+    CustomAssetFields,
+    CustomCollectionFields,
+    CustomCustomerFields,
+    CustomFacetFields,
+    CustomFacetValueFields,
+    CustomOrderFields,
+    CustomPaymentMethodFields,
+    CustomProductFields,
+    CustomProductOptionFields,
+    CustomProductOptionGroupFields,
+    CustomProductVariantFields,
+    CustomPromotionFields,
+    CustomShippingMethodFields,
+    CustomStockLocationFields,
+} from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
 import { FacetValue } from '../facet-value/facet-value.entity';
 import { Facet } from '../facet/facet.entity';
@@ -38,6 +55,15 @@ import { ChannelAssignment, ChannelAssignmentEntity } from './channel-assignment
 export class AssetChannel extends ChannelAssignment {
     assetId: ID;
     asset: Asset;
+
+    /**
+     * @description
+     * The values of the Asset's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomAssetFields>;
 }
 
 /**
@@ -56,6 +82,15 @@ export class AssetChannel extends ChannelAssignment {
 export class ApiKeyChannel extends ChannelAssignment {
     apiKeyId: ID;
     apiKey: ApiKey;
+
+    /**
+     * @description
+     * The values of the ApiKey's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomApiKeyFields>;
 }
 
 /**
@@ -73,6 +108,15 @@ export class ApiKeyChannel extends ChannelAssignment {
 export class CollectionChannel extends ChannelAssignment {
     collectionId: ID;
     collection: Collection;
+
+    /**
+     * @description
+     * The values of the Collection's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomCollectionFields>;
 }
 
 /**
@@ -90,6 +134,15 @@ export class CollectionChannel extends ChannelAssignment {
 export class CustomerChannel extends ChannelAssignment {
     customerId: ID;
     customer: Customer;
+
+    /**
+     * @description
+     * The values of the Customer's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomCustomerFields>;
 }
 
 /**
@@ -107,6 +160,15 @@ export class CustomerChannel extends ChannelAssignment {
 export class FacetChannel extends ChannelAssignment {
     facetId: ID;
     facet: Facet;
+
+    /**
+     * @description
+     * The values of the Facet's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomFacetFields>;
 }
 
 /**
@@ -124,6 +186,15 @@ export class FacetChannel extends ChannelAssignment {
 export class FacetValueChannel extends ChannelAssignment {
     facetValueId: ID;
     facetValue: FacetValue;
+
+    /**
+     * @description
+     * The values of the FacetValue's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomFacetValueFields>;
 }
 
 /**
@@ -142,6 +213,15 @@ export class FacetValueChannel extends ChannelAssignment {
 export class OrderChannel extends ChannelAssignment {
     orderId: ID;
     order: Order;
+
+    /**
+     * @description
+     * The values of the Order's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomOrderFields>;
 }
 
 /**
@@ -159,6 +239,15 @@ export class OrderChannel extends ChannelAssignment {
 export class PaymentMethodChannel extends ChannelAssignment {
     paymentMethodId: ID;
     paymentMethod: PaymentMethod;
+
+    /**
+     * @description
+     * The values of the PaymentMethod's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomPaymentMethodFields>;
 }
 
 /**
@@ -187,6 +276,15 @@ export class ProductChannel extends ChannelAssignment {
      */
     @Column({ default: true })
     enabled: boolean;
+
+    /**
+     * @description
+     * The values of the Product's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomProductFields>;
 }
 
 /**
@@ -204,6 +302,15 @@ export class ProductChannel extends ChannelAssignment {
 export class ProductOptionChannel extends ChannelAssignment {
     productOptionId: ID;
     productOption: ProductOption;
+
+    /**
+     * @description
+     * The values of the ProductOption's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomProductOptionFields>;
 }
 
 /**
@@ -221,6 +328,15 @@ export class ProductOptionChannel extends ChannelAssignment {
 export class ProductOptionGroupChannel extends ChannelAssignment {
     productOptionGroupId: ID;
     productOptionGroup: ProductOptionGroup;
+
+    /**
+     * @description
+     * The values of the ProductOptionGroup's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomProductOptionGroupFields>;
 }
 
 /**
@@ -249,6 +365,15 @@ export class ProductVariantChannel extends ChannelAssignment {
      */
     @Column({ default: true })
     enabled: boolean;
+
+    /**
+     * @description
+     * The values of the ProductVariant's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomProductVariantFields>;
 }
 
 /**
@@ -266,6 +391,15 @@ export class ProductVariantChannel extends ChannelAssignment {
 export class PromotionChannel extends ChannelAssignment {
     promotionId: ID;
     promotion: Promotion;
+
+    /**
+     * @description
+     * The values of the Promotion's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomPromotionFields>;
 }
 
 /**
@@ -283,6 +417,15 @@ export class PromotionChannel extends ChannelAssignment {
 export class ShippingMethodChannel extends ChannelAssignment {
     shippingMethodId: ID;
     shippingMethod: ShippingMethod;
+
+    /**
+     * @description
+     * The values of the ShippingMethod's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomShippingMethodFields>;
 }
 
 /**
@@ -300,4 +443,13 @@ export class ShippingMethodChannel extends ChannelAssignment {
 export class StockLocationChannel extends ChannelAssignment {
     stockLocationId: ID;
     stockLocation: StockLocation;
+
+    /**
+     * @description
+     * The values of the StockLocation's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
+     *
+     * @since 4.0.0
+     */
+    customFields: Partial<CustomStockLocationFields>;
 }

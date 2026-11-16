@@ -231,8 +231,10 @@ describe('SqlJobQueueStrategy next()', () => {
         it('loads a bounded number of job records per pick', async () => {
             let loadedCount = 0;
             const subscriber: EntitySubscriberInterface = {
-                afterLoad(_entity, event) {
-                    if (event?.metadata.name === 'JobRecord') {
+                afterLoad(entity, event) {
+                    // Only the records of this queue: the server's own job queue workers poll the
+                    // other queues on the same connection meanwhile, which made this test flaky
+                    if (event?.metadata.name === 'JobRecord' && entity.queueName === queueName) {
                         loadedCount++;
                     }
                 },

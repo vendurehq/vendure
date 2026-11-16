@@ -2,7 +2,7 @@
 title: "Asset"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="26" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="31" packageName="@vendure/core" />
 
 An Asset represents a file such as an image which can be associated with certain other entities
 such as Products.
@@ -35,6 +35,7 @@ class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFi
     featuredInProducts?: Product[];
     @Column(type => CustomAssetFields)
     customFields: CustomAssetFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomAssetFields>) => Promise<Partial<CustomAssetFields> | undefined>;
     @OneToMany(type => AssetTranslation, translation => translation.base, { eager: true })
     translations: Array<Translation<Asset>>;
 }
@@ -123,6 +124,13 @@ class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFi
 <MemberInfo kind="property" type={`CustomAssetFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomAssetFields>) => Promise<Partial<CustomAssetFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the Asset's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. An Asset loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### translations
 
 <MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>>>`}   />

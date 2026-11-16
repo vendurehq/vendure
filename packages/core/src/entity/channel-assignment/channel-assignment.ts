@@ -29,6 +29,10 @@ import { ChannelAssignmentEntityOptions, getChannelAssignmentEntities } from './
  *
  * Relations are only supported inside the `customFields` of an assignment entity.
  *
+ * The `customFields` of an assignment entity hold the values of its entity's channel-scoped custom
+ * fields (`scope: 'channel'`) in that Channel, and are only present if the entity has any. Entities
+ * loaded with a RequestContext have the values of its Channel on their own `customFields`.
+ *
  * @docsCategory entities
  * @since 4.0.0
  */

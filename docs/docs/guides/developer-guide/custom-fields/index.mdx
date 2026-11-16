@@ -317,6 +317,64 @@ query {
 }
 ```
 
+### Channel-scoped custom fields
+
+The values of [channel-scoped](#scope) custom fields are stored per Channel, but in your code you read them like any
+other custom field. When an entity is loaded with a `RequestContext`, its `customFields` holds the values of that
+context's Channel. This applies to entities returned by Vendure's services, and to any entity loaded through
+`TransactionalConnection.getRepository(ctx, ...)`, including entities loaded as relations:
+
+```ts
+const product = await this.productService.findOne(ctx, 1);
+console.log(product.customFields.channelNote); // the value in the Channel of ctx
+
+const order = await this.orderService.findOne(ctx, orderId);
+console.log(order.lines[0].productVariant.product.customFields.channelNote);
+```
+
+An entity which is not assigned to that Channel reads `null`. As with other relation custom fields, a relation field
+is not loaded, but the `<name>Id` of a single relation is set.
+
+To change a value, set it and save the entity with a repository from `getRepository(ctx, ...)`. The values which you
+changed are written to the Channel of `ctx`:
+
+```ts
+const repo = this.connection.getRepository(ctx, Product);
+const product = await repo.findOne({ where: { id } });
+product.customFields.channelNote = 'Only in this Channel';
+product.customFields.channelFeaturedAssetId = assetId; // a single relation, by its id
+await repo.save(product);
+```
+
+Passing the values in the `customFields` of an entity service's create or update input works as usual, and saves
+them for the active Channel.
+
+#### Without a RequestContext, or for another Channel
+
+An entity loaded without a `RequestContext`, e.g. with `rawConnection`, does not have the values: reading
+`product.customFields.channelNote` then throws an error which says how to read it. Use the entity's
+`getChannelCustomFields()` method, which also reads the values of another Channel and loads relation fields:
+
+```ts
+const channelFields = await product.getChannelCustomFields(ctx, {
+    relations: ['channelFeaturedAsset'],
+    channelId: otherChannel.id,
+});
+```
+
+It returns `undefined` if the entity is not assigned to the Channel. Calls without `relations` made in the same tick
+are batched into one query.
+
+Code which does not run in a request for one Channel, such as a search plugin which indexes each Channel
+separately, should read the values of the Channel it is indexing: either by loading the entities with a
+`RequestContext` for that Channel, or with `getChannelCustomFields(ctx, { channelId: channel.id })`.
+
+The `EntityHydrator` does not hydrate channel-scoped relation fields: it throws an error which points to
+`getChannelCustomFields()`.
+
+To copy an entity's custom fields to a new entity, for example in an `EntityDuplicator`, use
+`ChannelAssignmentService.getCustomFieldsToCopy()`, which includes the channel-scoped values in the active Channel.
+
 ## Custom field config properties
 
 ### Common properties
@@ -785,6 +843,82 @@ type ProductCustomFields {
     infoUrl: String
 }
 ```
+
+#### scope
+
+<CustomFieldProperty required={false} type="'global' | 'channel'" />
+
+From Vendure v4.0, `scope` sets where the field's value lives. The default, `'global'`, is one value for the entity.
+Setting `scope: 'channel'` gives the field a separate value in each Channel (a "channel-scoped" field). For example,
+a Product can have a different `channelNote` in each Channel it is assigned to:
+
+```ts title="src/vendure-config.ts"
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'channelNote',
+                type: 'string',
+                nullable: true,
+                scope: 'channel', // [!code highlight]
+            },
+            {
+                name: 'channelFeaturedAsset',
+                type: 'relation',
+                entity: Asset,
+                nullable: true,
+                scope: 'channel', // [!code highlight]
+            },
+        ],
+    },
+};
+```
+
+In the GraphQL APIs, nothing changes for clients: channel-scoped fields are part of the same `customFields`
+object and input as the other custom fields. Queries read, and mutations write, the value in the active Channel.
+List queries filter and sort by the value in the active Channel. The `scope` property of the custom
+field config tells a client (such as the Dashboard) which fields hold a value per Channel.
+
+How the values behave:
+
+- There is no fallback between Channels: each Channel has its own value, which is never read from another
+  Channel, such as the default Channel.
+- A `defaultValue` is the value each Channel starts with. Without one, a value which has not been set is `null`.
+- When an entity is assigned to another Channel, the new Channel starts with a copy of the values of an existing
+  assignment (the active Channel's, if the entity is assigned to it). Later changes in one Channel are not copied
+  to the other.
+- When an entity is removed from a Channel, its values in that Channel are deleted.
+
+Channel-scoped fields are supported on the ChannelAware entities, such as `Product`, `ProductVariant`,
+`Collection`, `Customer`, `Asset`, `Facet`, `FacetValue`, `Promotion`, `ShippingMethod`, `PaymentMethod` and
+`StockLocation`. Each field is a column of the entity's row in its `channels` junction table (e.g. `ProductChannel`),
+in the same way as an ordinary custom field is a column of the entity's own table, so they can be filtered and sorted
+like other custom fields. A `list: true` relation has a junction table of its own, as it does on any entity.
+A `unique` channel-scoped field is unique within each Channel: the same value can be used in different Channels. A
+`secret` one is encrypted and redacted like any other [secret](#secret) field. Channel-scoped fields cannot have the
+localized types (`localeString`, `localeText`). Vendure checks this when the server starts.
+
+An entity's row in a Channel is created when the entity is assigned to it, before its channel-scoped values are
+written, so a few options are restricted:
+
+- A list or relation field cannot be `nullable: false`.
+- The `onDelete` of a relation applies to that row rather than to the entity. A single relation cannot use
+  `'CASCADE'`, which would remove the entity from the Channel when the related entity is deleted, and a list
+  relation only supports `'CASCADE'`.
+- As for other list fields, MySQL and MariaDB do not support a `defaultValue` on a list field.
+
+:::caution
+Changing an existing custom field to `scope: 'channel'` moves its column from the entity's table to the junction
+table. A generated migration, like `synchronize: true`, drops the old column with its values and adds an empty one.
+To keep the values, edit the migration: add the new column, copy the values with an `UPDATE` (e.g.
+`UPDATE product_channels_channel pc SET "customFieldsNote" = p."customFieldsNote" FROM product p WHERE p.id = pc."productId"`
+on Postgres), and only then drop the old column. Changing a channel-scoped field back to `scope: 'global'` needs the
+same care.
+:::
+
+In your TypeScript code, you read and write them on `entity.customFields`, like other custom fields: see
+[Channel-scoped custom fields](#channel-scoped-custom-fields).
 
 ### Properties for `string` fields
 

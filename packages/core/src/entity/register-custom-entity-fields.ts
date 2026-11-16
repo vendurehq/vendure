@@ -19,6 +19,8 @@ import { DateUtils } from 'typeorm/util/DateUtils';
 import {
     CustomFieldConfig,
     CustomFields,
+    getChannelScopedCustomFields,
+    isChannelScopedCustomField,
     isLocalizedCustomFieldType,
 } from '../config/custom-field/custom-field-types';
 import { Logger } from '../config/logger/vendure-logger';
@@ -26,6 +28,7 @@ import { VendureConfig } from '../config/vendure-config';
 import { getDatabaseType, VendureDatabaseType } from '../connection/database-type';
 import { getTimestampColumnType } from '../connection/timezone-utils';
 
+import { getChannelAssignmentEntities } from './channel-assignment/channel-assignment';
 import { coreEntitiesMap } from './entities';
 import { EntityId } from './entity-id.decorator';
 import { EncryptedFieldTransformer } from './value-transformers';
@@ -70,11 +73,17 @@ export function getEntityNamesWithCustomFields(entities: Array<Type<any>>): stri
     // otherwise seed phantom `config.customFields` keys.
     const registeredEntityNames = new Set(entities.map(entity => entity.name));
     const translationEntityNames = getTranslationEntityNames();
+    const channelAssignmentEntityNames = new Set(
+        Array.from(getChannelAssignmentEntities().keys()).map(e => e.name),
+    );
     const names = getMetadataArgsStorage()
         .embeddeds.filter(embedded => embedded.propertyName === 'customFields')
         .map(embedded => (typeof embedded.target === 'string' ? embedded.target : embedded.target.name))
         .filter(name => registeredEntityNames.has(name))
-        .filter(name => !translationEntityNames.has(name));
+        .filter(name => !translationEntityNames.has(name))
+        // Channel assignment entities carry a `customFields` embedded for channel-scoped fields of
+        // their owning entity; they are never a `config.customFields` key themselves.
+        .filter(name => !channelAssignmentEntityNames.has(name));
     return Array.from(new Set(names));
 }
 
@@ -128,10 +137,15 @@ export function registerCustomFieldsForEntity(
     // eslint-disable-next-line @typescript-eslint/prefer-function-type
     ctor: { new (): any },
     translation = false,
+    channelScoped = false,
 ) {
-    const customFields = config.customFields && config.customFields[entityName];
+    // Channel-scoped fields are registered on the entity's channel assignment entity instead
+    // (see registerChannelScopedCustomFields), so each call only handles one of the two sets.
+    const customFields = (config.customFields?.[entityName] ?? []).filter(
+        f => isChannelScopedCustomField(f) === channelScoped,
+    );
     const dbEngine = getDatabaseType(config.dbConnectionOptions);
-    if (customFields) {
+    if (customFields.length) {
         for (const customField of customFields) {
             const { name, list, defaultValue, nullable } = customField;
             const indexed = customField.index === true;
@@ -226,7 +240,9 @@ export function registerCustomFieldsForEntity(
                         default: getDefault(customField, dbEngine, getTimestampColumnType(config)),
                         name,
                         nullable: nullable === false ? false : true,
-                        unique: customField.unique ?? false,
+                        // A channel-scoped field is unique within each Channel, by an index which
+                        // also covers the Channel (see registerChannelScopedCustomFields)
+                        unique: !channelScoped && (customField.unique ?? false),
                     };
                     if ((customField.type === 'string' || customField.type === 'localeString') && !list) {
                         const length = customField.length || 255;
@@ -284,7 +300,11 @@ export function registerCustomFieldsForEntity(
                         );
                     }
                     Column(options)(instance, name);
-                    if ((dbEngine === 'mysql' || dbEngine === 'mariadb') && customField.unique === true) {
+                    if (
+                        (dbEngine === 'mysql' || dbEngine === 'mariadb') &&
+                        customField.unique === true &&
+                        !channelScoped
+                    ) {
                         // The MySQL driver seems to work differently and will only apply a unique
                         // constraint if an index is defined on the column. For postgres/sqlite it is
                         // sufficient to add the `unique: true` property to the column options.
@@ -487,6 +507,121 @@ function assertLocaleFieldsNotSpecified(config: VendureConfig, entityName: keyof
 }
 
 /**
+ * Registers the channel-scoped custom fields of an entity on its channel assignment entity
+ * (e.g. `ProductChannel` for `Product`), in a `customFields` embedded which is only added when
+ * the entity has channel-scoped fields, so entities without any keep their schema unchanged.
+ */
+function registerChannelScopedCustomFields(config: VendureConfig, entityName: string) {
+    const channelScoped = getChannelScopedCustomFields(config.customFields, entityName);
+    if (!channelScoped.length) {
+        return;
+    }
+    const assignmentEntity = Array.from(getChannelAssignmentEntities().entries()).find(
+        ([, options]) => options.entity().name === entityName,
+    )?.[0];
+    if (!assignmentEntity) {
+        // Reported by validateCustomFieldsConfig()
+        return;
+    }
+    const metadataArgsStorage = getMetadataArgsStorage();
+    let embedded = metadataArgsStorage.embeddeds.find(
+        e => e.target === assignmentEntity && e.propertyName === 'customFields',
+    );
+    if (!embedded) {
+        // Registration can run more than once in the same process (tests), so the embedded is
+        // only added once.
+        const className = `Custom${assignmentEntity.name}Fields`;
+        const embeddedClass = { [className]: class {} }[className];
+        Column(() => embeddedClass)(assignmentEntity.prototype, 'customFields');
+        embedded = metadataArgsStorage.embeddeds.find(
+            e => e.target === assignmentEntity && e.propertyName === 'customFields',
+        );
+    }
+    const customFieldsClass = embedded?.type();
+    if (customFieldsClass && typeof customFieldsClass !== 'string') {
+        registerCustomFieldsForEntity(config, entityName, customFieldsClass as any, false, true);
+    }
+    // A `unique` channel-scoped field is unique within each Channel: the same value can be used
+    // in another Channel, so the unique index covers the Channel as well as the value.
+    for (const field of channelScoped) {
+        if (field.unique !== true || field.type === 'relation') {
+            continue;
+        }
+        const columns = ['channelId', `customFields.${field.name}`];
+        const alreadyRegistered = metadataArgsStorage.indices.some(
+            index =>
+                index.target === assignmentEntity &&
+                Array.isArray(index.columns) &&
+                index.columns.join() === columns.join(),
+        );
+        if (!alreadyRegistered) {
+            Index(columns, { unique: true })(assignmentEntity);
+        }
+    }
+}
+
+/**
+ * The values of channel-scoped custom fields are stored on the channel assignment row, not on the
+ * entity. The TransactionalConnection sets them on `entity.customFields` when the entity is loaded
+ * with a RequestContext (see `ChannelAssignmentService.applyChannelCustomFields()`). Otherwise,
+ * reading `entity.customFields.<name>` would silently give `undefined`, so it throws an error which
+ * says how to read the value instead.
+ *
+ * The getter is on the prototype of the entity's custom fields class, so it does not affect
+ * spreading, `Object.keys()` or JSON serialization of the object, and writing the property still
+ * stores the value on the object.
+ */
+function guardChannelScopedCustomFields(
+    config: VendureConfig,
+    entityName: string,
+    customFieldsClass: Type<any>,
+) {
+    const channelScoped = getChannelScopedCustomFields(config.customFields, entityName);
+    if (channelScoped.length && !Object.getOwnPropertyDescriptor(customFieldsClass.prototype, 'toJSON')) {
+        // Serializers which read the getters of a class instance, such as the job queue's
+        // (Job.ensureDataIsSerializable()), use toJSON() instead: the own values only
+        Object.defineProperty(customFieldsClass.prototype, 'toJSON', {
+            configurable: true,
+            enumerable: false,
+            value(this: object) {
+                return { ...this };
+            },
+        });
+    }
+    for (const field of channelScoped) {
+        const names =
+            field.type === 'relation' && !field.list ? [field.name, `${field.name}Id`] : [field.name];
+        for (const name of names) {
+            if (Object.getOwnPropertyDescriptor(customFieldsClass.prototype, name)) {
+                // Registration can run more than once in the same process (tests)
+                continue;
+            }
+            Object.defineProperty(customFieldsClass.prototype, name, {
+                configurable: true,
+                enumerable: false,
+                get() {
+                    const variable = `${entityName.charAt(0).toLowerCase()}${entityName.slice(1)}`;
+                    throw new Error(
+                        `"${name}" is a channel-scoped custom field of ${entityName}, whose value is only set on ` +
+                            'entities loaded with a RequestContext, e.g. with ' +
+                            'TransactionalConnection.getRepository(ctx, ...) or an entity service. Load the ' +
+                            `entity that way, or read the value with ${variable}.getChannelCustomFields(ctx).`,
+                    );
+                },
+                set(value: unknown) {
+                    Object.defineProperty(this, name, {
+                        value,
+                        writable: true,
+                        enumerable: true,
+                        configurable: true,
+                    });
+                },
+            });
+        }
+    }
+}
+
+/**
  * Dynamically registers any custom fields with TypeORM. This function should be run at the bootstrap
  * stage of the app lifecycle, before the AppModule is initialized.
  */
@@ -528,6 +663,10 @@ export function registerCustomEntityFields(config: VendureConfig) {
                 }
             } else {
                 assertLocaleFieldsNotSpecified(config, entityName);
+            }
+            registerChannelScopedCustomFields(config, entityName);
+            if (customFieldsClass && typeof customFieldsClass !== 'string') {
+                guardChannelScopedCustomFields(config, entityName, customFieldsClass as Type<any>);
             }
         }
     }

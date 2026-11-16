@@ -1,0 +1,31 @@
+---
+title: "ChannelCustomFieldsOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-custom-fields.ts" sourceLine="28" packageName="@vendure/core" since="4.0.0" />
+
+Options for reading the channel-scoped custom fields of an entity, e.g. with
+`product.getChannelCustomFields(ctx, options)`.
+
+```ts title="Signature"
+interface ChannelCustomFieldsOptions<Fields> {
+    relations?: Array<ChannelCustomFieldRelations<Fields>>;
+    channelId?: ID;
+}
+```
+
+<div className="members-wrapper">
+
+### relations
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/entities/channel-custom-field-relations#channelcustomfieldrelations'>ChannelCustomFieldRelations</a><Fields>>`}   />
+
+The relation fields to load. Other relation fields are not set.
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+The Channel to read the values of. Defaults to the active Channel of the RequestContext.
+
+
+</div>

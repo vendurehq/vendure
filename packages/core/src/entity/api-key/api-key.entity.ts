@@ -3,9 +3,14 @@ import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typ
 
 import { Channel } from '..';
 import { ApiType } from '../../api/common/get-api-type';
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, LocaleString, SoftDeletable, Translatable, Translation } from '../../common';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { CustomApiKeyFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { User } from '../user/user.entity';
@@ -94,6 +99,22 @@ export class ApiKey
 
     @Column(type => CustomApiKeyFields)
     customFields: CustomApiKeyFields;
+
+    /**
+     * @description
+     * Returns the values of the ApiKey's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. An ApiKey loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomApiKeyFields>,
+    ): Promise<Partial<CustomApiKeyFields> | undefined> {
+        return readChannelCustomFields(ctx, ApiKey, this, options);
+    }
 
     name: LocaleString;
 }

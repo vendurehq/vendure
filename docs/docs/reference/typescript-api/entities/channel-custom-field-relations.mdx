@@ -1,0 +1,15 @@
+---
+title: "ChannelCustomFieldRelations"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-custom-fields.ts" sourceLine="15" packageName="@vendure/core" since="4.0.0" />
+
+The names of the relation fields among the given channel-scoped custom fields: those whose type
+is an entity or a list of entities.
+
+```ts title="Signature"
+type ChannelCustomFieldRelations<Fields> = {
+    [K in keyof Fields]-?: NonNullable<Fields[K]> extends VendureEntity | VendureEntity[] ? K : never;
+}[keyof Fields] &
+    string
+```

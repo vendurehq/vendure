@@ -2,6 +2,7 @@ import { type Locator, type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Custom fields are configured in global-setup.ts on the Product entity.
 // This suite verifies rendering of all custom field types: scalar, list, struct,
@@ -569,6 +570,102 @@ test.describe('Custom Fields', () => {
         await expect(popover).not.toBeVisible();
         await expect(triggerButton).not.toContainText('Pick a date and time');
         await expect(picker.locator('input[type="time"]')).toBeEnabled();
+    });
+});
+
+// #490 — a channel-scoped custom field shows and saves the value of the active channel
+test.describe('Channel-scoped custom fields', () => {
+    test.describe.configure({ mode: 'serial' });
+    const channelCode = `e2e-channel-scoped-${Date.now()}`;
+    let channelId = '';
+    let productId = '';
+
+    const readNote = async (client: VendureAdminClient, channelToken?: string) =>
+        (
+            await client.gql(
+                `query ($id: ID!) { product(id: $id) { customFields { channelNote } } }`,
+                { id: productId },
+                channelToken,
+            )
+        ).product?.customFields.channelNote;
+
+    /** Selects the channel with the channel switcher, which refetches the page's data. */
+    async function selectChannel(page: Page, code: string) {
+        await page.getByRole('button', { name: /Language:/ }).click();
+        await page.getByRole('menuitem', { name: code }).click();
+        await page.waitForLoadState('networkidle');
+    }
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        // The hint is only shown when there is more than one channel
+        channelId = (await client.createChannel(channelCode)).id;
+        const { products } = await client.gql(
+            `query { products(options: { filter: { name: { eq: "Laptop" } } }) { items { id } } }`,
+        );
+        productId = products.items[0].id;
+        await client.gql(
+            `mutation ($input: AssignProductsToChannelInput!) { assignProductsToChannel(input: $input) { id } }`,
+            { input: { channelId, productIds: [productId] } },
+        );
+        await client.gql(
+            `mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`,
+            { input: { id: productId, customFields: { channelNote: 'Note in the other channel' } } },
+            channelCode,
+        );
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: productId, customFields: { channelNote: null } },
+        });
+        await client.deleteChannel(channelId);
+        await page.close();
+    });
+
+    test('shows and saves the value of the active channel', async ({ page }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+        const noteItem = dp.formItem('Channel Note');
+        const noteInput = noteItem.getByRole('textbox');
+        await expect(noteItem.getByTestId('channel-scoped-hint')).toHaveText(
+            'Applies to Default channel only. Each channel has its own value.',
+        );
+        await expect(noteInput).toHaveValue('');
+
+        await noteInput.fill('Note in the default channel');
+        await Promise.all([
+            page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.request().postData()?.includes('UpdateProduct') === true &&
+                    response.status() === 200,
+            ),
+            page.getByRole('button', { name: 'Update', exact: true }).click(),
+        ]);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        expect(await readNote(client)).toBe('Note in the default channel');
+        expect(await readNote(client, channelCode)).toBe('Note in the other channel');
+
+        // Switching channel shows that channel's value, without reloading the page
+        await selectChannel(page, channelCode);
+        await expect(noteInput).toHaveValue('Note in the other channel', { timeout: 10_000 });
+        await expect(noteItem.getByTestId('channel-scoped-hint')).toHaveText(
+            `Applies to ${channelCode} only. Each channel has its own value.`,
+        );
+    });
+
+    test('does not mark ordinary custom fields as channel-scoped', async ({ page }) => {
+        await goToFirstProduct(page);
+        await expect(detailPage(page).formItem('Info URL').getByTestId('channel-scoped-hint')).toHaveCount(0);
     });
 });
 

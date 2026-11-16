@@ -1,14 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import DataLoader from 'dataloader';
+import { SelectQueryBuilder } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Translatable } from '../../common/types/locale-types';
-import { RelationCustomFieldConfig } from '../../config/custom-field/custom-field-types';
+import {
+    isChannelScopedCustomField,
+    RelationCustomFieldConfig,
+} from '../../config/custom-field/custom-field-types';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { VendureEntity } from '../../entity/base/base.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { ChannelAssignmentService } from '../../service/helpers/channel-assignment/channel-assignment.service';
+import { ChannelEnabledChecker } from '../../service/helpers/channel-enabled-checker/channel-enabled-checker';
+import {
+    getRelationTargetScope,
+    isScopedRelationTarget,
+} from '../../service/helpers/custom-field-relation/relation-target-scope';
 import { ProductPriceApplicator } from '../../service/helpers/product-price-applicator/product-price-applicator';
 import { TranslatorService } from '../../service/helpers/translator/translator.service';
 
@@ -28,7 +38,49 @@ export class CustomFieldRelationResolverService {
         private requestCache: RequestContextCacheService,
         private productPriceApplicator: ProductPriceApplicator,
         private translator: TranslatorService,
+        private channelEnabledChecker: ChannelEnabledChecker,
+        private channelAssignmentService: ChannelAssignmentService,
     ) {}
+
+    /**
+     * @description
+     * Filters a value of the field which was loaded together with the owning entity (an `eager`
+     * relation, or one the query joined), down to the related entities the caller may see. The
+     * load that produced it applied no Channel, soft-deletion or `enabled` filter. Returns the
+     * value unchanged if the target entity has no such scope.
+     *
+     * Checking visibility costs one id-only query per target entity type per request, batched
+     * across fields and rows, and the pre-loaded entities are reused.
+     */
+    async filterPreloadedValue(
+        ctx: RequestContext,
+        fieldDef: RelationCustomFieldConfig,
+        value: VendureEntity | VendureEntity[],
+    ): Promise<VendureEntity | VendureEntity[] | null> {
+        if (!isScopedRelationTarget(getRelationTargetScope(this.connection.rawConnection, fieldDef.entity))) {
+            return value;
+        }
+        const loader = this.requestCache.get(
+            ctx,
+            `CustomFieldRelationVisibility:${fieldDef.entity.name}`,
+            () =>
+                new DataLoader<string, boolean>(async ids => {
+                    const qb = this.connection
+                        .getRepository(ctx, fieldDef.entity)
+                        .createQueryBuilder('relation')
+                        .select('relation.id')
+                        .where('relation.id IN (:...ids)', { ids });
+                    this.applyTargetScope(ctx, qb, fieldDef);
+                    const visible = new Set((await qb.getMany()).map(e => String(e.id)));
+                    return ids.map(id => visible.has(id));
+                }),
+        );
+        if (Array.isArray(value)) {
+            const visible = await loader.loadMany(value.map(e => String(e.id)));
+            return value.filter((_, i) => visible[i] === true);
+        }
+        return (await loader.load(String(value.id))) ? value : null;
+    }
 
     /**
      * @description
@@ -77,8 +129,13 @@ export class CustomFieldRelationResolverService {
         fieldDef: RelationCustomFieldConfig,
     ): DataLoader<ID, VendureEntity[]> {
         const cacheKey = `CustomFieldRelationLoader:${entityName}:${fieldDef.name}`;
-        return this.requestCache.get(ctx, cacheKey, () =>
-            new DataLoader<ID, VendureEntity[]>(ids => this.batchLoad(ctx, entityName, fieldDef, ids as ID[])),
+        return this.requestCache.get(
+            ctx,
+            cacheKey,
+            () =>
+                new DataLoader<ID, VendureEntity[]>(ids =>
+                    this.batchLoad(ctx, entityName, fieldDef, ids as ID[]),
+                ),
         );
     }
 
@@ -88,14 +145,23 @@ export class CustomFieldRelationResolverService {
         fieldDef: RelationCustomFieldConfig,
         ids: ID[],
     ): Promise<VendureEntity[][]> {
-        // Fetch the parent -> relation id mapping for all batched parent ids in a single query
+        // Fetch the parent -> relation id mapping for all batched parent ids in a single query.
+        // Channel-scoped fields live on the entity's channel assignment row for the active Channel.
+        const assignment = isChannelScopedCustomField(fieldDef)
+            ? this.channelAssignmentService.getMetadataByEntityName(entityName)
+            : undefined;
+        // Only the queried table, its id column and the Channel condition differ
+        const idColumn = assignment ? `entity.${assignment.entityIdProperty}` : 'entity.id';
         const mappingQb = this.connection
-            .getRepository(ctx, entityName)
+            .getRepository(ctx, assignment ? assignment.target : entityName)
             .createQueryBuilder('entity')
             .leftJoin(`entity.customFields.${fieldDef.name}`, 'relationEntity')
-            .select('entity.id', 'entity_id')
+            .select(idColumn, 'entity_id')
             .addSelect('relationEntity.id', 'relation_id')
-            .where('entity.id IN (:...ids)', { ids });
+            .where(`${idColumn} IN (:...ids)`, { ids });
+        if (assignment) {
+            mappingQb.andWhere('entity.channelId = :channelId', { channelId: ctx.channelId });
+        }
 
         const rawMappings = await mappingQb.getRawMany();
 
@@ -128,6 +194,7 @@ export class CustomFieldRelationResolverService {
                 .getRepository(ctx, fieldDef.entity)
                 .createQueryBuilder('relation')
                 .where('relation.id IN (:...allRelationIds)', { allRelationIds });
+            this.applyTargetScope(ctx, relationQb, fieldDef);
 
             FindOptionsUtils.joinEagerRelations(
                 relationQb,
@@ -150,6 +217,36 @@ export class CustomFieldRelationResolverService {
                 .map(targetId => relationMap.get(String(targetId)))
                 .filter((r): r is VendureEntity => r != null);
         });
+    }
+
+    /**
+     * Limits the related entities to those the caller may see: entities assigned to the active
+     * Channel if the target is ChannelAware, and in the Shop API, entities which are not
+     * soft-deleted and, for Products and ProductVariants, enabled in the active Channel.
+     */
+    private applyTargetScope(
+        ctx: RequestContext,
+        qb: SelectQueryBuilder<any>,
+        fieldDef: RelationCustomFieldConfig,
+    ) {
+        const scope = getRelationTargetScope(this.connection.rawConnection, fieldDef.entity);
+        const isShop = ctx.apiType === 'shop';
+        if (isShop && scope.channelEnabled) {
+            // Also restricts the query to entities assigned to the active Channel.
+            this.channelEnabledChecker.applyToQuery(ctx, qb, fieldDef.entity as any, qb.alias);
+        } else if (scope.channelAware) {
+            qb.innerJoin(
+                `${qb.alias}.channels`,
+                'relation_channel',
+                'relation_channel.id = :relationChannelId',
+                {
+                    relationChannelId: ctx.channelId,
+                },
+            );
+        }
+        if (isShop && scope.softDeletable) {
+            qb.andWhere(`${qb.alias}.deletedAt IS NULL`);
+        }
     }
 
     async translateEntity(

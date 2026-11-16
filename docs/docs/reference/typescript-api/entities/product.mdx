@@ -2,7 +2,7 @@
 title: "Product"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/product/product.entity.ts" sourceLine="26" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/product/product.entity.ts" sourceLine="31" packageName="@vendure/core" />
 
 A Product contains one or more [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant)s and serves as a container for those variants,
 providing an overall name, description etc.
@@ -40,6 +40,7 @@ class Product extends VendureEntity implements Translatable, HasCustomFields, Ch
     channels: Channel[];
     @Column(type => CustomProductFields)
     customFields: CustomProductFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomProductFields>) => Promise<Partial<CustomProductFields> | undefined>;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
@@ -121,6 +122,13 @@ class Product extends VendureEntity implements Translatable, HasCustomFields, Ch
 <MemberInfo kind="property" type={`CustomProductFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomProductFields>) => Promise<Partial<CustomProductFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the Product's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A Product loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 
 
 </div>

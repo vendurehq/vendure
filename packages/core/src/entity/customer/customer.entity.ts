@@ -1,10 +1,15 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Address } from '../address/address.entity';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomCustomerFields } from '../custom-entity-fields';
 import { CustomerGroup } from '../customer-group/customer-group.entity';
@@ -57,6 +62,22 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
 
     @Column(type => CustomCustomerFields)
     customFields: CustomCustomerFields;
+
+    /**
+     * @description
+     * Returns the values of the Customer's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A Customer loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomCustomerFields>,
+    ): Promise<Partial<CustomCustomerFields> | undefined> {
+        return readChannelCustomFields(ctx, Customer, this, options);
+    }
 
     @ManyToMany(type => Channel, channel => channel.customers)
     // The junction table is owned by the channel assignment entity, which manages its schema.

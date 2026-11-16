@@ -2,7 +2,7 @@
 title: "CollectionChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="68" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="103" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [Collection](/reference/typescript-api/entities/collection#collection) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [Collection](/reference/typescript-api/entities/collection#c
 class CollectionChannel extends ChannelAssignment {
     collectionId: ID;
     collection: Collection;
+    customFields: Partial<CustomCollectionFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class CollectionChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomCollectionFields>`}  since="4.0.0"  />
+
+The values of the Collection's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>
