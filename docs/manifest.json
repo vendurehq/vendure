@@ -1584,7 +1584,7 @@
                   "title": "CustomFieldConfig",
                   "slug": "custom-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/custom-field-config.mdx",
-                  "lastModified": "2026-10-16T10:05:27Z"
+                  "lastModified": "2026-11-16T14:01:37Z"
                 },
                 {
                   "title": "CustomFieldType",
@@ -1602,13 +1602,13 @@
                   "title": "StructCustomFieldConfig",
                   "slug": "struct-custom-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/struct-custom-field-config.mdx",
-                  "lastModified": "2026-10-16T10:05:27Z"
+                  "lastModified": "2026-11-16T14:01:37Z"
                 },
                 {
                   "title": "StructFieldConfig",
                   "slug": "struct-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/struct-field-config.mdx",
-                  "lastModified": "2026-10-16T10:05:27Z"
+                  "lastModified": "2026-11-16T14:01:37Z"
                 },
                 {
                   "title": "TypedCustomSingleFieldConfig",
@@ -1623,7 +1623,7 @@
                   "lastModified": "2026-09-29T10:57:44+02:00"
                 }
               ],
-              "lastModified": "2026-10-16T10:05:27Z"
+              "lastModified": "2026-11-16T14:01:37Z"
             },
             {
               "title": "Data Access",
