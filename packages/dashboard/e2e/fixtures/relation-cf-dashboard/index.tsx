@@ -16,9 +16,7 @@ defineDashboardExtension({
             {
                 id: 'relation-cf.related-asset',
                 component: ({ value }) => (
-                    <div data-testid="related-asset-cf">
-                        {value?.id ? `asset:${value.id}` : 'none'}
-                    </div>
+                    <div data-testid="related-asset-cf">{value?.id ? `asset:${value.id}` : 'none'}</div>
                 ),
             },
         ],
