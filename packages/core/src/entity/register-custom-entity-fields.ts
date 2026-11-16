@@ -25,10 +25,9 @@ import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 import { getDatabaseType, VendureDatabaseType } from '../connection/database-type';
 
+import { coreEntitiesMap } from './entities';
 import { EntityId } from './entity-id.decorator';
 import { EncryptedFieldTransformer } from './value-transformers';
-
-import { coreEntitiesMap } from './entities';
 
 /**
  * The maximum length of the "length" argument of a MySQL varchar column.

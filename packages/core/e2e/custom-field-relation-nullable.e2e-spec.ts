@@ -80,7 +80,9 @@ describe('Relation custom field nullable', () => {
 
     it('a create input must give a non-nullable relation', async () => {
         await expect(createPromotion()).rejects.toThrow(/"banner" value cannot be set to null/);
-        await expect(createPromotion({ bannerId: null })).rejects.toThrow(/"banner" value cannot be set to null/);
+        await expect(createPromotion({ bannerId: null })).rejects.toThrow(
+            /"banner" value cannot be set to null/,
+        );
     });
 
     it('creates the entity when the relation is given', async () => {
