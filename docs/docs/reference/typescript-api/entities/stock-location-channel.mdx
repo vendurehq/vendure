@@ -2,7 +2,7 @@
 title: "StockLocationChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="295" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="438" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [StockLocation](/reference/typescript-api/entities/stock-loc
 class StockLocationChannel extends ChannelAssignment {
     stockLocationId: ID;
     stockLocation: StockLocation;
+    customFields: Partial<CustomStockLocationFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class StockLocationChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomStockLocationFields>`}  since="4.0.0"  />
+
+The values of the StockLocation's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

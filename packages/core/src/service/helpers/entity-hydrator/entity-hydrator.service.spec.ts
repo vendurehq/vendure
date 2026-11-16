@@ -9,7 +9,12 @@ import { EntityHydrator } from './entity-hydrator.service';
 describe('EntityHydrator', () => {
     describe('getMissingRelations()', () => {
         function getMissingRelations(target: any, relations: string[]): string[] {
-            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            const hydrator = new EntityHydrator(
+                undefined as any,
+                undefined as any,
+                undefined as any,
+                undefined as any,
+            );
             return (hydrator as any).getMissingRelations(target, { relations });
         }
 
@@ -221,7 +226,12 @@ describe('EntityHydrator', () => {
 
     describe('getRelationEntityAtPath()', () => {
         function getRelationEntityAtPath(target: any, path: string[]): any {
-            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            const hydrator = new EntityHydrator(
+                undefined as any,
+                undefined as any,
+                undefined as any,
+                undefined as any,
+            );
             return (hydrator as any).getRelationEntityAtPath(target, path);
         }
 
@@ -270,7 +280,12 @@ describe('EntityHydrator', () => {
 
     describe('getProductVariantsToPrice()', () => {
         function getProductVariantsToPrice(entity: any): ProductVariant[] {
-            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            const hydrator = new EntityHydrator(
+                undefined as any,
+                undefined as any,
+                undefined as any,
+                undefined as any,
+            );
             return (hydrator as any).getProductVariantsToPrice(entity);
         }
 
@@ -364,7 +379,12 @@ describe('EntityHydrator', () => {
                 { get: (_ctx: any, _key: any, getValue: () => any) => getValue() } as any,
             );
             const translator = { translate: (entity: any) => entity };
-            const hydrator = new EntityHydrator(connection as any, priceApplicator, translator as any);
+            const hydrator = new EntityHydrator(
+                connection as any,
+                priceApplicator,
+                translator as any,
+                configService as any,
+            );
             const ctx = { channelId: 1, currencyCode: 'USD' } as any;
             return { hydrator, ctx, target: new TestOrder() };
         }
@@ -430,7 +450,12 @@ describe('EntityHydrator', () => {
 
     describe('isTranslatable()', () => {
         function isTranslatable(input: any): boolean {
-            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            const hydrator = new EntityHydrator(
+                undefined as any,
+                undefined as any,
+                undefined as any,
+                undefined as any,
+            );
             return (hydrator as any).isTranslatable(input);
         }
         const translatable = { translations: [{ languageCode: 'en', name: 'Laptop' }] };

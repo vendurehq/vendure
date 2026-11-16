@@ -2,7 +2,7 @@
 title: "PaymentMethod"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/payment-method/payment-method.entity.ts" sourceLine="21" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/payment-method/payment-method.entity.ts" sourceLine="26" packageName="@vendure/core" />
 
 A PaymentMethod is created automatically according to the configured [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler)s defined
 in the [PaymentOptions](/reference/typescript-api/payment/payment-options#paymentoptions) config.
@@ -24,6 +24,7 @@ class PaymentMethod extends VendureEntity implements Translatable, ChannelAware,
     channels: Channel[];
     @Column(type => CustomPaymentMethodFields)
     customFields: CustomPaymentMethodFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomPaymentMethodFields>) => Promise<Partial<CustomPaymentMethodFields> | undefined>;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
@@ -80,6 +81,13 @@ class PaymentMethod extends VendureEntity implements Translatable, ChannelAware,
 <MemberInfo kind="property" type={`CustomPaymentMethodFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomPaymentMethodFields>) => Promise<Partial<CustomPaymentMethodFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the PaymentMethod's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A PaymentMethod loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 
 
 </div>

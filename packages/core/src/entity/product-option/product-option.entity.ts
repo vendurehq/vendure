@@ -1,10 +1,15 @@
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomProductOptionFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
@@ -58,4 +63,20 @@ export class ProductOption
 
     @Column(type => CustomProductOptionFields)
     customFields: CustomProductOptionFields;
+
+    /**
+     * @description
+     * Returns the values of the ProductOption's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A ProductOption loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomProductOptionFields>,
+    ): Promise<Partial<CustomProductOptionFields> | undefined> {
+        return readChannelCustomFields(ctx, ProductOption, this, options);
+    }
 }

@@ -15,6 +15,10 @@ import {
 } from '../../config/shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from '../../config/shipping-method/shipping-eligibility-checker';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomShippingMethodFields } from '../custom-entity-fields';
 import { Order } from '../order/order.entity';
@@ -73,6 +77,22 @@ export class ShippingMethod
 
     @Column(type => CustomShippingMethodFields)
     customFields: CustomShippingMethodFields;
+
+    /**
+     * @description
+     * Returns the values of the ShippingMethod's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A ShippingMethod loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomShippingMethodFields>,
+    ): Promise<Partial<CustomShippingMethodFields> | undefined> {
+        return readChannelCustomFields(ctx, ShippingMethod, this, options);
+    }
 
     async apply(ctx: RequestContext, order: Order): Promise<ShippingCalculationResult | undefined> {
         const calculator = this.allCalculators[this.calculator.code];

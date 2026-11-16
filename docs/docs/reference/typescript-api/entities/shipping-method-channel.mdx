@@ -2,7 +2,7 @@
 title: "ShippingMethodChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="278" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="412" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [ShippingMethod](/reference/typescript-api/entities/shipping
 class ShippingMethodChannel extends ChannelAssignment {
     shippingMethodId: ID;
     shippingMethod: ShippingMethod;
+    customFields: Partial<CustomShippingMethodFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class ShippingMethodChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomShippingMethodFields>`}  since="4.0.0"  />
+
+The values of the ShippingMethod's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

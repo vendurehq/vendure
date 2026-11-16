@@ -2,7 +2,7 @@
 title: "ProductVariant"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/product-variant/product-variant.entity.ts" sourceLine="38" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/product-variant/product-variant.entity.ts" sourceLine="43" packageName="@vendure/core" />
 
 A ProductVariant represents a single stock keeping unit (SKU) in the store's inventory.
 Whereas a [Product](/reference/typescript-api/entities/product#product) is a "container" of variants, the variant itself holds the
@@ -66,6 +66,7 @@ class ProductVariant extends VendureEntity implements Translatable, HasCustomFie
     facetValues: FacetValue[];
     @Column(type => CustomProductVariantFields)
     customFields: CustomProductVariantFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomProductVariantFields>) => Promise<Partial<CustomProductVariantFields> | undefined>;
     @ManyToMany(type => Collection, collection => collection.productVariants, {
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION',
@@ -225,6 +226,13 @@ value set on this ProductVariant will be ignored.
 <MemberInfo kind="property" type={`CustomProductVariantFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomProductVariantFields>) => Promise<Partial<CustomProductVariantFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the ProductVariant's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A ProductVariant loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### collections
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>[]`}   />

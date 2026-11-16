@@ -9,9 +9,11 @@ import { isGraphQlErrorResult } from '../../../common/error/error-result';
 import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Promotion } from '../../../entity/promotion/promotion.entity';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { PromotionService } from '../../../service/services/promotion.service';
 import { EntityDuplicator } from '../entity-duplicator';
 
+let channelAssignmentService: ChannelAssignmentService;
 let connection: TransactionalConnection;
 let promotionService: PromotionService;
 
@@ -32,6 +34,7 @@ export const promotionDuplicator = new EntityDuplicator({
     args: {},
     init(injector: Injector) {
         connection = injector.get(TransactionalConnection);
+        channelAssignmentService = injector.get(ChannelAssignmentService);
         promotionService = injector.get(PromotionService);
     },
     async duplicate({ ctx, id }) {
@@ -62,7 +65,7 @@ export const promotionDuplicator = new EntityDuplicator({
             })),
             enabled: false,
             translations,
-            customFields: promotion.customFields,
+            customFields: await channelAssignmentService.getCustomFieldsToCopy(ctx, Promotion, promotion),
         };
 
         const duplicatedPromotion = await promotionService.createPromotion(ctx, promotionInput);

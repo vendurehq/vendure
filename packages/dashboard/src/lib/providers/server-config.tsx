@@ -22,6 +22,7 @@ export const customFieldConfigFragment = graphql(`
         nullable
         requiresPermission
         secret
+        scope
         ui
     }
 `);

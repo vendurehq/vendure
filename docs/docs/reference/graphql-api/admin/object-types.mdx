@@ -438,6 +438,7 @@ scalar Boolean`}
     LocalizedString: '/reference/graphql-api/admin/object-types#localizedstring',
     Permission: '/reference/graphql-api/admin/enums#permission',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type BooleanCustomFieldConfig {
@@ -454,6 +455,7 @@ scalar Boolean`}
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -1373,6 +1375,7 @@ type CustomFields {
     Permission: '/reference/graphql-api/admin/enums#permission',
     Int: '/reference/graphql-api/admin/object-types#int',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`"""
@@ -1396,6 +1399,7 @@ type DateTimeCustomFieldConfig {
   max: String
   step: Int
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -1819,6 +1823,7 @@ scalar Float`}
     Permission: '/reference/graphql-api/admin/enums#permission',
     Float: '/reference/graphql-api/admin/object-types#float',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type FloatCustomFieldConfig {
@@ -1838,6 +1843,7 @@ scalar Float`}
   max: Float
   step: Float
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -2164,6 +2170,7 @@ scalar Int`}
     Permission: '/reference/graphql-api/admin/enums#permission',
     Int: '/reference/graphql-api/admin/object-types#int',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type IntCustomFieldConfig {
@@ -2183,6 +2190,7 @@ scalar Int`}
   max: Int
   step: Int
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -2408,6 +2416,7 @@ type LanguageNotAvailableError {
     LocalizedString: '/reference/graphql-api/admin/object-types#localizedstring',
     Permission: '/reference/graphql-api/admin/enums#permission',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type LocaleStringCustomFieldConfig {
@@ -2426,6 +2435,7 @@ type LanguageNotAvailableError {
   deprecationReason: String
   pattern: String
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -2442,6 +2452,7 @@ type LanguageNotAvailableError {
     LocalizedString: '/reference/graphql-api/admin/object-types#localizedstring',
     Permission: '/reference/graphql-api/admin/enums#permission',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type LocaleTextCustomFieldConfig {
@@ -2458,6 +2469,7 @@ type LanguageNotAvailableError {
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -4335,6 +4347,7 @@ type RefundStateTransitionError {
     LocalizedString: '/reference/graphql-api/admin/object-types#localizedstring',
     Permission: '/reference/graphql-api/admin/enums#permission',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type RelationCustomFieldConfig {
@@ -4353,6 +4366,7 @@ type RefundStateTransitionError {
   entity: String!
   scalarFields: [String!]!
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -5338,6 +5352,7 @@ scalar String`}
     Permission: '/reference/graphql-api/admin/enums#permission',
     StringFieldOption: '/reference/graphql-api/admin/object-types#stringfieldoption',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type StringCustomFieldConfig {
@@ -5357,6 +5372,7 @@ scalar String`}
   pattern: String
   options: [StringFieldOption!]
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -5421,6 +5437,7 @@ scalar String`}
     LocalizedString: '/reference/graphql-api/admin/object-types#localizedstring',
     Permission: '/reference/graphql-api/admin/enums#permission',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type StructCustomFieldConfig {
@@ -5438,6 +5455,7 @@ scalar String`}
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 
@@ -5707,6 +5725,7 @@ type Success {
     LocalizedString: '/reference/graphql-api/admin/object-types#localizedstring',
     Permission: '/reference/graphql-api/admin/enums#permission',
     JSON: '/reference/graphql-api/admin/object-types#json',
+    CustomFieldScope: '/reference/graphql-api/admin/enums#customfieldscope',
   }}
 >
 {`type TextCustomFieldConfig {
@@ -5723,6 +5742,7 @@ type Success {
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
+  scope: CustomFieldScope!
 }`}
 </GraphQLDoc>
 

@@ -2,7 +2,7 @@
 title: "ProductOptionGroupChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="216" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="323" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [ProductOptionGroup](/reference/typescript-api/entities/product-option-group#productoptiongroup) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [ProductOptionGroup](/reference/typescript-api/entities/prod
 class ProductOptionGroupChannel extends ChannelAssignment {
     productOptionGroupId: ID;
     productOptionGroup: ProductOptionGroup;
+    customFields: Partial<CustomProductOptionGroupFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class ProductOptionGroupChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-option-group#productoptiongroup'>ProductOptionGroup</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomProductOptionGroupFields>`}  since="4.0.0"  />
+
+The values of the ProductOptionGroup's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

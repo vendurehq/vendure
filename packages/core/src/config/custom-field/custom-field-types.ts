@@ -54,6 +54,41 @@ export function isLocalizedCustomFieldType(type: CustomFieldType | undefined): b
     return type === 'localeString' || type === 'localeText';
 }
 
+/**
+ * @description
+ * Where the value of a custom field lives: `'global'` (one value for the entity) or `'channel'` (a
+ * separate value per Channel). See the `scope` property of the custom field config.
+ *
+ * @docsCategory custom-fields
+ * @since 4.0.0
+ */
+export type CustomFieldScope = 'global' | 'channel';
+
+/**
+ * @description
+ * Whether the custom field holds a separate value per Channel (`scope: 'channel'`).
+ *
+ * @docsCategory custom-fields
+ * @since 4.0.0
+ */
+export function isChannelScopedCustomField(field: { scope?: CustomFieldScope }): boolean {
+    return field.scope === 'channel';
+}
+
+/**
+ * @description
+ * Returns the channel-scoped custom fields (`scope: 'channel'`) of the given entity.
+ *
+ * @docsCategory custom-fields
+ * @since 4.0.0
+ */
+export function getChannelScopedCustomFields(
+    customFields: CustomFields | undefined,
+    entityName: string,
+): CustomFieldConfig[] {
+    return (customFields?.[entityName as keyof CustomFields] ?? []).filter(isChannelScopedCustomField);
+}
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :
@@ -64,7 +99,7 @@ export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
 
 export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends CustomField> = Omit<
     C,
-    '__typename' | 'list' | 'requiresPermission' | 'deprecated'
+    '__typename' | 'list' | 'requiresPermission' | 'deprecated' | 'scope'
 > & {
     type: T;
     /**
@@ -88,6 +123,45 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * @since 3.8.0
      */
     index?: boolean;
+    /**
+     * @description
+     * Where the value of the field lives:
+     *
+     * - `'global'`: one value for the entity, stored on the entity's own table.
+     * - `'channel'`: a separate value per Channel ("channel-scoped"). It is only supported on
+     * {@link ChannelAware} entities which have a channel assignment entity (see
+     * `ChannelAssignment`), e.g. `Product`: the value is stored on the entity's row for each Channel
+     * (e.g. `ProductChannel`), and the `customFields` API reads and writes the value in the active
+     * Channel.
+     *
+     * - There is no fallback between Channels: each Channel has its own value, which is never
+     *   read from another Channel, such as the default Channel.
+     * - A `defaultValue` is the column default of the assignment row, as for an ordinary custom
+     *   field, so each Channel starts with it, except when an assignment copies existing values
+     *   (see below). Without a `defaultValue`, a value which is not set reads `null`.
+     * - When the entity is assigned to another Channel with `ChannelService.assignToChannels()`,
+     *   the new Channel starts with a copy of the values of an existing assignment: the active
+     *   Channel's if the entity is assigned to it, otherwise the default Channel's, otherwise any.
+     *   Later changes in one Channel are not copied to the other.
+     * - An entity which is not assigned to the active Channel reads `null`.
+     * - Removing the entity from a Channel deletes its values in that Channel.
+     *
+     * In TypeScript code, declare their types on the entity's custom fields interface (e.g.
+     * `CustomProductFields`), like other custom fields. An entity loaded with a RequestContext (by an
+     * entity service, or with `TransactionalConnection.getRepository(ctx, ...)`) has the values of
+     * that RequestContext's Channel on `customFields`, and saving it with such a repository writes
+     * changed values to that Channel. To read another Channel's values, relation fields, or the values
+     * of an entity loaded without a RequestContext, use the entity's `getChannelCustomFields(ctx)`.
+     *
+     * A `unique` channel-scoped field is unique within each Channel: the same value can be used in
+     * different Channels.
+     *
+     * Not supported with the localized types (`localeString`, `localeText`).
+     *
+     * @since 4.0.0
+     * @default 'global'
+     */
+    scope?: CustomFieldScope;
     /**
      * @description
      * If set to `true`, the value of this field is encrypted at rest using the configured

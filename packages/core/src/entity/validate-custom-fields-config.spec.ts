@@ -280,4 +280,111 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.valid).toBe(true);
         expect(result.errors).toEqual([]);
     });
+
+    describe("scope: 'channel'", () => {
+        it('accepts channel-scoped fields on an entity with a channel assignment entity', () => {
+            const config: CustomFields = {
+                Product: [
+                    { name: 'note', type: 'string', scope: 'channel', nullable: true },
+                    {
+                        name: 'featured',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        scope: 'channel',
+                    },
+                ],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities)).toEqual({ valid: true, errors: [] });
+        });
+
+        it('rejects channel-scoped fields on an entity without a channel assignment entity', () => {
+            const config: CustomFields = {
+                User: [{ name: 'note', type: 'string', scope: 'channel' }],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
+                'User entity custom field(s) "note" have scope "channel", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
+            ]);
+        });
+
+        it('accepts struct fields, list fields, list relations, unique and secret fields', () => {
+            const config: CustomFields = {
+                Product: [
+                    {
+                        name: 'structured',
+                        type: 'struct',
+                        fields: [{ name: 'a', type: 'string' }],
+                        scope: 'channel',
+                    },
+                    { name: 'tags', type: 'string', list: true, scope: 'channel' },
+                    { name: 'uniqueValue', type: 'string', unique: true, scope: 'channel' },
+                    { name: 'hidden', type: 'string', secret: true, scope: 'channel' },
+                    {
+                        name: 'many',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        list: true,
+                        scope: 'channel',
+                    },
+                ],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([]);
+        });
+
+        it('rejects nullable: false on lists and relations, and onDelete which would affect the assignment row', () => {
+            const config: CustomFields = {
+                Product: [
+                    { name: 'tags', type: 'string', list: true, nullable: false, scope: 'channel' },
+                    {
+                        name: 'banner',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        nullable: false,
+                        scope: 'channel',
+                    },
+                    {
+                        name: 'gallery',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        list: true,
+                        onDelete: 'NO ACTION',
+                        scope: 'channel',
+                    },
+                    {
+                        name: 'cascading',
+                        type: 'relation',
+                        entity: coreEntitiesMap.Asset,
+                        onDelete: 'CASCADE',
+                        scope: 'channel',
+                    },
+                ],
+            };
+            const errors = validateCustomFieldsConfig(config, allEntities).errors;
+            // Other rules may report on the same fields too
+            expect(errors).toEqual(
+                expect.arrayContaining([
+                    expect.stringContaining(
+                        '"tags" has scope "channel", which does not support "nullable: false"',
+                    ),
+                    expect.stringContaining(
+                        '"banner" has scope "channel", which does not support "nullable: false"',
+                    ),
+                    expect.stringContaining(
+                        `"gallery" has scope "channel", which only supports "onDelete: 'CASCADE'" on a list relation`,
+                    ),
+                    expect.stringContaining(
+                        `"cascading" has scope "channel", which does not support "onDelete: 'CASCADE'"`,
+                    ),
+                ]),
+            );
+        });
+
+        it('rejects the field types and options which are not supported', () => {
+            const config: CustomFields = {
+                Product: [{ name: 'localized', type: 'localeString', scope: 'channel' }],
+            };
+            expect(validateCustomFieldsConfig(config, allEntities).errors).toEqual([
+                'Product entity custom field "localized" has scope "channel", which does not support type "localeString"',
+            ]);
+        });
+    });
 });

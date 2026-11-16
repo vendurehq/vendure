@@ -2,7 +2,7 @@
 title: "AssetChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="32" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="49" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [Asset](/reference/typescript-api/entities/asset#asset) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [Asset](/reference/typescript-api/entities/asset#asset) to a
 class AssetChannel extends ChannelAssignment {
     assetId: ID;
     asset: Asset;
+    customFields: Partial<CustomAssetFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class AssetChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomAssetFields>`}  since="4.0.0"  />
+
+The values of the Asset's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

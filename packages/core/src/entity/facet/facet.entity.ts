@@ -1,10 +1,15 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomFacetFields } from '../custom-entity-fields';
 import { FacetValue } from '../facet-value/facet-value.entity';
@@ -44,6 +49,22 @@ export class Facet extends VendureEntity implements Translatable, HasCustomField
 
     @Column(type => CustomFacetFields)
     customFields: CustomFacetFields;
+
+    /**
+     * @description
+     * Returns the values of the Facet's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A Facet loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomFacetFields>,
+    ): Promise<Partial<CustomFacetFields> | undefined> {
+        return readChannelCustomFields(ctx, Facet, this, options);
+    }
 
     @ManyToMany(type => Channel, channel => channel.facets)
     // The junction table is owned by the channel assignment entity, which manages its schema.

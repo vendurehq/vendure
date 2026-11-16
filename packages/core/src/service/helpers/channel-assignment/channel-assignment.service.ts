@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { EntityMetadata, In } from 'typeorm';
 import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
@@ -10,10 +10,17 @@ import { idsAreEqual } from '../../../common/utils';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
+import { VendureEntity } from '../../../entity/base/base.entity';
 import {
     ChannelAssignmentEntityOptions,
     getChannelAssignmentEntities,
+    LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
 } from '../../../entity/channel-assignment/channel-assignment-registry';
+import {
+    ChannelCustomFieldsOptions,
+    registerChannelCustomFieldsStore,
+    unregisterChannelCustomFieldsStore,
+} from '../../../entity/channel-assignment/channel-custom-fields';
 
 /**
  * Describes how a ChannelAware entity's channel assignment rows are stored.
@@ -23,6 +30,8 @@ export interface ChannelAssignmentMetadata {
     target: Type<ChannelAssignment>;
     /** The property holding the owning entity's id, e.g. `productId` */
     entityIdProperty: string;
+    /** The ChannelAware entity, e.g. `Product` */
+    entityType: Type<any>;
     /**
      * The top-level properties holding per-channel data, e.g. `['enabled']`. Columns in an
      * embedded (such as `customFields`) are grouped under the embedded's property.
@@ -30,17 +39,16 @@ export interface ChannelAssignmentMetadata {
     dataProperties: string[];
     /** Relation paths inside the data properties, e.g. `['customFields.featuredAsset']` */
     dataRelations: string[];
+    /**
+     * The `unique` channel-scoped custom fields, e.g. `['channelSku']`. They are unique within each
+     * Channel, so they are not copied to a newly assigned Channel.
+     */
+    uniqueCustomFields: string[];
 }
 
 type AnyEntity = Type<any>;
 
-/**
- * The property under which the ListQueryBuilder loads the assignment row of the Channel a list is
- * scoped to (the `loadChannelAssignment` option). Not a column, nor part of the GraphQL schema.
- *
- * @internal
- */
-export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
+export { LOADED_CHANNEL_ASSIGNMENT_PROPERTY };
 
 /**
  * @description
@@ -59,8 +67,14 @@ export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
  * @since 4.0.0
  */
 @Injectable()
-export class ChannelAssignmentService implements OnApplicationBootstrap {
-    private metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
+export class ChannelAssignmentService implements OnApplicationBootstrap, OnApplicationShutdown {
+    private readonly metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
+    private channelScopedFieldsByType?: Map<AnyEntity, ChannelScopedFields>;
+    /**
+     * The JSON of the channel-scoped values set on a `customFields` object when it was loaded, so that
+     * persistChannelCustomFields() only writes values which have changed since.
+     */
+    private readonly loadedChannelValues = new WeakMap<object, Record<string, string>>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -73,6 +87,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
      */
     onApplicationBootstrap() {
         validateChannelAssignmentMetadata(this.connection.rawConnection.entityMetadatas);
+        // Serves `getChannelCustomFields()` on entities such as Product, and the reads and writes of
+        // channel-scoped custom fields by the TransactionalConnection
+        registerChannelCustomFieldsStore(this);
+    }
+
+    onApplicationShutdown() {
+        unregisterChannelCustomFieldsStore(this);
     }
 
     /**
@@ -138,6 +159,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
         if (!entityIds.length) {
             return new Map();
         }
+        requireChannelId(channelId);
         const rows = await this.connection.getRepository(ctx, meta.target).find({
             where: { [meta.entityIdProperty]: In(entityIds), channelId },
         });
@@ -216,6 +238,9 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
      * Copies the data columns of the entity's assignment row in `fromChannelId` to its rows in
      * `toChannelIds`. Called by `ChannelService.assignToChannels()` so that an entity newly assigned
      * to a Channel starts with the data it has in a Channel it was already assigned to.
+     *
+     * `unique` channel-scoped custom fields are not copied: the value may already be used by another
+     * entity in the target Channel, so the target row keeps its own value (the column default).
      */
     async copyAssignment(
         ctx: RequestContext,
@@ -247,11 +272,429 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             relations: findOptionsArrayToObject(meta.dataRelations),
         });
         for (const target of targets) {
+            const ownCustomFields = (target as any).customFields;
             for (const property of meta.dataProperties) {
                 (target as any)[property] = (source as any)[property];
             }
+            if (meta.uniqueCustomFields.length && (source as any).customFields) {
+                const customFields = { ...(source as any).customFields };
+                for (const name of meta.uniqueCustomFields) {
+                    customFields[name] = ownCustomFields?.[name] ?? null;
+                }
+                (target as any).customFields = customFields;
+            }
         }
         await repo.save(targets, { reload: false });
+    }
+
+    /**
+     * @description
+     * Writes channel-scoped custom field values to the entity's assignment row in the given Channel.
+     * Relation fields take the related entity (or `{ id }`), or `null`.
+     */
+    async updateCustomFields(
+        ctx: RequestContext,
+        entityType: AnyEntity,
+        entityId: ID,
+        channelId: ID,
+        values: Record<string, unknown>,
+    ): Promise<void> {
+        if (!Object.keys(values).length) {
+            return;
+        }
+        requireChannelId(channelId);
+        const meta = this.getMetadataOrThrow(entityType);
+        const repo = this.connection.getRepository(ctx, meta.target);
+        const row: any = await repo.findOne({
+            where: { [meta.entityIdProperty]: entityId, channelId },
+            relations: findOptionsArrayToObject(meta.dataRelations),
+        });
+        if (!row) {
+            Logger.warn(
+                `Channel-scoped custom fields of ${entityType.name} ${String(entityId)} were not saved, ` +
+                    `because it is not assigned to Channel ${String(channelId)}`,
+            );
+            return;
+        }
+        row.customFields = { ...row.customFields, ...values };
+        await repo.save(row, { reload: false });
+    }
+
+    /**
+     * @description
+     * Returns the values of the entity's channel-scoped custom fields in the active Channel. A field
+     * is `null` if the entity is not assigned to the Channel or the value is not set. Relation fields
+     * are resolved separately, by the GraphQL relation resolver.
+     *
+     * Like {@link ChannelAssignmentService.getAssignment}, if an entity is passed which a
+     * ListQueryBuilder list loaded with the `loadChannelAssignment` option, its row is used without
+     * a query.
+     */
+    async getCustomFieldValues(
+        ctx: RequestContext,
+        entityName: string,
+        entityOrId: ID | { id: ID } | undefined,
+        fieldNames: string[],
+    ): Promise<Record<string, unknown>> {
+        const meta = this.getMetadataByEntityName(entityName);
+        const entityId = typeof entityOrId === 'object' ? entityOrId?.id : entityOrId;
+        const values =
+            meta && entityOrId != null && entityId != null
+                ? await this.getChannelCustomFields(ctx, meta.entityType, entityOrId)
+                : undefined;
+        const result: Record<string, unknown> = {};
+        for (const name of fieldNames) {
+            result[name] = values?.[name] ?? null;
+        }
+        return result;
+    }
+
+    /**
+     * @description
+     * Returns the values of the entity's channel-scoped custom fields in a Channel (the active
+     * Channel by default), or `undefined` if the entity is not assigned to that Channel. Relation
+     * fields are only set if they are listed in `options.relations`.
+     *
+     * Entities expose this as a typed method, e.g. `product.getChannelCustomFields(ctx)`. An entity
+     * loaded with a RequestContext already has the values of its Channel on `customFields`, so this
+     * is for reading the values of another Channel (`options.channelId`), loading relation fields,
+     * or reading the values of an entity loaded without a RequestContext.
+     *
+     * Reads without relations made in the same tick are batched into one query, and reuse the row
+     * loaded with the entity, if any.
+     */
+    async getChannelCustomFields(
+        ctx: RequestContext,
+        entityType: AnyEntity,
+        entityOrId: ID | { id: ID },
+        options: ChannelCustomFieldsOptions<any> = {},
+    ): Promise<Record<string, unknown> | undefined> {
+        const meta = this.getMetadataOrThrow(entityType);
+        const channelId = requireChannelId(options.channelId ?? ctx.channelId);
+        const relations = (options.relations ?? []).map(name => `customFields.${name}`);
+        const unknownRelations = relations.filter(path => !meta.dataRelations.includes(path));
+        if (unknownRelations.length) {
+            const names = unknownRelations.map(p => JSON.stringify(p)).join(', ');
+            throw new InternalServerError(
+                `${names} of ${entityType.name} is not a channel-scoped relation custom field`,
+            );
+        }
+        let row: any;
+        if (!relations.length) {
+            row = await this.getAssignment(ctx, entityType, entityOrId, channelId);
+        } else {
+            const entityId = typeof entityOrId === 'object' ? entityOrId.id : entityOrId;
+            row = await this.connection.getRepository(ctx, meta.target).findOne({
+                where: { [meta.entityIdProperty]: entityId, channelId },
+                relations: findOptionsArrayToObject(relations),
+            });
+        }
+        // A copy, so that changing it does not change a row loaded with a list
+        return row ? { ...row.customFields } : undefined;
+    }
+
+    /**
+     * @description
+     * Sets the values of the channel-scoped custom fields in the Channel of `ctx` on the
+     * `customFields` object of every entity in `result` which has channel-scoped custom fields,
+     * including the entities of loaded relations (e.g. `order.lines[].productVariant.product`), so
+     * that `product.customFields.channelNote` reads the value of that Channel. Each entity type takes
+     * one query, and rows already loaded by a ListQueryBuilder list are reused.
+     *
+     * The TransactionalConnection calls this after every read made with a RequestContext, so code
+     * rarely needs to call it. Relation fields are not loaded, as with ordinary relation custom
+     * fields, but the `<name>Id` of a single relation is set.
+     *
+     * @since 4.0.0
+     */
+    async applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
+        const channelId = ctx.channelId;
+        const fieldsByType = this.getChannelScopedFieldsByType();
+        if (channelId == null || !fieldsByType.size || result == null || typeof result !== 'object') {
+            return;
+        }
+        const found = new Map<AnyEntity, Map<string, any[]>>();
+        const visited = new Set<object>();
+        const visit = (value: unknown) => {
+            if (value == null || typeof value !== 'object' || visited.has(value)) {
+                return;
+            }
+            visited.add(value);
+            if (Array.isArray(value)) {
+                value.forEach(visit);
+                return;
+            }
+            if (!(value instanceof VendureEntity)) {
+                // e.g. the `{ entities, raw }` result of getRawAndEntities()
+                if ('entities' in value) {
+                    visit((value as any).entities);
+                }
+                return;
+            }
+            const type = value.constructor as AnyEntity;
+            if (fieldsByType.has(type) && value.id != null) {
+                const byId = found.get(type) ?? new Map<string, any[]>();
+                const key = String(value.id);
+                byId.set(key, [...(byId.get(key) ?? []), value]);
+                found.set(type, byId);
+            }
+            // Loaded relations, including relations inside customFields. Only own data properties:
+            // getters are skipped, such as the @Calculated properties which the entity subscriber
+            // defines on loaded entities (e.g. Order.discounts throws if its lines are not joined),
+            // and the getters of channel-scoped names on customFields.
+            for (const property of ownDataValues(value)) {
+                if (property && typeof property === 'object') {
+                    if (property instanceof VendureEntity || Array.isArray(property)) {
+                        visit(property);
+                    } else if (!(property instanceof Date)) {
+                        for (const nested of ownDataValues(property)) {
+                            if (nested instanceof VendureEntity || Array.isArray(nested)) {
+                                visit(nested);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        visit(result);
+        for (const [type, byId] of found) {
+            const names = fieldsByType.get(type)?.columns ?? [];
+            const toLoad: string[] = [];
+            const rows = new Map<string, any>();
+            for (const [id, entities] of byId) {
+                const loaded = this.getLoadedAssignment(entities[0], channelId);
+                if (loaded) {
+                    rows.set(id, loaded);
+                } else {
+                    toLoad.push(id);
+                }
+            }
+            if (toLoad.length) {
+                for (const [id, row] of await this.getAssignments(ctx, type, toLoad, channelId)) {
+                    rows.set(id, row);
+                }
+            }
+            for (const [id, entities] of byId) {
+                const row = rows.get(id);
+                const values = row?.customFields;
+                for (const entity of entities) {
+                    if (row) {
+                        // So that getChannelCustomFields() and the GraphQL resolver reuse it
+                        entity[LOADED_CHANNEL_ASSIGNMENT_PROPERTY] = row;
+                    }
+                    const customFields = entity.customFields ?? (entity.customFields = {});
+                    const loaded: Record<string, string> = {};
+                    for (const name of names) {
+                        // An entity which is not assigned to the Channel reads null, as in the API
+                        customFields[name] = values?.[name] ?? null;
+                        loaded[name] = JSON.stringify(customFields[name]);
+                    }
+                    this.loadedChannelValues.set(customFields, loaded);
+                }
+            }
+        }
+    }
+
+    /**
+     * The channel-scoped custom fields of each entity type, from the `customFields` of its assignment
+     * entity: the columns (including the `<name>Id` of single relations), and the relations.
+     */
+    private getChannelScopedFieldsByType(): Map<AnyEntity, ChannelScopedFields> {
+        if (!this.channelScopedFieldsByType) {
+            const map = new Map<AnyEntity, ChannelScopedFields>();
+            const metadatas = this.connection.rawConnection.entityMetadatas;
+            for (const [target, options] of getChannelAssignmentEntities()) {
+                const metadata = metadatas.find(m => m.target === target);
+                const embedded = metadata?.embeddeds.find(e => e.propertyName === 'customFields');
+                if (!embedded) {
+                    continue;
+                }
+                const fields: ChannelScopedFields = {
+                    columns: embedded.columns.map(c => c.propertyName).filter(name => !name.startsWith('__')),
+                    singleRelations: embedded.relations.filter(r => !r.isManyToMany).map(r => r.propertyName),
+                    listRelations: embedded.relations.filter(r => r.isManyToMany).map(r => r.propertyName),
+                };
+                if (fields.columns.length || fields.listRelations.length) {
+                    map.set(options.entity(), fields);
+                }
+            }
+            this.channelScopedFieldsByType = map;
+        }
+        return this.channelScopedFieldsByType;
+    }
+
+    /**
+     * @description
+     * Writes the channel-scoped custom field values which code has changed on the `customFields` of
+     * the given entities since they were loaded (see {@link ChannelAssignmentService.applyChannelCustomFields})
+     * to their assignment rows in the Channel of `ctx`. A single relation can be changed by setting
+     * the related entity (or `null`) or its `<name>Id`, and a list relation by setting the array.
+     *
+     * The TransactionalConnection calls this after `save()` on a repository obtained with a
+     * RequestContext. An entity which is not assigned to the Channel yet is skipped: entity services
+     * write the values of their input once the entity is assigned.
+     *
+     * @since 4.0.0
+     */
+    async persistChannelCustomFields(
+        ctx: RequestContext,
+        result: unknown,
+        entityType?: AnyEntity,
+    ): Promise<void> {
+        const channelId = ctx.channelId;
+        const fieldsByType = this.getChannelScopedFieldsByType();
+        if (channelId == null || !fieldsByType.size || result == null) {
+            return;
+        }
+        // Entities, or plain objects with an id saved with the repository of `entityType`
+        const entities = (Array.isArray(result) ? result : [result]).filter(
+            (e): e is { id: ID; customFields?: Record<string, any> } =>
+                e != null && typeof e === 'object' && (e as any).id != null,
+        );
+        for (const entity of entities) {
+            const type = (entity instanceof VendureEntity ? entity.constructor : entityType) as AnyEntity;
+            const fields = fieldsByType.get(type);
+            const customFields: Record<string, any> | undefined = (entity as any).customFields;
+            if (!fields || !customFields) {
+                continue;
+            }
+            const loaded = this.loadedChannelValues.get(customFields) ?? {};
+            const has = (name: string) => Object.prototype.hasOwnProperty.call(customFields, name);
+            const changed = (name: string) =>
+                has(name) && JSON.stringify(customFields[name] ?? null) !== (loaded[name] ?? 'null');
+            const values: Record<string, unknown> = {};
+            for (const name of fields.singleRelations) {
+                if (has(name) && customFields[name] !== undefined) {
+                    values[name] = customFields[name];
+                } else if (changed(`${name}Id`)) {
+                    const id = customFields[`${name}Id`];
+                    values[name] = id == null ? null : { id };
+                }
+            }
+            for (const name of fields.listRelations) {
+                if (has(name) && Array.isArray(customFields[name])) {
+                    values[name] = customFields[name];
+                }
+            }
+            for (const name of fields.columns) {
+                const isRelationId = fields.singleRelations.some(relation => `${relation}Id` === name);
+                if (!isRelationId && changed(name)) {
+                    values[name] = customFields[name];
+                }
+            }
+            if (!Object.keys(values).length) {
+                continue;
+            }
+            const meta = this.getMetadataOrThrow(type);
+            const repo = this.connection.getRepository(ctx, meta.target);
+            const row: any = await repo.findOne({
+                where: { [meta.entityIdProperty]: entity.id, channelId },
+                relations: findOptionsArrayToObject(meta.dataRelations),
+            });
+            if (!row) {
+                continue;
+            }
+            row.customFields = { ...row.customFields, ...values };
+            await repo.save(row, { reload: false });
+            if (this.getLoadedAssignment(entity, channelId)) {
+                // Replace the row loaded with the entity, which getChannelCustomFields() would reuse
+                (entity as any)[LOADED_CHANNEL_ASSIGNMENT_PROPERTY] = row;
+            }
+            const written: Record<string, string> = { ...loaded };
+            for (const name of fields.columns.filter(has)) {
+                written[name] = JSON.stringify(customFields[name] ?? null);
+            }
+            for (const name of fields.singleRelations.filter(relation => relation in values)) {
+                written[`${name}Id`] = JSON.stringify((values[name] as { id: ID } | null)?.id ?? null);
+            }
+            this.loadedChannelValues.set(customFields, written);
+        }
+    }
+
+    /**
+     * @description
+     * Leaves out of `values` (channel-scoped custom field values to write, keyed by field name, with
+     * single relations given as the related entity or `null`) those which the entity's `customFields`
+     * already holds as written to the Channel: by a `save()` through the TransactionalConnection (see
+     * {@link ChannelAssignmentService.persistChannelCustomFields}), or as loaded. So that entity
+     * services, which also write the values of their input, do not write them twice.
+     *
+     * @internal
+     */
+    withoutPersistedValues(
+        ctx: RequestContext,
+        entity: object,
+        channelId: ID,
+        values: Record<string, unknown>,
+    ): Record<string, unknown> {
+        const customFields: object | undefined = (entity as any).customFields;
+        const persisted = customFields && this.loadedChannelValues.get(customFields);
+        if (!persisted || !idsAreEqual(channelId, ctx.channelId)) {
+            return values;
+        }
+        const result: Record<string, unknown> = {};
+        for (const [name, value] of Object.entries(values)) {
+            if (Array.isArray(value)) {
+                // List relations are not tracked
+                result[name] = value;
+                continue;
+            }
+            const isRelation =
+                (value != null && typeof value === 'object' && 'id' in value) || `${name}Id` in persisted;
+            const json = isRelation
+                ? JSON.stringify((value as { id: ID } | null)?.id ?? null)
+                : JSON.stringify(value ?? null);
+            if (persisted[isRelation ? `${name}Id` : name] !== json) {
+                result[name] = value;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * @description
+     * Returns the custom field values to give a copy of the entity, as `customFields` input of its
+     * create method, e.g. in an {@link EntityDuplicator}: its ordinary custom fields, plus its
+     * channel-scoped ones in the active Channel. `unique` channel-scoped fields are left out, since
+     * the copy is created in the same Channel.
+     *
+     * @since 4.0.0
+     */
+    async getCustomFieldsToCopy(
+        ctx: RequestContext,
+        entityType: AnyEntity,
+        entity: { id: ID; customFields?: object },
+    ): Promise<Record<string, unknown>> {
+        const meta = this.getMetadata(entityType);
+        const listRelations = this.getChannelScopedFieldsByType().get(entityType)?.listRelations ?? [];
+        const channelValues = meta
+            ? await this.getChannelCustomFields(ctx, entityType, entity, { relations: listRelations })
+            : undefined;
+        // Spreading copies only own properties, not the getters of channel-scoped names
+        const result: Record<string, unknown> = { ...entity.customFields, ...channelValues };
+        for (const name of listRelations) {
+            // As create input, which takes list relations as `<name>Ids`
+            const related = result[name];
+            delete result[name];
+            if (Array.isArray(related)) {
+                result[`${name}Ids`] = related.map((item: { id: ID }) => item.id);
+            }
+        }
+        for (const name of meta?.uniqueCustomFields ?? []) {
+            delete result[name];
+        }
+        return result;
+    }
+
+    /**
+     * @description
+     * Like {@link ChannelAssignmentService.getMetadata}, looked up by entity name, e.g. `'Product'`.
+     */
+    getMetadataByEntityName(entityName: string): ChannelAssignmentMetadata | undefined {
+        const dataSource = this.connection.rawConnection;
+        return dataSource.hasMetadata(entityName)
+            ? this.getMetadata(dataSource.getMetadata(entityName).target as AnyEntity)
+            : undefined;
     }
 
     /**
@@ -284,11 +727,24 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
                 dataProperties.add(column.propertyName);
             }
         }
+        // A many-to-many relation (a `list: true` relation custom field) has no column on the
+        // assignment table, only a junction table, but is still part of its embedded.
+        for (const relation of assignment.relations) {
+            if (relation.embeddedMetadata) {
+                dataProperties.add(relation.embeddedMetadata.propertyName);
+            }
+        }
         return {
             target: assignment.target as Type<ChannelAssignment>,
+            entityType,
             entityIdProperty: `${options.entityProperty}Id`,
             dataProperties: Array.from(dataProperties),
             dataRelations: assignment.relations.filter(r => r.embeddedMetadata).map(r => r.propertyPath),
+            uniqueCustomFields: assignment.indices
+                .filter(index => index.isUnique)
+                .flatMap(index => index.columns)
+                .filter(column => column.embeddedMetadata?.propertyName === 'customFields')
+                .map(column => column.propertyName),
         };
     }
 
@@ -336,6 +792,41 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             queue.forEach(item => item.reject(e));
         }
     }
+}
+
+interface ChannelScopedFields {
+    /** The columns, including the `<name>Id` of single relations */
+    columns: string[];
+    singleRelations: string[];
+    listRelations: string[];
+}
+
+/**
+ * Channel-scoped custom fields are read and written for a Channel. A RequestContext without one (e.g.
+ * `RequestContext.empty()`) would otherwise drop the Channel from the query's `where`, which TypeORM
+ * 0.3 ignores, and use the row of an arbitrary Channel.
+ */
+function requireChannelId(channelId: ID | undefined): ID {
+    if (channelId == null) {
+        throw new InternalServerError(
+            'Channel-scoped custom fields are read and written for a Channel, but the RequestContext has ' +
+                'none (e.g. RequestContext.empty()). Use a RequestContext of a Channel, or pass a channelId.',
+        );
+    }
+    return channelId;
+}
+
+/**
+ * The values of an object's own data properties, without calling any getters.
+ */
+function ownDataValues(value: object): unknown[] {
+    const values: unknown[] = [];
+    for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+        if ('value' in descriptor) {
+            values.push(descriptor.value);
+        }
+    }
+    return values;
 }
 
 interface Batch {

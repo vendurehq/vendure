@@ -2,7 +2,7 @@
 title: "StockLocation"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/stock-location/stock-location.entity.ts" sourceLine="22" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/stock-location/stock-location.entity.ts" sourceLine="27" packageName="@vendure/core" />
 
 A StockLocation represents a physical location where stock is held. For example, a warehouse or a shop.
 
@@ -20,6 +20,7 @@ class StockLocation extends VendureEntity implements HasCustomFields, ChannelAwa
     description: string;
     @Column(type => CustomStockLocationFields)
     customFields: CustomStockLocationFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomStockLocationFields>) => Promise<Partial<CustomStockLocationFields> | undefined>;
     @ManyToMany(type => Channel, channel => channel.stockLocations)
     // The junction table is owned by the channel assignment entity, which manages its schema.
     @JoinTable({ synchronize: false })
@@ -52,6 +53,13 @@ class StockLocation extends VendureEntity implements HasCustomFields, ChannelAwa
 <MemberInfo kind="property" type={`CustomStockLocationFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomStockLocationFields>) => Promise<Partial<CustomStockLocationFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the StockLocation's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A StockLocation loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### channels
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />

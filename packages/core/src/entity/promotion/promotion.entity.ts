@@ -18,6 +18,10 @@ import {
 } from '../../config/promotion/promotion-action';
 import { PromotionCondition, PromotionConditionState } from '../../config/promotion/promotion-condition';
 import { couponCodesMatch } from '../../service/helpers/utils/coupon-codes-match';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomPromotionFields } from '../custom-entity-fields';
 import { OrderLine } from '../order-line/order-line.entity';
@@ -127,6 +131,22 @@ export class Promotion
 
     @Column(type => CustomPromotionFields)
     customFields: CustomPromotionFields;
+
+    /**
+     * @description
+     * Returns the values of the Promotion's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A Promotion loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomPromotionFields>,
+    ): Promise<Partial<CustomPromotionFields> | undefined> {
+        return readChannelCustomFields(ctx, Promotion, this, options);
+    }
 
     @Column('simple-json') conditions: ConfigurableOperation[];
 

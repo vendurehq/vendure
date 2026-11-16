@@ -13,11 +13,16 @@ import {
     TreeParent,
 } from 'typeorm';
 
+import type { RequestContext } from '../../api/common/request-context';
 import { ChannelAware, Orderable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
+import {
+    ChannelCustomFieldsOptions,
+    readChannelCustomFields,
+} from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { CustomCollectionFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
@@ -80,6 +85,22 @@ export class Collection
 
     @Column(type => CustomCollectionFields)
     customFields: CustomCollectionFields;
+
+    /**
+     * @description
+     * Returns the values of the Collection's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A Collection loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
+     *
+     * @since 4.0.0
+     */
+    getChannelCustomFields(
+        ctx: RequestContext,
+        options?: ChannelCustomFieldsOptions<CustomCollectionFields>,
+    ): Promise<Partial<CustomCollectionFields> | undefined> {
+        return readChannelCustomFields(ctx, Collection, this, options);
+    }
 
     @TreeChildren()
     children: Collection[];
