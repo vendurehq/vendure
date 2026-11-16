@@ -1,7 +1,7 @@
 import type { RuntimeVendureConfig } from '@vendure/core';
 import type { DataSource } from 'typeorm';
 
-import { requireFromProject } from '../../../shared/project-core';
+import { requireFromProjectCore } from '../../../shared/project-core';
 import { CheckResult } from '../types';
 
 /**
@@ -29,11 +29,12 @@ export async function runDatabaseCheck(config: RuntimeVendureConfig): Promise<Ch
         // Connectivity check only -- entities are emptied to avoid TypeORM
         // metadata validation errors (e.g. plugin entities that require
         // NestJS module initialization to register their primary columns).
-        // The project's TypeORM, loaded here rather than at module level:
-        // `typeorm` is not a dependency of `@vendure/cli`, so importing it
-        // above would stop every doctor check from running under an
-        // installation that has only the CLI's own dependencies.
-        const { DataSource: ProjectDataSource } = requireFromProject<{
+        // The TypeORM that the project's @vendure/core uses, loaded here
+        // rather than at module level: `typeorm` is not a dependency of
+        // `@vendure/cli`, so importing it above would stop every doctor check
+        // from running under an installation that has only the CLI's own
+        // dependencies.
+        const { DataSource: ProjectDataSource } = requireFromProjectCore<{
             DataSource: typeof DataSource;
         }>('typeorm');
         dataSource = new ProjectDataSource(
