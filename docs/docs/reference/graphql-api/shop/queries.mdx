@@ -111,6 +111,65 @@ type Query {
 }`}
 </GraphQLDoc>
 
+<a name="buyerprice"></a>
+
+## buyerPrice
+
+<GraphQLDoc
+  type="query"
+  typeName="buyerPrice"
+  typeLinks={{
+    BuyerPrice: '/reference/graphql-api/shop/object-types#buyerprice',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""
+The unit price of a ProductVariant that the configured ProductVariantBuyerPriceStrategy
+calculates for the active Customer and the given quantity, for example for a product detail
+page. Unlike \`ProductVariant.price\` and \`ProductVariant.priceWithTax\`, which give the price of
+the Channel, this is the price that the default cart pricing starts from. No Order is needed.
+
+It is \`null\` when the variant does not exist or is deleted, when the variant or its Product is
+not available in the active Channel, or when the strategy gives no price for this buyer, for
+example for a price on request.
+
+When OrderLine custom fields are defined, the query also has a \`customFields\` argument, with
+the same input type as \`addItemToOrder\`. To get the same price as the cart, pass the same
+values that you pass as \`customFields\` to \`addItemToOrder\`.
+
+This is the base unit price of the buyer, not a guarantee of the final cart price. For
+example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
+of the Order.
+"""
+type Query {
+  buyerPrice(productVariantId: ID!, quantity: Int): BuyerPrice
+}`}
+</GraphQLDoc>
+
+<a name="buyerprices"></a>
+
+## buyerPrices
+
+<GraphQLDoc
+  type="query"
+  typeName="buyerPrices"
+  typeLinks={{
+    BuyerPrice: '/reference/graphql-api/shop/object-types#buyerprice',
+    BuyerPriceInput: '/reference/graphql-api/shop/input-types#buyerpriceinput',
+  }}
+>
+{`"""
+The buyer prices of several ProductVariants in one request, for example for a product list
+page. Gives one result for each input, in the order of the input. A result is \`null\` for the
+same reasons as in the \`buyerPrice\` query. The number of inputs must not be more than the
+\`shopListQueryLimit\` of the API options.
+"""
+type Query {
+  buyerPrices(input: [BuyerPriceInput!]!): [BuyerPrice]!
+}`}
+</GraphQLDoc>
+
 <a name="collection"></a>
 
 ## collection

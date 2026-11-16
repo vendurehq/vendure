@@ -72,24 +72,31 @@ function TargetAlert({
     topLevelCollectionId,
     collectionNameCache,
 }: Readonly<TargetAlertProps>) {
-    const { t } = useLingui();
-    const destination = !selectedCollectionId
-        ? ''
-        : selectedCollectionId === topLevelCollectionId
-          ? t`top level`
-          : collectionNameCache.current.get(selectedCollectionId) || t`selected collection`;
+    const destination = selectedCollectionId && collectionNameCache.current.get(selectedCollectionId);
     return (
         <Alert className={selectedCollectionId ? 'border-primary/30 bg-primary/10' : 'opacity-50'}>
             <Folder className="h-4 w-4" />
             <AlertDescription>
-                {selectedCollectionId ? (
+                {!selectedCollectionId ? (
+                    <Trans>Select a destination collection</Trans>
+                ) : selectedCollectionId === topLevelCollectionId ? (
+                    <Plural
+                        value={collectionsToMove.length}
+                        one="Moving # collection to the top level"
+                        other="Moving # collections to the top level"
+                    />
+                ) : destination ? (
                     <Plural
                         value={collectionsToMove.length}
                         one={`Moving # collection into ${destination}`}
                         other={`Moving # collections into ${destination}`}
                     />
                 ) : (
-                    <Trans>Select a destination collection</Trans>
+                    <Plural
+                        value={collectionsToMove.length}
+                        one="Moving # collection into the selected collection"
+                        other="Moving # collections into the selected collection"
+                    />
                 )}
             </AlertDescription>
         </Alert>

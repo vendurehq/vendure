@@ -190,6 +190,55 @@ test.describe('Orders', () => {
         await expect(page).not.toHaveURL(/\/draft\//);
     });
 
+    // #5696 — a relation custom field must be sent by its input name when adjusting a draft order line
+    test('should adjust a draft order line quantity when the line has a relation custom field', async ({
+        page,
+    }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { createDraftOrder } = await client.gql(`mutation { createDraftOrder { id } }`);
+        const orderId: string = createDraftOrder.id;
+        const { productVariants } = await client.gql(
+            `query { productVariants(options: { take: 1 }) { items { id } } }`,
+        );
+        const { customers } = await client.gql(`query { customers(options: { take: 1 }) { items { id } } }`);
+        const customerId: string = customers.items[0].id;
+        await client.gql(
+            `
+            mutation ($orderId: ID!, $variantId: ID!, $customerId: ID!) {
+                addItemToDraftOrder(orderId: $orderId, input: {
+                    productVariantId: $variantId, quantity: 1, customFields: { giftFromId: $customerId }
+                }) { ... on Order { id } ... on ErrorResult { errorCode message } }
+            }
+        `,
+            { orderId, variantId: productVariants.items[0].id, customerId },
+        );
+
+        await page.goto(`/orders/draft/${orderId}`);
+        const quantityInput = page.getByTestId('order-line-quantity').first();
+        await expect(quantityInput).toBeVisible({ timeout: 10_000 });
+
+        const adjustResponse = page.waitForResponse(
+            resp => resp.request().postData()?.includes('mutation AdjustDraftOrderLine(') ?? false,
+        );
+        await quantityInput.fill('2');
+        await quantityInput.press('Enter');
+
+        const body = await (await adjustResponse).json();
+        expect(body.errors).toBeUndefined();
+        expect(body.data.adjustDraftOrderLine.__typename).toBe('Order');
+
+        // The relation must survive the quantity change rather than being cleared
+        const { order } = await client.gql(
+            `query ($id: ID!) { order(id: $id) { lines { quantity customFields { giftFrom { id } } } } }`,
+            { id: orderId },
+        );
+        expect(order.lines[0].quantity).toBe(2);
+        expect(order.lines[0].customFields.giftFrom?.id).toBe(customerId);
+    });
+
     // #5253 — eligible shipping methods must refresh after a line is added, without
     // a page reload.
     test('should refresh eligible shipping methods after adding a line to an existing draft order', async ({
@@ -660,6 +709,29 @@ test.describe('Orders', () => {
         await expect(recalculateCheckbox).not.toBeChecked();
         await recalculateCheckbox.click();
         await expect(recalculateCheckbox).toBeChecked();
+    });
+
+    // #5696 — a relation custom field must be sent by its input name when previewing a modification
+    test('should preview a quantity change on a line with a relation custom field', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({ timeout: 10_000 });
+
+        const quantityInput = page.getByTestId('order-line-quantity').first();
+        await quantityInput.fill('2');
+        await quantityInput.press('Enter');
+
+        const previewResponse = page.waitForResponse(
+            resp => resp.request().postData()?.includes('mutation ModifyOrder(') ?? false,
+        );
+        await page.getByRole('button', { name: /Preview/i }).click();
+
+        const body = await (await previewResponse).json();
+        expect(body.errors).toBeUndefined();
+        expect(body.data.modifyOrder.__typename).toBe('Order');
     });
 
     // #3389 — existing tax descriptions should be available when adding a surcharge

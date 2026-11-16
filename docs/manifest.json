@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Framework Documentation",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -37,7 +37,7 @@
           "title": "Pricing",
           "slug": "pricing",
           "file": "docs/guides/core-concepts/pricing/index.mdx",
-          "lastModified": "2026-11-13T17:00:43+01:00"
+          "lastModified": "2026-11-16T11:09:59+01:00"
         },
         {
           "title": "Products",
@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-02T12:35:06+01:00"
+          "lastModified": "2026-11-02T13:57:36+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-13T17:00:43+01:00"
+              "lastModified": "2026-11-16T10:44:06+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -2480,7 +2480,7 @@
                   "title": "PollingJobQueueStrategy",
                   "slug": "polling-job-queue-strategy",
                   "file": "docs/reference/typescript-api/job-queue/polling-job-queue-strategy.mdx",
-                  "lastModified": "2026-10-28T09:48:06+01:00"
+                  "lastModified": "2026-11-09T16:24:02Z"
                 },
                 {
                   "title": "SqlJobQueueStrategy",
@@ -2770,7 +2770,7 @@
                   "title": "DefaultOrderItemPriceCalculationStrategy",
                   "slug": "default-order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/default-order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:45:27Z"
                 },
                 {
                   "title": "DefaultOrderPlacedStrategy",
@@ -2818,7 +2818,7 @@
                   "title": "OrderItemPriceCalculationStrategy",
                   "slug": "order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "OrderLineDiscountDistributionStrategy",
@@ -2848,7 +2848,7 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-10T11:12:07Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
@@ -3022,7 +3022,7 @@
                   "title": "CatalogOptions",
                   "slug": "catalog-options",
                   "file": "docs/reference/typescript-api/products-stock/catalog-options.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "DefaultProductVariantPriceCalculationStrategy",
@@ -3052,7 +3052,7 @@
                   "title": "ProductVariantBuyerPriceStrategy",
                   "slug": "product-variant-buyer-price-strategy",
                   "file": "docs/reference/typescript-api/products-stock/product-variant-buyer-price-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -3302,7 +3302,7 @@
                   "title": "BuyerIdentityService",
                   "slug": "buyer-identity-service",
                   "file": "docs/reference/typescript-api/services/buyer-identity-service.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "BuyerPriceForOrderOptions",
@@ -3452,7 +3452,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "PromotionService",
@@ -4546,7 +4546,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/shop/input-types.mdx",
-                  "lastModified": "2026-08-14T14:30:25+02:00"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "Mutations",
@@ -4558,13 +4558,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/shop/queries.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T10:11:18Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4591,7 +4591,7 @@
                   "title": "AssetPickerDialog",
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
-                  "lastModified": "2026-09-01T11:21:59+02:00"
+                  "lastModified": "2026-11-09T12:36:50Z"
                 },
                 {
                   "title": "ChannelAvailabilityBadge",
@@ -5097,7 +5097,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-11-06T14:39:54Z"
+                  "lastModified": "2026-11-12T15:54:16Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

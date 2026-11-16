@@ -963,6 +963,7 @@ export class ProductVariantService {
         const { price, priceIncludesTax, metadata } = result;
         const taxRate = hydratedVariant.taxRateApplied;
         return {
+            productVariantId: variant.id,
             price: roundMoney(priceIncludesTax ? taxRate.netPriceOf(price) : price),
             priceWithTax: roundMoney(priceIncludesTax ? price : taxRate.grossPriceOf(price)),
             metadata,
@@ -971,10 +972,42 @@ export class ProductVariantService {
 
     /**
      * @description
+     * Calculates the buyer prices of several ProductVariants, as {@link ProductVariantService.calculateBuyerPrice}
+     * does for one variant. It loads the variants of all inputs in one database query, and then runs the
+     * strategy once for each input. The result has one item for each input, in the order of the inputs.
+     * An item is `undefined` if the variant does not exist in the active Channel or is deleted, and for
+     * the same reasons as in `calculateBuyerPrice()`.
+     *
+     * @since 4.0.0
+     */
+    async calculateBuyerPrices(
+        ctx: RequestContext,
+        inputs: Array<BuyerPriceOptions & { productVariantId: ID }>,
+    ): Promise<Array<BuyerPriceResult | undefined>> {
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            unique(inputs.map(input => input.productVariantId)),
+            ctx.channelId,
+            {
+                relations: ['product', 'productVariantPrices', 'taxCategory'],
+                where: { deletedAt: IsNull() },
+            },
+        );
+        return Promise.all(
+            inputs.map(async input => {
+                const variant = variants.find(v => idsAreEqual(v.id, input.productVariantId));
+                return variant ? this.calculateBuyerPrice(ctx, variant, input) : undefined;
+            }),
+        );
+    }
+
+    /**
+     * @description
      * Calculates the unit price of an OrderLine with the configured {@link ProductVariantBuyerPriceStrategy},
      * for a buyer of the Order. The {@link DefaultOrderItemPriceCalculationStrategy} uses this method.
      * A custom {@link OrderItemPriceCalculationStrategy} that replaces the default calls it too, so that the
-     * cart and the Shop API `ProductVariant.buyerPrice` field use the same strategy and the same buyer.
+     * cart and the Shop API `buyerPrice` and `buyerPrices` queries use the same strategy and the same buyer.
      *
      * The `productVariant` must have the Channel price and tax applied, as the
      * OrderItemPriceCalculationStrategy receives it. The strategy receives the `buyer` option, or else the
