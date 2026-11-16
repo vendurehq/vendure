@@ -926,7 +926,7 @@ export interface CatalogOptions {
      * @description
      * Defines the strategy that calculates the unit price of a ProductVariant for a buyer and a
      * quantity. The default OrderItemPriceCalculationStrategy uses it for the price of each OrderLine,
-     * and the Shop API `ProductVariant.buyerPrice` field uses it without an Order.
+     * and the Shop API `buyerPrice` and `buyerPrices` queries use it without an Order.
      *
      * @default DefaultProductVariantBuyerPriceStrategy
      * @since 4.0.0

@@ -571,11 +571,8 @@ export function addOrderLineCustomFieldsInput(
         ];
     }
 
-    // The Shop API `ProductVariant.buyerPrice` field takes the same OrderLine input as `addItemToOrder`
-    const productVariantType = schemaConfig.types.find(t => t.name === 'ProductVariant');
-    const buyerPriceField = isObjectType(productVariantType)
-        ? productVariantType.getFields().buyerPrice
-        : undefined;
+    // The Shop API `buyerPrice` query and `BuyerPriceInput` take the same OrderLine input as `addItemToOrder`
+    const buyerPriceField = schemaConfig.query?.getFields().buyerPrice;
     if (buyerPriceField) {
         buyerPriceField.args = [
             ...buyerPriceField.args,
@@ -592,7 +589,11 @@ export function addOrderLineCustomFieldsInput(
     }
 
     let extendedSchema = new GraphQLSchema(schemaConfig);
-    for (const inputTypeName of [...ORDER_LINE_ADD_INPUT_TYPES, ...ORDER_LINE_ADJUST_INPUT_TYPES]) {
+    for (const inputTypeName of [
+        ...ORDER_LINE_ADD_INPUT_TYPES,
+        ...ORDER_LINE_ADJUST_INPUT_TYPES,
+        'BuyerPriceInput',
+    ]) {
         if (schema.getType(inputTypeName)) {
             const customFieldTypeDefs = `
                 extend input ${inputTypeName} {

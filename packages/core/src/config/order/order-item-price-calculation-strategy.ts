@@ -11,8 +11,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * The default strategy returns the price of the {@link ProductVariantBuyerPriceStrategy} for the Customer of the Order.
  * For catalog pricing that depends on the ProductVariant, the buyer, the quantity and the OrderLine custom fields, use
- * the ProductVariantBuyerPriceStrategy instead. Then the Shop API `ProductVariant.buyerPrice` field gives the same
- * base unit price. Keep logic here that needs the Order, or that writes data to the OrderLine. A custom strategy that
+ * the ProductVariantBuyerPriceStrategy instead. Then the Shop API `buyerPrice` and `buyerPrices` queries give the
+ * same base unit price. Keep logic here that needs the Order, or that writes data to the OrderLine. A custom strategy that
  * replaces the default calls `ProductVariantService.calculateBuyerPriceForOrder()`, so that the cart still uses the
  * ProductVariantBuyerPriceStrategy.
  *
