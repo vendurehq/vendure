@@ -25,8 +25,8 @@ declare const stockLocation: StockLocation;
 // with getChannelCustomFields() rather than from `customFields`, where they would be undefined.
 describe('channel-scoped custom fields of Product (#490)', () => {
     it('are not part of customFields', () => {
-        // @ts-expect-error channel-scoped fields are declared on CustomProductChannelFields
-        product.customFields.channelNote;
+        // Channel-scoped fields are declared on CustomProductChannelFields
+        expectTypeOf(product.customFields).not.toHaveProperty('channelNote');
     });
 
     it('are read with getChannelCustomFields(ctx)', async () => {

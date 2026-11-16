@@ -72,7 +72,7 @@ export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
  */
 @Injectable()
 export class ChannelAssignmentService implements OnApplicationBootstrap, OnApplicationShutdown {
-    private metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
+    private readonly metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -365,9 +365,9 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
         const relations = (options.relations ?? []).map(name => `customFields.${name}`);
         const unknownRelations = relations.filter(path => !meta.dataRelations.includes(path));
         if (unknownRelations.length) {
+            const names = unknownRelations.map(p => JSON.stringify(p)).join(', ');
             throw new InternalServerError(
-                `${unknownRelations.map(p => `"${p}"`).join(', ')} of ${entityType.name} ` +
-                    'is not a channel-scoped relation custom field',
+                `${names} of ${entityType.name} is not a channel-scoped relation custom field`,
             );
         }
         let row: any;

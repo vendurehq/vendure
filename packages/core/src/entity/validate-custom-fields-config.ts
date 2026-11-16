@@ -41,16 +41,17 @@ function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomF
         options => options.entity() === entity,
     );
     if (!hasAssignmentEntity) {
+        const names = channelScoped.map(f => JSON.stringify(f.name)).join(', ');
         return [
-            `${entity.name} entity custom field(s) ${channelScoped.map(f => `"${f.name}"`).join(', ')} ` +
+            `${entity.name} entity custom field(s) ${names} ` +
                 'have "channelScoped: true", but the entity has no channel assignment entity (declared with @ChannelAssignmentEntity)',
         ];
     }
     const errors: string[] = [];
     for (const field of channelScoped) {
-        const unsupported = [
-            isLocalizedCustomFieldType(field.type) && `type "${field.type}"`,
-        ].filter(Boolean);
+        const unsupported = [isLocalizedCustomFieldType(field.type) && `type "${field.type}"`].filter(
+            Boolean,
+        );
         if (unsupported.length) {
             errors.push(
                 `${entity.name} entity custom field "${field.name}" has "channelScoped: true", which does not support ${unsupported.join(', ')}`,
