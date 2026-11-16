@@ -2,14 +2,16 @@ import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js'
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { NoCustomersIllustration } from '@/vdb/components/ui/illustrations.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
+import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { DeleteCustomersBulkAction } from './components/customer-bulk-actions.js';
 import { CustomerStatusBadge } from './components/customer-status-badge.js';
+import { CustomerStorefrontsCell, CustomerStorefrontsHeader } from './components/customer-storefronts.js';
 import { customerListDocument } from './customers.graphql.js';
 
 export const Route = createFileRoute('/_authenticated/_customers/customers')({
@@ -19,6 +21,9 @@ export const Route = createFileRoute('/_authenticated/_customers/customers')({
 
 function CustomerListPage() {
     const { t } = useLingui();
+    // With separate customer bases, one email address can belong to several Customers, so the
+    // storefronts each one belongs to are shown.
+    const customerIdentityIsGlobal = useServerConfig()?.customerIdentityIsGlobal ?? true;
     return (
         <ListPage
             title={<Trans>Customers</Trans>}
@@ -45,6 +50,10 @@ function CustomerListPage() {
                         const value = row.original.user;
                         return <CustomerStatusBadge user={value} />;
                     },
+                },
+                identityScopeChannels: {
+                    header: CustomerStorefrontsHeader,
+                    cell: CustomerStorefrontsCell,
                 },
                 groups: {
                     cell: ({ row }) => {
@@ -78,6 +87,7 @@ function CustomerListPage() {
                 name: true,
                 emailAddress: true,
                 user: true,
+                identityScopeChannels: !customerIdentityIsGlobal,
             }}
             bulkActions={[
                 {

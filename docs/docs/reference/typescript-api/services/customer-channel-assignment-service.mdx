@@ -2,13 +2,13 @@
 title: "CustomerChannelAssignmentService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/customer-channel-assignment/customer-channel-assignment.service.ts" sourceLine="17" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/customer-channel-assignment/customer-channel-assignment.service.ts" sourceLine="18" packageName="@vendure/core" />
 
 Handles the assignment of a signed-in Customer to the active Channel.
 
 ```ts title="Signature"
 class CustomerChannelAssignmentService {
-    constructor(configService: ConfigService, customerService: CustomerService, channelService: ChannelService)
+    constructor(configService: ConfigService, customerService: CustomerService, channelService: ChannelService, identityScopeService: IdentityScopeService)
     tryAssignToActiveChannel(ctx: RequestContext) => Promise<void>;
 }
 ```

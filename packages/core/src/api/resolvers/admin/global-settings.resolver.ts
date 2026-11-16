@@ -25,6 +25,7 @@ import {
 import { getAllPermissionsMetadata } from '../../../common/constants';
 import { ErrorResultUnion } from '../../../common/error/error-result';
 import { ChannelDefaultLanguageError } from '../../../common/error/generated-graphql-admin-errors';
+import { GlobalIdentityScopeStrategy } from '../../../config/auth/identity-scope-strategy';
 import { ConfigService } from '../../../config/config.service';
 import {
     CustomFieldConfig,
@@ -71,6 +72,8 @@ export class GlobalSettingsResolver {
             permittedAssetTypes: this.configService.assetOptions.permittedFileTypes,
             permissions,
             moneyStrategyPrecision: this.configService.entityOptions.moneyStrategy.precision ?? 2,
+            customerIdentityIsGlobal:
+                this.configService.authOptions.identityScopeStrategy instanceof GlobalIdentityScopeStrategy,
         };
     }
 

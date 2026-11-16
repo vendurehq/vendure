@@ -2,15 +2,15 @@
 title: "UserService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/user.service.ts" sourceLine="36" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/user.service.ts" sourceLine="37" packageName="@vendure/core" />
 
 Contains methods relating to [User](/reference/typescript-api/entities/user#user) entities.
 
 ```ts title="Signature"
 class UserService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, passwordCipher: PasswordCipher, verificationTokenGenerator: VerificationTokenGenerator, moduleRef: ModuleRef)
+    constructor(connection: TransactionalConnection, configService: ConfigService, passwordCipher: PasswordCipher, verificationTokenGenerator: VerificationTokenGenerator, moduleRef: ModuleRef, identityScopeService: IdentityScopeService)
     getUserById(ctx: RequestContext, userId: ID) => Promise<User | undefined>;
-    getUserByEmailAddress(ctx: RequestContext, emailAddress: string, userType?: 'administrator' | 'customer') => Promise<User | undefined>;
+    getUserByEmailAddress(ctx: RequestContext, emailAddress: string, userType?: 'administrator' | 'customer', identityScope?: string) => Promise<User | undefined>;
     createCustomerUser(ctx: RequestContext, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
     addNativeAuthenticationMethod(ctx: RequestContext, user: User, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
     addUnactivatedNativeAuthenticationMethod(ctx: RequestContext, user: User, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
@@ -46,9 +46,11 @@ class UserService {
 
 ### getUserByEmailAddress
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, emailAddress: string, userType?: 'administrator' | 'customer') => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, emailAddress: string, userType?: 'administrator' | 'customer', identityScope?: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />
 
-
+Finds a User by email address. Customer Users are looked up in an identity scope (see
+[IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy)): the scope of the active Channel unless `identityScope` is
+given. Administrator Users are not scoped.
 ### createCustomerUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, identifier: string, password?: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | PasswordValidationError>`}   />
