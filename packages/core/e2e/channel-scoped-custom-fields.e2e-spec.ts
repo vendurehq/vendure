@@ -38,25 +38,6 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
-declare module '@vendure/core/dist/entity/custom-entity-fields' {
-    interface CustomProductFields {
-        channelNote: string | null;
-        channelFeaturedAsset: Asset | null;
-        channelPriority: number;
-        channelTags: string[] | null;
-        channelSku: string | null;
-        channelApiKey: string | null;
-        channelSpecs: { label: string; rank: number } | null;
-        channelGallery: Asset[];
-    }
-    interface CustomOrderFields {
-        channelLabel: string | null;
-    }
-    interface CustomStockLocationFields {
-        channelLabel: string | null;
-    }
-}
-
 const CHANNEL_B_TOKEN = 'cf_channel_b_token';
 const CHANNEL_C_TOKEN = 'cf_channel_c_token';
 
@@ -352,6 +333,19 @@ describe('Channel-scoped custom fields (#490)', () => {
             }
         }
         await adminClient.query(ASSIGN_PRODUCTS, { input: { channelId: 'T_2', productIds: ['T_1', 'T_2'] } });
+        // Relation custom fields can only link to Assets of the active channel (#5794)
+        for (const channelId of ['T_2', channelCId]) {
+            await adminClient.query(
+                gql`
+                    mutation ($input: AssignAssetsToChannelInput!) {
+                        assignAssetsToChannel(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { channelId, assetIds: ['T_1', 'T_2', 'T_3'] } },
+            );
+        }
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -595,8 +589,10 @@ describe('Channel-scoped custom fields (#490)', () => {
             .get(RequestContextService)
             .create({ apiType: 'admin', channelOrToken: CHANNEL_B_TOKEN });
         const product = await server.app.get(ProductService).findOne(ctxB, 2);
-        const values = await product!.getChannelCustomFields(ctxB, { relations: ['channelGallery'] });
-        expect(values?.channelGallery!.map(a => a.id)).toEqual([3]);
+        const values: any = await product!.getChannelCustomFields(ctxB, {
+            relations: ['channelGallery'] as any,
+        });
+        expect(values?.channelGallery.map((a: any) => a.id)).toEqual([3]);
 
         // The same on ProductVariant, whose junction table name is too long for Postgres and MySQL,
         // so TypeORM shortens it
@@ -954,9 +950,9 @@ describe('Channel-scoped custom fields (#490)', () => {
 
         // Relation fields on request
         const withAsset = await inDefault!.getChannelCustomFields(ctxDefault, {
-            relations: ['channelFeaturedAsset'],
+            relations: ['channelFeaturedAsset'] as any,
         });
-        expect(withAsset?.channelFeaturedAsset).toEqual(expect.objectContaining({ id: 1 }));
+        expect((withAsset as any)?.channelFeaturedAsset).toEqual(expect.objectContaining({ id: 1 }));
         await expect(
             // The type only accepts relation fields; this checks the error for untyped callers
             inDefault!.getChannelCustomFields(ctxDefault, { relations: ['channelNote'] as any }),
@@ -972,7 +968,9 @@ describe('Channel-scoped custom fields (#490)', () => {
             const products = await productService.findByIds(ctxB, [1, 2]);
             getAssignments.mockClear();
             const values = await Promise.all(products.map(p => p.getChannelCustomFields(ctxB)));
-            const notesById = Object.fromEntries(products.map((p, i) => [p.id, values[i]?.channelNote]));
+            const notesById = Object.fromEntries(
+                products.map((p, i) => [p.id, (values[i] as any)?.channelNote]),
+            );
             expect(notesById).toEqual({ 1: 'B note', 2: 'B note 2' });
             expect(getAssignments).toHaveBeenCalledTimes(0);
 
@@ -982,7 +980,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                 .rawConnection.getRepository(Product)
                 .findBy({ id: In([1, 2]) });
             const rawValues = await Promise.all(raw.map(p => p.getChannelCustomFields(ctxB)));
-            expect(rawValues.map(v => v?.channelNote).sort()).toEqual(['B note', 'B note 2']);
+            expect(rawValues.map((v: any) => v?.channelNote).sort()).toEqual(['B note', 'B note 2']);
             expect(getAssignments).toHaveBeenCalledTimes(1);
         } finally {
             getAssignments.mockRestore();
@@ -1097,7 +1095,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                 const order = await connection
                     .getRepository(txCtx, Order)
                     .findOne({ where: { id: 1 }, lock: { mode: 'pessimistic_write' } });
-                expect(order === null || order.customFields.channelLabel === null).toBe(true);
+                expect(order === null || (order.customFields as any).channelLabel === null).toBe(true);
             });
         }
     });
@@ -1119,7 +1117,7 @@ describe('Channel-scoped custom fields (#490)', () => {
         const repo = server.app.get(TransactionalConnection).getRepository(ctxB, Product);
         await repo.save({ id: 1, customFields: { channelNote: 'plain object' } } as any);
         const product = await repo.findOne({ where: { id: 1 } });
-        expect(product!.customFields.channelNote).toBe('plain object');
+        expect((product!.customFields as any).channelNote).toBe('plain object');
         await repo.save({ id: 1, customFields: { channelNote: 'B note' } } as any);
     });
 
@@ -1224,9 +1222,11 @@ describe('Channel-scoped custom fields (#490)', () => {
             .get(TransactionalConnection)
             .getRepository(ctx, Product)
             .findOne({ where: { id: productId } });
-        const withRelations = await product!.getChannelCustomFields(ctx, { relations: ['channelGallery'] });
+        const withRelations: any = await product!.getChannelCustomFields(ctx, {
+            relations: ['channelGallery'] as any,
+        });
         expect((withRelations as any)?.channelFeaturedAssetId).toBe(1);
-        expect(withRelations?.channelGallery?.map(a => a.id).sort()).toEqual([1, 2]);
+        expect(withRelations?.channelGallery?.map((a: any) => a.id).sort()).toEqual([1, 2]);
         expect(server.app.get(ChannelAssignmentService).getMetadata(Product)?.dataProperties).toContain(
             'customFields',
         );

@@ -281,12 +281,18 @@ function generateCustomFieldResolvers(
                         return null;
                     }
                     const eagerEntity = source[fieldDef.name];
-                    // If the relation is eager-loaded, we can simply try to translate this relation entity if they have translations
+                    // If the relation was loaded with the entity (eager, or joined by the query), reuse it and
+                    // translate it. The load applied no Channel, soft-deletion or `enabled` filter, so the
+                    // value is first filtered to what the caller may see.
                     if (eagerEntity != null) {
                         try {
                             return await customFieldRelationResolverService.translateEntity(
                                 ctx,
-                                eagerEntity,
+                                await customFieldRelationResolverService.filterPreloadedValue(
+                                    ctx,
+                                    fieldDef,
+                                    eagerEntity,
+                                ),
                                 fieldDef,
                             );
                         } catch (e: any) {
