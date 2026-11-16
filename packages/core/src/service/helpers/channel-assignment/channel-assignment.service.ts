@@ -386,6 +386,30 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
 
     /**
      * @description
+     * Returns the custom field values to give a copy of the entity, as `customFields` input of its
+     * create method, e.g. in an {@link EntityDuplicator}: its ordinary custom fields, plus its
+     * channel-scoped ones in the active Channel. `unique` channel-scoped fields are left out, since
+     * the copy is created in the same Channel.
+     *
+     * @since 4.0.0
+     */
+    async getCustomFieldsToCopy(
+        ctx: RequestContext,
+        entityType: AnyEntity,
+        entity: { id: ID; customFields?: object },
+    ): Promise<Record<string, unknown>> {
+        const meta = this.getMetadata(entityType);
+        const channelValues = meta ? await this.getChannelCustomFields(ctx, entityType, entity) : undefined;
+        // Spreading copies only own properties, not the getters of channel-scoped names
+        const result: Record<string, unknown> = { ...entity.customFields, ...channelValues };
+        for (const name of meta?.uniqueCustomFields ?? []) {
+            delete result[name];
+        }
+        return result;
+    }
+
+    /**
+     * @description
      * Like {@link ChannelAssignmentService.getMetadata}, looked up by entity name, e.g. `'Product'`.
      */
     getMetadataByEntityName(entityName: string): ChannelAssignmentMetadata | undefined {

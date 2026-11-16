@@ -12,10 +12,12 @@ import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { Product } from '../../../entity/product/product.entity';
+import { ChannelAssignmentService } from '../../../service/helpers/channel-assignment/channel-assignment.service';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
 import { EntityDuplicator } from '../entity-duplicator';
 
+let channelAssignmentService: ChannelAssignmentService;
 let connection: TransactionalConnection;
 let productService: ProductService;
 let productVariantService: ProductVariantService;
@@ -43,6 +45,7 @@ export const productDuplicator = new EntityDuplicator({
     },
     init(injector: Injector) {
         connection = injector.get(TransactionalConnection);
+        channelAssignmentService = injector.get(ChannelAssignmentService);
         productService = injector.get(ProductService);
         productVariantService = injector.get(ProductVariantService);
     },
@@ -76,7 +79,7 @@ export const productDuplicator = new EntityDuplicator({
             assetIds: product.assets.map(value => value.assetId),
             facetValueIds: product.facetValues.map(value => value.id),
             translations,
-            customFields: product.customFields,
+            customFields: await channelAssignmentService.getCustomFieldsToCopy(ctx, Product, product),
         };
 
         const duplicatedProduct = await productService.create(ctx, productInput);
@@ -109,6 +112,12 @@ export const productDuplicator = new EntityDuplicator({
                     await productService.addOptionGroupToProduct(ctx, duplicatedProduct.id, optionGroup.id);
                 }
             }
+            // Read in the same tick, so that the channel-scoped values of all variants take one query
+            const variantCustomFields = await Promise.all(
+                productVariants.map(variant =>
+                    channelAssignmentService.getCustomFieldsToCopy(ctx, ProductVariant, variant),
+                ),
+            );
             const variantInput: CreateProductVariantInput[] = productVariants.map((variant, i) => {
                 // Since we share option groups, variants reference the same option IDs
                 const optionIds = variant.options.map(o => o.id);
@@ -138,7 +147,7 @@ export const productDuplicator = new EntityDuplicator({
                         stockLocationId: stockLevel.stockLocationId,
                         stockOnHand: stockLevel.stockOnHand,
                     })),
-                    customFields: variant.customFields,
+                    customFields: variantCustomFields[i],
                 };
             });
             const duplicatedProductVariants = await productVariantService.create(ctx, variantInput);

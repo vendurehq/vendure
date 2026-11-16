@@ -755,6 +755,58 @@ describe('Channel-scoped custom fields (#490)', () => {
         );
     });
 
+    it('duplicating an entity copies its channel-scoped values in the active channel, except unique ones', async () => {
+        asChannel(CHANNEL_B_TOKEN);
+        const { duplicateEntity } = await adminClient.query(
+            gql`
+                mutation Duplicate($input: DuplicateEntityInput!) {
+                    duplicateEntity(input: $input) {
+                        ... on DuplicateEntitySuccess {
+                            newEntityId
+                        }
+                        ... on DuplicateEntityError {
+                            message
+                            duplicationError
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    entityName: 'Product',
+                    entityId: 'T_1',
+                    duplicatorInput: {
+                        code: 'product-duplicator',
+                        arguments: [{ name: 'includeVariants', value: 'false' }],
+                    },
+                },
+            },
+        );
+        expect(duplicateEntity.newEntityId).toBeDefined();
+        const read = gql`
+            query Copy($id: ID!) {
+                product(id: $id) {
+                    customFields {
+                        channelNote
+                        channelPriority
+                        channelSku
+                        channelApiKey
+                        globalNote
+                    }
+                }
+            }
+        `;
+        const { product: copy } = await adminClient.query(read, { id: duplicateEntity.newEntityId });
+        expect(copy.customFields).toEqual({
+            channelNote: 'B note',
+            channelPriority: 5,
+            // unique within the channel, so it is not copied
+            channelSku: null,
+            channelApiKey: 'key in B',
+            globalNote: 'shared',
+        });
+    });
+
     it('createProduct writes channel-scoped values to the active channel only', async () => {
         asChannel(CHANNEL_B_TOKEN);
         const { createProduct } = await adminClient.query(
@@ -889,6 +941,25 @@ describe('Channel-scoped custom fields (#490)', () => {
         } finally {
             getAssignments.mockRestore();
         }
+    });
+
+    it('reading a channel-scoped field from entity.customFields throws an error which says how to read it', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const product: any = await server.app.get(ProductService).findOne(ctx, 1);
+        const expected =
+            '"channelNote" is a channel-scoped custom field of Product, so its value is not stored on the ' +
+            'entity. Read it with product.getChannelCustomFields(ctx), and declare its type on ' +
+            'CustomProductChannelFields.';
+        expect(() => product.customFields.channelNote).toThrow(expected);
+        // Also the id of a single relation
+        expect(() => product.customFields.channelFeaturedAssetId).toThrow('"channelFeaturedAssetId"');
+        // Ordinary custom fields, spreading and serialization are unaffected
+        expect(product.customFields.globalNote).toBe('shared');
+        expect(Object.keys(product.customFields)).not.toContain('channelNote');
+        expect(JSON.parse(JSON.stringify(product.customFields))).toEqual({ ...product.customFields });
+        // Writing still stores the value on the object
+        product.customFields.channelNote = 'set in code';
+        expect(product.customFields.channelNote).toBe('set in code');
     });
 
     it('reads null for an entity which is not assigned to the Channel', async () => {

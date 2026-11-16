@@ -98,18 +98,22 @@ export class CustomFieldRelationService {
         if (!channelScoped.length || !customFieldsInput) {
             return;
         }
+        // Only the input's own properties: the input may be an entity's `customFields` object, on
+        // which channel-scoped names are getters which throw (see guardChannelScopedCustomFields)
+        const input = (key: string) =>
+            Object.prototype.hasOwnProperty.call(customFieldsInput, key) ? customFieldsInput[key] : undefined;
         const values: Record<string, unknown> = {};
         for (const field of channelScoped) {
             if (this.isRelationalType(field)) {
-                const idOrIds = customFieldsInput[getGraphQlInputName(field)];
+                const idOrIds = input(getGraphQlInputName(field));
                 if (idOrIds !== undefined) {
                     const relation = await this.resolveRelationInput(ctx, field, idOrIds);
                     if (relation !== undefined) {
                         values[field.name] = relation;
                     }
                 }
-            } else if (customFieldsInput[field.name] !== undefined) {
-                values[field.name] = customFieldsInput[field.name];
+            } else if (input(field.name) !== undefined) {
+                values[field.name] = input(field.name);
             }
         }
         await this.channelAssignmentService.updateCustomFields(ctx, entityType, entity.id, channelId, values);

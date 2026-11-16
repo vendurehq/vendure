@@ -531,6 +531,53 @@ function registerChannelScopedCustomFields(config: VendureConfig, entityName: st
 }
 
 /**
+ * The values of channel-scoped custom fields are not on the entity, so reading
+ * `entity.customFields.<name>` would silently give `undefined`, for example when the field's type
+ * was declared on `CustomProductFields` rather than on `CustomProductChannelFields`. Instead, it
+ * throws an error which says how to read the value.
+ *
+ * The getter is on the prototype of the entity's custom fields class, so it does not affect
+ * spreading, `Object.keys()` or JSON serialization of the object, and writing the property still
+ * stores the value on the object.
+ */
+function guardChannelScopedCustomFields(
+    config: VendureConfig,
+    entityName: string,
+    customFieldsClass: Type<any>,
+) {
+    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.channelScoped);
+    for (const field of channelScoped) {
+        const names =
+            field.type === 'relation' && !field.list ? [field.name, `${field.name}Id`] : [field.name];
+        for (const name of names) {
+            if (Object.getOwnPropertyDescriptor(customFieldsClass.prototype, name)) {
+                // Registration can run more than once in the same process (tests)
+                continue;
+            }
+            Object.defineProperty(customFieldsClass.prototype, name, {
+                configurable: true,
+                enumerable: false,
+                get() {
+                    throw new Error(
+                        `"${name}" is a channel-scoped custom field of ${entityName}, so its value is not stored ` +
+                            `on the entity. Read it with ${entityName.charAt(0).toLowerCase()}${entityName.slice(1)}` +
+                            `.getChannelCustomFields(ctx), and declare its type on Custom${entityName}ChannelFields.`,
+                    );
+                },
+                set(value: unknown) {
+                    Object.defineProperty(this, name, {
+                        value,
+                        writable: true,
+                        enumerable: true,
+                        configurable: true,
+                    });
+                },
+            });
+        }
+    }
+}
+
+/**
  * Dynamically registers any custom fields with TypeORM. This function should be run at the bootstrap
  * stage of the app lifecycle, before the AppModule is initialized.
  */
@@ -574,6 +621,9 @@ export function registerCustomEntityFields(config: VendureConfig) {
                 assertLocaleFieldsNotSpecified(config, entityName);
             }
             registerChannelScopedCustomFields(config, entityName);
+            if (customFieldsClass && typeof customFieldsClass !== 'string') {
+                guardChannelScopedCustomFields(config, entityName, customFieldsClass as Type<any>);
+            }
         }
     }
 
