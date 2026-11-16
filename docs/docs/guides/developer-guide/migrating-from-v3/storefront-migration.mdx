@@ -11,7 +11,7 @@ This page lists the v4 changes to the Shop API that affect storefronts.
 
 Single-channel storefronts are not affected. Where Customers use more than one Channel:
 
-- A Customer holds `Authenticated` only on the Channels they are a member of. With the default `CustomerChannelAssignmentStrategy` nothing changes for the shopper. With a strategy that declines the assignment, customer-scoped operations such as `activeCustomer` fail with a `ForbiddenError` on that Channel.
+- A Customer holds `Authenticated` only on the Channels they are a member of. With the default `CustomerChannelAssignmentStrategy` nothing changes for the shopper. With a strategy that declines the assignment, `me` fails with a `ForbiddenError` on that Channel, `activeCustomer` returns `null`, and `setCustomerForOrder` returns an `AlreadyLoggedInError`.
 - `CurrentUser.channels`, returned by `login`, `authenticate` and `me`, lists only the Channels the Customer is a member of.
 
 For details, see [Storefront changes](/developer-guide/migrating-from-v3/role-assignments#storefront-changes).

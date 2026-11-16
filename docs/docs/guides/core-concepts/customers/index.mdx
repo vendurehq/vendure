@@ -90,6 +90,24 @@ Base it on values which do not change, such as the Channel or Seller id. If the 
 administrator can edit, such as a custom field, Vendure refuses an update to that value which would move a
 Channel with Customers to another scope.
 
+### Identity scopes and the CustomerChannelAssignmentStrategy
+
+Vendure has two features that decide which Channels a Customer can use. They answer different
+questions:
+
+- An **identity scope** decides who a Customer *is* on a Channel. Channels in different scopes have separate
+  customer bases: the same email address can be a different person on each, and a session from one scope is
+  anonymous on the other.
+- The [`CustomerChannelAssignmentStrategy`](/reference/typescript-api/auth/customer-channel-assignment-strategy/)
+  decides whether a known Customer *may use* another Channel of the same customer base. When it declines, the
+  Customer stays signed in but is not a member of that Channel, so they cannot use their account or check out
+  there.
+
+The strategy is only consulted for Channels in the Customer's own scope. With `ChannelIdentityScopeStrategy`,
+every scope is a single Channel, so the strategy is in effect never consulted. Combine the two when a scope
+groups several Channels and some of them should be restricted, for example an invite-only B2B Channel beside
+the public Channels of the same brand.
+
 ### The default Channel
 
 Every Customer is also listed on the default Channel, so that an administrator there can see all Customers.
