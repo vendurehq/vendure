@@ -46,7 +46,6 @@ export function gqlTadaPlugin(options: {
                 tsconfig: tsConfigPath,
             });
 
-            // Copy the graphql.ts file to the output path
             const graphqlTsPath = path.join(options.packageRoot, 'src/lib/graphql/graphql.ts');
             try {
                 // Only write when the content differs, so `vendure dev` does not restart the server and worker.
