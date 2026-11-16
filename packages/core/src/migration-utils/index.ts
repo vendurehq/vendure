@@ -17,6 +17,15 @@ export {
 } from './v4_0_role_assignments_preview';
 export { SlugConflict, findSlugConflicts, formatSlugConflicts } from './v4_0_slug_conflicts';
 export {
+    TimestampColumnToMigrate,
+    TimestamptzMigrationOptions,
+    TimestamptzMigrationPreview,
+    findTimestampColumnsToMigrate,
+    migrateTimestampColumnsToTimestamptz,
+    previewTimestamptzMigration,
+    revertTimestamptzMigration,
+} from './v4_0_timestamptz';
+export {
     TrackInventoryMigrationResult,
     backfillStockMovementTracking,
     ensureTrackInventoryMigrated,

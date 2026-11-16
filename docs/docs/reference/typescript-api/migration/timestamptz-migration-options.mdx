@@ -1,0 +1,48 @@
+---
+title: "TimestamptzMigrationOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_timestamptz.ts" sourceLine="38" packageName="@vendure/core" />
+
+Options for [migrateTimestampColumnsToTimestamptz](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz#migratetimestampcolumnstotimestamptz).
+
+```ts title="Signature"
+interface TimestamptzMigrationOptions {
+    processTimezone?: string;
+    databaseTimezone?: string;
+    lockTimeout?: string;
+    verify?: boolean;
+    log?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### processTimezone
+
+<MemberInfo kind="property" type={`string`} default={`the timezone of the process running the migration, which is usually the same deployment as the server`}   />
+
+
+### databaseTimezone
+
+<MemberInfo kind="property" type={`string`} default={`the session timezone of the migration connection when the helper is called`}   />
+
+
+### lockTimeout
+
+<MemberInfo kind="property" type={`string`} default={`undefined (no timeout)`}   />
+
+
+### verify
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+
+### log
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+
+
+
+</div>

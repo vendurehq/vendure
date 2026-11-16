@@ -1,0 +1,61 @@
+---
+title: "MigrateTimestampColumnsToTimestamptz"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_timestamptz.ts" sourceLine="235" packageName="@vendure/core" since="4.0.0" />
+
+Converts the Postgres `timestamp` columns of all entities to `timestamptz`. Needed when upgrading
+an existing Postgres database to Vendure v4, which uses `timestamptz` by default (see
+`EntityOptions.timestampColumnType`).
+
+:::danger
+Call this helper **instead of** the `ALTER TABLE ... DROP COLUMN` / `ADD COLUMN` statements that
+TypeORM generates for this change. Those statements delete every stored date.
+:::
+
+A `timestamp` value has no timezone. Pre-v4 Vendure wrote two kinds of value into these columns:
+
+- `createdAt`, `updatedAt` and other database-filled columns hold wall-clock time in the Postgres
+  **session** timezone (`databaseTimezone`).
+- All other dates (e.g. `orderPlacedAt`, `deletedAt`, custom fields) hold wall-clock time in the
+  timezone of the **Node.js process** (`processTimezone`).
+
+If both were UTC (the recommended setup, and the default of most containers and managed
+databases), pass `'UTC'`. Then Postgres (12+) changes the type without rewriting the tables.
+Otherwise every table with such a column is rewritten once, under an `ACCESS EXCLUSIVE` lock.
+
+The helper must run inside a transaction, which is the default for migrations
+(`migrationsTransactionMode: 'each'` or `'all'`). It changes the session's `timezone` and
+`lock_timeout` while it runs, and restores them afterwards.
+
+Use [previewTimestamptzMigration](/reference/typescript-api/migration/preview-timestamptz-migration#previewtimestamptzmigration) first to see which columns change and to check the
+timezones against your data.
+
+*Example*
+
+```ts
+import { migrateTimestampColumnsToTimestamptz, revertTimestamptzMigration } from '@vendure/core';
+
+export class Timestamptz1700000000000 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner) {
+        await migrateTimestampColumnsToTimestamptz(queryRunner);
+    }
+    public async down(queryRunner: QueryRunner) {
+        await revertTimestamptzMigration(queryRunner);
+    }
+}
+```
+
+```ts title="Signature"
+function migrateTimestampColumnsToTimestamptz(queryRunner: QueryRunner, options: TimestamptzMigrationOptions = {}): Promise<TimestampColumnToMigrate[]>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/migration/timestamptz-migration-options#timestamptzmigrationoptions'>TimestamptzMigrationOptions</a>`} />
+

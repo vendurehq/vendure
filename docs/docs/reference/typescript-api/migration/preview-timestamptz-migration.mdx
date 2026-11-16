@@ -1,0 +1,19 @@
+---
+title: "PreviewTimestamptzMigration"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_timestamptz.ts" sourceLine="395" packageName="@vendure/core" since="4.0.0" />
+
+Lists the columns which [migrateTimestampColumnsToTimestamptz](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz#migratetimestampcolumnstotimestamptz) would convert, and estimates
+the difference between the timezone of the Node.js process and the timezone of Postgres from your
+orders. Changes nothing, and does not abort a surrounding transaction.
+
+```ts title="Signature"
+function previewTimestamptzMigration(queryRunner: QueryRunner): Promise<TimestamptzMigrationPreview>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+
