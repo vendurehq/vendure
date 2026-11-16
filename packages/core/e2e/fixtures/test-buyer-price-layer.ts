@@ -40,6 +40,9 @@ export const noPriceSkus = new Set<string>();
  */
 export const buyerOverride: { customerId?: ID } = {};
 
+/** The pricing data that {@link TestBuyerPriceLayer} receives, in the order of the calls. */
+export const receivedPricingData: Array<Record<string, unknown> | undefined> = [];
+
 /** The metadata that {@link MetadataRecordingLayer} reads from the result of the inner strategy. */
 export const orderItemMetadata: Array<Record<string, unknown> | undefined> = [];
 
@@ -65,6 +68,7 @@ export class TestBuyerPriceLayer extends StrategyLayer.passThrough<ProductVarian
         productVariant: ProductVariant,
         args: ProductVariantBuyerPriceArgs,
     ): Promise<PriceCalculationResult | undefined> {
+        receivedPricingData.push(args.data);
         if (noPriceSkus.has(productVariant.sku) || args.data?.unitCode === 'NONE') {
             return undefined;
         }

@@ -1,4 +1,4 @@
-import { GraphQLObjectType, GraphQLSchema, printSchema } from 'graphql';
+import { GraphQLInputObjectType, GraphQLObjectType, GraphQLSchema, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 
 import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
@@ -354,12 +354,16 @@ describe('addOrderLineCustomFieldsInput()', () => {
     });
 
     const buyerPriceInput = `
-        type ProductVariant {
-            id: ID!
-            buyerPrice(quantity: Int = 1): Int!
+        type BuyerPrice {
+            price: Int!
+        }
+        input BuyerPriceInput {
+            productVariantId: ID!
+            quantity: Int = 1
         }
         type Query {
-            productVariant: ProductVariant
+            buyerPrice(productVariantId: ID!, quantity: Int = 1): BuyerPrice
+            buyerPrices(input: [BuyerPriceInput!]!): [BuyerPrice]!
         }
         type Mutation {
             addItemToOrder(id: ID!, quantity: Int!): Boolean
@@ -367,29 +371,41 @@ describe('addOrderLineCustomFieldsInput()', () => {
     `;
 
     function getBuyerPriceArgs(schema: GraphQLSchema) {
-        const type = schema.getType('ProductVariant') as GraphQLObjectType;
+        const type = schema.getQueryType() as GraphQLObjectType;
         return type.getFields().buyerPrice.args.map(a => `${a.name}: ${a.type.toString()}`);
     }
 
-    it('adds a customFields argument to ProductVariant.buyerPrice', () => {
+    function getBuyerPriceInputFields(schema: GraphQLSchema) {
+        const type = schema.getType('BuyerPriceInput') as GraphQLInputObjectType;
+        return Object.values(type.getFields()).map(f => `${f.name}: ${f.type.toString()}`);
+    }
+
+    it('adds a customFields argument to the buyerPrice query and a customFields field to BuyerPriceInput', () => {
         const customFieldConfig: CustomFieldConfig[] = [{ name: 'unitCode', type: 'string' }];
         const result = addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true);
         expect(getBuyerPriceArgs(result)).toEqual([
+            'productVariantId: ID!',
+            'quantity: Int',
+            'customFields: OrderLineCustomFieldsInput',
+        ]);
+        expect(getBuyerPriceInputFields(result)).toEqual([
+            'productVariantId: ID!',
             'quantity: Int',
             'customFields: OrderLineCustomFieldsInput',
         ]);
     });
 
-    it('does not add a customFields argument to ProductVariant.buyerPrice without public OrderLine custom fields', () => {
+    it('does not add customFields to the buyerPrice query and BuyerPriceInput without public OrderLine custom fields', () => {
         const customFieldConfig: CustomFieldConfig[] = [
             { name: 'internalCode', type: 'string', public: false },
         ];
-        expect(getBuyerPriceArgs(addOrderLineCustomFieldsInput(buyerPriceInput, [], true))).toEqual([
-            'quantity: Int',
-        ]);
-        expect(
-            getBuyerPriceArgs(addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true)),
-        ).toEqual(['quantity: Int']);
+        for (const result of [
+            addOrderLineCustomFieldsInput(buyerPriceInput, [], true),
+            addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true),
+        ]) {
+            expect(getBuyerPriceArgs(result)).toEqual(['productVariantId: ID!', 'quantity: Int']);
+            expect(getBuyerPriceInputFields(result)).toEqual(['productVariantId: ID!', 'quantity: Int']);
+        }
     });
 });
 

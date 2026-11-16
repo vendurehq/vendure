@@ -23,7 +23,7 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * * The {@link DefaultOrderItemPriceCalculationStrategy} calls it for the unit price of each OrderLine,
  *   for the Customer of the Order, through `ProductVariantService.calculateBuyerPriceForOrder()`.
- * * The Shop API `ProductVariant.buyerPrice` field calls it for the active Customer, without an Order.
+ * * The Shop API `buyerPrice` and `buyerPrices` queries call it for the active Customer, without an Order.
  *   Thus a storefront can show the base unit price of the buyer.
  *
  * ### ProductVariantBuyerPriceStrategy vs ProductVariantPriceCalculationStrategy
@@ -39,7 +39,7 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * ### The buyer
  *
  * The `buyer` argument tells the strategy who the price is for. In the cart it gives the Customer of
- * the Order, and for the `buyerPrice` field the Customer of the active User. A caller can pass its own
+ * the Order, and for the `buyerPrice` and `buyerPrices` queries the Customer of the active User. A caller can pass its own
  * Buyer to `ProductVariantService.calculateBuyerPriceForOrder()` and `calculateBuyerPrice()`, for
  * example an order item layer that prices a shared cart for a company. It loads nothing until the
  * strategy calls it. A strategy that caches its results must include the buyer in the cache key.
@@ -48,8 +48,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * The `data` argument carries pricing input that the strategy defines, for example a packaging unit.
  * In the cart, `data` is the OrderLine custom fields that the {@link OrderItemPriceCalculationStrategy}
- * chain passes down. For the `buyerPrice` field, it is the `customFields` argument of the field. This
- * argument exists when OrderLine custom fields are defined, and has the same input type as
+ * chain passes down. For the `buyerPrice` and `buyerPrices` queries, it is the `customFields` of the query
+ * input. This input exists when OrderLine custom fields are defined, and has the same input type as
  * `addItemToOrder`. To get the same price, a storefront passes the same values to both.
  *
  * The custom fields of a saved OrderLine can differ from the raw input: they can contain default
@@ -72,7 +72,7 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * ### The buyer price and the cart price
  *
- * The `buyerPrice` field gives the base unit price of the buyer, not a guarantee of the final
+ * The `buyerPrice` query gives the base unit price of the buyer, not a guarantee of the final
  * cart price. The cart can differ because of logic in the OrderItemPriceCalculationStrategy, a guest
  * Order (the session has no Customer, but the Order has a guest Customer), the tax zone of the Order,
  * or a custom {@link TaxLineCalculationStrategy}.
@@ -80,7 +80,7 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  * ### No price and metadata
  *
  * The strategy returns `undefined` when there is no price for this buyer, for example for "price on
- * request" or "log in to see prices". The `buyerPrice` field then gives `null`. In the cart,
+ * request" or "log in to see prices". The `buyerPrice` query then gives `null`. In the cart,
  * `ProductVariantService.calculateBuyerPriceForOrder()` throws a {@link NoBuyerPriceError}. Then:
  *
  * * A new OrderLine is not added.
@@ -100,8 +100,8 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
  *
  * ### Performance
  *
- * Vendure does not cache the result. The `buyerPrice` field runs the strategy once for each
- * ProductVariant that requests the field. If your strategy is slow, for example because it calls an
+ * Vendure does not cache the result. The `buyerPrice` and `buyerPrices` queries run the strategy once
+ * for each input. If your strategy is slow, for example because it calls an
  * external system, it must cache the results itself.
  *
  * @docsCategory products & stock
@@ -142,8 +142,8 @@ export interface ProductVariantBuyerPriceArgs {
      * Pricing input that the strategy defines, for example the code of a packaging unit. Vendure does
      * not validate or interpret it: the strategy must do this.
      *
-     * For the `buyerPrice` field, this is a copy of the `customFields` argument of the field, or
-     * `undefined`. In the cart, this is a copy of the OrderLine custom fields that the
+     * For the `buyerPrice` and `buyerPrices` queries, this is a copy of the `customFields` of the
+     * query input, or `undefined`. In the cart, this is a copy of the OrderLine custom fields that the
      * {@link OrderItemPriceCalculationStrategy} receives.
      */
     data?: Record<string, unknown>;

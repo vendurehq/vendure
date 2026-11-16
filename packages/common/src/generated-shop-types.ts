@@ -171,6 +171,17 @@ export type BuyerPrice = {
   price: Scalars['Money']['output'];
   /** The price of a single unit, including tax */
   priceWithTax: Scalars['Money']['output'];
+  /** The id of the ProductVariant that the price is for */
+  productVariantId: Scalars['ID']['output'];
+};
+
+/**
+ * The input of the `buyerPrices` query. When OrderLine custom fields are defined, it also has a
+ * `customFields` field, with the same input type as `addItemToOrder`.
+ */
+export type BuyerPriceInput = {
+  productVariantId: Scalars['ID']['input'];
+  quantity?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type Channel = Node & {
@@ -2912,23 +2923,6 @@ export type ProductTranslation = {
 export type ProductVariant = Node & {
   __typename?: 'ProductVariant';
   assets: Array<Asset>;
-  /**
-   * The unit price that the configured ProductVariantBuyerPriceStrategy calculates for the
-   * active Customer and the given quantity. Unlike `price` and `priceWithTax`, which give the
-   * price of the Channel, this is the price that the default cart pricing starts from. No Order
-   * is needed. It is `null` when the strategy gives no price for this buyer, for example for a
-   * price on request. It is also `null` when the variant or its Product is not available in the
-   * active Channel, for example for the variant of an OrderLine that was disabled later.
-   *
-   * When OrderLine custom fields are defined, the field also has a `customFields` argument, with
-   * the same input type as `addItemToOrder`. To get the same price as the cart, pass the same
-   * values that you pass as `customFields` to `addItemToOrder`.
-   *
-   * This is the base unit price of the buyer, not a guarantee of the final cart price. For
-   * example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
-   * of the Order.
-   */
-  buyerPrice?: Maybe<BuyerPrice>;
   createdAt: Scalars['DateTime']['output'];
   currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -2948,11 +2942,6 @@ export type ProductVariant = Node & {
   taxRateApplied: TaxRate;
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
-};
-
-
-export type ProductVariantBuyerPriceArgs = {
-  quantity?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ProductVariantFilterParameter = {
@@ -3106,6 +3095,32 @@ export type Query = {
   activeShippingMethods: Array<Maybe<PublicShippingMethod>>;
   /** An array of supported Countries */
   availableCountries: Array<Country>;
+  /**
+   * The unit price of a ProductVariant that the configured ProductVariantBuyerPriceStrategy
+   * calculates for the active Customer and the given quantity, for example for a product detail
+   * page. Unlike `ProductVariant.price` and `ProductVariant.priceWithTax`, which give the price of
+   * the Channel, this is the price that the default cart pricing starts from. No Order is needed.
+   *
+   * It is `null` when the variant does not exist or is deleted, when the variant or its Product is
+   * not available in the active Channel, or when the strategy gives no price for this buyer, for
+   * example for a price on request.
+   *
+   * When OrderLine custom fields are defined, the query also has a `customFields` argument, with
+   * the same input type as `addItemToOrder`. To get the same price as the cart, pass the same
+   * values that you pass as `customFields` to `addItemToOrder`.
+   *
+   * This is the base unit price of the buyer, not a guarantee of the final cart price. For
+   * example, the tax rate comes from the tax zone of the session, and the cart uses the tax zone
+   * of the Order.
+   */
+  buyerPrice?: Maybe<BuyerPrice>;
+  /**
+   * The buyer prices of several ProductVariants in one request, for example for a product list
+   * page. Gives one result for each input, in the order of the input. A result is `null` for the
+   * same reasons as in the `buyerPrice` query. The number of inputs must not be more than the
+   * `shopListQueryLimit` of the API options.
+   */
+  buyerPrices: Array<Maybe<BuyerPrice>>;
   /** Returns a Collection either by its id or slug. If neither 'id' nor 'slug' is specified, an error will result. */
   collection?: Maybe<Collection>;
   /** A list of Collections available to the shop */
@@ -3140,6 +3155,17 @@ export type Query = {
   products: ProductList;
   /** Search Products based on the criteria set by the `SearchInput` */
   search: SearchResponse;
+};
+
+
+export type QueryBuyerPriceArgs = {
+  productVariantId: Scalars['ID']['input'];
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryBuyerPricesArgs = {
+  input: Array<BuyerPriceInput>;
 };
 
 
