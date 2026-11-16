@@ -38,8 +38,10 @@ describe('channel-scoped custom fields of Product (#490)', () => {
         expectTypeOf(channelFields!.channelFeaturedAsset).toEqualTypeOf<Asset | null>();
     });
 
-    it('only accepts the names of the fields as relations', () => {
+    it('only accepts the names of relation fields as relations', () => {
         void product.getChannelCustomFields(ctx, { relations: ['channelFeaturedAsset'] });
+        // @ts-expect-error a channel-scoped field, but not a relation
+        void product.getChannelCustomFields(ctx, { relations: ['channelNote'] });
         // @ts-expect-error not a channel-scoped field
         void product.getChannelCustomFields(ctx, { relations: ['featuredAsset'] });
     });

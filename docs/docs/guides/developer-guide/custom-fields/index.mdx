@@ -335,8 +335,8 @@ const channelFields = await product.getChannelCustomFields(ctx, {
 });
 ```
 
-Calls made in the same tick are batched into one query, so calling `getChannelCustomFields()` for each item of a
-list does not cause a query per item.
+Calls without `relations` made in the same tick are batched into one query, so calling `getChannelCustomFields()` for
+each item of a list does not cause a query per item.
 
 Code which does not run in a request for one Channel, such as a search plugin which indexes each Channel
 separately, should read the values of the Channel it is indexing: either with a `RequestContext` for that

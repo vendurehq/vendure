@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { EntityMetadata, In } from 'typeorm';
 import type { ChannelAssignment } from '../../../entity/channel-assignment/channel-assignment';
@@ -16,7 +16,8 @@ import {
 } from '../../../entity/channel-assignment/channel-assignment-registry';
 import {
     ChannelCustomFieldsOptions,
-    setChannelCustomFieldsReader,
+    registerChannelCustomFieldsReader,
+    unregisterChannelCustomFieldsReader,
 } from '../../../entity/channel-assignment/channel-custom-fields';
 
 /**
@@ -36,6 +37,11 @@ export interface ChannelAssignmentMetadata {
     dataProperties: string[];
     /** Relation paths inside the data properties, e.g. `['customFields.featuredAsset']` */
     dataRelations: string[];
+    /**
+     * The `unique` channel-scoped custom fields, e.g. `['channelSku']`. They are unique within each
+     * Channel, so they are not copied to a newly assigned Channel.
+     */
+    uniqueCustomFields: string[];
 }
 
 type AnyEntity = Type<any>;
@@ -65,7 +71,7 @@ export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
  * @since 4.0.0
  */
 @Injectable()
-export class ChannelAssignmentService implements OnApplicationBootstrap {
+export class ChannelAssignmentService implements OnApplicationBootstrap, OnApplicationShutdown {
     private metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
 
     constructor(
@@ -80,7 +86,11 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
     onApplicationBootstrap() {
         validateChannelAssignmentMetadata(this.connection.rawConnection.entityMetadatas);
         // Serves `getChannelCustomFields()` on entities such as Product
-        setChannelCustomFieldsReader(this);
+        registerChannelCustomFieldsReader(this);
+    }
+
+    onApplicationShutdown() {
+        unregisterChannelCustomFieldsReader(this);
     }
 
     /**
@@ -224,6 +234,9 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
      * Copies the data columns of the entity's assignment row in `fromChannelId` to its rows in
      * `toChannelIds`. Called by `ChannelService.assignToChannels()` so that an entity newly assigned
      * to a Channel starts with the data it has in a Channel it was already assigned to.
+     *
+     * `unique` channel-scoped custom fields are not copied: the value may already be used by another
+     * entity in the target Channel, so the target row keeps its own value (the column default).
      */
     async copyAssignment(
         ctx: RequestContext,
@@ -255,8 +268,16 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             relations: findOptionsArrayToObject(meta.dataRelations),
         });
         for (const target of targets) {
+            const ownCustomFields = (target as any).customFields;
             for (const property of meta.dataProperties) {
                 (target as any)[property] = (source as any)[property];
+            }
+            if (meta.uniqueCustomFields.length && (source as any).customFields) {
+                const customFields = { ...(source as any).customFields };
+                for (const name of meta.uniqueCustomFields) {
+                    customFields[name] = ownCustomFields?.[name] ?? null;
+                }
+                (target as any).customFields = customFields;
             }
         }
         await repo.save(targets, { reload: false });
@@ -417,6 +438,11 @@ export class ChannelAssignmentService implements OnApplicationBootstrap {
             entityIdProperty: `${options.entityProperty}Id`,
             dataProperties: Array.from(dataProperties),
             dataRelations: assignment.relations.filter(r => r.embeddedMetadata).map(r => r.propertyPath),
+            uniqueCustomFields: assignment.indices
+                .filter(index => index.isUnique)
+                .flatMap(index => index.columns)
+                .filter(column => column.embeddedMetadata?.propertyName === 'customFields')
+                .map(column => column.propertyName),
         };
     }
 

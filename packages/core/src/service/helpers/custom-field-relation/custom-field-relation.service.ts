@@ -132,7 +132,7 @@ export class CustomFieldRelationService {
             return this.connection.getRepository(ctx, field.entity).findBy({ id: In(idOrIds) });
         }
         if (!field.list && this.isId(idOrIds)) {
-            // An unknown id resolves to null, as before, which removes the relation
+            // An unknown id resolves to null, which removes the relation
             return this.connection.getRepository(ctx, field.entity).findOne({ where: { id: idOrIds } });
         }
         return undefined;

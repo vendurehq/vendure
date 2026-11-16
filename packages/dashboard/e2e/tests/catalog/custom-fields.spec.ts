@@ -573,9 +573,6 @@ test.describe('Custom Fields', () => {
     });
 });
 
-// #4741 — when the form is invalid the submit button is disabled, and the page has to say why.
-// Uses the `numericCode` field (pattern `^[0-9]*$`). A stored value which fails the pattern is
-// simulated by rewriting the ProductDetail response, because the server rejects one on write.
 // #490 — a channel-scoped custom field shows and saves the value of the active channel
 test.describe('Channel-scoped custom fields', () => {
     test.describe.configure({ mode: 'serial' });
@@ -672,6 +669,9 @@ test.describe('Channel-scoped custom fields', () => {
     });
 });
 
+// #4741 — when the form is invalid the submit button is disabled, and the page has to say why.
+// Uses the `numericCode` field (pattern `^[0-9]*$`). A stored value which fails the pattern is
+// simulated by rewriting the ProductDetail response, because the server rejects one on write.
 test.describe('Form error summary', () => {
     const summary = (page: Page) => page.getByRole('alert').filter({ hasText: 'This cannot be saved' });
 

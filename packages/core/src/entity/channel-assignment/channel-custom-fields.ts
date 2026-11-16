@@ -2,6 +2,20 @@ import { ID, Type } from '@vendure/common/lib/shared-types';
 
 import type { RequestContext } from '../../api/common/request-context';
 import { InternalServerError } from '../../common/error/errors';
+import type { VendureEntity } from '../base/base.entity';
+
+/**
+ * @description
+ * The names of the relation fields among the given channel-scoped custom fields: those whose type
+ * is an entity or a list of entities.
+ *
+ * @docsCategory entities
+ * @since 4.0.0
+ */
+export type ChannelCustomFieldRelations<Fields> = {
+    [K in keyof Fields]-?: NonNullable<Fields[K]> extends VendureEntity | VendureEntity[] ? K : never;
+}[keyof Fields] &
+    string;
 
 /**
  * @description
@@ -16,7 +30,7 @@ export interface ChannelCustomFieldsOptions<Fields> {
      * @description
      * The relation fields to load. Other relation fields are not set.
      */
-    relations?: Array<keyof Fields & string>;
+    relations?: Array<ChannelCustomFieldRelations<Fields>>;
     /**
      * @description
      * The Channel to read the values of. Defaults to the active Channel of the RequestContext.
@@ -37,15 +51,30 @@ interface ChannelCustomFieldsReader {
     ): Promise<Record<string, unknown> | undefined>;
 }
 
-let reader: ChannelCustomFieldsReader | undefined;
+/**
+ * The readers of the apps bootstrapped in this process, e.g. a server and a worker. Like
+ * `getConfig()`, reads are process-wide: the most recently bootstrapped app which is still running
+ * serves them.
+ */
+const readers: ChannelCustomFieldsReader[] = [];
 
 /**
  * @internal
- * Called by the ChannelAssignmentService on bootstrap. Like `getConfig()`, it is process-wide: the
- * most recently bootstrapped app serves the reads.
+ * Called by the ChannelAssignmentService on bootstrap.
  */
-export function setChannelCustomFieldsReader(value: ChannelCustomFieldsReader | undefined) {
-    reader = value;
+export function registerChannelCustomFieldsReader(value: ChannelCustomFieldsReader) {
+    readers.push(value);
+}
+
+/**
+ * @internal
+ * Called by the ChannelAssignmentService on shutdown, so that a closed app no longer serves reads.
+ */
+export function unregisterChannelCustomFieldsReader(value: ChannelCustomFieldsReader) {
+    const index = readers.lastIndexOf(value);
+    if (index !== -1) {
+        readers.splice(index, 1);
+    }
 }
 
 /**
@@ -58,6 +87,7 @@ export async function readChannelCustomFields<Fields>(
     entity: { id: ID },
     options?: ChannelCustomFieldsOptions<Fields>,
 ): Promise<Fields | undefined> {
+    const reader = readers[readers.length - 1];
     if (!reader) {
         throw new InternalServerError(
             `Cannot read the channel-scoped custom fields of ${entityType.name} before the app has bootstrapped`,

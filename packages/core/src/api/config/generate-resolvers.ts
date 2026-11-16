@@ -222,29 +222,28 @@ function generateCustomFieldResolvers(
         const channelScopedFieldNames = customFields
             .filter(f => f.channelScoped && !isRelationalType(f))
             .map(f => f.name);
-        const customFieldResolver: IFieldResolver<any, any> = async (
-            source: any,
-            args: any,
-            context: any,
-        ) => {
-            const channelScopedValues = channelScopedFieldNames.length
-                ? await channelAssignmentService.getCustomFieldValues(
-                      internal_getRequestContext(context.req),
-                      entityName,
-                      // The entity, so that a row loaded by its list's channel assignment join is reused
+        const resolveCustomFields = (source: any, channelScopedValues?: Record<string, unknown>) => ({
+            ...source.customFields,
+            ...channelScopedValues,
+            [ENTITY_ID_KEY]: source.id,
+            // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
+            // pass the real VendureEntity to strategies, rather than this customFields wrapper.
+            [ENTITY_KEY]: source,
+        });
+        // Only types with channel-scoped fields need an async resolver
+        const customFieldResolver: IFieldResolver<any, any> = channelScopedFieldNames.length
+            ? async (source: any, args: any, context: any) =>
+                  resolveCustomFields(
                       source,
-                      channelScopedFieldNames,
+                      await channelAssignmentService.getCustomFieldValues(
+                          internal_getRequestContext(context.req),
+                          entityName,
+                          // The entity, so that a row loaded by its list's channel assignment join is reused
+                          source,
+                          channelScopedFieldNames,
+                      ),
                   )
-                : {};
-            return {
-                ...source.customFields,
-                ...channelScopedValues,
-                [ENTITY_ID_KEY]: source.id,
-                // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
-                // pass the real VendureEntity to strategies, rather than this customFields wrapper.
-                [ENTITY_KEY]: source,
-            };
-        };
+            : (source: any) => resolveCustomFields(source);
         const resolverObject = {
             customFields: customFieldResolver,
         };

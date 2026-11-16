@@ -62,6 +62,14 @@ export class FastImporterService {
      * Passing a `channel` argument means that Products and ProductVariants will be assigned
      * to that Channel.
      */
+    /**
+     * The Channel whose channel-scoped custom field values are written. Without a `channel`,
+     * `initialize()` uses `RequestContext.empty()`, whose Channel has no id, so the default Channel's.
+     */
+    private get importChannelId(): ID {
+        return this.importCtx.channelId ?? this.defaultChannel.id;
+    }
+
     async initialize(channel?: Channel) {
         this.importCtx = channel
             ? await this.requestContextService.create({
@@ -112,7 +120,7 @@ export class FastImporterService {
             Product,
             input.customFields,
             product,
-            this.importCtx.channelId ?? this.defaultChannel.id,
+            this.importChannelId,
         );
         return product.id;
     }
@@ -227,7 +235,7 @@ export class FastImporterService {
             ProductVariant,
             input.customFields,
             createdVariant,
-            this.importCtx.channelId ?? this.defaultChannel.id,
+            this.importChannelId,
         );
         return createdVariant.id;
     }

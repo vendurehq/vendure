@@ -91,8 +91,8 @@ export class Asset extends VendureEntity implements Taggable, ChannelAware, HasC
      * that Channel. They are not part of `customFields`, since they have a value per Channel.
      * Declare their types on {@link CustomAssetChannelFields}.
      *
-     * Relation fields are only set if listed in `options.relations`. Calls made in the same tick
-     * are batched into one query.
+     * Relation fields are only set if listed in `options.relations`. Calls without relations made
+     * in the same tick are batched into one query.
      *
      * @since 4.0.0
      */

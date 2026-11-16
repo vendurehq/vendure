@@ -646,14 +646,43 @@ describe('Channel-scoped custom fields (#490)', () => {
                 `,
                 { input: { id, customFields: { channelSku: sku } } },
             );
+        // The error of the unique index, on each database
+        const uniqueViolation = /UNIQUE constraint failed|duplicate key value|Duplicate entry/;
         asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
         await setSku('T_1', 'SKU-1');
-        await expect(setSku('T_2', 'SKU-1')).rejects.toThrow();
+        await expect(setSku('T_2', 'SKU-1')).rejects.toThrow(uniqueViolation);
         // The same value in another channel
         asChannel(CHANNEL_B_TOKEN);
         await setSku('T_1', 'SKU-1');
-        await expect(setSku('T_2', 'SKU-1')).rejects.toThrow();
+        await expect(setSku('T_2', 'SKU-1')).rejects.toThrow(uniqueViolation);
         await setSku('T_2', 'SKU-2');
+
+        // Assigning to a channel does not copy a unique value, which another product may use there:
+        // T_1 is in channel C, and T_2 is assigned to it from the default channel
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await setSku('T_2', 'SKU-3');
+        asChannel(CHANNEL_C_TOKEN);
+        await setSku('T_1', 'SKU-3');
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(ASSIGN_PRODUCTS, { input: { channelId: channelCId, productIds: ['T_2'] } });
+        asChannel(CHANNEL_C_TOKEN);
+        const { product: copied } = await adminClient.query(
+            gql`
+                query CopiedSku($id: ID!) {
+                    product(id: $id) {
+                        customFields {
+                            channelSku
+                            channelTags
+                        }
+                    }
+                }
+            `,
+            { id: 'T_2' },
+        );
+        // The other values are copied
+        expect(copied.customFields).toEqual({ channelSku: null, channelTags: ['a', 'b'] });
+        asChannel(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(REMOVE_PRODUCTS, { input: { channelId: channelCId, productIds: ['T_2'] } });
 
         const index = server.app
             .get(TransactionalConnection)
@@ -841,6 +870,7 @@ describe('Channel-scoped custom fields (#490)', () => {
         });
         expect(withAsset?.channelFeaturedAsset).toEqual(expect.objectContaining({ id: 1 }));
         await expect(
+            // The type only accepts relation fields; this checks the error for untyped callers
             inDefault!.getChannelCustomFields(ctxDefault, { relations: ['channelNote'] as any }),
         ).rejects.toThrow('is not a channel-scoped relation custom field');
 

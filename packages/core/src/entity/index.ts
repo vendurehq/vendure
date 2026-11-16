@@ -11,7 +11,10 @@ export * from './authentication-method/native-authentication-method.entity';
 export * from './base/base.entity';
 export * from './channel-assignment/channel-assignment';
 export * from './channel-assignment/channel-assignment.entities';
-export type { ChannelCustomFieldsOptions } from './channel-assignment/channel-custom-fields';
+export type {
+    ChannelCustomFieldRelations,
+    ChannelCustomFieldsOptions,
+} from './channel-assignment/channel-custom-fields';
 export * from './channel/channel.entity';
 export * from './collection/collection-asset.entity';
 export * from './collection/collection-translation.entity';
