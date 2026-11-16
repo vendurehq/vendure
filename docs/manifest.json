@@ -109,7 +109,7 @@
           "title": "Inventory",
           "slug": "stock-control",
           "file": "docs/guides/core-concepts/stock-control/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-16T14:01:12+01:00"
         },
         {
           "title": "Currency",
@@ -307,13 +307,13 @@
               "title": "Database Migration",
               "slug": "database-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/database-migration.mdx",
-              "lastModified": "2026-11-16T10:26:57+01:00"
+              "lastModified": "2026-11-16T14:01:12+01:00"
             },
             {
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-16T10:44:06+01:00"
+              "lastModified": "2026-11-16T14:01:12+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-06T13:14:17Z"
             }
           ],
-          "lastModified": "2026-11-16T10:26:57+01:00"
+          "lastModified": "2026-11-16T14:01:12+01:00"
         },
         {
           "title": "Worker & Job Queue",
