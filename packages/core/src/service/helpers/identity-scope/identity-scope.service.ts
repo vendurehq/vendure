@@ -79,9 +79,10 @@ export class IdentityScopeService implements OnApplicationBootstrap {
             );
         }
         if (live > 0 && orphaned === live) {
+            const scopeList = knownScopes.map(scope => JSON.stringify(scope)).join(', ');
             throw new Error(
                 `None of the ${live} Customers is stored in an identity scope that the configured ` +
-                    `IdentityScopeStrategy gives a Channel (${knownScopes.map(scope => `"${scope}"`).join(', ')}), ` +
+                    `IdentityScopeStrategy gives a Channel (${scopeList}), ` +
                     `so no Customer could log in. ${IDENTITY_SCOPE_MISMATCH_ADVICE}`,
             );
         }
