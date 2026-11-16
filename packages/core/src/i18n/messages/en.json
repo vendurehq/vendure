@@ -56,6 +56,8 @@
     "permission-invalid": "The permission \"{ permission }\" may not be assigned",
     "product-id-or-slug-must-be-provided": "Either the Product id or slug must be provided",
     "product-id-slug-mismatch": "The provided id and slug refer to different Products",
+    "buyer-price-quantity-must-be-positive": "The quantity for the buyer price must be a positive integer",
+    "no-buyer-price-for-product-variant": "The ProductVariant with the id \"{ productVariantId }\" has no price for this buyer",
     "slug-conflict-in-channel": "The target channel already uses these slugs: { slugs }. Change the slugs before assigning to this channel",
     "product-option-group-already-assigned": "The ProductOptionGroup \"{ groupCode }\" is already assigned to the Product \"{ productName }\"",
     "product-variant-option-ids-not-compatible": "ProductVariant optionIds must include one optionId from each of the groups: {groupNames}",

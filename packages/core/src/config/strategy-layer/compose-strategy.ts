@@ -111,13 +111,16 @@ export function replaceBase<S extends InjectableStrategy>(strategy: S, base: S):
  * @docsCategory configuration
  * @docsPage composeStrategy
  */
-export function removeLayer<S extends InjectableStrategy>(strategy: S, layer: StrategyLayerClass<S>): S {
+export function removeLayer<S extends InjectableStrategy, T extends S = S>(
+    strategy: T,
+    layer: StrategyLayerClass<S>,
+): T {
     const definition = getChainDefinition(strategy);
     if (definition.removed.includes(layer)) {
         return strategy;
     }
     definition.removed.push(layer);
-    return buildStrategyChain(definition) as S;
+    return buildStrategyChain(definition) as T;
 }
 
 /**
@@ -142,18 +145,18 @@ export function removeLayer<S extends InjectableStrategy>(strategy: S, layer: St
  * @docsCategory configuration
  * @docsPage composeStrategy
  */
-export function setLayerPriority<S extends InjectableStrategy>(
-    strategy: S,
+export function setLayerPriority<S extends InjectableStrategy, T extends S = S>(
+    strategy: T,
     layer: StrategyLayerClass<S>,
     priority: number,
-): S {
+): T {
     assertValidPriority(priority);
     const definition = getChainDefinition(strategy);
     if (definition.priorities.get(layer) === priority) {
         return strategy;
     }
     definition.priorities.set(layer, priority);
-    return buildStrategyChain(definition) as S;
+    return buildStrategyChain(definition) as T;
 }
 
 /**

@@ -62,9 +62,33 @@ class IllegalOperationError extends I18nError {
 
 
 </div>
+## NoBuyerPriceError
+
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="58" packageName="@vendure/core" since="4.0.0" />
+
+This error is thrown when the [ProductVariantBuyerPriceStrategy](/reference/typescript-api/products-stock/product-variant-buyer-price-strategy#productvariantbuyerpricestrategy) gives no price for the buyer of
+an OrderLine, see `ProductVariantService.calculateBuyerPriceForOrder()`. A new OrderLine with no price
+is not added. An OrderLine that is already in the Order keeps its current price.
+
+It is an [IllegalOperationError](/reference/typescript-api/errors/error-types#illegaloperationerror), so the GraphQL error code is `ILLEGAL_OPERATION`.
+
+```ts title="Signature"
+class NoBuyerPriceError extends IllegalOperationError {
+    constructor(productVariantId: ID)
+}
+```
+* Extends: [`IllegalOperationError`](/reference/typescript-api/errors/error-types#illegaloperationerror)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
 ## UnauthorizedError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="53" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="71" packageName="@vendure/core" />
 
 This error should be thrown when the user's authentication credentials do not match.
 
@@ -84,7 +108,7 @@ class UnauthorizedError extends I18nError {
 </div>
 ## ForbiddenError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="67" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="85" packageName="@vendure/core" />
 
 This error should be thrown when a user attempts to access a resource which is outside of
 his or her privileges.
@@ -105,7 +129,7 @@ class ForbiddenError extends I18nError {
 </div>
 ## UnverifiedExternalEmailError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="84" packageName="@vendure/core" since="3.7.0" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="102" packageName="@vendure/core" since="3.7.0" />
 
 This error should be thrown when an external authentication attempt presents an email
 address which already belongs to an existing account, but the external provider has not
@@ -128,7 +152,7 @@ class UnverifiedExternalEmailError extends I18nError {
 </div>
 ## ChannelNotFoundError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="103" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="121" packageName="@vendure/core" />
 
 This error should be thrown when a [Channel](/reference/typescript-api/entities/channel#channel) cannot be found based on the provided
 channel token.
@@ -149,7 +173,7 @@ class ChannelNotFoundError extends I18nError {
 </div>
 ## EntityNotFoundError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="117" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="135" packageName="@vendure/core" />
 
 This error should be thrown when an entity cannot be found in the database, i.e. no entity of
 the given entityName (Product, User etc.) exists with the provided id.

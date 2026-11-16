@@ -28,6 +28,7 @@ import { defaultCollectionFilters } from './catalog/default-collection-filters';
 import { DefaultProductVariantPriceCalculationStrategy } from './catalog/default-product-variant-price-calculation-strategy';
 import { DefaultProductVariantPriceSelectionStrategy } from './catalog/default-product-variant-price-selection-strategy';
 import { DefaultProductVariantPriceUpdateStrategy } from './catalog/default-product-variant-price-update-strategy';
+import { DefaultProductVariantBuyerPriceStrategy } from './catalog/default-product-variant-buyer-price-strategy';
 import { DefaultStockDisplayStrategy } from './catalog/default-stock-display-strategy';
 import { MultiChannelStockLocationStrategy } from './catalog/multi-channel-stock-location-strategy';
 import { AutoIncrementIdStrategy } from './entity/auto-increment-id-strategy';
@@ -141,6 +142,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         productVariantPriceUpdateStrategy: new DefaultProductVariantPriceUpdateStrategy({
             syncPricesAcrossChannels: false,
         }),
+        productVariantBuyerPriceStrategy: new DefaultProductVariantBuyerPriceStrategy(),
         stockDisplayStrategy: new DefaultStockDisplayStrategy(),
         stockLocationStrategy: new MultiChannelStockLocationStrategy(),
     },

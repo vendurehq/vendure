@@ -1,4 +1,4 @@
-import { printSchema } from 'graphql';
+import { GraphQLObjectType, GraphQLSchema, printSchema } from 'graphql';
 import { describe, expect, it } from 'vitest';
 
 import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
@@ -351,6 +351,45 @@ describe('addOrderLineCustomFieldsInput()', () => {
         ];
         const result = addOrderLineCustomFieldsInput(input, customFieldConfig, false);
         expect(printSchema(result)).toMatchSnapshot();
+    });
+
+    const buyerPriceInput = `
+        type ProductVariant {
+            id: ID!
+            buyerPrice(quantity: Int = 1): Int!
+        }
+        type Query {
+            productVariant: ProductVariant
+        }
+        type Mutation {
+            addItemToOrder(id: ID!, quantity: Int!): Boolean
+        }
+    `;
+
+    function getBuyerPriceArgs(schema: GraphQLSchema) {
+        const type = schema.getType('ProductVariant') as GraphQLObjectType;
+        return type.getFields().buyerPrice.args.map(a => `${a.name}: ${a.type.toString()}`);
+    }
+
+    it('adds a customFields argument to ProductVariant.buyerPrice', () => {
+        const customFieldConfig: CustomFieldConfig[] = [{ name: 'unitCode', type: 'string' }];
+        const result = addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true);
+        expect(getBuyerPriceArgs(result)).toEqual([
+            'quantity: Int',
+            'customFields: OrderLineCustomFieldsInput',
+        ]);
+    });
+
+    it('does not add a customFields argument to ProductVariant.buyerPrice without public OrderLine custom fields', () => {
+        const customFieldConfig: CustomFieldConfig[] = [
+            { name: 'internalCode', type: 'string', public: false },
+        ];
+        expect(getBuyerPriceArgs(addOrderLineCustomFieldsInput(buyerPriceInput, [], true))).toEqual([
+            'quantity: Int',
+        ]);
+        expect(
+            getBuyerPriceArgs(addOrderLineCustomFieldsInput(buyerPriceInput, customFieldConfig, true)),
+        ).toEqual(['quantity: Int']);
     });
 });
 

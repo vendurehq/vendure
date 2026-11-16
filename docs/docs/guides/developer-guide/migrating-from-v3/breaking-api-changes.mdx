@@ -55,6 +55,13 @@ rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
 
 For the full list, and what stays the same, see [Updating your code](/developer-guide/migrating-from-v3/role-assignments#updating-your-code).
 
+## Order item pricing
+
+The default cart pricing now uses the [buyer price](/core-concepts/pricing/#the-buyer-price). Without custom strategies, the prices do not change.
+
+- `DefaultOrderItemPriceCalculationStrategy` needs `init()`. Vendure calls it for the configured strategy. If your code creates the strategy with `new` and calls `calculateUnitPrice()` directly, call `init(injector)` first.
+- When the customer of an active order or a draft order changes, Vendure calculates the price of all lines again, so a custom `OrderItemPriceCalculationStrategy` now also runs for `setCustomerForOrder`, `setCustomerForDraftOrder`, `setOrderCustomer` and the login of a guest. A line that has no price for the new customer keeps its current price.
+
 ## Next steps
 
 - Preview and run the database migration: see [Database migration](/developer-guide/migrating-from-v3/database-migration).
