@@ -135,7 +135,7 @@ export default async function globalSetup() {
 
     // Seed a value for the readonly `relatedAsset` relation custom field on the first product
     // (Laptop). Readonly relation custom fields are excluded from the GraphQL input types, so they
-    // cannot be set via the Admin API — set it directly here so OSS-584 (a custom form component
+    // cannot be set via the Admin API — set it directly here so #4902 (a custom form component
     // reading the relation object) can be exercised on the product detail page.
     const { Asset, Product, TransactionalConnection } = await import('@vendure/core');
     const dataSource = server.app.get(TransactionalConnection).rawConnection;

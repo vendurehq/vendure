@@ -226,7 +226,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
     // undefined`. The related entity object is still present at `customFields.<name>` (the relation
     // transform leaves it untouched when there is no matching input field), so surface that object
     // to the component as `value`. The Controller binding is left unchanged, so the submit payload
-    // is unaffected. See OSS-584 / #4902.
+    // is unaffected. See #4902.
     const readonlyRelationObjectName =
         fieldDef.type === 'relation' && isReadonly && !fieldDef.list
             ? fieldName.replace(/Id$/, '')

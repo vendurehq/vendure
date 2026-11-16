@@ -571,10 +571,10 @@ test.describe('Custom Fields', () => {
         await expect(picker.locator('input[type="time"]')).toBeEnabled();
     });
 
-    // OSS-584 (#4902) — a custom form component registered for a readonly single `relation`
-    // custom field must receive the related entity *object* as `value` (previously `undefined`,
-    // because the form control binds to the scalar `<name>Id` which is absent for a readonly
-    // relation). `relatedAsset` is seeded on the first product in global-setup.ts.
+    // #4902 — a custom form component registered for a readonly single `relation` custom field
+    // must receive the related entity *object* as `value` (without this it is `undefined`, because
+    // the form control binds to the scalar `<name>Id`, which is absent for a readonly relation).
+    // `relatedAsset` is seeded on the first product in global-setup.ts.
     test('readonly relation custom field exposes the relation object to its custom component', async ({
         page,
     }) => {
