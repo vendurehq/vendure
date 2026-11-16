@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import { Column, DataSource, DefaultNamingStrategy, Entity, NamingStrategyInterface } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { VendureEntity } from './entity/base/base.entity';
 import {
@@ -93,6 +93,9 @@ describe('generateMigration fromEmpty', () => {
         expect(content).toContain('"product"');
         expect(content).toContain('"order"');
         expect(content).toContain('"customer"');
+        // The baseline creates every translation table, so there are no pre-existing duplicates to
+        // remove, and the tables would not exist yet when a de-duplication step ran.
+        expect(content).not.toContain('deduplicateTranslations');
     }, 60_000);
 
     it('a plain generate against the populated database produces nothing (the bug)', async () => {
@@ -336,6 +339,58 @@ describe('getTranslationTablesGainingUniqueConstraint()', () => {
             'ALTER TABLE "custom_product_translation" ADD CONSTRAINT "UQ_q" UNIQUE ("languageCode", "baseId")',
         ]);
         expect(tables).toEqual([]);
+    });
+
+    it('ignores a table created by the same migration (Postgres/SQLite)', () => {
+        const tables = getTranslationTablesGainingUniqueConstraint(metadataFor('product_translation'), [
+            'CREATE TABLE "product_translation" ("id" SERIAL NOT NULL, "languageCode" character varying NOT NULL, ' +
+                '"baseId" integer, CONSTRAINT "UQ_dcc35f0d2b8d422634e878b813c" UNIQUE ("languageCode", "baseId"), ' +
+                'CONSTRAINT "PK_7287b2a5cc1ebd1d2bc2b2a4a1f" PRIMARY KEY ("id"))',
+        ]);
+        expect(tables).toEqual([]);
+    });
+
+    it('ignores a table created by the same migration (MySQL)', () => {
+        const tables = getTranslationTablesGainingUniqueConstraint(metadataFor('product_translation'), [
+            'CREATE TABLE `product_translation` (`id` int NOT NULL AUTO_INCREMENT, `languageCode` varchar(255) NOT NULL, ' +
+                '`baseId` int NULL, UNIQUE INDEX `IDX_dcc35f0d2b8d422634e878b813` (`languageCode`, `baseId`), ' +
+                'PRIMARY KEY (`id`)) ENGINE=InnoDB',
+        ]);
+        expect(tables).toEqual([]);
+    });
+
+    it('ignores a table created with a schema-qualified name', () => {
+        const tables = getTranslationTablesGainingUniqueConstraint(metadataFor('product_translation'), [
+            'CREATE TABLE "public"."product_translation" ("id" SERIAL NOT NULL, "languageCode" character varying NOT NULL, ' +
+                '"baseId" integer, CONSTRAINT "UQ_dcc35f0d2b8d422634e878b813c" UNIQUE ("languageCode", "baseId"))',
+        ]);
+        expect(tables).toEqual([]);
+    });
+
+    it('ignores a table which SQLite creates and then recreates in the same migration', () => {
+        const tables = getTranslationTablesGainingUniqueConstraint(metadataFor('product_translation'), [
+            'CREATE TABLE "product_translation" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, ' +
+                '"languageCode" varchar NOT NULL, "baseId" integer, ' +
+                'CONSTRAINT "UQ_dcc35f0d2b8d422634e878b813c" UNIQUE ("languageCode", "baseId"))',
+            'CREATE TABLE "temporary_product_translation" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, ' +
+                '"languageCode" varchar NOT NULL, "baseId" integer, ' +
+                'CONSTRAINT "UQ_dcc35f0d2b8d422634e878b813c" UNIQUE ("languageCode", "baseId"), ' +
+                'CONSTRAINT "FK_x" FOREIGN KEY ("baseId") REFERENCES "product" ("id"))',
+            'ALTER TABLE "temporary_product_translation" RENAME TO "product_translation"',
+        ]);
+        expect(tables).toEqual([]);
+    });
+
+    it('still returns an existing table when the migration creates a different table', () => {
+        const tables = getTranslationTablesGainingUniqueConstraint(
+            metadataFor('product_translation', 'my_plugin_entity_translation'),
+            [
+                'CREATE TABLE "my_plugin_entity_translation" ("id" SERIAL NOT NULL, "languageCode" character varying NOT NULL, ' +
+                    '"baseId" integer, CONSTRAINT "UQ_y" UNIQUE ("languageCode", "baseId"))',
+                'ALTER TABLE "product_translation" ADD CONSTRAINT "UQ_x" UNIQUE ("languageCode", "baseId")',
+            ],
+        );
+        expect(tables).toEqual(['product_translation']);
     });
 });
 
@@ -634,13 +689,31 @@ describe('deduplicateTranslations() with a missing column', () => {
         );
     });
 
-    it('does nothing when the table has no duplicates', async () => {
-        await withTable(['en', 'de'], async dataSource => {
-            await deduplicateTranslations(dataSource.createQueryRunner(), 'thing_translation');
-            expect(await dataSource.query('SELECT COUNT(*) AS "count" FROM "thing_translation"')).toEqual([
-                { count: 2 },
-            ]);
-        });
+    it('does nothing, silently, when the table has no duplicates', async () => {
+        const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+        try {
+            await withTable(['en', 'de'], async dataSource => {
+                await deduplicateTranslations(dataSource.createQueryRunner(), 'thing_translation');
+                expect(await dataSource.query('SELECT COUNT(*) AS "count" FROM "thing_translation"')).toEqual(
+                    [{ count: 2 }],
+                );
+            });
+            expect(consoleLog).not.toHaveBeenCalled();
+        } finally {
+            consoleLog.mockRestore();
+        }
+    });
+
+    it('does nothing, silently, when the table does not exist', async () => {
+        const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+        try {
+            await withTable([], async dataSource => {
+                await deduplicateTranslations(dataSource.createQueryRunner(), 'missing_translation');
+            });
+            expect(consoleLog).not.toHaveBeenCalled();
+        } finally {
+            consoleLog.mockRestore();
+        }
     });
 
     it('throws a clear error when the table has duplicates', async () => {

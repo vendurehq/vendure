@@ -60,8 +60,8 @@ export interface DefaultOrderProcessOptions {
     checkModificationPayments?: boolean;
     /**
      * @description
-     * Prevents an Order from transitioning out of the `ArrangingAdditionalPayment` state if
-     * the Order's Payments do not cover the full amount of `totalWithTax`.
+     * Prevents an Order from transitioning out of the `ArrangingAdditionalPayment` state (except
+     * to `Cancelled`) if the Order's Payments do not cover the full amount of `totalWithTax`.
      *
      * @default true
      */
@@ -282,11 +282,9 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
             }
             if (
                 options.checkAdditionalPaymentsAmount !== false &&
-                fromState === 'ArrangingAdditionalPayment'
+                fromState === 'ArrangingAdditionalPayment' &&
+                toState !== 'Cancelled'
             ) {
-                if (toState === 'Cancelled') {
-                    return;
-                }
                 const existingPayments = await connection.getRepository(ctx, Payment).find({
                     relations: { refunds: true },
                     where: {

@@ -1,5 +1,11 @@
 import { CurrencyCode } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import {
+    ConfigService,
+    DefaultOrderItemPriceCalculationStrategy,
+    getBaseStrategy,
+    mergeConfig,
+    Product,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -21,7 +27,9 @@ import {
     fixedPriceEmailAddresses,
     noPriceSkus,
     noPriceSkusForFixedPriceCustomers,
+    orderItemBuyerCustomerIds,
     orderItemMetadata,
+    receivedPricingData,
     TestBuyerPricePlugin,
 } from './fixtures/test-buyer-price-layer';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
@@ -41,34 +49,49 @@ const customFieldsInput = (input: Record<string, unknown>) => input as never;
 
 const GUEST_EMAIL_ADDRESS = 'guest-with-fixed-price@example.com';
 
-const getVariantPricesDocument = graphql(`
-    query GetVariantBuyerPrices($id: ID!, $quantity: Int, $customFields: OrderLineCustomFieldsInput) {
+const getVariantsDocument = graphql(`
+    query GetVariantsForBuyerPrice($id: ID!) {
         product(id: $id) {
             variants {
                 id
                 sku
                 price
                 priceWithTax
-                buyerPrice(quantity: $quantity, customFields: $customFields) {
-                    price
-                    priceWithTax
-                }
             }
         }
     }
 `);
 
-const getTwiceBuyerPriceDocument = graphql(`
-    query GetTwiceBuyerPrice($id: ID!) {
+const buyerPriceDocument = graphql(`
+    query GetBuyerPrice($productVariantId: ID!, $quantity: Int, $customFields: OrderLineCustomFieldsInput) {
+        buyerPrice(productVariantId: $productVariantId, quantity: $quantity, customFields: $customFields) {
+            productVariantId
+            price
+            priceWithTax
+        }
+    }
+`);
+
+const buyerPricesDocument = graphql(`
+    query GetBuyerPrices($input: [BuyerPriceInput!]!) {
+        buyerPrices(input: $input) {
+            productVariantId
+            price
+            priceWithTax
+        }
+    }
+`);
+
+const getVariantsAndBuyerPricesDocument = graphql(`
+    query GetVariantsAndBuyerPrices($id: ID!, $input: [BuyerPriceInput!]!) {
         product(id: $id) {
             variants {
-                first: buyerPrice(quantity: 10) {
-                    price
-                }
-                second: buyerPrice(quantity: 10) {
-                    price
-                }
+                price
+                priceWithTax
             }
+        }
+        buyerPrices(input: $input) {
+            price
         }
     }
 `);
@@ -260,11 +283,20 @@ const modifyOrderDocument = adminGraphql(`
 
 type AddItemResult = ResultOf<typeof addItemDocument>['addItemToOrder'];
 type OrderResult = Extract<AddItemResult, { lines: unknown }>;
-type VariantPrices = NonNullable<ResultOf<typeof getVariantPricesDocument>['product']>['variants'];
+type VariantPrices = NonNullable<ResultOf<typeof getVariantsDocument>['product']>['variants'];
+
+interface BuyerPriceRequest {
+    productVariantId: string;
+    quantity?: number;
+    customFields?: Record<string, unknown>;
+}
+
+// The generated shop types declare no customFields field for BuyerPriceInput.
+const buyerPriceInputs = (inputs: BuyerPriceRequest[]) => inputs as never[];
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrategy', () => {
+describe('The buyerPrice and buyerPrices queries with a custom ProductVariantBuyerPriceStrategy', () => {
     /** The SQL queries that select from the customer table, since the count was last reset to 0. */
     let customerQueryCount = 0;
     const countingLogger: TypeOrmLogger = {
@@ -284,7 +316,10 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         mergeConfig(config, {
             plugins: [TestBuyerPricePlugin],
             customFields: {
-                OrderLine: [{ name: 'unitCode', type: 'string' }],
+                OrderLine: [
+                    { name: 'unitCode', type: 'string' },
+                    { name: 'giftProduct', type: 'relation', entity: Product },
+                ],
             },
             dbConnectionOptions: {
                 ...config.dbConnectionOptions,
@@ -322,6 +357,27 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         return line;
     }
 
+    /**
+     * Returns the result of the `buyerPrice` query, and checks that the `buyerPrices` query gives the
+     * same result for the same input.
+     */
+    async function getBuyerPrice(
+        variantId: string,
+        options: Omit<BuyerPriceRequest, 'productVariantId'> = {},
+    ) {
+        const { quantity, customFields } = options;
+        const { buyerPrice } = await shopClient.query(buyerPriceDocument, {
+            productVariantId: variantId,
+            quantity,
+            customFields: customFields && customFieldsInput(customFields),
+        });
+        const { buyerPrices } = await shopClient.query(buyerPricesDocument, {
+            input: buyerPriceInputs([{ productVariantId: variantId, quantity, customFields }]),
+        });
+        expect(buyerPrices).toEqual([buyerPrice]);
+        return buyerPrice;
+    }
+
     beforeAll(async () => {
         await server.init({
             initialData,
@@ -335,7 +391,7 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         fixedPriceEmailAddresses.add(loginCustomer.emailAddress);
         fixedPriceEmailAddresses.add(secondLoginCustomer.emailAddress);
         fixedPriceEmailAddresses.add(GUEST_EMAIL_ADDRESS);
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
+        const { product } = await shopClient.query(getVariantsDocument, { id: 'T_1' });
         channelPrices = product!.variants;
         await shopClient.asUserWithCredentials(fixedPriceCustomer.emailAddress, 'test');
     }, TEST_SETUP_TIMEOUT_MS);
@@ -345,16 +401,23 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
     });
 
     it('returns the price of the strategy for the active customer', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
-        const variant = product!.variants[0];
+        const buyerPrice = await getBuyerPrice(channelPrices[0].id);
 
-        expect(variant.buyerPrice!.price).toBe(FIXED_UNIT_PRICE);
-        expect(variant.buyerPrice!.price).not.toBe(variant.price);
+        expect(buyerPrice).toEqual({
+            productVariantId: channelPrices[0].id,
+            price: FIXED_UNIT_PRICE,
+            priceWithTax: expect.any(Number),
+        });
+        expect(buyerPrice!.price).not.toBe(channelPrices[0].price);
     });
 
     it('does not change price and priceWithTax', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: 10 });
+        const { product, buyerPrices } = await shopClient.query(getVariantsAndBuyerPricesDocument, {
+            id: 'T_1',
+            input: channelPrices.map(v => ({ productVariantId: v.id, quantity: 10 })),
+        });
 
+        expect(buyerPrices.every(p => p!.price === Math.round(FIXED_UNIT_PRICE * 0.8))).toBe(true);
         product!.variants.forEach((variant, i) => {
             expect(variant.price).toBe(channelPrices[i].price);
             expect(variant.priceWithTax).toBe(channelPrices[i].priceWithTax);
@@ -365,62 +428,85 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         // The strategy writes to the variant that it receives. The shared entity must not change.
         // Without the fixed price, the strategy calculates from the listPrice of the variant.
         await shopClient.asAnonymousUser();
-        const { product } = await shopClient.query(getTwiceBuyerPriceDocument, { id: 'T_1' });
+        const { buyerPrices } = await shopClient.query(buyerPricesDocument, {
+            input: channelPrices.flatMap(v => [
+                { productVariantId: v.id, quantity: 10 },
+                { productVariantId: v.id, quantity: 10 },
+            ]),
+        });
         await shopClient.asUserWithCredentials(fixedPriceCustomer.emailAddress, 'test');
 
-        product!.variants.forEach((variant, i) => {
-            expect(variant.first!.price).toBe(Math.round(channelPrices[i].price * 0.8));
-            expect(variant.second!.price).toBe(variant.first!.price);
+        expect(buyerPrices.map(p => p!.price)).toEqual(
+            channelPrices.flatMap(v => [Math.round(v.price * 0.8), Math.round(v.price * 0.8)]),
+        );
+    });
+
+    it('gives the results of buyerPrices in the order of the input, and null for an unknown variant', async () => {
+        const { buyerPrices } = await shopClient.query(buyerPricesDocument, {
+            input: [
+                { productVariantId: channelPrices[2].id },
+                { productVariantId: 'T_999' },
+                { productVariantId: channelPrices[0].id, quantity: 10 },
+            ],
         });
+
+        expect(buyerPrices.map(p => p && [p.productVariantId, p.price])).toEqual([
+            [channelPrices[2].id, FIXED_UNIT_PRICE],
+            null,
+            [channelPrices[0].id, Math.round(FIXED_UNIT_PRICE * 0.8)],
+        ]);
     });
 
     it('equals the unit price of the cart line for the same customer and quantity', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
-        const variant = product!.variants[0];
+        const buyerPrice = await getBuyerPrice(channelPrices[0].id);
 
-        const line = await addToCart(shopClient, variant.id, 1);
+        const line = await addToCart(shopClient, channelPrices[0].id, 1);
 
-        expect(line.unitPrice).toBe(variant.buyerPrice!.price);
-        expect(line.unitPriceWithTax).toBe(variant.buyerPrice!.priceWithTax);
+        expect(line.unitPrice).toBe(buyerPrice!.price);
+        expect(line.unitPriceWithTax).toBe(buyerPrice!.priceWithTax);
     });
 
     it('equals the unit price of the cart line for quantity 10', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: 10 });
-        const variant = product!.variants[1];
+        const buyerPrice = await getBuyerPrice(channelPrices[1].id, { quantity: 10 });
 
-        expect(variant.buyerPrice!.price).toBe(Math.round(FIXED_UNIT_PRICE * 0.8));
+        expect(buyerPrice!.price).toBe(Math.round(FIXED_UNIT_PRICE * 0.8));
 
-        const line = await addToCart(shopClient, variant.id, 10);
+        const line = await addToCart(shopClient, channelPrices[1].id, 10);
 
         expect(line.quantity).toBe(10);
-        expect(line.unitPrice).toBe(variant.buyerPrice!.price);
-        expect(line.unitPriceWithTax).toBe(variant.buyerPrice!.priceWithTax);
+        expect(line.unitPrice).toBe(buyerPrice!.price);
+        expect(line.unitPriceWithTax).toBe(buyerPrice!.priceWithTax);
     });
 
     it('equals the unit price of the cart line for the same OrderLine custom fields', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, {
-            id: 'T_1',
+        const buyerPrice = await getBuyerPrice(channelPrices[2].id, {
             quantity: 2,
-            customFields: customFieldsInput({ unitCode: 'BOX' }),
+            customFields: { unitCode: 'BOX' },
         });
-        const variant = product!.variants[2];
 
-        expect(variant.buyerPrice!.price).toBe(FIXED_UNIT_PRICE * BOX_SIZE);
+        expect(buyerPrice!.price).toBe(FIXED_UNIT_PRICE * BOX_SIZE);
 
-        const line = await addToCart(shopClient, variant.id, 2, { unitCode: 'BOX' });
+        const line = await addToCart(shopClient, channelPrices[2].id, 2, { unitCode: 'BOX' });
 
-        expect(line.unitPrice).toBe(variant.buyerPrice!.price);
-        expect(line.unitPriceWithTax).toBe(variant.buyerPrice!.priceWithTax);
+        expect(line.unitPrice).toBe(buyerPrice!.price);
+        expect(line.unitPriceWithTax).toBe(buyerPrice!.priceWithTax);
+    });
+
+    it('passes the decoded ID of a relation custom field to the strategy, as addItemToOrder does', async () => {
+        // The test EntityIdStrategy encodes the ID 1 as "T_1"
+        const customFields = { giftProductId: 'T_1' };
+        receivedPricingData.length = 0;
+
+        await getBuyerPrice(channelPrices[0].id, { customFields });
+        await addToCart(shopClient, channelPrices[0].id, 1, customFields);
+
+        // The cart prices each line of the Order, so the strategy also receives the data of other lines
+        expect(receivedPricingData.slice(0, 2)).toEqual([{ giftProductId: 1 }, { giftProductId: 1 }]);
+        expect(receivedPricingData.slice(2)).toContainEqual(expect.objectContaining({ giftProductId: 1 }));
     });
 
     it('gives null when the strategy has no price for the buyer', async () => {
-        const { product } = await shopClient.query(getVariantPricesDocument, {
-            id: 'T_1',
-            customFields: customFieldsInput({ unitCode: 'NONE' }),
-        });
-
-        expect(product!.variants[0].buyerPrice).toBeNull();
-        expect(product!.variants[0].price).toBe(channelPrices[0].price);
+        expect(await getBuyerPrice(channelPrices[0].id, { customFields: { unitCode: 'NONE' } })).toBeNull();
     });
 
     it('does not add an item to the cart when the strategy has no price for the buyer', async () => {
@@ -435,40 +521,43 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
     });
 
     it('passes the metadata of the result to the BuyerPrice resolvers and to the order item layers', async () => {
-        const { product } = await shopClient.query<{
-            product: { variants: Array<{ id: string; buyerPrice: { appliedRule: string | null } | null }> };
+        const { buyerPrice, buyerPrices } = await shopClient.query<{
+            buyerPrice: { appliedRule: string | null } | null;
+            buyerPrices: Array<{ appliedRule: string | null } | null>;
         }>(
             gql`
                 query GetBuyerPriceRule($id: ID!) {
-                    product(id: $id) {
-                        variants {
-                            id
-                            buyerPrice(quantity: 10) {
-                                appliedRule
-                            }
-                        }
+                    buyerPrice(productVariantId: $id, quantity: 10) {
+                        appliedRule
+                    }
+                    buyerPrices(input: [{ productVariantId: $id }]) {
+                        appliedRule
                     }
                 }
             `,
-            { id: 'T_1' },
+            { id: channelPrices[0].id },
         );
-        expect(product.variants[0].buyerPrice).toEqual({ appliedRule: 'TIER_10' });
+        expect(buyerPrice).toEqual({ appliedRule: 'TIER_10' });
+        expect(buyerPrices).toEqual([{ appliedRule: 'FIXED' }]);
 
         orderItemMetadata.length = 0;
-        await addToCart(shopClient, product.variants[3].id, 1);
+        await addToCart(shopClient, channelPrices[3].id, 1);
         expect(orderItemMetadata).toEqual([{ rule: 'FIXED' }]);
     });
 
     it('returns the channel price for a guest session', async () => {
         await shopClient.asAnonymousUser();
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
+        const { buyerPrices } = await shopClient.query(buyerPricesDocument, {
+            input: channelPrices.map(v => ({ productVariantId: v.id })),
+        });
 
-        for (const variant of product!.variants) {
-            expect(variant.buyerPrice).toEqual({
-                price: variant.price,
-                priceWithTax: variant.priceWithTax,
-            });
-        }
+        expect(buyerPrices).toEqual(
+            channelPrices.map(v => ({
+                productVariantId: v.id,
+                price: v.price,
+                priceWithTax: v.priceWithTax,
+            })),
+        );
     });
 
     it('uses the guest customer of the order in the cart', async () => {
@@ -486,8 +575,7 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         const { activeOrder } = await shopClient.query(getActiveOrderLinesDocument);
         expect(activeOrder!.lines.map(l => l.unitPrice)).toEqual([FIXED_UNIT_PRICE, FIXED_UNIT_PRICE]);
         // The session has no Customer, so the buyer price is the channel price
-        const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_1' });
-        expect(product!.variants[1].buyerPrice!.price).toBe(channelPrices[1].price);
+        expect((await getBuyerPrice(channelPrices[1].id))!.price).toBe(channelPrices[1].price);
     });
 
     it('loads the customer once for each request, not once for each order line', async () => {
@@ -678,7 +766,7 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         it('is not merged when a login merges the guest order into the order of the customer', async () => {
             // The login customer has an active order from an earlier test. The guest line without
             // a price is a new line in that order, so it is not added. The other guest line is merged.
-            const { product } = await shopClient.query(getVariantPricesDocument, { id: 'T_2' });
+            const { product } = await shopClient.query(getVariantsDocument, { id: 'T_2' });
             const [withPrice, withoutPrice] = product!.variants;
             noPriceSkusForFixedPriceCustomers.add(withoutPrice.sku);
             await shopClient.asAnonymousUser();
@@ -699,17 +787,28 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         });
     });
 
-    it('prices an order line for the buyer that an order item layer passes', async () => {
+    it('prices an order line for the buyer that an order item layer passes to the inner chain', async () => {
         await shopClient.asAnonymousUser();
         // The layer runs on the server, where the ID has no "T_" prefix
         buyerOverride.customerId = Number(fixedPriceCustomer.id.replace('T_', ''));
+        orderItemBuyerCustomerIds.length = 0;
         try {
             const line = await addToCart(shopClient, channelPrices[0].id, 1);
 
             expect(line.unitPrice).toBe(FIXED_UNIT_PRICE);
+            // The inner layer got the buyer of the outer layer
+            expect(orderItemBuyerCustomerIds).toEqual([buyerOverride.customerId]);
         } finally {
             buyerOverride.customerId = undefined;
         }
+    });
+
+    it('exports the default OrderItemPriceCalculationStrategy from @vendure/core', () => {
+        const { orderItemPriceCalculationStrategy } = server.app.get(ConfigService).orderOptions;
+
+        expect(getBaseStrategy(orderItemPriceCalculationStrategy)).toBeInstanceOf(
+            DefaultOrderItemPriceCalculationStrategy,
+        );
     });
 
     describe('modifyOrder', () => {
@@ -825,19 +924,28 @@ describe('ProductVariant.buyerPrice with a custom ProductVariantBuyerPriceStrate
         expect(addItemToDraftOrder).toEqual({ lines: [{ unitPrice: FIXED_UNIT_PRICE }] });
     });
 
-    it(
-        'rejects a quantity of 0',
-        assertThrowsWithMessage(
-            () => shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: 0 }),
-            'The quantity for the buyer price must be a positive integer',
-        ),
-    );
+    for (const [name, quantity] of [
+        ['0', 0],
+        ['negative', -1],
+    ] as const) {
+        it(
+            `rejects a ${name} quantity in buyerPrice`,
+            assertThrowsWithMessage(
+                () =>
+                    shopClient.query(buyerPriceDocument, { productVariantId: channelPrices[0].id, quantity }),
+                'The quantity for the buyer price must be a positive integer',
+            ),
+        );
 
-    it(
-        'rejects a negative quantity',
-        assertThrowsWithMessage(
-            () => shopClient.query(getVariantPricesDocument, { id: 'T_1', quantity: -1 }),
-            'The quantity for the buyer price must be a positive integer',
-        ),
-    );
+        it(
+            `rejects a ${name} quantity in buyerPrices`,
+            assertThrowsWithMessage(
+                () =>
+                    shopClient.query(buyerPricesDocument, {
+                        input: [{ productVariantId: channelPrices[0].id, quantity }],
+                    }),
+                'The quantity for the buyer price must be a positive integer',
+            ),
+        );
+    }
 });

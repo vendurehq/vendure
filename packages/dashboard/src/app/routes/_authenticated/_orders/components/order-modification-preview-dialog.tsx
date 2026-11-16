@@ -16,6 +16,7 @@ import { Form } from '@/vdb/components/ui/form.js';
 import { Textarea } from '@/vdb/components/ui/textarea.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { api } from '@/vdb/graphql/api.js';
+import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
@@ -25,6 +26,7 @@ import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { modifyOrderDocument, orderDetailDocument } from '../orders.graphql.js';
+import { toModifyOrderInput } from '../utils/order-utils.js';
 
 import { OrderTable } from './order-table.js';
 
@@ -57,6 +59,7 @@ export function OrderModificationPreviewDialog({
 }: Readonly<OrderModificationPreviewDialogProps>) {
     const { t } = useLingui();
     const { formatCurrency } = useLocalFormat();
+    const orderLineCustomFields = useCustomFieldConfig('OrderLine');
     // Use a ref to track the last input sent to avoid duplicate calls
     const lastInputRef = useRef<ModifyOrderInput | null>(null);
     const previewMutation = useMutation({
@@ -97,7 +100,10 @@ export function OrderModificationPreviewDialog({
                 !lastInputRef.current ||
                 JSON.stringify(lastInputRef.current) !== JSON.stringify(modifyOrderInput)
             ) {
-                const input = { ...modifyOrderInput, dryRun: true };
+                const input = {
+                    ...toModifyOrderInput(modifyOrderInput, orderLineCustomFields),
+                    dryRun: true,
+                };
                 previewMutation.mutate({ input });
                 lastInputRef.current = modifyOrderInput;
             }
@@ -132,7 +138,10 @@ export function OrderModificationPreviewDialog({
     // Confirm handler
     const handleConfirm = async () => {
         if (!previewOrder) return;
-        const input: ModifyOrderInput = { ...modifyOrderInput, dryRun: false };
+        const input: ModifyOrderInput = {
+            ...toModifyOrderInput(modifyOrderInput, orderLineCustomFields),
+            dryRun: false,
+        };
         if (priceDifference < 0) {
             // Create refunds array from form data
             const { note, payments } = refundForm.getValues();

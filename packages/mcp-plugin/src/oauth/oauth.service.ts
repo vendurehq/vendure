@@ -475,23 +475,27 @@ export class McpOauthService {
         }
     }
 
-    /** Raw-selects the session token via LEFT JOIN rather than a relation, so a missing session doesn't hide an otherwise-live grant. */
+    /**
+     * Looks up the session in a second query rather than joining it: with UuidIdStrategy on Postgres, `Session.id` is a
+     * uuid column while `vendureSessionId` is varchar, and Postgres has no operator comparing the two. A missing session
+     * still returns the grant, so the caller can replace the session.
+     */
     private async findGrantAndSessionToken(
         ctx: RequestContext,
         accessToken: string,
     ): Promise<GrantLookup | undefined> {
-        const result = await this.connection
-            .getRepository(ctx, McpOauthGrant)
-            .createQueryBuilder('grant')
-            .leftJoinAndSelect('grant.oauthClient', 'oauthClient')
-            .leftJoin(Session, 'vendureSession', 'vendureSession.id = grant.vendureSessionId')
-            .addSelect('vendureSession.token', 'vendureSessionToken')
-            .where('grant.accessTokenHash = :accessTokenHash', {
-                accessTokenHash: this.hashLookup(accessToken),
-            })
-            .getRawAndEntities<{ vendureSessionToken: string | null }>();
-        const grant = result.entities[0];
-        return grant ? { grant, sessionToken: result.raw[0]?.vendureSessionToken ?? null } : undefined;
+        const grant = await this.connection.getRepository(ctx, McpOauthGrant).findOne({
+            where: { accessTokenHash: this.hashLookup(accessToken) },
+            relations: { oauthClient: true },
+        });
+        if (!grant) {
+            return undefined;
+        }
+        const session = await this.connection.getRepository(ctx, Session).findOne({
+            where: { id: grant.vendureSessionId },
+            select: { id: true, token: true },
+        });
+        return { grant, sessionToken: session?.token ?? null };
     }
 
     /** Checks the toolset matches, so a code requested for one API can't be used to spoof a token for the other. */
@@ -716,7 +720,7 @@ export class McpOauthService {
         const now = new Date();
         const accessPlaintext = randomToken();
         const refreshPlaintext = randomToken();
-        const createdSession = await this.grantSessions.createVendureSession(ctx, user);
+        const createdSession = await this.grantSessions.createVendureSession(ctx, user, actorType);
         await this.connection.getRepository(ctx, McpOauthGrant).save(
             new McpOauthGrant({
                 accessTokenHash: this.hashLookup(accessPlaintext),

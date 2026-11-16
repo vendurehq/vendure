@@ -1,4 +1,5 @@
 import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
+import { getGraphQlInputName } from '@/vdb/framework/form-engine/form-schema-tools.js';
 import { VariablesOf } from 'gql.tada';
 
 import { modifyOrderDocument } from '../orders.graphql.js';
@@ -90,6 +91,57 @@ export function getSeller<T>(order: { channels: Array<{ code: string; seller: T 
     // Find the seller channel (non-default channel)
     const sellerChannel = order.channels.find(channel => channel.code !== DEFAULT_CHANNEL_CODE);
     return sellerChannel?.seller;
+}
+
+type CustomFieldInputConfig = Parameters<typeof getGraphQlInputName>[0];
+
+/**
+ * Converts OrderLine custom field values, as returned by the order queries, to the shape of
+ * `OrderLineCustomFieldsInput`. Each relation field is renamed to its input name (e.g. `seller`
+ * to `sellerId`) and the related entity is replaced by its id. A value which is already present
+ * under the input name, as set by the custom fields form, is kept.
+ */
+export function toCustomFieldsInput(
+    customFields: Record<string, any> | undefined,
+    customFieldConfigs: CustomFieldInputConfig[],
+): Record<string, any> | undefined {
+    if (!customFields) {
+        return customFields;
+    }
+    const idOf = (value: any) => (value && typeof value === 'object' ? value.id : value);
+    const result = { ...customFields };
+    for (const config of customFieldConfigs) {
+        if (config.type !== 'relation' || !(config.name in result)) {
+            continue;
+        }
+        const value = result[config.name];
+        delete result[config.name];
+        const inputName = getGraphQlInputName(config);
+        if (!(inputName in result)) {
+            result[inputName] = config.list ? (value?.map(idOf) ?? null) : (idOf(value) ?? null);
+        }
+    }
+    return result;
+}
+
+/**
+ * Applies {@link toCustomFieldsInput} to the custom fields of each added and adjusted line.
+ */
+export function toModifyOrderInput(
+    input: ModifyOrderInput,
+    orderLineCustomFieldConfigs: CustomFieldInputConfig[],
+): ModifyOrderInput {
+    const convertLine = <T>(line: T): T => {
+        const customFields = (line as WithCustomFields<T>).customFields;
+        return customFields
+            ? { ...line, customFields: toCustomFieldsInput(customFields, orderLineCustomFieldConfigs) }
+            : line;
+    };
+    return {
+        ...input,
+        adjustOrderLines: input.adjustOrderLines?.map(convertLine),
+        addItems: input.addItems?.map(convertLine),
+    };
 }
 
 /**

@@ -17,6 +17,7 @@ import {
 import { getDefaultTempCompilationDir } from './utils/temp-compilation-dir.js';
 import { adminApiSchemaPlugin } from './vite-plugin-admin-api-schema.js';
 import { bundleEntryPlugin } from './vite-plugin-bundle-entry.js';
+import { chunkHashPlugin } from './vite-plugin-chunk-hash.js';
 import { configLoaderPlugin } from './vite-plugin-config-loader.js';
 import { viteConfigPlugin } from './vite-plugin-config.js';
 import { dashboardMetadataPlugin } from './vite-plugin-dashboard-metadata.js';
@@ -176,6 +177,7 @@ export type VitePluginVendureDashboardOptions = {
         tailwindcss?: boolean;
         configLoader?: boolean;
         viteConfig?: boolean;
+        chunkHash?: boolean;
         bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
@@ -268,12 +270,26 @@ type PluginMapEntry = {
  * @docsWeight 0
  */
 export function vendureDashboardPlugin(options: VitePluginVendureDashboardOptions): PluginOption[] {
+    return createDashboardPlugins(options, getDashboardPackageRoot());
+}
+
+/**
+ * @description
+ * Builds the plugin list for {@link vendureDashboardPlugin}. Takes the package
+ * root as an argument because `import.meta.resolve`, used to find it, is not
+ * available under Vitest.
+ *
+ * @internal
+ */
+export function createDashboardPlugins(
+    options: VitePluginVendureDashboardOptions,
+    packageRoot: string,
+): PluginOption[] {
     const tempDir = options.tempCompilationDir ?? getDefaultTempCompilationDir();
     const tempInstanceId = `${process.pid}-${randomUUID()}`;
     const compilationTempDir = path.join(tempDir, 'compiler', tempInstanceId);
     const gqlTadaTempDir = path.join(tempDir, 'gql-tada', tempInstanceId);
     const normalizedVendureConfigPath = getNormalizedVendureConfigPath(options.vendureConfigPath);
-    const packageRoot = getDashboardPackageRoot();
     const linguiConfigPath = path.join(packageRoot, 'lingui.config.js');
     const disabled = options.disablePlugins ?? {};
 
@@ -353,6 +369,10 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
                     gqlOutputPath: options.gqlOutputPath,
                     useExperimentalBundle: options.useExperimentalBundle,
                 }),
+        },
+        {
+            key: 'chunkHash',
+            plugin: () => chunkHashPlugin(),
         },
         {
             key: 'bundleEntry',

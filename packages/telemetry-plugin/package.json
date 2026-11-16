@@ -1,6 +1,6 @@
 {
     "name": "@vendure/telemetry-plugin",
-    "version": "3.8.1",
+    "version": "3.8.2",
     "description": "Telemetry for Vendure",
     "repository": {
         "type": "git",
@@ -51,8 +51,8 @@
         "javascript-stringify": "^2.1.0"
     },
     "devDependencies": {
-        "@vendure/common": "3.8.1",
-        "@vendure/core": "3.8.1",
+        "@vendure/common": "3.8.2",
+        "@vendure/core": "3.8.2",
         "typescript": "5.8.2"
     },
     "nx": {

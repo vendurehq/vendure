@@ -576,6 +576,10 @@ function formatMigrationQuery(query: string, parameters: any[] | undefined, isMy
  * constraint, this function returns that table too. The table cannot hold duplicates, so the extra
  * `deduplicateTranslations` call does nothing.
  *
+ * A table which the same queries create is not returned. A new table holds no rows, and it does
+ * not exist yet when the `deduplicateTranslations` call at the top of `up()` runs. This is the case
+ * for every translation table in a baseline migration generated against an empty database.
+ *
  * Exported for testing.
  */
 export function getTranslationTablesGainingUniqueConstraint(
@@ -589,6 +593,7 @@ export function getTranslationTablesGainingUniqueConstraint(
         if (
             languageCode &&
             baseId &&
+            !upQueries.some(query => createsTable(query, metadata.tableName)) &&
             upQueries.some(query =>
                 addsTranslationUniqueConstraint(query, metadata.tableName, languageCode, baseId),
             )
@@ -628,6 +633,16 @@ function addsTranslationUniqueConstraint(
         identifiers.has(languageCodeColumn) &&
         identifiers.has(baseIdColumn)
     );
+}
+
+/**
+ * Whether a DDL statement creates the given table, as opposed to the `temporary_` copy which SQLite
+ * builds when it recreates an existing table. The table name may be qualified by a schema or
+ * database name, e.g. `CREATE TABLE "public"."product_translation"`.
+ */
+function createsTable(query: string, tableName: string): boolean {
+    const match = /^\s*CREATE TABLE\s+(?:["`][^"`]+["`]\.)?["`]([^"`]+)["`]/i.exec(query);
+    return match?.[1] === tableName;
 }
 
 /**
