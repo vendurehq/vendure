@@ -84,6 +84,11 @@ For a relation custom field, `props.value` is the related entity's **id**, or an
 field, whether the field is writable or readonly. That is what `SingleRelationInput` and `MultiRelationInput`
 consume via `value`/`onChange`. A readonly field is only for display: pass `isFieldDisabled(disabled, fieldDef)`
 as `disabled`, as above, so the input cannot be changed.
+
+For a **readonly** relation custom field, the component also receives the related entity as `props.relatedEntity`,
+or an array of them for a `list: true` field. It holds the related entity's scalar fields, not its relations, so
+use it to render the relation (e.g. `relatedEntity?.name`). It is `null` when the relation is not set, and
+`undefined` on a create form.
 :::
 
 ### Multi Selection

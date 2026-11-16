@@ -238,11 +238,12 @@ function CustomFieldItem({
     const isReadonly = (fieldDef as CustomFieldConfig).readonly ?? false;
 
     // A readonly relation has no `<name>Id(s)` in the form values, because readonly custom fields are
-    // not in the input types, so its value, the id(s), is taken from its related entity object(s).
+    // not in the input types, so its value is taken from its related entity object(s). Every input
+    // receives the id(s); a custom component also receives the object(s) as `relatedEntity`.
     const isReadonlyRelation = readonlyRelationValuePath != null;
-    const readonlyRelationObjects = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
+    const relatedEntity = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
     const isListField = fieldDef.list ?? false;
-    const readonlyRelationValue = toRelationIdValue(readonlyRelationObjects, isListField) ?? (isListField ? [] : null);
+    const readonlyRelationValue = toRelationIdValue(relatedEntity, isListField) ?? (isListField ? [] : null);
     const withReadonlyRelationValue = <F extends { value: unknown }>(field: F): F =>
         isReadonlyRelation ? { ...field, value: readonlyRelationValue } : field;
 
@@ -305,7 +306,11 @@ function CustomFieldItem({
                             fieldPath={field.name}
                             fieldState={fieldState}
                         >
-                            <CustomFormComponent fieldDef={fieldDef} {...withReadonlyRelationValue(field)} />
+                            <CustomFormComponent
+                                fieldDef={fieldDef}
+                                {...withReadonlyRelationValue(field)}
+                                {...(isReadonlyRelation ? { relatedEntity } : {})}
+                            />
                         </CustomFieldFormItem>
                     )}
                 />
