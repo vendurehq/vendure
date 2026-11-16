@@ -2,7 +2,7 @@
 title: "StockLevelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="91" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="101" packageName="@vendure/core" since="2.0.0" />
 
 The StockLevelService is responsible for managing the stock levels of ProductVariants.
 Whenever you need to adjust the `stockOnHand` or `stockAllocated` for a ProductVariant,
@@ -14,9 +14,14 @@ class StockLevelService {
     getStockLevel(ctx: RequestContext, productVariantId: ID, stockLocationId: ID) => Promise<StockLevel>;
     getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID) => Promise<StockLevel[]>;
     getAvailableStock(ctx: RequestContext, productVariantId: ID, options?: StockLevelReadOptions) => Promise<AvailableStock>;
+    hasUntrackedStock(ctx: RequestContext, productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>, available?: AvailableStock) => Promise<boolean>;
+    isInventoryTracked(ctx: RequestContext, productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>, stockLevel?: StockLevel) => Promise<boolean>;
+    isStockLevelTracked(ctx: RequestContext, stockLevel: StockLevel) => Promise<boolean>;
+    isInventoryTrackedAtLocation(ctx: RequestContext, productVariant: Pick<ProductVariant, 'id' | 'trackInventory'>, stockLocationId: ID) => Promise<boolean>;
     updateStockOnHandForLocation(ctx: RequestContext, productVariantId: ID, stockLocationId: ID, change: number) => ;
     updateStockAllocatedForLocation(ctx: RequestContext, productVariantId: ID, stockLocationId: ID, change: number) => ;
     lockStockLevelsForVariants(ctx: RequestContext, productVariantIds: ID[], options?: StockLevelLockOptions) => Promise<void>;
+    getTrackedVariantIds(ctx: RequestContext, ids: ID[]) => Promise<ID[]>;
     getLockedStockLevelsForVariant(ctx: RequestContext, productVariantId: ID) => Promise<StockLevel[]>;
 }
 ```
@@ -44,6 +49,33 @@ Pass `{ lockStockLevels: true }` when the caller is about to allocate stock base
 returned figures. This takes a write lock on the underlying StockLevel rows which is held
 until the surrounding transaction commits, so that the check and the allocation cannot be
 interleaved with another checkout for the same ProductVariant.
+### hasUntrackedStock
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: Pick<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, 'id' | 'trackInventory'>, available?: <a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+Whether the ProductVariant can be sold without limit in the active Channel: at least one
+StockLevel the StockLocationStrategy counts does not track inventory (or there is none and
+the variant/Channel does not track it). A strategy written before v4.0 does not report this,
+in which case the variant/Channel setting decides, as it did before StockLevel overrides.
+### isInventoryTracked
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: Pick<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, 'id' | 'trackInventory'>, stockLevel?: <a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+Whether inventory is tracked for the ProductVariant in the active Channel, at the given
+StockLevel when one is passed. Delegates to `StockLocationStrategy.isInventoryTracked` when
+the configured strategy implements it, else uses [resolveTrackInventory](/reference/typescript-api/products-stock/resolve-track-inventory#resolvetrackinventory).
+### isStockLevelTracked
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, stockLevel: <a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+Whether inventory is tracked at the given StockLevel in the active Channel. The
+ProductVariant's setting is read with the batching loader.
+### isInventoryTrackedAtLocation
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: Pick<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, 'id' | 'trackInventory'>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+Whether inventory is tracked for the ProductVariant at the given StockLocation. Loads the
+StockLevel if it exists.
 ### updateStockOnHandForLocation
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>, change: number) => `}   />
@@ -76,6 +108,13 @@ for them, so locking them would only serialize their checkouts. Pass
 current `stockOnHand` rather than from a saleable stock check.
 
 Degrades like `getLockedStockLevelsForVariant` without a transaction or row lock support.
+### getTrackedVariantIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, ids: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<<a href='/reference/typescript-api/common/id#id'>ID</a>[]>`}  since="4.0.0"  />
+
+The ids of the given ProductVariants which track inventory in the active Channel: at the
+variant/Channel level, or because one of their StockLevels overrides it to tracked. These
+are the variants whose StockLevels need locking before a saleable stock check.
 ### getLockedStockLevelsForVariant
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>[]>`}  since="3.7.4"  />

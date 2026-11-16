@@ -5,7 +5,6 @@ export const globalSettingsDocument = graphql(`
         globalSettings {
             id
             availableLanguages
-            trackInventory
             outOfStockThreshold
             customFields
         }

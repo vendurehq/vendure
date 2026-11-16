@@ -9,8 +9,10 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    ChannelTrackInventoryEvent,
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
+    EventBus,
     facetValueCollectionFilter,
     mergeConfig,
     variantNameCollectionFilter,
@@ -35,7 +37,7 @@ import {
     searchProductsAdminDocument,
 } from './graphql/admin-definitions';
 import { channelFragment } from './graphql/fragments-admin';
-import { FragmentOf, ResultOf, VariablesOf } from './graphql/graphql-admin';
+import { FragmentOf, graphql as graphqlAdmin, ResultOf, VariablesOf } from './graphql/graphql-admin';
 import {
     addOptionGroupToProductDocument,
     assignProductToChannelDocument,
@@ -793,6 +795,79 @@ describe('Default search plugin', () => {
                 },
             });
             expect(result.search.totalItems).toBe(20);
+        });
+
+        // #2908 — a Channel's trackInventory decides whether its INHERIT variants are in stock,
+        // so changing it reindexes the Channel
+        it('reindexes the channel when its trackInventory changes', async () => {
+            const getVariantTracking = graphqlAdmin(`
+                query SearchTestVariantTracking($id: ID!) {
+                    productVariant(id: $id) {
+                        id
+                        trackInventory
+                    }
+                }
+            `);
+            const { search } = await shopClient.query(searchProductsShopDocument, {
+                input: { groupByProduct: false, inStock: false },
+            });
+            const outOfStockIds = search.items.map(i => i.productVariantId);
+            expect(outOfStockIds.length).toBeGreaterThan(0);
+            const original: Array<{ id: string; trackInventory: GlobalFlag }> = [];
+            for (const id of outOfStockIds) {
+                const { productVariant } = await adminClient.query(getVariantTracking, { id });
+                original.push({ id, trackInventory: productVariant!.trackInventory as GlobalFlag });
+            }
+            // Let the Channel decide for these variants.
+            await adminClient.query(updateProductVariantsDocument, {
+                input: outOfStockIds.map(id => ({ id, trackInventory: GlobalFlag.INHERIT })),
+            });
+            await awaitRunningJobs(adminClient);
+            try {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: false },
+                });
+                await awaitRunningJobs(adminClient);
+
+                const afterUntracked = await shopClient.query(searchProductsShopDocument, {
+                    input: { groupByProduct: false, inStock: false },
+                });
+                expect(afterUntracked.search.totalItems).toBe(0);
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true },
+                });
+                await adminClient.query(updateProductVariantsDocument, { input: original });
+                await awaitRunningJobs(adminClient);
+            }
+            const restored = await shopClient.query(searchProductsShopDocument, {
+                input: { groupByProduct: false, inStock: false },
+            });
+            expect(restored.search.totalItems).toBe(outOfStockIds.length);
+        });
+
+        // #2908 — sending an unchanged trackInventory does not reindex the channel
+        it('does not signal a trackInventory change when the value is unchanged', async () => {
+            const events: ChannelTrackInventoryEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(ChannelTrackInventoryEvent)
+                .subscribe(e => events.push(e));
+            try {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true },
+                });
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: false },
+                });
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true },
+                });
+                await awaitRunningJobs(adminClient);
+                expect(events.map(e => e.trackInventory)).toEqual([false, true]);
+            } finally {
+                subscription.unsubscribe();
+            }
         });
     });
 

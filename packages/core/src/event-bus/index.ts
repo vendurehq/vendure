@@ -14,6 +14,7 @@ export * from './events/attempted-login-event';
 export * from './events/bootstrapped-event';
 export * from './events/change-channel-event';
 export * from './events/channel-event';
+export * from './events/channel-track-inventory-event';
 export * from './events/collection-event';
 export * from './events/collection-modification-event';
 export * from './events/country-event';

@@ -1,0 +1,42 @@
+---
+title: "MigrateTrackInventoryToChannels"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_track_inventory.ts" sourceLine="55" packageName="@vendure/core" since="4.0.0" />
+
+v4.0 data migration for granular inventory tracking (#2908).
+
+Before v4, `GlobalSettings.trackInventory` was the default for every ProductVariant set to
+`INHERIT`, and `Channel.trackInventory` existed but was never read. From v4 the Channel value
+is the default, and `GlobalSettings.trackInventory` is removed from the API. This helper copies
+the global value to every Channel, so that every variant keeps its current behaviour, then sets
+the `global_settings.trackInventory` column to `NULL` to record that the copy has been done.
+It then fills the new `StockMovement.tracked` for the stock movements recorded before v4.0,
+with the rule that applied when they were recorded (see below).
+The column itself is kept (see `GlobalSettings.legacyTrackInventory`), so neither
+`synchronize` nor a generated migration drops the value before it is copied.
+
+Channels whose stored value differed are overwritten (it had no effect before) and are
+returned and logged, so you can set them again on purpose after the upgrade.
+
+The new `stock_level.trackInventory` column needs no data: its default, `INHERIT`, keeps the
+variant setting in force.
+
+Table names honour the `entityPrefix` of the connection options and, on Postgres, the
+`schema` option. The helper throws if the `global_settings` table cannot be found, rather than
+treating that as "already migrated".
+
+Call it from your v4 migration, after the generated statements. Vendure v4 refuses to start
+until it has run. It can be run again, e.g. from a later migration once the last v3 server of a
+rolling deployment has stopped: the copy is skipped once done, and only stock movements whose
+`tracked` state is still empty are filled.
+
+```ts title="Signature"
+function migrateTrackInventoryToChannels(queryRunner: QueryRunner): Promise<TrackInventoryMigrationResult>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+

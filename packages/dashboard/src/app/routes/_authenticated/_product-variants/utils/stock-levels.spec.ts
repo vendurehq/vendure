@@ -81,4 +81,30 @@ describe('getChangedStockLevels', () => {
         expect(getChangedStockLevels(null, original)).toEqual([]);
         expect(getChangedStockLevels(undefined, original)).toEqual([]);
     });
+
+    it('sends only trackInventory when just the tracking setting changed', () => {
+        // #2908 — without stockOnHand, a stale page value cannot revert concurrent stock changes.
+        const submitted = [
+            { stockLocationId: '1', stockOnHand: 100, trackInventory: 'FALSE' as const },
+            { stockLocationId: '2', stockOnHand: 50 },
+        ];
+        expect(getChangedStockLevels(submitted, original)).toEqual([
+            { stockLocationId: '1', trackInventory: 'FALSE' },
+        ]);
+    });
+
+    it('treats a missing tracking setting as INHERIT', () => {
+        const submitted = [
+            { stockLocationId: '1', stockOnHand: 100, trackInventory: 'INHERIT' as const },
+            { stockLocationId: '2', stockOnHand: 50 },
+        ];
+        expect(getChangedStockLevels(submitted, original)).toEqual([]);
+    });
+
+    it('sends both when stock and tracking changed', () => {
+        const submitted = [{ stockLocationId: '2', stockOnHand: 40, trackInventory: 'TRUE' as const }];
+        expect(getChangedStockLevels(submitted, original)).toEqual([
+            { stockLocationId: '2', stockOnHand: 40, trackInventory: 'TRUE' },
+        ]);
+    });
 });

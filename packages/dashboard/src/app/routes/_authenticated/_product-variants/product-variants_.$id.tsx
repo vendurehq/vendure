@@ -150,6 +150,7 @@ function ProductVariantDetailPage() {
                 stockLevels: entity.stockLevels.map(stockLevel => ({
                     stockOnHand: stockLevel.stockOnHand,
                     stockLocationId: stockLevel.stockLocation.id,
+                    trackInventory: stockLevel.trackInventory,
                 })),
                 translations: entity.translations.map(translation => ({
                     id: translation.id,
@@ -199,6 +200,7 @@ function ProductVariantDetailPage() {
         originalStockLevelsRef.current = entity?.stockLevels.map(stockLevel => ({
             stockLocationId: stockLevel.stockLocation.id,
             stockOnHand: stockLevel.stockOnHand,
+            trackInventory: stockLevel.trackInventory,
         }));
     }, [entity]);
 
@@ -412,15 +414,25 @@ function ProductVariantDetailPage() {
         trackInventory: (trackInventory ?? 'INHERIT') as 'INHERIT' | 'TRUE' | 'FALSE',
         useGlobalOutOfStockThreshold: useGlobalOutOfStockThreshold ?? false,
         outOfStockThreshold: form.getValues('outOfStockThreshold'),
-        globalSettings: globalSettingsData?.globalSettings,
+        channelTrackInventory: globalSettingsData?.activeChannel.trackInventory,
+        globalOutOfStockThreshold: globalSettingsData?.globalSettings.outOfStockThreshold,
     });
 
     const inheritTrackInventoryLabel =
-        effectiveStock.globalTrackInventory === undefined
-            ? t`Inherit from global settings`
-            : effectiveStock.globalTrackInventory
-              ? t`Inherit from global settings (Track)`
-              : t`Inherit from global settings (Do not track)`;
+        effectiveStock.inheritedTrackInventory === undefined
+            ? t`Inherit from channel`
+            : effectiveStock.inheritedTrackInventory
+              ? t`Inherit from channel (Track)`
+              : t`Inherit from channel (Do not track)`;
+
+    // A stock level set to "inherit" takes the variant's setting, which may itself come from the
+    // Channel.
+    const inheritStockLevelLabel =
+        effectiveStock.effectiveTrackInventory === undefined
+            ? t`Inherit from variant`
+            : effectiveStock.effectiveTrackInventory
+              ? t`Inherit from variant (Track)`
+              : t`Inherit from variant (Do not track)`;
 
     // Filter out deleted prices for display
     const activePrices = prices?.filter(p => !p.delete) ?? [];
@@ -482,6 +494,7 @@ function ProductVariantDetailPage() {
         const newStockLevel = {
             stockLocationId,
             stockOnHand: 0,
+            trackInventory: 'INHERIT' as const,
         };
         form.setValue('stockLevels', [...currentStockLevels, newStockLevel], {
             shouldDirty: true,
@@ -780,6 +793,42 @@ function ProductVariantDetailPage() {
                                     name={`stockLevels.${index}.stockOnHand`}
                                     label={stockLabel}
                                     render={({ field }) => <NumberInput {...field} value={field.value} />}
+                                />
+                                <FormFieldWrapper
+                                    control={form.control}
+                                    name={`stockLevels.${index}.trackInventory`}
+                                    label={<Trans>Track inventory at this location</Trans>}
+                                    renderFormControl={false}
+                                    render={({ field }) => (
+                                        <Select
+                                            items={{
+                                                INHERIT: inheritStockLevelLabel,
+                                                TRUE: t`Track`,
+                                                FALSE: t`Do not track`,
+                                            }}
+                                            onValueChange={val => {
+                                                if (val) {
+                                                    field.onChange(val);
+                                                }
+                                            }}
+                                            value={field.value ?? 'INHERIT'}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="INHERIT">
+                                                    {inheritStockLevelLabel}
+                                                </SelectItem>
+                                                <SelectItem value="TRUE">
+                                                    <Trans>Track</Trans>
+                                                </SelectItem>
+                                                <SelectItem value="FALSE">
+                                                    <Trans>Do not track</Trans>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                 />
                                 <div>
                                     <Field>

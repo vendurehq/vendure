@@ -2,7 +2,7 @@
 title: "DefaultStockLocationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/catalog/default-stock-location-strategy.ts" sourceLine="195" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/default-stock-location-strategy.ts" sourceLine="353" packageName="@vendure/core" since="2.0.0" />
 
 The DefaultStockLocationStrategy was the default implementation of the [StockLocationStrategy](/reference/typescript-api/products-stock/stock-location-strategy#stocklocationstrategy)
 prior to the introduction of the [MultiChannelStockLocationStrategy](/reference/typescript-api/products-stock/multi-channel-stock-location-strategy#multichannelstocklocationstrategy).
@@ -20,7 +20,7 @@ and core neither refunds nor cancels the Order: subscribe to the event to decide
 
 ```ts title="Signature"
 class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
-    getAvailableStock(ctx: RequestContext, productVariantId: ID, stockLevels: StockLevel[]) => AvailableStock;
+    getAvailableStock(ctx: RequestContext, productVariantId: ID, stockLevels: StockLevel[], productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>) => AvailableStock | Promise<AvailableStock>;
     forAllocation(ctx: RequestContext, stockLocations: StockLocation[], orderLine: OrderLine, quantity: number) => Promise<LocationWithQuantity[]>;
 }
 ```
@@ -32,18 +32,25 @@ class DefaultStockLocationStrategy extends BaseStockLocationStrategy {
 
 ### getAvailableStock
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLevels: <a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>[]) => <a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLevels: <a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>[], productVariant?: Pick<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, 'id' | 'trackInventory'>) => <a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a> | Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>>`}  since="4.0.0 - Accepts `productVariant` and reports `hasUntrackedStock`"  />
 
-
+Sums every StockLevel of the variant. Core always passes `productVariant`; when it is
+omitted, the variant is loaded. Declared as possibly synchronous so that subclasses may
+override it with a synchronous implementation.
 ### forAllocation
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, stockLocations: <a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>[], orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, quantity: number) => Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#locationwithquantity'>LocationWithQuantity</a>[]>`}  since="3.7.4 - The quantity is capped and the StockLevels are read under a lock"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, stockLocations: <a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>[], orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, quantity: number) => Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#locationwithquantity'>LocationWithQuantity</a>[]>`}  since="4.0.0 - Tracked stock first, untracked StockLevels take the overflow"  />
 
-Allocates from the first StockLocation, capped at the quantity the ProductVariant still has
-available: `stockOnHand - stockAllocated - outOfStockThreshold`, summed over every
-StockLevel of the variant, which is the same figure the saleable stock check uses. The
-StockLevels are read under a write lock, so a concurrent allocation of the same variant
-waits and then sees this one's result.
+Allocates tracked stock first, then sends what is left to an untracked StockLevel.
+
+Tracked: capped at the quantity the ProductVariant still has available,
+`stockOnHand - stockAllocated - outOfStockThreshold` summed over its tracked StockLevels (the
+figure the saleable stock check uses), and allocated at the first tracked StockLevel's
+location (or the first StockLocation). The StockLevels are read under a write lock, so a
+concurrent allocation of the same variant waits and then sees this one's result.
+
+Untracked: the remainder goes, without a cap, to the first untracked StockLevel whose
+location is one of `stockLocations`. Locations are taken in the order of `stockLocations`.
 
 
 </div>

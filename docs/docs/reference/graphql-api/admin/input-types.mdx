@@ -3285,6 +3285,12 @@ input NumberOperators {
   """
   enabledInChannel: BooleanOperators
   trackInventory: StringOperators
+  """
+  Whether stock limits apply to this ProductVariant in the active Channel: false when any
+  StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+  sold and fulfilled without limit.
+  """
+  tracksInventory: BooleanOperators
   stockOnHand: NumberOperators
   stockAllocated: NumberOperators
   outOfStockThreshold: NumberOperators
@@ -4348,11 +4354,17 @@ input RoleAssignmentInput {
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     Int: '/reference/graphql-api/admin/object-types#int',
+    GlobalFlag: '/reference/graphql-api/admin/enums#globalflag',
   }}
 >
 {`input StockLevelInput {
   stockLocationId: ID!
-  stockOnHand: Int!
+  """
+  Omit to leave the stock on hand unchanged, e.g. when only changing \`trackInventory\`.
+  Required before v4.0.
+  """
+  stockOnHand: Int
+  trackInventory: GlobalFlag
 }`}
 </GraphQLDoc>
 
@@ -5185,14 +5197,12 @@ input UpdateAddressInput {
   typeName="UpdateGlobalSettingsInput"
   typeLinks={{
     LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
-    Boolean: '/reference/graphql-api/admin/object-types#boolean',
     Int: '/reference/graphql-api/admin/object-types#int',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input UpdateGlobalSettingsInput {
   availableLanguages: [LanguageCode!]
-  trackInventory: Boolean
   outOfStockThreshold: Int
   customFields: JSON
 }`}
