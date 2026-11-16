@@ -1,0 +1,27 @@
+---
+title: "RevertTimestamptzMigration"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_timestamptz.ts" sourceLine="266" packageName="@vendure/core" since="4.0.0" />
+
+The reverse of [migrateTimestampColumnsToTimestamptz](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz#migratetimestampcolumnstotimestamptz), for the `down()` method of the
+migration. Converts the columns which Vendure made `timestamptz` back to `timestamp`, as
+wall-clock time in the same zones. Columns which an entity declares as `timestamptz` itself are
+left alone. Like the migration, it must run inside a transaction.
+
+Which columns Vendure converted is recorded when the Vendure config is loaded (as `vendure migrate`
+does), so call it from a migration run by Vendure, not from a bare TypeORM DataSource.
+
+```ts title="Signature"
+function revertTimestamptzMigration(queryRunner: QueryRunner, options: TimestamptzMigrationOptions = {}): Promise<void>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/migration/timestamptz-migration-options#timestamptzmigrationoptions'>TimestamptzMigrationOptions</a>`} />
+

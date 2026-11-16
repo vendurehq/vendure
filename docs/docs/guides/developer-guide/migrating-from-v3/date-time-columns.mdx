@@ -1,0 +1,187 @@
+---
+title: "Date and Time Columns"
+metaTitle: "Vendure v4 Date and Time Columns - Migration Guide"
+metaDescription: "Vendure v4 stores dates as timestamptz on PostgreSQL and pins the MySQL session time zone to UTC. How to convert existing PostgreSQL data, and what plugin authors must check."
+order: 7
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+Vendure v4 stores every date on PostgreSQL as `timestamptz` (`timestamp with time zone`). v3 used `timestamp` (`timestamp without time zone`), which caused dates to be off by hours depending on where the server ran.
+
+## What changes
+
+**PostgreSQL.** Every date column becomes `timestamptz`:
+
+- `createdAt`, `updatedAt` and `deletedAt`
+- every column of type `Date`, such as `Order.orderPlacedAt` and `Promotion.startsAt`
+- custom fields of type `datetime`
+
+This applies to plugin entities too. A `timestamptz` value is an absolute instant, so it no longer depends on the timezone of the Node.js process or of the database.
+
+In v3, a `timestamp` value was written and read in the **timezone of the Node.js process**, while PostgreSQL filled `createdAt` and `updatedAt` in the **timezone of the database session**. When the two differed, for example a developer machine in Europe/Vienna with PostgreSQL in Docker on UTC, `createdAt` and `updatedAt` were off by the difference. Every date also shifted when the process timezone changed, and the repeated hour when daylight saving time ends was stored ambiguously.
+
+**MySQL and MariaDB.** Nothing changes in the schema. Vendure now sets the session `time_zone` to UTC on each connection, so `createdAt` and `updatedAt` are correct even when the server's `time_zone` is not UTC. Rows written before the upgrade keep their old values; see [MySQL and MariaDB](#mysql-and-mariadb).
+
+**SQLite** is not affected.
+
+## Checking which timezones your data was written in
+
+PostgreSQL only. A `timestamp` value has no timezone, so converting it needs the timezones it was written in:
+
+- **The process timezone**: the timezone of your Vendure server and worker processes, set by their `TZ` environment variable. Most containers use UTC. All dates which Vendure writes itself, such as `orderPlacedAt`, are in this timezone.
+- **The database timezone**: the PostgreSQL session timezone, shown by `SHOW timezone`. `createdAt` and `updatedAt` are in this timezone. Most managed databases and the official Docker image use UTC.
+
+Run [`previewTimestamptzMigration`](/reference/typescript-api/migration/preview-timestamptz-migration) to check them against your data. It only reads, so it is safe to run against production:
+
+```ts
+import { previewTimestamptzMigration } from '@vendure/core';
+
+const queryRunner = dataSource.createQueryRunner();
+const preview = await previewTimestamptzMigration(queryRunner);
+console.log(preview.sessionTimezone, preview.columns.length, preview.offsetByMonth);
+await queryRunner.release();
+```
+
+`offsetByMonth` lists, per month, how many hours your orders' `orderPlacedAt` is ahead of the `createdAt` of their first payment. That is the offset of the process timezone minus the offset of the database timezone:
+
+- `0` in every month: both timezones were the same, usually both UTC.
+- `1` in winter and `2` in summer: for example Europe/Vienna for the process and UTC for the database.
+- A value that changes from one month to the next for other reasons: the timezone changed at some point. See [Data written in more than one timezone](#data-written-in-more-than-one-timezone).
+
+**Done when:** you know the process timezone and the database timezone your data was written in.
+
+## Converting the columns
+
+### With migrations
+
+1. Generate the v4 migration as described in [Database migration](/developer-guide/migrating-from-v3/database-migration#running-the-migration).
+2. **Delete the generated statements for the date columns.** TypeORM changes a column type by dropping the column and adding it again, which deletes every stored date. For each date column the generated file holds a pair like this, in `up()` and in `down()`:
+   ```ts
+   await queryRunner.query(`ALTER TABLE "order" DROP COLUMN "orderPlacedAt"`);
+   await queryRunner.query(`ALTER TABLE "order" ADD "orderPlacedAt" TIMESTAMP WITH TIME ZONE`);
+   ```
+   Delete every pair that drops and re-adds a column as `TIMESTAMP WITH TIME ZONE` (or as `TIMESTAMP` in `down()`), together with any `DROP INDEX` and `CREATE INDEX` statements for those columns.
+3. After the generated statements, call [`migrateTimestampColumnsToTimestamptz`](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz) in `up()` and [`revertTimestamptzMigration`](/reference/typescript-api/migration/revert-timestamptz-migration) in `down()`:
+   ```ts
+   import { MigrationInterface, QueryRunner } from 'typeorm';
+   import { migrateTimestampColumnsToTimestamptz, revertTimestamptzMigration } from '@vendure/core';
+
+   export class V4Upgrade1234567890 implements MigrationInterface {
+       public async up(queryRunner: QueryRunner): Promise<any> {
+           // --- Auto-generated DDL, without the date column pairs ---
+           // ...
+
+           await migrateTimestampColumnsToTimestamptz(queryRunner);
+       }
+
+       public async down(queryRunner: QueryRunner): Promise<any> {
+           await revertTimestamptzMigration(queryRunner);
+
+           // --- Auto-generated reverse DDL, without the date column pairs ---
+           // ...
+       }
+   }
+   ```
+4. Run the migration with `npx vendure migrate --run`.
+
+Both timezones default to those of the process and the database session that run the migration. That is right when you run it from the same deployment as your server. Otherwise pass them:
+
+```ts
+await migrateTimestampColumnsToTimestamptz(queryRunner, {
+    processTimezone: 'Europe/Vienna',
+    databaseTimezone: 'UTC',
+    lockTimeout: '10s',
+});
+```
+
+The helper converts every column which the v4 entity metadata declares as `timestamptz` and which is still `timestamp` in the database, including plugin and custom field columns, in the schema of each entity. Before it changes anything, it checks the timezones against your orders the same way as the preview does, and throws if any month with at least 3 orders disagrees. Months in which payments were not created as the order was placed, for example with an `OrderPlacedStrategy` which places orders before payment, show `conclusive: false` in the preview and are not checked. A second run does nothing, and when several processes run it at once, only the first converts the columns.
+
+It must run inside a transaction, which is the default for migrations. It changes the session's `timezone` and `lock_timeout` while it runs, and restores them afterwards.
+
+**Done when:** the migration succeeds, and Vendure v4 starts without the warning about `timestamp` columns.
+
+### With `synchronize: true`
+
+Set `dbConnectionOptions.synchronize` to `false` for the upgrade, and convert the columns with a migration as described above. You can switch `synchronize` back on afterwards.
+
+TypeORM would synchronize the new column type by dropping and re-adding every date column, which deletes the data. So while any date column has a different type from the one the config asks for, Vendure v4 refuses to start with `synchronize: true`. This also applies if you set `timestampColumnType: 'timestamp'` after converting. See [Rolling back](#rolling-back).
+
+<Callout type="warning">
+Never synchronize a v4 schema with a v3 database outside Vendure, for example with TypeORM's own CLI. TypeORM would drop and re-add every date column.
+</Callout>
+
+### Startup check
+
+While any date column is still `timestamp`, Vendure v4 logs a warning on startup. Those columns keep the v3 behaviour until they are converted.
+
+### Run time and locks
+
+PostgreSQL locks each table while it converts its columns (`ACCESS EXCLUSIVE`), so the table cannot be read or written meanwhile. How long that takes depends on the timezones:
+
+- **Both timezones UTC:** PostgreSQL changes the type without rewriting the table, but rebuilds the indexes on the converted columns. On a table of 5 million rows with two such indexes this took about 6 seconds.
+- **Any other timezone:** PostgreSQL rewrites the table. The same table took about 15 seconds.
+
+Time the migration on a copy of your production database. Use `lockTimeout` so that the migration fails rather than waits behind long-running queries. For very large tables, consider pruning old rows first, for example of `job_record` and `session`.
+
+### During a rolling deployment
+
+v3 servers keep working once the columns are converted. They write and read dates correctly, and `createdAt` and `updatedAt` become correct for them too. Two exceptions:
+
+- Date filters in v3 list queries (`DateOperators`) are off by the session's UTC offset when the PostgreSQL session timezone is not UTC.
+- Do not run v3 with `synchronize: true` against the converted database.
+
+### Rolling back
+
+`revertTimestamptzMigration` converts the columns back to `timestamp`, as wall-clock time in the same timezones. It leaves alone columns which an entity declares as `timestamptz` itself. Run it from a migration while `timestampColumnType` is still `'timestamptz'`, then change the setting.
+
+### Data written in more than one timezone
+
+If the process or database timezone changed while your data was written, no single pair of timezones is right for all rows, and the check fails. Convert the affected rows by hand, for example with `UPDATE ... SET "createdAt" = ...` while the columns are still `timestamp`, then call the helper with `verify: false`.
+
+The repeated hour when daylight saving time ends (for example 02:00–03:00 on the last Sunday of October in Europe) was stored ambiguously by v3 when the process timezone was not UTC. The helper converts those values to the first of the two instants, which is what v3 showed. It assumes a shift of one hour, so in the rare zones with a 30-minute shift (Australia/Lord_Howe) values in that half hour may move by 30 minutes.
+
+## Keeping the v3 column type
+
+To defer the conversion, set:
+
+```ts
+export const config: VendureConfig = {
+    entityOptions: {
+        timestampColumnType: 'timestamp',
+    },
+};
+```
+
+Vendure then keeps `timestamp` and logs a warning on startup if the process or the database session is not in UTC.
+
+## MySQL and MariaDB
+
+There is nothing to migrate. If your server's `time_zone` was not UTC, `createdAt` and `updatedAt` of existing rows are off by its offset. v3 servers keep writing them that way during a rolling deployment, so correct the existing rows once the last v3 server has stopped, per table, for example:
+
+```sql
+UPDATE `order`
+SET `createdAt` = CONVERT_TZ(`createdAt`, 'Europe/Vienna', '+00:00'),
+    `updatedAt` = CONVERT_TZ(`updatedAt`, 'Europe/Vienna', '+00:00');
+```
+
+Vendure sets the session `time_zone` on every pooled connection, including those to replicas configured with `replication`. It logs a warning on startup if the session `time_zone` still differs from the connection's `timezone` option, for example on Aurora MySQL, where Vendure cannot set it.
+
+## What plugin authors must check
+
+Entities need no change in most cases. On PostgreSQL:
+
+| Column declaration | v4 column type |
+|---|---|
+| `@CreateDateColumn()`, `@UpdateDateColumn()`, `@DeleteDateColumn()` | `timestamptz` |
+| `@Column() placedAt: Date`, `@Column({ type: Date })` | `timestamptz` |
+| `@Column({ type: 'timestamp' })` | `timestamp`, unchanged |
+| `@Column({ type: 'timestamptz' })` | `timestamptz`, unchanged |
+| `@Column({ type: 'date' })` | `date`, unchanged |
+
+Use `type: Date` for new date columns. It works on every database. An explicit `type: 'timestamp'` keeps the v3 behaviour, and an explicit `type: 'timestamptz'` does not work on MySQL or SQLite.
+
+Only entities registered with `@VendurePlugin({ entities })` are converted. Check raw SQL against date columns:
+
+- A date literal without a timezone, such as `'2026-03-29 00:00:00'`, is now read in the session timezone. Pass a `Date` or an ISO string ending in `Z`.
+- `TO_CHAR(col, 'YYYY-MM-DD')` and `DATE(col)` now use the session timezone. To group by day in a given timezone, use `col AT TIME ZONE 'UTC'`.

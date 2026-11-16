@@ -1,5 +1,11 @@
 import { CurrencyCode } from '@vendure/common/lib/generated-types';
-import { mergeConfig, Product } from '@vendure/core';
+import {
+    ConfigService,
+    DefaultOrderItemPriceCalculationStrategy,
+    getBaseStrategy,
+    mergeConfig,
+    Product,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -21,6 +27,7 @@ import {
     fixedPriceEmailAddresses,
     noPriceSkus,
     noPriceSkusForFixedPriceCustomers,
+    orderItemBuyerCustomerIds,
     orderItemMetadata,
     receivedPricingData,
     TestBuyerPricePlugin,
@@ -780,17 +787,28 @@ describe('The buyerPrice and buyerPrices queries with a custom ProductVariantBuy
         });
     });
 
-    it('prices an order line for the buyer that an order item layer passes', async () => {
+    it('prices an order line for the buyer that an order item layer passes to the inner chain', async () => {
         await shopClient.asAnonymousUser();
         // The layer runs on the server, where the ID has no "T_" prefix
         buyerOverride.customerId = Number(fixedPriceCustomer.id.replace('T_', ''));
+        orderItemBuyerCustomerIds.length = 0;
         try {
             const line = await addToCart(shopClient, channelPrices[0].id, 1);
 
             expect(line.unitPrice).toBe(FIXED_UNIT_PRICE);
+            // The inner layer got the buyer of the outer layer
+            expect(orderItemBuyerCustomerIds).toEqual([buyerOverride.customerId]);
         } finally {
             buyerOverride.customerId = undefined;
         }
+    });
+
+    it('exports the default OrderItemPriceCalculationStrategy from @vendure/core', () => {
+        const { orderItemPriceCalculationStrategy } = server.app.get(ConfigService).orderOptions;
+
+        expect(getBaseStrategy(orderItemPriceCalculationStrategy)).toBeInstanceOf(
+            DefaultOrderItemPriceCalculationStrategy,
+        );
     });
 
     describe('modifyOrder', () => {

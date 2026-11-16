@@ -18,7 +18,6 @@ import {
 } from '@vendure/core';
 import { McpToolBehavior, McpToolset } from '@vendure/mcp-sdk';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
-import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { MCP_PLUGIN_OPTIONS, mcpServerPermission } from '../constants';
 import { McpOauthGrant, McpToolCallLog } from '../entities';
@@ -216,7 +215,7 @@ export class McpAdminResolver {
     }
 
     private async computeStats(ctx: RequestContext, hours: number): Promise<McpStats> {
-        const since = DateUtils.mixedDateToUtcDatetimeString(new Date(Date.now() - hours * 3_600_000));
+        const since = new Date(Date.now() - hours * 3_600_000);
 
         const statusRows = await this.windowedQuery(ctx, since)
             .select('log.status', 'status')
@@ -264,7 +263,7 @@ export class McpAdminResolver {
     // Numbers the rows in duration order and picks the two positions, in one statement.
     private async durationPercentiles(
         ctx: RequestContext,
-        since: string,
+        since: Date,
         total: number,
     ): Promise<{ p50LatencyMs: number | null; p95LatencyMs: number | null }> {
         if (total === 0) {
@@ -296,7 +295,7 @@ export class McpAdminResolver {
         return { p50LatencyMs: durationAt(p50Position), p95LatencyMs: durationAt(p95Position) };
     }
 
-    private windowedQuery(ctx: RequestContext, since: string) {
+    private windowedQuery(ctx: RequestContext, since: Date) {
         const qb = this.connection.getRepository(ctx, McpToolCallLog).createQueryBuilder('log');
         return this.limitToWindow(qb, ctx, since);
     }
@@ -304,7 +303,7 @@ export class McpAdminResolver {
     private limitToWindow<T extends ObjectLiteral>(
         qb: SelectQueryBuilder<T>,
         ctx: RequestContext,
-        since: string,
+        since: Date,
     ) {
         qb.where('log.createdAt >= :since', { since });
         this.scopeToChannel(qb, 'log', ctx.channelId);

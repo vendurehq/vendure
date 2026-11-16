@@ -63,6 +63,7 @@ export * from './order/changed-price-handling-strategy';
 export * from './order/default-active-order-strategy';
 export * from './order/default-changed-price-handling-strategy';
 export * from './order/default-guest-checkout-strategy';
+export * from './order/default-order-item-price-calculation-strategy';
 export * from './order/default-order-line-discount-distribution-strategy';
 export * from './order/default-order-placed-strategy';
 export * from './order/default-order-process';

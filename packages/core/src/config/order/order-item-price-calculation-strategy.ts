@@ -3,6 +3,7 @@ import { PriceCalculationResult } from '../../common/types/common-types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Buyer } from '../catalog/product-variant-buyer-price-strategy';
 
 /**
  * @description
@@ -82,6 +83,13 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
      * to join the missing relations.
      *
      * Note: the `quantity` argument was added in v2.0.0
+     *
+     * The optional `options.buyer` argument (since v4.0.0) is the {@link Buyer} that the price is for.
+     * Vendure does not pass it. A layer can pass it to `inner`, so that the inner strategies price the
+     * OrderLine for a different Buyer than the Customer of the Order, for example a company for a
+     * shared cart. The {@link DefaultOrderItemPriceCalculationStrategy} passes it to
+     * `ProductVariantService.calculateBuyerPriceForOrder()`. If it is not given, the price is for the
+     * Customer of the Order.
      */
     calculateUnitPrice(
         ctx: RequestContext,
@@ -89,5 +97,6 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
         orderLineCustomFields: { [key: string]: any },
         order: Order,
         quantity: number,
+        options?: { buyer?: Buyer },
     ): PriceCalculationResult | Promise<PriceCalculationResult>;
 }
