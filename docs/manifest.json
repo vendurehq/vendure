@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-02T12:35:06+01:00"
+          "lastModified": "2026-11-02T13:57:36+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -2480,7 +2480,7 @@
                   "title": "PollingJobQueueStrategy",
                   "slug": "polling-job-queue-strategy",
                   "file": "docs/reference/typescript-api/job-queue/polling-job-queue-strategy.mdx",
-                  "lastModified": "2026-10-28T09:48:06+01:00"
+                  "lastModified": "2026-11-09T16:24:02Z"
                 },
                 {
                   "title": "SqlJobQueueStrategy",
@@ -2848,7 +2848,7 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-10T11:12:07Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
@@ -4591,7 +4591,7 @@
                   "title": "AssetPickerDialog",
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
-                  "lastModified": "2026-09-01T11:21:59+02:00"
+                  "lastModified": "2026-11-09T12:36:50Z"
                 },
                 {
                   "title": "ChannelAvailabilityBadge",
@@ -5097,7 +5097,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-11-06T14:39:54Z"
+                  "lastModified": "2026-11-12T15:54:16Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
