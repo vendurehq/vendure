@@ -21,6 +21,7 @@ function validateCustomFieldsForEntity(
         ...assertNoDuplicatedCustomFieldNames(entity.name, customFields),
         ...assertNoRelationIdNameConflicts(entity.name, customFields),
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
+        ...assertNoEagerSelfRelations(entity.name, customFields),
         ...assertValidIndexConfiguration(entity.name, customFields, dbEngine),
         ...(isTranslatable(entity) ? [] : assertNoLocalizedFields(entity.name, customFields)),
     ];
@@ -150,6 +151,21 @@ function assertNoLocalizedFields(entityName: string, customFields: CustomFieldCo
         return [`${entityName} entity does not support custom fields of type "${localizedField.type}"`];
     }
     return [];
+}
+
+/**
+ * Assert that no eager relation custom field points at the entity it is defined on. TypeORM would
+ * follow such a relation without end, and loading the entity would fail with
+ * "Maximum call stack size exceeded".
+ */
+function assertNoEagerSelfRelations(entityName: string, customFields: CustomFieldConfig[]): string[] {
+    return customFields
+        .filter(f => f.type === 'relation' && f.eager === true && f.entity?.name === entityName)
+        .map(
+            f =>
+                `${entityName} entity custom field "${f.name}" is an eager relation to ${entityName} itself, ` +
+                'which TypeORM cannot load. Remove "eager: true".',
+        );
 }
 
 /**
