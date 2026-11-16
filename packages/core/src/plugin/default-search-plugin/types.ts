@@ -101,7 +101,7 @@ export interface DefaultSearchPluginInitOptions {
      *             .take(take)
      *             .skip(skip)
      *             .getRawMany()
-     *             .then(res => res.map(r => mapToSearchResult(r, ctx.channel.currencyCode)));
+     *             .then(res => res.map(r => mapToSearchResult(r, ctx.channel.defaultCurrencyCode)));
      *     }
      *
      *     async getTotalCount(ctx: RequestContext, input: SearchInput, enabledOnly: boolean): Promise<number> {

@@ -70,7 +70,7 @@ describe('Channel update and delete permissions are scoped to the target Channel
                 code,
                 token,
                 defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.GBP,
+                defaultCurrencyCode: CurrencyCode.GBP,
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',

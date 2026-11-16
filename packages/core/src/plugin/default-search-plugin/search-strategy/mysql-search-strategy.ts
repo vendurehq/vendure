@@ -1,4 +1,4 @@
-import { LogicalOperator, SearchResult } from '@vendure/common/lib/generated-types';
+import { SearchResult } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
 
@@ -160,16 +160,8 @@ export class MysqlSearchStrategy implements SearchStrategy {
         qb: SelectQueryBuilder<SearchIndexItem>,
         input: SearchInput,
     ): SelectQueryBuilder<SearchIndexItem> {
-        const {
-            term,
-            facetValueFilters,
-            facetValueIds,
-            facetValueOperator,
-            collectionId,
-            collectionSlug,
-            collectionIds,
-            collectionSlugs,
-        } = input;
+        const { term, facetValueFilters, collectionId, collectionSlug, collectionIds, collectionSlugs } =
+            input;
 
         if (term && term.length > this.minTermLength) {
             const safeTerm = term
@@ -219,22 +211,6 @@ export class MysqlSearchStrategy implements SearchStrategy {
             } else {
                 qb.andWhere('si.inStock = :inStock', { inStock: input.inStock });
             }
-        }
-        if (facetValueIds?.length) {
-            qb.andWhere(
-                new Brackets(qb1 => {
-                    for (const id of facetValueIds) {
-                        const placeholder = createPlaceholderFromId(id);
-                        const clause = `FIND_IN_SET(:${placeholder}, si.facetValueIds)`;
-                        const params = { [placeholder]: id };
-                        if (facetValueOperator === LogicalOperator.AND) {
-                            qb1.andWhere(clause, params);
-                        } else {
-                            qb1.orWhere(clause, params);
-                        }
-                    }
-                }),
-            );
         }
         if (facetValueFilters?.length) {
             qb.andWhere(

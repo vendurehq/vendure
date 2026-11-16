@@ -78,7 +78,7 @@ describe('Channels', () => {
                 code: 'second-channel',
                 token: SECOND_CHANNEL_TOKEN,
                 defaultLanguageCode: LanguageCode.zh,
-                currencyCode: CurrencyCode.GBP,
+                defaultCurrencyCode: CurrencyCode.GBP,
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',
@@ -99,7 +99,7 @@ describe('Channels', () => {
                 code: 'second-channel',
                 token: SECOND_CHANNEL_TOKEN,
                 defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.GBP,
+                defaultCurrencyCode: CurrencyCode.GBP,
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',
@@ -112,7 +112,6 @@ describe('Channels', () => {
             code: 'second-channel',
             token: SECOND_CHANNEL_TOKEN,
             availableCurrencyCodes: ['GBP'],
-            currencyCode: 'GBP',
             defaultCurrencyCode: 'GBP',
             defaultLanguageCode: 'en',
             defaultShippingZone: {
@@ -124,20 +123,6 @@ describe('Channels', () => {
             pricesIncludeTax: true,
         });
     });
-
-    // it('update currencyCode', async () => {
-    //     const { updateChannel } = await adminClient.query<
-    //         Codegen.UpdateChannelMutation,
-    //         Codegen.UpdateChannelMutationVariables
-    //     >(updateChannelDocument, {
-    //         input: {
-    //             id: 'T_1',
-    //             currencyCode: CurrencyCode.MYR,
-    //         },
-    //     });
-    //     channelGuard.assertSuccess(updateChannel);
-    //     expect(updateChannel.currencyCode).toBe('MYR');
-    // });
 
     it('superadmin has all permissions on new channel', async () => {
         const { me } = await adminClient.query(MeDocument);
@@ -423,7 +408,6 @@ describe('Channels', () => {
             });
             channelGuard.assertSuccess(updateChannel);
             expect(updateChannel.defaultCurrencyCode).toBe('MYR');
-            expect(updateChannel.currencyCode).toBe('MYR');
             expect(updateChannel.availableCurrencyCodes).toEqual(['USD', 'MYR']);
         });
 
@@ -439,7 +423,6 @@ describe('Channels', () => {
             });
             channelGuard.assertSuccess(updateChannel);
             expect(updateChannel.defaultCurrencyCode).toBe('AUD');
-            expect(updateChannel.currencyCode).toBe('AUD');
             expect(updateChannel.availableCurrencyCodes).toEqual(['GBP', 'AUD']);
         });
 

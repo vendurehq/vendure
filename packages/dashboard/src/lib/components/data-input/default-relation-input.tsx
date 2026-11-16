@@ -461,7 +461,7 @@ const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string)
                         code
                         token
                         defaultLanguageCode
-                        currencyCode
+                        defaultCurrencyCode
                         pricesIncludeTax
                     }
                     totalItems
@@ -471,7 +471,7 @@ const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string)
         label: (item: any) => (
             <EntityLabel
                 title={item.code}
-                subtitle={`${item.defaultLanguageCode} • ${item.currencyCode} • ${item.pricesIncludeTax ? 'Inc. Tax' : 'Ex. Tax'}`}
+                subtitle={`${item.defaultLanguageCode} • ${item.defaultCurrencyCode} • ${item.pricesIncludeTax ? 'Inc. Tax' : 'Ex. Tax'}`}
                 placeholderLetter="CH"
                 rounded
                 tooltipText={`${item.code} (${item.defaultLanguageCode}, ${item.currencyCode})`}

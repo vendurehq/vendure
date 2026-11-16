@@ -105,7 +105,6 @@ function ChannelDetailPage() {
         transformCreateInput: input => {
             return {
                 ...input,
-                currencyCode: undefined,
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
                     input.defaultLanguageCode,
@@ -143,11 +142,9 @@ function ChannelDetailPage() {
                         : {}),
                 })
                 // The currency pair is checked together, because whether a default is valid depends
-                // entirely on the available list it has to come from. `defaultCurrencyCode` is
-                // nullable in the schema but ChannelService.create throws a raw UserInputError
-                // unless it is given (this page always sends `currencyCode: undefined`), and a
-                // supplied available list is saved verbatim without checking it contains the
-                // default — so both halves have to be caught here.
+                // entirely on the available list it has to come from. A supplied available list is
+                // saved verbatim without checking it contains the default, so both halves have to
+                // be caught here.
                 //
                 // Unlike the fields above this is not limited to create: an existing channel always
                 // has both, so an update can only reach these states by actively breaking them.

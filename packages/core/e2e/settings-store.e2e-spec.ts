@@ -158,7 +158,7 @@ describe('SettingsStore system', () => {
                     code: 'test-channel',
                     token: testChannelToken,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.USD,
+                    defaultCurrencyCode: CurrencyCode.USD,
                     pricesIncludeTax: false,
                     defaultShippingZoneId: defaultZoneId,
                     defaultTaxZoneId: defaultZoneId,

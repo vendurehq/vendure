@@ -198,7 +198,7 @@ describe('Order splitting with a default-Channel-only ShippingMethod', () => {
                 code: 'seller-channel',
                 token: 'seller-channel-token',
                 defaultLanguageCode: 'en',
-                currencyCode: 'USD',
+                defaultCurrencyCode: 'USD',
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',

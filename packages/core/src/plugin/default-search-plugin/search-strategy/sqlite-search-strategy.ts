@@ -1,4 +1,4 @@
-import { LogicalOperator, SearchResult } from '@vendure/common/lib/generated-types';
+import { SearchResult } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
 
@@ -158,16 +158,8 @@ export class SqliteSearchStrategy implements SearchStrategy {
         qb: SelectQueryBuilder<SearchIndexItem>,
         input: SearchInput,
     ): SelectQueryBuilder<SearchIndexItem> {
-        const {
-            term,
-            facetValueFilters,
-            facetValueIds,
-            facetValueOperator,
-            collectionId,
-            collectionSlug,
-            collectionIds,
-            collectionSlugs,
-        } = input;
+        const { term, facetValueFilters, collectionId, collectionSlug, collectionIds, collectionSlugs } =
+            input;
 
         qb.where('1 = 1');
         if (term && term.length > this.minTermLength) {
@@ -197,22 +189,6 @@ export class SqliteSearchStrategy implements SearchStrategy {
             } else {
                 qb.andWhere('si.inStock = :inStock', { inStock: input.inStock });
             }
-        }
-        if (facetValueIds?.length) {
-            qb.andWhere(
-                new Brackets(qb1 => {
-                    for (const id of facetValueIds) {
-                        const placeholder = createPlaceholderFromId(id);
-                        const clause = `(',' || si.facetValueIds || ',') LIKE :${placeholder}`;
-                        const params = { [placeholder]: `%,${id},%` };
-                        if (facetValueOperator === LogicalOperator.AND) {
-                            qb1.andWhere(clause, params);
-                        } else {
-                            qb1.orWhere(clause, params);
-                        }
-                    }
-                }),
-            );
         }
         if (facetValueFilters?.length) {
             qb.andWhere(

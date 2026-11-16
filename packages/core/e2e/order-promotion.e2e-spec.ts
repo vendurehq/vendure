@@ -460,7 +460,7 @@ describe('Promotions applied to Orders', () => {
                 await adminClient.query(createChannelDocument, {
                     input: {
                         code: 'other-channel',
-                        currencyCode: CurrencyCode.GBP,
+                        defaultCurrencyCode: CurrencyCode.GBP,
                         pricesIncludeTax: false,
                         defaultTaxZoneId: 'T_1',
                         defaultShippingZoneId: 'T_1',
@@ -781,7 +781,7 @@ describe('Promotions applied to Orders', () => {
             const { createChannel } = await adminClient.query(createChannelDocument, {
                 input: {
                     code: 'tax-included-channel',
-                    currencyCode: CurrencyCode.GBP,
+                    defaultCurrencyCode: CurrencyCode.GBP,
                     pricesIncludeTax: true,
                     defaultTaxZoneId: 'T_1',
                     defaultShippingZoneId: 'T_1',
@@ -2406,7 +2406,7 @@ describe('Promotions applied to Orders', () => {
             const { createChannel } = await adminClient.query(createChannelDocument, {
                 input: {
                     code: 'tax-included-channel-2',
-                    currencyCode: CurrencyCode.GBP,
+                    defaultCurrencyCode: CurrencyCode.GBP,
                     pricesIncludeTax: true,
                     defaultTaxZoneId: 'T_1',
                     defaultShippingZoneId: 'T_1',
@@ -2635,7 +2635,7 @@ describe('Promotions applied to Orders', () => {
                     code,
                     token,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.GBP,
+                    defaultCurrencyCode: CurrencyCode.GBP,
                     pricesIncludeTax: true,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',

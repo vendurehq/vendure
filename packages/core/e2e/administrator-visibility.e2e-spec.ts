@@ -78,7 +78,7 @@ describe('Administrator visibility', () => {
                 code,
                 token,
                 defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.GBP,
+                defaultCurrencyCode: CurrencyCode.GBP,
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',

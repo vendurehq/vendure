@@ -8,7 +8,6 @@ type Channel implements Node {
     defaultShippingZone: Zone
     defaultLanguageCode: LanguageCode!
     availableLanguageCodes: [LanguageCode!]
-    currencyCode: CurrencyCode! @deprecated(reason: "Use defaultCurrencyCode instead")
     defaultCurrencyCode: CurrencyCode!
     availableCurrencyCodes: [CurrencyCode!]!
     """

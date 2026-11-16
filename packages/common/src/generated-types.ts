@@ -521,8 +521,6 @@ export type Channel = Node & {
   availableLanguageCodes?: Maybe<Array<LanguageCode>>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
-  /** @deprecated Use defaultCurrencyCode instead */
-  currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
   defaultCurrencyCode: CurrencyCode;
   defaultLanguageCode: LanguageCode;
@@ -556,7 +554,6 @@ export type ChannelFilterParameter = {
   _or?: InputMaybe<Array<ChannelFilterParameter>>;
   code?: InputMaybe<StringOperators>;
   createdAt?: InputMaybe<DateOperators>;
-  currencyCode?: InputMaybe<StringOperators>;
   defaultCurrencyCode?: InputMaybe<StringOperators>;
   defaultLanguageCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
@@ -943,10 +940,8 @@ export type CreateChannelInput = {
   availableCurrencyCodes?: InputMaybe<Array<CurrencyCode>>;
   availableLanguageCodes?: InputMaybe<Array<LanguageCode>>;
   code: Scalars['String']['input'];
-  /** @deprecated Use defaultCurrencyCode instead */
-  currencyCode?: InputMaybe<CurrencyCode>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
-  defaultCurrencyCode?: InputMaybe<CurrencyCode>;
+  defaultCurrencyCode: CurrencyCode;
   defaultLanguageCode: LanguageCode;
   defaultShippingZoneId: Scalars['ID']['input'];
   defaultTaxZoneId: Scalars['ID']['input'];
@@ -2154,8 +2149,6 @@ export type Fulfillment = Node & {
   method: Scalars['String']['output'];
   nextStates: Array<Scalars['String']['output']>;
   state: Scalars['String']['output'];
-  /** @deprecated Use the `lines` field instead */
-  summary: Array<FulfillmentLine>;
   trackingCode?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -6601,10 +6594,6 @@ export type SearchInput = {
   collectionSlug?: InputMaybe<Scalars['String']['input']>;
   collectionSlugs?: InputMaybe<Array<Scalars['String']['input']>>;
   facetValueFilters?: InputMaybe<Array<FacetValueFilterInput>>;
-  /** @deprecated Use `facetValueFilters` instead */
-  facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** @deprecated Use `facetValueFilters` instead */
-  facetValueOperator?: InputMaybe<LogicalOperator>;
   groupByProduct?: InputMaybe<Scalars['Boolean']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   sort?: InputMaybe<SearchResultSortParameter>;
@@ -7450,8 +7439,6 @@ export type UpdateChannelInput = {
   availableCurrencyCodes?: InputMaybe<Array<CurrencyCode>>;
   availableLanguageCodes?: InputMaybe<Array<LanguageCode>>;
   code?: InputMaybe<Scalars['String']['input']>;
-  /** @deprecated Use defaultCurrencyCode instead */
-  currencyCode?: InputMaybe<CurrencyCode>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   defaultCurrencyCode?: InputMaybe<CurrencyCode>;
   defaultLanguageCode?: InputMaybe<LanguageCode>;

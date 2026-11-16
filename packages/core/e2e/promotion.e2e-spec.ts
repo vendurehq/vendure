@@ -309,7 +309,7 @@ describe('Promotion resolver', () => {
                     token: SECOND_CHANNEL_TOKEN,
                     defaultLanguageCode: LanguageCode.en,
                     pricesIncludeTax: true,
-                    currencyCode: CurrencyCode.EUR,
+                    defaultCurrencyCode: CurrencyCode.EUR,
                     defaultTaxZoneId: 'T_1',
                     defaultShippingZoneId: 'T_2',
                 },

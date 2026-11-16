@@ -199,7 +199,7 @@ describe('Order child entity channel scoping', () => {
                 code: 'channel-b',
                 token: SECOND_CHANNEL_TOKEN,
                 defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.USD,
+                defaultCurrencyCode: CurrencyCode.USD,
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',

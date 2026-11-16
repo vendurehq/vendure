@@ -347,9 +347,7 @@ test.describe('Channels CRUD', () => {
 // #4173 — creating a channel with missing required fields produced a raw GraphQL error toast,
 // and the offending fields were not highlighted. Required `ID!` relations (default tax/shipping
 // zone) were seeded with '' and passed the generated `z.string()`, then got stripped from the
-// payload and blew up during server-side variable coercion. `defaultCurrencyCode` is nullable in
-// the schema but still required by ChannelService.create, which throws a raw UserInputError
-// ("Either a defaultCurrencyCode or currencyCode must be provided").
+// payload and blew up during server-side variable coercion.
 
 test.describe('Channel required-field validation', () => {
     const detailPage = (page: Page) =>

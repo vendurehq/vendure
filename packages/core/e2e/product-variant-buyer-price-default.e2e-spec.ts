@@ -209,7 +209,7 @@ describe('The buyerPrice and buyerPrices queries with the default ProductVariant
                     code: 'buyer-price-second-channel',
                     token: SECOND_CHANNEL_TOKEN,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.USD,
+                    defaultCurrencyCode: CurrencyCode.USD,
                     pricesIncludeTax: false,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',

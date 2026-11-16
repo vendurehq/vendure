@@ -243,7 +243,6 @@ type Fulfillment implements Node {
     createdAt: DateTime!
     updatedAt: DateTime!
     lines: [FulfillmentLine!]!
-    summary: [FulfillmentLine!]! @deprecated(reason: "Use the `lines` field instead")
     state: String!
     method: String!
     trackingCode: String

@@ -1,7 +1,7 @@
 ---
 title: "Storefront Migration"
 metaTitle: "Vendure v4 Storefront Migration - Shop API Breaking Changes"
-metaDescription: "Shop API changes in Vendure v4 that affect storefronts, such as Customers being limited to the Channels they are a member of."
+metaDescription: "Shop API changes in Vendure v4 that affect storefronts, such as Customers being limited to the Channels they are a member of, and removed deprecated fields."
 order: 4
 ---
 
@@ -15,6 +15,16 @@ Single-channel storefronts are not affected. Where Customers use more than one C
 - `CurrentUser.channels`, returned by `login`, `authenticate` and `me`, lists only the Channels the Customer is a member of.
 
 For details, see [Storefront changes](/developer-guide/migrating-from-v3/role-assignments#storefront-changes).
+
+## Removed deprecated fields
+
+These Shop API fields were deprecated during v3 and are removed in v4:
+
+| Removed | Use instead |
+|---|---|
+| `SearchInput.facetValueIds` and `SearchInput.facetValueOperator` | `SearchInput.facetValueFilters`. `facetValueIds: [a, b]` with `AND` becomes `[{ and: a }, { and: b }]`; with `OR` it becomes `[{ or: [a, b] }]`. |
+| `Channel.currencyCode` | `Channel.defaultCurrencyCode` |
+| `Fulfillment.summary` | `Fulfillment.lines` |
 
 ## Next steps
 

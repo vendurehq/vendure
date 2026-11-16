@@ -111,6 +111,15 @@ These APIs were deprecated during v3 or earlier and are removed in v4. Each has 
 
 `FacetValueChecker` must be obtained from the injector (`injector.get(FacetValueChecker)`). Creating it with `new` no longer works without an `EventBus`.
 
+### GraphQL API
+
+| Removed | Use instead |
+|---|---|
+| `SearchInput.facetValueIds` and `SearchInput.facetValueOperator` (Shop and Admin API) | `SearchInput.facetValueFilters`. `facetValueIds: [a, b]` with `AND` becomes `[{ and: a }, { and: b }]`; with `OR` it becomes `[{ or: [a, b] }]`. |
+| `Channel.currencyCode` (Shop and Admin API) | `Channel.defaultCurrencyCode` |
+| `currencyCode` on `CreateChannelInput` and `UpdateChannelInput` | `defaultCurrencyCode`. It is now required on `CreateChannelInput`. |
+| `Fulfillment.summary` (Shop and Admin API) | `Fulfillment.lines` |
+
 ## Next steps
 
 - Preview and run the database migration: see [Database migration](/developer-guide/migrating-from-v3/database-migration).

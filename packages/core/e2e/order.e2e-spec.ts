@@ -725,14 +725,14 @@ describe('Orders resolver', () => {
             ]);
         });
 
-        it('order.fulfillments.summary', async () => {
+        it('order.fulfillments.lines', async () => {
             const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: orderId,
             });
 
-            expect(order?.fulfillments?.sort(sortById).map(pick(['id', 'state', 'summary']))).toEqual([
-                { id: f1Id, state: 'Pending', summary: [{ orderLine: { id: 'T_3' }, quantity: 1 }] },
-                { id: f2Id, state: 'Cancelled', summary: [{ orderLine: { id: 'T_4' }, quantity: 3 }] },
+            expect(order?.fulfillments?.sort(sortById).map(pick(['id', 'state', 'lines']))).toEqual([
+                { id: f1Id, state: 'Pending', lines: [{ orderLine: { id: 'T_3' }, quantity: 1 }] },
+                { id: f2Id, state: 'Cancelled', lines: [{ orderLine: { id: 'T_4' }, quantity: 3 }] },
             ]);
         });
 

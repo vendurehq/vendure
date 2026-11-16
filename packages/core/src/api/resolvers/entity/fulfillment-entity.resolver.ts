@@ -19,13 +19,6 @@ export class FulfillmentEntityResolver {
             this.fulfillmentService.getFulfillmentLines(ctx, fulfillment.id),
         );
     }
-
-    @ResolveField()
-    async summary(@Ctx() ctx: RequestContext, @Parent() fulfillment: Fulfillment) {
-        return this.requestContextCache.get(ctx, `FulfillmentEntityResolver.lines(${fulfillment.id})`, () =>
-            this.fulfillmentService.getFulfillmentLines(ctx, fulfillment.id),
-        );
-    }
 }
 
 @Resolver('Fulfillment')

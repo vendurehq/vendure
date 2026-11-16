@@ -191,8 +191,6 @@ export type Channel = Node & {
   availableLanguageCodes?: Maybe<Array<LanguageCode>>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
-  /** @deprecated Use defaultCurrencyCode instead */
-  currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
   defaultCurrencyCode: CurrencyCode;
   defaultLanguageCode: LanguageCode;
@@ -1232,8 +1230,6 @@ export type Fulfillment = Node & {
   lines: Array<FulfillmentLine>;
   method: Scalars['String']['output'];
   state: Scalars['String']['output'];
-  /** @deprecated Use the `lines` field instead */
-  summary: Array<FulfillmentLine>;
   trackingCode?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -3348,10 +3344,6 @@ export type SearchInput = {
   collectionSlug?: InputMaybe<Scalars['String']['input']>;
   collectionSlugs?: InputMaybe<Array<Scalars['String']['input']>>;
   facetValueFilters?: InputMaybe<Array<FacetValueFilterInput>>;
-  /** @deprecated Use `facetValueFilters` instead */
-  facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** @deprecated Use `facetValueFilters` instead */
-  facetValueOperator?: InputMaybe<LogicalOperator>;
   groupByProduct?: InputMaybe<Scalars['Boolean']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   sort?: InputMaybe<SearchResultSortParameter>;
