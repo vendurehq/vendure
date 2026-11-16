@@ -95,14 +95,14 @@ describe('requireFromProjectCore()', () => {
             'node_modules/@vendure/core/index.js': marker('core'),
         });
 
-        expect(() => requireFromProjectCore('typeorm', root)).toThrow(
-            new RegExp(`Could not load "typeorm" from ${root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
-        );
+        expect(() => requireFromProjectCore('typeorm', root)).toThrow(`Could not load "typeorm" from ${root}`);
     });
 
-    it('names the package and the project when @vendure/core is not installed', () => {
+    it('names @vendure/core when it is not installed', () => {
         const root = makeTree({ 'package.json': project });
 
-        expect(() => requireFromProjectCore('typeorm', root)).toThrow('Could not load "typeorm"');
+        expect(() => requireFromProjectCore('typeorm', root)).toThrow(
+            `Could not load "@vendure/core" from ${root}`,
+        );
     });
 });

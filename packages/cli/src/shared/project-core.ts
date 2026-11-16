@@ -30,12 +30,29 @@ export function requireFromProject<T = unknown>(packageName: string, cwd?: strin
     }
 }
 
+/**
+ * Loads a package that `@vendure/core` depends on, such as `typeorm`, `graphql`
+ * or `@nestjs/graphql`, resolving it from the project's `@vendure/core` rather
+ * than from the project root.
+ *
+ * Use this instead of {@link requireFromProject} for any package in core's own
+ * dependencies. The project does not have to list those packages itself, so a
+ * package manager may install them only under `@vendure/core`: nested inside
+ * its `node_modules`, or beside it in a strict layout such as pnpm's. Resolving
+ * from core also returns the same copy that core uses at runtime, which matters
+ * when a second copy sits at the project root.
+ */
 export function requireFromProjectCore<T = unknown>(packageName: string, cwd?: string): T {
     const projectRoot = findVendureProjectRoot(cwd) ?? path.resolve(cwd ?? process.cwd());
     const requireFromProjectRoot = createRequire(path.join(projectRoot, 'package.json'));
+    let corePackageJson: string;
     try {
-        const requireFromCore = createRequire(requireFromProjectRoot.resolve('@vendure/core/package.json'));
-        return requireFromCore(packageName) as T;
+        corePackageJson = requireFromProjectRoot.resolve('@vendure/core/package.json');
+    } catch (e) {
+        throw projectLoadError('@vendure/core', projectRoot, e);
+    }
+    try {
+        return createRequire(corePackageJson)(packageName) as T;
     } catch (e) {
         throw projectLoadError(packageName, projectRoot, e);
     }
