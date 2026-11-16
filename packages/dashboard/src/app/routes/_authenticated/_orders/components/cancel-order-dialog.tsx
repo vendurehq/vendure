@@ -35,7 +35,9 @@ export function CancelOrderDialog({
 
     const handleConfirm = async () => {
         try {
-            const { cancelOrder } = await cancelOrderMutation.mutateAsync({ input: { orderId } });
+            const { cancelOrder } = await cancelOrderMutation.mutateAsync({
+                input: { orderId, cancelShipping: true },
+            });
             if (cancelOrder.__typename !== 'Order') {
                 toast.error(t`Failed to cancel order`, { description: cancelOrder.message });
                 onSettled?.();

@@ -1600,10 +1600,11 @@ test.describe('Orders', () => {
                 timeout: 10_000,
             });
             const { order } = await client.gql(
-                `query ($id: ID!) { order(id: $id) { state payments { state } } }`,
+                `query ($id: ID!) { order(id: $id) { state totalWithTax payments { state } } }`,
                 { id: orderId },
             );
             expect(order.state).toBe('Cancelled');
+            expect(order.totalWithTax).toBe(0);
             expect(order.payments.map((p: { state: string }) => p.state)).toEqual(['Authorized']);
             await expect(page.getByTestId('action-bar-dropdown-trigger')).toHaveCount(0);
         });
