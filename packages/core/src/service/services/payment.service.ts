@@ -436,6 +436,30 @@ export class PaymentService {
                     failureReason: result.transitionError.transitionError,
                 });
             }
+            if (useTargets && targets.length > 1 && result.refund.state === 'Failed') {
+                // A target which ends in the `Failed` state (e.g. declined by the provider) neither
+                // throws nor produces a transition error, but it has not moved any funds. Carrying on
+                // would let later targets move funds for a refund which is already incomplete, and
+                // would hide the failure from the caller. The Failed Refund stays saved as the record
+                // of the attempt, but is not reported as a settled Refund.
+                const metadataMessage = result.refund.metadata?.message;
+                const failureReason =
+                    typeof metadataMessage === 'string' && metadataMessage.length > 0
+                        ? metadataMessage
+                        : `Refund ${i} failed`;
+                if (i === 0) {
+                    return result.refund;
+                }
+                Logger.error(
+                    `Refund target ${i} of Order ${order.code} ended in the Failed state after ` +
+                        `${createdRefunds.length - 1} Refund(s) had been created: ${failureReason}`,
+                );
+                return new RefundIncompleteError({
+                    refunds: createdRefunds.filter(r => r !== result.refund),
+                    failedTargetIndex: i,
+                    failureReason,
+                });
+            }
         }
         return createdRefunds[0];
     }
