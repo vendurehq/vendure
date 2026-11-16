@@ -24,7 +24,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomCollectionChannelFields, CustomCollectionFields } from '../custom-entity-fields';
+import { CustomCollectionFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { ProductVariant } from '../product-variant/product-variant.entity';
 
@@ -90,8 +90,11 @@ export class Collection
      * @description
      * Returns the values of the Collection's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the Collection is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomCollectionChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the Collection is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a Collection loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -100,8 +103,8 @@ export class Collection
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomCollectionChannelFields>,
-    ): Promise<CustomCollectionChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomCollectionFields>,
+    ): Promise<Partial<CustomCollectionFields> | undefined> {
         return readChannelCustomFields(ctx, Collection, this, options);
     }
 

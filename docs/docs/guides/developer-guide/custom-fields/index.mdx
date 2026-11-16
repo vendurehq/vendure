@@ -315,18 +315,41 @@ query {
 
 ### Channel-scoped custom fields
 
-The values of [channel-scoped](#scope) custom fields are not stored on the entity, since they have a
-value per Channel. They are not part of `entity.customFields`, so read them with the entity's
-`getChannelCustomFields()` method, which returns the values in the active Channel of the `RequestContext`:
+The values of [channel-scoped](#scope) custom fields are stored per Channel, but in your code you read them like any
+other custom field. When an entity is loaded with a `RequestContext`, its `customFields` holds the values of that
+context's Channel. This applies to entities returned by Vendure's services, and to any entity loaded through
+`TransactionalConnection.getRepository(ctx, ...)`, including entities loaded as relations:
 
 ```ts
 const product = await this.productService.findOne(ctx, 1);
-const channelFields = await product.getChannelCustomFields(ctx);
-console.log(channelFields?.channelNote);
+console.log(product.customFields.channelNote); // the value in the Channel of ctx
+
+const order = await this.orderService.findOne(ctx, orderId);
+console.log(order.lines[0].productVariant.product.customFields.channelNote);
 ```
 
-It returns `undefined` if the entity is not assigned to the Channel. Relation fields are only loaded when you
-ask for them, and you can read the values of another Channel with `channelId`:
+An entity which is not assigned to that Channel reads `null`. As with other relation custom fields, a relation field
+is not loaded, but the `<name>Id` of a single relation is set.
+
+To change a value, set it and save the entity with a repository from `getRepository(ctx, ...)`. The values which you
+changed are written to the Channel of `ctx`:
+
+```ts
+const repo = this.connection.getRepository(ctx, Product);
+const product = await repo.findOne({ where: { id } });
+product.customFields.channelNote = 'Only in this Channel';
+product.customFields.channelFeaturedAssetId = assetId; // a single relation, by its id
+await repo.save(product);
+```
+
+Passing the values in the `customFields` of an entity service's create or update input works as usual, and saves
+them for the active Channel.
+
+#### Without a RequestContext, or for another Channel
+
+An entity loaded without a `RequestContext`, e.g. with `rawConnection`, does not have the values: reading
+`product.customFields.channelNote` then throws an error which says how to read it. Use the entity's
+`getChannelCustomFields()` method, which also reads the values of another Channel and loads relation fields:
 
 ```ts
 const channelFields = await product.getChannelCustomFields(ctx, {
@@ -335,26 +358,18 @@ const channelFields = await product.getChannelCustomFields(ctx, {
 });
 ```
 
-Calls without `relations` made in the same tick are batched into one query, so calling `getChannelCustomFields()` for
-each item of a list does not cause a query per item.
+It returns `undefined` if the entity is not assigned to the Channel. Calls without `relations` made in the same tick
+are batched into one query.
 
 Code which does not run in a request for one Channel, such as a search plugin which indexes each Channel
-separately, should read the values of the Channel it is indexing: either with a `RequestContext` for that
-Channel, or by passing its id as `channelId`. For example, a search index of Products per Channel would
-include `(await product.getChannelCustomFields(ctx, { channelId: channel.id }))?.channelNote` for each Channel.
+separately, should read the values of the Channel it is indexing: either by loading the entities with a
+`RequestContext` for that Channel, or with `getChannelCustomFields(ctx, { channelId: channel.id })`.
 
-The `EntityHydrator` does not hydrate channel-scoped fields. It throws an error which points to
-`getChannelCustomFields()`, as does reading `product.customFields.channelNote` directly.
+The `EntityHydrator` does not hydrate channel-scoped relation fields: it throws an error which points to
+`getChannelCustomFields()`.
 
 To copy an entity's custom fields to a new entity, for example in an `EntityDuplicator`, use
 `ChannelAssignmentService.getCustomFieldsToCopy()`, which includes the channel-scoped values in the active Channel.
-
-To change the values, pass them in the `customFields` of the entity's create or update input as usual (e.g. to
-`ProductService.update()`): they are saved for the active Channel. Changing the object returned by
-`getChannelCustomFields()` does not save anything. To write the values of a Channel directly, use
-`ChannelAssignmentService.updateCustomFields()`.
-
-See [TypeScript Typings](#channel-scoped-custom-field-typings) for how to declare their types.
 
 ## Custom field config properties
 
@@ -906,7 +921,7 @@ A `unique` channel-scoped field is unique within each Channel: the same value ca
 `secret` one is encrypted and redacted like any other [secret](#secret) field. Channel-scoped fields cannot have the
 localized types (`localeString`, `localeText`). Vendure checks this when the server starts.
 
-In your TypeScript code, the values are not part of `entity.customFields`: see
+In your TypeScript code, you read and write them on `entity.customFields`, like other custom fields: see
 [Channel-scoped custom fields](#channel-scoped-custom-fields).
 
 ### Properties for `string` fields
@@ -1683,33 +1698,6 @@ One way to ensure that your custom field typings always get imported first is to
 
 :::tip
 For a working example of this setup, see the [real-world-vendure repo](https://github.com/vendurehq/real-world-vendure/blob/master/src/plugins/reviews/types.ts)
-:::
-
-### Channel-scoped custom field typings
-
-Declare the types of [channel-scoped](#scope) custom fields on the entity's `Custom<Entity>ChannelFields`
-interface, e.g. `CustomProductChannelFields`, rather than on `CustomProductFields`:
-
-```ts
-// types.ts
-import { Asset } from '@vendure/core';
-import { CustomProductChannelFields } from '@vendure/core/dist/entity/custom-entity-fields';
-
-declare module '@vendure/core/dist/entity/custom-entity-fields' {
-    interface CustomProductChannelFields {
-        channelNote: string | null;
-        channelFeaturedAsset: Asset | null;
-    }
-}
-```
-
-Their values are not on the entity, so this makes TypeScript reject `product.customFields.channelNote`, which
-would be `undefined`, and type the result of `product.getChannelCustomFields(ctx)` instead.
-
-:::caution
-If you declare a channel-scoped field on `CustomProductFields`, TypeScript will accept
-`product.customFields.channelNote`. Since the value is not on the entity, reading it throws an error which
-says to use `getChannelCustomFields()` instead.
 :::
 
 ## Special cases

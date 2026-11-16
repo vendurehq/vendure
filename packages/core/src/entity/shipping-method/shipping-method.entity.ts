@@ -20,7 +20,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomShippingMethodChannelFields, CustomShippingMethodFields } from '../custom-entity-fields';
+import { CustomShippingMethodFields } from '../custom-entity-fields';
 import { Order } from '../order/order.entity';
 
 import { ShippingMethodTranslation } from './shipping-method-translation.entity';
@@ -82,8 +82,11 @@ export class ShippingMethod
      * @description
      * Returns the values of the ShippingMethod's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the ShippingMethod is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomShippingMethodChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the ShippingMethod is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a ShippingMethod loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -92,8 +95,8 @@ export class ShippingMethod
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomShippingMethodChannelFields>,
-    ): Promise<CustomShippingMethodChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomShippingMethodFields>,
+    ): Promise<Partial<CustomShippingMethodFields> | undefined> {
         return readChannelCustomFields(ctx, ShippingMethod, this, options);
     }
 

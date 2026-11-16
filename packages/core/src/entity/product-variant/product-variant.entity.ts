@@ -16,7 +16,7 @@ import {
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
 import { Collection } from '../collection/collection.entity';
-import { CustomProductVariantChannelFields, CustomProductVariantFields } from '../custom-entity-fields';
+import { CustomProductVariantFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { FacetValue } from '../facet-value/facet-value.entity';
 import { OrderLine } from '../order-line/order-line.entity';
@@ -182,8 +182,11 @@ export class ProductVariant
      * @description
      * Returns the values of the ProductVariant's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the ProductVariant is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomProductVariantChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the ProductVariant is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a ProductVariant loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -192,8 +195,8 @@ export class ProductVariant
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomProductVariantChannelFields>,
-    ): Promise<CustomProductVariantChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomProductVariantFields>,
+    ): Promise<Partial<CustomProductVariantFields> | undefined> {
         return readChannelCustomFields(ctx, ProductVariant, this, options);
     }
 

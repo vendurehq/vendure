@@ -12,7 +12,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomPaymentMethodChannelFields, CustomPaymentMethodFields } from '../custom-entity-fields';
+import { CustomPaymentMethodFields } from '../custom-entity-fields';
 
 import { PaymentMethodTranslation } from './payment-method-translation.entity';
 
@@ -56,8 +56,11 @@ export class PaymentMethod extends VendureEntity implements Translatable, Channe
      * @description
      * Returns the values of the PaymentMethod's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the PaymentMethod is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomPaymentMethodChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the PaymentMethod is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a PaymentMethod loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -66,8 +69,8 @@ export class PaymentMethod extends VendureEntity implements Translatable, Channe
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomPaymentMethodChannelFields>,
-    ): Promise<CustomPaymentMethodChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomPaymentMethodFields>,
+    ): Promise<Partial<CustomPaymentMethodFields> | undefined> {
         return readChannelCustomFields(ctx, PaymentMethod, this, options);
     }
 }

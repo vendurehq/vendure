@@ -11,7 +11,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomFacetValueChannelFields, CustomFacetValueFields } from '../custom-entity-fields';
+import { CustomFacetValueFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Facet } from '../facet/facet.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
@@ -51,8 +51,11 @@ export class FacetValue extends VendureEntity implements Translatable, HasCustom
      * @description
      * Returns the values of the FacetValue's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the FacetValue is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomFacetValueChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the FacetValue is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a FacetValue loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -61,8 +64,8 @@ export class FacetValue extends VendureEntity implements Translatable, HasCustom
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomFacetValueChannelFields>,
-    ): Promise<CustomFacetValueChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomFacetValueFields>,
+    ): Promise<Partial<CustomFacetValueFields> | undefined> {
         return readChannelCustomFields(ctx, FacetValue, this, options);
     }
 

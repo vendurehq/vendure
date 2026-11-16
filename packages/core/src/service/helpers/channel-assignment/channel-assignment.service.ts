@@ -69,7 +69,12 @@ export { LOADED_CHANNEL_ASSIGNMENT_PROPERTY };
 @Injectable()
 export class ChannelAssignmentService implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
-    private channelScopedColumnsByType?: Map<AnyEntity, string[]>;
+    private channelScopedFieldsByType?: Map<AnyEntity, ChannelScopedFields>;
+    /**
+     * The JSON of the channel-scoped values set on a `customFields` object when it was loaded, so that
+     * persistChannelCustomFields() only writes values which have changed since.
+     */
+    private readonly loadedChannelValues = new WeakMap<object, Record<string, string>>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -397,7 +402,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
      */
     async applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
         const channelId = ctx.channelId;
-        const fieldsByType = this.getChannelScopedColumnsByType();
+        const fieldsByType = this.getChannelScopedFieldsByType();
         if (channelId == null || !fieldsByType.size || result == null || typeof result !== 'object') {
             return;
         }
@@ -446,7 +451,7 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
         };
         visit(result);
         for (const [type, byId] of found) {
-            const names = fieldsByType.get(type) ?? [];
+            const names = fieldsByType.get(type)?.columns ?? [];
             const toLoad: string[] = [];
             const rows = new Map<string, any>();
             for (const [id, entities] of byId) {
@@ -466,36 +471,126 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
                 const values = rows.get(id)?.customFields;
                 for (const entity of entities) {
                     const customFields = entity.customFields ?? (entity.customFields = {});
+                    const loaded: Record<string, string> = {};
                     for (const name of names) {
                         // An entity which is not assigned to the Channel reads null, as in the API
                         customFields[name] = values?.[name] ?? null;
+                        loaded[name] = JSON.stringify(customFields[name]);
                     }
+                    this.loadedChannelValues.set(customFields, loaded);
                 }
             }
         }
     }
 
     /**
-     * The property names of the columns in the `customFields` of each assignment entity, keyed by its
-     * ChannelAware entity: the channel-scoped custom fields, and the `<name>Id` of single relations.
+     * The channel-scoped custom fields of each entity type, from the `customFields` of its assignment
+     * entity: the columns (including the `<name>Id` of single relations), and the relations.
      */
-    private getChannelScopedColumnsByType(): Map<AnyEntity, string[]> {
-        if (!this.channelScopedColumnsByType) {
-            const map = new Map<AnyEntity, string[]>();
+    private getChannelScopedFieldsByType(): Map<AnyEntity, ChannelScopedFields> {
+        if (!this.channelScopedFieldsByType) {
+            const map = new Map<AnyEntity, ChannelScopedFields>();
             const metadatas = this.connection.rawConnection.entityMetadatas;
             for (const [target, options] of getChannelAssignmentEntities()) {
                 const metadata = metadatas.find(m => m.target === target);
                 const embedded = metadata?.embeddeds.find(e => e.propertyName === 'customFields');
-                const names = (embedded?.columns ?? [])
-                    .map(c => c.propertyName)
-                    .filter(name => !name.startsWith('__'));
-                if (names.length) {
-                    map.set(options.entity(), names);
+                if (!embedded) {
+                    continue;
+                }
+                const fields: ChannelScopedFields = {
+                    columns: embedded.columns.map(c => c.propertyName).filter(name => !name.startsWith('__')),
+                    singleRelations: embedded.relations.filter(r => !r.isManyToMany).map(r => r.propertyName),
+                    listRelations: embedded.relations.filter(r => r.isManyToMany).map(r => r.propertyName),
+                };
+                if (fields.columns.length || fields.listRelations.length) {
+                    map.set(options.entity(), fields);
                 }
             }
-            this.channelScopedColumnsByType = map;
+            this.channelScopedFieldsByType = map;
         }
-        return this.channelScopedColumnsByType;
+        return this.channelScopedFieldsByType;
+    }
+
+    /**
+     * @description
+     * Writes the channel-scoped custom field values which code has changed on the `customFields` of
+     * the given entities since they were loaded (see {@link ChannelAssignmentService.applyChannelCustomFields})
+     * to their assignment rows in the Channel of `ctx`. A single relation can be changed by setting
+     * the related entity (or `null`) or its `<name>Id`, and a list relation by setting the array.
+     *
+     * The TransactionalConnection calls this after `save()` on a repository obtained with a
+     * RequestContext. An entity which is not assigned to the Channel yet is skipped: entity services
+     * write the values of their input once the entity is assigned.
+     *
+     * @since 4.0.0
+     */
+    async persistChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
+        const channelId = ctx.channelId;
+        const fieldsByType = this.getChannelScopedFieldsByType();
+        if (channelId == null || !fieldsByType.size || result == null) {
+            return;
+        }
+        const entities = (Array.isArray(result) ? result : [result]).filter(
+            (e): e is VendureEntity => e instanceof VendureEntity && e.id != null,
+        );
+        for (const entity of entities) {
+            const type = entity.constructor as AnyEntity;
+            const fields = fieldsByType.get(type);
+            const customFields: Record<string, any> | undefined = (entity as any).customFields;
+            if (!fields || !customFields) {
+                continue;
+            }
+            const loaded = this.loadedChannelValues.get(customFields) ?? {};
+            const has = (name: string) => Object.prototype.hasOwnProperty.call(customFields, name);
+            const changed = (name: string) =>
+                has(name) && JSON.stringify(customFields[name] ?? null) !== (loaded[name] ?? 'null');
+            const values: Record<string, unknown> = {};
+            for (const name of fields.singleRelations) {
+                if (has(name) && customFields[name] !== undefined) {
+                    values[name] = customFields[name];
+                } else if (changed(`${name}Id`)) {
+                    const id = customFields[`${name}Id`];
+                    values[name] = id == null ? null : { id };
+                }
+            }
+            for (const name of fields.listRelations) {
+                if (has(name) && Array.isArray(customFields[name])) {
+                    values[name] = customFields[name];
+                }
+            }
+            for (const name of fields.columns) {
+                const isRelationId = fields.singleRelations.some(relation => `${relation}Id` === name);
+                if (!isRelationId && changed(name)) {
+                    values[name] = customFields[name];
+                }
+            }
+            if (!Object.keys(values).length) {
+                continue;
+            }
+            const meta = this.getMetadataOrThrow(type);
+            const repo = this.connection.getRepository(ctx, meta.target);
+            const row: any = await repo.findOne({
+                where: { [meta.entityIdProperty]: entity.id, channelId },
+                relations: findOptionsArrayToObject(meta.dataRelations),
+            });
+            if (!row) {
+                continue;
+            }
+            row.customFields = { ...row.customFields, ...values };
+            await repo.save(row, { reload: false });
+            if (this.getLoadedAssignment(entity, channelId)) {
+                // Replace the row loaded with the entity, which getChannelCustomFields() would reuse
+                (entity as any)[LOADED_CHANNEL_ASSIGNMENT_PROPERTY] = row;
+            }
+            this.loadedChannelValues.set(customFields, {
+                ...loaded,
+                ...Object.fromEntries(
+                    fields.columns
+                        .filter(has)
+                        .map(name => [name, JSON.stringify(customFields[name] ?? null)]),
+                ),
+            });
+        }
     }
 
     /**
@@ -628,6 +723,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
             queue.forEach(item => item.reject(e));
         }
     }
+}
+
+interface ChannelScopedFields {
+    /** The columns, including the `<name>Id` of single relations */
+    columns: string[];
+    singleRelations: string[];
+    listRelations: string[];
 }
 
 /**

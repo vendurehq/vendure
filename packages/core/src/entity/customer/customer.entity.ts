@@ -11,7 +11,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomCustomerChannelFields, CustomCustomerFields } from '../custom-entity-fields';
+import { CustomCustomerFields } from '../custom-entity-fields';
 import { CustomerGroup } from '../customer-group/customer-group.entity';
 import { Order } from '../order/order.entity';
 import { User } from '../user/user.entity';
@@ -67,8 +67,11 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
      * @description
      * Returns the values of the Customer's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the Customer is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomCustomerChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the Customer is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a Customer loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -77,8 +80,8 @@ export class Customer extends VendureEntity implements ChannelAware, HasCustomFi
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomCustomerChannelFields>,
-    ): Promise<CustomCustomerChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomCustomerFields>,
+    ): Promise<Partial<CustomCustomerFields> | undefined> {
         return readChannelCustomFields(ctx, Customer, this, options);
     }
 

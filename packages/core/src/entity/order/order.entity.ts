@@ -22,7 +22,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomOrderChannelFields, CustomOrderFields } from '../custom-entity-fields';
+import { CustomOrderFields } from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
 import { EntityId } from '../entity-id.decorator';
 import { Fulfillment } from '../fulfillment/fulfillment.entity';
@@ -175,8 +175,11 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
      * @description
      * Returns the values of the Order's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the Order is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomOrderChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the Order is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for an Order loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -185,8 +188,8 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomOrderChannelFields>,
-    ): Promise<CustomOrderChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomOrderFields>,
+    ): Promise<Partial<CustomOrderFields> | undefined> {
         return readChannelCustomFields(ctx, Order, this, options);
     }
 

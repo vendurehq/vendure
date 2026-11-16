@@ -31,7 +31,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 declare module '@vendure/core/dist/entity/custom-entity-fields' {
-    interface CustomProductChannelFields {
+    interface CustomProductFields {
         channelNote: string | null;
         channelFeaturedAsset: Asset | null;
         channelPriority: number;
@@ -41,7 +41,7 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
         channelSpecs: { label: string; rank: number } | null;
         channelGallery: Asset[];
     }
-    interface CustomStockLocationChannelFields {
+    interface CustomStockLocationFields {
         channelLabel: string | null;
     }
 }
@@ -567,7 +567,7 @@ describe('Channel-scoped custom fields (#490)', () => {
             .create({ apiType: 'admin', channelOrToken: CHANNEL_B_TOKEN });
         const product = await server.app.get(ProductService).findOne(ctxB, 2);
         const values = await product!.getChannelCustomFields(ctxB, { relations: ['channelGallery'] });
-        expect(values?.channelGallery.map(a => a.id)).toEqual([3]);
+        expect(values?.channelGallery!.map(a => a.id)).toEqual([3]);
 
         // The same on ProductVariant, whose junction table name is too long for Postgres and MySQL,
         // so TypeORM shortens it
@@ -994,6 +994,48 @@ describe('Channel-scoped custom fields (#490)', () => {
         );
         expect(() => raw.customFields.channelFeaturedAssetId).toThrow('"channelFeaturedAssetId"');
         expect(Object.keys(raw.customFields)).not.toContain('channelNote');
+    });
+
+    it('saving an entity with the TransactionalConnection writes its changed values to the ctx channel', async () => {
+        const requestContextService = server.app.get(RequestContextService);
+        const ctxDefault = await requestContextService.create({ apiType: 'admin' });
+        const ctxB = await requestContextService.create({
+            apiType: 'admin',
+            channelOrToken: CHANNEL_B_TOKEN,
+        });
+        const repo = server.app.get(TransactionalConnection).getRepository(ctxB, Product);
+        const product: any = await repo.findOne({ where: { id: 1 } });
+        product.customFields.channelNote = 'saved in B';
+        // A single relation, by its id
+        product.customFields.channelFeaturedAssetId = 2;
+        await repo.save(product);
+
+        const inB = await product.getChannelCustomFields(ctxB);
+        expect(inB).toEqual(
+            expect.objectContaining({ channelNote: 'saved in B', channelFeaturedAssetId: 2 }),
+        );
+        const inDefault = await product.getChannelCustomFields(ctxDefault);
+        expect(inDefault).toEqual(
+            expect.objectContaining({ channelNote: 'default note', channelFeaturedAssetId: 1 }),
+        );
+
+        // Saving it again without changes does not write the assignment row
+        const service = server.app.get(ChannelAssignmentService);
+        const getMetadata = vi.spyOn(service, 'getMetadataOrThrow');
+        try {
+            await repo.save(product);
+            expect(getMetadata).not.toHaveBeenCalled();
+        } finally {
+            getMetadata.mockRestore();
+        }
+
+        // Restore the values of channel B for the other tests
+        product.customFields.channelNote = 'B note';
+        product.customFields.channelFeaturedAssetId = null;
+        await repo.save(product);
+        expect(await product.getChannelCustomFields(ctxB)).toEqual(
+            expect.objectContaining({ channelNote: 'B note', channelFeaturedAssetId: null }),
+        );
     });
 
     it('reads null for an entity which is not assigned to the Channel', async () => {

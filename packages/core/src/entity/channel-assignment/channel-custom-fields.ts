@@ -50,6 +50,7 @@ interface ChannelCustomFieldsReader {
         options?: ChannelCustomFieldsOptions<any>,
     ): Promise<Record<string, unknown> | undefined>;
     applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void>;
+    persistChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void>;
 }
 
 /**
@@ -111,5 +112,17 @@ export async function applyChannelCustomFields(ctx: RequestContext, result: unkn
     const reader = readers[readers.length - 1];
     if (reader) {
         await reader.applyChannelCustomFields(ctx, result);
+    }
+}
+
+/**
+ * @internal
+ * Writes the channel-scoped custom field values which have changed on the `customFields` of the
+ * saved entities to the Channel of `ctx`. Called by the TransactionalConnection after `save()`.
+ */
+export async function persistChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
+    const reader = readers[readers.length - 1];
+    if (reader) {
+        await reader.persistChannelCustomFields(ctx, result);
     }
 }

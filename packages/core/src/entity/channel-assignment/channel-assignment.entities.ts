@@ -5,21 +5,21 @@ import { ApiKey } from '../api-key/api-key.entity';
 import { Asset } from '../asset/asset.entity';
 import { Collection } from '../collection/collection.entity';
 import {
-    CustomApiKeyChannelFields,
-    CustomAssetChannelFields,
-    CustomCollectionChannelFields,
-    CustomCustomerChannelFields,
-    CustomFacetChannelFields,
-    CustomFacetValueChannelFields,
-    CustomOrderChannelFields,
-    CustomPaymentMethodChannelFields,
-    CustomProductChannelFields,
-    CustomProductOptionChannelFields,
-    CustomProductOptionGroupChannelFields,
-    CustomProductVariantChannelFields,
-    CustomPromotionChannelFields,
-    CustomShippingMethodChannelFields,
-    CustomStockLocationChannelFields,
+    CustomApiKeyFields,
+    CustomAssetFields,
+    CustomCollectionFields,
+    CustomCustomerFields,
+    CustomFacetFields,
+    CustomFacetValueFields,
+    CustomOrderFields,
+    CustomPaymentMethodFields,
+    CustomProductFields,
+    CustomProductOptionFields,
+    CustomProductOptionGroupFields,
+    CustomProductVariantFields,
+    CustomPromotionFields,
+    CustomShippingMethodFields,
+    CustomStockLocationFields,
 } from '../custom-entity-fields';
 import { Customer } from '../customer/customer.entity';
 import { FacetValue } from '../facet-value/facet-value.entity';
@@ -59,11 +59,12 @@ export class AssetChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Asset's channel-scoped custom fields in this Channel. Only present if
-     * the Asset has channel-scoped custom fields. Read them with `asset.getChannelCustomFields()`.
+     * the Asset has channel-scoped custom fields. Set on `asset.customFields` when the Asset
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomAssetChannelFields;
+    customFields: Partial<CustomAssetFields>;
 }
 
 /**
@@ -86,11 +87,12 @@ export class ApiKeyChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the ApiKey's channel-scoped custom fields in this Channel. Only present if
-     * the ApiKey has channel-scoped custom fields. Read them with `apiKey.getChannelCustomFields()`.
+     * the ApiKey has channel-scoped custom fields. Set on `apiKey.customFields` when the ApiKey
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomApiKeyChannelFields;
+    customFields: Partial<CustomApiKeyFields>;
 }
 
 /**
@@ -112,11 +114,12 @@ export class CollectionChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Collection's channel-scoped custom fields in this Channel. Only present if
-     * the Collection has channel-scoped custom fields. Read them with `collection.getChannelCustomFields()`.
+     * the Collection has channel-scoped custom fields. Set on `collection.customFields` when the Collection
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomCollectionChannelFields;
+    customFields: Partial<CustomCollectionFields>;
 }
 
 /**
@@ -138,11 +141,12 @@ export class CustomerChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Customer's channel-scoped custom fields in this Channel. Only present if
-     * the Customer has channel-scoped custom fields. Read them with `customer.getChannelCustomFields()`.
+     * the Customer has channel-scoped custom fields. Set on `customer.customFields` when the Customer
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomCustomerChannelFields;
+    customFields: Partial<CustomCustomerFields>;
 }
 
 /**
@@ -164,11 +168,12 @@ export class FacetChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Facet's channel-scoped custom fields in this Channel. Only present if
-     * the Facet has channel-scoped custom fields. Read them with `facet.getChannelCustomFields()`.
+     * the Facet has channel-scoped custom fields. Set on `facet.customFields` when the Facet
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomFacetChannelFields;
+    customFields: Partial<CustomFacetFields>;
 }
 
 /**
@@ -190,11 +195,12 @@ export class FacetValueChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the FacetValue's channel-scoped custom fields in this Channel. Only present if
-     * the FacetValue has channel-scoped custom fields. Read them with `facetValue.getChannelCustomFields()`.
+     * the FacetValue has channel-scoped custom fields. Set on `facetValue.customFields` when the FacetValue
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomFacetValueChannelFields;
+    customFields: Partial<CustomFacetValueFields>;
 }
 
 /**
@@ -217,11 +223,12 @@ export class OrderChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Order's channel-scoped custom fields in this Channel. Only present if
-     * the Order has channel-scoped custom fields. Read them with `order.getChannelCustomFields()`.
+     * the Order has channel-scoped custom fields. Set on `order.customFields` when the Order
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomOrderChannelFields;
+    customFields: Partial<CustomOrderFields>;
 }
 
 /**
@@ -243,11 +250,12 @@ export class PaymentMethodChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the PaymentMethod's channel-scoped custom fields in this Channel. Only present if
-     * the PaymentMethod has channel-scoped custom fields. Read them with `paymentMethod.getChannelCustomFields()`.
+     * the PaymentMethod has channel-scoped custom fields. Set on `paymentMethod.customFields` when the PaymentMethod
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomPaymentMethodChannelFields;
+    customFields: Partial<CustomPaymentMethodFields>;
 }
 
 /**
@@ -280,11 +288,12 @@ export class ProductChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Product's channel-scoped custom fields in this Channel. Only present if
-     * the Product has channel-scoped custom fields. Read them with `product.getChannelCustomFields()`.
+     * the Product has channel-scoped custom fields. Set on `product.customFields` when the Product
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomProductChannelFields;
+    customFields: Partial<CustomProductFields>;
 }
 
 /**
@@ -306,11 +315,12 @@ export class ProductOptionChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the ProductOption's channel-scoped custom fields in this Channel. Only present if
-     * the ProductOption has channel-scoped custom fields. Read them with `productOption.getChannelCustomFields()`.
+     * the ProductOption has channel-scoped custom fields. Set on `productOption.customFields` when the ProductOption
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomProductOptionChannelFields;
+    customFields: Partial<CustomProductOptionFields>;
 }
 
 /**
@@ -332,11 +342,12 @@ export class ProductOptionGroupChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the ProductOptionGroup's channel-scoped custom fields in this Channel. Only present if
-     * the ProductOptionGroup has channel-scoped custom fields. Read them with `productOptionGroup.getChannelCustomFields()`.
+     * the ProductOptionGroup has channel-scoped custom fields. Set on `productOptionGroup.customFields` when the ProductOptionGroup
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomProductOptionGroupChannelFields;
+    customFields: Partial<CustomProductOptionGroupFields>;
 }
 
 /**
@@ -369,11 +380,12 @@ export class ProductVariantChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the ProductVariant's channel-scoped custom fields in this Channel. Only present if
-     * the ProductVariant has channel-scoped custom fields. Read them with `productVariant.getChannelCustomFields()`.
+     * the ProductVariant has channel-scoped custom fields. Set on `productVariant.customFields` when the ProductVariant
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomProductVariantChannelFields;
+    customFields: Partial<CustomProductVariantFields>;
 }
 
 /**
@@ -395,11 +407,12 @@ export class PromotionChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the Promotion's channel-scoped custom fields in this Channel. Only present if
-     * the Promotion has channel-scoped custom fields. Read them with `promotion.getChannelCustomFields()`.
+     * the Promotion has channel-scoped custom fields. Set on `promotion.customFields` when the Promotion
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomPromotionChannelFields;
+    customFields: Partial<CustomPromotionFields>;
 }
 
 /**
@@ -421,11 +434,12 @@ export class ShippingMethodChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the ShippingMethod's channel-scoped custom fields in this Channel. Only present if
-     * the ShippingMethod has channel-scoped custom fields. Read them with `shippingMethod.getChannelCustomFields()`.
+     * the ShippingMethod has channel-scoped custom fields. Set on `shippingMethod.customFields` when the ShippingMethod
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomShippingMethodChannelFields;
+    customFields: Partial<CustomShippingMethodFields>;
 }
 
 /**
@@ -447,9 +461,10 @@ export class StockLocationChannel extends ChannelAssignment {
     /**
      * @description
      * The values of the StockLocation's channel-scoped custom fields in this Channel. Only present if
-     * the StockLocation has channel-scoped custom fields. Read them with `stockLocation.getChannelCustomFields()`.
+     * the StockLocation has channel-scoped custom fields. Set on `stockLocation.customFields` when the StockLocation
+     * is loaded with a RequestContext.
      *
      * @since 4.0.0
      */
-    customFields: CustomStockLocationChannelFields;
+    customFields: Partial<CustomStockLocationFields>;
 }

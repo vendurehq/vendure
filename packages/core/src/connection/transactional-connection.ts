@@ -26,7 +26,10 @@ import {
     getChannelAssignmentEntities,
     LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
 } from '../entity/channel-assignment/channel-assignment-registry';
-import { applyChannelCustomFields } from '../entity/channel-assignment/channel-custom-fields';
+import {
+    applyChannelCustomFields,
+    persistChannelCustomFields,
+} from '../entity/channel-assignment/channel-custom-fields';
 import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-relations-qb-joiner';
 
 import { findOptionsArrayToObject } from './find-options-array-to-object';
@@ -591,7 +594,9 @@ function wrapQueryBuilder<Entity extends ObjectLiteral>(
  * their `customFields` object. See `ChannelAssignmentService.applyChannelCustomFields()`.
  *
  * If the repository's entity has channel-scoped custom fields, its reads join the entity's
- * assignment row in that Channel, so that only entities loaded as relations take a query.
+ * assignment row in that Channel, so that only entities loaded as relations take a query, and
+ * `save()` writes the channel-scoped values changed on the saved entities to that Channel (see
+ * `ChannelAssignmentService.persistChannelCustomFields()`).
  */
 function wrapWithChannelCustomFields<Entity extends ObjectLiteral>(
     repo: Repository<Entity>,
@@ -608,6 +613,14 @@ function wrapWithChannelCustomFields<Entity extends ObjectLiteral>(
                         ctx,
                         channelScopedEntities,
                     );
+            }
+            if (prop === 'save' && joinsAssignment) {
+                // Writes the channel-scoped values changed on the saved entities to the ctx Channel
+                return async (...args: any[]) => {
+                    const result = await (obj as any).save(...args);
+                    await persistChannelCustomFields(ctx, result);
+                    return result;
+                };
             }
             if (typeof prop === 'string' && CHANNEL_CUSTOM_FIELDS_REPOSITORY_METHODS.has(prop)) {
                 if (joinsAssignment) {

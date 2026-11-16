@@ -10,7 +10,7 @@ import {
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
 import { Channel } from '../channel/channel.entity';
-import { CustomStockLocationChannelFields, CustomStockLocationFields } from '../custom-entity-fields';
+import { CustomStockLocationFields } from '../custom-entity-fields';
 import { StockMovement } from '../stock-movement/stock-movement.entity';
 
 /**
@@ -42,8 +42,11 @@ export class StockLocation extends VendureEntity implements HasCustomFields, Cha
      * @description
      * Returns the values of the StockLocation's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the StockLocation is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomStockLocationChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the StockLocation is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for a StockLocation loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -52,8 +55,8 @@ export class StockLocation extends VendureEntity implements HasCustomFields, Cha
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomStockLocationChannelFields>,
-    ): Promise<CustomStockLocationChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomStockLocationFields>,
+    ): Promise<Partial<CustomStockLocationFields> | undefined> {
         return readChannelCustomFields(ctx, StockLocation, this, options);
     }
 

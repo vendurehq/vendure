@@ -11,7 +11,7 @@ import {
     ChannelCustomFieldsOptions,
     readChannelCustomFields,
 } from '../channel-assignment/channel-custom-fields';
-import { CustomApiKeyChannelFields, CustomApiKeyFields } from '../custom-entity-fields';
+import { CustomApiKeyFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { User } from '../user/user.entity';
 
@@ -104,8 +104,11 @@ export class ApiKey
      * @description
      * Returns the values of the ApiKey's channel-scoped custom fields in the active Channel of
      * the RequestContext (or `options.channelId`), or `undefined` if the ApiKey is not assigned to
-     * that Channel. They are not part of `customFields`, since they have a value per Channel.
-     * Declare their types on {@link CustomApiKeyChannelFields}.
+     * that Channel.
+     *
+     * They are also set on `customFields` when the ApiKey is loaded with a RequestContext (e.g. by an
+     * entity service). This method reads them for an ApiKey loaded without one, in another Channel, or
+     * with relation fields.
      *
      * Relation fields are only set if listed in `options.relations`. Calls without relations made
      * in the same tick are batched into one query.
@@ -114,8 +117,8 @@ export class ApiKey
      */
     getChannelCustomFields(
         ctx: RequestContext,
-        options?: ChannelCustomFieldsOptions<CustomApiKeyChannelFields>,
-    ): Promise<CustomApiKeyChannelFields | undefined> {
+        options?: ChannelCustomFieldsOptions<CustomApiKeyFields>,
+    ): Promise<Partial<CustomApiKeyFields> | undefined> {
         return readChannelCustomFields(ctx, ApiKey, this, options);
     }
 

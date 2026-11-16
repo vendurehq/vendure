@@ -132,9 +132,12 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * - An entity which is not assigned to the active Channel reads `null`.
      * - Removing the entity from a Channel deletes its values in that Channel.
      *
-     * In TypeScript code, the values are not part of `entity.customFields`. Declare their types on the
-     * entity's `Custom<Entity>ChannelFields` interface (e.g. `CustomProductChannelFields`), and read
-     * them with the entity's `getChannelCustomFields(ctx)` method.
+     * In TypeScript code, declare their types on the entity's custom fields interface (e.g.
+     * `CustomProductFields`), like other custom fields. An entity loaded with a RequestContext (by an
+     * entity service, or with `TransactionalConnection.getRepository(ctx, ...)`) has the values of
+     * that RequestContext's Channel on `customFields`, and saving it with such a repository writes
+     * changed values to that Channel. To read another Channel's values, relation fields, or the values
+     * of an entity loaded without a RequestContext, use the entity's `getChannelCustomFields(ctx)`.
      *
      * A `unique` channel-scoped field is unique within each Channel: the same value can be used in
      * different Channels.
