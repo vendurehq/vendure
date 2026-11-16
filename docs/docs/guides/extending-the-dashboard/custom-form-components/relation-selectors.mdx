@@ -73,15 +73,12 @@ export function ProductSelectorComponent({ value, onChange, disabled }: Dashboar
 ```
 
 :::info[What `props.value` contains for a relation custom field]
-For a **writable** relation custom field, `props.value` is the related entity's **id**, or an array of
-ids for a `list: true` field. The form binds to the `<name>Id` or `<name>Ids` input, which is what
-`SingleRelationInput` and `MultiRelationInput` consume via `value`/`onChange`.
+For a relation custom field, `props.value` is the related entity's **id**, or an array of ids for a `list: true`
+field. That is what `SingleRelationInput` and `MultiRelationInput` consume via `value`/`onChange`.
 
-A **readonly** relation custom field has no `<name>Id` or `<name>Ids` in the form, because readonly custom
-fields are not in the create and update input types. A custom form component for it receives the **related
-entity object** as `props.value` instead, or an array of objects for a `list: true` field. Read it directly
-to render the relation (e.g. `value?.id`, `value?.name`). A readonly field is only for display, so there is
-nothing to wire up to `onChange`. The built-in relation input still receives the id or ids.
+For a **readonly** relation custom field, the component also receives the **related entity object** as
+`props.relatedEntity`, or an array of objects for a `list: true` field. Use it to render the relation (e.g.
+`relatedEntity?.name`). A readonly field is only for display, so there is nothing to wire up to `onChange`.
 :::
 
 ### Multi Selection

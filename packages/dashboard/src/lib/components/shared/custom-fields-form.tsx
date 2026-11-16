@@ -2,10 +2,7 @@ import { CustomFieldListInput } from '@/vdb/components/data-input/custom-field-l
 import { StructFormInput } from '@/vdb/components/data-input/struct-form-input.js';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
-import {
-    getInputComponent,
-    isBuiltInInputComponent,
-} from '@/vdb/framework/extension-api/input-component-extensions.js';
+import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import { CustomFormComponent } from '@/vdb/framework/form-engine/custom-form-component.js';
 import { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { toRelationIdValue } from '@/vdb/framework/form-engine/utils.js';
@@ -241,16 +238,13 @@ function CustomFieldItem({
     const containerClassName = shouldBeFullWidth ? 'col-span-2' : '';
     const isReadonly = (fieldDef as CustomFieldConfig).readonly ?? false;
 
-    // A registered custom component receives the related entity object(s) of a readonly relation.
-    // A built-in input, which is also the fallback for an unknown component id, receives the id(s)
-    // it expects.
+    // A readonly relation has no `<name>Id(s)` in the form values, so its value is taken from its
+    // related entity object(s). Every input receives the id(s); a custom component also receives the
+    // object(s) as `relatedEntity`.
     const isReadonlyRelation = readonlyRelationValuePath != null;
-    const readonlyRelationObjects = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
-    const rendersBuiltInInput = !inputComponent || isBuiltInInputComponent(customInputComponentId);
+    const relatedEntity = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
     const isListField = fieldDef.list ?? false;
-    const readonlyRelationValue = rendersBuiltInInput
-        ? (toRelationIdValue(readonlyRelationObjects, isListField) ?? (isListField ? [] : null))
-        : (readonlyRelationObjects ?? (isListField ? [] : null));
+    const readonlyRelationValue = toRelationIdValue(relatedEntity, isListField) ?? (isListField ? [] : null);
     const withReadonlyRelationValue = <F extends { value: unknown }>(field: F): F =>
         isReadonlyRelation ? { ...field, value: readonlyRelationValue } : field;
 
@@ -313,7 +307,11 @@ function CustomFieldItem({
                             fieldPath={field.name}
                             fieldState={fieldState}
                         >
-                            <CustomFormComponent fieldDef={fieldDef} {...withReadonlyRelationValue(field)} />
+                            <CustomFormComponent
+                                fieldDef={fieldDef}
+                                {...withReadonlyRelationValue(field)}
+                                {...(isReadonlyRelation ? { relatedEntity } : {})}
+                            />
                         </CustomFieldFormItem>
                     )}
                 />
