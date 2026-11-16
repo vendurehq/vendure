@@ -229,6 +229,18 @@ describe('AssetServerPlugin', () => {
             expect(res.headers.get('content-security-policy')).toBe(MARKUP_CSP);
         });
 
+        // Upload validation accepts JPEG bytes under an `.svg` name. Its transform is cached and
+        // served as PNG, so the bytes must be PNG too.
+        it('rasterises a resized .svg asset to PNG whatever its bytes are', async () => {
+            const jpegContentAsset = await uploadAsset('jpeg-content.svg');
+            const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+            const res = await fetch(`${jpegContentAsset.source}?w=40`);
+            const body = Buffer.from(await res.arrayBuffer());
+
+            expect(res.headers.get('content-type')).toBe('image/png');
+            expect(body.subarray(0, 8).equals(pngSignature)).toBe(true);
+        });
+
         it('serves an HTML asset as an attachment (non-SVG markup branch)', async () => {
             const htmlAsset = await uploadAsset('test.html');
             const res = await fetch(htmlAsset.source);
@@ -265,6 +277,31 @@ describe('AssetServerPlugin', () => {
 
             expect(res.headers.get('x-content-type-options')).toBe('nosniff');
             expect(res.headers.get('content-security-policy')).toBe(BASE_CSP);
+        });
+
+        // A resized SVG is a PNG, so it must be served as `image/png` without the markup headers,
+        // both when it is generated and when it is served from the cache.
+        it('serves a transformed SVG as the rasterised type, not as SVG', async () => {
+            const svgAsset = await uploadAsset('test.svg');
+            const sourceKey = new URL(svgAsset.source).pathname.replace(/^\/assets\//, '');
+            const cacheFileDir = path.join(__dirname, TEST_ASSET_DIR, 'cache', path.dirname(sourceKey));
+            const cachedFileName = new RegExp(`^${path.basename(sourceKey, '.svg')}[0-9a-f]{32}\\.png$`);
+
+            let cachedFileMtime: number | undefined;
+            for (const pass of ['generated', 'from cache']) {
+                const res = await fetch(`${svgAsset.source}?w=100`);
+
+                expect(res.headers.get('content-type'), pass).toBe('image/png');
+                expect(res.headers.get('content-disposition'), pass).toBeNull();
+                expect(res.headers.get('x-content-type-options'), pass).toBe('nosniff');
+                expect(res.headers.get('content-security-policy'), pass).toBe(BASE_CSP);
+                const cachedFiles = (await fs.readdir(cacheFileDir)).filter(f => cachedFileName.test(f));
+                expect(cachedFiles.length, pass).toBe(1);
+                // An unchanged mtime shows the second response was read from the cache, not regenerated.
+                const { mtimeMs } = await fs.stat(path.join(cacheFileDir, cachedFiles[0]));
+                expect(mtimeMs, pass).toBe(cachedFileMtime ?? mtimeMs);
+                cachedFileMtime = mtimeMs;
+            }
         });
     });
 

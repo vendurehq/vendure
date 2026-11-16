@@ -5,17 +5,22 @@ import os from 'node:os';
 import { pathToFileURL } from 'node:url';
 import path from 'path';
 import type { Plugin } from 'vite';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PluginInfo } from '../types.js';
 import { filterActivePluginInfo } from '../utils/get-active-plugin-info.js';
 import { bundleEntryPlugin } from '../vite-plugin-bundle-entry.js';
+import { chunkHashPlugin } from '../vite-plugin-chunk-hash.js';
 import { viteConfigPlugin } from '../vite-plugin-config.js';
 import { dashboardMetadataPlugin } from '../vite-plugin-dashboard-metadata.js';
 import { hmrPlugin } from '../vite-plugin-hmr.js';
 import { dashboardTailwindSourcePlugin } from '../vite-plugin-tailwind-source.js';
 import { themeVariablesPlugin } from '../vite-plugin-theme.js';
 import { transformIndexHtmlPlugin } from '../vite-plugin-transform-index.js';
+import {
+    createDashboardPlugins,
+    VitePluginVendureDashboardOptions,
+} from '../vite-plugin-vendure-dashboard.js';
 
 // ─── Typed hook helpers ─────────────────────────────────────────────────────
 // Thin wrappers that cast once so individual tests stay type-safe without
@@ -863,8 +868,8 @@ describe('dashboardTailwindSourcePlugin', () => {
         expect(sourceLines.some((l: string) => l.includes("'/active/dashboard'"))).toBe(true);
         expect(sourceLines.some((l: string) => l.includes('/inactive/'))).toBe(false);
     });
-    // Tests for the bundle-mode (#4719 `useExperimentalBundle`) extension entry
-    describe('useExperimentalBundle: extension-tailwind.css handling', () => {
+    // Tests for the bundle mode (#4719 `useExperimentalBundle`)
+    describe('useExperimentalBundle: styles.css handling', () => {
         function setupBundlePlugin(pluginInfo: PluginInfo[], packageRoot = '/fake/dashboard') {
             return setupConfigLoaderPlugin(
                 dashboardTailwindSourcePlugin({ packageRoot, useExperimentalBundle: true }),
@@ -872,54 +877,27 @@ describe('dashboardTailwindSourcePlugin', () => {
             );
         }
 
-        it('also matches extension-tailwind.css', async () => {
-            const plugin = setupBundlePlugin([]);
-            const css = `@tailwind utilities;\n${markerComment}\n`;
-            const result = await callTransformWithContext(
-                plugin,
-                {},
-                css,
-                '/some/app/extension-tailwind.css',
-            );
-            // The result is defined (the transform ran) — confirms the file matched
-            expect(result).toBeDefined();
-            expect(result.code).toContain(markerComment);
-        });
-
-        it('adds @source for the bundle dir when transforming extension-tailwind.css', async () => {
-            const packageRoot = '/fake/dashboard';
-            const plugin = setupBundlePlugin([], packageRoot);
-            const css = `@tailwind utilities;\n${markerComment}\n`;
-            const result = await callTransformWithContext(
-                plugin,
-                {},
-                css,
-                '/some/app/extension-tailwind.css',
-            );
-            expect(result.code).toContain(`@source '${path.join(packageRoot, 'dist/bundle')}'`);
-        });
-
-        it('does NOT add bundle @source when transforming the regular styles.css (only extension-tailwind.css)', async () => {
+        it('adds @source for the bundle dir when transforming styles.css', async () => {
             const packageRoot = '/fake/dashboard';
             const plugin = setupBundlePlugin([], packageRoot);
             const css = `@tailwind utilities;\n${markerComment}\n`;
             const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
-            // Bundle source dir should not appear; styles.css is the source-mode entry
+            expect(result.code).toContain(`@source '${path.join(packageRoot, 'dist/bundle')}'`);
+        });
+
+        it('without useExperimentalBundle: no bundle @source in styles.css', async () => {
+            const plugin = setupConfigLoaderPlugin(dashboardTailwindSourcePlugin(), []);
+            const css = `@tailwind utilities;\n${markerComment}\n`;
+            const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
+            expect(result).toBeDefined();
             expect(result.code).not.toContain('dist/bundle');
         });
 
-        it('without useExperimentalBundle: extension-tailwind.css still transforms but no bundle @source', async () => {
-            const plugin = setupConfigLoaderPlugin(dashboardTailwindSourcePlugin(), []);
+        it('does not transform other CSS files', async () => {
+            const plugin = setupBundlePlugin([]);
             const css = `@tailwind utilities;\n${markerComment}\n`;
-            const result = await callTransformWithContext(
-                plugin,
-                {},
-                css,
-                '/some/app/extension-tailwind.css',
-            );
-            // Transform fires (matches the file) but no bundle dir is injected
-            expect(result).toBeDefined();
-            expect(result.code).not.toContain('dist/bundle');
+            const result = await callTransformWithContext(plugin, {}, css, '/some/app/other.css');
+            expect(result).toBeUndefined();
         });
     });
 });
@@ -959,15 +937,26 @@ describe('bundleEntryPlugin', () => {
         expect(hook.handler).toBeTypeOf('function');
     });
 
-    it('replaces the source-entry script with the bundled entry + CSS link', () => {
+    it('replaces the source-entry script with the bundled entry + styles.css import', () => {
         const plugin = bundleEntryPlugin();
         const result = callBundleEntryTransform(plugin, sourceEntryHtml, {
             filename: 'index.html',
         });
         expect(result).toContain('/dist/bundle/main.js');
-        expect(result).toContain('/dist/bundle/dashboard.css');
-        expect(result).toContain('<link rel="stylesheet"');
+        expect(result).toContain("import '/src/app/styles.css';");
         expect(result).not.toContain('/src/app/main.tsx');
+    });
+
+    it('does not load the pre-built dashboard.css, and imports styles.css after the bundle', () => {
+        const plugin = bundleEntryPlugin();
+        const result: string = callBundleEntryTransform(plugin, sourceEntryHtml, {
+            filename: 'index.html',
+        });
+        // Two Tailwind outputs side by side break the cascade order of equal-specificity rules
+        expect(result).not.toContain('dashboard.css');
+        expect(result).not.toContain('extension-tailwind.css');
+        // Must come after the bundle, as `import './styles.css'` does in main.tsx in source mode
+        expect(result.indexOf('/src/app/styles.css')).toBeGreaterThan(result.indexOf('/dist/bundle/main.js'));
     });
 
     it('matches the script src even when Vite has already prepended the base path', () => {
@@ -1196,5 +1185,83 @@ describe('filterActivePluginInfo', () => {
             });
             expect(result.map(p => p.name)).toEqual(['SelfComposingPlugin']);
         });
+    });
+});
+
+// ─── chunkHashPlugin ────────────────────────────────────────────────────────
+
+describe('chunkHashPlugin', () => {
+    function callAugmentChunkHash(plugin: Plugin) {
+        return (plugin.augmentChunkHash as () => string)();
+    }
+
+    it('applies only to builds', () => {
+        expect(chunkHashPlugin().apply).toBe('build');
+    });
+
+    // #5564 — a new value on each call, so no build reuses a chunk hash from another build
+    it('returns a new value on each call', () => {
+        const plugin = chunkHashPlugin();
+        const first = callAugmentChunkHash(plugin);
+        expect(first).toMatch(/^[0-9a-f-]{36}$/);
+        expect(callAugmentChunkHash(plugin)).not.toBe(first);
+    });
+});
+
+describe('vendureDashboardPlugin: chunkHash wiring', () => {
+    const originalLinguiConfig = process.env.LINGUI_CONFIG;
+
+    afterEach(() => {
+        if (originalLinguiConfig === undefined) {
+            delete process.env.LINGUI_CONFIG;
+        } else {
+            process.env.LINGUI_CONFIG = originalLinguiConfig;
+        }
+    });
+
+    // Every other plugin is disabled, so the test constructs only the plugins it checks.
+    const otherPluginsDisabled = {
+        tanstackRouter: true,
+        linguiBabel: true,
+        react: true,
+        lingui: true,
+        themeVariables: true,
+        tailwindSource: true,
+        tailwindcss: true,
+        configLoader: true,
+        bundleEntry: true,
+        adminApiSchema: true,
+        dashboardMetadata: true,
+        uiConfig: true,
+        gqlTada: true,
+        transformIndexHtml: true,
+        translations: true,
+        hmr: true,
+    };
+
+    function pluginNames(disablePlugins?: VitePluginVendureDashboardOptions['disablePlugins']) {
+        return createDashboardPlugins(
+            {
+                vendureConfigPath: './vendure-config.ts',
+                disablePlugins: { ...otherPluginsDisabled, ...disablePlugins },
+            },
+            path.resolve(import.meta.dirname, '../..'),
+        )
+            .flat()
+            .map(p => (p && typeof p === 'object' && 'name' in p ? p.name : undefined));
+    }
+
+    // #5564
+    it('includes the chunk hash plugin by default', () => {
+        expect(pluginNames()).toContain('vendure:chunk-hash');
+    });
+
+    // #5564 — disabling viteConfig must not turn the fix off
+    it('keeps the chunk hash plugin when viteConfig is disabled', () => {
+        expect(pluginNames({ viteConfig: true })).toContain('vendure:chunk-hash');
+    });
+
+    it('drops the chunk hash plugin when chunkHash is disabled', () => {
+        expect(pluginNames({ chunkHash: true })).not.toContain('vendure:chunk-hash');
     });
 });

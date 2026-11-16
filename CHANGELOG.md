@@ -1,3 +1,48 @@
+## <small>3.8.2 (2026-11-12)</small>
+
+
+#### Fixes
+
+* **asset-server-plugin** name cached svg transforms with the png extension (#5255) ([7edbf6a](https://github.com/vendurehq/vendure/commit/7edbf6a)), closes [#5255](https://github.com/vendurehq/vendure/issues/5255)
+* **cli** check that a stored login can still be renewed in auth login and auth status ([432a21d](https://github.com/vendurehq/vendure/commit/432a21d))
+* **cli** name a plugin in the unknown-command hint only when it declares the command (#5692) ([079cfc9](https://github.com/vendurehq/vendure/commit/079cfc9)), closes [#5692](https://github.com/vendurehq/vendure/issues/5692)
+* **cli** say to remove roles from the membership in the token_too_big message ([1d861d6](https://github.com/vendurehq/vendure/commit/1d861d6))
+* **cli** say when the stored login expired in vendure console link (#5710) ([a9e5d60](https://github.com/vendurehq/vendure/commit/a9e5d60)), closes [#5710](https://github.com/vendurehq/vendure/issues/5710)
+* **cli** show the role advice for a token_too_big renewal in auth status ([d7daf4d](https://github.com/vendurehq/vendure/commit/d7daf4d))
+* **core** bound RedisCacheStrategy tag sets and batch tag invalidation (#5683) ([a911ed3](https://github.com/vendurehq/vendure/commit/a911ed3)), closes [#5683](https://github.com/vendurehq/vendure/issues/5683)
+* **core** clear item promotion adjustments before testing conditions (#5663) ([59b6e51](https://github.com/vendurehq/vendure/commit/59b6e51)), closes [#5663](https://github.com/vendurehq/vendure/issues/5663)
+* **core** detect circular dependencies between blocking event handlers of any length (#5632) ([066324b](https://github.com/vendurehq/vendure/commit/066324b)), closes [#5632](https://github.com/vendurehq/vendure/issues/5632)
+* **core** index every variant passed to updateVariantsById and updateVariants (#5674) ([a36f983](https://github.com/vendurehq/vendure/commit/a36f983)), closes [#5674](https://github.com/vendurehq/vendure/issues/5674)
+* **core** Only log translation de-duplication when rows are removed ([4f565fc](https://github.com/vendurehq/vendure/commit/4f565fc))
+* **core** order blocking event handlers that declare a constraint on both sides (#5665) ([dfdad45](https://github.com/vendurehq/vendure/commit/dfdad45)), closes [#5665](https://github.com/vendurehq/vendure/issues/5665)
+* **core** refuse an email update to an address owned by a guest Customer (#5680) ([6cca401](https://github.com/vendurehq/vendure/commit/6cca401)), closes [#5680](https://github.com/vendurehq/vendure/issues/5680)
+* **core** return InvalidCredentialsError when authenticate names no strategy (#5622) ([8a5387d](https://github.com/vendurehq/vendure/commit/8a5387d)), closes [#5622](https://github.com/vendurehq/vendure/issues/5622)
+* **core** run checkAllItemsBeforeCancel when cancelling from ArrangingAdditionalPayment (#5672) ([02f02ab](https://github.com/vendurehq/vendure/commit/02f02ab)), closes [#5672](https://github.com/vendurehq/vendure/issues/5672)
+* **core** Skip translation de-duplication for tables created in the same migration ([721a608](https://github.com/vendurehq/vendure/commit/721a608))
+* **core** translate assets created with translations (#5713) ([f080024](https://github.com/vendurehq/vendure/commit/f080024)), closes [#5713](https://github.com/vendurehq/vendure/issues/5713)
+* **core** validate required conditions when updating a promotion (#5676) ([179c38b](https://github.com/vendurehq/vendure/commit/179c38b)), closes [#5676](https://github.com/vendurehq/vendure/issues/5676)
+* **core** wait for an in-flight job claim before the polling queue stops (#5565) ([f3e404d](https://github.com/vendurehq/vendure/commit/f3e404d)), closes [#5565](https://github.com/vendurehq/vendure/issues/5565)
+* **create** exit with code 1 when email templates fail to copy (#5694) ([efc8299](https://github.com/vendurehq/vendure/commit/efc8299)), closes [#5694](https://github.com/vendurehq/vendure/issues/5694)
+* **create** time out Docker calls when the daemon does not respond (#5693) ([367578d](https://github.com/vendurehq/vendure/commit/367578d)), closes [#5693](https://github.com/vendurehq/vendure/issues/5693)
+* **dashboard** initialize user settings from the next session after logout (#5669) ([eb09daf](https://github.com/vendurehq/vendure/commit/eb09daf)), closes [#5669](https://github.com/vendurehq/vendure/issues/5669)
+* **dashboard** make chunk file names unique to each build (#5772) ([a0fd064](https://github.com/vendurehq/vendure/commit/a0fd064)), closes [#5772](https://github.com/vendurehq/vendure/issues/5772)
+* **dashboard** preserve defaultSize.x/y for unobstructed widgets (#5658) ([c0dada2](https://github.com/vendurehq/vendure/commit/c0dada2)), closes [#5658](https://github.com/vendurehq/vendure/issues/5658)
+* **dashboard** reload expanded child collections when the content language changes (#5706) ([9c60bed](https://github.com/vendurehq/vendure/commit/9c60bed)), closes [#5706](https://github.com/vendurehq/vendure/issues/5706)
+* **dashboard** send relation custom fields by input name on line adjust (#5697) ([1a93d86](https://github.com/vendurehq/vendure/commit/1a93d86)), closes [#5697](https://github.com/vendurehq/vendure/issues/5697)
+* **dashboard** use plural messages in the asset picker, upload toasts and move dialog (#5590) ([88053be](https://github.com/vendurehq/vendure/commit/88053be)), closes [#5590](https://github.com/vendurehq/vendure/issues/5590)
+* **dashboard** Use styles.css in experimental bundle mode ([d0cace4](https://github.com/vendurehq/vendure/commit/d0cace4))
+* **graphiql-plugin** send requests to the server that served the page (#5686) ([e524077](https://github.com/vendurehq/vendure/commit/e524077)), closes [#5686](https://github.com/vendurehq/vendure/issues/5686)
+* **job-queue-plugin** subscribe to job cancellations once the connection is ready (#5631) ([5675825](https://github.com/vendurehq/vendure/commit/5675825)), closes [#5631](https://github.com/vendurehq/vendure/issues/5631)
+* **mcp-plugin** lock the stock levels which adjust_stock reads (#5653) ([3fb7aa7](https://github.com/vendurehq/vendure/commit/3fb7aa7)), closes [#5653](https://github.com/vendurehq/vendure/issues/5653)
+* **mcp-plugin** publish an AssetEvent for the asset upload_asset creates (#5662) ([b7dd50e](https://github.com/vendurehq/vendure/commit/b7dd50e)), closes [#5662](https://github.com/vendurehq/vendure/issues/5662)
+* **mcp-plugin** resolve grant session token without cross-type join on Postgres (#5701) (#5705) ([b11fca4](https://github.com/vendurehq/vendure/commit/b11fca4)), closes [#5701](https://github.com/vendurehq/vendure/issues/5701) [#5705](https://github.com/vendurehq/vendure/issues/5705)
+* **mcp-plugin** translate dashboard nav titles (#5660) ([0f5cc05](https://github.com/vendurehq/vendure/commit/0f5cc05)), closes [#5660](https://github.com/vendurehq/vendure/issues/5660)
+* **mcp-sdk** convert numeric id strings of tool inputs to numbers (#5647) ([6919e25](https://github.com/vendurehq/vendure/commit/6919e25)), closes [#5647](https://github.com/vendurehq/vendure/issues/5647)
+
+#### Features
+
+* **cli** choose the Console Project in vendure console link (#5685) ([db9bb4d](https://github.com/vendurehq/vendure/commit/db9bb4d)), closes [#5685](https://github.com/vendurehq/vendure/issues/5685)
+
 ## <small>3.8.1 (2026-10-23)</small>
 
 

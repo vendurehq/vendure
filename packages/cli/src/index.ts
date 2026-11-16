@@ -50,7 +50,9 @@ export {
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
+    checkAuthStatus,
     getAccessToken,
+    isRenewalRefused,
     listOrganizations,
     loginWithDevice,
     logout,
@@ -65,6 +67,8 @@ export type {
     DeviceAuthorization,
     DeviceLoginOptions,
     LogoutResult,
+    RenewalError,
+    RenewalFailureDetails,
     StoredOrganization,
 } from './auth/index.js';
 export { builtinCommands } from './commands/builtins.js';

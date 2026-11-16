@@ -6,9 +6,11 @@ import { Plugin } from 'vite';
  * (`/src/app/main.tsx`) to the pre-built ESM bundle
  * (`/dist/bundle/main.js`).
  *
- * The CSS `<link>` tag is left untouched so the consumer's Tailwind +
- * themeVariables pipeline processes the source `styles.css` at consumer-time.
- * This keeps extension-authored Tailwind utility classes working.
+ * The bundle does not import any CSS. Instead, the dashboard's source
+ * `styles.css` is imported right after the bundle, so the consumer's Tailwind +
+ * themeVariables pipeline processes it exactly as in source-shipping mode. The
+ * `dashboardTailwindSourcePlugin` adds a `@source` for the bundle, so the
+ * dashboard's own utility classes are generated along with the extension ones.
  *
  * Active only when `useExperimentalBundle` is enabled on
  * {@link vendureDashboardPlugin}. The bundle is generated at publish time by
@@ -23,32 +25,33 @@ export function bundleEntryPlugin(): Plugin {
                 // Don't transform Storybook HTML or anything else outside the dashboard's own entry
                 if (
                     ctx.filename &&
-                    (ctx.filename.includes('iframe.html') ||
-                        ctx.filename.includes('storybook'))
+                    (ctx.filename.includes('iframe.html') || ctx.filename.includes('storybook'))
                 ) {
                     return html;
                 }
 
-                // The pre-built dashboard CSS contains the dashboard's own
-                // resolved styles. The source-supplied `extension-tailwind.css`
-                // is loaded via a JS import (rather than a plain <link>) so it
-                // travels through Vite's full transform-hook pipeline — that's
-                // what wires up `themeVariablesPlugin`, `dashboardTailwindSourcePlugin`,
-                // and `@tailwindcss/vite` to generate utility classes for the
-                // consumer's extension code (a plain <link> bypasses those
-                // hooks and the virtual `@import 'virtual:admin-theme'`
-                // directives fail to resolve).
-                const dashboardCssLink =
-                    `<link rel="stylesheet" href="/dist/bundle/dashboard.css" />`;
-                const extensionCssImport =
-                    `<script type="module">import '/src/app/extension-tailwind.css';</script>`;
                 const newScript = `<script type="module" src="/dist/bundle/main.js"></script>`;
+                // `styles.css` is loaded via a JS import (rather than a plain <link>)
+                // so it travels through Vite's full transform-hook pipeline — that's
+                // what wires up `themeVariablesPlugin`, `dashboardTailwindSourcePlugin`,
+                // and `@tailwindcss/vite` (a plain <link> bypasses those hooks and the
+                // virtual `@import 'virtual:admin-theme'` directives fail to resolve).
+                //
+                // We deliberately do NOT load the pre-built `dist/bundle/dashboard.css`
+                // next to it: two Tailwind outputs with the same utilities in two
+                // stylesheets break the cascade order of equal-specificity rules
+                // (e.g. `.w-fit` would win over `*:w-full`).
+                //
+                // The import comes after the bundle, so the stylesheet is added after
+                // the styles that libraries (e.g. sonner) inject when imported — the
+                // same order as `import './styles.css'` in `main.tsx` in source mode.
+                const stylesImport = `<script type="module">import '/src/app/styles.css';</script>`;
 
                 // Match the source-entry script regardless of whether Vite has
                 // already prepended the configured `base` to the src attribute.
                 return html.replace(
                     /<script\s+type="module"\s+src="[^"]*src\/app\/main\.tsx"\s*><\/script>/,
-                    `${dashboardCssLink}\n${extensionCssImport}\n${newScript}`,
+                    `${newScript}\n${stylesImport}`,
                 );
             },
         },

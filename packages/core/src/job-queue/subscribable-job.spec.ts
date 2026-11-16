@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { JobState } from '@vendure/common/lib/generated-types';
 import { lastValueFrom } from 'rxjs';
-import { toArray } from 'rxjs/operators';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { tap, toArray } from 'rxjs/operators';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InMemoryJobQueueStrategy } from './in-memory-job-queue-strategy';
 import { Job } from './job';
@@ -64,19 +64,28 @@ describe('SubscribableJob', () => {
             const job = await strategy.add(new Job({ queueName: 'test', data: {} }));
             const subscribableJob = new SubscribableJob(job, strategy);
 
-            const collected = lastValueFrom(subscribableJob.updates({ pollInterval }).pipe(toArray()));
+            const seen: number[] = [];
+            const collected = lastValueFrom(
+                subscribableJob.updates({ pollInterval }).pipe(
+                    tap(u => seen.push(u.progress)),
+                    toArray(),
+                ),
+            );
+            // Wait for each value to be emitted before changing it, so a late poll cannot skip one.
+            const emitted = (progress: number) =>
+                vi.waitFor(() => expect(seen).toContain(progress), { timeout: 5_000, interval: 10 });
 
             const running = await strategy.next('test');
             await strategy.update(running!);
-            await sleep(pollInterval * 3);
+            await emitted(0);
 
             running!.setProgress(33);
             await strategy.update(running!);
-            await sleep(pollInterval * 3);
+            await emitted(33);
 
             running!.setProgress(66);
             await strategy.update(running!);
-            await sleep(pollInterval * 3);
+            await emitted(66);
 
             running!.complete('done');
             await strategy.update(running!);

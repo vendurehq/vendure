@@ -660,7 +660,7 @@ export class AssetService {
                     new AssetTranslation({
                         languageCode: t.languageCode,
                         name: t.name ?? defaultName,
-                        customFields: t.customFields,
+                        customFields: t.customFields ?? {},
                         base: savedAsset,
                     }),
             );
