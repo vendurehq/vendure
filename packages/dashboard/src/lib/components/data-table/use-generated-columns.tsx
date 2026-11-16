@@ -384,6 +384,7 @@ function resolveCellValue(
 }
 
 const overrideCellCache = new WeakMap<CellRenderer, Map<string, CellRenderer>>();
+const stringOverrideCellCache = new Map<string, CellRenderer>();
 
 /**
  * Wraps a cell so that a component registered via addDisplayComponent() is looked up when
@@ -414,11 +415,16 @@ function withDisplayComponentOverride(
         }
         return flexRender(fallback, cellContext);
     };
-    // A non-function cell holds no state, so a fresh wrapper each time costs nothing beyond
-    // re-rendering a static node. Caching it would need a sentinel key, as a WeakMap cannot
-    // key on a string.
+    // A string cell is cached too: once a display component is registered, the wrapper is the
+    // component type above it, and a fresh wrapper would remount it on every memo run.
     if (typeof cell !== 'function') {
-        return (cellContext: CellContext<any, any>) => render(cellContext, cell);
+        const stringKey = `${displayComponentId}\u0000${String(cell)}`;
+        let wrappedString = stringOverrideCellCache.get(stringKey);
+        if (!wrappedString) {
+            wrappedString = (cellContext: CellContext<any, any>) => render(cellContext, cell);
+            stringOverrideCellCache.set(stringKey, wrappedString);
+        }
+        return wrappedString;
     }
     let byKey = overrideCellCache.get(cell);
     if (!byKey) {

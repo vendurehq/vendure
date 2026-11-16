@@ -308,11 +308,16 @@ describe('useGeneratedColumns additionalColumns', () => {
  * re-renders it. Each render passes a new `customizeColumns` object holding the same `cell`,
  * which forces the column memo to recompute while the cell itself stays referentially stable.
  */
-function mountGeneratedTable(pageId: string, cell: () => ReactNode) {
+function mountGeneratedTable(
+    pageId: string,
+    cell: () => ReactNode,
+    additionalColumns?: AdditionalColumns<any>,
+) {
     function Table() {
         const { columns } = useGeneratedColumns({
             fields,
             customizeColumns: { price: { cell } } as any,
+            additionalColumns,
             includeSelectionColumn: false,
             includeActionsColumn: false,
         });
@@ -405,6 +410,29 @@ describe('useGeneratedColumns mounted table', () => {
         table.render();
 
         expect(table.container.textContent).toBe('SKU-1registered-stateful');
+        expect(mounts).toBe(1);
+        table.unmount();
+    });
+
+    // #5346 — a string cell on an additional column takes the uncached branch of the wrapper,
+    // and a registered stateful component under it must survive regeneration as well
+    it('does not remount a registered display component over a string cell when the columns are regenerated', () => {
+        const pageId = 'test-page-stable-string-cell';
+        let mounts = 0;
+        function StatefulDisplay() {
+            useEffect(() => {
+                mounts++;
+            }, []);
+            return <span>registered-over-string</span>;
+        }
+        addDisplayComponent({ pageId, blockId: BLOCK_ID, field: 'label', component: StatefulDisplay });
+
+        const table = mountGeneratedTable(pageId, () => null, { label: { cell: 'static-label' } });
+        table.render();
+        table.render();
+        table.render();
+
+        expect(table.container.textContent).toBe('SKU-1registered-over-string');
         expect(mounts).toBe(1);
         table.unmount();
     });
