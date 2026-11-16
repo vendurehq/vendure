@@ -106,6 +106,8 @@ describe('Relation custom field nullable', () => {
 
     it('the database rejects a row without it', async () => {
         const repo = server.app.get(TransactionalConnection).rawConnection.getRepository(Promotion);
+        // SQLite: "NOT NULL constraint failed", Postgres: "null value in column ... violates
+        // not-null constraint", MySQL/MariaDB: "Field ... doesn't have a default value".
         await expect(
             repo.insert({
                 enabled: true,
@@ -114,6 +116,6 @@ describe('Relation custom field nullable', () => {
                 actions: [],
                 customFields: {},
             } as any),
-        ).rejects.toThrow(/NOT NULL|null value/i);
+        ).rejects.toThrow(/NOT NULL|null value|doesn't have a default value/i);
     });
 });
