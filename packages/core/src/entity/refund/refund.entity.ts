@@ -23,20 +23,23 @@ export class Refund extends VendureEntity implements HasCustomFields {
     }
 
     /**
-     * @deprecated Since v2.2, the `items` field will not be used by default. Instead, the `total` field
-     * alone will be used to determine the refund amount.
+     * @description
+     * Part of the breakdown of the refund amount recorded for Refunds created before v4.0. It is 0
+     * for Refunds created since, whose amount is given by `total` alone.
      */
     @Money() items: number;
 
     /**
-     * @deprecated Since v2.2, the `shipping` field will not be used by default. Instead, the `total` field
-     * alone will be used to determine the refund amount.
+     * @description
+     * Part of the breakdown of the refund amount recorded for Refunds created before v4.0. It is 0
+     * for Refunds created since, whose amount is given by `total` alone.
      */
     @Money() shipping: number;
 
     /**
-     * @deprecated Since v2.2, the `adjustment` field will not be used by default. Instead, the `total` field
-     * alone will be used to determine the refund amount.
+     * @description
+     * Part of the breakdown of the refund amount recorded for Refunds created before v4.0. It is 0
+     * for Refunds created since, whose amount is given by `total` alone.
      */
     @Money() adjustment: number;
 

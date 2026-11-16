@@ -3228,6 +3228,7 @@ export type RefreshCustomerVerificationResult = NativeAuthStrategyError | Succes
 
 export type Refund = Node & {
   __typename?: 'Refund';
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -3237,12 +3238,14 @@ export type Refund = Node & {
    */
   destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
   metadata?: Maybe<Scalars['JSON']['output']>;
   method?: Maybe<Scalars['String']['output']>;
   paymentId: Scalars['ID']['output'];
   reason?: Maybe<Scalars['String']['output']>;
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   shipping: Scalars['Money']['output'];
   state: Scalars['String']['output'];
   total: Scalars['Money']['output'];

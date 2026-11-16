@@ -94,8 +94,6 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
             paymentId: payment.id,
             amount: input.amount ?? getRefundableAmount(payment),
             reason: input.reason,
-            shipping: 0,
-            adjustment: 0,
         });
         return isGraphQlErrorResult(refund)
             ? refund

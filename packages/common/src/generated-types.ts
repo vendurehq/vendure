@@ -134,9 +134,8 @@ export type AdministratorPaymentInput = {
 
 export type AdministratorRefundInput = {
   /**
-   * The amount to be refunded to this particular Payment. This was introduced in
-   * v2.2.0 as the preferred way to specify the refund amount. The `lines`, `shipping` and `adjustment`
-   * fields will be removed in a future version.
+   * The amount to be refunded to this particular Payment. If no refund of the modification
+   * has an amount, the whole difference in the order total is refunded to the first one.
    */
   amount?: InputMaybe<Scalars['Money']['input']>;
   paymentId: Scalars['ID']['input'];
@@ -5424,12 +5423,16 @@ export type ProductVariant = Node & {
   product: Product;
   productId: Scalars['ID']['output'];
   sku: Scalars['String']['output'];
-  /** @deprecated use stockLevels */
+  /** The total allocated stock, counted in the same way as `stockOnHand`. */
   stockAllocated: Scalars['Int']['output'];
   stockLevel: Scalars['String']['output'];
   stockLevels: Array<StockLevel>;
   stockMovements: StockMovementList;
-  /** @deprecated use stockLevels */
+  /**
+   * The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+   * is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+   * StockLocations of the active Channel. Use `stockLevels` for the per-location values.
+   */
   stockOnHand: Scalars['Int']['output'];
   taxCategory: TaxCategory;
   taxRateApplied: TaxRate;
@@ -5470,8 +5473,14 @@ export type ProductVariantFilterParameter = {
   priceWithTax?: InputMaybe<NumberOperators>;
   productId?: InputMaybe<IdOperators>;
   sku?: InputMaybe<StringOperators>;
+  /** The total allocated stock, counted in the same way as `stockOnHand`. */
   stockAllocated?: InputMaybe<NumberOperators>;
   stockLevel?: InputMaybe<StringOperators>;
+  /**
+   * The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+   * is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+   * StockLocations of the active Channel. Use `stockLevels` for the per-location values.
+   */
   stockOnHand?: InputMaybe<NumberOperators>;
   trackInventory?: InputMaybe<StringOperators>;
   /**
@@ -5519,8 +5528,14 @@ export type ProductVariantSortParameter = {
   priceWithTax?: InputMaybe<SortOrder>;
   productId?: InputMaybe<SortOrder>;
   sku?: InputMaybe<SortOrder>;
+  /** The total allocated stock, counted in the same way as `stockOnHand`. */
   stockAllocated?: InputMaybe<SortOrder>;
   stockLevel?: InputMaybe<SortOrder>;
+  /**
+   * The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+   * is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+   * StockLocations of the active Channel. Use `stockLevels` for the per-location values.
+   */
   stockOnHand?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -6146,6 +6161,7 @@ export type QueryZonesArgs = {
 
 export type Refund = Node & {
   __typename?: 'Refund';
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -6155,12 +6171,14 @@ export type Refund = Node & {
    */
   destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
   metadata?: Maybe<Scalars['JSON']['output']>;
   method?: Maybe<Scalars['String']['output']>;
   paymentId: Scalars['ID']['output'];
   reason?: Maybe<Scalars['String']['output']>;
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   shipping: Scalars['Money']['output'];
   state: Scalars['String']['output'];
   total: Scalars['Money']['output'];
@@ -6223,11 +6241,9 @@ export type RefundLine = {
 };
 
 export type RefundOrderInput = {
-  /** @deprecated Use the `amount` field instead */
-  adjustment?: InputMaybe<Scalars['Money']['input']>;
   /**
-   * The amount to be refunded to this particular payment. This was introduced in v2.2.0 as the preferred way to specify the refund amount.
-   * Can be as much as the total amount of the payment minus the sum of all previous refunds.
+   * The amount to be refunded to this particular payment. Can be as much as the total amount of
+   * the payment minus the sum of all previous refunds. Either `amount` or `targets` must be given.
    */
   amount?: InputMaybe<Scalars['Money']['input']>;
   /**
@@ -6238,12 +6254,13 @@ export type RefundOrderInput = {
    * Ignored when `targets` is specified.
    */
   destination?: InputMaybe<Scalars['String']['input']>;
-  /** @deprecated Use the `amount` field instead */
+  /**
+   * The OrderLines which this refund relates to. They are recorded as the RefundLines of the
+   * Refund, and do not affect the amount refunded.
+   */
   lines?: InputMaybe<Array<OrderLineInput>>;
   paymentId: Scalars['ID']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
-  /** @deprecated Use the `amount` field instead */
-  shipping?: InputMaybe<Scalars['Money']['input']>;
   /**
    * Splits the refund across multiple payments and/or refund destinations. The sum of the
    * `amount` of each target is the total amount refunded, and the top-level `amount` and

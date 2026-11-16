@@ -119,6 +119,11 @@ These APIs were deprecated during v3 or earlier and are removed in v4. Each has 
 | `Channel.currencyCode` (Shop and Admin API) | `Channel.defaultCurrencyCode` |
 | `currencyCode` on `CreateChannelInput` and `UpdateChannelInput` | `defaultCurrencyCode`. It is now required on `CreateChannelInput`. |
 | `Fulfillment.summary` (Shop and Admin API) | `Fulfillment.lines` |
+| `RefundOrderInput.shipping` and `RefundOrderInput.adjustment` | `RefundOrderInput.amount`, or `targets` to split a refund over several Payments |
+
+`refundOrder` no longer works out the amount from `lines`, `shipping` and `adjustment`. Give the amount with `amount` or `targets`; without either, it returns a `NothingToRefundError`. `lines` is still accepted and records which OrderLines the refund relates to. An `amount` must fit within the selected Payment: to refund more than one Payment holds, use `targets`. Before v4 a line-based refund was split over the Order's Payments automatically.
+
+`Refund.items`, `Refund.shipping` and `Refund.adjustment` are kept for Refunds created before v4.0, and are 0 for Refunds created since. In `modifyOrder`, a refund without an `amount` still refunds the whole difference in the order total, and still draws on the Order's other Payments if the selected one does not cover it.
 
 ## Next steps
 

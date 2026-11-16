@@ -212,8 +212,11 @@ type Refund implements Node {
     id: ID!
     createdAt: DateTime!
     updatedAt: DateTime!
+    "Recorded for Refunds created before v4.0 only. The amount refunded is `total`."
     items: Money!
+    "Recorded for Refunds created before v4.0 only. The amount refunded is `total`."
     shipping: Money!
+    "Recorded for Refunds created before v4.0 only. The amount refunded is `total`."
     adjustment: Money!
     total: Money!
     method: String

@@ -276,8 +276,7 @@ describe('Order child entity channel scoping', () => {
         const { refundOrder } = await adminClient.query(refundOrderDocument, {
             input: {
                 lines: [{ orderLineId: orderALineId, quantity: 1 }],
-                shipping: 0,
-                adjustment: 0,
+                amount: 100,
                 paymentId: paymentAId,
             },
         });
@@ -393,8 +392,7 @@ describe('Order child entity channel scoping', () => {
                 await adminClient.query(refundOrderDocument, {
                     input: {
                         lines: [],
-                        shipping: 100,
-                        adjustment: 0,
+                        amount: 100,
                         paymentId: paymentAId,
                     },
                 });
@@ -407,8 +405,7 @@ describe('Order child entity channel scoping', () => {
                 await adminClient.query(refundOrderDocument, {
                     input: {
                         lines: [{ orderLineId: orderALineId, quantity: 1 }],
-                        shipping: 0,
-                        adjustment: 0,
+                        amount: 100,
                         paymentId: paymentAId,
                     },
                 });
@@ -563,8 +560,7 @@ describe('Order child entity channel scoping', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: [{ orderLineId: orderALineId, quantity: 1 }],
-                    shipping: 0,
-                    adjustment: 0,
+                    amount: 100,
                     paymentId: paymentAId,
                 },
             });

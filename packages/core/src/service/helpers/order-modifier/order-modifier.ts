@@ -422,7 +422,6 @@ export class OrderModifier {
             surcharges: [],
         });
         const initialTotalWithTax = order.totalWithTax;
-        const initialShippingWithTax = order.shippingWithTax;
         if (order.state !== 'Modifying') {
             return new OrderModificationStateError();
         }
@@ -440,8 +439,6 @@ export class OrderModifier {
               : [];
         const refundInputs: RefundOrderInput[] = refundInputArray.map(refund => ({
             lines: [],
-            adjustment: 0,
-            shipping: 0,
             paymentId: refund.paymentId,
             amount: refund.amount,
             reason: refund.reason || input.note,
@@ -577,13 +574,6 @@ export class OrderModifier {
             );
             order.surcharges.push(surcharge);
             modification.surcharges.push(surcharge);
-            if (surcharge.priceWithTax < 0) {
-                refundInputs.forEach(ri => {
-                    if (ri.adjustment != null) {
-                        ri.adjustment += Math.abs(surcharge.priceWithTax);
-                    }
-                });
-            }
         }
         if (input.surcharges?.length) {
             await this.connection.getRepository(ctx, Order).save(order, { reload: false });
@@ -723,22 +713,19 @@ export class OrderModifier {
             // "primary" refund to associate with the OrderModification.
             const primaryRefund = refundInputs.slice().sort((a, b) => (b.amount || 0) - (a.amount || 0))[0];
 
-            // TODO: the following code can be removed once we remove the deprecated
-            // support for "shipping" and "adjustment" input fields for refunds
-            const shippingDelta = order.shippingWithTax - initialShippingWithTax;
-            if (shippingDelta < 0) {
-                primaryRefund.shipping = shippingDelta * -1;
-            }
-            if (primaryRefund.adjustment != null) {
-                primaryRefund.adjustment += await this.calculateRefundAdjustment(ctx, delta, primaryRefund);
-            }
-            // end
-
             for (const refundInput of refundInputs) {
                 const existingPayments = await this.getOrderPayments(ctx, order.id);
                 const payment = existingPayments.find(p => idsAreEqual(p.id, refundInput.paymentId));
                 if (payment) {
-                    const refund = await this.paymentService.createRefund(ctx, refundInput, order, payment);
+                    // A refund given without an amount refunds the whole difference, drawing on the
+                    // Order's other Payments if this one does not cover it.
+                    const total =
+                        refundInput === primaryRefund && refundInput.amount == null
+                            ? Math.abs(delta)
+                            : undefined;
+                    const refund = await this.paymentService.createRefund(ctx, refundInput, order, payment, {
+                        total,
+                    });
                     if (!isGraphQlErrorResult(refund)) {
                         if (idsAreEqual(payment.id, primaryRefund.paymentId)) {
                             modification.refund = refund;
@@ -845,23 +832,6 @@ export class OrderModifier {
      * TODO: Deprecated - can be removed once we remove support for the "shipping" & "adjustment" input
      * fields for refunds.
      */
-    private async calculateRefundAdjustment(
-        ctx: RequestContext,
-        delta: number,
-        refundInput: RefundOrderInput,
-    ): Promise<number> {
-        const existingAdjustment = refundInput.adjustment ?? 0;
-
-        let itemAmount = 0; // TODO: figure out what this should be
-        for (const lineInput of refundInput.lines ?? []) {
-            const orderLine = await this.connection.getEntityOrThrow(ctx, OrderLine, lineInput.orderLineId);
-            itemAmount += orderLine.proratedUnitPriceWithTax * lineInput.quantity;
-        }
-        const calculatedDelta = itemAmount + (refundInput.shipping ?? 0) + existingAdjustment;
-        const absDelta = Math.abs(delta);
-        return absDelta !== calculatedDelta ? absDelta - calculatedDelta : 0;
-    }
-
     private getOrderPayments(ctx: RequestContext, orderId: ID): Promise<Payment[]> {
         return this.connection.getRepository(ctx, Payment).find({
             relations: { refunds: true },
