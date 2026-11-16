@@ -6,12 +6,16 @@ interface IdColumnOptions {
     /** Whether this is a primary key. Defaults to false */
     primary?: boolean;
     /**
-     * Whether the column references the primary key of another entity and must have exactly the
-     * same type, as the columns of a junction table do. Without it, ids stored by the UUID strategy
-     * use a plain `varchar` column, which differs from the primary key type on MySQL and Postgres.
-     * Defaults to false
+     * @description
+     * With the {@link UuidIdStrategy}, store the ids in a `varchar` column instead of a `uuid` column,
+     * as Vendure did before v4.0 for columns which are not the join column of a relation. It keeps
+     * the type of such a column unchanged on upgrade, which suits tables that are rebuilt rather than
+     * migrated, such as the search index. It has no effect with integer ids.
+     *
+     * @default false
+     * @since 4.0.0
      */
-    matchPrimaryKeyType?: boolean;
+    storeUuidAsVarchar?: boolean;
 }
 
 interface IdColumnConfig {

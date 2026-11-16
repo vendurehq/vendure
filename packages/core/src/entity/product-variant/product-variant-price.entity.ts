@@ -4,6 +4,7 @@ import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
+import { Channel } from '../channel/channel.entity';
 import { CustomProductVariantPriceFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
@@ -24,6 +25,16 @@ export class ProductVariantPrice extends VendureEntity implements HasCustomField
     }
 
     @Money() price: number;
+
+    /**
+     * @description
+     * The Channel this price applies in. The price is deleted along with the Channel.
+     *
+     * @since 4.0.0
+     */
+    @Index()
+    @ManyToOne(type => Channel, { onDelete: 'CASCADE' })
+    channel: Channel;
 
     @EntityId({ nullable: true }) channelId: ID;
 

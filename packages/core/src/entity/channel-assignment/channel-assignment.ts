@@ -72,11 +72,10 @@ export function ChannelAssignmentEntity(options: ChannelAssignmentEntityOptions)
     return (target: Type<ChannelAssignment>) => {
         const proto = target.prototype;
         const { entityProperty } = options;
-        // The key columns must have the same type as the primary keys they reference, as the
-        // columns TypeORM creates for a junction table do. Otherwise schema sync keeps finding a
-        // difference (e.g. varchar(255) vs varchar(36) for UUIDs on MySQL) and rebuilds them.
-        EntityId({ primary: true, matchPrimaryKeyType: true })(proto, `${entityProperty}Id`);
-        EntityId({ primary: true, matchPrimaryKeyType: true })(proto, 'channelId');
+        // The key columns get the type of the primary keys they reference, as the columns TypeORM
+        // creates for a junction table do (see alignChannelAssignmentMetadata() for the length).
+        EntityId({ primary: true })(proto, `${entityProperty}Id`);
+        EntityId({ primary: true })(proto, 'channelId');
 
         JoinColumn()(proto, entityProperty);
         ManyToOne(options.entity, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })(proto, entityProperty);
