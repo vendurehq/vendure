@@ -9,6 +9,7 @@ import { RelationCustomFieldConfig } from '../../config/custom-field/custom-fiel
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { VendureEntity } from '../../entity/base/base.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { TaxCategory } from '../../entity/tax-category/tax-category.entity';
 import { ProductPriceApplicator } from '../../service/helpers/product-price-applicator/product-price-applicator';
 import { TranslatorService } from '../../service/helpers/translator/translator.service';
 
@@ -181,13 +182,32 @@ export class CustomFieldRelationResolverService {
     }
 
     private async applyVariantPrices(ctx: RequestContext, variant: ProductVariant): Promise<ProductVariant> {
-        const taxCategory = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .createQueryBuilder()
-            .relation('taxCategory')
-            .of(variant)
-            .loadOne();
-        variant.taxCategory = taxCategory;
+        // batchLoad() selects the whole variant, so taxCategoryId is always present. A variant with
+        // no TaxCategory is left without one, as before.
+        if (!variant.taxCategory && variant.taxCategoryId != null) {
+            variant.taxCategory = await this.getTaxCategoryLoader(ctx).load(String(variant.taxCategoryId));
+        }
         return this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
+    }
+
+    /**
+     * Loads the TaxCategory of each ProductVariant a relation custom field returns. Batched per
+     * request, so a list of N variants costs one query rather than N.
+     */
+    private getTaxCategoryLoader(ctx: RequestContext): DataLoader<string, TaxCategory> {
+        return this.requestCache.get(
+            ctx,
+            'CustomFieldRelationTaxCategoryLoader',
+            () =>
+                new DataLoader<string, TaxCategory>(async ids => {
+                    const taxCategories = await this.connection
+                        .getRepository(ctx, TaxCategory)
+                        .createQueryBuilder('taxCategory')
+                        .where('taxCategory.id IN (:...ids)', { ids })
+                        .getMany();
+                    const byId = new Map(taxCategories.map(t => [String(t.id), t]));
+                    return ids.map(id => byId.get(id) as TaxCategory);
+                }),
+        );
     }
 }
