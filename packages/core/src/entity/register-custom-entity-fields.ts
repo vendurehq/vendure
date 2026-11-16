@@ -559,10 +559,11 @@ function registerChannelScopedCustomFields(config: VendureConfig, entityName: st
 }
 
 /**
- * The values of channel-scoped custom fields are not on the entity, so reading
- * `entity.customFields.<name>` would silently give `undefined`, for example when the field's type
- * was declared on `CustomProductFields` rather than on `CustomProductChannelFields`. Instead, it
- * throws an error which says how to read the value.
+ * The values of channel-scoped custom fields are stored on the channel assignment row, not on the
+ * entity. The TransactionalConnection sets them on `entity.customFields` when the entity is loaded
+ * with a RequestContext (see `ChannelAssignmentService.applyChannelCustomFields()`). Otherwise,
+ * reading `entity.customFields.<name>` would silently give `undefined`, so it throws an error which
+ * says how to read the value instead.
  *
  * The getter is on the prototype of the entity's custom fields class, so it does not affect
  * spreading, `Object.keys()` or JSON serialization of the object, and writing the property still
@@ -586,10 +587,12 @@ function guardChannelScopedCustomFields(
                 configurable: true,
                 enumerable: false,
                 get() {
+                    const variable = `${entityName.charAt(0).toLowerCase()}${entityName.slice(1)}`;
                     throw new Error(
-                        `"${name}" is a channel-scoped custom field of ${entityName}, so its value is not stored ` +
-                            `on the entity. Read it with ${entityName.charAt(0).toLowerCase()}${entityName.slice(1)}` +
-                            `.getChannelCustomFields(ctx), and declare its type on Custom${entityName}ChannelFields.`,
+                        `"${name}" is a channel-scoped custom field of ${entityName}, whose value is only set on ` +
+                            'entities loaded with a RequestContext, e.g. with ' +
+                            'TransactionalConnection.getRepository(ctx, ...) or an entity service. Load the ' +
+                            `entity that way, or read the value with ${variable}.getChannelCustomFields(ctx).`,
                     );
                 },
                 set(value: unknown) {

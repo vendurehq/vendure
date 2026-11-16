@@ -10,9 +10,11 @@ import { idsAreEqual } from '../../../common/utils';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
+import { VendureEntity } from '../../../entity/base/base.entity';
 import {
     ChannelAssignmentEntityOptions,
     getChannelAssignmentEntities,
+    LOADED_CHANNEL_ASSIGNMENT_PROPERTY,
 } from '../../../entity/channel-assignment/channel-assignment-registry';
 import {
     ChannelCustomFieldsOptions,
@@ -46,13 +48,7 @@ export interface ChannelAssignmentMetadata {
 
 type AnyEntity = Type<any>;
 
-/**
- * The property under which the ListQueryBuilder loads the assignment row of the Channel a list is
- * scoped to (the `loadChannelAssignment` option). Not a column, nor part of the GraphQL schema.
- *
- * @internal
- */
-export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
+export { LOADED_CHANNEL_ASSIGNMENT_PROPERTY };
 
 /**
  * @description
@@ -73,6 +69,7 @@ export const LOADED_CHANNEL_ASSIGNMENT_PROPERTY = 'lqb__channelAssignment';
 @Injectable()
 export class ChannelAssignmentService implements OnApplicationBootstrap, OnApplicationShutdown {
     private readonly metadataCache = new Map<AnyEntity, ChannelAssignmentMetadata | null>();
+    private channelScopedColumnsByType?: Map<AnyEntity, string[]>;
 
     constructor(
         private connection: TransactionalConnection,
@@ -386,6 +383,123 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
 
     /**
      * @description
+     * Sets the values of the channel-scoped custom fields in the Channel of `ctx` on the
+     * `customFields` object of every entity in `result` which has channel-scoped custom fields,
+     * including the entities of loaded relations (e.g. `order.lines[].productVariant.product`), so
+     * that `product.customFields.channelNote` reads the value of that Channel. Each entity type takes
+     * one query, and rows already loaded by a ListQueryBuilder list are reused.
+     *
+     * The TransactionalConnection calls this after every read made with a RequestContext, so code
+     * rarely needs to call it. Relation fields are not loaded, as with ordinary relation custom
+     * fields, but the `<name>Id` of a single relation is set.
+     *
+     * @since 4.0.0
+     */
+    async applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
+        const channelId = ctx.channelId;
+        const fieldsByType = this.getChannelScopedColumnsByType();
+        if (channelId == null || !fieldsByType.size || result == null || typeof result !== 'object') {
+            return;
+        }
+        const found = new Map<AnyEntity, Map<string, any[]>>();
+        const visited = new Set<object>();
+        const visit = (value: unknown) => {
+            if (value == null || typeof value !== 'object' || visited.has(value)) {
+                return;
+            }
+            visited.add(value);
+            if (Array.isArray(value)) {
+                value.forEach(visit);
+                return;
+            }
+            if (!(value instanceof VendureEntity)) {
+                // e.g. the `{ entities, raw }` result of getRawAndEntities()
+                if ('entities' in value) {
+                    visit((value as any).entities);
+                }
+                return;
+            }
+            const type = value.constructor as AnyEntity;
+            if (fieldsByType.has(type) && value.id != null) {
+                const byId = found.get(type) ?? new Map<string, any[]>();
+                const key = String(value.id);
+                byId.set(key, [...(byId.get(key) ?? []), value]);
+                found.set(type, byId);
+            }
+            // Loaded relations, including relations inside customFields. Only own data properties:
+            // getters are skipped, such as the @Calculated properties which the entity subscriber
+            // defines on loaded entities (e.g. Order.discounts throws if its lines are not joined),
+            // and the getters of channel-scoped names on customFields.
+            for (const property of ownDataValues(value)) {
+                if (property && typeof property === 'object') {
+                    if (property instanceof VendureEntity || Array.isArray(property)) {
+                        visit(property);
+                    } else if (!(property instanceof Date)) {
+                        for (const nested of ownDataValues(property)) {
+                            if (nested instanceof VendureEntity || Array.isArray(nested)) {
+                                visit(nested);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        visit(result);
+        for (const [type, byId] of found) {
+            const names = fieldsByType.get(type) ?? [];
+            const toLoad: string[] = [];
+            const rows = new Map<string, any>();
+            for (const [id, entities] of byId) {
+                const loaded = this.getLoadedAssignment(entities[0], channelId);
+                if (loaded) {
+                    rows.set(id, loaded);
+                } else {
+                    toLoad.push(id);
+                }
+            }
+            if (toLoad.length) {
+                for (const [id, row] of await this.getAssignments(ctx, type, toLoad, channelId)) {
+                    rows.set(id, row);
+                }
+            }
+            for (const [id, entities] of byId) {
+                const values = rows.get(id)?.customFields;
+                for (const entity of entities) {
+                    const customFields = entity.customFields ?? (entity.customFields = {});
+                    for (const name of names) {
+                        // An entity which is not assigned to the Channel reads null, as in the API
+                        customFields[name] = values?.[name] ?? null;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * The property names of the columns in the `customFields` of each assignment entity, keyed by its
+     * ChannelAware entity: the channel-scoped custom fields, and the `<name>Id` of single relations.
+     */
+    private getChannelScopedColumnsByType(): Map<AnyEntity, string[]> {
+        if (!this.channelScopedColumnsByType) {
+            const map = new Map<AnyEntity, string[]>();
+            const metadatas = this.connection.rawConnection.entityMetadatas;
+            for (const [target, options] of getChannelAssignmentEntities()) {
+                const metadata = metadatas.find(m => m.target === target);
+                const embedded = metadata?.embeddeds.find(e => e.propertyName === 'customFields');
+                const names = (embedded?.columns ?? [])
+                    .map(c => c.propertyName)
+                    .filter(name => !name.startsWith('__'));
+                if (names.length) {
+                    map.set(options.entity(), names);
+                }
+            }
+            this.channelScopedColumnsByType = map;
+        }
+        return this.channelScopedColumnsByType;
+    }
+
+    /**
+     * @description
      * Returns the custom field values to give a copy of the entity, as `customFields` input of its
      * create method, e.g. in an {@link EntityDuplicator}: its ordinary custom fields, plus its
      * channel-scoped ones in the active Channel. `unique` channel-scoped fields are left out, since
@@ -514,6 +628,19 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
             queue.forEach(item => item.reject(e));
         }
     }
+}
+
+/**
+ * The values of an object's own data properties, without calling any getters.
+ */
+function ownDataValues(value: object): unknown[] {
+    const values: unknown[] = [];
+    for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+        if ('value' in descriptor) {
+            values.push(descriptor.value);
+        }
+    }
+    return values;
 }
 
 interface Batch {

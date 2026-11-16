@@ -49,6 +49,7 @@ interface ChannelCustomFieldsReader {
         entity: { id: ID },
         options?: ChannelCustomFieldsOptions<any>,
     ): Promise<Record<string, unknown> | undefined>;
+    applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void>;
 }
 
 /**
@@ -98,4 +99,17 @@ export async function readChannelCustomFields<Fields>(
         return undefined;
     }
     return (await reader.getChannelCustomFields(ctx, entityType, entity, options)) as Fields | undefined;
+}
+
+/**
+ * @internal
+ * Sets the values of the channel-scoped custom fields in the Channel of `ctx` on the `customFields`
+ * of the entities in `result` (the result of a repository or QueryBuilder read, including the
+ * entities of its loaded relations). Called by the TransactionalConnection after reads.
+ */
+export async function applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
+    const reader = readers[readers.length - 1];
+    if (reader) {
+        await reader.applyChannelCustomFields(ctx, result);
+    }
 }

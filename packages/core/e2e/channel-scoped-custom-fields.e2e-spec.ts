@@ -24,6 +24,7 @@ import {
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
+import { In } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -928,36 +929,71 @@ describe('Channel-scoped custom fields (#490)', () => {
         const notInB = await productService.findOne(ctxDefault, 3);
         expect(await notInB!.getChannelCustomFields(ctxB)).toBeUndefined();
 
-        // Reads made in the same tick share one query
-        const products = await productService.findByIds(ctxB, [1, 2]);
         const getAssignments = vi.spyOn(server.app.get(ChannelAssignmentService), 'getAssignments');
         try {
+            // Loaded with a RequestContext, the rows of that channel are joined, so no query
+            const products = await productService.findByIds(ctxB, [1, 2]);
+            getAssignments.mockClear();
             const values = await Promise.all(products.map(p => p.getChannelCustomFields(ctxB)));
             const notesById = Object.fromEntries(products.map((p, i) => [p.id, values[i]?.channelNote]));
             expect(notesById).toEqual({ 1: 'B note', 2: 'B note 2' });
+            expect(getAssignments).toHaveBeenCalledTimes(0);
+
+            // Otherwise, reads made in the same tick share one query
+            const raw = await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Product)
+                .findBy({ id: In([1, 2]) });
+            const rawValues = await Promise.all(raw.map(p => p.getChannelCustomFields(ctxB)));
+            expect(rawValues.map(v => v?.channelNote).sort()).toEqual(['B note', 'B note 2']);
             expect(getAssignments).toHaveBeenCalledTimes(1);
         } finally {
             getAssignments.mockRestore();
         }
     });
 
-    it('reading a channel-scoped field from entity.customFields throws an error which says how to read it', async () => {
-        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
-        const product: any = await server.app.get(ProductService).findOne(ctx, 1);
-        const expected =
-            '"channelNote" is a channel-scoped custom field of Product, so its value is not stored on the ' +
-            'entity. Read it with product.getChannelCustomFields(ctx), and declare its type on ' +
-            'CustomProductChannelFields.';
-        expect(() => product.customFields.channelNote).toThrow(expected);
-        // Also the id of a single relation
-        expect(() => product.customFields.channelFeaturedAssetId).toThrow('"channelFeaturedAssetId"');
-        // Ordinary custom fields, spreading and serialization are unaffected
-        expect(product.customFields.globalNote).toBe('shared');
-        expect(Object.keys(product.customFields)).not.toContain('channelNote');
-        expect(JSON.parse(JSON.stringify(product.customFields))).toEqual({ ...product.customFields });
-        // Writing still stores the value on the object
-        product.customFields.channelNote = 'set in code';
-        expect(product.customFields.channelNote).toBe('set in code');
+    it('entity.customFields holds the values of the ctx channel when loaded with a RequestContext', async () => {
+        const requestContextService = server.app.get(RequestContextService);
+        const productService = server.app.get(ProductService);
+        const ctxDefault = await requestContextService.create({ apiType: 'admin' });
+        const ctxB = await requestContextService.create({
+            apiType: 'admin',
+            channelOrToken: CHANNEL_B_TOKEN,
+        });
+
+        const inDefault: any = await productService.findOne(ctxDefault, 1);
+        expect(inDefault.customFields.channelNote).toBe('default note');
+        expect(inDefault.customFields.channelFeaturedAssetId).toBe(1);
+        expect(inDefault.customFields.globalNote).toBe('shared');
+        const inB: any = await productService.findOne(ctxB, 1);
+        expect(inB.customFields.channelNote).toBe('B note');
+
+        // Lists
+        const { items } = await productService.findAll(ctxB, {});
+        expect((items.find(p => p.id === 2) as any).customFields.channelNote).toBe('B note 2');
+        // Entities of loaded relations
+        const variant: any = await server.app.get(ProductVariantService).findOne(ctxB, 1, ['product']);
+        expect(variant.product.customFields.channelNote).toBe('B note');
+        // Repositories and QueryBuilders of the TransactionalConnection
+        const connection = server.app.get(TransactionalConnection);
+        const fromQb: any = await connection
+            .getRepository(ctxB, Product)
+            .createQueryBuilder('product')
+            .where('product.id = :id', { id: 1 })
+            .getOne();
+        expect(fromQb.customFields.channelNote).toBe('B note');
+        // Not assigned to the channel
+        const notInB: any = await connection.getRepository(ctxB, Product).findOne({ where: { id: 3 } });
+        expect(notInB.customFields.channelNote).toBeNull();
+
+        // Without a RequestContext the value is not loaded, so reading it throws
+        const raw: any = await connection.rawConnection.getRepository(Product).findOne({ where: { id: 1 } });
+        expect(() => raw.customFields.channelNote).toThrow(
+            '"channelNote" is a channel-scoped custom field of Product, whose value is only set on entities ' +
+                'loaded with a RequestContext',
+        );
+        expect(() => raw.customFields.channelFeaturedAssetId).toThrow('"channelFeaturedAssetId"');
+        expect(Object.keys(raw.customFields)).not.toContain('channelNote');
     });
 
     it('reads null for an entity which is not assigned to the Channel', async () => {
