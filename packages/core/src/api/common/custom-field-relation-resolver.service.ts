@@ -5,7 +5,10 @@ import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Translatable } from '../../common/types/locale-types';
-import { RelationCustomFieldConfig } from '../../config/custom-field/custom-field-types';
+import {
+    isChannelScopedCustomField,
+    RelationCustomFieldConfig,
+} from '../../config/custom-field/custom-field-types';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { VendureEntity } from '../../entity/base/base.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
@@ -97,10 +100,9 @@ export class CustomFieldRelationResolverService {
     ): Promise<VendureEntity[][]> {
         // Fetch the parent -> relation id mapping for all batched parent ids in a single query.
         // Channel-scoped fields live on the entity's channel assignment row for the active Channel.
-        const assignment =
-            fieldDef.scope === 'channel'
-                ? this.channelAssignmentService.getMetadataByEntityName(entityName)
-                : undefined;
+        const assignment = isChannelScopedCustomField(fieldDef)
+            ? this.channelAssignmentService.getMetadataByEntityName(entityName)
+            : undefined;
         // Only the queried table, its id column and the Channel condition differ
         const idColumn = assignment ? `entity.${assignment.entityIdProperty}` : 'entity.id';
         const mappingQb = this.connection

@@ -14,6 +14,7 @@ import { Translatable } from '../../common/types/locale-types';
 import { ConfigService } from '../../config/config.service';
 import {
     CustomFieldConfig,
+    isChannelScopedCustomField,
     RelationCustomFieldConfig,
     StructCustomFieldConfig,
 } from '../../config/custom-field/custom-field-types';
@@ -220,7 +221,7 @@ function generateCustomFieldResolvers(
         // Channel-scoped custom fields are stored on the entity's channel assignment row, so their
         // values for the active Channel are merged in. Relation fields resolve via relationResolver.
         const channelScopedFieldNames = customFields
-            .filter(f => f.scope === 'channel' && !isRelationalType(f))
+            .filter(f => isChannelScopedCustomField(f) && !isRelationalType(f))
             .map(f => f.name);
         const resolveCustomFields = (source: any, channelScopedValues?: Record<string, unknown>) => ({
             ...source.customFields,
@@ -230,19 +231,28 @@ function generateCustomFieldResolvers(
             // pass the real VendureEntity to strategies, rather than this customFields wrapper.
             [ENTITY_KEY]: source,
         });
-        // Only types with channel-scoped fields need an async resolver
+        // Only types with channel-scoped fields need an async resolver. An entity loaded with a
+        // RequestContext already has their values on its customFields (see
+        // ChannelAssignmentService.applyChannelCustomFields()), so they are only read otherwise.
+        const hasChannelScopedValues = (source: any) =>
+            source.customFields != null &&
+            channelScopedFieldNames.every(name =>
+                Object.prototype.hasOwnProperty.call(source.customFields, name),
+            );
         const customFieldResolver: IFieldResolver<any, any> = channelScopedFieldNames.length
             ? async (source: any, args: any, context: any) =>
-                  resolveCustomFields(
-                      source,
-                      await channelAssignmentService.getCustomFieldValues(
-                          internal_getRequestContext(context.req),
-                          entityName,
-                          // The entity, so that a row loaded by its list's channel assignment join is reused
-                          source,
-                          channelScopedFieldNames,
-                      ),
-                  )
+                  hasChannelScopedValues(source)
+                      ? resolveCustomFields(source)
+                      : resolveCustomFields(
+                            source,
+                            await channelAssignmentService.getCustomFieldValues(
+                                internal_getRequestContext(context.req),
+                                entityName,
+                                // The entity, so that a row loaded with it is reused
+                                source,
+                                channelScopedFieldNames,
+                            ),
+                        )
             : (source: any) => resolveCustomFields(source);
         const resolverObject = {
             customFields: customFieldResolver,

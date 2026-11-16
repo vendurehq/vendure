@@ -21,6 +21,7 @@ import { EntityNotFoundError } from '../common/error/errors';
 import { ChannelAware, SoftDeletable } from '../common/types/common-types';
 import { EntityAccessControlStrategy } from '../config/auth/entity-access-control-strategy';
 import { ConfigService } from '../config/config.service';
+import { isChannelScopedCustomField } from '../config/custom-field/custom-field-types';
 import { VendureEntity } from '../entity/base/base.entity';
 import {
     getChannelAssignmentEntities,
@@ -526,7 +527,7 @@ export class TransactionalConnection {
     private readsChannelCustomFields(target: unknown): boolean {
         if (this.hasChannelScopedCustomFields === undefined) {
             this.hasChannelScopedCustomFields = Object.values(this.configService.customFields ?? {}).some(
-                fields => fields?.some(field => field.scope === 'channel'),
+                fields => fields?.some(isChannelScopedCustomField),
             );
         }
         return (
@@ -542,7 +543,7 @@ export class TransactionalConnection {
         if (!this.channelScopedEntities) {
             const names = new Set(
                 Object.entries(this.configService.customFields ?? {})
-                    .filter(([, fields]) => fields?.some(field => field.scope === 'channel'))
+                    .filter(([, fields]) => fields?.some(isChannelScopedCustomField))
                     .map(([name]) => name),
             );
             this.channelScopedEntities = new Set(
@@ -618,7 +619,7 @@ function wrapWithChannelCustomFields<Entity extends ObjectLiteral>(
                 // Writes the channel-scoped values changed on the saved entities to the ctx Channel
                 return async (...args: any[]) => {
                     const result = await (obj as any).save(...args);
-                    await persistChannelCustomFields(ctx, result);
+                    await persistChannelCustomFields(ctx, result, obj.metadata.target);
                     return result;
                 };
             }
@@ -627,9 +628,17 @@ function wrapWithChannelCustomFields<Entity extends ObjectLiteral>(
                     // Run the read as a QueryBuilder query, which joins the assignment row
                     return (options: any = {}) => {
                         const byWhere = prop.endsWith('By') || prop === 'findOneByOrFail';
-                        const findOptions = byWhere ? { where: options } : options;
-                        if (prop.startsWith('findOne') && !findOptions.where) {
-                            return Promise.resolve(null);
+                        let findOptions = byWhere ? { where: options } : options;
+                        if (prop.startsWith('findOne')) {
+                            // As TypeORM's findOne()
+                            if (!findOptions.where) {
+                                return Promise.reject(
+                                    new Error(
+                                        'You must provide selection conditions in order to find a single row.',
+                                    ),
+                                );
+                            }
+                            findOptions = { ...findOptions, take: 1 };
                         }
                         const qb = wrapQueryBuilderWithChannelCustomFields(
                             (obj as any).createQueryBuilder(obj.metadata.name),
@@ -684,6 +693,10 @@ function wrapQueryBuilderWithChannelCustomFields<Entity extends ObjectLiteral>(
  * If the main entity of the query has channel-scoped custom fields, joins its assignment row in the
  * Channel of `ctx`, unless the query already loads it (the ListQueryBuilder's
  * `loadChannelAssignment` option).
+ *
+ * Queries with a lock or a GROUP BY are left as they are: Postgres rejects `FOR UPDATE` on the
+ * nullable side of an outer join, and the joined columns are not in the GROUP BY. The rows of their
+ * entities are loaded by a separate query instead (see `applyChannelCustomFields()`).
  */
 function joinChannelAssignment(
     qb: SelectQueryBuilder<any>,
@@ -691,7 +704,14 @@ function joinChannelAssignment(
     channelScopedEntities: Set<unknown>,
 ) {
     const mainAlias = qb.expressionMap.mainAlias;
-    if (!mainAlias?.hasMetadata || ctx.channelId == null) {
+    if (
+        !mainAlias?.hasMetadata ||
+        ctx.channelId == null ||
+        qb.expressionMap.lockMode ||
+        // A lock given in the find options of setFindOptions() is only applied when the query runs
+        (qb as any).findOptions?.lock ||
+        qb.expressionMap.groupBys.length
+    ) {
         return;
     }
     const target = mainAlias.metadata.target;

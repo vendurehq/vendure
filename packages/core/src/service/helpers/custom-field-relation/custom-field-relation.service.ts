@@ -9,7 +9,9 @@ import { ConfigService } from '../../../config/config.service';
 import {
     CustomFieldConfig,
     CustomFields,
+    getChannelScopedCustomFields,
     HasCustomFields,
+    isChannelScopedCustomField,
     RelationCustomFieldConfig,
 } from '../../../config/custom-field/custom-field-types';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
@@ -42,7 +44,7 @@ export class CustomFieldRelationService {
                 entityType.name as keyof CustomFields
             ]
                 .filter(this.isRelationalType)
-                .filter(field => field.scope !== 'channel');
+                .filter(field => !isChannelScopedCustomField(field));
 
             for (const field of relationCustomFields) {
                 const idOrIds = input.customFields[getGraphQlInputName(field)];
@@ -92,9 +94,7 @@ export class CustomFieldRelationService {
         entity: VendureEntity,
         channelId: ID = ctx.channelId,
     ) {
-        const channelScoped = (
-            this.configService.customFields[entityType.name as keyof CustomFields] ?? []
-        ).filter(field => field.scope === 'channel');
+        const channelScoped = getChannelScopedCustomFields(this.configService.customFields, entityType.name);
         if (!channelScoped.length || !customFieldsInput) {
             return;
         }
@@ -116,7 +116,15 @@ export class CustomFieldRelationService {
                 values[field.name] = input(field.name);
             }
         }
-        await this.channelAssignmentService.updateCustomFields(ctx, entityType, entity.id, channelId, values);
+        // The values which a save() through the TransactionalConnection already wrote are left out
+        const toWrite = this.channelAssignmentService.withoutPersistedValues(ctx, entity, channelId, values);
+        await this.channelAssignmentService.updateCustomFields(
+            ctx,
+            entityType,
+            entity.id,
+            channelId,
+            toWrite,
+        );
     }
 
     /**

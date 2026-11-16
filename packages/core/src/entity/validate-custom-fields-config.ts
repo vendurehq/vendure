@@ -5,6 +5,7 @@ import { DataSourceOptions, getMetadataArgsStorage } from 'typeorm';
 import {
     CustomFieldConfig,
     CustomFields,
+    isChannelScopedCustomField,
     isLocalizedCustomFieldType,
 } from '../config/custom-field/custom-field-types';
 
@@ -33,7 +34,7 @@ function validateCustomFieldsForEntity(
  * entity, and only with the field types and options which are supported there.
  */
 function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomFieldConfig[]): string[] {
-    const channelScoped = customFields.filter(f => f.scope === 'channel');
+    const channelScoped = customFields.filter(isChannelScopedCustomField);
     if (!channelScoped.length) {
         return [];
     }
@@ -49,12 +50,9 @@ function assertValidChannelScopedFields(entity: Type<any>, customFields: CustomF
     }
     const errors: string[] = [];
     for (const field of channelScoped) {
-        const unsupported = [isLocalizedCustomFieldType(field.type) && `type "${field.type}"`].filter(
-            Boolean,
-        );
-        if (unsupported.length) {
+        if (isLocalizedCustomFieldType(field.type)) {
             errors.push(
-                `${entity.name} entity custom field "${field.name}" has scope "channel", which does not support ${unsupported.join(', ')}`,
+                `${entity.name} entity custom field "${field.name}" has scope "channel", which does not support type "${field.type}"`,
             );
         }
     }

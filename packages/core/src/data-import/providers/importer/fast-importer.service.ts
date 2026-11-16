@@ -55,14 +55,6 @@ export class FastImporterService {
     ) {}
 
     /**
-     * @description
-     * This should be called prior to any of the import methods, as it establishes the
-     * default Channel as well as the context in which the new entities will be created.
-     *
-     * Passing a `channel` argument means that Products and ProductVariants will be assigned
-     * to that Channel.
-     */
-    /**
      * The Channel whose channel-scoped custom field values are written. Without a `channel`,
      * `initialize()` uses `RequestContext.empty()`, whose Channel has no id, so the default Channel's.
      */
@@ -70,6 +62,14 @@ export class FastImporterService {
         return this.importCtx.channelId ?? this.defaultChannel.id;
     }
 
+    /**
+     * @description
+     * This should be called prior to any of the import methods, as it establishes the
+     * default Channel as well as the context in which the new entities will be created.
+     *
+     * Passing a `channel` argument means that Products and ProductVariants will be assigned
+     * to that Channel.
+     */
     async initialize(channel?: Channel) {
         this.importCtx = channel
             ? await this.requestContextService.create({

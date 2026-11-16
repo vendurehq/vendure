@@ -19,6 +19,8 @@ import { DateUtils } from 'typeorm/util/DateUtils';
 import {
     CustomFieldConfig,
     CustomFields,
+    getChannelScopedCustomFields,
+    isChannelScopedCustomField,
     isLocalizedCustomFieldType,
 } from '../config/custom-field/custom-field-types';
 import { Logger } from '../config/logger/vendure-logger';
@@ -140,7 +142,7 @@ export function registerCustomFieldsForEntity(
     // Channel-scoped fields are registered on the entity's channel assignment entity instead
     // (see registerChannelScopedCustomFields), so each call only handles one of the two sets.
     const customFields = (config.customFields?.[entityName] ?? []).filter(
-        f => (f.scope === 'channel') === channelScoped,
+        f => isChannelScopedCustomField(f) === channelScoped,
     );
     const dbEngine = getDatabaseType(config.dbConnectionOptions);
     if (customFields.length) {
@@ -510,7 +512,7 @@ function assertLocaleFieldsNotSpecified(config: VendureConfig, entityName: keyof
  * the entity has channel-scoped fields, so entities without any keep their schema unchanged.
  */
 function registerChannelScopedCustomFields(config: VendureConfig, entityName: string) {
-    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.scope === 'channel');
+    const channelScoped = getChannelScopedCustomFields(config.customFields, entityName);
     if (!channelScoped.length) {
         return;
     }
@@ -574,7 +576,7 @@ function guardChannelScopedCustomFields(
     entityName: string,
     customFieldsClass: Type<any>,
 ) {
-    const channelScoped = (config.customFields?.[entityName] ?? []).filter(f => f.scope === 'channel');
+    const channelScoped = getChannelScopedCustomFields(config.customFields, entityName);
     for (const field of channelScoped) {
         const names =
             field.type === 'relation' && !field.list ? [field.name, `${field.name}Id`] : [field.name];

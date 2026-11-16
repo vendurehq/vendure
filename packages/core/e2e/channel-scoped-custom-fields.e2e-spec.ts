@@ -10,13 +10,16 @@ import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constant
 import {
     Asset,
     ChannelAssignmentService,
+    CollectionService,
     DefaultEncryptionStrategy,
     EntityHydrator,
     FastImporterService,
     mergeConfig,
+    Order,
     Product,
     ProductService,
     ProductVariantService,
+    Promotion,
     RequestContextService,
     StockLocationService,
     TransactionalConnection,
@@ -40,6 +43,9 @@ declare module '@vendure/core/dist/entity/custom-entity-fields' {
         channelApiKey: string | null;
         channelSpecs: { label: string; rank: number } | null;
         channelGallery: Asset[];
+    }
+    interface CustomOrderFields {
+        channelLabel: string | null;
     }
     interface CustomStockLocationFields {
         channelLabel: string | null;
@@ -283,6 +289,10 @@ describe('Channel-scoped custom fields (#490)', () => {
                         nullable: true,
                     },
                 ],
+                // Entities which OrderService locks, and which CollectionService queries with GROUP BY
+                Order: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
+                Promotion: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
+                Collection: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
                 StockLocation: [{ name: 'channelLabel', type: 'string', scope: 'channel', nullable: true }],
                 Customer: [{ name: 'channelNickname', type: 'string', scope: 'channel', nullable: true }],
             },
@@ -1036,6 +1046,54 @@ describe('Channel-scoped custom fields (#490)', () => {
         expect(await product.getChannelCustomFields(ctxB)).toEqual(
             expect.objectContaining({ channelNote: 'B note', channelFeaturedAssetId: null }),
         );
+    });
+
+    // Postgres rejects FOR UPDATE on the nullable side of an outer join, and needs the selected
+    // columns in the GROUP BY, so such queries must not join the assignment row
+    it('queries with a lock or a GROUP BY work for entities with channel-scoped fields', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const connection = server.app.get(TransactionalConnection);
+
+        // As CollectionService.getCollectionsByProductId(), which serves Product.collections
+        const collections = await server.app.get(CollectionService).getCollectionsByProductId(ctx, 1, false);
+        expect(Array.isArray(collections)).toBe(true);
+
+        // As OrderService locks Promotions and Orders. Locks are not supported by sqljs.
+        if (process.env.DB && process.env.DB !== 'sqljs') {
+            await connection.withTransaction(ctx, async txCtx => {
+                const promotions = await connection
+                    .getRepository(txCtx, Promotion)
+                    .createQueryBuilder('promotion')
+                    .setLock('pessimistic_write')
+                    .getMany();
+                expect(Array.isArray(promotions)).toBe(true);
+                const order = await connection
+                    .getRepository(txCtx, Order)
+                    .findOne({ where: { id: 1 }, lock: { mode: 'pessimistic_write' } });
+                expect(order === null || order.customFields.channelLabel === null).toBe(true);
+            });
+        }
+    });
+
+    it('findOne() keeps the contract of TypeORM', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const repo = server.app.get(TransactionalConnection).getRepository(ctx, Product);
+        await expect(repo.findOne({})).rejects.toThrow(
+            'You must provide selection conditions in order to find a single row.',
+        );
+        const product = await repo.findOne({ where: { enabled: true }, relations: { variants: true } });
+        expect(product).toBeDefined();
+    });
+
+    it('saving a plain object writes its channel-scoped values', async () => {
+        const ctxB = await server.app
+            .get(RequestContextService)
+            .create({ apiType: 'admin', channelOrToken: CHANNEL_B_TOKEN });
+        const repo = server.app.get(TransactionalConnection).getRepository(ctxB, Product);
+        await repo.save({ id: 1, customFields: { channelNote: 'plain object' } } as any);
+        const product = await repo.findOne({ where: { id: 1 } });
+        expect(product!.customFields.channelNote).toBe('plain object');
+        await repo.save({ id: 1, customFields: { channelNote: 'B note' } } as any);
     });
 
     it('reads null for an entity which is not assigned to the Channel', async () => {

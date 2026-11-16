@@ -39,10 +39,11 @@ export interface ChannelCustomFieldsOptions<Fields> {
 }
 
 /**
- * Reads the channel-scoped custom fields of an entity. Implemented by the ChannelAssignmentService,
- * which registers itself on bootstrap, so that entity classes can read them without importing it.
+ * Reads and writes the channel-scoped custom fields of entities. Implemented by the
+ * ChannelAssignmentService, which registers itself on bootstrap, so that entity classes and the
+ * TransactionalConnection can use it without importing it.
  */
-interface ChannelCustomFieldsReader {
+interface ChannelCustomFieldsStore {
     getChannelCustomFields(
         ctx: RequestContext,
         entityType: Type<any>,
@@ -50,32 +51,32 @@ interface ChannelCustomFieldsReader {
         options?: ChannelCustomFieldsOptions<any>,
     ): Promise<Record<string, unknown> | undefined>;
     applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void>;
-    persistChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void>;
+    persistChannelCustomFields(ctx: RequestContext, result: unknown, entityType?: unknown): Promise<void>;
 }
 
 /**
- * The readers of the apps bootstrapped in this process, e.g. a server and a worker. Like
+ * The stores of the apps bootstrapped in this process, e.g. a server and a worker. Like
  * `getConfig()`, reads are process-wide: the most recently bootstrapped app which is still running
  * serves them.
  */
-const readers: ChannelCustomFieldsReader[] = [];
+const stores: ChannelCustomFieldsStore[] = [];
 
 /**
  * @internal
  * Called by the ChannelAssignmentService on bootstrap.
  */
-export function registerChannelCustomFieldsReader(value: ChannelCustomFieldsReader) {
-    readers.push(value);
+export function registerChannelCustomFieldsStore(value: ChannelCustomFieldsStore) {
+    stores.push(value);
 }
 
 /**
  * @internal
  * Called by the ChannelAssignmentService on shutdown, so that a closed app no longer serves reads.
  */
-export function unregisterChannelCustomFieldsReader(value: ChannelCustomFieldsReader) {
-    const index = readers.lastIndexOf(value);
+export function unregisterChannelCustomFieldsStore(value: ChannelCustomFieldsStore) {
+    const index = stores.lastIndexOf(value);
     if (index !== -1) {
-        readers.splice(index, 1);
+        stores.splice(index, 1);
     }
 }
 
@@ -89,8 +90,8 @@ export async function readChannelCustomFields<Fields>(
     entity: { id: ID },
     options?: ChannelCustomFieldsOptions<Fields>,
 ): Promise<Fields | undefined> {
-    const reader = readers[readers.length - 1];
-    if (!reader) {
+    const store = stores[stores.length - 1];
+    if (!store) {
         throw new InternalServerError(
             `Cannot read the channel-scoped custom fields of ${entityType.name} before the app has bootstrapped`,
         );
@@ -99,7 +100,7 @@ export async function readChannelCustomFields<Fields>(
         // Not saved yet, so not assigned to any Channel
         return undefined;
     }
-    return (await reader.getChannelCustomFields(ctx, entityType, entity, options)) as Fields | undefined;
+    return (await store.getChannelCustomFields(ctx, entityType, entity, options)) as Fields | undefined;
 }
 
 /**
@@ -109,9 +110,9 @@ export async function readChannelCustomFields<Fields>(
  * entities of its loaded relations). Called by the TransactionalConnection after reads.
  */
 export async function applyChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
-    const reader = readers[readers.length - 1];
-    if (reader) {
-        await reader.applyChannelCustomFields(ctx, result);
+    const store = stores[stores.length - 1];
+    if (store) {
+        await store.applyChannelCustomFields(ctx, result);
     }
 }
 
@@ -120,9 +121,13 @@ export async function applyChannelCustomFields(ctx: RequestContext, result: unkn
  * Writes the channel-scoped custom field values which have changed on the `customFields` of the
  * saved entities to the Channel of `ctx`. Called by the TransactionalConnection after `save()`.
  */
-export async function persistChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
-    const reader = readers[readers.length - 1];
-    if (reader) {
-        await reader.persistChannelCustomFields(ctx, result);
+export async function persistChannelCustomFields(
+    ctx: RequestContext,
+    result: unknown,
+    entityType?: unknown,
+): Promise<void> {
+    const store = stores[stores.length - 1];
+    if (store) {
+        await store.persistChannelCustomFields(ctx, result, entityType);
     }
 }

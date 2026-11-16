@@ -62,16 +62,10 @@ export class ProductOptionGroup
 
     /**
      * @description
-     * Returns the values of the ProductOptionGroup's channel-scoped custom fields in the active Channel of
-     * the RequestContext (or `options.channelId`), or `undefined` if the ProductOptionGroup is not assigned to
-     * that Channel.
-     *
-     * They are also set on `customFields` when the ProductOptionGroup is loaded with a RequestContext (e.g. by an
-     * entity service). This method reads them for a ProductOptionGroup loaded without one, in another Channel, or
-     * with relation fields.
-     *
-     * Relation fields are only set if listed in `options.relations`. Calls without relations made
-     * in the same tick are batched into one query.
+     * Returns the values of the ProductOptionGroup's channel-scoped custom fields in a Channel, or `undefined` if
+     * it is not assigned to that Channel. A ProductOptionGroup loaded with a RequestContext already has the
+     * values of its Channel on `customFields`: see {@link ChannelAssignmentService.getChannelCustomFields}
+     * for when to use this method, and its options.
      *
      * @since 4.0.0
      */

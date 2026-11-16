@@ -18,8 +18,8 @@ import {
 } from '../../../entity/channel-assignment/channel-assignment-registry';
 import {
     ChannelCustomFieldsOptions,
-    registerChannelCustomFieldsReader,
-    unregisterChannelCustomFieldsReader,
+    registerChannelCustomFieldsStore,
+    unregisterChannelCustomFieldsStore,
 } from '../../../entity/channel-assignment/channel-custom-fields';
 
 /**
@@ -87,12 +87,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
      */
     onApplicationBootstrap() {
         validateChannelAssignmentMetadata(this.connection.rawConnection.entityMetadatas);
-        // Serves `getChannelCustomFields()` on entities such as Product
-        registerChannelCustomFieldsReader(this);
+        // Serves `getChannelCustomFields()` on entities such as Product, and the reads and writes of
+        // channel-scoped custom fields by the TransactionalConnection
+        registerChannelCustomFieldsStore(this);
     }
 
     onApplicationShutdown() {
-        unregisterChannelCustomFieldsReader(this);
+        unregisterChannelCustomFieldsStore(this);
     }
 
     /**
@@ -352,9 +353,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
      * Channel by default), or `undefined` if the entity is not assigned to that Channel. Relation
      * fields are only set if they are listed in `options.relations`.
      *
-     * Entities expose this as a typed method, e.g. `product.getChannelCustomFields(ctx)`.
-     * Reads without relations are batched, and reuse a row loaded by a ListQueryBuilder list with
-     * the `loadChannelAssignment` option.
+     * Entities expose this as a typed method, e.g. `product.getChannelCustomFields(ctx)`. An entity
+     * loaded with a RequestContext already has the values of its Channel on `customFields`, so this
+     * is for reading the values of another Channel (`options.channelId`), loading relation fields,
+     * or reading the values of an entity loaded without a RequestContext.
+     *
+     * Reads without relations made in the same tick are batched into one query, and reuse the row
+     * loaded with the entity, if any.
      */
     async getChannelCustomFields(
         ctx: RequestContext,
@@ -468,8 +473,13 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
                 }
             }
             for (const [id, entities] of byId) {
-                const values = rows.get(id)?.customFields;
+                const row = rows.get(id);
+                const values = row?.customFields;
                 for (const entity of entities) {
+                    if (row) {
+                        // So that getChannelCustomFields() and the GraphQL resolver reuse it
+                        entity[LOADED_CHANNEL_ASSIGNMENT_PROPERTY] = row;
+                    }
                     const customFields = entity.customFields ?? (entity.customFields = {});
                     const loaded: Record<string, string> = {};
                     for (const name of names) {
@@ -524,17 +534,23 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
      *
      * @since 4.0.0
      */
-    async persistChannelCustomFields(ctx: RequestContext, result: unknown): Promise<void> {
+    async persistChannelCustomFields(
+        ctx: RequestContext,
+        result: unknown,
+        entityType?: AnyEntity,
+    ): Promise<void> {
         const channelId = ctx.channelId;
         const fieldsByType = this.getChannelScopedFieldsByType();
         if (channelId == null || !fieldsByType.size || result == null) {
             return;
         }
+        // Entities, or plain objects with an id saved with the repository of `entityType`
         const entities = (Array.isArray(result) ? result : [result]).filter(
-            (e): e is VendureEntity => e instanceof VendureEntity && e.id != null,
+            (e): e is { id: ID; customFields?: Record<string, any> } =>
+                e != null && typeof e === 'object' && (e as any).id != null,
         );
         for (const entity of entities) {
-            const type = entity.constructor as AnyEntity;
+            const type = (entity instanceof VendureEntity ? entity.constructor : entityType) as AnyEntity;
             const fields = fieldsByType.get(type);
             const customFields: Record<string, any> | undefined = (entity as any).customFields;
             if (!fields || !customFields) {
@@ -582,15 +598,55 @@ export class ChannelAssignmentService implements OnApplicationBootstrap, OnAppli
                 // Replace the row loaded with the entity, which getChannelCustomFields() would reuse
                 (entity as any)[LOADED_CHANNEL_ASSIGNMENT_PROPERTY] = row;
             }
-            this.loadedChannelValues.set(customFields, {
-                ...loaded,
-                ...Object.fromEntries(
-                    fields.columns
-                        .filter(has)
-                        .map(name => [name, JSON.stringify(customFields[name] ?? null)]),
-                ),
-            });
+            const written: Record<string, string> = { ...loaded };
+            for (const name of fields.columns.filter(has)) {
+                written[name] = JSON.stringify(customFields[name] ?? null);
+            }
+            for (const name of fields.singleRelations.filter(relation => relation in values)) {
+                written[`${name}Id`] = JSON.stringify((values[name] as { id: ID } | null)?.id ?? null);
+            }
+            this.loadedChannelValues.set(customFields, written);
         }
+    }
+
+    /**
+     * @description
+     * Leaves out of `values` (channel-scoped custom field values to write, keyed by field name, with
+     * single relations given as the related entity or `null`) those which the entity's `customFields`
+     * already holds as written to the Channel: by a `save()` through the TransactionalConnection (see
+     * {@link ChannelAssignmentService.persistChannelCustomFields}), or as loaded. So that entity
+     * services, which also write the values of their input, do not write them twice.
+     *
+     * @internal
+     */
+    withoutPersistedValues(
+        ctx: RequestContext,
+        entity: object,
+        channelId: ID,
+        values: Record<string, unknown>,
+    ): Record<string, unknown> {
+        const customFields: object | undefined = (entity as any).customFields;
+        const persisted = customFields && this.loadedChannelValues.get(customFields);
+        if (!persisted || !idsAreEqual(channelId, ctx.channelId)) {
+            return values;
+        }
+        const result: Record<string, unknown> = {};
+        for (const [name, value] of Object.entries(values)) {
+            if (Array.isArray(value)) {
+                // List relations are not tracked
+                result[name] = value;
+                continue;
+            }
+            const isRelation =
+                (value != null && typeof value === 'object' && 'id' in value) || `${name}Id` in persisted;
+            const json = isRelation
+                ? JSON.stringify((value as { id: ID } | null)?.id ?? null)
+                : JSON.stringify(value ?? null);
+            if (persisted[isRelation ? `${name}Id` : name] !== json) {
+                result[name] = value;
+            }
+        }
+        return result;
     }
 
     /**

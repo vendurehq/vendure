@@ -6,7 +6,7 @@ import { EntityMetadata, SelectQueryBuilder } from 'typeorm';
 import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError } from '../../../common/error/errors';
 import { ConfigService } from '../../../config/config.service';
-import { CustomFields } from '../../../config/custom-field/custom-field-types';
+import { CustomFields, isChannelScopedCustomField } from '../../../config/custom-field/custom-field-types';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
@@ -202,7 +202,7 @@ export class EntityHydrator {
                     const field = this.configService.customFields[entityName as keyof CustomFields]?.find(
                         f => f.name === segments[i + 1],
                     );
-                    if (field?.scope === 'channel') {
+                    if (field && isChannelScopedCustomField(field)) {
                         throw new InternalServerError(
                             `Cannot hydrate "${path}": "${field.name}" is a channel-scoped custom field of ` +
                                 `${entityName}, which is not stored on the entity. Read it with ` +

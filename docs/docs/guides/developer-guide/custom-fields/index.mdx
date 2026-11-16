@@ -1,7 +1,7 @@
 ---
 title: 'Custom Fields'
-metaTitle: 'Adding Custom Fields to Vendure Entities'
-metaDescription: 'Extend Vendure entities like Product, Customer, and Order with custom data fields. Covers field types, validation, UI configuration, and relational fields.'
+metaTitle: "Adding Custom Fields to Vendure Entities"
+metaDescription: "Extend Vendure entities like Product, Customer, and Order with custom data fields. Covers field types, validation, UI configuration, and relational fields."
 order: 3
 ---
 
@@ -9,11 +9,11 @@ Custom fields allow you to add your own custom data properties to almost every V
 
 Some use-cases for custom fields include:
 
-- Storing the weight, dimensions or other product-specific data on the `ProductVariant` entity.
-- Storing additional product codes on the `ProductVariant` entity such as ISBN or GTIN.
-- Adding a `downloadable` flag to the `Product` entity to indicate whether the product is a digital download.
-- Storing an external identifier (e.g. from a payment provider) on the `Customer` entity.
-- Adding a longitude and latitude to the `StockLocation` for use in selecting the closest location to a customer.
+* Storing the weight, dimensions or other product-specific data on the `ProductVariant` entity.
+* Storing additional product codes on the `ProductVariant` entity such as ISBN or GTIN.
+* Adding a `downloadable` flag to the `Product` entity to indicate whether the product is a digital download.
+* Storing an external identifier (e.g. from a payment provider) on the `Customer` entity.
+* Adding a longitude and latitude to the `StockLocation` for use in selecting the closest location to a customer.
 
 :::note
 Custom fields are not solely restricted to Vendure's native entities though, it's also possible to add support for custom fields to your own custom entities. See: [Supporting custom fields](/developer-guide/database-entity/#supporting-custom-fields)
@@ -32,7 +32,9 @@ const config = {
             { name: 'downloadable', type: 'boolean' },
             { name: 'shortName', type: 'localeString' },
         ],
-        User: [{ name: 'socialLoginToken', type: 'string', unique: true }],
+        User: [
+            { name: 'socialLoginToken', type: 'string', unique: true },
+        ],
     },
 };
 ```
@@ -47,28 +49,25 @@ With the example config above, the following will occur:
 
 The values of the custom fields can then be set and queried via the GraphQL APIs:
 
+
 <Tabs>
 <TabItem value="Request" label="Request" default>
 
 ```graphql
 mutation {
-    updateProduct(
-        input: {
-            id: 1
-            customFields: {
-                # [!code highlight]
-                infoUrl: "https://some-url.com" # [!code highlight]
-                downloadable: true # [!code highlight]
-            } # [!code highlight]
-            translations: [
-                { languageCode: en, customFields: { shortName: "foo" } } # [!code highlight]
-            ]
-        }
-    ) {
+    updateProduct(input: {
+        id: 1
+        customFields: { # [!code highlight]
+        infoUrl: "https://some-url.com", # [!code highlight]
+        downloadable: true, # [!code highlight]
+        } # [!code highlight]
+        translations: [
+        { languageCode: en, customFields: { shortName: "foo" } } # [!code highlight]
+        ]
+        }) {
         id
         name
-        customFields {
-            # [!code highlight]
+        customFields { # [!code highlight]
             infoUrl # [!code highlight]
             downloadable # [!code highlight]
             shortName # [!code highlight]
@@ -103,24 +102,19 @@ The custom fields will also extend the filter and sort options available to the 
 
 ```graphql
 query {
-    products(
-        options: {
-            filter: {
-                # [!code highlight]
-                infoUrl: { contains: "new" } # [!code highlight]
-                downloadable: { eq: true } # [!code highlight]
-            } # [!code highlight]
-            sort: {
-                # [!code highlight]
-                infoUrl: ASC # [!code highlight]
-            } # [!code highlight]
-        }
-    ) {
+    products(options: {
+    filter: { # [!code highlight]
+        infoUrl: { contains: "new" }, # [!code highlight]
+        downloadable: { eq: true } # [!code highlight]
+        }, # [!code highlight]
+        sort: { # [!code highlight]
+            infoUrl: ASC # [!code highlight]
+        } # [!code highlight]
+        }) {
         items {
             id
             name
-            customFields {
-                # [!code highlight]
+            customFields { # [!code highlight]
                 infoUrl # [!code highlight]
                 downloadable # [!code highlight]
                 shortName # [!code highlight]
@@ -135,7 +129,7 @@ query {
 The following types are available for custom fields:
 
 | Type           | Description                  | Example                                                  |
-| -------------- | ---------------------------- | -------------------------------------------------------- |
+|----------------|------------------------------|----------------------------------------------------------|
 | `string`       | Short string data            | url, label                                               |
 | `localeString` | Localized short strings      | localized url                                            |
 | `text`         | Long text data               | extended product info, json config object                |
@@ -172,7 +166,12 @@ In this example, we set up a many-to-one relationship from Customer to Asset, al
 
 ```graphql
 mutation {
-    updateCustomer(input: { id: 1, customFields: { avatarId: 42 } }) {
+    updateCustomer(input: {
+        id: 1
+        customFields: {
+            avatarId: 42,
+        }
+    }) {
         id
         customFields {
             avatar {
@@ -223,8 +222,8 @@ const customer = await this.connection.getRepository(ctx, Customer).findOne({
     relations: {
         customFields: {
             avatar: true,
-        },
-    },
+        }
+    }
 });
 console.log(customer.avatar);
 ```
@@ -232,9 +231,7 @@ console.log(customer.avatar);
 or if using the QueryBuilder API:
 
 ```ts
-const customer = await this.connection
-    .getRepository(ctx, Customer)
-    .createQueryBuilder('customer')
+const customer = await this.connection.getRepository(ctx, Customer).createQueryBuilder('customer')
     .leftJoinAndSelect('customer.customFields.avatar', 'avatar')
     .where('customer.id = :id', { id: 1 })
     .getOne();
@@ -305,7 +302,14 @@ In list queries, the id field can also be used to filter and sort:
 
 ```graphql
 query {
-    products(options: { filter: { ownerId: { eq: "42" } }, sort: { ownerId: ASC } }) {
+    products(options: {
+        filter: {
+            ownerId: { eq: "42" }
+        }
+        sort: {
+            ownerId: ASC
+        }
+    }) {
         items {
             id
         }
@@ -396,7 +400,7 @@ All custom fields share some common properties:
 
 #### name
 
-<CustomFieldProperty required={true} type="string" />
+<CustomFieldProperty required={true} type="string"/>
 
 The name of the field. This is used as the column name in the database, and as the GraphQL field name. The name should not contain spaces and by convention should be camelCased.
 
@@ -407,20 +411,16 @@ const config = {
         Product: [
             {
                 name: 'infoUrl', // [!code highlight]
-                type: 'string',
+                type: 'string'
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
 #### type
 
-<CustomFieldProperty
-    required={true}
-    type="CustomFieldType"
-    typeLink="/reference/typescript-api/custom-fields/custom-field-type"
-/>
+<CustomFieldProperty required={true} type="CustomFieldType" typeLink="/reference/typescript-api/custom-fields/custom-field-type"/>
 
 The type of data that will be stored in the field.
 
@@ -440,24 +440,20 @@ const config = {
                 type: 'string',
                 list: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
 Setting a custom field to be a list has the following effects:
 
-- The GraphQL type will be an array of the specified type.
-- The Dashboard will display a list of inputs for the field.
-- For lists of primitive types (anything except `relation`), the database type will be set to `simple-json` which serializes the data into a JSON string. For lists of `relation` types, a separate many-to-many table will be created.
+* The GraphQL type will be an array of the specified type.
+* The Dashboard will display a list of inputs for the field.
+* For lists of primitive types (anything except `relation`), the database type will be set to `simple-json` which serializes the data into a JSON string. For lists of `relation` types, a separate many-to-many table will be created.
 
 #### label
 
-<CustomFieldProperty
-    required={false}
-    type="LocalizedStringArray"
-    typeLink="/reference/typescript-api/configurable-operation-def/localized-string-array"
-/>
+<CustomFieldProperty required={false} type="LocalizedStringArray" typeLink="/reference/typescript-api/configurable-operation-def/localized-string-array"/>
 
 An array of localized labels for the field. These are used in the Dashboard to label the field.
 
@@ -471,25 +467,20 @@ const config = {
             {
                 name: 'infoUrl',
                 type: 'string',
-                label: [
-                    // [!code highlight]
+                label: [ // [!code highlight]
                     { languageCode: LanguageCode.en, value: 'Info URL' }, // [!code highlight]
                     { languageCode: LanguageCode.de, value: 'Info-URL' }, // [!code highlight]
                     { languageCode: LanguageCode.es, value: 'URL de información' }, // [!code highlight]
                 ], // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
 #### description
 
-<CustomFieldProperty
-    required={false}
-    type="LocalizedStringArray"
-    typeLink="/reference/typescript-api/configurable-operation-def/localized-string-array"
-/>
+<CustomFieldProperty required={false} type="LocalizedStringArray" typeLink="/reference/typescript-api/configurable-operation-def/localized-string-array"/>
 
 An array of localized descriptions for the field. These are used in the Dashboard to describe the field.
 
@@ -503,18 +494,14 @@ const config = {
             {
                 name: 'infoUrl',
                 type: 'string',
-                description: [
-                    // [!code highlight]
+                description: [ // [!code highlight]
                     { languageCode: LanguageCode.en, value: 'A URL to more information about the product' }, // [!code highlight]
-                    {
-                        languageCode: LanguageCode.de,
-                        value: 'Eine URL zu weiteren Informationen über das Produkt',
-                    }, // [!code highlight]
+                    { languageCode: LanguageCode.de, value: 'Eine URL zu weiteren Informationen über das Produkt' }, // [!code highlight]
                     { languageCode: LanguageCode.es, value: 'Una URL con más información sobre el producto' }, // [!code highlight]
                 ], // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -534,8 +521,8 @@ const config = {
                 type: 'int',
                 public: false, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -556,8 +543,8 @@ const config = {
                 type: 'int',
                 readonly: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -579,8 +566,8 @@ const config = {
                 type: 'string',
                 internal: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -601,8 +588,8 @@ const config = {
                 type: 'float',
                 defaultValue: 0, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -623,8 +610,8 @@ const config = {
                 nullable: false, // [!code highlight]
                 defaultValue: 0, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -645,8 +632,8 @@ const config = {
                 type: 'string',
                 unique: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -673,17 +660,14 @@ const config = {
                 type: 'string',
                 index: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
 #### validate
 
-<CustomFieldProperty
-    required={false}
-    type="(value: any, injector: Injector, ctx: RequestContext) => string | LocalizedString[] | void"
-/>
+<CustomFieldProperty required={false} type="(value: any, injector: Injector, ctx: RequestContext) => string | LocalizedString[] | void" />
 
 A custom validation function. If the value is valid, then the function should not return a value. If a string or LocalizedString array is returned, this is interpreted as an error message.
 
@@ -699,16 +683,13 @@ const config = {
             {
                 name: 'infoUrl',
                 type: 'string',
-                validate: (value: any) => {
-                    // [!code highlight]
-                    if (!value.startsWith('http')) {
-                        // [!code highlight]
+                validate: (value: any) => { // [!code highlight]
+                    if (!value.startsWith('http')) { // [!code highlight]
                         // If a localized error message is not required, a simple string can be returned. // [!code highlight]
                         // return 'The URL must start with "http"'; // [!code highlight]
-                        // [!code highlight]
+ // [!code highlight]
                         // If a localized error message is required, return an array of LocalizedString objects. // [!code highlight]
-                        return [
-                            // [!code highlight]
+                        return [ // [!code highlight]
                             { languageCode: LanguageCode.en, value: 'The URL must start with "http"' }, // [!code highlight]
                             { languageCode: LanguageCode.de, value: 'Die URL muss mit "http" beginnen' }, // [!code highlight]
                             { languageCode: LanguageCode.es, value: 'La URL debe comenzar con "http"' }, // [!code highlight]
@@ -716,8 +697,8 @@ const config = {
                     } // [!code highlight]
                 }, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -731,18 +712,16 @@ const config = {
             {
                 name: 'partCode',
                 type: 'string',
-                validate: async (value, injector, ctx) => {
-                    // [!code highlight]
+                validate: async (value, injector, ctx) => { // [!code highlight]
                     const partCodeService = injector.get(PartCodeService); // [!code highlight]
                     const isValid = await partCodeService.validateCode(value); // [!code highlight]
-                    if (!isValid) {
-                        // [!code highlight]
+                    if (!isValid) { // [!code highlight]
                         return `Part code ${value} is not valid`; // [!code highlight]
                     } // [!code highlight]
                 }, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -778,14 +757,13 @@ const config = {
                 // You can also use an array of permissions,  // [!code highlight]
                 // and the user must have at least one of the permissions // [!code highlight]
                 // to access the field. // [!code highlight]
-                requiresPermission: [
-                    // [!code highlight]
+                requiresPermission: [ // [!code highlight]
                     Permission.SuperAdmin, // [!code highlight]
                     Permission.ReadShippingMethod, // [!code highlight]
                 ], // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -819,8 +797,8 @@ const config = {
                 type: 'string',
                 secret: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -851,8 +829,8 @@ const config = {
                 type: 'string',
                 deprecated: 'Use the new infoUrl field instead', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -948,8 +926,8 @@ const config = {
                 type: 'string',
                 pattern: '^\d{8}(?:\d{4,6})?$', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -969,14 +947,13 @@ const config = {
             {
                 name: 'condition',
                 type: 'string',
-                options: [
-                    // [!code highlight]
+                options: [ // [!code highlight]
                     { value: 'new', label: [{ languageCode: LanguageCode.en, value: 'New' }] }, // [!code highlight]
                     { value: 'used', label: [{ languageCode: LanguageCode.en, value: 'Used' }] }, // [!code highlight]
                 ], // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -998,8 +975,8 @@ const config = {
                 type: 'string',
                 length: 20, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1046,8 +1023,8 @@ const config = {
                 type: 'int',
                 min: 0, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1067,8 +1044,8 @@ const config = {
                 type: 'int',
                 max: 5, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1088,8 +1065,8 @@ const config = {
                 type: 'int',
                 step: 0.5, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1119,8 +1096,8 @@ const config = {
                 type: 'datetime',
                 min: '2019-01-01T00:00:00.000Z', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1140,8 +1117,8 @@ const config = {
                 type: 'datetime',
                 max: '2019-12-31T23:59:59.999Z', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1163,11 +1140,7 @@ In addition to the common properties, the `struct` custom fields have some type-
 
 #### fields
 
-<CustomFieldProperty
-    required={true}
-    type="StructFieldConfig[]"
-    typeLink="/reference/typescript-api/custom-fields/struct-field-config"
-/>
+<CustomFieldProperty required={true} type="StructFieldConfig[]" typeLink="/reference/typescript-api/custom-fields/struct-field-config" />
 
 A `struct` is a data structure comprising a set of named fields, each with its own type. The `fields` property is an array of `StructFieldConfig` objects, each of which defines a field within the struct.
 
@@ -1179,15 +1152,14 @@ const config = {
             {
                 name: 'dimensions',
                 type: 'struct',
-                fields: [
-                    // [!code highlight]
+                fields: [ // [!code highlight]
                     { name: 'length', type: 'int' }, // [!code highlight]
                     { name: 'width', type: 'int' }, // [!code highlight]
                     { name: 'height', type: 'int' }, // [!code highlight]
                 ], // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1228,8 +1200,7 @@ const config = {
                     {
                         name: 'color',
                         type: 'string',
-                        options: [
-                            // [!code highlight]
+                        options: [ // [!code highlight]
                             { value: 'red', label: [{ languageCode: LanguageCode.en, value: 'Red' }] }, // [!code highlight]
                             { value: 'blue', label: [{ languageCode: LanguageCode.en, value: 'Blue' }] }, // [!code highlight]
                         ], // [!code highlight]
@@ -1237,10 +1208,8 @@ const config = {
                     {
                         name: 'engraving',
                         type: 'string',
-                        validate: (value: any) => {
-                            // [!code highlight]
-                            if (value.length > 20) {
-                                // [!code highlight]
+                        validate: (value: any) => { // [!code highlight]
+                            if (value.length > 20) { // [!code highlight]
                                 return 'Engraving text must be 20 characters or fewer'; // [!code highlight]
                             } // [!code highlight]
                         }, // [!code highlight]
@@ -1249,11 +1218,11 @@ const config = {
                         name: 'notifyEmailAddresses',
                         type: 'string',
                         list: true, // [!code highlight]
-                    },
+                    }
                 ],
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1271,11 +1240,8 @@ In addition to the common properties, the `relation` custom fields have some typ
 
 #### entity
 
-<CustomFieldProperty
-    required={true}
-    type="VendureEntity"
-    typeLink="/reference/typescript-api/entities/vendure-entity"
-/>
+<CustomFieldProperty required={true} type="VendureEntity" typeLink="/reference/typescript-api/entities/vendure-entity" />
+
 
 The entity which this custom field is referencing. This can be one of the built-in entities, or a custom entity. If the entity is a custom entity, it must extend the `VendureEntity` class.
 
@@ -1292,8 +1258,8 @@ const config = {
                 type: 'relation', // [!code highlight]
                 entity: Product, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1317,8 +1283,8 @@ const config = {
                 entity: Product,
                 eager: true, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1342,8 +1308,8 @@ const config = {
                 entity: CmsArticle,
                 graphQLType: 'BlogPost', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1371,8 +1337,8 @@ const config = {
                 entity: ProductReview,
                 inverseSide: (review: ProductReview) => review.product, // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1387,10 +1353,7 @@ const { productReviews } = await this.connection.getRepository(ProductReview).fi
 
 #### cascade
 
-<CustomFieldProperty
-    required={false}
-    type="boolean | ('insert' | 'update' | 'remove' | 'soft-remove' | 'recover')[]"
-/>
+<CustomFieldProperty required={false} type="boolean | ('insert' | 'update' | 'remove' | 'soft-remove' | 'recover')[]" />
 
 Whether to [cascade](https://typeorm.io/docs/relations/relations#cascade-options) operations on the relation. Defaults to `false`.
 
@@ -1409,17 +1372,13 @@ const config = {
                 entity: ProductReview,
                 cascade: ['insert', 'update'], // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
 #### onDelete
-
-<CustomFieldProperty
-    required={false}
-    type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'"
-/>
+<CustomFieldProperty required={false} type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'" />
 
 The [onDelete](https://typeorm.io/docs/relations/relations/) behavior for the relation. If not set, the database default (`NO ACTION`) applies.
 
@@ -1448,17 +1407,13 @@ const config = {
                 entity: ProductReview,
                 onDelete: 'SET NULL', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
 #### onUpdate
-
-<CustomFieldProperty
-    required={false}
-    type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'"
-/>
+<CustomFieldProperty required={false} type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'" />
 
 The [onUpdate](https://typeorm.io/docs/relations/relations/) behavior for the relation. If not set, the database default (`NO ACTION`) applies.
 
@@ -1479,8 +1434,8 @@ const config = {
                 entity: ProductReview,
                 onUpdate: 'CASCADE', // [!code highlight]
             },
-        ],
-    },
+        ]
+    }
 };
 ```
 
@@ -1510,7 +1465,7 @@ In the Dashboard, an appropriate default form input component is used for each c
 This table shows the default form input component used for each custom field type:
 
 | Type                     | Form input component                                                                         |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
+|--------------------------|----------------------------------------------------------------------------------------------|
 | `string`, `localeString` | `text-form-input` or, if options are defined, `select-form-input`                            |
 | `text`, `localeText`     | `textarea-form-input`                                                                        |
 | `int`, `float`           | `number-form-input`                                                                          |
@@ -1540,9 +1495,9 @@ const config = {
                 type: 'int',
                 ui: { component: 'currency-form-input' }, // [!code highlight]
             },
-        ],
-    },
-};
+        ]
+    }
+}
 ```
 
 Here's an example config demonstrating several ways to customize the UI controls for custom fields:
@@ -1602,7 +1557,7 @@ and the resulting UI:
 
 :::info
 
-The various configuration options for each of the built-in form input (e.g. `suffix`) is documented in the [`DefaultFormConfigHash` object](/reference/typescript-api/configurable-operation-def/default-form-config-hash/).
+The various configuration options for each of the built-in form input  (e.g. `suffix`) is documented in the [`DefaultFormConfigHash` object](/reference/typescript-api/configurable-operation-def/default-form-config-hash/).
 
 :::
 
@@ -1633,7 +1588,7 @@ const config = {
             { name: 'weight', type: 'int', ui: { tab: 'Shipping' } },
         ],
     },
-};
+}
 ```
 
 ## TypeScript Typings
@@ -1648,14 +1603,17 @@ Attempting to access the custom field will result in a TS compiler error:
 import { RequestContext, TransactionalConnection, ID, Product } from '@vendure/core';
 
 export class MyService {
-    constructor(private connection: TransactionalConnection) {}
+    constructor(private connection: TransactionalConnection) {
+    }
 
     async getInfoUrl(ctx: RequestContext, productId: ID) {
-        const product = await this.connection.getRepository(ctx, Product).findOne(productId);
+        const product = await this.connection
+            .getRepository(ctx, Product)
+            .findOne(productId);
 
         return product.customFields.infoUrl;
-    } // ^ TS2339: Property 'infoUrl'
-} // does not exist on type 'CustomProductFields'.
+    }                           // ^ TS2339: Property 'infoUrl'
+}                             // does not exist on type 'CustomProductFields'.
 ```
 
 The "easy" way to solve this is to assert the `customFields` object as `any`:

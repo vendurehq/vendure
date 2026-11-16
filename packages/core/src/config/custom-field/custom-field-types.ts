@@ -75,6 +75,20 @@ export function isChannelScopedCustomField(field: { scope?: CustomFieldScope }):
     return field.scope === 'channel';
 }
 
+/**
+ * @description
+ * Returns the channel-scoped custom fields (`scope: 'channel'`) of the given entity.
+ *
+ * @docsCategory custom-fields
+ * @since 4.0.0
+ */
+export function getChannelScopedCustomFields(
+    customFields: CustomFields | undefined,
+    entityName: string,
+): CustomFieldConfig[] {
+    return (customFields?.[entityName as keyof CustomFields] ?? []).filter(isChannelScopedCustomField);
+}
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :

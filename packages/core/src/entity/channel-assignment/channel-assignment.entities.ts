@@ -58,9 +58,8 @@ export class AssetChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Asset's channel-scoped custom fields in this Channel. Only present if
-     * the Asset has channel-scoped custom fields. Set on `asset.customFields` when the Asset
-     * is loaded with a RequestContext.
+     * The values of the Asset's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -86,9 +85,8 @@ export class ApiKeyChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ApiKey's channel-scoped custom fields in this Channel. Only present if
-     * the ApiKey has channel-scoped custom fields. Set on `apiKey.customFields` when the ApiKey
-     * is loaded with a RequestContext.
+     * The values of the ApiKey's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -113,9 +111,8 @@ export class CollectionChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Collection's channel-scoped custom fields in this Channel. Only present if
-     * the Collection has channel-scoped custom fields. Set on `collection.customFields` when the Collection
-     * is loaded with a RequestContext.
+     * The values of the Collection's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -140,9 +137,8 @@ export class CustomerChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Customer's channel-scoped custom fields in this Channel. Only present if
-     * the Customer has channel-scoped custom fields. Set on `customer.customFields` when the Customer
-     * is loaded with a RequestContext.
+     * The values of the Customer's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -167,9 +163,8 @@ export class FacetChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Facet's channel-scoped custom fields in this Channel. Only present if
-     * the Facet has channel-scoped custom fields. Set on `facet.customFields` when the Facet
-     * is loaded with a RequestContext.
+     * The values of the Facet's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -194,9 +189,8 @@ export class FacetValueChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the FacetValue's channel-scoped custom fields in this Channel. Only present if
-     * the FacetValue has channel-scoped custom fields. Set on `facetValue.customFields` when the FacetValue
-     * is loaded with a RequestContext.
+     * The values of the FacetValue's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -222,9 +216,8 @@ export class OrderChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Order's channel-scoped custom fields in this Channel. Only present if
-     * the Order has channel-scoped custom fields. Set on `order.customFields` when the Order
-     * is loaded with a RequestContext.
+     * The values of the Order's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -249,9 +242,8 @@ export class PaymentMethodChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the PaymentMethod's channel-scoped custom fields in this Channel. Only present if
-     * the PaymentMethod has channel-scoped custom fields. Set on `paymentMethod.customFields` when the PaymentMethod
-     * is loaded with a RequestContext.
+     * The values of the PaymentMethod's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -287,9 +279,8 @@ export class ProductChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Product's channel-scoped custom fields in this Channel. Only present if
-     * the Product has channel-scoped custom fields. Set on `product.customFields` when the Product
-     * is loaded with a RequestContext.
+     * The values of the Product's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -314,9 +305,8 @@ export class ProductOptionChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ProductOption's channel-scoped custom fields in this Channel. Only present if
-     * the ProductOption has channel-scoped custom fields. Set on `productOption.customFields` when the ProductOption
-     * is loaded with a RequestContext.
+     * The values of the ProductOption's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -341,9 +331,8 @@ export class ProductOptionGroupChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ProductOptionGroup's channel-scoped custom fields in this Channel. Only present if
-     * the ProductOptionGroup has channel-scoped custom fields. Set on `productOptionGroup.customFields` when the ProductOptionGroup
-     * is loaded with a RequestContext.
+     * The values of the ProductOptionGroup's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -379,9 +368,8 @@ export class ProductVariantChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ProductVariant's channel-scoped custom fields in this Channel. Only present if
-     * the ProductVariant has channel-scoped custom fields. Set on `productVariant.customFields` when the ProductVariant
-     * is loaded with a RequestContext.
+     * The values of the ProductVariant's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -406,9 +394,8 @@ export class PromotionChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the Promotion's channel-scoped custom fields in this Channel. Only present if
-     * the Promotion has channel-scoped custom fields. Set on `promotion.customFields` when the Promotion
-     * is loaded with a RequestContext.
+     * The values of the Promotion's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -433,9 +420,8 @@ export class ShippingMethodChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the ShippingMethod's channel-scoped custom fields in this Channel. Only present if
-     * the ShippingMethod has channel-scoped custom fields. Set on `shippingMethod.customFields` when the ShippingMethod
-     * is loaded with a RequestContext.
+     * The values of the ShippingMethod's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
@@ -460,9 +446,8 @@ export class StockLocationChannel extends ChannelAssignment {
 
     /**
      * @description
-     * The values of the StockLocation's channel-scoped custom fields in this Channel. Only present if
-     * the StockLocation has channel-scoped custom fields. Set on `stockLocation.customFields` when the StockLocation
-     * is loaded with a RequestContext.
+     * The values of the StockLocation's channel-scoped custom fields in this Channel. See
+     * {@link ChannelAssignment}.
      *
      * @since 4.0.0
      */
