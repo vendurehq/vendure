@@ -133,13 +133,13 @@ export default async function globalSetup() {
         customerCount: 5,
     });
 
-    // Seed a value for the readonly `relatedAsset` relation custom field on the first product
-    // (Laptop). Readonly relation custom fields are excluded from the GraphQL input types, so they
-    // cannot be set via the Admin API — set it directly here so #4902 (a custom form component
-    // reading the relation object) can be exercised on the product detail page.
+    // Seed the readonly relation custom fields of #4902 on the "laptop" product. Readonly custom
+    // fields are not in the GraphQL input types, so they cannot be set via the Admin API.
     const { Asset, Product, TransactionalConnection } = await import('@vendure/core');
     const dataSource = server.app.get(TransactionalConnection).rawConnection;
-    const [firstAsset] = await dataSource.getRepository(Asset).find({ take: 1, order: { id: 'ASC' } });
+    const [firstAsset, secondAsset] = await dataSource
+        .getRepository(Asset)
+        .find({ take: 2, order: { id: 'ASC' } });
     // Target the same product the e2e test opens (slug "laptop"), so seeding and assertion never
     // drift apart if the fixture CSV order changes.
     const laptop = await dataSource
@@ -148,10 +148,18 @@ export default async function globalSetup() {
         .leftJoin('product.translations', 'translation')
         .where('translation.slug = :slug', { slug: 'laptop' })
         .getOne();
-    if (firstAsset && laptop) {
-        (laptop.customFields as Record<string, unknown>).relatedAsset = firstAsset;
-        await dataSource.getRepository(Product).save(laptop);
+    if (!firstAsset || !secondAsset || !laptop) {
+        throw new Error(
+            'Could not seed the #4902 relation custom fields: two assets and the "laptop" product are needed',
+        );
     }
+    Object.assign(laptop.customFields as Record<string, unknown>, {
+        relatedAsset: firstAsset,
+        relatedAssets: [firstAsset, secondAsset],
+        relatedAssetBuiltIn: firstAsset,
+        relatedAssetPlain: firstAsset,
+    });
+    await dataSource.getRepository(Product).save(laptop);
 
     (globalThis as any).__VENDURE_SERVER__ = server;
 }

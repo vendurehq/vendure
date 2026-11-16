@@ -572,28 +572,51 @@ test.describe('Custom Fields', () => {
     });
 
     // #4902 — a custom form component registered for a readonly single `relation` custom field
-    // must receive the related entity *object* as `value` (without this it is `undefined`, because
-    // the form control binds to the scalar `<name>Id`, which is absent for a readonly relation).
-    // `relatedAsset` is seeded on the first product in global-setup.ts.
+    // receives the related entity *object* as `value`. The readonly relations are seeded on the
+    // "laptop" product in global-setup.ts, with the assets T_1 and T_2.
     test('readonly relation custom field exposes the relation object to its custom component', async ({
         page,
     }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
-        // Read path: the component renders `asset:<id>` from the relation object, not `none`.
         const badge = page.getByTestId('related-asset-cf');
-        await expect(badge).toBeVisible();
-        await expect(badge).toHaveText(/^asset:T_\d+$/);
+        await expect(badge).toHaveText('asset:T_1');
 
-        // Write path: saving an unrelated change must still succeed — the readonly relation object
-        // must not leak into the update mutation input (it is not a writeable field).
-        await dp.formItem('Info URL').getByRole('textbox').fill('https://example.com/oss-584');
+        // Saving an unrelated change still succeeds: the readonly relation object must not leak
+        // into the update mutation input, which has no such field.
+        await dp.formItem('Info URL').getByRole('textbox').fill('https://example.com/readonly-relation');
         await dp.clickUpdate();
         await dp.expectSuccessToast(/Successfully updated product/);
 
-        // The relation object is still exposed after the save.
-        await expect(badge).toHaveText(/^asset:T_\d+$/);
+        await expect(badge).toHaveText('asset:T_1');
+    });
+
+    // #4902 — the same for a readonly list relation: the component receives the objects.
+    test('readonly list relation custom field exposes the relation objects to its custom component', async ({
+        page,
+    }) => {
+        await goToFirstProduct(page);
+        await expect(page.getByTestId('related-assets-cf')).toHaveText('assets:T_1,T_2');
+    });
+
+    // #4902 — the built-in relation input, whether chosen by id or by default, receives the related
+    // entity id. Given the object, it would look up the id "[object Object]".
+    test('readonly relation custom fields rendered by the built-in input look up the related id', async ({
+        page,
+    }) => {
+        const relationLookups: string[] = [];
+        page.on('request', request => {
+            const body = request.postData();
+            if (request.url().includes('/admin-api') && body?.includes('[object Object]')) {
+                relationLookups.push(body);
+            }
+        });
+        await goToFirstProduct(page);
+        await expect(page.getByText('Related Asset Built In')).toBeVisible();
+        await expect(page.getByText('Related Asset Plain')).toBeVisible();
+        await page.waitForLoadState('networkidle');
+        expect(relationLookups).toEqual([]);
     });
 });
 

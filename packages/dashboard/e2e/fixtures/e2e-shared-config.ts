@@ -92,6 +92,37 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Related Asset' }],
             ui: { component: 'relation-cf.related-asset' },
         },
+        // #4902 — the same for a readonly list relation: the component receives the objects.
+        {
+            name: 'relatedAssets',
+            type: 'relation',
+            entity: Asset,
+            list: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Assets' }],
+            ui: { component: 'relation-cf.related-assets' },
+        },
+        // #4902 — readonly relations rendered by the built-in relation input, chosen by id and by
+        // default. The built-in input receives the related entity id, not the object.
+        {
+            name: 'relatedAssetBuiltIn',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset Built In' }],
+            ui: { component: 'relation-form-input' },
+        },
+        {
+            name: 'relatedAssetPlain',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset Plain' }],
+        },
         {
             // Used by the #4741 tests in catalog/custom-fields.spec.ts. Nullable, and the
             // pattern accepts the empty default, so other product tests are unaffected.

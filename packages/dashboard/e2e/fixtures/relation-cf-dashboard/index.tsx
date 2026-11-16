@@ -19,6 +19,16 @@ defineDashboardExtension({
                     <div data-testid="related-asset-cf">{value?.id ? `asset:${value.id}` : 'none'}</div>
                 ),
             },
+            {
+                id: 'relation-cf.related-assets',
+                component: ({ value }) => (
+                    <div data-testid="related-assets-cf">
+                        {Array.isArray(value) && value.length
+                            ? `assets:${value.map((asset: { id: string }) => asset.id).join(',')}`
+                            : 'none'}
+                    </div>
+                ),
+            },
         ],
     },
 });
