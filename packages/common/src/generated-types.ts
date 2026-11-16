@@ -2175,7 +2175,6 @@ export type GlobalSettings = {
   id: Scalars['ID']['output'];
   outOfStockThreshold: Scalars['Int']['output'];
   serverConfig: ServerConfig;
-  trackInventory: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -5421,6 +5420,12 @@ export type ProductVariant = Node & {
   taxCategory: TaxCategory;
   taxRateApplied: TaxRate;
   trackInventory: GlobalFlag;
+  /**
+   * Whether stock limits apply to this ProductVariant in the active Channel: false when any
+   * StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+   * sold and fulfilled without limit.
+   */
+  tracksInventory: Scalars['Boolean']['output'];
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
   useGlobalOutOfStockThreshold: Scalars['Boolean']['output'];
@@ -5455,6 +5460,12 @@ export type ProductVariantFilterParameter = {
   stockLevel?: InputMaybe<StringOperators>;
   stockOnHand?: InputMaybe<NumberOperators>;
   trackInventory?: InputMaybe<StringOperators>;
+  /**
+   * Whether stock limits apply to this ProductVariant in the active Channel: false when any
+   * StockLevel the StockLocationStrategy counts does not track inventory, so the variant can be
+   * sold and fulfilled without limit.
+   */
+  tracksInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
   useGlobalOutOfStockThreshold?: InputMaybe<BooleanOperators>;
 };
@@ -6903,12 +6914,27 @@ export type StockLevel = Node & {
   stockLocation: StockLocation;
   stockLocationId: Scalars['ID']['output'];
   stockOnHand: Scalars['Int']['output'];
+  /**
+   * Whether inventory is tracked for this ProductVariant at this StockLocation. INHERIT defers to
+   * the ProductVariant's `trackInventory`, and then to the Channel's.
+   */
+  trackInventory: GlobalFlag;
+  /**
+   * Whether inventory is tracked at this StockLevel in the active Channel, with INHERIT resolved
+   * against the ProductVariant and the Channel.
+   */
+  tracksInventory: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
 export type StockLevelInput = {
   stockLocationId: Scalars['ID']['input'];
-  stockOnHand: Scalars['Int']['input'];
+  /**
+   * Omit to leave the stock on hand unchanged, e.g. when only changing `trackInventory`.
+   * Required before v4.0.
+   */
+  stockOnHand?: InputMaybe<Scalars['Int']['input']>;
+  trackInventory?: InputMaybe<GlobalFlag>;
 };
 
 export type StockLocation = Node & {
@@ -7485,7 +7511,6 @@ export type UpdateGlobalSettingsInput = {
   availableLanguages?: InputMaybe<Array<LanguageCode>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
-  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type UpdateGlobalSettingsResult = ChannelDefaultLanguageError | GlobalSettings;

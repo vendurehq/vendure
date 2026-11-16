@@ -32,6 +32,7 @@ export * from './catalog/product-variant-price-update-strategy';
 export * from './catalog/product-variant-buyer-price-strategy';
 export * from './catalog/stock-display-strategy';
 export * from './catalog/stock-location-strategy';
+export * from './catalog/track-inventory';
 export * from './config-helpers';
 export * from './config.module';
 export * from './config.service';

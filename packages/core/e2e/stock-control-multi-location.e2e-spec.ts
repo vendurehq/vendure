@@ -17,7 +17,7 @@ import {
     createFulfillmentDocument,
     getOrderDocument,
     getStockMovementDocument,
-    updateGlobalSettingsDocument,
+    updateChannelDocument,
     updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import {
@@ -83,10 +83,9 @@ describe('Stock control (multi-location)', () => {
         });
         await adminClient.asSuperAdmin();
 
-        await adminClient.query(updateGlobalSettingsDocument, {
-            input: {
-                trackInventory: false,
-            },
+        // #2908: the default for INHERIT is Channel.trackInventory, not GlobalSettings.
+        await adminClient.query(updateChannelDocument, {
+            input: { id: 'T_1', trackInventory: false },
         });
     }, TEST_SETUP_TIMEOUT_MS);
 

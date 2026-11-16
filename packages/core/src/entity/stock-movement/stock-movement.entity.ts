@@ -39,6 +39,24 @@ export abstract class StockMovement extends VendureEntity implements HasCustomFi
     @Column()
     quantity: number;
 
+    /**
+     * @description
+     * Whether this movement changed the StockLevel figures, i.e. whether inventory was tracked
+     * for the ProductVariant at this StockLocation when the movement was recorded. Releases,
+     * Sales and Cancellations follow what the earlier movements of the same OrderLine did,
+     * not the current setting, so changing `trackInventory` while an Order is open cannot
+     * leave allocated stock behind or release stock that was never allocated.
+     *
+     * StockAdjustments are always `true`: they change `stockOnHand` whatever the setting.
+     *
+     * Movements recorded before v4.0 are filled in by the `backfillStockMovementTracking()`
+     * migration helper. Any still `null` fall back to the current setting.
+     *
+     * @since 4.0.0
+     */
+    @Column({ type: Boolean, nullable: true })
+    tracked: boolean | null;
+
     @Column(type => CustomStockMovementFields)
     customFields: CustomStockMovementFields;
 }
