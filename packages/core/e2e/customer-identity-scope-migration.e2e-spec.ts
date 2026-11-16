@@ -53,7 +53,11 @@ describe('Customer identity scope migration', () => {
         mergeConfig(mergeAuth(testConfig(), { requireVerification: false }), {
             // A list relation custom field, stored in a join table, to check that a split copies it.
             customFields: {
-                Customer: [{ name: 'favouriteChannels', type: 'relation', entity: Channel, list: true }],
+                Customer: [
+                    { name: 'favouriteChannels', type: 'relation', entity: Channel, list: true },
+                    // Stored on the Customer's membership row of each Channel.
+                    { name: 'loyaltyTier', type: 'string', scope: 'channel' },
+                ],
             },
         }),
     );
@@ -158,6 +162,27 @@ describe('Customer identity scope migration', () => {
             `,
             { id: shared.id, channelIds: [channelIds[BRAND_A.code], channelIds[BRAND_B.code]] },
         );
+        // A channel-scoped custom field value on each of the shared customer's Channels.
+        for (const [token, tier] of [
+            [E2E_DEFAULT_CHANNEL_TOKEN, 'tier-default'],
+            [BRAND_A.token, 'tier-a'],
+            [BRAND_B.token, 'tier-b'],
+        ]) {
+            adminClient.setChannelToken(token);
+            await adminClient.query(
+                gql`
+                    mutation ($id: ID!, $tier: String) {
+                        updateCustomer(input: { id: $id, customFields: { loyaltyTier: $tier } }) {
+                            ... on Customer {
+                                id
+                            }
+                        }
+                    }
+                `,
+                { id: shared.id, tier },
+            );
+        }
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -330,6 +355,31 @@ describe('Customer identity scope migration', () => {
                 [BRAND_A.code, BRAND_B.code].sort(),
             );
         }
+    });
+
+    it('the split keeps the channel-scoped custom field values of each Channel', async () => {
+        const tiersOn = async (token: string) => {
+            adminClient.setChannelToken(token);
+            const { customers } = await adminClient.query(
+                gql`
+                    query ($email: String!) {
+                        customers(options: { filter: { emailAddress: { eq: $email } } }) {
+                            items {
+                                customFields {
+                                    loyaltyTier
+                                }
+                            }
+                        }
+                    }
+                `,
+                { email: shared.emailAddress },
+            );
+            return customers.items.map((c: any) => c.customFields.loyaltyTier);
+        };
+        expect(await tiersOn(BRAND_A.token)).toEqual(['tier-a']);
+        expect(await tiersOn(BRAND_B.token)).toEqual(['tier-b']);
+        // Both the original and the copy are listed on the default Channel, with its value.
+        expect(await tiersOn(E2E_DEFAULT_CHANNEL_TOKEN)).toEqual(['tier-default', 'tier-default']);
     });
 
     it('the split copies addresses and logins, but not pending tokens', async () => {

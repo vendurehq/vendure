@@ -4,10 +4,11 @@
 // GlobalIdentityScopeStrategy do not need it: the generated migration adds `customer.identityScope`
 // with the default 'global'.
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
-import { QueryRunner } from 'typeorm';
+import { EntityMetadata, QueryRunner } from 'typeorm';
 
 import { IdentityScopeStrategy } from '../config/auth/identity-scope-strategy';
 import { Address } from '../entity/address/address.entity';
+import { CustomerChannel } from '../entity/channel-assignment/channel-assignment.entities';
 import { Channel } from '../entity/channel/channel.entity';
 import { Customer } from '../entity/customer/customer.entity';
 import { User } from '../entity/user/user.entity';
@@ -119,7 +120,8 @@ type PlannedSplit = {
  *   memberships and Orders of that scope move to the copy, and sessions whose active Order moved
  *   lose it. Every copy is also joined to the default Channel, so that it is listed there in the
  *   Admin API. History entries stay on the original. Custom fields are copied, including list
- *   relation custom fields stored in join tables. Plugin data is not copied: use `onCustomerSplit`.
+ *   relation custom fields stored in join tables. Channel-scoped custom field values move with the
+ *   Channel memberships, and the copy gets the original's values on the default Channel. Plugin data is not copied: use `onCustomerSplit`.
  *
  * Splitting needs auto-increment ids, and refuses to run when Customer, User or Address has a
  * unique custom field, because the copy would break the constraint. Both are checked before
@@ -362,20 +364,15 @@ async function applySplit(
     const original = customers.find(c => String(c.id) === split.customerId);
     for (const other of split.others) {
         const copy = await copyCustomer(sql, split.customerId, other.scope);
+        // A membership row holds the Customer's channel-scoped custom field values in that Channel,
+        // so memberships are copied as whole rows rather than re-pointed.
         for (const channelId of other.channelIds) {
-            await sql.query(
-                `UPDATE ${sql.t('customer_channels_channel')} SET ${sql.c('customerId')} = ${sql.p(1)}
-                 WHERE ${sql.c('customerId')} = ${sql.p(2)} AND ${sql.c('channelId')} = ${sql.p(3)}`,
-                [copy.customerId, split.customerId, channelId],
-            );
+            await sql.copyMembership(split.customerId, copy.customerId, channelId, { move: true });
         }
         if (defaultChannelId) {
-            // Every Customer stays visible on the default Channel in the Admin API.
-            await sql.query(
-                `INSERT INTO ${sql.t('customer_channels_channel')} (${sql.c('customerId')}, ${sql.c('channelId')})
-                 VALUES (${sql.p(1)}, ${sql.p(2)})`,
-                [copy.customerId, defaultChannelId],
-            );
+            // Every Customer stays visible on the default Channel in the Admin API. The copy gets the
+            // original's default Channel values.
+            await sql.copyMembership(split.customerId, copy.customerId, defaultChannelId, { move: false });
         }
         for (const orderId of other.orderIds) {
             await sql.query(
@@ -546,6 +543,79 @@ class Sql {
                 [toId, fromId],
             );
         }
+    }
+
+    /**
+     * Copies the Customer's membership of a Channel to another Customer, with the channel-scoped
+     * custom field values stored on it and the join rows of channel-scoped list relation custom
+     * fields. With `move`, the original membership is removed afterwards.
+     */
+    async copyMembership(
+        fromCustomerId: any,
+        toCustomerId: any,
+        channelId: any,
+        { move }: { move: boolean },
+    ) {
+        const metadata = this.queryRunner.connection.getMetadata(CustomerChannel);
+        const customerColumn = this.joinColumnOf(metadata, 'customer');
+        const channelColumn = this.joinColumnOf(metadata, 'channel');
+        const table = this.queryRunner.connection.driver.escape(metadata.tableName);
+        const columns = metadata.columns.map(col => col.databaseName);
+        const where = (first: number) =>
+            `WHERE ${this.c(customerColumn)} = ${this.p(first)} AND ${this.c(channelColumn)} = ${this.p(first + 1)}`;
+        await this.query(
+            `INSERT INTO ${table} (${columns.map(col => this.c(col)).join(', ')})
+             SELECT ${columns.map(col => (col === customerColumn ? this.p(1) : this.c(col))).join(', ')}
+             FROM ${table} ${where(2)}`,
+            [toCustomerId, fromCustomerId, channelId],
+        );
+        const junctions = metadata.manyToManyRelations
+            .filter(r => r.isOwning && r.propertyPath.startsWith('customFields.'))
+            .map(r => r.junctionEntityMetadata)
+            .filter(junction => junction !== undefined);
+        for (const junction of junctions) {
+            const ownerCustomer = junction.ownerColumns.find(
+                col => col.referencedColumn?.databaseName === customerColumn,
+            );
+            const ownerChannel = junction.ownerColumns.find(
+                col => col.referencedColumn?.databaseName === channelColumn,
+            );
+            if (!ownerCustomer || !ownerChannel) {
+                continue;
+            }
+            const junctionTable = this.queryRunner.connection.driver.escape(junction.tableName);
+            const junctionColumns = [...junction.ownerColumns, ...junction.inverseColumns].map(
+                col => col.databaseName,
+            );
+            const junctionWhere = (first: number) =>
+                `WHERE ${this.c(ownerCustomer.databaseName)} = ${this.p(first)} ` +
+                `AND ${this.c(ownerChannel.databaseName)} = ${this.p(first + 1)}`;
+            await this.query(
+                `INSERT INTO ${junctionTable} (${junctionColumns.map(col => this.c(col)).join(', ')})
+                 SELECT ${junctionColumns
+                     .map(col => (col === ownerCustomer.databaseName ? this.p(1) : this.c(col)))
+                     .join(', ')}
+                 FROM ${junctionTable} ${junctionWhere(2)}`,
+                [toCustomerId, fromCustomerId, channelId],
+            );
+            if (move) {
+                await this.query(`DELETE FROM ${junctionTable} ${junctionWhere(1)}`, [
+                    fromCustomerId,
+                    channelId,
+                ]);
+            }
+        }
+        if (move) {
+            await this.query(`DELETE FROM ${table} ${where(1)}`, [fromCustomerId, channelId]);
+        }
+    }
+
+    private joinColumnOf(metadata: EntityMetadata, relationProperty: string): string {
+        const column = metadata.findRelationWithPropertyPath(relationProperty)?.joinColumns[0]?.databaseName;
+        if (!column) {
+            throw new Error(`${metadata.name} has no ${relationProperty} column`);
+        }
+        return column;
     }
 
     async updateScope(customerIds: string[], scope: string) {
