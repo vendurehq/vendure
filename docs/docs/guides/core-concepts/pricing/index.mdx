@@ -26,25 +26,41 @@ The result of this pipeline is exposed in the GraphQL API as a pair of fields on
 Vendure uses the strategy in two places:
 
 - In the cart, the default `OrderItemPriceCalculationStrategy` calls it for each order line, for the customer of the order. When the customer of an active order or a draft order changes, Vendure calculates the price of each line again.
-- In the Shop API, the `ProductVariant.buyerPrice` field calls it for the active customer. If the variant or its product is not available in the active channel, the field gives `null` and the strategy does not run. This can occur for the variant of an order line that was disabled after it was added.
+- In the Shop API, the `buyerPrice` and `buyerPrices` queries call it for the active customer.
+
+The `buyerPrice` query gives the price of one variant, for example on a product detail page:
 
 ```graphql
-query {
-    product(slug: "laptop") {
-        variants {
-            id
-            price
-            priceWithTax
-            buyerPrice(quantity: 10, customFields: { unitCode: "BOX" }) {
-                price
-                priceWithTax
-            }
-        }
+query ProductDetailPrice($productVariantId: ID!) {
+    buyerPrice(productVariantId: $productVariantId, quantity: 10, customFields: { unitCode: "BOX" }) {
+        productVariantId
+        price
+        priceWithTax
     }
 }
 ```
 
-The `customFields` argument exists when order line custom fields are defined. It has the same input type as the `customFields` argument of `addItemToOrder`.
+The `buyerPrices` query gives the prices of many variants in one request, for example on a product list page. It loads all variants with one database query. The result has one item for each input, in the order of the input, so the storefront can match the prices to the variants by position or by `productVariantId`:
+
+```graphql
+query ProductListPrices {
+    buyerPrices(
+        input: [
+            { productVariantId: "1" }
+            { productVariantId: "2" }
+            { productVariantId: "3", quantity: 10 }
+        ]
+    ) {
+        productVariantId
+        price
+        priceWithTax
+    }
+}
+```
+
+A result is `null` when the variant does not exist, is deleted, or is not in the active channel, or when the variant or its product is not enabled in the active channel. Then the strategy does not run. A result is also `null` when the strategy gives no price for the buyer. `buyerPrices` accepts at most `apiOptions.shopListQueryLimit` inputs (100 by default).
+
+The `customFields` argument of `buyerPrice` and the `customFields` field of `BuyerPriceInput` exist when order line custom fields are defined. They have the same input type as the `customFields` argument of `addItemToOrder`. As for `addItemToOrder`, Vendure decodes the IDs in them, for example the ID of a relation custom field, with the configured `EntityIdStrategy`.
 
 `buyerPrice` is the base unit price of the buyer. It is not a guarantee of the final price in the cart. The cart can give a different price, also in the same tax zone, because of:
 
@@ -53,14 +69,14 @@ The `customFields` argument exists when order line custom fields are defined. It
 - the tax zone of the order, which can come from the shipping address,
 - a custom [`TaxLineCalculationStrategy`](/reference/typescript-api/tax/tax-line-calculation-strategy/).
 
-Search results do not have a buyer price. `SearchResult.price` and `priceWithTax` give the channel price, so a product list built on the `search` query shows the channel price.
+Search results do not have a buyer price. `SearchResult.price` and `priceWithTax` give the channel price. For a product list built on the `search` query, pass the `productVariantId` of each result to `buyerPrices`.
 
 ### The buyer
 
 The `buyer` argument tells the strategy who the price is for. It has two methods, `getCustomerId()` and `getCustomer()`. It loads nothing until the strategy calls one of them, so the default strategy runs no extra database query. For a customer that is deleted or not in the active channel, both methods give `undefined`.
 
 - In the cart, the buyer is the customer of the order. In an Admin draft order, this is the customer of the order, not the administrator. In a guest order, it is the guest customer.
-- For the `buyerPrice` field, the buyer is the customer of the active user. For a guest session, the buyer has no customer.
+- For the `buyerPrice` and `buyerPrices` queries, the buyer is the customer of the active user. For a guest session, the buyer has no customer.
 
 The [`BuyerIdentityService`](/reference/typescript-api/services/buyer-identity-service/) creates the buyer with `forCustomer()` or `forActiveUser()`. It loads each customer once for each request, so a strategy can call the buyer for each order line. `getCustomerId()` of a buyer from `forCustomer()` loads the customer too, with the same query as `getCustomer()`. If your strategy caches its results, include the customer ID in the cache key.
 
@@ -71,9 +87,9 @@ A caller can pass its own buyer in the `buyer` option of `ProductVariantService.
 `data` is pricing input that your strategy defines, for example the code of a packaging unit. Vendure does not validate or interpret it.
 
 - In the cart, `data` is a copy of the order line custom fields that the `OrderItemPriceCalculationStrategy` chain passes down.
-- For the `buyerPrice` field, `data` is a copy of the `customFields` argument.
+- For the `buyerPrice` and `buyerPrices` queries, `data` is a copy of the `customFields` of the input.
 
-To get the same price in both places, the storefront passes the same values to `buyerPrice(customFields: ...)` that it passes as `customFields` to `addItemToOrder`.
+To get the same price in both places, the storefront passes the same values to `buyerPrice` or `buyerPrices` that it passes as `customFields` to `addItemToOrder`.
 
 The custom fields of a saved order line can differ from the raw input. They can contain default values, other custom fields, and relation entities in place of IDs. So your strategy reads only the fields that it needs, and checks them.
 
@@ -81,7 +97,7 @@ The custom fields of a saved order line can differ from the raw input. They can 
 
 The strategy returns `undefined` when there is no price for the buyer, for example for "price on request" or "log in to see prices". Then:
 
-- The `buyerPrice` field gives `null`.
+- The `buyerPrice` query, and the item of the `buyerPrices` query, give `null`.
 - In the cart, `ProductVariantService.calculateBuyerPriceForOrder()` throws a `NoBuyerPriceError`. It is an `IllegalOperationError`, so the GraphQL error code is `ILLEGAL_OPERATION`.
 - A new order line with no price is not added.
 - A line that is already in the order keeps its current price. Vendure calculates the lines again when the customer of the order changes, when an address is set, when the quantity of a line changes, when the `OrderRecalculationStrategy` asks for it, and when an administrator modifies a placed order with `modifyOrder`. A price that goes away does not make these operations fail.
@@ -143,14 +159,14 @@ export class PackagingUnitPriceLayer extends StrategyLayer.passThrough<ProductVa
 export class PackagingUnitPlugin {}
 ```
 
-The storefront then sends `buyerPrice(quantity: 2, customFields: { unitCode: "BOX" })` and `addItemToOrder(..., customFields: { unitCode: "BOX" })`.
+The storefront then sends `buyerPrice(productVariantId: "1", quantity: 2, customFields: { unitCode: "BOX" })` and `addItemToOrder(..., customFields: { unitCode: "BOX" })`.
 
 If your pricing data has a different shape than the custom fields, add a `StrategyLayer` over the `OrderItemPriceCalculationStrategy` that changes the custom fields it passes to `inner`.
 
 Things to know:
 
-- Vendure does not cache the result. The `buyerPrice` field runs the strategy once for each variant that requests the field. If your strategy is slow, for example because it calls an external system, it must cache the results itself.
-- In code, use `ProductVariantService.calculateBuyerPrice()` for the active buyer (or the `buyer` option), and `ProductVariantService.calculateBuyerPriceForOrder()` for an order line.
+- Vendure does not cache the result. The `buyerPrice` and `buyerPrices` queries run the strategy once for each input. If your strategy is slow, for example because it calls an external system, it must cache the results itself.
+- In code, use `ProductVariantService.calculateBuyerPrice()` for the active buyer (or the `buyer` option), `ProductVariantService.calculateBuyerPrices()` for several variants by ID, and `ProductVariantService.calculateBuyerPriceForOrder()` for an order line.
 
 ### Buyer price or order item price?
 
