@@ -94,17 +94,6 @@ export type DashboardFormComponentProps<
     TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = ControllerRenderProps<TFieldValues, TName> & {
     fieldDef?: ConfigurableFieldDef;
-    /**
-     * @description
-     * For a readonly `relation` custom field: the related entity object, or an array of objects for a
-     * `list: true` field. `value` is the related entity's id, or ids, as for a writable relation.
-     *
-     * A readonly field is not part of the create and update inputs, so this is the only way for a
-     * component to read the related entity's other fields.
-     *
-     * @since 3.8.3
-     */
-    relatedEntity?: any;
 };
 
 /**
