@@ -1242,7 +1242,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-11-12T16:36:24Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1254,7 +1254,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-11-12T16:36:24Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "Middleware",
@@ -1272,7 +1272,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-12T16:36:24Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1699,7 +1699,7 @@
                   "lastModified": "2026-09-08T15:28:16Z"
                 }
               ],
-              "lastModified": "2026-01-28T14:49:21+01:00"
+              "lastModified": "2026-11-16T13:02:19Z"
             },
             {
               "title": "Entities",
@@ -1854,7 +1854,7 @@
                   "title": "GlobalSettings",
                   "slug": "global-settings",
                   "file": "docs/reference/typescript-api/entities/global-settings.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "HistoryEntry",
@@ -2064,7 +2064,7 @@
                   "title": "StockLevel",
                   "slug": "stock-level",
                   "file": "docs/reference/typescript-api/entities/stock-level.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "StockLocation",
@@ -2082,7 +2082,7 @@
                   "title": "StockMovement",
                   "slug": "stock-movement",
                   "file": "docs/reference/typescript-api/entities/stock-movement.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "Surcharge",
@@ -2182,7 +2182,7 @@
                   "title": "Event Types",
                   "slug": "event-types",
                   "file": "docs/reference/typescript-api/events/event-types.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "EventBus",
@@ -2589,6 +2589,12 @@
                   "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
+                  "title": "MigrateTrackInventoryToChannels",
+                  "slug": "migrate-track-inventory-to-channels",
+                  "file": "docs/reference/typescript-api/migration/migrate-track-inventory-to-channels.mdx",
+                  "lastModified": "2026-11-16T13:02:19Z"
+                },
+                {
                   "title": "MigrationDiagnostic",
                   "slug": "migration-diagnostic",
                   "file": "docs/reference/typescript-api/migration/migration-diagnostic.mdx",
@@ -2671,6 +2677,12 @@
                   "slug": "timestamptz-migration-preview",
                   "file": "docs/reference/typescript-api/migration/timestamptz-migration-preview.mdx",
                   "lastModified": "2026-11-16T09:28:06Z"
+                },
+                {
+                  "title": "TrackInventoryMigrationResult",
+                  "slug": "track-inventory-migration-result",
+                  "file": "docs/reference/typescript-api/migration/track-inventory-migration-result.mdx",
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "TranslationTableColumnNames",
@@ -2848,7 +2860,7 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-11-10T11:12:07Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
@@ -3040,13 +3052,13 @@
                   "title": "DefaultStockLocationStrategy",
                   "slug": "default-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/default-stock-location-strategy.mdx",
-                  "lastModified": "2026-10-05T09:30:37+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "MultiChannelStockLocationStrategy",
                   "slug": "multi-channel-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/multi-channel-stock-location-strategy.mdx",
-                  "lastModified": "2026-10-05T09:30:37+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "ProductVariantBuyerPriceStrategy",
@@ -3061,6 +3073,12 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "ResolveTrackInventory",
+                  "slug": "resolve-track-inventory",
+                  "file": "docs/reference/typescript-api/products-stock/resolve-track-inventory.mdx",
+                  "lastModified": "2026-11-16T13:02:19Z"
+                },
+                {
                   "title": "StockDisplayStrategy",
                   "slug": "stock-display-strategy",
                   "file": "docs/reference/typescript-api/products-stock/stock-display-strategy.mdx",
@@ -3070,7 +3088,13 @@
                   "title": "StockLocationStrategy",
                   "slug": "stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/stock-location-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
+                },
+                {
+                  "title": "TrackInventoryInputs",
+                  "slug": "track-inventory-inputs",
+                  "file": "docs/reference/typescript-api/products-stock/track-inventory-inputs.mdx",
+                  "lastModified": "2026-11-16T13:02:19Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3246,7 +3270,7 @@
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3308,19 +3332,19 @@
                   "title": "BuyerPriceForOrderOptions",
                   "slug": "buyer-price-for-order-options",
                   "file": "docs/reference/typescript-api/services/buyer-price-for-order-options.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "BuyerPriceOptions",
                   "slug": "buyer-price-options",
                   "file": "docs/reference/typescript-api/services/buyer-price-options.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "BuyerPriceResult",
                   "slug": "buyer-price-result",
                   "file": "docs/reference/typescript-api/services/buyer-price-result.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "ChannelAssignmentService",
@@ -3332,7 +3356,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "CollectionService",
@@ -3404,13 +3428,13 @@
                   "title": "InitializerService",
                   "slug": "initializer-service",
                   "file": "docs/reference/typescript-api/services/initializer-service.mdx",
-                  "lastModified": "2026-10-21T15:33:29+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3452,7 +3476,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-11-16T10:11:18Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "PromotionService",
@@ -3518,19 +3542,19 @@
                   "title": "StockLevelLockOptions",
                   "slug": "stock-level-lock-options",
                   "file": "docs/reference/typescript-api/services/stock-level-lock-options.mdx",
-                  "lastModified": "2026-10-05T09:30:37+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "StockLevelReadOptions",
                   "slug": "stock-level-read-options",
                   "file": "docs/reference/typescript-api/services/stock-level-read-options.mdx",
-                  "lastModified": "2026-10-05T09:30:37+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "StockLevelService",
                   "slug": "stock-level-service",
                   "file": "docs/reference/typescript-api/services/stock-level-service.mdx",
-                  "lastModified": "2026-10-05T09:30:37+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "StockLocationService",
@@ -3542,7 +3566,7 @@
                   "title": "StockMovementService",
                   "slug": "stock-movement-service",
                   "file": "docs/reference/typescript-api/services/stock-movement-service.mdx",
-                  "lastModified": "2026-10-05T09:30:37+02:00"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "TagService",
@@ -4508,7 +4532,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-12T16:36:24Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
                   "title": "Mutations",
@@ -4526,7 +4550,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-12T16:36:24Z"
+                  "lastModified": "2026-11-16T13:02:19Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
