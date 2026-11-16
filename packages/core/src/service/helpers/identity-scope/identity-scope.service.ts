@@ -21,8 +21,8 @@ import { ChannelService } from '../../services/channel.service';
 const IDENTITY_SCOPE_MISMATCH_ADVICE =
     'No data has been changed. If you changed the IdentityScopeStrategy, migrate the Customers to the new ' +
     'scopes with migrateCustomerIdentityScopes() from a database migration, or go back to the previous ' +
-    'strategy. Do not change the inputs a strategy reads once Customers exist. See ' +
-    'https://docs.vendure.io/current/framework/core-concepts/customers#changing-the-strategy-on-an-existing-install';
+    'strategy. Do not change the inputs a strategy reads once Customers exist. Consult the Vendure v4 ' +
+    'migration guide.';
 
 /**
  * @description
