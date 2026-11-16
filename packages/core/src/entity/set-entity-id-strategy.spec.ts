@@ -1,18 +1,33 @@
-import { Type } from '@vendure/common/lib/shared-types';
-import { DataSource } from 'typeorm';
+import { ID, Type } from '@vendure/common/lib/shared-types';
+import { DataSource, Entity } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { ensureConfigLoaded } from '../config/config-helpers';
 import { UuidIdStrategy } from '../config/entity/uuid-id-strategy';
 import { SearchIndexItem } from '../plugin/default-search-plugin/entities/search-index-item.entity';
 
+import { VendureEntity } from './base/base.entity';
 import { coreEntitiesMap } from './entities';
-import { getIdColumnsFor } from './entity-id.decorator';
+import { EntityId, getIdColumnsFor } from './entity-id.decorator';
 import { setEntityIdStrategy } from './set-entity-id-strategy';
+
+/**
+ * Every core @EntityId column is the join column of a relation, whose type TypeORM sets from the
+ * referenced primary key. So only columns without a relation, as plugin entities can have, show
+ * the type that setEntityIdStrategy() gives.
+ */
+@Entity()
+class PluginIdTestEntity extends VendureEntity {
+    @EntityId()
+    plainId: ID;
+
+    @EntityId({ storeUuidAsVarchar: true })
+    varcharId: ID;
+}
 
 // Cast as in getAllEntities(): several core entities are abstract STI bases.
 const coreEntities = Object.values(coreEntitiesMap) as Array<Type<any>>;
-const entities = [...coreEntities, SearchIndexItem];
+const entities = [...coreEntities, SearchIndexItem, PluginIdTestEntity];
 
 /**
  * #2318: an @EntityId column without a relation fell back to `varchar` under the UUID strategy,
@@ -44,6 +59,11 @@ describe('setEntityIdStrategy()', () => {
                 ]),
         );
 
+    it('gives an @EntityId column without a relation the uuid type', () => {
+        const column = dataSource.getMetadata(PluginIdTestEntity).findColumnWithPropertyName('plainId');
+        expect(column?.type).toBe('uuid');
+    });
+
     it('gives every @EntityId column the uuid type', () => {
         const columns = columnTypes(options => !options?.storeUuidAsVarchar);
         expect(columns.length).toBeGreaterThan(0);
@@ -52,7 +72,9 @@ describe('setEntityIdStrategy()', () => {
 
     it('keeps varchar for columns with storeUuidAsVarchar, such as the search index', () => {
         const columns = columnTypes(options => !!options?.storeUuidAsVarchar);
-        expect(columns.map(([name]) => name)).toContain('SearchIndexItem.productVariantId');
+        expect(columns.map(([name]) => name)).toEqual(
+            expect.arrayContaining(['SearchIndexItem.productVariantId', 'PluginIdTestEntity.varcharId']),
+        );
         expect(columns.filter(([, type]) => type !== 'varchar')).toEqual([]);
     });
 

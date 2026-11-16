@@ -10,7 +10,8 @@ interface IdColumnOptions {
      * With the {@link UuidIdStrategy}, store the ids in a `varchar` column instead of a `uuid` column,
      * as Vendure did before v4.0 for columns which are not the join column of a relation. It keeps
      * the type of such a column unchanged on upgrade, which suits tables that are rebuilt rather than
-     * migrated, such as the search index. It has no effect with integer ids.
+     * migrated, such as the search index. It has no effect with integer ids, nor on the join column
+     * of a relation, which TypeORM always gives the type of the primary key it references.
      *
      * @default false
      * @since 4.0.0

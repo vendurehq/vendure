@@ -138,7 +138,7 @@ export async function assertEntityIdColumnsMigrated(queryRunner: QueryRunner): P
     const toConvert = await findEntityIdColumnsToConvert(queryRunner);
     const problems: string[] = [];
     if (toConvert.length) {
-        const columns = toConvert.map(c => `"${c.tablePath}"."${c.column}"`).join(', ');
+        const columns = toConvert.map(c => `${c.tablePath}.${c.column}`).join(', ');
         problems.push(
             `${columns} must be converted to uuid, which synchronizing would do by dropping and ` +
                 're-creating them, deleting their data',

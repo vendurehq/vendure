@@ -271,8 +271,13 @@ export function entityIdMigrationSuite(
         it('the migration generated against the v3 schema adds the foreign keys', async () => {
             generated = (await rawConnection.driver.createSchemaBuilder().log()).upQueries;
             const sql = generated.map(q => q.query).join('\n');
-            expect(sql).toContain('taxZoneId');
-            expect(sql).toContain('channelId');
+            const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const foreignKey = (column: string, references: string) =>
+                new RegExp(
+                    `FOREIGN KEY \\(${escapeRegExp(esc(column))}\\) REFERENCES ${escapeRegExp(esc(table(references)))}`,
+                );
+            expect(sql).toMatch(foreignKey('taxZoneId', 'zone'));
+            expect(sql).toMatch(foreignKey('channelId', 'channel'));
             // The search index keeps varchar ids, so it is not part of the migration
             expect(sql).not.toContain('search_index_item');
             if (isUuid && rawConnection.options.type === 'postgres') {
@@ -280,10 +285,12 @@ export function entityIdMigrationSuite(
             }
             if (typesChange) {
                 // What the guide says to delete: these statements would delete the columns' data
-                expect(generated.filter(q => isDeletedByGuide(q.query)).length).toBeGreaterThan(0);
-                expect(sql).toMatch(/DROP COLUMN/i);
-                // ...and, for the column in the composite primary key, the key changes around it
-                expect(sql).toMatch(/PRIMARY KEY/);
+                // A drop and an add per column, and for the column in the composite primary key also
+                // the key changes around it: dropped, re-created without it, then dropped and
+                // re-created with it.
+                expect(generated.filter(q => isDeletedByGuide(q.query)).map(q => q.query)).toHaveLength(
+                    columnsToConvert.length * 2 + 4,
+                );
             }
         });
 
