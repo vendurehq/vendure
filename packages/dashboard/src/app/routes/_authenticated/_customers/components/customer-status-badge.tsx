@@ -1,5 +1,4 @@
-import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
-import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
+import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { Trans } from '@lingui/react/macro';
 import { BadgeCheck, BadgeX } from 'lucide-react';
 

@@ -1,8 +1,8 @@
-import { ResultOf } from '@/vdb/graphql/graphql.js';
 import {
     AddressFormValues,
     CustomerAddressForm as SharedCustomerAddressForm,
 } from '@/vdb/components/shared/customer-address-form.js';
+import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { addressFragment } from '../customers.graphql.js';
 
 export type { AddressFormValues } from '@/vdb/components/shared/customer-address-form.js';

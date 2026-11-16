@@ -123,14 +123,16 @@ export class RolePermissionResolver {
             relations: { channels: true },
         });
         if (customer) {
-            for (const channel of customer.channels) {
-                // Every Customer is joined to the default Channel for Admin API visibility. That
-                // membership grants nothing unless the Channel is in the Customer's identity scope.
-                if (!(await this.identityScopeService.isCustomerInChannelScope(customer, channel))) {
-                    continue;
-                }
-                addPermissions(channel, CUSTOMER_PERMISSIONS);
-            }
+            // Every Customer is joined to the default Channel for Admin API visibility. That
+            // membership grants nothing unless the Channel is in the Customer's identity scope.
+            const inScope = await Promise.all(
+                customer.channels.map(channel =>
+                    this.identityScopeService.isCustomerInChannelScope(customer, channel),
+                ),
+            );
+            customer.channels
+                .filter((_, i) => inScope[i])
+                .forEach(channel => addPermissions(channel, CUSTOMER_PERMISSIONS));
         }
         return {
             channels: [...channelsMap.values()].sort((a, b) => (a.id < b.id ? -1 : 1)),

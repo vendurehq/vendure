@@ -33,10 +33,10 @@ export class IdentityScopeService implements OnApplicationBootstrap {
     private channelService: ChannelService | undefined;
 
     constructor(
-        private configService: ConfigService,
-        private moduleRef: ModuleRef,
-        private connection: TransactionalConnection,
-        private processContext: ProcessContext,
+        private readonly configService: ConfigService,
+        private readonly moduleRef: ModuleRef,
+        private readonly connection: TransactionalConnection,
+        private readonly processContext: ProcessContext,
     ) {}
 
     /**
@@ -56,10 +56,8 @@ export class IdentityScopeService implements OnApplicationBootstrap {
             return;
         }
         const channels = await this.connection.rawConnection.getRepository(Channel).find();
-        const scopeByChannel = new Map<string, string>();
-        for (const channel of channels) {
-            scopeByChannel.set(String(channel.id), await this.getScopeForLoadedChannel(channel));
-        }
+        const resolved = await Promise.all(channels.map(channel => this.getScopeForLoadedChannel(channel)));
+        const scopeByChannel = new Map(channels.map((channel, i) => [String(channel.id), resolved[i]]));
         const rows: Array<{ channelId: ID; identityScope: string; count: string | number }> =
             await this.connection.rawConnection
                 .getRepository(Customer)
@@ -164,13 +162,8 @@ export class IdentityScopeService implements OnApplicationBootstrap {
         const channels = await this.connection.rawConnection.getRepository(Channel).find({
             relations: { defaultShippingZone: true, defaultTaxZone: true },
         });
-        const inScope: Channel[] = [];
-        for (const channel of channels) {
-            if ((await this.getScopeForLoadedChannel(channel)) === identityScope) {
-                inScope.push(channel);
-            }
-        }
-        return inScope;
+        const resolved = await Promise.all(channels.map(channel => this.getScopeForLoadedChannel(channel)));
+        return channels.filter((_, i) => resolved[i] === identityScope);
     }
 
     /**

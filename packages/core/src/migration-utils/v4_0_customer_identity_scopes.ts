@@ -138,29 +138,87 @@ export async function migrateCustomerIdentityScopes(
     strategy: Pick<IdentityScopeStrategy, 'getIdentityScope'>,
     options: CustomerIdentityScopeMigrationOptions = {},
 ): Promise<CustomerIdentityScopeMigrationResult> {
-    const defaultChannelIsStorefront = options.defaultChannelIsStorefront ?? true;
     const sql = new Sql(queryRunner);
+    const scopes = await loadChannelScopes(queryRunner, strategy, options.defaultChannelIsStorefront ?? true);
+    const data = await loadCustomerData(sql);
+    // Plan first, so that a dry run and the checks below see the whole picture before any write.
+    const plan = planMigration(data, scopes);
+    const result = summarize(plan, data.customers);
 
-    // The same Channel shape the server hands the strategy.
+    if (plan.splits.length) {
+        assertCanCopyRows(queryRunner);
+    }
+    if (!options.dryRun) {
+        // One QueryRunner is one connection inside one transaction, so the writes run one after
+        // the other.
+        for (const [scope, ids] of plan.singleScope) {
+            await sql.updateScope(ids, scope);
+        }
+        for (const split of plan.splits) {
+            await applySplit(sql, split, scopes.defaultChannelId, data.customers, options, queryRunner);
+        }
+    }
+    console.log(
+        `Customer identity scopes${options.dryRun ? ' (dry run)' : ''}: ${result.assigned} assigned, ` +
+            `${result.withoutChannel} without a Channel given the default Channel's scope, ${result.split} ` +
+            `split into ${result.copiesCreated} additional Customers, ${result.duplicateEmails.length} ` +
+            `email addresses shared by several Customers within a scope`,
+    );
+    return result;
+}
+
+type MigrationOrder = { state: string; channelIds: string[] };
+
+type MigrationCustomer = { id: any; emailAddress: string; userId: any; deletedAt: any };
+
+type ChannelScopes = {
+    scopeOf: (channelId: string) => string;
+    defaultChannelId: string | undefined;
+    defaultChannelIsStorefront: boolean;
+};
+
+type CustomerData = {
+    customers: MigrationCustomer[];
+    channelsByCustomer: Map<string, string[]>;
+    ordersByCustomer: Map<string, Map<string, MigrationOrder>>;
+};
+
+type MigrationPlan = {
+    singleScope: Map<string, string[]>;
+    splits: PlannedSplit[];
+    finalScopes: Array<{ customerId: string; scope: string }>;
+    withoutChannel: number;
+};
+
+const byChannelId = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
+/** The scope of every Channel, from the same Channel shape the server hands the strategy. */
+async function loadChannelScopes(
+    queryRunner: QueryRunner,
+    strategy: Pick<IdentityScopeStrategy, 'getIdentityScope'>,
+    defaultChannelIsStorefront: boolean,
+): Promise<ChannelScopes> {
     const channels = await queryRunner.manager.getRepository(Channel).find({
         relations: { defaultShippingZone: true, defaultTaxZone: true },
     });
-    const scopeByChannel = new Map<string, string>();
-    for (const channel of channels) {
-        scopeByChannel.set(String(channel.id), await resolveIdentityScope(strategy, channel));
-    }
+    const resolved = await Promise.all(channels.map(channel => resolveIdentityScope(strategy, channel)));
+    const scopeByChannel = new Map(channels.map((channel, i) => [String(channel.id), resolved[i]]));
     const defaultChannel = channels.find(ch => ch.code === DEFAULT_CHANNEL_CODE);
-    const defaultChannelId = defaultChannel ? String(defaultChannel.id) : undefined;
-    const scopeOf = (channelId: string): string => {
-        const scope = scopeByChannel.get(channelId);
-        if (scope === undefined) {
-            throw new Error(`No Channel with id ${channelId} found`);
-        }
-        return scope;
+    return {
+        scopeOf: (channelId: string): string => {
+            const scope = scopeByChannel.get(channelId);
+            if (scope === undefined) {
+                throw new Error(`No Channel with id ${channelId} found`);
+            }
+            return scope;
+        },
+        defaultChannelId: defaultChannel ? String(defaultChannel.id) : undefined,
+        defaultChannelIsStorefront,
     };
-    const byChannelId = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+}
 
-    const customers: Array<{ id: any; emailAddress: string; userId: any; deletedAt: any }> = await sql.query(
+async function loadCustomerData(sql: Sql): Promise<CustomerData> {
+    const customers: MigrationCustomer[] = await sql.query(
         `SELECT ${sql.c('id')}, ${sql.c('emailAddress')}, ${sql.c('userId')}, ${sql.c('deletedAt')}
          FROM ${sql.t('customer')}`,
     );
@@ -173,95 +231,114 @@ export async function migrateCustomerIdentityScopes(
          INNER JOIN ${sql.t('order_channels_channel')} oc ON oc.${sql.c('orderId')} = o.${sql.c('id')}
          WHERE o.${sql.c('customerId')} IS NOT NULL`,
     );
-
     const channelsByCustomer = new Map<string, string[]>();
     for (const m of memberships) {
         addTo(channelsByCustomer, String(m.customerId), String(m.channelId));
     }
-    const ordersByCustomer = new Map<string, Map<string, { state: string; channelIds: string[] }>>();
+    const ordersByCustomer = new Map<string, Map<string, MigrationOrder>>();
     for (const o of orderRows) {
-        const orders = ordersByCustomer.get(String(o.customerId)) ?? new Map();
+        const orders = ordersByCustomer.get(String(o.customerId)) ?? new Map<string, MigrationOrder>();
         const order = orders.get(String(o.id)) ?? { state: o.state, channelIds: [] };
         order.channelIds.push(String(o.channelId));
         orders.set(String(o.id), order);
         ordersByCustomer.set(String(o.customerId), orders);
     }
+    return { customers, channelsByCustomer, ordersByCustomer };
+}
 
-    // Plan first, so that a dry run and the checks below see the whole picture before any write.
-    const singleScope = new Map<string, string[]>();
-    const splits: PlannedSplit[] = [];
-    const finalScopes: Array<{ customerId: string; scope: string }> = [];
-    let withoutChannel = 0;
-    for (const customer of customers) {
+function planMigration(data: CustomerData, scopes: ChannelScopes): MigrationPlan {
+    const plan: MigrationPlan = { singleScope: new Map(), splits: [], finalScopes: [], withoutChannel: 0 };
+    for (const customer of data.customers) {
         const customerId = String(customer.id);
-        const channelIds = channelsByCustomer.get(customerId);
+        const channelIds = data.channelsByCustomer.get(customerId);
         if (!channelIds) {
-            if (defaultChannelId) {
-                addTo(singleScope, scopeOf(defaultChannelId), customerId);
-                finalScopes.push({ customerId, scope: scopeOf(defaultChannelId) });
-                withoutChannel++;
+            if (scopes.defaultChannelId) {
+                const scope = scopes.scopeOf(scopes.defaultChannelId);
+                addTo(plan.singleScope, scope, customerId);
+                plan.finalScopes.push({ customerId, scope });
+                plan.withoutChannel++;
             }
             continue;
         }
-        const orders =
-            ordersByCustomer.get(customerId) ?? new Map<string, { state: string; channelIds: string[] }>();
-        const orderScope = new Map<string, string>();
-        for (const [orderId, order] of orders) {
-            // An Order on another Channel is also joined to the default Channel, so an Order joined
-            // to the default Channel only was placed there.
-            const placedOn = order.channelIds.filter(id => id !== defaultChannelId).sort(byChannelId)[0];
-            orderScope.set(orderId, scopeOf(placedOn ?? order.channelIds[0]));
-        }
-        const usedDefaultAsStorefront =
-            defaultChannelIsStorefront &&
-            [...orders.values()].some(
-                order => order.state !== 'Draft' && order.channelIds.every(id => id === defaultChannelId),
-            );
-        const nonDefault = channelIds.filter(id => id !== defaultChannelId);
-        const relevant = channelIds.filter(
-            id => id !== defaultChannelId || usedDefaultAsStorefront || nonDefault.length === 0,
-        );
-        const scopes = [...new Set(relevant.map(scopeOf))];
-        if (scopes.length === 1) {
-            addTo(singleScope, scopes[0], customerId);
-            finalScopes.push({ customerId, scope: scopes[0] });
+        const orders = data.ordersByCustomer.get(customerId) ?? new Map<string, MigrationOrder>();
+        const split = planCustomer(customerId, channelIds, orders, scopes);
+        if (typeof split === 'string') {
+            addTo(plan.singleScope, split, customerId);
+            plan.finalScopes.push({ customerId, scope: split });
             continue;
         }
-        const orderCount = (scope: string) => [...orderScope.values()].filter(v => v === scope).length;
-        const lowestChannelOf = (scope: string) =>
-            relevant.filter(id => scopeOf(id) === scope).sort(byChannelId)[0];
-        const [primary, ...others] = [...scopes].sort(
-            (a, b) => orderCount(b) - orderCount(a) || byChannelId(lowestChannelOf(a), lowestChannelOf(b)),
-        );
-        splits.push({
-            customerId,
-            primary,
-            others: others.map(scope => ({
-                scope,
-                // The original keeps its default Channel membership. Each copy gets its own.
-                channelIds: relevant.filter(id => scopeOf(id) === scope && id !== defaultChannelId),
-                orderIds: [...orderScope].filter(([, s]) => s === scope).map(([id]) => id),
-            })),
-        });
-        finalScopes.push({ customerId, scope: primary });
-        for (const other of others) {
-            finalScopes.push({ customerId, scope: other });
-        }
+        plan.splits.push(split);
+        plan.finalScopes.push({ customerId, scope: split.primary });
+        plan.finalScopes.push(...split.others.map(other => ({ customerId, scope: other.scope })));
     }
+    return plan;
+}
 
+/**
+ * Returns the Customer's scope if its Channels are in one scope, or how to split it otherwise.
+ */
+function planCustomer(
+    customerId: string,
+    channelIds: string[],
+    orders: Map<string, MigrationOrder>,
+    { scopeOf, defaultChannelId, defaultChannelIsStorefront }: ChannelScopes,
+): string | PlannedSplit {
+    const orderScope = new Map<string, string>();
+    for (const [orderId, order] of orders) {
+        // An Order on another Channel is also joined to the default Channel, so an Order joined to
+        // the default Channel only was placed there.
+        const placedOn = order.channelIds.filter(id => id !== defaultChannelId).sort(byChannelId)[0];
+        orderScope.set(orderId, scopeOf(placedOn ?? order.channelIds[0]));
+    }
+    const usedDefaultAsStorefront =
+        defaultChannelIsStorefront &&
+        [...orders.values()].some(
+            order => order.state !== 'Draft' && order.channelIds.every(id => id === defaultChannelId),
+        );
+    const nonDefault = channelIds.filter(id => id !== defaultChannelId);
+    const relevant = channelIds.filter(
+        id => id !== defaultChannelId || usedDefaultAsStorefront || nonDefault.length === 0,
+    );
+    const scopes = [...new Set(relevant.map(scopeOf))];
+    if (scopes.length === 1) {
+        return scopes[0];
+    }
+    const orderCount = (scope: string) => [...orderScope.values()].filter(v => v === scope).length;
+    const lowestChannelOf = (scope: string) =>
+        relevant.filter(id => scopeOf(id) === scope).sort(byChannelId)[0];
+    const [primary, ...others] = [...scopes].sort(
+        (a, b) => orderCount(b) - orderCount(a) || byChannelId(lowestChannelOf(a), lowestChannelOf(b)),
+    );
+    return {
+        customerId,
+        primary,
+        others: others.map(scope => ({
+            scope,
+            // The original keeps its default Channel membership. Each copy gets its own.
+            channelIds: relevant.filter(id => scopeOf(id) === scope && id !== defaultChannelId),
+            orderIds: [...orderScope].filter(([, s]) => s === scope).map(([id]) => id),
+        })),
+    };
+}
+
+function summarize(
+    plan: MigrationPlan,
+    customers: MigrationCustomer[],
+): CustomerIdentityScopeMigrationResult {
     const liveById = new Map(customers.filter(c => c.deletedAt == null).map(c => [String(c.id), c]));
     const byScopeAndEmail = new Map<string, string[]>();
-    for (const { customerId, scope } of finalScopes) {
+    for (const { customerId, scope } of plan.finalScopes) {
         const email = liveById.get(customerId)?.emailAddress;
         if (email != null) {
             addTo(byScopeAndEmail, `${scope}\u0000${email.toLowerCase()}`, customerId);
         }
     }
-    const result: CustomerIdentityScopeMigrationResult = {
-        assigned: [...singleScope.values()].reduce((sum, ids) => sum + ids.length, 0) - withoutChannel,
-        withoutChannel,
-        split: splits.length,
-        copiesCreated: splits.reduce((sum, s) => sum + s.others.length, 0),
+    return {
+        assigned:
+            [...plan.singleScope.values()].reduce((sum, ids) => sum + ids.length, 0) - plan.withoutChannel,
+        withoutChannel: plan.withoutChannel,
+        split: plan.splits.length,
+        copiesCreated: plan.splits.reduce((sum, s) => sum + s.others.length, 0),
         duplicateEmails: [...byScopeAndEmail]
             .filter(([, ids]) => new Set(ids).size > 1)
             .map(([key, ids]) => {
@@ -269,25 +346,6 @@ export async function migrateCustomerIdentityScopes(
                 return { identityScope, emailAddress, customerIds: [...new Set(ids)] };
             }),
     };
-
-    if (splits.length) {
-        assertCanCopyRows(queryRunner);
-    }
-    if (!options.dryRun) {
-        for (const [scope, ids] of singleScope) {
-            await sql.updateScope(ids, scope);
-        }
-        for (const split of splits) {
-            await applySplit(sql, split, defaultChannelId, customers, options, queryRunner);
-        }
-    }
-    console.log(
-        `Customer identity scopes${options.dryRun ? ' (dry run)' : ''}: ${result.assigned} assigned, ` +
-            `${result.withoutChannel} without a Channel given the default Channel's scope, ${result.split} ` +
-            `split into ${result.copiesCreated} additional Customers, ${result.duplicateEmails.length} ` +
-            `email addresses shared by several Customers within a scope`,
-    );
-    return result;
 }
 
 async function applySplit(
@@ -432,7 +490,7 @@ async function copyCustomer(
 class Sql {
     private readonly type: string;
 
-    constructor(private queryRunner: QueryRunner) {
+    constructor(private readonly queryRunner: QueryRunner) {
         this.type = queryRunner.connection.driver.options.type;
     }
 

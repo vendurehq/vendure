@@ -3,7 +3,6 @@ import { CustomerGroupSelector } from '@/vdb/components/shared/customer-group-se
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -47,6 +46,7 @@ import { CustomerHistoryContainer } from './components/customer-history/customer
 import { customerHistoryQueryKey } from './components/customer-history/use-customer-history.js';
 import { CustomerOrderTable } from './components/customer-order-table.js';
 import { CustomerStatusBadge } from './components/customer-status-badge.js';
+import { CustomerStorefronts } from './components/customer-storefronts.js';
 import {
     addCustomerToGroupDocument,
     createCustomerAddressDocument,
@@ -339,13 +339,7 @@ function CustomerDetailPage() {
                         </PageBlock>
                         {!customerIdentityIsGlobal && (
                             <PageBlock column="side" blockId="storefronts" title={<Trans>Storefronts</Trans>}>
-                                <div className="flex flex-wrap gap-1">
-                                    {entity.identityScopeChannels?.map(channel => (
-                                        <Badge variant="outline" key={channel.id}>
-                                            {channel.code}
-                                        </Badge>
-                                    ))}
-                                </div>
+                                <CustomerStorefronts channels={entity.identityScopeChannels} />
                             </PageBlock>
                         )}
                         <PageBlock column="side" blockId="groups" title={<Trans>Customer groups</Trans>}>

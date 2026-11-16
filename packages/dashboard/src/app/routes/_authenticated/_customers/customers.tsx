@@ -11,6 +11,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { DeleteCustomersBulkAction } from './components/customer-bulk-actions.js';
 import { CustomerStatusBadge } from './components/customer-status-badge.js';
+import { CustomerStorefrontsCell, CustomerStorefrontsHeader } from './components/customer-storefronts.js';
 import { customerListDocument } from './customers.graphql.js';
 
 export const Route = createFileRoute('/_authenticated/_customers/customers')({
@@ -51,16 +52,8 @@ function CustomerListPage() {
                     },
                 },
                 identityScopeChannels: {
-                    header: () => <Trans>Storefronts</Trans>,
-                    cell: ({ row }) => (
-                        <div className="flex flex-wrap gap-1">
-                            {row.original.identityScopeChannels?.map(channel => (
-                                <Badge variant="outline" key={channel.id}>
-                                    {channel.code}
-                                </Badge>
-                            ))}
-                        </div>
-                    ),
+                    header: CustomerStorefrontsHeader,
+                    cell: CustomerStorefrontsCell,
                 },
                 groups: {
                     cell: ({ row }) => {
