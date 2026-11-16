@@ -436,4 +436,25 @@ describe('useGeneratedColumns mounted table', () => {
         expect(mounts).toBe(1);
         table.unmount();
     });
+
+    // #5346 — additional columns without a cell use a copy of TanStack's default cell inside a
+    // page block, so pin it to TanStack's own output, which applies outside a page block
+    it('renders an additional column without a cell the same as the TanStack default', () => {
+        const additionalColumns: AdditionalColumns<any> = {
+            yes: { accessorFn: () => true },
+            no: { accessorFn: () => false },
+            zero: { accessorFn: () => 0 },
+            empty: { accessorFn: () => null },
+            text: { accessorFn: () => 'text' },
+        } as any;
+        const insideBlock = mountGeneratedTable('test-page-default-cell', () => null, additionalColumns);
+        const noRegistryKey = mountGeneratedTable('', () => null, additionalColumns);
+        insideBlock.render();
+        noRegistryKey.render();
+
+        expect(insideBlock.container.innerHTML).toBe(noRegistryKey.container.innerHTML);
+        expect(insideBlock.container.textContent).toBe('SKU-1truefalse0text');
+        insideBlock.unmount();
+        noRegistryKey.unmount();
+    });
 });
