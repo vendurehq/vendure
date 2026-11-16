@@ -2,7 +2,7 @@
 title: "ShippingMethod"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/shipping-method/shipping-method.entity.ts" sourceLine="34" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/shipping-method/shipping-method.entity.ts" sourceLine="38" packageName="@vendure/core" />
 
 A ShippingMethod is used to apply a shipping price to an [Order](/reference/typescript-api/entities/order#order). It is composed of a
 [ShippingEligibilityChecker](/reference/typescript-api/shipping/shipping-eligibility-checker#shippingeligibilitychecker) and a [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator#shippingcalculator). For a given Order,
@@ -30,6 +30,7 @@ class ShippingMethod extends VendureEntity implements ChannelAware, SoftDeletabl
     translations: Array<Translation<ShippingMethod>>;
     @Column(type => CustomShippingMethodFields)
     customFields: CustomShippingMethodFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomShippingMethodFields>) => Promise<Partial<CustomShippingMethodFields> | undefined>;
     apply(ctx: RequestContext, order: Order) => Promise<ShippingCalculationResult | undefined>;
     test(ctx: RequestContext, order: Order) => Promise<boolean>;
     toJSON() => any;
@@ -94,6 +95,13 @@ class ShippingMethod extends VendureEntity implements ChannelAware, SoftDeletabl
 <MemberInfo kind="property" type={`CustomShippingMethodFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomShippingMethodFields>) => Promise<Partial<CustomShippingMethodFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the ShippingMethod's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A ShippingMethod loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### apply
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/shipping/shipping-calculator#shippingcalculationresult'>ShippingCalculationResult</a> | undefined>`}   />

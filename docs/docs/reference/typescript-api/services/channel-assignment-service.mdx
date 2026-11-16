@@ -2,7 +2,7 @@
 title: "ChannelAssignmentService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-assignment/channel-assignment.service.ts" sourceLine="61" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/channel-assignment/channel-assignment.service.ts" sourceLine="69" packageName="@vendure/core" since="4.0.0" />
 
 Reads and writes the channel assignment rows of [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware) entities: one row per
 (entity, Channel), holding the data which belongs to the entity in that Channel. See
@@ -16,9 +16,10 @@ Channel, so GraphQL field resolvers can read per-channel data without N+1 querie
 not cached, so a read always sees the current rows.
 
 ```ts title="Signature"
-class ChannelAssignmentService implements OnApplicationBootstrap {
+class ChannelAssignmentService implements OnApplicationBootstrap, OnApplicationShutdown {
     constructor(connection: TransactionalConnection, requestContextCache: RequestContextCacheService)
     onApplicationBootstrap() => ;
+    onApplicationShutdown() => ;
     getMetadata(entityType: AnyEntity) => ChannelAssignmentMetadata | undefined;
     getAssignment(ctx: RequestContext, entityType: AnyEntity, entityOrId: ID | { id: ID }, channelId: ID = ctx.channelId) => Promise<T | undefined>;
     getAssignments(ctx: RequestContext, entityType: AnyEntity, entityIds: ID[], channelId: ID = ctx.channelId) => Promise<Map<string, T>>;
@@ -26,17 +27,29 @@ class ChannelAssignmentService implements OnApplicationBootstrap {
     update(ctx: RequestContext, entityType: AnyEntity, entityIds: ID[], channelIds: ID[], values: Partial<Omit<T, 'channelId' | 'channel'>>) => Promise<void>;
     assertWritable(entityType: AnyEntity, values: object) => ChannelAssignmentMetadata;
     copyAssignment(ctx: RequestContext, entityType: AnyEntity, entityId: ID, fromChannelId: ID, toChannelIds: ID[]) => Promise<void>;
+    updateCustomFields(ctx: RequestContext, entityType: AnyEntity, entityId: ID, channelId: ID, values: Record<string, unknown>) => Promise<void>;
+    getCustomFieldValues(ctx: RequestContext, entityName: string, entityOrId: ID | { id: ID } | undefined, fieldNames: string[]) => Promise<Record<string, unknown>>;
+    getChannelCustomFields(ctx: RequestContext, entityType: AnyEntity, entityOrId: ID | { id: ID }, options: ChannelCustomFieldsOptions<any> = {}) => Promise<Record<string, unknown> | undefined>;
+    applyChannelCustomFields(ctx: RequestContext, result: unknown) => Promise<void>;
+    persistChannelCustomFields(ctx: RequestContext, result: unknown, entityType?: AnyEntity) => Promise<void>;
+    getCustomFieldsToCopy(ctx: RequestContext, entityType: AnyEntity, entity: { id: ID; customFields?: object }) => Promise<Record<string, unknown>>;
+    getMetadataByEntityName(entityName: string) => ChannelAssignmentMetadata | undefined;
     getMetadataOrThrow(entityType: AnyEntity) => ChannelAssignmentMetadata;
     getLoadedAssignment(entity: object, channelId: ID) => T | undefined;
 }
 ```
-* Implements: OnApplicationBootstrap
+* Implements: OnApplicationBootstrap, OnApplicationShutdown
 
 
 
 <div className="members-wrapper">
 
 ### onApplicationBootstrap
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### onApplicationShutdown
 
 <MemberInfo kind="method" type={`() => `}   />
 
@@ -90,6 +103,79 @@ are changed via `ChannelService.assignToChannels()` / `removeFromChannels()`.
 Copies the data columns of the entity's assignment row in `fromChannelId` to its rows in
 `toChannelIds`. Called by `ChannelService.assignToChannels()` so that an entity newly assigned
 to a Channel starts with the data it has in a Channel it was already assigned to.
+
+`unique` channel-scoped custom fields are not copied: the value may already be used by another
+entity in the target Channel, so the target row keeps its own value (the column default).
+### updateCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, values: Record<string, unknown>) => Promise<void>`}   />
+
+Writes channel-scoped custom field values to the entity's assignment row in the given Channel.
+Relation fields take the related entity (or `{ id }`), or `null`.
+### getCustomFieldValues
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityName: string, entityOrId: <a href='/reference/typescript-api/common/id#id'>ID</a> | { id: <a href='/reference/typescript-api/common/id#id'>ID</a> } | undefined, fieldNames: string[]) => Promise<Record<string, unknown>>`}   />
+
+Returns the values of the entity's channel-scoped custom fields in the active Channel. A field
+is `null` if the entity is not assigned to the Channel or the value is not set. Relation fields
+are resolved separately, by the GraphQL relation resolver.
+
+Like `ChannelAssignmentService.getAssignment`, if an entity is passed which a
+ListQueryBuilder list loaded with the `loadChannelAssignment` option, its row is used without
+a query.
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entityOrId: <a href='/reference/typescript-api/common/id#id'>ID</a> | { id: <a href='/reference/typescript-api/common/id#id'>ID</a> }, options: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><any> = {}) => Promise<Record<string, unknown> | undefined>`}   />
+
+Returns the values of the entity's channel-scoped custom fields in a Channel (the active
+Channel by default), or `undefined` if the entity is not assigned to that Channel. Relation
+fields are only set if they are listed in `options.relations`.
+
+Entities expose this as a typed method, e.g. `product.getChannelCustomFields(ctx)`. An entity
+loaded with a RequestContext already has the values of its Channel on `customFields`, so this
+is for reading the values of another Channel (`options.channelId`), loading relation fields,
+or reading the values of an entity loaded without a RequestContext.
+
+Reads without relations made in the same tick are batched into one query, and reuse the row
+loaded with the entity, if any.
+### applyChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, result: unknown) => Promise<void>`}  since="4.0.0"  />
+
+Sets the values of the channel-scoped custom fields in the Channel of `ctx` on the
+`customFields` object of every entity in `result` which has channel-scoped custom fields,
+including the entities of loaded relations (e.g. `order.lines[].productVariant.product`), so
+that `product.customFields.channelNote` reads the value of that Channel. Each entity type takes
+one query, and rows already loaded by a ListQueryBuilder list are reused.
+
+The TransactionalConnection calls this after every read made with a RequestContext, so code
+rarely needs to call it. Relation fields are not loaded, as with ordinary relation custom
+fields, but the `<name>Id` of a single relation is set.
+### persistChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, result: unknown, entityType?: AnyEntity) => Promise<void>`}  since="4.0.0"  />
+
+Writes the channel-scoped custom field values which code has changed on the `customFields` of
+the given entities since they were loaded (see `ChannelAssignmentService.applyChannelCustomFields`)
+to their assignment rows in the Channel of `ctx`. A single relation can be changed by setting
+the related entity (or `null`) or its `<name>Id`, and a list relation by setting the array.
+
+The TransactionalConnection calls this after `save()` on a repository obtained with a
+RequestContext. An entity which is not assigned to the Channel yet is skipped: entity services
+write the values of their input once the entity is assigned.
+### getCustomFieldsToCopy
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: AnyEntity, entity: { id: <a href='/reference/typescript-api/common/id#id'>ID</a>; customFields?: object }) => Promise<Record<string, unknown>>`}  since="4.0.0"  />
+
+Returns the custom field values to give a copy of the entity, as `customFields` input of its
+create method, e.g. in an [EntityDuplicator](/reference/typescript-api/configuration/entity-duplicator#entityduplicator): its ordinary custom fields, plus its
+channel-scoped ones in the active Channel. `unique` channel-scoped fields are left out, since
+the copy is created in the same Channel.
+### getMetadataByEntityName
+
+<MemberInfo kind="method" type={`(entityName: string) => ChannelAssignmentMetadata | undefined`}   />
+
+Like `ChannelAssignmentService.getMetadata`, looked up by entity name, e.g. `'Product'`.
 ### getMetadataOrThrow
 
 <MemberInfo kind="method" type={`(entityType: AnyEntity) => ChannelAssignmentMetadata`}   />

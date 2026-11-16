@@ -2,7 +2,7 @@
 title: "PaymentMethodChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="154" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="234" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [PaymentMethod](/reference/typescript-api/entities/payment-m
 class PaymentMethodChannel extends ChannelAssignment {
     paymentMethodId: ID;
     paymentMethod: PaymentMethod;
+    customFields: Partial<CustomPaymentMethodFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class PaymentMethodChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomPaymentMethodFields>`}  since="4.0.0"  />
+
+The values of the PaymentMethod's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

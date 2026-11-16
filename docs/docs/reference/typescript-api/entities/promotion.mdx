@@ -2,7 +2,7 @@
 title: "Promotion"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/promotion/promotion.entity.ts" sourceLine="62" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/promotion/promotion.entity.ts" sourceLine="66" packageName="@vendure/core" />
 
 A Promotion is used to define a set of conditions under which promotions actions (typically discounts)
 will be applied to an Order.
@@ -42,6 +42,7 @@ class Promotion extends AdjustmentSource implements ChannelAware, SoftDeletable,
     orders: Order[];
     @Column(type => CustomPromotionFields)
     customFields: CustomPromotionFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomPromotionFields>) => Promise<Partial<CustomPromotionFields> | undefined>;
     @Column('simple-json') conditions: ConfigurableOperation[];
     @Column('simple-json') actions: ConfigurableOperation[];
     @Column() priorityScore: number;
@@ -130,6 +131,13 @@ class Promotion extends AdjustmentSource implements ChannelAware, SoftDeletable,
 <MemberInfo kind="property" type={`CustomPromotionFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomPromotionFields>) => Promise<Partial<CustomPromotionFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the Promotion's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A Promotion loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### conditions
 
 <MemberInfo kind="property" type={`ConfigurableOperation[]`}   />

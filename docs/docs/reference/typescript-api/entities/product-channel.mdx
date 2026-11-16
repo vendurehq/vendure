@@ -2,7 +2,7 @@
 title: "ProductChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="171" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="260" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [Product](/reference/typescript-api/entities/product#product) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -12,6 +12,7 @@ class ProductChannel extends ChannelAssignment {
     product: Product;
     @Column({ default: true })
     enabled: boolean;
+    customFields: Partial<CustomProductFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -36,6 +37,12 @@ class ProductChannel extends ChannelAssignment {
 
 Whether the Product is enabled in this Channel. It is available in the Channel only if it is
 also enabled globally (`Product.enabled`): see [isEnabledInChannel](/reference/typescript-api/service-helpers/channel-enabled-checker#isenabledinchannel).
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomProductFields>`}  since="4.0.0"  />
+
+The values of the Product's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

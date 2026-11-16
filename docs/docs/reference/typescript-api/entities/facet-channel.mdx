@@ -2,7 +2,7 @@
 title: "FacetChannel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="102" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/entity/channel-assignment/channel-assignment.entities.ts" sourceLine="155" packageName="@vendure/core" since="4.0.0" />
 
 The assignment of a [Facet](/reference/typescript-api/entities/facet#facet) to a Channel. See [ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
@@ -10,6 +10,7 @@ The assignment of a [Facet](/reference/typescript-api/entities/facet#facet) to a
 class FacetChannel extends ChannelAssignment {
     facetId: ID;
     facet: Facet;
+    customFields: Partial<CustomFacetFields>;
 }
 ```
 * Extends: [`ChannelAssignment`](/reference/typescript-api/entities/channel-assignment#channelassignment)
@@ -28,6 +29,12 @@ class FacetChannel extends ChannelAssignment {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>`}   />
 
 
+### customFields
+
+<MemberInfo kind="property" type={`Partial<CustomFacetFields>`}  since="4.0.0"  />
+
+The values of the Facet's channel-scoped custom fields in this Channel. See
+[ChannelAssignment](/reference/typescript-api/entities/channel-assignment#channelassignment).
 
 
 </div>

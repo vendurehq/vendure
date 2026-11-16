@@ -2,7 +2,7 @@
 title: "Order"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/order/order.entity.ts" sourceLine="43" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/order/order.entity.ts" sourceLine="48" packageName="@vendure/core" />
 
 An Order is created whenever a [Customer](/reference/typescript-api/entities/customer#customer) adds an item to the cart. It contains all the
 information required to fulfill an order: which [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant)s in what quantities;
@@ -59,6 +59,7 @@ class Order extends VendureEntity implements ChannelAware, HasCustomFields {
     currencyCode: CurrencyCode;
     @Column(type => CustomOrderFields)
     customFields: CustomOrderFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomOrderFields>) => Promise<Partial<CustomOrderFields> | undefined>;
     @EntityId({ nullable: true })
     taxZoneId?: ID;
     @ManyToMany(type => Channel)
@@ -216,6 +217,13 @@ i.e. the Order is no longer active.
 <MemberInfo kind="property" type={`CustomOrderFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomOrderFields>) => Promise<Partial<CustomOrderFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the Order's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. An Order loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### taxZoneId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />

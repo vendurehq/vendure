@@ -2,7 +2,7 @@
 title: "Collection"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/collection/collection.entity.ts" sourceLine="35" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/collection/collection.entity.ts" sourceLine="40" packageName="@vendure/core" />
 
 A Collection is a grouping of [Product](/reference/typescript-api/entities/product#product)s based on various configurable criteria.
 
@@ -32,6 +32,7 @@ class Collection extends VendureEntity implements Translatable, HasCustomFields,
     productVariants: ProductVariant[];
     @Column(type => CustomCollectionFields)
     customFields: CustomCollectionFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomCollectionFields>) => Promise<Partial<CustomCollectionFields> | undefined>;
     @TreeChildren()
     children: Collection[];
     @TreeParent()
@@ -118,6 +119,13 @@ class Collection extends VendureEntity implements Translatable, HasCustomFields,
 <MemberInfo kind="property" type={`CustomCollectionFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomCollectionFields>) => Promise<Partial<CustomCollectionFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the Collection's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A Collection loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### children
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>[]`}   />

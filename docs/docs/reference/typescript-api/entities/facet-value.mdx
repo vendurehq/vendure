@@ -2,7 +2,7 @@
 title: "FacetValue"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/facet-value/facet-value.entity.ts" sourceLine="23" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/facet-value/facet-value.entity.ts" sourceLine="28" packageName="@vendure/core" />
 
 A particular value of a [Facet](/reference/typescript-api/entities/facet#facet).
 
@@ -20,6 +20,7 @@ class FacetValue extends VendureEntity implements Translatable, HasCustomFields,
     facetId: ID;
     @Column(type => CustomFacetValueFields)
     customFields: CustomFacetValueFields;
+    getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomFacetValueFields>) => Promise<Partial<CustomFacetValueFields> | undefined>;
     @ManyToMany(type => Channel, channel => channel.facetValues)
     // The junction table is owned by the channel assignment entity, which manages its schema.
     @JoinTable({ synchronize: false })
@@ -72,6 +73,13 @@ class FacetValue extends VendureEntity implements Translatable, HasCustomFields,
 <MemberInfo kind="property" type={`CustomFacetValueFields`}   />
 
 
+### getChannelCustomFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: <a href='/reference/typescript-api/entities/channel-custom-fields-options#channelcustomfieldsoptions'>ChannelCustomFieldsOptions</a><CustomFacetValueFields>) => Promise<Partial<CustomFacetValueFields> | undefined>`}  since="4.0.0"  />
+
+Returns the values of the FacetValue's channel-scoped custom fields in a Channel, or `undefined` if
+it is not assigned to that Channel. A FacetValue loaded with a RequestContext already has the
+values of its Channel on `customFields`: see `ChannelAssignmentService.getChannelCustomFields`for when to use this method, and its options.
 ### channels
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
