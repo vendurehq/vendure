@@ -21,6 +21,7 @@ Back up your production data before you migrate. After you go live on v4, restor
 |---|---|---|---|---|
 | [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) | [Role assignments](/developer-guide/migrating-from-v3/role-assignments#migrating-the-data) | [`previewRoleAssignmentMigration`](/developer-guide/migrating-from-v3/role-assignments#previewing-the-migration) | [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) | Both steps run on the first v4 startup |
 | [`migrateTimestampColumnsToTimestamptz`](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz) (PostgreSQL) | [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#converting-the-columns) | [`previewTimestamptzMigration`](/developer-guide/migrating-from-v3/date-time-columns#checking-which-timezones-your-data-was-written-in) | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
+| [`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) | [Inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking#migrating-the-data) | None | [`backfillStockMovementTracking`](/reference/typescript-api/migration/backfill-stock-movement-tracking), in the same migration | Not run. Set `synchronize: false` for the upgrade and use a migration |
 
 Each helper's guide explains what it does, how it checks its result, and any steps after go-live.
 
@@ -53,8 +54,10 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
    ```ts
    import { MigrationInterface, QueryRunner } from 'typeorm';
    import {
+       backfillStockMovementTracking,
        migrateRoleAssignmentData,
        migrateTimestampColumnsToTimestamptz,
+       migrateTrackInventoryToChannels,
        removeLegacyRoleData,
    } from '@vendure/core';
 
@@ -69,6 +72,10 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
            await migrateRoleAssignmentData(queryRunner);
            // For a rolling deployment, leave this out and call it from a later migration
            await removeLegacyRoleData(queryRunner);
+           // Inventory tracking: copies the global setting to every Channel, then fills
+           // StockMovement.tracked for existing stock movements
+           await migrateTrackInventoryToChannels(queryRunner);
+           await backfillStockMovementTracking(queryRunner);
        }
 
        public async down(queryRunner: QueryRunner): Promise<any> {

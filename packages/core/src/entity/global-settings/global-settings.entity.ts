@@ -24,11 +24,11 @@ export class GlobalSettings extends VendureEntity implements HasCustomFields {
     availableLanguages: LanguageCode[];
 
     /**
-     * The pre-v4 `GlobalSettings.trackInventory` value, kept in its original column until it has
-     * been copied to every Channel on upgrade, then set to `null`. It is not exposed in the API
-     * and nothing else reads it: from v4.0, `Channel.trackInventory` is the default. Keeping the
-     * column on the entity stops `synchronize` and generated migrations from dropping it before
-     * the value has been copied. See `migrateTrackInventoryToChannels()`.
+     * The pre-v4 `GlobalSettings.trackInventory` value, kept in its original column until
+     * `migrateTrackInventoryToChannels()` has copied it to every Channel and set it to `null`. It is
+     * not exposed in the API and nothing else reads it: from v4.0, `Channel.trackInventory` is the
+     * default. Keeping the column on the entity stops `synchronize` and generated migrations from
+     * dropping the value before it has been copied.
      *
      * @internal
      */

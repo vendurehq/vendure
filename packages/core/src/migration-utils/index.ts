@@ -27,7 +27,7 @@ export {
 } from './v4_0_timestamptz';
 export {
     TrackInventoryMigrationResult,
+    assertTrackInventoryMigrated,
     backfillStockMovementTracking,
-    ensureTrackInventoryMigrated,
     migrateTrackInventoryToChannels,
 } from './v4_0_track_inventory';

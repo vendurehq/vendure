@@ -9,7 +9,7 @@ import {
     ensureRoleAssignmentDataMigrated,
     hasLegacyRoleTables,
 } from '../migration-utils/v4_0_role_assignments';
-import { ensureTrackInventoryMigrated } from '../migration-utils/v4_0_track_inventory';
+import { assertTrackInventoryMigrated } from '../migration-utils/v4_0_track_inventory';
 
 import { AdministratorService } from './services/administrator.service';
 import { ChannelService } from './services/channel.service';
@@ -47,7 +47,7 @@ export class InitializerService {
     async onModuleInit() {
         await this.awaitDbSchemaGeneration();
         await this.ensureRoleAssignmentDataMigrated();
-        await this.ensureTrackInventoryMigrated();
+        await this.assertTrackInventoryMigrated();
         // IMPORTANT - why manually invoke these init methods rather than just relying on
         // Nest's "onModuleInit" lifecycle hook within each individual service class?
         // The reason is that the order of invocation matters. By explicitly invoking the
@@ -97,19 +97,14 @@ export class InitializerService {
     }
 
     /**
-     * Copies the pre-v4 GlobalSettings.trackInventory value to every Channel and fills
-     * StockMovement.tracked for pre-v4 movements, if that has not happened yet. Runs whether or
-     * not synchronize is enabled; a v4 migration may also have done it already.
+     * Refuses to start on a v3 database whose inventory tracking setting has not been migrated
+     * (see assertTrackInventoryMigrated). The migration itself runs from the user's v4 migration,
+     * not here.
      */
-    private async ensureTrackInventoryMigrated() {
+    private async assertTrackInventoryMigrated() {
         const queryRunner = this.connection.rawConnection.createQueryRunner();
         try {
-            if (await ensureTrackInventoryMigrated(queryRunner)) {
-                Logger.info(
-                    'Migrated GlobalSettings.trackInventory to Channel.trackInventory and filled ' +
-                        'StockMovement.tracked for existing stock movements',
-                );
-            }
+            await assertTrackInventoryMigrated(queryRunner);
         } finally {
             await queryRunner.release();
         }

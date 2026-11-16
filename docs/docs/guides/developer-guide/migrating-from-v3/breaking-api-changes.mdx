@@ -26,11 +26,13 @@ rg -n "RoleChangeEvent|getCustomerRole|getChannelsForRole|assignRoleToChannel|as
 rg -n "CUSTOMER_ROLE_CODE|CUSTOMER_ROLE_DESCRIPTION|user_roles_role|role_channels_channel"
 rg -n "createApiKeyUser\(|createAdministratorAndUser\(|implements SessionCacheStrategy"
 rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
+rg -n "trackInventory|StockLocationStrategy|getAvailableStock\(|createCancellationsForOrderLines"
 ```
 
 | Match | What to do |
 |---|---|
 | `RoleChangeEvent` | Subscribe to `RoleAssignmentEvent`. See [Events](/developer-guide/migrating-from-v3/role-assignments#events). |
+| `trackInventory`, `StockLocationStrategy`, `getAvailableStock(`, `createCancellationsForOrderLines` | See [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code). |
 | `getCustomerRole`, `CUSTOMER_ROLE_CODE`, `CUSTOMER_ROLE_DESCRIPTION` | Remove. There is no Customer role. See [Customers](/developer-guide/migrating-from-v3/role-assignments#customers). |
 | `getChannelsForRole`, `assignRoleToChannel`, `assertActiveUserCanGrantRoles`, `createApiKeyUser(`, `createAdministratorAndUser(` | See [Services](/developer-guide/migrating-from-v3/role-assignments#services). |
 | `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
@@ -61,6 +63,17 @@ The default cart pricing now uses the [buyer price](/core-concepts/pricing/#the-
 
 - `DefaultOrderItemPriceCalculationStrategy` needs `init()`. Vendure calls it for the configured strategy. If your code creates the strategy with `new` and calls `calculateUnitPrice()` directly, call `init(injector)` first.
 - When the customer of an active order or a draft order changes, Vendure calculates the price of all lines again, so a custom `OrderItemPriceCalculationStrategy` now also runs for `setCustomerForOrder`, `setCustomerForDraftOrder`, `setOrderCustomer` and the login of a guest. A line that has no price for the new customer keeps its current price.
+
+## Inventory tracking
+
+Inventory tracking is resolved per stock level, then per variant, then per channel. The main breaks:
+
+- `GlobalSettings.trackInventory` and `UpdateGlobalSettingsInput.trackInventory` are removed from the Admin API. Use `Channel.trackInventory`. The value is copied by the `migrateTrackInventoryToChannels` migration helper.
+- `ProductVariant.trackInventory` is the variant's default, not the final answer: a `StockLevel.trackInventory` can override it. Use `StockLevelService.isInventoryTracked()` or the resolved `tracksInventory` fields of the Admin API.
+- `StockLocationStrategy.getAvailableStock()` takes the variant as an optional fourth argument and should report `hasUntrackedStock`. `DefaultStockLocationStrategy.getAvailableStock()` returns a Promise when called with three arguments.
+- `StockMovementEvent` subscribers can receive a movement split into a tracked and an untracked row.
+
+For the full list, see [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code).
 
 ## Next steps
 
