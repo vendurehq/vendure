@@ -2,7 +2,7 @@
 title: "StockLevel"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/stock-level/stock-level.entity.ts" sourceLine="18" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/stock-level/stock-level.entity.ts" sourceLine="19" packageName="@vendure/core" />
 
 A StockLevel represents the number of a particular [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) which are available
 at a particular [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
@@ -24,6 +24,8 @@ class StockLevel extends VendureEntity implements HasCustomFields {
     stockOnHand: number;
     @Column()
     stockAllocated: number;
+    @Column({ type: 'varchar', default: GlobalFlag.INHERIT })
+    trackInventory: GlobalFlag;
     @Column(type => CustomStockLevelFields)
     customFields: CustomStockLevelFields;
 }
@@ -67,6 +69,13 @@ class StockLevel extends VendureEntity implements HasCustomFields {
 <MemberInfo kind="property" type={`number`}   />
 
 
+### trackInventory
+
+<MemberInfo kind="property" type={`GlobalFlag`}  since="4.0.0"  />
+
+Whether inventory is tracked for this ProductVariant at this StockLocation.
+`INHERIT` defers to [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant)`.trackInventory`, which in turn defers to
+[Channel](/reference/typescript-api/entities/channel#channel)`.trackInventory`. See [resolveTrackInventory](/reference/typescript-api/products-stock/resolve-track-inventory#resolvetrackinventory).
 ### customFields
 
 <MemberInfo kind="property" type={`CustomStockLevelFields`}   />

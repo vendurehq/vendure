@@ -2,13 +2,14 @@
 title: "StockLevelReadOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="36" packageName="@vendure/core" since="3.7.4" />
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="38" packageName="@vendure/core" since="3.7.4" />
 
 Options which control how the stock levels of a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) are read.
 
 ```ts title="Signature"
 interface StockLevelReadOptions {
     lockStockLevels?: boolean;
+    productVariant?: Pick<ProductVariant, 'id' | 'trackInventory'>;
 }
 ```
 
@@ -28,6 +29,12 @@ The lock covers every StockLevel row of the ProductVariant, whatever its
 Two checkouts of the same variant therefore wait for each other even when they draw on
 different stock locations, which [MultiChannelStockLocationStrategy](/reference/typescript-api/products-stock/multi-channel-stock-location-strategy#multichannelstocklocationstrategy) otherwise
 treats as independent.
+### productVariant
+
+<MemberInfo kind="property" type={`Pick<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, 'id' | 'trackInventory'>`}  since="4.0.0"  />
+
+The ProductVariant, when the caller already has it, so its `trackInventory` need not be
+loaded. Otherwise it is loaded with a request-scoped batching loader.
 
 
 </div>

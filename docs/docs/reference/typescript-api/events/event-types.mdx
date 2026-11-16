@@ -239,6 +239,31 @@ class ChannelEvent extends VendureEntityEvent<Channel, ChannelInputTypes> {
 
 
 </div>
+## ChannelTrackInventoryEvent
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/channel-track-inventory-event.ts" sourceLine="18" packageName="@vendure/core" since="4.0.0" />
+
+This event is fired when the `trackInventory` setting of a [Channel](/reference/typescript-api/entities/channel#channel) changes. It is the
+default for every ProductVariant and StockLevel set to `INHERIT`, so which of the Channel's
+variants are in stock can change. Search plugins subscribe to it to reindex the Channel.
+
+Unlike [ChannelEvent](/reference/typescript-api/events/event-types#channelevent), it is only fired when the value actually changes, not on every
+update which includes it.
+
+```ts title="Signature"
+class ChannelTrackInventoryEvent extends VendureEvent {
+    constructor(ctx: RequestContext, channel: Channel, trackInventory: boolean)
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
 ## CollectionEvent
 
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/collection-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />

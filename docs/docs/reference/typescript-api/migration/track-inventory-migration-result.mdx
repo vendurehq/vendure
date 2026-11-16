@@ -1,0 +1,36 @@
+---
+title: "TrackInventoryMigrationResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_track_inventory.ts" sourceLine="14" packageName="@vendure/core" since="4.0.0" />
+
+The result of [migrateTrackInventoryToChannels](/reference/typescript-api/migration/migrate-track-inventory-to-channels#migratetrackinventorytochannels).
+
+```ts title="Signature"
+interface TrackInventoryMigrationResult {
+    globalTrackInventory: boolean | undefined;
+    overwrittenChannels: Array<{ code: string; previous: boolean }>;
+    filledStockMovements: number;
+}
+```
+
+<div className="members-wrapper">
+
+### globalTrackInventory
+
+<MemberInfo kind="property" type={`boolean | undefined`}   />
+
+
+### overwrittenChannels
+
+<MemberInfo kind="property" type={`Array<{ code: string; previous: boolean }>`}   />
+
+
+### filledStockMovements
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+
+
+</div>
